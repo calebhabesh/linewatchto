@@ -20,6 +20,7 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
@@ -100,6 +101,7 @@ class VapidWebPushClientPayloadTest {
         assertThat(clearedRequest.headers().firstValue("Content-Encoding")).contains("aes128gcm");
         assertThat(activeRequest.bodyPublisher()).isPresent();
         assertThat(clearedRequest.bodyPublisher()).isPresent();
+        assertThat(activeRequest.timeout()).contains(Duration.ofSeconds(10));
         assertThat(activeRequest.bodyPublisher().orElseThrow().contentLength()).isGreaterThan(activePayload.toJson().length());
         assertThat(clearedRequest.bodyPublisher().orElseThrow().contentLength()).isGreaterThan(clearedPayload.toJson().length());
     }

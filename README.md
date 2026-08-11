@@ -550,6 +550,8 @@ LINEWATCH_PUSH_VAPID_SUBJECT=mailto:you@example.com \
 scripts/dev-live-backend.sh
 ```
 
+Push subscription endpoints are restricted to the HTTPS provider domains used by FCM, Mozilla, Apple, and Windows. Delivery uses a 3-second connect timeout and 10-second request timeout by default; each account may keep up to five enabled devices, and manual device tests have a one-minute cooldown.
+
 For local push testing, use the helper that generates/reuses local VAPID keys under ignored `tmp/linewatch-vapid.env` and starts the live backend with push enabled:
 
 ```bash

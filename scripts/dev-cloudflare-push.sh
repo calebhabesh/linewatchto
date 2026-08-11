@@ -103,7 +103,7 @@ NODE
   set +a
 fi
 
-: "${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:=true}"
+LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false
 : "${LINEWATCH_PUSH_VAPID_SUBJECT:=mailto:linewatch-dev@example.invalid}"
 if [ -z "${LINEWATCH_BUILD_LABEL:-}" ]; then
   if GIT_SHORT_SHA=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null); then

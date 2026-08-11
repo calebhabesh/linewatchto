@@ -19,6 +19,13 @@ public interface PushNotificationEventRepository extends JpaRepository<PushNotif
 
     boolean existsByNotificationKeyAndNotificationState(String notificationKey, String notificationState);
 
+    boolean existsByAccountIdAndCategoryAndNotificationKeyStartingWithAndCreatedAtAfter(
+        String accountId,
+        String category,
+        String notificationKeyPrefix,
+        Instant createdAtAfter
+    );
+
     List<PushNotificationEventEntity> findByAccountIdAndCategoryAndNotificationState(
         String accountId,
         String category,

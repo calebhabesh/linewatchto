@@ -121,6 +121,7 @@ public class GoogleOAuthService {
                 normalized.length() > MAX_RETURN_TO_LENGTH ||
                 !normalized.startsWith("/") ||
                 normalized.startsWith("//") ||
+                normalized.contains("\\") ||
                 normalized.contains("\n") ||
                 normalized.contains("\r")
         ) {

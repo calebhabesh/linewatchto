@@ -50,6 +50,7 @@ public class PushNotificationService {
     private final IngestionFreshness ingestionFreshness;
     private final RegionalIngestionFreshness regionalIngestionFreshness;
     private final PushSubscriptionLifecycleService lifecycleService;
+    private final PushEndpointPolicy endpointPolicy;
     private final Clock clock;
 
     @Autowired
@@ -137,6 +138,7 @@ public class PushNotificationService {
         this.regionalIngestionFreshness = regionalIngestionFreshness;
         this.clock = clock;
         this.lifecycleService = lifecycleService;
+        this.endpointPolicy = new PushEndpointPolicy();
     }
 
     @Transactional(readOnly = true)
@@ -158,13 +160,15 @@ public class PushNotificationService {
         AccountEntity account,
         PushRequests.SaveSubscriptionRequest request
     ) {
-        String endpoint = required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required.");
+        String endpoint = endpointPolicy.requireAllowed(request.endpoint());
         PushRequests.PushSubscriptionKeys keys = request.keys();
         if (keys == null) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "missing_push_keys", "Push subscription keys are required.");
         }
         String p256dh = required(keys.p256dh(), "missing_push_keys", "Push subscription p256dh key is required.");
         String auth = required(keys.auth(), "missing_push_keys", "Push subscription auth key is required.");
+        requireMaxLength(p256dh, 256, "invalid_push_keys", "Push subscription keys are invalid.");
+        requireMaxLength(auth, 256, "invalid_push_keys", "Push subscription keys are invalid.");
         String endpointHash = hashEndpoint(endpoint);
         String installationId = normalizeInstallationId(request.installationId());
         String registrationReason = normalizeRegistrationReason(request.reason());
@@ -179,6 +183,24 @@ public class PushNotificationService {
             recordLifecycle(existing.get(), "refresh-rejected", "hard-invalid-endpoint");
             return toResponse(existing.get());
         }
+
+        if (existing.isEmpty()
+            && subscriptionRepository.countByAccountIdAndEnabledTrue(account.getId()) >= properties.getMaxEnabledSubscriptionsPerAccount()) {
+            throw new AccountException(
+                HttpStatus.CONFLICT,
+                "push_device_limit_reached",
+                "Disable an existing push device before adding another."
+            );
+        }
+
+        subscriptionRepository.findByEndpointHashAndEnabledTrue(endpointHash)
+            .stream()
+            .filter(previous -> !previous.getAccount().getId().equals(account.getId()))
+            .forEach(previous -> {
+                previous.disable(now, "reassigned-to-another-account");
+                subscriptionRepository.save(previous);
+                recordLifecycle(previous, "superseded", "account-switch");
+            });
 
         if (installationId != null) {
             subscriptionRepository.findByAccountIdAndInstallationIdAndEnabledTrue(account.getId(), installationId)
@@ -237,7 +259,7 @@ public class PushNotificationService {
 
     @Transactional
     public void disableSubscription(AccountEntity account, PushRequests.SubscriptionEndpointRequest request) {
-        String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        String endpointHash = hashEndpoint(endpointPolicy.requireAllowed(request.endpoint()));
         subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
             .ifPresent(subscription -> {
                 String reason = normalizeRegistrationReason(request.reason());
@@ -251,8 +273,9 @@ public class PushNotificationService {
         AccountEntity account,
         PushRequests.DisplayedNotificationRequest request
     ) {
-        String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        String endpointHash = hashEndpoint(endpointPolicy.requireAllowed(request.endpoint()));
         DisplayTag displayTag = parseDisplayTag(required(request.tag(), "missing_notification_tag", "Push notification tag is required."));
+        requireMaxLength(request.tag().trim(), 512, "invalid_notification_tag", "Push notification tag is invalid.");
         deliveryRepository.findPendingDeliveryForNotification(
             account.getId(),
             endpointHash,
@@ -277,8 +300,9 @@ public class PushNotificationService {
 
     @Transactional
     public void recordClientEvent(AccountEntity account, PushRequests.ClientEventRequest request) {
-        String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        String endpointHash = hashEndpoint(endpointPolicy.requireAllowed(request.endpoint()));
         DisplayTag displayTag = parseDisplayTag(required(request.tag(), "missing_notification_tag", "Push notification tag is required."));
+        requireMaxLength(request.tag().trim(), 512, "invalid_notification_tag", "Push notification tag is invalid.");
         String stage = normalizeClientEventStage(required(request.stage(), "missing_stage", "Push client event stage is required."));
         Instant now = clock.instant();
         PushSubscriptionEntity subscription = subscriptionRepository
@@ -308,6 +332,8 @@ public class PushNotificationService {
     public void recordReceiptEvent(PushRequests.ReceiptEventRequest request) {
         String deliveryId = required(request.deliveryId(), "missing_delivery_id", "Push delivery id is required.");
         String receiptToken = required(request.receiptToken(), "missing_receipt_token", "Push receipt token is required.");
+        requireMaxLength(deliveryId, 80, "invalid_delivery_id", "Push delivery id is invalid.");
+        requireMaxLength(receiptToken, 256, "invalid_receipt_token", "Push receipt token is not valid.");
         String stage = normalizeClientEventStage(required(request.stage(), "missing_stage", "Push client event stage is required."));
         PushNotificationDeliveryEntity delivery = deliveryRepository.findById(deliveryId)
             .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "push_delivery_not_found", "Push delivery was not found."));
@@ -386,6 +412,20 @@ public class PushNotificationService {
         }
 
         Instant now = clock.instant();
+        Duration cooldown = properties.getDiagnosticTestCooldown();
+        if (cooldown != null && !cooldown.isZero() && !cooldown.isNegative()
+            && eventRepository.existsByAccountIdAndCategoryAndNotificationKeyStartingWithAndCreatedAtAfter(
+                account.getId(),
+                "diagnostic-test",
+                "diagnostic-test|" + subscription.getId() + "|",
+                now.minus(cooldown)
+            )) {
+            throw new AccountException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "push_test_rate_limited",
+                "Wait before sending another test notification to this device."
+            );
+        }
         PushNotificationEventEntity event = eventRepository.save(PushNotificationEventEntity.diagnosticTest(
             nextId("push_event"),
             account.getId(),
@@ -438,7 +478,7 @@ public class PushNotificationService {
         AccountEntity account,
         PushRequests.SubscriptionEndpointRequest request
     ) {
-        String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        String endpointHash = hashEndpoint(endpointPolicy.requireAllowed(request.endpoint()));
         Optional<PushSubscriptionEntity> subscription = subscriptionRepository.findByAccountIdAndEndpointHash(
             account.getId(),
             endpointHash
@@ -495,7 +535,7 @@ public class PushNotificationService {
         AccountEntity account,
         PushRequests.SubscriptionEndpointRequest request
     ) {
-        String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        String endpointHash = hashEndpoint(endpointPolicy.requireAllowed(request.endpoint()));
         return subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
             .filter(PushSubscriptionEntity::isEnabled)
             .map(subscription -> {
@@ -611,6 +651,9 @@ public class PushNotificationService {
         String message,
         Instant now
     ) {
+        if (delivery == null || clientEventRepository.existsByDeliveryIdAndStage(delivery.getId(), stage)) {
+            return;
+        }
         clientEventRepository.save(PushNotificationClientEventEntity.create(
             nextId("push_client_event"),
             accountId,
@@ -1068,6 +1111,12 @@ public class PushNotificationService {
             throw new AccountException(HttpStatus.BAD_REQUEST, code, message);
         }
         return value.trim();
+    }
+
+    private void requireMaxLength(String value, int maxLength, String code, String message) {
+        if (value.length() > maxLength) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, code, message);
+        }
     }
 
     private String normalizeUserAgent(String userAgent) {

@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface PushNotificationClientEventRepository extends JpaRepository<PushNotificationClientEventEntity, String> {
+    boolean existsByDeliveryIdAndStage(String deliveryId, String stage);
+
     @Query("""
         select clientEvent
         from PushNotificationClientEventEntity clientEvent

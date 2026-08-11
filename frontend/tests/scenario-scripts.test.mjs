@@ -164,6 +164,7 @@ describe("alert scenario scripts", () => {
     assert.match(cloudflarePushScript, /LINEWATCH_AUTH_SECURE_COOKIE=true/);
     assert.match(cloudflarePushScript, /LINEWATCH_AUTH_ALLOWED_ORIGINS="\$PUBLIC_ORIGIN"/);
     assert.match(cloudflarePushScript, /LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL="\$PUBLIC_ORIGIN"/);
+    assert.match(cloudflarePushScript, /LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false/);
     assert.match(cloudflarePushScript, /NEXT_PUBLIC_LINEWATCH_API_BASE_URL=""/);
     assert.match(cloudflarePushScript, /NEXT_PUBLIC_LINEWATCH_ENABLE_SW=true/);
     assert.match(cloudflarePushScript, /LINEWATCH_BUILD_LABEL/);

@@ -34,4 +34,22 @@ class FeedbackRateLimiterTest {
                 assertThat(ex.getMessage()).isEqualTo("Too many feedback submissions. Try again later.");
             });
     }
+
+    @Test
+    void capsFeedbackBucketCardinality() {
+        FeedbackProperties properties = new FeedbackProperties();
+        properties.getRateLimit().setMaxBuckets(1);
+        FeedbackRateLimiter limiter = new FeedbackRateLimiter(
+            properties,
+            Clock.fixed(Instant.parse("2026-06-23T12:00:00Z"), ZoneOffset.UTC)
+        );
+
+        limiter.requireFeedbackAttempt("203.0.113.10");
+
+        assertThatThrownBy(() -> limiter.requireFeedbackAttempt("203.0.113.11"))
+            .isInstanceOf(FeedbackException.class)
+            .extracting("status")
+            .isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(limiter.bucketCount()).isEqualTo(1);
+    }
 }

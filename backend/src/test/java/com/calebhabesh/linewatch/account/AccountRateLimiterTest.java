@@ -107,6 +107,27 @@ class AccountRateLimiterTest {
             .isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
     }
 
+    @Test
+    void capsBucketCardinalityAndReclaimsExpiredEntries() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-06-15T14:00:00Z"));
+        AccountRateLimitProperties properties = new AccountRateLimitProperties();
+        properties.setWindow(Duration.ofMinutes(15));
+        properties.setMaxBuckets(2);
+        AccountRateLimiter limiter = new AccountRateLimiter(properties, clock);
+
+        limiter.requireAuthAttempt("login", "203.0.113.10");
+        limiter.requireAuthAttempt("login", "203.0.113.11");
+        assertThatThrownBy(() -> limiter.requireAuthAttempt("login", "203.0.113.12"))
+            .isInstanceOf(AccountException.class)
+            .extracting("status")
+            .isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        org.assertj.core.api.Assertions.assertThat(limiter.bucketCount()).isEqualTo(2);
+
+        clock.advance(Duration.ofMinutes(16));
+        limiter.requireAuthAttempt("login", "203.0.113.12");
+        org.assertj.core.api.Assertions.assertThat(limiter.bucketCount()).isEqualTo(1);
+    }
+
     private static final class MutableClock extends Clock {
         private Instant instant;
 

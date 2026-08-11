@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.push;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -914,6 +915,66 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    void rejectsArbitraryPushEndpointBeforePersistence() {
+        assertThatThrownBy(() -> service.saveSubscription(
+            account,
+            new PushRequests.SaveSubscriptionRequest(
+                "http://127.0.0.1:9090/actuator",
+                new PushRequests.PushSubscriptionKeys("p256dh", "auth"),
+                "test"
+            )
+        )).isInstanceOf(com.calebhabesh.linewatch.account.AccountException.class)
+            .extracting("status", "error")
+            .containsExactly(org.springframework.http.HttpStatus.BAD_REQUEST, "invalid_push_endpoint");
+
+        verify(subscriptionRepository, never()).save(any(PushSubscriptionEntity.class));
+    }
+
+    @Test
+    void rejectsNewSubscriptionWhenAccountDeviceQuotaIsReached() {
+        when(subscriptionRepository.findByAccountIdAndEndpointHash(anyString(), anyString())).thenReturn(Optional.empty());
+        when(subscriptionRepository.countByAccountIdAndEnabledTrue("user_1")).thenReturn(5L);
+
+        assertThatThrownBy(() -> service.saveSubscription(
+            account,
+            new PushRequests.SaveSubscriptionRequest(
+                "https://fcm.googleapis.com/fcm/send/new-device",
+                new PushRequests.PushSubscriptionKeys("p256dh", "auth"),
+                "test"
+            )
+        )).isInstanceOf(com.calebhabesh.linewatch.account.AccountException.class)
+            .extracting("status", "error")
+            .containsExactly(org.springframework.http.HttpStatus.CONFLICT, "push_device_limit_reached");
+    }
+
+    @Test
+    void registeringEndpointDisablesItsPreviousAccountOwner() {
+        AccountEntity previousAccount = AccountEntity.create(
+            "user_2", "other@example.com", "Other", "$2a$hash", false, clock.instant()
+        );
+        String endpoint = "https://fcm.googleapis.com/fcm/send/shared-browser";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushSubscriptionEntity previous = PushSubscriptionEntity.create(
+            "push_subscription_previous", previousAccount, endpoint, endpointHash,
+            "old-p256dh", "old-auth", "Chrome", clock.instant()
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash)).thenReturn(Optional.empty());
+        when(subscriptionRepository.countByAccountIdAndEnabledTrue("user_1")).thenReturn(0L);
+        when(subscriptionRepository.findByEndpointHashAndEnabledTrue(endpointHash)).thenReturn(List.of(previous));
+        when(subscriptionRepository.save(any(PushSubscriptionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.saveSubscription(
+            account,
+            new PushRequests.SaveSubscriptionRequest(
+                endpoint, new PushRequests.PushSubscriptionKeys("new-p256dh", "new-auth"), "Chrome"
+            )
+        );
+
+        assertThat(previous.isEnabled()).isFalse();
+        assertThat(previous.getDisabledReason()).isEqualTo("reassigned-to-another-account");
+    }
+
+    @Test
     void testDeviceSendsManualDiagnosticPushAndRecordsDelivery() {
         String endpoint = "https://fcm.googleapis.com/fcm/send/android";
         String endpointHash = PushNotificationService.hashEndpoint(endpoint);
@@ -952,6 +1013,27 @@ class PushNotificationServiceTest {
         assertThat(response.delivery().deviceLabel()).isEqualTo("Android Chrome");
         assertThat(response.delivery().deliveryStatus()).isEqualTo("accepted");
         assertThat(response.delivery().httpStatus()).isEqualTo(201);
+    }
+
+    @Test
+    void testDeviceEnforcesPersistentCooldownBeforeNetworkDelivery() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/android";
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_android", account, endpoint, PushNotificationService.hashEndpoint(endpoint),
+            "p256dh-key", "auth-secret", "Chrome", clock.instant()
+        );
+        when(subscriptionRepository.findByIdAndAccountId("push_subscription_android", "user_1"))
+            .thenReturn(Optional.of(subscription));
+        when(eventRepository.existsByAccountIdAndCategoryAndNotificationKeyStartingWithAndCreatedAtAfter(
+            eq("user_1"), eq("diagnostic-test"), eq("diagnostic-test|push_subscription_android|"), any(Instant.class)
+        )).thenReturn(true);
+
+        assertThatThrownBy(() -> service.testDevice(account, "push_subscription_android"))
+            .isInstanceOf(com.calebhabesh.linewatch.account.AccountException.class)
+            .extracting("status", "error")
+            .containsExactly(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS, "push_test_rate_limited");
+
+        verifyNoInteractions(webPushClient);
     }
 
     @Test
@@ -1238,6 +1320,28 @@ class PushNotificationServiceTest {
         assertThat(saved.getNotificationState()).isEqualTo("ACTIVE");
         assertThat(saved.getStage()).isEqualTo("push_received");
         assertThat(saved.getOccurredAt()).isEqualTo(clock.instant());
+    }
+
+    @Test
+    void ignoresClientEventWithoutAnOwnedDelivery() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/unowned-event";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash)).thenReturn(Optional.empty());
+        when(deliveryRepository.findLatestDeliveryForNotification(
+            eq("user_1"), eq(endpointHash), anyString(), eq("ACTIVE"), eq(PageRequest.of(0, 1))
+        )).thenReturn(List.of());
+
+        service.recordClientEvent(
+            account,
+            new PushRequests.ClientEventRequest(
+                endpoint,
+                "line-current|line-1|delay|fake|active",
+                "push_received",
+                null
+            )
+        );
+
+        verify(clientEventRepository, never()).save(any(PushNotificationClientEventEntity.class));
     }
 
     private PushNotificationCandidate candidate(

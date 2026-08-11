@@ -55,6 +55,7 @@ public class FeedbackProperties {
         private boolean enabled = true;
         private Duration window = Duration.ofMinutes(15);
         private int maxRequests = 5;
+        private int maxBuckets = 10_000;
 
         public boolean isEnabled() {
             return enabled;
@@ -79,5 +80,8 @@ public class FeedbackProperties {
         public void setMaxRequests(int maxRequests) {
             this.maxRequests = maxRequests;
         }
+
+        public int getMaxBuckets() { return maxBuckets; }
+        public void setMaxBuckets(int maxBuckets) { this.maxBuckets = maxBuckets; }
     }
 }

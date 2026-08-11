@@ -15,6 +15,10 @@ public class PushProperties {
     private Duration activeDisplayTtl = Duration.ofMinutes(10);
     private Duration clearedDeliveryTtl = Duration.ofHours(24);
     private Duration clearedNotificationRetention = Duration.ofHours(24);
+    private Duration connectTimeout = Duration.ofSeconds(3);
+    private Duration requestTimeout = Duration.ofSeconds(10);
+    private Duration diagnosticTestCooldown = Duration.ofMinutes(1);
+    private int maxEnabledSubscriptionsPerAccount = 5;
 
     public boolean isEnabled() {
         return enabled;
@@ -112,6 +116,17 @@ public class PushProperties {
 
     public void setClearedNotificationRetention(Duration clearedNotificationRetention) {
         this.clearedNotificationRetention = clearedNotificationRetention;
+    }
+
+    public Duration getConnectTimeout() { return connectTimeout; }
+    public void setConnectTimeout(Duration connectTimeout) { this.connectTimeout = connectTimeout; }
+    public Duration getRequestTimeout() { return requestTimeout; }
+    public void setRequestTimeout(Duration requestTimeout) { this.requestTimeout = requestTimeout; }
+    public Duration getDiagnosticTestCooldown() { return diagnosticTestCooldown; }
+    public void setDiagnosticTestCooldown(Duration diagnosticTestCooldown) { this.diagnosticTestCooldown = diagnosticTestCooldown; }
+    public int getMaxEnabledSubscriptionsPerAccount() { return maxEnabledSubscriptionsPerAccount; }
+    public void setMaxEnabledSubscriptionsPerAccount(int maxEnabledSubscriptionsPerAccount) {
+        this.maxEnabledSubscriptionsPerAccount = maxEnabledSubscriptionsPerAccount;
     }
 
     public boolean webPushConfigured() {

@@ -50,28 +50,33 @@ public class AccountRateLimiter {
         return remote == null || remote.isBlank() ? "unknown" : remote.trim();
     }
 
-    private void check(String key, int maxRequests) {
+    private synchronized void check(String key, int maxRequests) {
         if (!properties.isEnabled() || maxRequests <= 0) {
             return;
         }
         Instant now = clock.instant();
+        if (!buckets.containsKey(key) && buckets.size() >= Math.max(1, properties.getMaxBuckets())) {
+            buckets.entrySet().removeIf(entry ->
+                !entry.getValue().windowStart().plus(properties.getWindow()).isAfter(now)
+            );
+            if (buckets.size() >= Math.max(1, properties.getMaxBuckets())) {
+                throw rateLimited();
+            }
+        }
         buckets.compute(key, (ignored, bucket) -> {
             if (bucket == null || !bucket.windowStart().plus(properties.getWindow()).isAfter(now)) {
                 return new Bucket(now, 1);
             }
             if (bucket.count() >= maxRequests) {
-                throw new AccountException(
-                    HttpStatus.TOO_MANY_REQUESTS,
-                    "rate_limited",
-                    "Too many attempts. Try again later."
-                );
+                throw rateLimited();
             }
             return new Bucket(bucket.windowStart(), bucket.count() + 1);
         });
     }
 
     private static String normalize(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+        String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+        return normalized.length() > 320 ? normalized.substring(0, 320) : normalized;
     }
 
     private static String normalizeAddress(String value) {
@@ -84,6 +89,12 @@ public class AccountRateLimiter {
             return "";
         }
         return header.split(",", 2)[0].trim();
+    }
+
+    int bucketCount() { return buckets.size(); }
+
+    private AccountException rateLimited() {
+        return new AccountException(HttpStatus.TOO_MANY_REQUESTS, "rate_limited", "Too many attempts. Try again later.");
     }
 
     private record Bucket(Instant windowStart, int count) {}

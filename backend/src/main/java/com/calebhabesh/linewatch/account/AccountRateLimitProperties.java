@@ -11,6 +11,7 @@ public class AccountRateLimitProperties {
     private int passwordResetMaxRequests = 5;
     private int demoMaxRequests = 20;
     private int preferenceMutationMaxRequests = 120;
+    private int maxBuckets = 10_000;
 
     public boolean isEnabled() {
         return enabled;
@@ -59,4 +60,7 @@ public class AccountRateLimitProperties {
     public void setPreferenceMutationMaxRequests(int preferenceMutationMaxRequests) {
         this.preferenceMutationMaxRequests = preferenceMutationMaxRequests;
     }
+
+    public int getMaxBuckets() { return maxBuckets; }
+    public void setMaxBuckets(int maxBuckets) { this.maxBuckets = maxBuckets; }
 }

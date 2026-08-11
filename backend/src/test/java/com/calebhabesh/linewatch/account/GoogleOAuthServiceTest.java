@@ -79,6 +79,14 @@ class GoogleOAuthServiceTest {
         assertThat(state.returnTo()).isEqualTo("/");
     }
 
+    @Test
+    void rejectsAuthorityBearingBackslashReturnTo() {
+        GoogleOAuthService.GoogleOAuthStart start = service.start("login", "/\\attacker.example/phish");
+        GoogleOAuthService.GoogleOAuthState state = service.decodeStateCookie(start.cookieValue()).orElseThrow();
+
+        assertThat(state.returnTo()).isEqualTo("/");
+    }
+
     private static GoogleAuthProperties googleProperties() {
         GoogleAuthProperties result = new GoogleAuthProperties();
         result.setEnabled(true);

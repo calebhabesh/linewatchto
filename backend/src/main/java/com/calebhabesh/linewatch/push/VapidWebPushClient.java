@@ -15,6 +15,7 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPrivateKeySpec;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,16 +28,35 @@ public class VapidWebPushClient implements WebPushClient {
     private final PushProperties properties;
     private final Clock clock;
     private final HttpClient httpClient;
+    private final PushEndpointPolicy endpointPolicy;
 
     @Autowired
     public VapidWebPushClient(PushProperties properties) {
-        this(properties, Clock.systemUTC(), HttpClient.newHttpClient());
+        this(
+            properties,
+            Clock.systemUTC(),
+            HttpClient.newBuilder()
+                .connectTimeout(positive(properties.getConnectTimeout(), Duration.ofSeconds(3)))
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build(),
+            new PushEndpointPolicy()
+        );
     }
 
     VapidWebPushClient(PushProperties properties, Clock clock, HttpClient httpClient) {
+        this(properties, clock, httpClient, new PushEndpointPolicy());
+    }
+
+    VapidWebPushClient(
+        PushProperties properties,
+        Clock clock,
+        HttpClient httpClient,
+        PushEndpointPolicy endpointPolicy
+    ) {
         this.properties = properties;
         this.clock = clock;
         this.httpClient = httpClient;
+        this.endpointPolicy = endpointPolicy;
     }
 
     @Override
@@ -45,8 +65,9 @@ public class VapidWebPushClient implements WebPushClient {
             return PushDeliveryResult.skipped("Web Push VAPID keys are not configured.");
         }
         try {
-            URI endpoint = URI.create(subscription.getEndpoint());
+            URI endpoint = URI.create(endpointPolicy.requireAllowed(subscription.getEndpoint()));
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(endpoint)
+                .timeout(positive(properties.getRequestTimeout(), Duration.ofSeconds(10)))
                 .header("TTL", Long.toString(ttlSeconds(payload)))
                 .header("Urgency", "high")
                 .header("Authorization", authorizationHeader(endpoint));
@@ -77,6 +98,10 @@ public class VapidWebPushClient implements WebPushClient {
         } catch (Exception ex) {
             return PushDeliveryResult.failed(null, ex.getMessage());
         }
+    }
+
+    private static Duration positive(Duration configured, Duration fallback) {
+        return configured == null || configured.isZero() || configured.isNegative() ? fallback : configured;
     }
 
     private long ttlSeconds(WebPushPayload payload) {
