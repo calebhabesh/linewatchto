@@ -18475,70 +18475,52 @@ img.transit-line-badge {
   border-color: #4aa3ff !important;
 }
 
-
 /* ============================================================
    Direct pan and user-zoom overlay simplification
    Freeze animated effects at their current frame without dropping glows
    ============================================================ */
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path-glow:not(.map-selection-attention),
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .interactive-glow:not(.map-selection-attention),
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path.delay-candy,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path.suspension-candy,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path.delay-static-base,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path.planned-preview,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .delay-hourglass-mask-path,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .suspension-mask-path,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .delay-static-path,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .station-impact-dot-red-ping,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .station-commute-green-flash,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .commute-path-preview-glow,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .commute-path-preview-path,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-impact-aura,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-impact-path,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-delay-glyph,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-suspension-glyph,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-chevron-glyph,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-planned-closure-glyph,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-impact-interactive-glow:not(.map-selection-attention) {
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path-glow:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-candy,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.suspension-candy,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-static-base,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.planned-preview,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-hourglass-mask-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .suspension-mask-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-static-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-ping,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-commute-green-flash,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-glow,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-aura,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-delay-glyph,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-suspension-glyph,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-chevron-glyph,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-planned-closure-glyph,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-interactive-glow:not(.map-selection-attention) {
   animation-play-state: paused !important;
   transition: none !important;
 }
 
 /* Freeze selection attention at its current frame too. Keeping filters and
    opacity untouched preserves every authored glow during a pan or zoom. */
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .map-selection-attention {
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .map-selection-attention {
   animation-play-state: paused !important;
   transition: none !important;
 }
 
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .interactive-glow.selected {
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow.selected {
   opacity: 0.36;
   stroke-width: 138;
 }
 
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-map-stage > svg,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-map-stage > div > svg,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .ttc-svg-container svg,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path,
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path-glow {
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-map-stage > svg,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-map-stage > div > svg {
   shape-rendering: auto;
   text-rendering: optimizeLegibility;
-}
-
-/* The TTC asset authors precision hints directly onto its label nodes, so an
-   outer-svg hint alone cannot reduce their repaint cost. Override only the two
-   static authored groups during motion; React-owned overlays retain their own
-   rendering contract. */
-:is(.map-gesture-active, [data-map-zoom-active="true"]) .ttc-svg-container :is(
-  #ttc-map-base-root,
-  #ttc-map-base-root *,
-  #ttc-map-foreground-root,
-  #ttc-map-foreground-root *
-) {
-  shape-rendering: auto !important;
-  text-rendering: optimizeLegibility !important;
 }
 
 /* Programmatic camera flights, including Center, follow the same visual
@@ -18561,23 +18543,6 @@ img.transit-line-badge {
 [data-map-camera-moving="true"] .commute-path-preview-path {
   animation-play-state: paused !important;
   transition: none !important;
-}
-
-[data-map-camera-moving="true"] .ttc-svg-container svg,
-[data-map-camera-moving="true"] .asset-alert-path,
-[data-map-camera-moving="true"] .asset-alert-path-glow {
-  shape-rendering: auto;
-  text-rendering: optimizeLegibility;
-}
-
-[data-map-camera-moving="true"] .ttc-svg-container :is(
-  #ttc-map-base-root,
-  #ttc-map-base-root *,
-  #ttc-map-foreground-root,
-  #ttc-map-foreground-root *
-) {
-  shape-rendering: auto !important;
-  text-rendering: optimizeLegibility !important;
 }
 
 /* ============================================================

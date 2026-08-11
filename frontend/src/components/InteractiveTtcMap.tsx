@@ -719,7 +719,7 @@ function InteractiveTtcMapComponent({
 
     const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${viewportOrientation}`;
 
-    if (isGestureActive) return;
+    if (isGestureActive()) return;
 
     if (!focusTargetKey) {
       if (lastFocusedTargetKeyRef.current !== null) {
@@ -1530,9 +1530,8 @@ function InteractiveTtcMapComponent({
   return (
     <div
       ref={mapRootRef}
-      className={`relative w-full h-full flex flex-col overflow-hidden bg-transparent ${isGestureActive ? "map-gesture-active" : ""}`}
+      className="relative w-full h-full flex flex-col overflow-hidden bg-transparent"
       data-map-viewport-orientation={viewportOrientation}
-      data-map-gesture-active={isGestureActive ? "true" : "false"}
     >
       {/* Top right Theme toggle (styled like hamburger) and poll chip */}
       <div className="map-utility-cluster absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto hidden">
@@ -1614,6 +1613,7 @@ function InteractiveTtcMapComponent({
         ref={containerRef}
         data-map-pan-zoom-viewport
         data-map-camera-moving="false"
+        data-map-gesture-active="false"
         data-map-zoom-active="false"
         className={`relative w-full h-full overflow-hidden select-none touch-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"

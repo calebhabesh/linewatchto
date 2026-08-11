@@ -217,7 +217,7 @@ describe("mobile performance guardrails", () => {
   });
 
   it("pauses every overlay pulse without removing glows while map gestures are active", () => {
-    const interactionSelector = /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\)/;
+    const interactionSelector = /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\)/;
     assert.match(globalCss, interactionSelector);
     assert.match(globalCss, /\) \.asset-alert-path-glow/);
     assert.match(globalCss, /\) \.interactive-glow/);
@@ -229,7 +229,7 @@ describe("mobile performance guardrails", () => {
     assert.match(globalCss, /transition:\s*none\s*!important/);
     assert.doesNotMatch(
       globalCss,
-      /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)[^{]*\{[^}]*filter:\s*none\s*!important;/s,
+      /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)[^{]*\{[^}]*filter:\s*none\s*!important;/s,
     );
   });
 });

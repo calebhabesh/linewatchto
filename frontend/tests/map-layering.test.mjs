@@ -804,7 +804,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /@keyframes map-selection-path-breathe/);
     assert.match(globalCss, /@keyframes map-selection-station-intro/);
     assert.match(globalCss, /@keyframes map-selection-station-breathe/);
-    assert.match(globalCss, /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused !important;/s);
+    assert.match(globalCss, /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused !important;/s);
     assert.doesNotMatch(
       globalCss,
       /\.map-gesture-active \.asset-alert-path\.map-selection-flash[^}]*animation:\s*none/s,

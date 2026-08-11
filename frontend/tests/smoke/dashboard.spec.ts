@@ -1511,11 +1511,11 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   expect(await decorativeOverlayGlow.evaluate(
     (element) => getComputedStyle(element).animationPlayState,
   )).toContain("paused");
-  await expect(authoredMap).toHaveCSS("shape-rendering", "auto");
-  await expect(authoredMap).toHaveCSS("text-rendering", "optimizelegibility");
+  await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(authoredMap).toHaveCSS("text-rendering", "geometricprecision");
   const authoredTrack = mapStage.locator("#ttc-tracks-layer path").first();
-  await expect(authoredTrack).toHaveCSS("shape-rendering", "auto");
-  await expect(authoredTrack).toHaveCSS("text-rendering", "optimizelegibility");
+  await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(authoredTrack).toHaveCSS("text-rendering", "geometricprecision");
 
   await page.waitForTimeout(160);
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
@@ -1590,6 +1590,8 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   await page.waitForTimeout(900);
 
   const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  const authoredMap = viewport.locator(".ttc-svg-container > svg");
+  const authoredTrack = viewport.locator("#ttc-tracks-layer path").first();
   const glow = page.locator(
     ".overlay-segment-group .asset-alert-path-glow:is(.delay, .suspension, .reduced-speed-zone, .delay-static):not(.interactive-glow)",
   ).first();
@@ -1618,6 +1620,8 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   expect(Number(await glow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
   expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationName)).toBe("map-overlay-rail-pulse");
   expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+  await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
 
   await viewport.dispatchEvent("pointerup", {
     ...gesturePoint,
@@ -1631,6 +1635,8 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
   expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
   expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
 
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   const ttcZoomPaint = await viewport.evaluate((root) => {
