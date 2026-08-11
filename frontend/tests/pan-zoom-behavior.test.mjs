@@ -160,9 +160,16 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /setTransform\(snapped\)/);
   });
 
-  it("animates recenter without an immediate React transform render", () => {
+  it("snaps recenter before fading the mounted TTC stage back in", () => {
     assert.match(hookSource, /const animateTransformTo = useCallback/);
-    assert.match(hookSource, /setMapTransition\("transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
+    assert.match(hookSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
+    assert.match(hookSource, /const RECENTER_FADE_DURATION_MS = 180/);
+    assert.match(hookSource, /const snapTransformWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(snapped\)[\s\S]*playRecenterFade\(\)/);
+    assert.match(hookSource, /map\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: RECENTER_FADE_DURATION_MS/);
+    assert.match(hookSource, /if \(!map \|\| reducedMotion \|\| disableProgrammaticMotion\) return/);
+    assert.match(hookSource, /animation\.id = RECENTER_FADE_ANIMATION_ID/);
+    assert.match(hookSource, /const recenter[\s\S]*defaultTransformForViewport\(width, height\)[\s\S]*snapTransformWithFade\(next, next\.scale\)/);
+    assert.doesNotMatch(hookSource, /RECENTER_CAMERA_MOTION/);
     const animateTransformHandler = hookSource.match(
       /const animateTransformTo = useCallback\(([\s\S]*?)\n  \}, \[/,
     )?.[1] ?? "";
@@ -227,7 +234,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /containerRef\.current\.dataset\.mapCameraMoving = active \? "true" : "false"/);
     assert.match(hookSource, /containerRef\.current\.dataset\.mapGestureActive = active \? "true" : "false"/);
     assert.match(hookSource, /containerRef\.current\.dataset\.mapZoomActive = active \? "true" : "false"/);
-    assert.match(hookSource, /setProgrammaticCameraMotion\(true\);[\s\S]*setMapTransition\("transform 0\.8s cubic-bezier/);
+    assert.match(hookSource, /setProgrammaticCameraMotion\(true\);[\s\S]*setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
     assert.match(hookSource, /setTransform\(\{ \.\.\.transformRef\.current \}\);[\s\S]*setProgrammaticCameraMotion\(false\)/);
     assert.match(
       globalCss,

@@ -1666,13 +1666,34 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
   expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
 
-  await page.getByRole("button", { name: "Center map view" }).click();
-  await expect(viewport).toHaveAttribute("data-map-camera-moving", "true");
+  const ttcRecenterPaint = await page.getByRole("button", { name: "Center map view" }).evaluate((button) => {
+    (button as HTMLElement).click();
+    const root = document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]");
+    const stage = root?.querySelector<HTMLElement>(".ttc-map-stage");
+    const animation = stage?.getAnimations().find((candidate) => candidate.id === "linewatch-ttc-map-recenter-fade");
+    const keyframes = animation?.effect instanceof KeyframeEffect
+      ? animation.effect.getKeyframes()
+      : [];
+    return {
+      cameraMoving: root?.dataset.mapCameraMoving,
+      transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
+      animationId: animation?.id ?? null,
+      opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
+    };
+  });
+  expect(ttcRecenterPaint).toEqual({
+    cameraMoving: "false",
+    transitionDuration: "0s",
+    animationId: "linewatch-ttc-map-recenter-fade",
+    opacityKeyframes: [0, 1],
+  });
+  await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
   expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
   expect(Number(await glow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
-  expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
-  expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
-  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
+  expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false");
   expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
   expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
 
@@ -1683,6 +1704,9 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
 
   const regionalMap = page.locator(".regional-map");
   const regionalViewport = regionalMap.locator(".regional-map-viewport");
+  const regionalMapStage = regionalMap.locator(".regional-map-stage");
+  const regionalAuthoredMap = regionalMapStage.locator(":scope > div > svg");
+  const regionalAuthoredTrack = regionalMapStage.locator("#regional-route-lw-main-path");
   const regionalGlow = regionalMap.locator(
     '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-aura',
   );
@@ -1715,6 +1739,8 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
   expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationName)).toBe("map-overlay-rail-pulse");
   expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+  await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
 
   await regionalViewport.dispatchEvent("pointerup", {
     clientX: regionalGesturePoint.x,
@@ -1729,6 +1755,8 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
   expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
 
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   const regionalZoomPaint = await regionalMap.evaluate((root) => {
@@ -1758,13 +1786,34 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
   expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
 
-  await page.getByRole("button", { name: "Fit regional network" }).click();
-  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "true");
+  const regionalRecenterPaint = await page.getByRole("button", { name: "Fit regional network" }).evaluate((button) => {
+    (button as HTMLElement).click();
+    const root = document.querySelector<HTMLElement>(".regional-map");
+    const stage = root?.querySelector<HTMLElement>(".regional-map-stage");
+    const animation = stage?.getAnimations().find((candidate) => candidate.id === "linewatch-regional-map-recenter-fade");
+    const keyframes = animation?.effect instanceof KeyframeEffect
+      ? animation.effect.getKeyframes()
+      : [];
+    return {
+      cameraMoving: root?.dataset.regionalMapCameraMoving,
+      transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
+      animationId: animation?.id ?? null,
+      opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
+    };
+  });
+  expect(regionalRecenterPaint).toEqual({
+    cameraMoving: "false",
+    transitionDuration: "0s",
+    animationId: "linewatch-regional-map-recenter-fade",
+    opacityKeyframes: [0, 1],
+  });
+  await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
   expect(Number(await regionalGlow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
-  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
-  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
-  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false", { timeout: 2_000 });
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
 });

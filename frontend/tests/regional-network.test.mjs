@@ -215,7 +215,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalMapSource, /transition: shouldAnimateProgrammaticTransform && !isGestureActive/);
     assert.match(shellSource, /selectedNetwork === "regional" && regionalRailOperatingState\.status === "closed" && !closedScreenAcknowledged/);
     assert.match(panZoomSource, /computeFittedCameraFlyInStart\(next, width, height\)/);
-    assert.match(regionalMapSource, /transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)/);
+    assert.match(regionalMapSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
     assert.match(regionalMapSource, /setCamera\(entryCamera\);[\s\S]*?requestAnimationFrame[\s\S]*?animateCameraTo\(fitted\.camera, fitted\.scale\);/);
     assert.doesNotMatch(regionalMapSource, /useEffect\(\(\) => \{\s*cameraRef\.current = camera;\s*\}, \[camera\]\)/);
     assert.doesNotMatch(shellSource, /animate-map-center-fade/);
@@ -871,7 +871,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(networkMapSource, /mobilePerformanceMode=\{props\.mobilePerformanceMode\}/);
     assert.match(regionalMapSource, /mobilePerformanceMode\?:\s*boolean/);
     assert.match(regionalMapSource, /const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode/);
-    assert.match(regionalMapSource, /isGestureActive \? "map-gesture-active" : ""/);
+    assert.doesNotMatch(regionalMapSource, /const \[isGestureActive, setIsGestureActive\] = useState/);
+    assert.match(regionalMapSource, /root\.dataset\.mapGestureActive = active \? "true" : "false"/);
+    assert.match(regionalMapSource, /data-map-gesture-active="false"/);
     assert.match(
       globalsCss,
       /\.linewatch-shell\.mobile-performance-mode \.regional-impact-aura,[\s\S]*?\.linewatch-shell\.mobile-performance-mode \.regional-station-impact-ring\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*transition:\s*none\s*!important;/s,
@@ -939,8 +941,15 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("keeps the regional entrance and map controls on one camera animation pipeline", () => {
-    assert.match(regionalMapSource, /setMapTransition\("transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
+  it("keeps regional focus animation while Center snaps and fades the mounted stage", () => {
+    assert.match(regionalMapSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
+    assert.match(regionalMapSource, /const RECENTER_FADE_DURATION_MS = 180/);
+    assert.match(regionalMapSource, /const snapCameraWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(targetCamera\)[\s\S]*playRecenterFade\(\)/);
+    assert.match(regionalMapSource, /stage\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: RECENTER_FADE_DURATION_MS/);
+    assert.match(regionalMapSource, /if \(!stage \|\| reducedMotion \|\| mobilePerformanceMode\) return/);
+    assert.match(regionalMapSource, /animation\.id = RECENTER_FADE_ANIMATION_ID/);
+    assert.match(regionalMapSource, /snapCameraWithFade\(fitted\.camera, fitted\.scale\)/);
+    assert.doesNotMatch(regionalMapSource, /RECENTER_CAMERA_MOTION/);
     assert.match(regionalMapSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
     assert.match(regionalMapSource, /writeMapTransform\(targetCamera\)/);
     assert.match(regionalMapSource, /window\.setTimeout\(\(\) => \{[\s\S]*setCamera\(\{ \.\.\.cameraRef\.current \}\)/);
@@ -983,7 +992,8 @@ describe("network-scoped regional dashboard", () => {
 
   it("keeps animated regional alert artwork stable while the camera is moving", () => {
     assert.match(regionalMapSource, /const regionalMapRef = useRef<HTMLElement>\(null\)/);
-    assert.match(regionalMapSource, /root\.classList\.toggle\("regional-map-camera-moving", active\)/);
+    assert.doesNotMatch(regionalMapSource, /root\.classList\.toggle\("regional-map-camera-moving", active\)/);
+    assert.match(regionalMapSource, /root\.dataset\.regionalMapCameraMoving = active \? "true" : "false"/);
     assert.doesNotMatch(regionalMapSource, /\.pauseAnimations\(\)/);
     assert.doesNotMatch(regionalMapSource, /\.unpauseAnimations\(\)/);
     assert.match(regionalMapSource, /beginCameraMotion\(\)/);
@@ -991,11 +1001,11 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /clearProgrammaticAnimation[\s\S]*wheelCommitTimeoutRef\.current = null/);
     assert.match(
       globalsCss,
-      /\.regional-map-camera-moving \.regional-map-stage :is\([\s\S]*?\.regional-impact-path[\s\S]*?\)\s*,[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
+      /\.regional-map\[data-regional-map-camera-moving="true"\] \.regional-map-stage :is\([\s\S]*?\.regional-impact-path[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
     );
     assert.doesNotMatch(globalsCss, /\.regional-map-camera-moving \.regional-map-stage \*/);
     const cameraMotionSimplification = globalsCss.slice(
-      globalsCss.indexOf(".regional-map-camera-moving .regional-map-stage :is("),
+      globalsCss.indexOf('.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is('),
       globalsCss.indexOf(".regional-map-stage > svg,"),
     );
     assert.doesNotMatch(cameraMotionSimplification, /regional-impact-interactive-glow/);

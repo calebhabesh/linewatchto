@@ -118,6 +118,10 @@ const REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer";
 const REGIONAL_TRAIN_MARKER_LAYER_ID = "regional-train-marker-layer";
 const SELECTION_INTRO_DURATION_MS = 2400;
 const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
+const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
+const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
+const RECENTER_FADE_DURATION_MS = 180;
+const RECENTER_FADE_ANIMATION_ID = "linewatch-regional-map-recenter-fade";
 const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
@@ -1930,6 +1934,10 @@ function nextRegionalPointerImpactSelection(
 }
 
 type Camera = { x: number; y: number; scale: number };
+type CameraMotionOptions = {
+  durationMs?: number;
+  easing?: string;
+};
 
 const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
   return <div dangerouslySetInnerHTML={{ __html: markup }} className="w-full h-full" />;
@@ -2143,6 +2151,7 @@ function InteractiveRegionalMapComponent({
   const lastRecenterSignalRef = useRef(recenterSignal);
   const lastViewportOrientationRef = useRef(viewportOrientation);
   const automaticResizeRefitBlockedRef = useRef(false);
+  const isGestureActiveRef = useRef(false);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchGestureRef = useRef<{
@@ -2159,7 +2168,6 @@ function InteractiveRegionalMapComponent({
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
   const [cameraReady, setCameraReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [isGestureActive, setIsGestureActive] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
@@ -2169,6 +2177,7 @@ function InteractiveRegionalMapComponent({
   }, [commutePathPreview, selectedStationId, selection]);
   const animTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
+  const recenterFadeAnimationRef = useRef<Animation | null>(null);
   const dragAnimationFrameRef = useRef<number | null>(null);
   const pendingDragPointRef = useRef<{ x: number; y: number } | null>(null);
   const dragMovedRef = useRef(false);
@@ -2213,7 +2222,6 @@ function InteractiveRegionalMapComponent({
   const setCameraMotionActive = useCallback((active: boolean) => {
     const root = regionalMapRef.current;
     if (!root) return;
-    root.classList.toggle("regional-map-camera-moving", active);
     root.dataset.regionalMapCameraMoving = active ? "true" : "false";
   }, []);
 
@@ -2231,7 +2239,19 @@ function InteractiveRegionalMapComponent({
     root.dataset.mapZoomActive = active ? "true" : "false";
   }, []);
 
+  const setUserGestureMotion = useCallback((active: boolean) => {
+    isGestureActiveRef.current = active;
+    const root = regionalMapRef.current;
+    if (!root) return;
+    root.dataset.mapGestureActive = active ? "true" : "false";
+  }, []);
+
   const clearProgrammaticAnimation = useCallback(() => {
+    if (recenterFadeAnimationRef.current) {
+      const animation = recenterFadeAnimationRef.current;
+      recenterFadeAnimationRef.current = null;
+      animation.cancel();
+    }
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -2265,7 +2285,11 @@ function InteractiveRegionalMapComponent({
     setCamera(renderedCamera);
   }, [clearProgrammaticAnimation, currentRenderedCamera, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
-  const animateCameraTo = useCallback((targetCamera: Camera, nextFitScale?: number) => {
+  const animateCameraTo = useCallback((
+    targetCamera: Camera,
+    nextFitScale?: number,
+    motion: CameraMotionOptions = {},
+  ) => {
     cameraRef.current = targetCamera;
     clearProgrammaticAnimation();
     setUserZoomMotion(false);
@@ -2279,8 +2303,10 @@ function InteractiveRegionalMapComponent({
       return;
     }
 
+    const durationMs = motion.durationMs ?? DEFAULT_CAMERA_MOTION_DURATION_MS;
+    const easing = motion.easing ?? DEFAULT_CAMERA_MOTION_EASING;
     beginCameraMotion();
-    setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
+    setMapTransition(`transform ${durationMs}ms ${easing}`);
     programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
       programmaticAnimationFrameRef.current = null;
       writeMapTransform(targetCamera);
@@ -2290,9 +2316,43 @@ function InteractiveRegionalMapComponent({
         if (nextFitScale !== undefined) setFitScale(nextFitScale);
         setCamera({ ...cameraRef.current });
         endCameraMotion();
-      }, 850);
+      }, durationMs + 50);
     });
   }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
+
+  const playRecenterFade = useCallback(() => {
+    const stage = mapStageRef.current;
+    if (!stage || reducedMotion || mobilePerformanceMode) return;
+
+    const animation = stage.animate(
+      [{ opacity: 0 }, { opacity: 1 }],
+      {
+        duration: RECENTER_FADE_DURATION_MS,
+        easing: "ease-out",
+      },
+    );
+    animation.id = RECENTER_FADE_ANIMATION_ID;
+    recenterFadeAnimationRef.current = animation;
+    const clearFadeReference = () => {
+      if (recenterFadeAnimationRef.current === animation) {
+        recenterFadeAnimationRef.current = null;
+      }
+    };
+    animation.onfinish = clearFadeReference;
+    animation.oncancel = clearFadeReference;
+  }, [mobilePerformanceMode, reducedMotion]);
+
+  const snapCameraWithFade = useCallback((targetCamera: Camera, nextFitScale: number) => {
+    clearProgrammaticAnimation();
+    setUserZoomMotion(false);
+    setMapTransition("none");
+    cameraRef.current = targetCamera;
+    writeMapTransform(targetCamera);
+    setFitScale(nextFitScale);
+    setCamera(targetCamera);
+    endCameraMotion();
+    playRecenterFade();
+  }, [clearProgrammaticAnimation, endCameraMotion, playRecenterFade, setMapTransition, setUserZoomMotion, writeMapTransform]);
 
   useEffect(() => {
     return () => {
@@ -2305,8 +2365,9 @@ function InteractiveRegionalMapComponent({
       }
       endCameraMotion();
       setUserZoomMotion(false);
+      setUserGestureMotion(false);
     };
-  }, [clearProgrammaticAnimation, endCameraMotion, setUserZoomMotion]);
+  }, [clearProgrammaticAnimation, endCameraMotion, setUserGestureMotion, setUserZoomMotion]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -2410,8 +2471,11 @@ function InteractiveRegionalMapComponent({
 
   const handleFitNetwork = useCallback(() => {
     cameraAdjustedByUserRef.current = false;
-    fitNetwork();
-  }, [fitNetwork]);
+    const fitted = fittedCamera();
+    if (!fitted) return;
+    cameraInitializedRef.current = true;
+    snapCameraWithFade(fitted.camera, fitted.scale);
+  }, [fittedCamera, snapCameraWithFade]);
 
   const stageInitialEntrance = useCallback(() => {
     if (!svgMarkup) return;
@@ -3512,8 +3576,8 @@ function InteractiveRegionalMapComponent({
       pointerActivationRef.current = null;
       dragMovedRef.current = true;
     }
-    setIsGestureActive(true);
-  }, [cancelCameraAnimation, endCameraMotion, selection, viewportOrientation]);
+    setUserGestureMotion(true);
+  }, [cancelCameraAnimation, endCameraMotion, selection, setUserGestureMotion, viewportOrientation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;
@@ -3588,9 +3652,9 @@ function InteractiveRegionalMapComponent({
       }
     }
     setCamera({ ...cameraRef.current });
-    setIsGestureActive(false);
+    setUserGestureMotion(false);
     endCameraMotion();
-  }, [applyActiveGesture, endCameraMotion, onSelectImpact, onSelectStationId]);
+  }, [applyActiveGesture, endCameraMotion, onSelectImpact, onSelectStationId, setUserGestureMotion]);
 
   const activateTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
@@ -3809,8 +3873,9 @@ function InteractiveRegionalMapComponent({
   return (
     <section
       ref={regionalMapRef}
-      className={`regional-map ${isGestureActive ? "map-gesture-active" : ""}`}
-      data-map-gesture-active={isGestureActive ? "true" : "false"}
+      className="regional-map"
+      data-map-gesture-active="false"
+      data-regional-map-camera-moving="false"
       aria-label="Interactive GO and UP map"
     >
       <div

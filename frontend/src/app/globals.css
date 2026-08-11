@@ -306,21 +306,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
    source of the most visible route redraws. Motion only pauses the small,
    refresh-owned effect layers; their authored glow remains visible while the
    rail/station/label artwork stays untouched. */
-.regional-map-camera-moving .regional-map-stage :is(
-  .regional-impact-aura,
-  .regional-impact-path,
-  .regional-delay-glyph,
-  .regional-suspension-glyph,
-  .regional-chevron-glyph,
-  .regional-planned-closure-glyph,
-  .regional-station-impact-ring,
-  .regional-station-impact-beacon-group,
-  .station-impact-dot-red-glow,
-  .station-impact-dot-red-ping,
-  .commute-path-preview-glow,
-  .commute-path-preview-path,
-  .estimated-train-marker
-),
 .regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is(
   .regional-impact-aura,
   .regional-impact-path,
@@ -347,14 +332,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   height: 100%;
   shape-rendering: geometricPrecision;
   text-rendering: geometricPrecision;
-}
-
-.regional-map-camera-moving .regional-map-stage > svg,
-.regional-map-camera-moving .regional-map-stage > div > svg,
-.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage > svg,
-.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage > div > svg {
-  shape-rendering: auto;
-  text-rendering: optimizeLegibility;
 }
 
 .regional-map-stage #regional-station-labels-layer :is(text, tspan) {
@@ -18515,12 +18492,6 @@ img.transit-line-badge {
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow.selected {
   opacity: 0.36;
   stroke-width: 138;
-}
-
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-map-stage > svg,
-:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-map-stage > div > svg {
-  shape-rendering: auto;
-  text-rendering: optimizeLegibility;
 }
 
 /* Programmatic camera flights, including Center, follow the same visual

@@ -42,6 +42,21 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(centerMapButton).toHaveCSS("height", "60px");
   await expect(centerMapButton.locator("svg")).toHaveCSS("width", "24px");
   await expect(centerMapButton.locator("span")).toHaveCSS("font-size", "9px");
+  const mobileMapStage = page.locator(".ttc-map-stage");
+  const mobileRecenter = await centerMapButton.evaluate((button) => {
+    (button as HTMLElement).click();
+    const stage = document.querySelector<HTMLElement>(".ttc-map-stage");
+    return {
+      animationId: stage?.getAnimations().find((animation) => animation.id === "linewatch-ttc-map-recenter-fade")?.id ?? null,
+      transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
+    };
+  });
+  expect(mobileRecenter).toEqual({
+    animationId: null,
+    transitionDuration: "0s",
+  });
+  await expect(mobileMapStage).toHaveCSS("transition-duration", "0s");
+  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
 
   await page.getByRole("button", { name: "Status", exact: true }).click();
   const statusSheet = page.getByRole("region", { name: "Current service status" });
