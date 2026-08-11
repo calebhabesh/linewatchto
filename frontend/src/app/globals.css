@@ -425,36 +425,40 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   display: flex;
   width: 100%;
   flex-wrap: wrap;
+  align-items: center;
   gap: 7px;
 }
 
 .station-connection-row {
   display: flex;
-  width: max-content;
-  max-width: 100%;
+  flex: 1 1 0px;
+  min-width: 0;
+  width: fit-content;
+  max-width: max-content;
   min-height: 48px;
   align-items: center;
-  gap: 11px;
+  gap: 8px;
   border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 5px;
   background: #ffffff;
-  padding: 7px 10px;
+  padding: 7px 8px;
 }
 
 .station-connection-logo-frame {
   display: flex;
-  width: 48px;
-  min-width: 48px;
+  width: 36px;
+  min-width: 36px;
   height: 30px;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .station-connection-copy {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 
 .station-connection-copy strong {
@@ -462,25 +466,26 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   font-size: 12px;
   font-weight: 850;
   line-height: 1.15;
+  white-space: nowrap;
 }
 
 .station-connection-copy small {
   color: #64748b;
   font-size: 10px;
   font-weight: 650;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .station-connection-icon {
   display: block;
-  max-width: 44px;
+  max-width: 36px;
   width: auto;
-  height: 24px;
+  height: 22px;
   object-fit: contain;
 }
 
 .station-connection-row--airport .station-connection-icon {
-  width: 24px;
+  width: 22px;
 }
 
 .dark .station-connections-title,

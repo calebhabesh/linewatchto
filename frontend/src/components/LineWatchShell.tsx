@@ -135,7 +135,7 @@ import {
   type RegionalScenarioId,
 } from "../app/regional-data";
 import { apiUrl } from "../app/api-client";
-import { popViewHistory, pushViewHistory } from "../app/view-navigation";
+import { popViewHistory, pushViewHistory, resolveInAppBackAction } from "../app/view-navigation";
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
@@ -153,6 +153,12 @@ const STATION_DETAIL_REFRESH_MS = 15_000;
 const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
 const GOOGLE_LINK_SUCCESS_VALUE = "google";
 const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";
+const BROWSER_NAVIGATION_STATE_KEY = "linewatchNavigation";
+
+type BrowserNavigationState = {
+  sessionId: string;
+  depth: number;
+};
 
 function dashboardRefreshIntervalMs() {
   const configured = Number(process.env.NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS);
@@ -325,6 +331,9 @@ export function LineWatchShell({
   const [isMobile, setIsMobile] = useState(false);
   const activeViewRef = useRef<ActiveView>("map");
   const viewHistoryRef = useRef<ActiveView[]>([]);
+  const browserNavigationSessionRef = useRef("");
+  const browserNavigationDepthRef = useRef(0);
+  const suppressedPopstateCountRef = useRef(0);
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("details-focus");
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
@@ -504,20 +513,53 @@ export function LineWatchShell({
     activeViewRef.current = activeView;
   }, [activeView]);
 
+  const pushBrowserNavigationEntry = useCallback(() => {
+    if (typeof window === "undefined" || !browserNavigationSessionRef.current) return;
+    const depth = browserNavigationDepthRef.current + 1;
+    browserNavigationDepthRef.current = depth;
+    window.history.pushState({
+      ...window.history.state,
+      [BROWSER_NAVIGATION_STATE_KEY]: {
+        sessionId: browserNavigationSessionRef.current,
+        depth,
+      } satisfies BrowserNavigationState,
+    }, "", currentBrowserLocalPath());
+  }, []);
+
+  const consumeBrowserNavigationEntries = useCallback((requestedCount = 1) => {
+    if (typeof window === "undefined" || !browserNavigationSessionRef.current) return;
+    const count = Math.min(requestedCount, browserNavigationDepthRef.current);
+    if (count <= 0) return;
+    browserNavigationDepthRef.current -= count;
+    suppressedPopstateCountRef.current += 1;
+    window.history.go(-count);
+  }, []);
+
   const navigateForward = useCallback((nextView: ActiveView) => {
     const currentView = activeViewRef.current;
+    if (currentView === nextView) return;
+    pushBrowserNavigationEntry();
     viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
     activeViewRef.current = nextView;
     setNavDirection("forward");
     setActiveView(nextView);
-  }, [setActiveView]);
+  }, [pushBrowserNavigationEntry, setActiveView]);
 
   const navigateRoot = useCallback((nextView: ActiveView) => {
+    const currentView = activeViewRef.current;
+    if (currentView === nextView) return;
+    if (nextView === "map") {
+      consumeBrowserNavigationEntries(browserNavigationDepthRef.current);
+    } else if (currentView === "map") {
+      pushBrowserNavigationEntry();
+    } else if (browserNavigationDepthRef.current > 1) {
+      consumeBrowserNavigationEntries(browserNavigationDepthRef.current - 1);
+    }
     viewHistoryRef.current = [];
     activeViewRef.current = nextView;
     setNavDirection("root");
     setActiveView(nextView);
-  }, [setActiveView]);
+  }, [consumeBrowserNavigationEntries, pushBrowserNavigationEntry, setActiveView]);
 
   useEffect(() => {
     if (
@@ -634,6 +676,7 @@ export function LineWatchShell({
 
   const handleClosePanel = useCallback(() => {
     if (isClosingPanel) return;
+    consumeBrowserNavigationEntries(browserNavigationDepthRef.current);
     setIsClosingPanel(true);
     viewHistoryRef.current = [];
     setSelectedStationId(null);
@@ -649,12 +692,13 @@ export function LineWatchShell({
       setMobileInspectorDetent("map-focus");
       setAccessibilityOutageTarget(null);
     }, reducedMotion ? 0 : 380);
-  }, [isClosingPanel, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent]);
+  }, [consumeBrowserNavigationEntries, isClosingPanel, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent]);
 
   const [isGoingBack, setIsGoingBack] = useState(false);
   const backTimeoutRef = useRef<number | null>(null);
 
   const handleSubmenuBack = useCallback(() => {
+    consumeBrowserNavigationEntries();
     setNavDirection("back");
     setIsGoingBack(true);
     if (backTimeoutRef.current) {
@@ -680,7 +724,7 @@ export function LineWatchShell({
       setSelection(null);
       setAccessibilityOutageTarget(null);
     }, reducedMotion ? 0 : 380);
-  }, [activeView, isMobile, reducedMotion, setActiveView, setSelection]);
+  }, [activeView, consumeBrowserNavigationEntries, isMobile, reducedMotion, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
     source: "unavailable",
@@ -710,6 +754,107 @@ export function LineWatchShell({
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
+  const selectedStationIdRef = useRef<string | null>(null);
+  const selectionRef = useRef<ImpactSelection>(null);
+  const accountDialogModeRef = useRef<AccountDialogMode | null>(null);
+  const commutePathPreviewRef = useRef<AccountCommutePathPreview | null>(null);
+
+  useEffect(() => {
+    selectedStationIdRef.current = selectedStationId;
+    selectionRef.current = selection;
+    accountDialogModeRef.current = accountDialogMode;
+    commutePathPreviewRef.current = commutePathPreview;
+  }, [accountDialogMode, commutePathPreview, selectedStationId, selection]);
+
+  useEffect(() => {
+    const sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    browserNavigationSessionRef.current = sessionId;
+    browserNavigationDepthRef.current = 0;
+    window.history.replaceState({
+      ...window.history.state,
+      [BROWSER_NAVIGATION_STATE_KEY]: { sessionId, depth: 0 } satisfies BrowserNavigationState,
+    }, "", currentBrowserLocalPath());
+    if (accountDialogModeRef.current) {
+      pushBrowserNavigationEntry();
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      const navigationState = event.state?.[BROWSER_NAVIGATION_STATE_KEY] as BrowserNavigationState | undefined;
+      browserNavigationDepthRef.current = navigationState?.sessionId === sessionId
+        ? navigationState.depth
+        : 0;
+
+      if (suppressedPopstateCountRef.current > 0) {
+        suppressedPopstateCountRef.current -= 1;
+        return;
+      }
+
+      setNavDirection("back");
+      setMapPresentationMode("standard");
+      setMobileInspectorDetent("map-focus");
+
+      const action = resolveInAppBackAction({
+        accountDialogOpen: Boolean(accountDialogModeRef.current),
+        stationOpen: Boolean(selectedStationIdRef.current),
+        commutePreviewOpen: Boolean(commutePathPreviewRef.current),
+        viewOpen: activeViewRef.current !== "map",
+        impactOpen: Boolean(selectionRef.current),
+      });
+      switch (action) {
+        case "close-account-dialog":
+          setAccountDialogMode(null);
+          return;
+        case "close-station":
+          setSelectedStationId(null);
+          return;
+        case "close-commute-preview":
+          setCommutePathPreview(null);
+          return;
+        case "navigate-view": {
+          const previous = popViewHistory(viewHistoryRef.current, "map" as ActiveView);
+          viewHistoryRef.current = previous.history;
+          activeViewRef.current = previous.view;
+          setActiveView(previous.view);
+          setSelection(null);
+          setAccessibilityOutageTarget(null);
+          return;
+        }
+        case "clear-impact":
+          setSelection(null);
+          return;
+        case "none":
+          return;
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      browserNavigationSessionRef.current = "";
+    };
+  }, [pushBrowserNavigationEntry, setAccountDialogMode]);
+
+  const openAccountDialog = useCallback((mode: AccountDialogMode) => {
+    if (!accountDialogModeRef.current) {
+      pushBrowserNavigationEntry();
+    }
+    accountDialogModeRef.current = mode;
+    setAccountDialogMode(mode);
+  }, [pushBrowserNavigationEntry]);
+
+  const closeAccountDialog = useCallback(() => {
+    if (!accountDialogModeRef.current) return;
+    consumeBrowserNavigationEntries();
+    accountDialogModeRef.current = null;
+    setAccountDialogMode(null);
+  }, [consumeBrowserNavigationEntries, setAccountDialogMode]);
+
+  const closeSelectedStation = useCallback((expectedStationId: string) => {
+    if (selectedStationIdRef.current !== expectedStationId) return;
+    consumeBrowserNavigationEntries();
+    selectedStationIdRef.current = null;
+    setSelectedStationId((current) => current === expectedStationId ? null : current);
+  }, [consumeBrowserNavigationEntries, setSelectedStationId]);
 
   const currentSavedStations = useMemo(
     () => savedStations.filter((saved) => saved.networkId === selectedNetwork),
@@ -844,7 +989,7 @@ export function LineWatchShell({
 
     const accountLinkedValue = params.get(GOOGLE_LINK_SUCCESS_PARAM);
     if (accountLinkedValue === GOOGLE_LINK_SUCCESS_VALUE) {
-      setAccountDialogMode("link-google");
+      openAccountDialog("link-google");
       setAccountError(null);
       setAccountSuccessMessage("Google sign-in has been linked to your account.");
       nextParams.delete("account_error");
@@ -856,7 +1001,7 @@ export function LineWatchShell({
         const oauthErrorState = accountOAuthErrorState(accountErrorCode);
         if (oauthErrorState) {
           setAccountEntryIntent(oauthErrorState.entryIntent);
-          setAccountDialogMode(oauthErrorState.dialogMode);
+          openAccountDialog(oauthErrorState.dialogMode);
           setAccountError(oauthErrorState.message);
           setAccountSuccessMessage(null);
         }
@@ -888,6 +1033,8 @@ export function LineWatchShell({
       // Notification URLs include their category panel as a fallback. A concrete
       // impact should instead take the same focused map path as Show on Map, where
       // mobile reserves a real viewport above the selected impact details.
+      pushBrowserNavigationEntry();
+      selectionRef.current = impactSelection;
       setSelection(impactSelection);
       setMobileInspectorDetent("details-focus");
       setActiveView("map");
@@ -896,7 +1043,7 @@ export function LineWatchShell({
         shouldReplaceUrl = true;
       }
     } else if (panel && panelToView[panel]) {
-      setActiveView(panelToView[panel]);
+      navigateForward(panelToView[panel]);
       nextParams.delete("panel");
       shouldReplaceUrl = true;
     }
@@ -904,7 +1051,7 @@ export function LineWatchShell({
     if (shouldReplaceUrl) {
       replaceBrowserSearchParams(nextParams);
     }
-  }, []);
+  }, [navigateForward, openAccountDialog, pushBrowserNavigationEntry]);
 
   useEffect(() => {
     let cancelled = false;
@@ -997,7 +1144,7 @@ export function LineWatchShell({
   const openAuthChoice = (intent: AccountEntryIntent) => {
     resetAccountForm();
     setAccountEntryIntent(intent);
-    setAccountDialogMode("auth-choice");
+    openAccountDialog("auth-choice");
   };
 
   const setSavedStationPending = useCallback((stationId: string, pending: boolean) => {
@@ -1012,7 +1159,7 @@ export function LineWatchShell({
   const handleSaveStation = useCallback(async (stationId: string, networkId: NetworkId = selectedNetwork) => {
     if (!accountState.authenticated) {
       setAccountEntryIntent("register");
-      setAccountDialogMode("auth-choice");
+      openAccountDialog("auth-choice");
       setAccountError(null);
       return false;
     }
@@ -1047,7 +1194,7 @@ export function LineWatchShell({
     } finally {
       setSavedStationPending(stationId, false);
     }
-  }, [accountState.authenticated, pendingSavedStationIds, savedStations, selectedNetwork, setAccountDialogMode, setAccountEntryIntent, setAccountError, setSavedStationPending, showSavedStationNotice, stationCatalogs]);
+  }, [accountState.authenticated, openAccountDialog, pendingSavedStationIds, savedStations, selectedNetwork, setAccountEntryIntent, setAccountError, setSavedStationPending, showSavedStationNotice, stationCatalogs]);
 
   const handleRemoveSavedStation = useCallback(async (stationId: string, networkId: NetworkId = selectedNetwork) => {
     if (!accountState.authenticated || pendingSavedStationIds.has(stationId)) return false;
@@ -1087,12 +1234,12 @@ export function LineWatchShell({
   const openEmailAuth = () => {
     setAccountError(null);
     setAccountSuccessMessage(null);
-    setAccountDialogMode(accountEntryIntent);
+    openAccountDialog(accountEntryIntent);
   };
 
   const openGoogleLinkDialog = () => {
     resetAccountForm();
-    setAccountDialogMode("link-google");
+    openAccountDialog("link-google");
   };
 
   const accountDialogTitle = () => {
@@ -1181,7 +1328,7 @@ export function LineWatchShell({
             displayName: accountDisplayName.trim(),
           });
       setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      setAccountDialogMode(null);
+      closeAccountDialog();
       resetAccountForm();
     } catch (error) {
       if (error instanceof AccountRequestError) {
@@ -1248,7 +1395,7 @@ export function LineWatchShell({
         password: accountPassword,
       });
       setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      setAccountDialogMode(null);
+      closeAccountDialog();
       resetAccountForm();
       router.replace("/");
     } catch (error) {
@@ -1283,7 +1430,7 @@ export function LineWatchShell({
     try {
       const response = await loginWithGoogle({ credential });
       setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      setAccountDialogMode(null);
+      closeAccountDialog();
       resetAccountForm();
       setActiveView("commutes");
     } catch (error) {
@@ -1305,7 +1452,7 @@ export function LineWatchShell({
     try {
       const response = await linkGoogleAccount({ credential });
       setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      setAccountDialogMode("link-google");
+      openAccountDialog("link-google");
       setAccountSuccessMessage(GOOGLE_LINK_SUCCESS_MESSAGE);
     } catch (error) {
       if (error instanceof AccountRequestError) {
@@ -1786,6 +1933,13 @@ export function LineWatchShell({
   }, [activeView]);
 
   const handleSelectStationId = useCallback((id: string | null) => {
+    const currentId = selectedStationIdRef.current;
+    if (id && !currentId) {
+      pushBrowserNavigationEntry();
+    } else if (!id && currentId) {
+      consumeBrowserNavigationEntries();
+    }
+    selectedStationIdRef.current = id;
     if (id) {
       setStationPanelActivationKey((current) => current + 1);
     }
@@ -1799,7 +1953,7 @@ export function LineWatchShell({
       }
       setActiveView("map");
     }
-  }, [setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, setActiveView, isMobile, recordPwaInstallEngagement]);
+  }, [consumeBrowserNavigationEntries, pushBrowserNavigationEntry, setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, setActiveView, isMobile, recordPwaInstallEngagement]);
 
 
   const mobileNavKey = useMemo<MobileNavKey>(() => {
@@ -1955,9 +2109,13 @@ export function LineWatchShell({
     setSelectedStationId(null);
     setCommutePathPreview(null);
     if (!nextSelection) {
+      if (selectionRef.current) consumeBrowserNavigationEntries();
+      selectionRef.current = null;
       setSelection(null);
       return;
     }
+    if (!selectionRef.current) pushBrowserNavigationEntry();
+    selectionRef.current = nextSelection;
     setSelection(nextSelection);
     if (isMobile) {
       recordPwaInstallEngagement();
@@ -1966,7 +2124,7 @@ export function LineWatchShell({
       return;
     }
     setActiveView(viewForImpactSelection(nextSelection));
-  }, [setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
+  }, [consumeBrowserNavigationEntries, pushBrowserNavigationEntry, setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
 
   const handlePeekClosedMap = () => {
     if (isClosedScreenExiting) return;
@@ -2022,15 +2180,20 @@ export function LineWatchShell({
   }, [setActiveView, setMapLayoutSignal, setMobileInspectorDetent, setMapPresentationMode]);
 
   const handleClearMobileImpactSelection = useCallback(() => {
+    if (selectionRef.current) consumeBrowserNavigationEntries();
+    selectionRef.current = null;
     setSelection(null);
     setMobileInspectorDetent("map-focus");
-  }, [setMobileInspectorDetent, setSelection]);
+  }, [consumeBrowserNavigationEntries, setMobileInspectorDetent, setSelection]);
 
   const handleClearRotatedSelection = useCallback(() => {
+    if (selectionRef.current || selectedStationIdRef.current) consumeBrowserNavigationEntries();
+    selectionRef.current = null;
+    selectedStationIdRef.current = null;
     setSelection(null);
     setSelectedStationId(null);
     setMobileInspectorDetent("map-focus");
-  }, [setMobileInspectorDetent, setSelectedStationId, setSelection]);
+  }, [consumeBrowserNavigationEntries, setMobileInspectorDetent, setSelectedStationId, setSelection]);
 
   const rotatedMapMode =
     isMobile &&
@@ -3153,7 +3316,7 @@ export function LineWatchShell({
             onToggleSavedStation={handleToggleSavedStation}
             onRequestSignIn={() => {
               setAccountEntryIntent("register");
-              setAccountDialogMode("auth-choice");
+              openAccountDialog("auth-choice");
               setAccountError(null);
             }}
             savedCommutes={accountCommutes}
@@ -3424,7 +3587,7 @@ export function LineWatchShell({
           loading={stationLoading}
           updating={stationLoading && Boolean(visibleStationResult?.data)}
           selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
-          onClose={() => setSelectedStationId((current) => current === selectedStationId ? null : current)}
+          onClose={() => closeSelectedStation(selectedStationId)}
           onSelectImpact={handleMapSelectImpact}
           reducedMotion={reducedMotion}
           authenticated={accountState.authenticated}
@@ -3433,7 +3596,7 @@ export function LineWatchShell({
           onToggleSaved={handleToggleSavedStation}
           onRequestSignIn={() => {
             setAccountEntryIntent("register");
-            setAccountDialogMode("auth-choice");
+            openAccountDialog("auth-choice");
             setAccountError(null);
           }}
         />
@@ -3451,7 +3614,7 @@ export function LineWatchShell({
               .map((outage) => [outage.id, outage]),
           ).values())}
           accessibilityFresh={accessibilityOutageResult?.fresh === true}
-          onClose={() => setSelectedStationId((current) => current === selectedStationId ? null : current)}
+          onClose={() => closeSelectedStation(selectedStationId)}
           onSelectImpact={handleMapSelectImpact}
           authenticated={accountState.authenticated}
           saved={savedStationIds.has(selectedStationId)}
@@ -3459,7 +3622,7 @@ export function LineWatchShell({
           onToggleSaved={handleToggleSavedStation}
           onRequestSignIn={() => {
             setAccountEntryIntent("register");
-            setAccountDialogMode("auth-choice");
+            openAccountDialog("auth-choice");
             setAccountError(null);
           }}
         />
@@ -3632,7 +3795,7 @@ export function LineWatchShell({
         </div>
       ) : null}
       {accountDialogMode ? (
-        <div className="account-dialog-backdrop" role="presentation" onMouseDown={() => setAccountDialogMode(null)}>
+        <div className="account-dialog-backdrop" role="presentation" onMouseDown={closeAccountDialog}>
           <section
             className="account-dialog"
             role="dialog"
@@ -3647,7 +3810,7 @@ export function LineWatchShell({
                 </h2>
                 <p className="account-dialog-description">{accountDialogDescription()}</p>
               </div>
-              <button type="button" className="account-dialog-close" onClick={() => setAccountDialogMode(null)} aria-label="Close account dialog">
+              <button type="button" className="account-dialog-close" onClick={closeAccountDialog} aria-label="Close account dialog">
                 <X size={18} />
               </button>
             </div>
@@ -3738,7 +3901,7 @@ export function LineWatchShell({
                     className="account-link-button"
                     onClick={() => {
                       setAccountError(null);
-                      setAccountDialogMode(null);
+                      closeAccountDialog();
                     }}
                   >
                     Back To Account
@@ -3770,7 +3933,7 @@ export function LineWatchShell({
                               setAccountPassword("");
                               setAccountPasswordConfirmation("");
                               setAccountError(null);
-                              setAccountDialogMode("reset-password");
+                              openAccountDialog("reset-password");
                             }}
                           >
                             Open Local Reset Form
@@ -3794,7 +3957,7 @@ export function LineWatchShell({
                       setAccountError(null);
                       setAccountResetMessage(null);
                       setAccountDevResetToken(null);
-                      setAccountDialogMode("login");
+                      openAccountDialog("login");
                     }}
                   >
                     Back To Sign In
@@ -3849,7 +4012,7 @@ export function LineWatchShell({
                     className="account-link-button"
                     onClick={() => {
                       setAccountError(null);
-                      setAccountDialogMode("login");
+                      openAccountDialog("login");
                     }}
                   >
                     Back To Sign In
@@ -3893,7 +4056,7 @@ export function LineWatchShell({
                         setAccountError(null);
                         setAccountResetMessage(null);
                         setAccountDevResetToken(null);
-                        setAccountDialogMode("forgot-password");
+                        openAccountDialog("forgot-password");
                       }}
                     >
                       Forgot Password?
@@ -3917,7 +4080,7 @@ export function LineWatchShell({
                     className="account-link-button"
                     onClick={() => {
                       setAccountError(null);
-                      setAccountDialogMode("auth-choice");
+                      openAccountDialog("auth-choice");
                     }}
                   >
                     Back To Options

@@ -51,7 +51,7 @@ describe("account UI source", () => {
     assert.doesNotMatch(shellSource, /Sign in to save stations\./);
     assert.match(
       shellSource,
-      /if \(!accountState\.authenticated\) \{\s*setAccountEntryIntent\("register"\);\s*setAccountDialogMode\("auth-choice"\);\s*setAccountError\(null\);/,
+      /if \(!accountState\.authenticated\) \{\s*setAccountEntryIntent\("register"\);\s*openAccountDialog\("auth-choice"\);\s*setAccountError\(null\);/,
     );
     assert.match(shellSource, /className="account-dialog-close"/);
     assert.match(globalCss, /\.account-dialog-close\s*\{[^}]*flex:\s*0 0 38px;[^}]*-webkit-tap-highlight-color:\s*transparent;/s);
@@ -72,7 +72,7 @@ describe("account UI source", () => {
     assert.match(shellSource, /accountOAuthErrorState/);
     assert.match(shellSource, /params\.get\("account_error"\)/);
     assert.match(shellSource, /setAccountEntryIntent\(oauthErrorState\.entryIntent\)/);
-    assert.match(shellSource, /setAccountDialogMode\(oauthErrorState\.dialogMode\)/);
+    assert.match(shellSource, /openAccountDialog\(oauthErrorState\.dialogMode\)/);
     assert.match(shellSource, /setAccountError\(oauthErrorState\.message\)/);
     assert.match(shellSource, /nextParams\.delete\("account_error"\)/);
   });

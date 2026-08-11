@@ -11,8 +11,9 @@ describe("station detail panel layout", () => {
   it("only lets a delayed panel close clear the station that started closing", () => {
     assert.match(
       shellSource,
-      /onClose=\{\(\) => setSelectedStationId\(\(current\) => current === selectedStationId \? null : current\)\}/,
+      /onClose=\{\(\) => closeSelectedStation\(selectedStationId\)\}/,
     );
+    assert.match(shellSource, /setSelectedStationId\(\(current\) => current === expectedStationId \? null : current\)/);
     assert.match(shellSource, /key=\{`\$\{selectedStationId\}:\$\{stationPanelActivationKey\}`\}/);
     assert.match(panelSource, /window\.clearTimeout\(closeTimeoutRef\.current\)/);
   });

@@ -105,6 +105,32 @@ test("Pixel 6a-sized portrait keeps the regular mobile scale", async ({ page, is
   )).not.toBe("36px");
 });
 
+test("Pixel 6a back gesture history closes in-app sheets before leaving", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile browser-history coverage runs in the touch-device project");
+
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
+    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+  });
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Status", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
+  await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "System Status" })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/$/);
+});
+
 test("393px-wide phones receive the compact map-control sizing", async ({ page, isMobile }) => {
   test.skip(!isMobile, "compact phone coverage runs in the touch-device project");
 

@@ -102,7 +102,7 @@ describe("station connection metadata and map labels", () => {
     assert.match(css, /\.station-connections-title[^}]*margin: 0;/s);
     assert.match(css, /\.station-connection-list[^}]*display: flex;[^}]*width: 100%;[^}]*flex-wrap: wrap;/s);
     assert.match(css, /\.station-connection-row[^}]*border: 1px solid/s);
-    assert.match(css, /\.station-connection-row[^}]*width: max-content;[^}]*max-width: 100%/s);
+    assert.match(css, /\.station-connection-row[^}]*flex: 1 1 0px;[^}]*max-width: max-content/s);
     assert.match(css, /\.dark \.station-connection-row,[\s\S]*?background: rgba\(255, 255, 255, 0\.035\)/);
     assert.doesNotMatch(css, /map-connection-airport[^}]*filter:/s);
     assert.match(css, /map-connection-airport :is\(text, tspan\)[\s\S]*?fill: #f8fafc !important/);

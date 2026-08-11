@@ -16,3 +16,32 @@ export function popViewHistory<T>(
     view: history[history.length - 1] ?? fallback,
   };
 }
+
+export type InAppBackAction =
+  | "close-account-dialog"
+  | "close-station"
+  | "close-commute-preview"
+  | "navigate-view"
+  | "clear-impact"
+  | "none";
+
+export function resolveInAppBackAction({
+  accountDialogOpen,
+  stationOpen,
+  commutePreviewOpen,
+  viewOpen,
+  impactOpen,
+}: {
+  accountDialogOpen: boolean;
+  stationOpen: boolean;
+  commutePreviewOpen: boolean;
+  viewOpen: boolean;
+  impactOpen: boolean;
+}): InAppBackAction {
+  if (accountDialogOpen) return "close-account-dialog";
+  if (stationOpen) return "close-station";
+  if (commutePreviewOpen) return "close-commute-preview";
+  if (viewOpen) return "navigate-view";
+  if (impactOpen) return "clear-impact";
+  return "none";
+}
