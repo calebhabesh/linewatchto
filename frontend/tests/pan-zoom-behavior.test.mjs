@@ -166,8 +166,9 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /const RECENTER_FADE_DURATION_MS = 180/);
     assert.match(hookSource, /const snapTransformWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(snapped\)[\s\S]*playRecenterFade\(\)/);
     assert.match(hookSource, /map\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: RECENTER_FADE_DURATION_MS/);
-    assert.match(hookSource, /if \(!map \|\| reducedMotion \|\| disableProgrammaticMotion\) return/);
+    assert.match(hookSource, /if \(!map \|\| reducedMotion\) return/);
     assert.match(hookSource, /animation\.id = RECENTER_FADE_ANIMATION_ID/);
+    assert.match(hookSource, /map\.dataset\.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID/);
     assert.match(hookSource, /const recenter[\s\S]*defaultTransformForViewport\(width, height\)[\s\S]*snapTransformWithFade\(next, next\.scale\)/);
     assert.doesNotMatch(hookSource, /RECENTER_CAMERA_MOTION/);
     const animateTransformHandler = hookSource.match(

@@ -286,7 +286,7 @@ export function usePanZoom({
 
   const playRecenterFade = useCallback(() => {
     const map = mapRef.current;
-    if (!map || reducedMotion || disableProgrammaticMotion) return;
+    if (!map || reducedMotion) return;
 
     const animation = map.animate(
       [{ opacity: 0 }, { opacity: 1 }],
@@ -296,6 +296,7 @@ export function usePanZoom({
       },
     );
     animation.id = RECENTER_FADE_ANIMATION_ID;
+    map.dataset.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID;
     recenterFadeAnimationRef.current = animation;
     const clearFadeReference = () => {
       if (recenterFadeAnimationRef.current === animation) {
@@ -304,7 +305,7 @@ export function usePanZoom({
     };
     animation.onfinish = clearFadeReference;
     animation.oncancel = clearFadeReference;
-  }, [disableProgrammaticMotion, reducedMotion]);
+  }, [reducedMotion]);
 
   const snapTransformWithFade = useCallback((
     next: PanZoomTransform,

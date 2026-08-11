@@ -2322,7 +2322,7 @@ function InteractiveRegionalMapComponent({
 
   const playRecenterFade = useCallback(() => {
     const stage = mapStageRef.current;
-    if (!stage || reducedMotion || mobilePerformanceMode) return;
+    if (!stage || reducedMotion) return;
 
     const animation = stage.animate(
       [{ opacity: 0 }, { opacity: 1 }],
@@ -2332,6 +2332,7 @@ function InteractiveRegionalMapComponent({
       },
     );
     animation.id = RECENTER_FADE_ANIMATION_ID;
+    stage.dataset.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID;
     recenterFadeAnimationRef.current = animation;
     const clearFadeReference = () => {
       if (recenterFadeAnimationRef.current === animation) {
@@ -2340,7 +2341,7 @@ function InteractiveRegionalMapComponent({
     };
     animation.onfinish = clearFadeReference;
     animation.oncancel = clearFadeReference;
-  }, [mobilePerformanceMode, reducedMotion]);
+  }, [reducedMotion]);
 
   const snapCameraWithFade = useCallback((targetCamera: Camera, nextFitScale: number) => {
     clearProgrammaticAnimation();

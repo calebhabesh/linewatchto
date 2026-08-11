@@ -946,8 +946,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /const RECENTER_FADE_DURATION_MS = 180/);
     assert.match(regionalMapSource, /const snapCameraWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(targetCamera\)[\s\S]*playRecenterFade\(\)/);
     assert.match(regionalMapSource, /stage\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: RECENTER_FADE_DURATION_MS/);
-    assert.match(regionalMapSource, /if \(!stage \|\| reducedMotion \|\| mobilePerformanceMode\) return/);
+    assert.match(regionalMapSource, /if \(!stage \|\| reducedMotion\) return/);
     assert.match(regionalMapSource, /animation\.id = RECENTER_FADE_ANIMATION_ID/);
+    assert.match(regionalMapSource, /stage\.dataset\.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID/);
     assert.match(regionalMapSource, /snapCameraWithFade\(fitted\.camera, fitted\.scale\)/);
     assert.doesNotMatch(regionalMapSource, /RECENTER_CAMERA_MOTION/);
     assert.match(regionalMapSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
