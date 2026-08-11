@@ -90,15 +90,13 @@ function DirectionalZoneCount({ zone }: { zone: ReducedSpeedZone }) {
               <DirectionCountArrow direction={direction} verticalLine={verticalLine} />
             </span>
             <strong aria-hidden="true">{count}</strong>
-            {destination ? (
-              <span
-                className="rsz-zone-direction-destination"
-                style={{ color: "var(--quiet)", fontWeight: 400, opacity: 0.78 }}
-                aria-hidden="true"
-              >
-                (to {destination})
-              </span>
-            ) : null}
+            <span
+              className="rsz-zone-direction-label"
+              style={{ color: "var(--quiet)", fontWeight: 400, opacity: 0.78, marginInlineStart: 3 }}
+              aria-hidden="true"
+            >
+              {label}
+            </span>
           </span>
         );
       })}
@@ -283,9 +281,12 @@ export function ReducedSpeedZonesPanel({
                       extraRows={[
                         {
                           label: "Zone Count",
-                          labelSuffix: zonesAtLocation > 1 ? (
-                            <span className="rsz-zone-count-label-total"> ({zonesAtLocation})</span>
-                          ) : null,
+                          labelSuffix: (
+                            <>
+                              <span className="rsz-zone-count-label-separator"> - </span>
+                              <span className="rsz-zone-count-label-total">{zonesAtLocation}</span>
+                            </>
+                          ),
                           value: zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null,
                         },
                         { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },

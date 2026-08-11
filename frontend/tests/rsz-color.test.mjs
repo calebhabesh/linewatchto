@@ -44,13 +44,17 @@ describe("Reduced Speed Zone amber color", () => {
     assert.doesNotMatch(rszPanelSource, /rsz-zone-direction-row[\s\S]{0,400}(?:border|background)/);
     assert.match(
       rszPanelSource,
-      /className="rsz-zone-direction-destination"[\s\S]*?color:\s*"var\(--quiet\)"/,
+      /className="rsz-zone-direction-label"[\s\S]*?color:\s*"var\(--quiet\)"/,
     );
     assert.match(
       rszPanelSource,
-      /className="rsz-zone-direction-destination"[\s\S]*?fontWeight:\s*400[\s\S]*?opacity:\s*0\.78/,
+      /className="rsz-zone-direction-label"[\s\S]*?fontWeight:\s*400[\s\S]*?opacity:\s*0\.78[\s\S]*?marginInlineStart:\s*3/,
     );
-    assert.match(rszPanelSource, /className="rsz-zone-count-label-total"> \(\{zonesAtLocation\}\)<\/span>/);
+    assert.match(rszPanelSource, /className="rsz-zone-direction-label"[\s\S]*?\{label\}/);
+    assert.doesNotMatch(rszPanelSource, /\(to \{destination\}\)/);
+    assert.match(rszPanelSource, /className="rsz-zone-count-label-separator"> - <\/span>/);
+    assert.match(rszPanelSource, /className="rsz-zone-count-label-total">\{zonesAtLocation\}<\/span>/);
+    assert.match(globalCss, /\.rsz-zone-count-label-separator\s*\{[^}]*color:\s*var\(--quiet\)/s);
     assert.match(globalCss, /\.dark \.rsz-zone-count-label-total,[\s\S]*?color:\s*#b8a66f/);
     assert.doesNotMatch(rszPanelSource, /rsz-zone-count-total-badge/);
     assert.doesNotMatch(globalCss, /\.rsz-zone-count-total-badge/);

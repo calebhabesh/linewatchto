@@ -7802,6 +7802,10 @@ img.transit-line-badge {
   text-transform: uppercase;
 }
 
+.rsz-zone-count-label-separator {
+  color: var(--quiet);
+}
+
 .rsz-zone-count-label-total {
   color: #806f47;
 }
