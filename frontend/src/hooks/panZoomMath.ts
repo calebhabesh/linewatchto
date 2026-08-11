@@ -30,6 +30,11 @@ export type MapContentBounds = {
   height: number;
 };
 
+export type PanZoomViewportSize = {
+  width: number;
+  height: number;
+};
+
 const FITTED_CAMERA_FLY_IN_SCALE_RATIO = 0.82;
 
 /**
@@ -240,6 +245,38 @@ export function transformForMapPointAtViewportPoint(
     y: viewportPoint.y - mapPoint.y * scale,
     scale,
   };
+}
+
+/**
+ * Keeps the same map point under the viewport center while the fitted scale
+ * changes. Scaling x/y around the page origin is not reversible when a hidden
+ * tab briefly reports a collapsed layout and can strand the map at top-left.
+ */
+export function transformForViewportResize(
+  transform: PanZoomTransform,
+  previousViewport: PanZoomViewportSize,
+  nextViewport: PanZoomViewportSize,
+  previousFitScale: number,
+  nextFitScale: number,
+): PanZoomTransform {
+  const safeTransformScale = transform.scale || 1;
+  const relativeScale = transform.scale / (previousFitScale || 1);
+  const nextScale = relativeScale * nextFitScale;
+  const mapPointAtPreviousCenter = mapPointFromViewportPoint(transform, {
+    x: previousViewport.width / 2,
+    y: previousViewport.height / 2,
+  });
+
+  return transformForMapPointAtViewportPoint(
+    mapPointAtPreviousCenter,
+    {
+      x: nextViewport.width / 2,
+      y: nextViewport.height / 2,
+    },
+    Number.isFinite(nextScale) && nextScale > 0
+      ? nextScale
+      : safeTransformScale,
+  );
 }
 
 export function clampPanZoomScale(scale: number, fitScale: number): number {

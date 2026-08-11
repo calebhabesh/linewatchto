@@ -14,6 +14,7 @@ import {
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   PAN_ZOOM_MIN_RELATIVE_SCALE,
   snapTransformToDevicePixels,
+  transformForViewportResize,
   transformForMapPointAtViewportPoint,
   type MapViewportOrientation,
   type MapContentBounds,
@@ -372,59 +373,68 @@ export function usePanZoom({
 
   const lastDimensions = useRef({ width: 0, height: 0 });
 
-  // ResizeObserver to track container size changes, update fitScale, and scale map proportionally
+  // Track real viewport changes without accepting background-tab layout
+  // measurements. Chromium may briefly report a collapsed content rect while
+  // restoring a throttled tab; committing it used to shrink the camera toward
+  // the top-left origin.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
+    const reconcileViewport = (width: number, height: number) => {
+      if (document.visibilityState === "hidden" || width <= 0 || height <= 0) return;
+
+      const previousViewport = lastDimensions.current;
+      const diffW = Math.abs(previousViewport.width - width);
+      const diffH = Math.abs(previousViewport.height - height);
+
+      // Ignore subpixel variations to prevent layout feedback loops from layer promotion.
+      if (diffW < 1 && diffH < 1) return;
+
+      const defaultTransform = defaultTransformForViewport(width, height);
+      const newFit = defaultTransform.scale;
+      const current = transformRef.current;
+      const previousFit = fitScaleRef.current;
+      const next = previousViewport.width <= 0
+        || previousViewport.height <= 0
+        || (current.scale === 1 && previousFit === 1)
+        ? defaultTransform
+        : transformForViewportResize(
+            current,
+            previousViewport,
+            { width, height },
+            previousFit,
+            newFit,
+          );
+      const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
+
+      lastDimensions.current = { width, height };
+      fitScaleRef.current = newFit;
+      transformRef.current = snapped;
+      setFitScale(newFit);
+      setTransform(snapped);
+    };
+
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          const diffW = Math.abs(lastDimensions.current.width - width);
-          const diffH = Math.abs(lastDimensions.current.height - height);
-          
-          // Ignore subpixel variations to prevent layout feedback loops from layer promotion
-          if (diffW < 1 && diffH < 1) {
-            continue;
-          }
-          
-          lastDimensions.current = { width, height };
-          
-          const defaultTransform = defaultTransformForViewport(width, height);
-          const newFit = defaultTransform.scale;
-          
-          setFitScale((prevFit) => {
-            if (prevFit !== newFit) {
-              setTransform((prevTransform) => {
-                const currentRelative = prevTransform.scale / (prevFit || 1);
-                const targetAbsolute = currentRelative * newFit;
-                
-                // If it was default scale (1.0) and uninitialized fit (1.0), center it cleanly
-                if (prevTransform.scale === 1 && prevFit === 1) {
-                  const next = snapTransformToDevicePixels(defaultTransform, currentDevicePixelRatio());
-                  transformRef.current = next;
-                  return next;
-                }
-
-                const ratio = targetAbsolute / prevTransform.scale;
-                const next = snapTransformToDevicePixels({
-                  x: prevTransform.x * ratio,
-                  y: prevTransform.y * ratio,
-                  scale: targetAbsolute
-                }, currentDevicePixelRatio());
-                transformRef.current = next;
-                return next;
-              });
-            }
-            return newFit;
-          });
-        }
+        reconcileViewport(entry.contentRect.width, entry.contentRect.height);
       }
     });
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      window.requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        reconcileViewport(containerRef.current.clientWidth, containerRef.current.clientHeight);
+      });
+    };
+
     observer.observe(el);
-    return () => observer.disconnect();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [defaultTransformForViewport]);
 
   const logicalViewportSize = useCallback(() => {

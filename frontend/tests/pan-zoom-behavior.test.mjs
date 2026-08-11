@@ -16,6 +16,7 @@ import {
   snapToDevicePixel,
   snapTransformToDevicePixels,
   transformForMapPointAtViewportPoint,
+  transformForViewportResize,
 } from "../src/hooks/panZoomMath.ts";
 
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
@@ -105,6 +106,33 @@ describe("pan zoom behavior guardrails", () => {
     const snapped = snapTransformToDevicePixels({ x: 22.26, y: -8.74, scale: 0.1733333333 }, 2);
 
     assert.deepEqual(snapped, { x: 22.5, y: -8.5, scale: 0.1733333333 });
+  });
+
+  it("keeps resize camera updates centered and reversible", () => {
+    const original = { x: -740, y: -315, scale: 0.42 };
+    const previousViewport = { width: 2048, height: 1160 };
+    const collapsedViewport = { width: 320, height: 180 };
+    const collapsed = transformForViewportResize(
+      original,
+      previousViewport,
+      collapsedViewport,
+      0.4,
+      0.06,
+    );
+    const restored = transformForViewportResize(
+      collapsed,
+      collapsedViewport,
+      previousViewport,
+      0.06,
+      0.4,
+    );
+
+    assert.ok(Math.abs(restored.x - original.x) < 1e-9);
+    assert.ok(Math.abs(restored.y - original.y) < 1e-9);
+    assert.ok(Math.abs(restored.scale - original.scale) < 1e-9);
+    assert.match(hookSource, /document\.visibilityState === "hidden"/);
+    assert.match(hookSource, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
+    assert.match(hookSource, /transformForViewportResize\(/);
   });
 
   it("starts the fitted-camera entrance slightly zoomed out around the viewport center", () => {
