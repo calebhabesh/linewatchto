@@ -39,7 +39,7 @@ describe("alert card and list views", () => {
     assert.match(panelSources[2], /label: "Reduced speed"/);
     assert.match(panelSources[2], /label: "Started"/);
     assert.match(panelSources[2], /label: "Updated"/);
-    assert.match(panelSources[2], /label: "Est\. resolution"/);
+    assert.match(panelSources[2], /label: "Est\. Resolution"/);
     assert.match(globalCss, /\.compact-impact-list-item__detail\s*\{[^}]*grid-column:\s*2 \/ 4;/s);
     assert.match(globalCss, /\.compact-impact-list-item__facts\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\);/s);
     assert.match(globalCss, /@container compact-impact \(max-width: 520px\)/);

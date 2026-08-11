@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const rszPanelSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
+const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCardFields.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const legendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const stationDetailSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
@@ -29,5 +30,30 @@ describe("Reduced Speed Zone amber color", () => {
     assert.match(stationDetailSource, /rsz-tone/);
     assert.doesNotMatch(rszPanelSource, /border-l-amber-500/);
     assert.doesNotMatch(rszPanelSource, /!bg-amber-50/);
+  });
+
+  it("stacks grouped directional zone counts as plain rows", () => {
+    assert.match(
+      rszPanelSource,
+      /className="rsz-zone-direction-breakdown"[\s\S]*?flexDirection:\s*"column"/,
+    );
+    assert.match(
+      rszPanelSource,
+      /className="rsz-zone-direction-row"[\s\S]*?flexDirection:\s*"row"/,
+    );
+    assert.doesNotMatch(rszPanelSource, /rsz-zone-direction-row[\s\S]{0,400}(?:border|background)/);
+    assert.match(
+      rszPanelSource,
+      /className="rsz-zone-direction-destination"[\s\S]*?color:\s*"var\(--quiet\)"/,
+    );
+    assert.match(
+      rszPanelSource,
+      /className="rsz-zone-direction-destination"[\s\S]*?fontWeight:\s*400[\s\S]*?opacity:\s*0\.78/,
+    );
+    assert.match(rszPanelSource, /className="rsz-zone-count-label-total"> \(\{zonesAtLocation\}\)<\/span>/);
+    assert.match(globalCss, /\.dark \.rsz-zone-count-label-total,[\s\S]*?color:\s*#b8a66f/);
+    assert.doesNotMatch(rszPanelSource, /rsz-zone-count-total-badge/);
+    assert.doesNotMatch(globalCss, /\.rsz-zone-count-total-badge/);
+    assert.match(impactCardFieldsSource, /<dt>\{label\}\{labelSuffix\}<\/dt>/);
   });
 });

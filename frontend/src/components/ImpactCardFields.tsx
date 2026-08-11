@@ -220,7 +220,7 @@ export function MetadataGrid({
   updatedAt?: string | null;
   updatedAgo?: string | null;
   leadingRows?: Array<{ label: string; value?: string | null }>;
-  extraRows?: Array<{ label: string; value?: ReactNode }>;
+  extraRows?: Array<{ label: string; labelSuffix?: ReactNode; value?: ReactNode }>;
   trailingRows?: Array<{ label: string; value?: ReactNode }>;
   className?: string;
 }) {
@@ -228,20 +228,20 @@ export function MetadataGrid({
   const resolutionValue = resolution ?? targetRemoval;
   const renderedLeadingRows = (leadingRows ?? [])
     .filter((row) => row.value && row.value.trim().length > 0)
-    .map((row) => [row.label, row.value] as const);
+    .map((row) => [row.label, row.value, null] as const);
   const renderedExtraRows = (extraRows ?? [])
     .filter((row) => row.value !== null && row.value !== undefined && row.value !== "")
-    .map((row) => [row.label, row.value] as const);
+    .map((row) => [row.label, row.value, row.labelSuffix ?? null] as const);
   const renderedTrailingRows = (trailingRows ?? [])
     .filter((row) => row.value !== null && row.value !== undefined && row.value !== "")
-    .map((row) => [row.label, row.value] as const);
+    .map((row) => [row.label, row.value, null] as const);
 
   const rows = [
     ...renderedLeadingRows,
-    causeValue ? ["Cause", causeValue] as const : null,
-    resolutionValue ? ["Est.\u00A0\u00A0\u00A0Resolution", resolutionValue] as const : null,
+    causeValue ? ["Cause", causeValue, null] as const : null,
+    resolutionValue ? ["Est. Resolution", resolutionValue, null] as const : null,
     ...renderedExtraRows,
-    ["Started", <ImpactTimestamp key="started" timestamp={startedAt} />] as const,
+    ["Started", <ImpactTimestamp key="started" timestamp={startedAt} />, null] as const,
     [
       "Updated",
       updatedAt
@@ -249,22 +249,23 @@ export function MetadataGrid({
         : updatedAgo
           ? formatElapsed(updatedAgo)
           : <ImpactTimestamp key="updated" timestamp={updatedAt} />,
+      null,
     ] as const,
     ...renderedTrailingRows,
-  ].filter(Boolean) as Array<[string, ReactNode]>;
+  ].filter(Boolean) as Array<[string, ReactNode, ReactNode | null]>;
 
   if (rows.length === 0) return null;
 
   return (
     <dl className={`impact-metadata-grid ${className}`.trim()}>
-      {rows.map(([label, value], index) => (
+      {rows.map(([label, value, labelSuffix], index) => (
         <div key={label} className={index < renderedLeadingRows.length ? "is-emphasized"
           : label === "Planned Closure"
             ? "is-planned-closure-row"
             : label === "Status"
               ? "is-status-row"
               : undefined}>
-          <dt>{label}</dt>
+          <dt>{label}{labelSuffix}</dt>
           <dd>{value}</dd>
         </div>
       ))}

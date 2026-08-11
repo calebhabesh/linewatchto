@@ -448,6 +448,54 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void groupedReducedSpeedZoneResolutionUsesTbdWhenAnyZoneIsUnscheduled() {
+        AlertEntity scheduled = alert(
+            "ttc-route-scheduled", "active-alert", "delay", "Reduced speed",
+            "Northbound trains are moving slowly.", "wilson", "sheppard-west",
+            OffsetDateTime.parse("2026-08-11T05:00:00Z"), null
+        );
+        ReflectionTestUtils.setField(scheduled, "targetRemoval", "Late August");
+        AlertEntity unscheduled = alert(
+            "ttc-route-unscheduled", "active-alert", "delay", "Reduced speed",
+            "Northbound trains are moving slowly.", "wilson", "sheppard-west",
+            OffsetDateTime.parse("2026-08-11T05:00:00Z"), null
+        );
+        ReflectionTestUtils.setField(unscheduled, "targetRemoval", "TBD");
+
+        String resolution = ReflectionTestUtils.invokeMethod(
+            service,
+            "groupedResolution",
+            List.of(scheduled, unscheduled)
+        );
+
+        assertThat(resolution).isEqualTo("TBD");
+    }
+
+    @Test
+    void groupedReducedSpeedZoneResolutionKeepsMultipleDatesForDifferentKnownDates() {
+        AlertEntity august = alert(
+            "ttc-route-august", "active-alert", "delay", "Reduced speed",
+            "Northbound trains are moving slowly.", "cedarvale", "st-clair-west",
+            OffsetDateTime.parse("2026-08-11T05:00:00Z"), null
+        );
+        ReflectionTestUtils.setField(august, "targetRemoval", "Late August");
+        AlertEntity september = alert(
+            "ttc-route-september", "active-alert", "delay", "Reduced speed",
+            "Southbound trains are moving slowly.", "st-clair-west", "cedarvale",
+            OffsetDateTime.parse("2026-08-11T05:00:00Z"), null
+        );
+        ReflectionTestUtils.setField(september, "targetRemoval", "Late September");
+
+        String resolution = ReflectionTestUtils.invokeMethod(
+            service,
+            "groupedResolution",
+            List.of(august, september)
+        );
+
+        assertThat(resolution).isEqualTo("Multiple Dates");
+    }
+
+    @Test
     void plannedClosuresUseNormalizedPlannedClosureTypeAndPreviewSegments() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity alert = alert(

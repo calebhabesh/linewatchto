@@ -454,7 +454,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
 }
 
 .station-connection-copy strong {
@@ -3799,7 +3799,7 @@ button {
 
 .desktop-status-chip:hover,
 .desktop-status-chip:focus-visible {
-  transform: translateY(-1px);
+  transform: translateY(0);
 }
 
 .desktop-status-chip:focus-visible {
@@ -7800,6 +7800,15 @@ img.transit-line-badge {
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.rsz-zone-count-label-total {
+  color: #806f47;
+}
+
+.dark .rsz-zone-count-label-total,
+.high-contrast .rsz-zone-count-label-total {
+  color: #b8a66f;
 }
 
 .impact-metadata-grid dd {

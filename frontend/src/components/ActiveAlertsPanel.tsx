@@ -165,7 +165,7 @@ export function ActiveAlertsPanel({
                     ...(alert.cause ? [{ column: 1 as const, label: "Cause", value: alert.cause }] : []),
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={alert.startedAt} /> },
                     { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={alert.updatedAt} fallback={alert.updatedAgo} /> },
-                    ...(alert.resolution ? [{ column: 4 as const, label: "Est. resolution", value: alert.resolution }] : []),
+                    ...(alert.resolution ? [{ column: 4 as const, label: "Est. Resolution", value: alert.resolution }] : []),
                   ]}
                   status={alert.shuttle ? <><Bus size={11} /> Shuttle</> : null}
                   active={isActive}

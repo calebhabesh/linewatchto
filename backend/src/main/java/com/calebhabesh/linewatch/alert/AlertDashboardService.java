@@ -1151,6 +1151,9 @@ public class AlertDashboardService {
             if (value == null) {
                 continue;
             }
+            if ("TBD".equalsIgnoreCase(value)) {
+                return "TBD";
+            }
             if (!firstResolutionSet) {
                 resolution = value;
                 firstResolutionSet = true;
@@ -1158,7 +1161,7 @@ public class AlertDashboardService {
                 multipleDates = true;
             }
         }
-        return multipleDates ? "Multiple dates" : resolution;
+        return multipleDates ? "Multiple Dates" : resolution;
     }
 
     private String cause(AlertEntity alert) {

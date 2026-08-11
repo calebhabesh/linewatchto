@@ -1413,7 +1413,7 @@ test("alert submenus persist one per-device card or list preference", async ({ p
   const firstCompactRow = page.locator(".compact-impact-list-item").first();
   await expect(firstCompactRow).toContainText("Direction:");
   await expect(firstCompactRow).toContainText("Reduced speed:");
-  await expect(firstCompactRow).toContainText("Est. resolution:");
+  await expect(firstCompactRow).toContainText("Est. Resolution:");
   await expect(firstCompactRow).toContainText("Updated:");
   await expect(firstCompactRow).toHaveCSS("border-left-color", "rgb(245, 158, 11)");
   await expect(firstCompactRow).toHaveCSS("border-left-width", cardEdgeWidth);
