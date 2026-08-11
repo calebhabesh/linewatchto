@@ -35,6 +35,22 @@ class MaintenanceCleanupStoreTest {
     }
 
     @Test
+    void deletesDemoAccountsOnlyAfterAllSessionsExpire() {
+        when(jdbc.update(anyString(), any(SqlParameterSource.class))).thenReturn(2);
+        OffsetDateTime now = OffsetDateTime.parse("2026-07-08T12:00:00Z");
+
+        int deleted = store.deleteExpiredDemoAccounts(now);
+
+        CapturedUpdate update = captureUpdate();
+        assertThat(deleted).isEqualTo(2);
+        assertThat(update.sql())
+            .contains("delete from accounts")
+            .contains("account.demo = true")
+            .contains("session.expires_at >= :now");
+        assertThat(update.params().getValue("now")).isEqualTo(now);
+    }
+
+    @Test
     void deletesOldIngestionRunsButKeepsLatestRunPerType() {
         when(jdbc.update(anyString(), any(SqlParameterSource.class))).thenReturn(8);
         OffsetDateTime cutoff = OffsetDateTime.parse("2026-04-09T12:00:00Z");

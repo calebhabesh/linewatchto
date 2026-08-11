@@ -28,6 +28,7 @@ class MaintenanceCleanupServiceTest {
         service.cleanup();
 
         OffsetDateTime cutoff = OffsetDateTime.parse("2026-04-09T12:00:00Z");
+        verify(store).deleteExpiredDemoAccounts(OffsetDateTime.parse("2026-07-08T12:00:00Z"));
         verify(store).deleteOldInactiveGtfsImports(1);
         verify(store).deleteOldIngestionRuns(cutoff);
         verify(store).deleteOldInactiveAlertSourceRecords(cutoff);

@@ -28,9 +28,10 @@ public class MaintenanceCleanupService {
 
     public CleanupResult cleanup() {
         if (!properties.isEnabled()) {
-            return new CleanupResult(0, 0, 0);
+            return new CleanupResult(0, 0, 0, 0);
         }
         OffsetDateTime now = OffsetDateTime.now(clock);
+        int demoAccountsDeleted = store.deleteExpiredDemoAccounts(now);
         int gtfsImportsDeleted =
             store.deleteOldInactiveGtfsImports(properties.getRetainInactiveGtfsImports());
         int ingestionRunsDeleted =
@@ -41,13 +42,15 @@ public class MaintenanceCleanupService {
                 + store.deleteOldInactiveMetrolinxAlertSourceRecords(alertSourceCutoff)
                 + store.deleteOldInactiveMetrolinxOperationalSourceRecords(alertSourceCutoff);
         CleanupResult result = new CleanupResult(
+            demoAccountsDeleted,
             gtfsImportsDeleted,
             ingestionRunsDeleted,
             alertSourceRecordsDeleted
         );
         if (result.totalDeleted() > 0) {
             log.info(
-                "Maintenance cleanup removed gtfsImports={} ingestionRuns={} alertSourceRecords={}",
+                "Maintenance cleanup removed demoAccounts={} gtfsImports={} ingestionRuns={} alertSourceRecords={}",
+                result.demoAccountsDeleted(),
                 result.gtfsImportsDeleted(),
                 result.ingestionRunsDeleted(),
                 result.alertSourceRecordsDeleted()
@@ -64,12 +67,13 @@ public class MaintenanceCleanupService {
     }
 
     public record CleanupResult(
+        int demoAccountsDeleted,
         int gtfsImportsDeleted,
         int ingestionRunsDeleted,
         int alertSourceRecordsDeleted
     ) {
         int totalDeleted() {
-            return gtfsImportsDeleted + ingestionRunsDeleted + alertSourceRecordsDeleted;
+            return demoAccountsDeleted + gtfsImportsDeleted + ingestionRunsDeleted + alertSourceRecordsDeleted;
         }
     }
 }

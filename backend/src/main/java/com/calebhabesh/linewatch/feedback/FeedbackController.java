@@ -1,6 +1,6 @@
 package com.calebhabesh.linewatch.feedback;
 
-import com.calebhabesh.linewatch.account.AccountRateLimiter;
+import com.calebhabesh.linewatch.account.ClientAddressResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +15,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class FeedbackController {
     private final FeedbackService feedbackService;
     private final FeedbackRateLimiter rateLimiter;
+    private final ClientAddressResolver clientAddressResolver;
 
-    public FeedbackController(FeedbackService feedbackService, FeedbackRateLimiter rateLimiter) {
+    public FeedbackController(
+        FeedbackService feedbackService,
+        FeedbackRateLimiter rateLimiter,
+        ClientAddressResolver clientAddressResolver
+    ) {
         this.feedbackService = feedbackService;
         this.rateLimiter = rateLimiter;
+        this.clientAddressResolver = clientAddressResolver;
     }
 
     @PostMapping
@@ -26,7 +32,7 @@ public class FeedbackController {
         @RequestBody FeedbackResponses.SubmitFeedbackRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireFeedbackAttempt(AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireFeedbackAttempt(clientAddressResolver.clientAddress(httpRequest));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(feedbackService.submit(request));
     }
 

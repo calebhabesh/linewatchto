@@ -248,15 +248,49 @@ class AccountServiceTest {
     }
 
     @Test
-    void demoLoginCreatesSeedAccountWhenMissing() {
-        when(accountRepository.findByEmail(AccountService.DEMO_EMAIL)).thenReturn(Optional.empty());
+    void demoLoginsCreateIsolatedDisposableAccounts() {
         when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        AccountResponses.AuthSession response = service.demoLogin();
+        AccountResponses.AuthSession first = service.demoLogin();
+        AccountResponses.AuthSession second = service.demoLogin();
 
-        assertThat(response.user().demo()).isTrue();
-        assertThat(response.user().email()).isEqualTo(AccountService.DEMO_EMAIL);
+        assertThat(first.user().demo()).isTrue();
+        assertThat(first.user().email()).isEqualTo(AccountService.DEMO_EMAIL);
+        assertThat(second.user().email()).isEqualTo(AccountService.DEMO_EMAIL);
+        assertThat(first.user().id()).isNotEqualTo(second.user().id());
+
+        ArgumentCaptor<AccountEntity> accounts = ArgumentCaptor.forClass(AccountEntity.class);
+        verify(accountRepository, times(2)).save(accounts.capture());
+        assertThat(accounts.getAllValues())
+            .extracting(AccountEntity::getEmail)
+            .doesNotHaveDuplicates()
+            .allMatch(email -> email.endsWith("@demo.linewatch.local"));
+    }
+
+    @Test
+    void logoutDeletesDisposableDemoAccount() {
+        AccountEntity account = AccountEntity.create(
+            "user_demo_one",
+            "user_demo_one@demo.linewatch.local",
+            "Demo Rider",
+            "hash",
+            true,
+            clock.instant()
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_demo",
+            account,
+            tokenService.hashToken("raw-token"),
+            clock.instant(),
+            clock.instant().plusSeconds(3600)
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-token"))).thenReturn(Optional.of(session));
+
+        service.logout("raw-token");
+
+        verify(accountRepository).delete(account);
+        verify(sessionRepository, never()).deleteByTokenHash(any());
     }
 
     @Test

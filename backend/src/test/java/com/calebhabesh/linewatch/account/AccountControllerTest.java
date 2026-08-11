@@ -23,7 +23,24 @@ class AccountControllerTest {
     private final GoogleAuthProperties googleAuthProperties = googleProperties();
     private final GoogleOAuthService googleOAuthService = mock(GoogleOAuthService.class);
     private final PushNotificationService pushNotificationService = mock(PushNotificationService.class);
-    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService, pushNotificationService, false);
+    private final ClientAddressResolver clientAddressResolver = new ClientAddressResolver(new TrustedProxyProperties());
+    private final PasswordResetDevLinkPolicy passwordResetDevLinkPolicy = new PasswordResetDevLinkPolicy(
+        true,
+        "127.0.0.1",
+        "http://localhost:3000",
+        "http://localhost:3000"
+    );
+    private final AccountController controller = new AccountController(
+        accountService,
+        cookieFactory,
+        rateLimiter,
+        googleAuthProperties,
+        googleOAuthService,
+        pushNotificationService,
+        clientAddressResolver,
+        passwordResetDevLinkPolicy,
+        false
+    );
 
     private GoogleAuthProperties googleProperties() {
         GoogleAuthProperties result = new GoogleAuthProperties();
@@ -118,7 +135,12 @@ class AccountControllerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(serviceResponse);
+        assertThat(response.getBody()).isEqualTo(new AccountService.PasswordResetRequestResponse(
+            true,
+            serviceResponse.message(),
+            null,
+            null
+        ));
         verify(rateLimiter).requirePasswordResetAttempt("203.0.113.20", "rider@example.com");
     }
 
@@ -163,7 +185,17 @@ class AccountControllerTest {
 
     @Test
     void devLoginSetsHttpOnlySessionCookieWhenEnabled() {
-        AccountController enabledController = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService, pushNotificationService, true);
+        AccountController enabledController = new AccountController(
+            accountService,
+            cookieFactory,
+            rateLimiter,
+            googleAuthProperties,
+            googleOAuthService,
+            pushNotificationService,
+            clientAddressResolver,
+            passwordResetDevLinkPolicy,
+            true
+        );
         AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_dev", "dev@linewatch.local", "Dev Rider", false, false);
         when(accountService.devLogin())
             .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));

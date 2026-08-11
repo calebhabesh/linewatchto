@@ -276,6 +276,7 @@ Production backend settings should include:
 ```bash
 LINEWATCH_AUTH_SECURE_COOKIE=true
 LINEWATCH_AUTH_ALLOWED_ORIGINS=https://linewatchto.ca,https://www.linewatchto.ca
+LINEWATCH_AUTH_TRUSTED_PROXY_CIDRS=127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
 LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false
 LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL=https://linewatchto.ca
 LINEWATCH_INGESTION_ALERTS_ENABLED=true
@@ -288,7 +289,7 @@ LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING=14
 
 The backend includes an in-process GTFS refresh job. When enabled, it downloads and imports the public merged TTC schedule only when no active import exists, the import is expired, or it is within the configured expiry threshold. These arrivals remain scheduled estimates, not live train predictions.
 
-The backend also runs a conservative maintenance cleanup job by default. It keeps the active GTFS schedule import plus one inactive backup import, prunes old ingestion-run rows after 90 days while preserving the latest run for each type, and prunes inactive TTC and Metrolinx alert/operational source-staging rows after 90 days. Alert history snapshots are not pruned. Override with:
+The backend also runs a conservative maintenance cleanup job by default. It removes disposable demo accounts after their only session expires, keeps the active GTFS schedule import plus one inactive backup import, prunes old ingestion-run rows after 90 days while preserving the latest run for each type, and prunes inactive TTC and Metrolinx alert/operational source-staging rows after 90 days. Alert history snapshots are not pruned. Override with:
 
 ```bash
 LINEWATCH_MAINTENANCE_CLEANUP_ENABLED=true
@@ -309,7 +310,9 @@ LINEWATCH_ARRIVALS_TRAIN_MARKER_HORIZON=PT20M
 
 Live rows are shown only when the GTFS-RT Subway Trip Updates feed is fresh and the active static GTFS import can resolve the feed `stop_id` values to LineWatch stations. Missing directions or missing lines fall back to source-labeled scheduled service.
 
-Account auth endpoints have a small in-memory rate limiter for login, register, demo login, password-reset request, and password-reset confirmation. Keep it enabled in production, but also use your edge/provider rate-limit rules because the in-app limiter is per backend instance.
+Account auth endpoints have a small in-memory rate limiter for login, register, demo login, password-reset request, and password-reset confirmation. Keep it enabled in production, but also use your edge/provider rate-limit rules because the in-app limiter is per backend instance. Forwarded client addresses are accepted only when the immediate peer belongs to `LINEWATCH_AUTH_TRUSTED_PROXY_CIDRS`; the resolver walks `X-Forwarded-For` from the nearest hop and recognizes `CF-Connecting-IP` only when the nearest public proxy is in Cloudflare's configured CIDRs. The defaults trust loopback, private container networks, and Cloudflare's published ranges. Narrow either CIDR list if the deployment uses fixed proxy addresses.
+
+Each public demo login receives a separate disposable account and session. Demo visitors can interact with My Commutes and My Stations without sharing account-owned state; logout removes the disposable account immediately, and maintenance removes abandoned accounts after session expiry.
 
 For Resend password-reset email, you can use `linewatchto.ca` now that you own the domain. Resend requires a verified domain before SMTP sending. Add `linewatchto.ca` or a sending subdomain such as `mail.linewatchto.ca` in Resend, publish the DKIM/SPF/DMARC DNS records Resend shows, then configure Spring Mail:
 
@@ -511,7 +514,7 @@ LINEWATCH_REGIONAL_TRAIN_MARKERS_ENABLED=true
 
 With those values in `.env.local`, `scripts/dev-live-backend.sh` polls GO service, information, and marketing alerts; GO and UP Express GTFS-RT alert feeds; GO Train Exceptions; and GO GTFS-RT TripUpdates. Every identified rider alert is raw-staged, while exceptions and TripUpdate entities use the separate operational store; only reviewed supported rail alerts are normalized for the dashboard. The profile also enables on-demand station estimates from GO Next Service and UP Express TripUpdates, imports the public GO/UP schedules as fallback, and enables freshness-gated schematic regional markers from the dedicated GO/UP VehiclePosition feeds. The key is added only to backend-to-Metrolinx requests and is never returned by the API or included in frontend configuration. Static schedule import does not require the developer key.
 
-This dev helper also enables local password-reset links by default. It returns a short-lived reset token to the frontend for existing local accounts so the `Forgot password?` flow can be tested without email delivery.
+This dev helper also enables local password-reset links by default. It binds the backend to `127.0.0.1` and returns a short-lived reset token to the frontend for existing local accounts so the `Forgot password?` flow can be tested without email delivery. When dev links are enabled, startup fails unless `SERVER_ADDRESS`, the reset frontend URL, and every allowed origin are loopback-only. Forwarded requests never receive the token or its expiry. Public tunnels, staging, AWS lab, and production must keep `LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false`.
 
 The same helper enables the local dev account endpoint by default with
 `LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED=true`. That endpoint is disabled by default
@@ -608,7 +611,7 @@ When alert ingestion is enabled, `LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENA
 Equivalent manual command:
 
 ```bash
-LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=true mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev-live
+SERVER_ADDRESS=127.0.0.1 LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=true mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev-live
 ```
 
 `LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE` controls how long a successful poll can drive visible dashboard data. The default is `PT10M`; when that window expires, `/api/status`, `/api/alerts`, and `/api/map` stop using old active alert rows.

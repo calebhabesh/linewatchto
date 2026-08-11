@@ -5,6 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.account.ClientAddressResolver;
+import com.calebhabesh.linewatch.account.TrustedProxyProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +15,11 @@ import org.springframework.mock.web.MockHttpServletRequest;
 class FeedbackControllerTest {
     private final FeedbackService service = mock(FeedbackService.class);
     private final FeedbackRateLimiter rateLimiter = mock(FeedbackRateLimiter.class);
-    private final FeedbackController controller = new FeedbackController(service, rateLimiter);
+    private final FeedbackController controller = new FeedbackController(
+        service,
+        rateLimiter,
+        new ClientAddressResolver(new TrustedProxyProperties())
+    );
 
     @Test
     void submitFeedbackAppliesRateLimitAndDelegatesToService() {

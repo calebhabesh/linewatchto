@@ -27,6 +27,8 @@ public class AccountController {
     private final GoogleAuthProperties googleAuthProperties;
     private final GoogleOAuthService googleOAuthService;
     private final PushNotificationService pushNotificationService;
+    private final ClientAddressResolver clientAddressResolver;
+    private final PasswordResetDevLinkPolicy passwordResetDevLinkPolicy;
     private final boolean devAccountEnabled;
 
     public AccountController(
@@ -36,6 +38,8 @@ public class AccountController {
         GoogleAuthProperties googleAuthProperties,
         GoogleOAuthService googleOAuthService,
         PushNotificationService pushNotificationService,
+        ClientAddressResolver clientAddressResolver,
+        PasswordResetDevLinkPolicy passwordResetDevLinkPolicy,
         @Value("${linewatch.auth.dev-account.enabled:false}") boolean devAccountEnabled
     ) {
         this.accountService = accountService;
@@ -44,6 +48,8 @@ public class AccountController {
         this.googleAuthProperties = googleAuthProperties;
         this.googleOAuthService = googleOAuthService;
         this.pushNotificationService = pushNotificationService;
+        this.clientAddressResolver = clientAddressResolver;
+        this.passwordResetDevLinkPolicy = passwordResetDevLinkPolicy;
         this.devAccountEnabled = devAccountEnabled;
     }
 
@@ -61,7 +67,7 @@ public class AccountController {
         @RequestParam(name = "returnTo", defaultValue = "/") String returnTo,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireAuthAttempt("google-oauth-start", AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireAuthAttempt("google-oauth-start", clientAddressResolver.clientAddress(httpRequest));
         GoogleOAuthService.GoogleOAuthStart start = googleOAuthService.start(mode, returnTo);
         return ResponseEntity.status(HttpStatus.FOUND)
             .header(HttpHeaders.LOCATION, start.authorizationUri().toString())
@@ -81,7 +87,7 @@ public class AccountController {
         @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireAuthAttempt("google-oauth-callback", AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireAuthAttempt("google-oauth-callback", clientAddressResolver.clientAddress(httpRequest));
         ResponseCookie expiredOAuthCookie = cookieFactory.expiredGoogleOAuthStateCookie();
         try {
             GoogleOAuthService.VerifiedGoogleOAuthCallback callback = googleOAuthService.verifyCallback(
@@ -111,7 +117,7 @@ public class AccountController {
         @RequestBody AccountService.GoogleLoginRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireAuthAttempt("google", AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireAuthAttempt("google", clientAddressResolver.clientAddress(httpRequest));
         return authenticated(accountService.googleLogin(request));
     }
 
@@ -121,7 +127,7 @@ public class AccountController {
         @RequestBody AccountService.GoogleLoginRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireAuthAttempt("google-link", AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireAuthAttempt("google-link", clientAddressResolver.clientAddress(httpRequest));
         return ResponseEntity.ok(accountService.linkGoogle(rawSessionToken, request));
     }
 
@@ -130,7 +136,7 @@ public class AccountController {
         @RequestBody AccountService.RegisterRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireAuthAttempt("register", AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireAuthAttempt("register", clientAddressResolver.clientAddress(httpRequest));
         return authenticated(accountService.register(request));
     }
 
@@ -139,13 +145,13 @@ public class AccountController {
         @RequestBody AccountService.LoginRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireAuthAttempt("login", AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireAuthAttempt("login", clientAddressResolver.clientAddress(httpRequest));
         return authenticated(accountService.login(request));
     }
 
     @PostMapping("/demo")
     public ResponseEntity<AccountResponses.AuthResponse> demo(HttpServletRequest httpRequest) {
-        rateLimiter.requireDemoAttempt(AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireDemoAttempt(clientAddressResolver.clientAddress(httpRequest));
         return authenticated(accountService.demoLogin());
     }
 
@@ -154,7 +160,7 @@ public class AccountController {
         if (!devAccountEnabled) {
             throw new AccountException(HttpStatus.NOT_FOUND, "dev_account_disabled", "Dev account sign-in is only available when explicitly enabled for local development.");
         }
-        rateLimiter.requireDemoAttempt(AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireDemoAttempt(clientAddressResolver.clientAddress(httpRequest));
         return authenticated(accountService.devLogin());
     }
 
@@ -163,8 +169,9 @@ public class AccountController {
         @RequestBody AccountService.PasswordResetRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requirePasswordResetAttempt(AccountRateLimiter.clientAddress(httpRequest), request.email());
-        return ResponseEntity.ok(accountService.requestPasswordReset(request));
+        rateLimiter.requirePasswordResetAttempt(clientAddressResolver.clientAddress(httpRequest), request.email());
+        AccountService.PasswordResetRequestResponse response = accountService.requestPasswordReset(request);
+        return ResponseEntity.ok(passwordResetDevLinkPolicy.filterResponse(response, httpRequest));
     }
 
     @PostMapping("/password-reset/confirm")
@@ -172,7 +179,7 @@ public class AccountController {
         @RequestBody AccountService.PasswordResetConfirmRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireAuthAttempt("password-reset-confirm", AccountRateLimiter.clientAddress(httpRequest));
+        rateLimiter.requireAuthAttempt("password-reset-confirm", clientAddressResolver.clientAddress(httpRequest));
         return authenticated(accountService.confirmPasswordReset(request));
     }
 

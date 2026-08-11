@@ -36,6 +36,19 @@ public class MaintenanceCleanupStore {
             ));
     }
 
+    public int deleteExpiredDemoAccounts(OffsetDateTime now) {
+        return jdbc.update("""
+            delete from accounts account
+            where account.demo = true
+              and not exists (
+                  select 1
+                  from user_sessions session
+                  where session.account_id = account.id
+                    and session.expires_at >= :now
+              )
+            """, new MapSqlParameterSource("now", now));
+    }
+
     public int deleteOldIngestionRuns(OffsetDateTime cutoff) {
         return jdbc.update("""
             with latest_runs as (

@@ -1,6 +1,5 @@
 package com.calebhabesh.linewatch.account;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
@@ -37,19 +36,6 @@ public class AccountRateLimiter {
         check("preference:" + normalize(accountId), properties.getPreferenceMutationMaxRequests());
     }
 
-    public static String clientAddress(HttpServletRequest request) {
-        String cloudflare = firstHeaderValue(request.getHeader("CF-Connecting-IP"));
-        if (!cloudflare.isBlank()) {
-            return cloudflare;
-        }
-        String forwardedFor = firstHeaderValue(request.getHeader("X-Forwarded-For"));
-        if (!forwardedFor.isBlank()) {
-            return forwardedFor;
-        }
-        String remote = request.getRemoteAddr();
-        return remote == null || remote.isBlank() ? "unknown" : remote.trim();
-    }
-
     private synchronized void check(String key, int maxRequests) {
         if (!properties.isEnabled() || maxRequests <= 0) {
             return;
@@ -82,13 +68,6 @@ public class AccountRateLimiter {
     private static String normalizeAddress(String value) {
         String normalized = normalize(value);
         return normalized.isBlank() ? "unknown" : normalized;
-    }
-
-    private static String firstHeaderValue(String header) {
-        if (header == null || header.isBlank()) {
-            return "";
-        }
-        return header.split(",", 2)[0].trim();
     }
 
     int bucketCount() { return buckets.size(); }

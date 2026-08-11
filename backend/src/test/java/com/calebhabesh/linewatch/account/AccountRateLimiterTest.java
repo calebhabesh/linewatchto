@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
 
 class AccountRateLimiterTest {
 
@@ -79,16 +78,6 @@ class AccountRateLimiterTest {
             .isInstanceOf(AccountException.class)
             .extracting("status")
             .isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    @Test
-    void extractsCloudflareForwardedClientAddressBeforeRemoteAddress() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRemoteAddr("10.0.0.5");
-        request.addHeader("CF-Connecting-IP", "203.0.113.20");
-
-        org.assertj.core.api.Assertions.assertThat(AccountRateLimiter.clientAddress(request))
-            .isEqualTo("203.0.113.20");
     }
 
     @Test

@@ -150,15 +150,15 @@ public class AccountService {
     @Transactional
     public AccountResponses.AuthSession demoLogin() {
         Instant now = clock.instant();
-        AccountEntity account = accountRepository.findByEmail(DEMO_EMAIL)
-            .orElseGet(() -> accountRepository.save(AccountEntity.create(
-                "user_demo",
-                DEMO_EMAIL,
-                "Demo Rider",
-                passwordHasher.hash(nextId("demo-password")),
-                true,
-                now
-            )));
+        String accountId = nextId("user_demo");
+        AccountEntity account = accountRepository.save(AccountEntity.create(
+            accountId,
+            accountId + "@demo.linewatch.local",
+            "Demo Rider",
+            passwordHasher.hash(nextId("demo-password")),
+            true,
+            now
+        ));
         account.markLogin(now);
         return createSession(account, now);
     }
@@ -355,7 +355,14 @@ public class AccountService {
         if (rawSessionToken == null || rawSessionToken.isBlank()) {
             return;
         }
-        sessionRepository.deleteByTokenHash(tokenService.hashToken(rawSessionToken));
+        String tokenHash = tokenService.hashToken(rawSessionToken);
+        sessionRepository.findByTokenHash(tokenHash).ifPresentOrElse(session -> {
+            if (session.getAccount().isDemo()) {
+                accountRepository.delete(session.getAccount());
+            } else {
+                sessionRepository.deleteByTokenHash(tokenHash);
+            }
+        }, () -> sessionRepository.deleteByTokenHash(tokenHash));
     }
 
     @Transactional
@@ -420,7 +427,7 @@ public class AccountService {
     private AccountResponses.UserResponse toUserResponse(AccountEntity account, boolean googleLinked) {
         return new AccountResponses.UserResponse(
             account.getId(),
-            account.getEmail(),
+            account.isDemo() ? DEMO_EMAIL : account.getEmail(),
             account.getDisplayName(),
             account.isDemo(),
             googleLinked
