@@ -51,6 +51,7 @@ import {
   transformForMapPointAtViewportPoint,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
+import { RasterMapPlane, type RasterMapTheme } from "./RasterMapPlane";
 
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
@@ -245,6 +246,9 @@ function setRegionalStationLabelHover(root: ParentNode, stationId: string | null
   root.querySelectorAll<SVGElement>(
     "#regional-station-labels-layer .regional-station-label-hovered",
   ).forEach((label) => label.classList.remove("regional-station-label-hovered"));
+  root.querySelectorAll<SVGElement>(
+    "#regional-station-labels-layer .regional-raster-label-halo",
+  ).forEach((label) => label.classList.remove("regional-raster-label-halo"));
   if (!stationId) return;
   const label = root.querySelector<SVGElement>(
     `#regional-station-labels-layer [data-regional-station-label-for="${CSS.escape(stationId)}"]`,
@@ -252,6 +256,9 @@ function setRegionalStationLabelHover(root: ParentNode, stationId: string | null
   label?.classList.add("regional-station-label-hovered");
   label?.closest(".station-label-hover-effect")
     ?.classList.add("station-label-hover-effect-active");
+  root.querySelector<SVGElement>(
+    `#regional-station-labels-layer .regional-station-label-hit-target[data-regional-station-id="${CSS.escape(stationId)}"]`,
+  )?.classList.add("regional-raster-label-halo");
 }
 
 function appendRegionalDelayGlyph(
@@ -1940,7 +1947,7 @@ type CameraMotionOptions = {
 };
 
 const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
-  return <div dangerouslySetInnerHTML={{ __html: markup }} className="w-full h-full" />;
+  return <div dangerouslySetInnerHTML={{ __html: markup }} className="regional-live-svg raster-map-dynamic-plane absolute inset-0 w-full h-full" />;
 });
 
 function regionalOverlapMarker(
@@ -2111,6 +2118,7 @@ function InteractiveRegionalMapComponent({
   layoutResetSignal,
   recenterSignal,
   isDark = true,
+  highContrast = false,
   animateInitialEntrance = true,
   deferInitialEntrance = false,
   desktopMenuPinned = false,
@@ -2131,6 +2139,7 @@ function InteractiveRegionalMapComponent({
   layoutResetSignal?: number;
   recenterSignal?: number;
   isDark?: boolean;
+  highContrast?: boolean;
   animateInitialEntrance?: boolean;
   deferInitialEntrance?: boolean;
   desktopMenuPinned?: boolean;
@@ -2160,6 +2169,7 @@ function InteractiveRegionalMapComponent({
     mapPointAtMidpoint: { x: number; y: number };
   } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
+  const [readyRasterPlanes, setReadyRasterPlanes] = useState(() => new Set<string>());
   const [overlapBadges, setOverlapBadges] = useState<RegionalOverlapBadge[]>([]);
   const overlapBadgePositionsRef = useRef(new Map<string, SvgPoint>());
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
@@ -2171,6 +2181,20 @@ function InteractiveRegionalMapComponent({
   const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
+  const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
+  const rasterDensity = mobilePerformanceMode ? "mobile" : "desktop";
+  const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
+  const markRasterPlaneReady = useCallback((plane: string) => {
+    setReadyRasterPlanes((current) => {
+      const planeKey = `${rasterVariantKey}:${plane}`;
+      if (current.has(planeKey)) return current;
+      const next = new Set(current);
+      next.add(planeKey);
+      return next;
+    });
+  }, [rasterVariantKey]);
+  const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
+    && readyRasterPlanes.has(`${rasterVariantKey}:foreground`);
 
   useEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
@@ -3902,6 +3926,7 @@ function InteractiveRegionalMapComponent({
         {loadError ? <p role="alert" className="regional-map-error">Regional map could not be loaded.</p> : null}
         <div
           ref={mapStageRef}
+          data-raster-map-ready={rasterMapReady ? "true" : "false"}
           className="regional-map-stage relative"
           style={{
             width: `${MAP_WIDTH}px`,
@@ -3912,10 +3937,24 @@ function InteractiveRegionalMapComponent({
             transformOrigin: "0 0",
           }}
         >
+          <RasterMapPlane
+            network="regional"
+            plane="background"
+            theme={rasterTheme}
+            density={rasterDensity}
+            onReady={() => markRasterPlaneReady("background")}
+          />
           <RegionalSvgMarkup markup={svgMarkup} />
+          <RasterMapPlane
+            network="regional"
+            plane="foreground"
+            theme={rasterTheme}
+            density={rasterDensity}
+            onReady={() => markRasterPlaneReady("foreground")}
+          />
           {/* Static North Compass fixed to regional map canvas */}
           <svg
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
             viewBox="-200 -200 17036.959 9031.6719"
             preserveAspectRatio="xMidYMid meet"
           >

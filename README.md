@@ -471,7 +471,13 @@ Map assets live in:
 frontend/public/assets/linewatch/
 ```
 
-The edited map is loaded as the base visual layer. React renders disruption and planned-closure overlays above it using the same SVG coordinate system.
+The edited SVG maps remain the geometry contract for stations, segments, and hit targets. Static tracks, labels, stations, badges, and connection artwork are rendered from pre-generated raster planes so desktop camera movement does not continuously rerasterize the large SVG text trees. React keeps disruption, planned-closure, train-marker, selection, and interaction layers live in the same SVG coordinate system.
+
+After changing either authored map asset, regenerate and review every light, dark, and high-contrast raster surface:
+
+```bash
+npm --prefix frontend run generate:map-rasters
+```
 
 The PWA service worker caches static assets and the offline page only. It intentionally bypasses `/api/*` responses so current TTC service, station, and commute data are never replayed as fresh while offline.
 

@@ -3612,6 +3612,7 @@ export function LineWatchShell({
           onSelectImpact={handleMapSelectImpact}
           onSelectStationId={handleSelectStationId}
           isDark={isDark}
+          highContrast={highContrast}
           onToggleTheme={handleToggleTheme}
           layoutResetSignal={mapLayoutSignal}
           recenterSignal={recenterSignal}

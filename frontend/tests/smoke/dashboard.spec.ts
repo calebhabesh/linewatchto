@@ -444,6 +444,46 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeHidden();
 });
 
+test("uses decoded raster artwork while preserving live map geometry in both network modes", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop raster compositor coverage");
+  // Fixture fallback exposes the complete station catalog, including every
+  // authored label hit target used by this compositor/hover check.
+  await setStubMode(request, "unavailable");
+  await page.goto("/");
+
+  const ttcStage = page.locator(".ttc-map-stage");
+  await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(2);
+  await expect(ttcStage.locator(".ttc-authored-svg-source").first()).toHaveCSS("visibility", "hidden");
+  await ttcStage.locator('[data-station-label-id="kipling"]').hover();
+  const rasterLabelHover = ttcStage.locator(".raster-station-label-text-hover");
+  await expect(rasterLabelHover).toHaveCount(1);
+  await expect(rasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
+  await expect(rasterLabelHover.locator("image")).toHaveAttribute("clip-path", "url(#ttc-hovered-station-label-clip)");
+  await expect(ttcStage.locator(".raster-map-plane--foreground > image")).toHaveAttribute("mask", "url(#ttc-foreground-raster-mask)");
+  await expect(ttcStage.locator('[data-station-label-for="kipling"]')).toHaveCSS("visibility", "hidden");
+  const ttcRasterSources = await ttcStage.locator(".raster-map-plane").evaluateAll((images) =>
+    images.map((image) => (image as HTMLImageElement).currentSrc)
+  );
+  await ttcStage.dispatchEvent("wheel", { deltaY: -160, clientX: 720, clientY: 500 });
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(2);
+  expect(await ttcStage.locator(".raster-map-plane").evaluateAll((images) =>
+    images.map((image) => (image as HTMLImageElement).currentSrc)
+  )).toEqual(ttcRasterSources);
+
+  const networkSelector = page.getByRole("group", { name: "Select transit network" });
+  await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+  const regionalStage = page.locator(".regional-map-stage");
+  await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(2);
+  await expect(regionalStage.locator("#regional-lines-layer")).toHaveCSS("visibility", "hidden");
+  await expect(regionalStage.locator("#regional-stations-layer")).toHaveCount(1);
+  const unionLabelTarget = regionalStage.locator('.regional-station-label-hit-target[data-regional-station-id="union"]');
+  await unionLabelTarget.hover();
+  await expect(unionLabelTarget).toHaveClass(/regional-raster-label-halo/);
+  await expect(regionalStage.locator('[data-regional-station-label-for="union"]')).toHaveCSS("visibility", "hidden");
+});
+
 test("regional refresh, pan, zoom, and center preserve the authored SVG instance", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop regional camera regression");
   await setStubMode(request, "seeded");

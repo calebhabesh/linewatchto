@@ -301,11 +301,67 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   inset: 0;
 }
 
-/* Keep the large authored SVG in its normal paint layer. Promoting and then
-   demoting it at every pan/zoom invalidates Chromium's SVG tiles and is the
-   source of the most visible route redraws. Motion only pauses the small,
-   refresh-owned effect layers; their authored glow remains visible while the
-   rail/station/label artwork stays untouched. */
+/* The authored maps remain in the DOM as non-painting geometry sources for
+   hit testing and dynamic overlay construction. Static tracks, stations, and
+   labels are pre-rendered PNG surfaces so Chromium composites stable textures
+   during camera movement instead of rerasterizing two enormous SVG trees. */
+.raster-map-plane {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.raster-map-plane--background { z-index: 0; }
+.raster-map-dynamic-plane { z-index: 1; }
+.raster-map-plane--foreground { z-index: 2; }
+.raster-map-top-plane { z-index: 3; }
+.raster-map-interaction-plane { z-index: 4; }
+
+.ttc-map-stage:not([data-raster-map-ready="true"]) .raster-map-plane,
+.regional-map-stage:not([data-raster-map-ready="true"]) .raster-map-plane {
+  visibility: hidden;
+}
+
+.ttc-map-stage[data-raster-map-ready="true"] .ttc-authored-svg-source,
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-lines-layer,
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg .regional-station-visual,
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-station-labels-layer [data-regional-station-label-for],
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-route-labels-layer,
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg .map-connection-label {
+  visibility: hidden;
+}
+
+.regional-live-svg .regional-station-hover-indicator.active,
+.regional-live-svg .regional-station-selected-indicator.active {
+  visibility: visible;
+}
+
+.raster-station-label-text-hover {
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 82%));
+  transition: filter 180ms ease-in-out;
+}
+
+.regional-station-label-hit-target.regional-raster-label-halo {
+  fill: transparent !important;
+  opacity: 0.72 !important;
+  stroke: rgb(var(--station-selection-accent-rgb) / 78%) !important;
+  stroke-width: 18px !important;
+  filter: blur(6px);
+}
+
+/* Static authored artwork no longer paints after its raster planes decode.
+   Motion only pauses the small refresh-owned SVG effect layers; promoting and
+   demoting those layers during every gesture would still create needless
+   compositor churn. */
 .regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is(
   .regional-impact-aura,
   .regional-impact-path,

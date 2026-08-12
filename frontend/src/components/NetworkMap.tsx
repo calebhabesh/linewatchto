@@ -34,6 +34,7 @@ export function NetworkMap({
           layoutResetSignal={props.layoutResetSignal}
           recenterSignal={props.recenterSignal}
           isDark={props.isDark}
+          highContrast={props.highContrast}
           animateInitialEntrance={props.animateInitialEntrance}
           deferInitialEntrance={props.deferInitialEntrance}
           desktopMenuPinned={props.desktopMenuPinned}

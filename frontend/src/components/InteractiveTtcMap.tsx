@@ -57,6 +57,7 @@ import {
   type MapOverlapIndicatorSize,
 } from "./MapOverlapIndicator";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
+import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import {
   alignedOverlapBadgePositionCandidates,
@@ -288,6 +289,7 @@ function InteractiveTtcMapComponent({
   selectedStationId,
   onSelectStationId,
   isDark,
+  highContrast = false,
   onToggleTheme,
   layoutResetSignal,
   entranceSignal,
@@ -311,6 +313,7 @@ function InteractiveTtcMapComponent({
   selectedStationId: string | null;
   onSelectStationId: (id: string | null) => void;
   isDark: boolean;
+  highContrast?: boolean;
   onToggleTheme: () => void;
   layoutResetSignal?: number;
   entranceSignal?: number;
@@ -330,6 +333,7 @@ function InteractiveTtcMapComponent({
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
   const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(null);
+  const [readyRasterPlanes, setReadyRasterPlanes] = useState(() => new Set<string>());
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [hoveredStationId, setHoveredStationId] = useState<string | null>(null);
   const [hoveredStationLabelId, setHoveredStationLabelId] = useState<string | null>(null);
@@ -339,6 +343,20 @@ function InteractiveTtcMapComponent({
   const [hoveredOverlapBadgeId, setHoveredOverlapBadgeId] = useState<string | null>(null);
   const [hoveredOverlapChooserImpact, setHoveredOverlapChooserImpact] = useState<ImpactSelection>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
+  const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
+  const rasterDensity = mobilePerformanceMode ? "mobile" : "desktop";
+  const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
+  const markRasterPlaneReady = useCallback((plane: string) => {
+    setReadyRasterPlanes((current) => {
+      const planeKey = `${rasterVariantKey}:${plane}`;
+      if (current.has(planeKey)) return current;
+      const next = new Set(current);
+      next.add(planeKey);
+      return next;
+    });
+  }, [rasterVariantKey]);
+  const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
+    && readyRasterPlanes.has(`${rasterVariantKey}:foreground`);
   const readyNotifiedRef = useRef(false);
   const entranceWasDeferredRef = useRef(false);
 
@@ -351,6 +369,16 @@ function InteractiveTtcMapComponent({
   const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
   const [stationLabelPolygons, setStationLabelPolygons] = useState(new Map<string, MapPolygon>());
   const [mapCollisionBoxes, setMapCollisionBoxes] = useState<SvgBounds[]>([]);
+  const hoveredLabelPolygon = hoveredStationLabelId
+    ? stationLabelPolygons.get(hoveredStationLabelId) ?? null
+    : null;
+  const hoveredLabelPolygonPoints = hoveredLabelPolygon
+    ?.map((point) => `${point.x},${point.y}`)
+    .join(" ") ?? null;
+  const hoveredLabelCenter = hoveredLabelPolygon ? {
+    x: hoveredLabelPolygon.reduce((sum, point) => sum + point.x, 0) / hoveredLabelPolygon.length,
+    y: hoveredLabelPolygon.reduce((sum, point) => sum + point.y, 0) / hoveredLabelPolygon.length,
+  } : null;
   const measuredGeometrySignatureRef = useRef<string | null>(null);
   const geometryMeasurementSignature = [
     mapAsset.src,
@@ -1641,6 +1669,7 @@ function InteractiveTtcMapComponent({
         {loadState === "ready" && (
           <div
             ref={mapRef}
+            data-raster-map-ready={rasterMapReady ? "true" : "false"}
             className="ttc-map-stage absolute top-0 left-0 origin-top-left"
             style={{
               // Match the transformed layer box to the authored map canvas.
@@ -1686,16 +1715,25 @@ function InteractiveTtcMapComponent({
               `}
             </style>
 
-            {/* The single synchronized SVG viewport with perfect z-indexing */}
+            <RasterMapPlane
+              network="ttc"
+              plane="background"
+              theme={rasterTheme}
+              density={rasterDensity}
+              onReady={() => markRasterPlaneReady("background")}
+            />
+
+            {/* The live SVG now owns only dynamic visuals. Authored artwork is
+                retained invisibly as the geometry source used by overlays. */}
             <div className="w-[4500px] h-[2181.8px] max-w-none ttc-svg-container pointer-events-none absolute top-0 left-0">
               <svg
                 ref={mapSvgRef}
-                className="w-full h-full pointer-events-none"
+                className="raster-map-dynamic-plane absolute inset-0 w-full h-full pointer-events-none"
                 viewBox="0 0 8250 4000"
                 preserveAspectRatio="xMidYMid meet"
               >
                 {/* Bottom Layer: Base tracks */}
-                <g dangerouslySetInnerHTML={{ __html: svgParts?.part1 ?? "" }} />
+                <g className="ttc-authored-svg-source" dangerouslySetInnerHTML={{ __html: svgParts?.part1 ?? "" }} />
 
                 {/* Middle Layer: Highlighted overlays injected underneath stations */}
                 <defs>
@@ -1884,27 +1922,61 @@ function InteractiveTtcMapComponent({
                 </g>
 
                 {/* Top Layer: custom-map station labels, dots, badges, and connections */}
-                <g dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
-
-                <g aria-label="Estimated train markers">
-                  <EstimatedTrainMarkerLayer
-                    enabled={estimatedTrainsEnabled}
-                    markers={estimatedTrainMarkers}
-                    segments={renderedNetworkSegments}
-                    muted={Boolean(selection || selectedStationId || commutePathPreview)}
-                  />
-                </g>
-
-                {/* Cardinal North Compass fixed to map */}
-                <g aria-label="Cardinal North Compass" transform="translate(7600, 2300) scale(4)">
-                  <image href="/assets/linewatch/cardinal-north.svg" width="75" height="100" className="opacity-90" style={{ filter: isDark ? "invert(1)" : "none" }} />
-                </g>
+                <g className="ttc-authored-svg-source" dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
               </svg>
             </div>
 
+            <RasterMapPlane
+              network="ttc"
+              plane="foreground"
+              theme={rasterTheme}
+              density={rasterDensity}
+              svgViewBox="0 0 8250 4000"
+              cutoutPolygon={hoveredLabelPolygonPoints}
+              onReady={() => markRasterPlaneReady("foreground")}
+            />
+
+            <svg
+              className="raster-map-top-plane absolute top-0 left-0 w-[4500px] h-[2181.8px] pointer-events-none"
+              viewBox="0 0 8250 4000"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              {hoveredLabelPolygonPoints && hoveredLabelCenter ? (
+                <g
+                  aria-hidden="true"
+                  className="raster-station-label-text-hover"
+                  transform={`translate(${hoveredLabelCenter.x} ${hoveredLabelCenter.y}) scale(1.045) translate(${-hoveredLabelCenter.x} ${-hoveredLabelCenter.y})`}
+                >
+                  <defs>
+                    <clipPath id="ttc-hovered-station-label-clip" clipPathUnits="userSpaceOnUse">
+                      <polygon points={hoveredLabelPolygonPoints} />
+                    </clipPath>
+                  </defs>
+                  <image
+                    href={rasterMapSource("ttc", "foreground", rasterTheme, rasterDensity)}
+                    width="8250"
+                    height="4000"
+                    preserveAspectRatio="xMidYMid meet"
+                    clipPath="url(#ttc-hovered-station-label-clip)"
+                  />
+                </g>
+              ) : null}
+              <g aria-label="Estimated train markers">
+                <EstimatedTrainMarkerLayer
+                  enabled={estimatedTrainsEnabled}
+                  markers={estimatedTrainMarkers}
+                  segments={renderedNetworkSegments}
+                  muted={Boolean(selection || selectedStationId || commutePathPreview)}
+                />
+              </g>
+              <g aria-label="Cardinal North Compass" transform="translate(7600, 2300) scale(4)">
+                <image href="/assets/linewatch/cardinal-north.svg" width="75" height="100" className="opacity-90" style={{ filter: isDark ? "invert(1)" : "none" }} />
+              </g>
+            </svg>
+
             {/* Interactive Layer: Hit targets on the very top so they hover ABOVE stations */}
             <svg
-              className="absolute top-0 left-0 w-[4500px] h-[2181.8px] pointer-events-none"
+              className="raster-map-interaction-plane absolute top-0 left-0 w-[4500px] h-[2181.8px] pointer-events-none"
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >

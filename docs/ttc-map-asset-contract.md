@@ -6,9 +6,12 @@ LineWatchTO prepares the authored Inkscape file before serving it. Run:
 node scripts/prepare-ttc-map-asset.mjs \
   /path/to/TTC_Subway_Map_Custom_Edited.svg \
   frontend/public/assets/linewatch/ttc-subway-map-custom.svg
+npm --prefix frontend run generate:map-rasters
 ```
 
 The source must keep the `0 0 8250 4000` view box and the six authored layers named `station-text`, `tracks`, `stations`, `transit-line-badges`, `connection-labels`, and `non-linear-guides-layer`. Station names must remain real SVG `<text>` elements. The preparation step assigns stable DOM ids, links each text element to its station, validates the 109 names and 110 visual anchors, and normalizes the four curved/nonlinear overlay guides.
+
+The SVG stays mounted as a non-painting geometry source once both raster planes have decoded. The generated background plane contains static tracks; the foreground plane contains station dots, labels, badges, and connection artwork. Do not hand-edit files under `raster-maps/`: regenerate them after any authored TTC or regional SVG change.
 
 ## Authored source status
 

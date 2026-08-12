@@ -682,8 +682,11 @@ export function readSvgGeometry(
     const point = root.createSVGPoint();
     point.x = box.x + box.width / 2;
     point.y = box.y + box.height / 2;
-    const elementMatrix = element.getScreenCTM();
-    const rootMatrix = root.getScreenCTM();
+    // Prefer SVG-local matrices so an outer CSS entrance/camera transform
+    // (including its initial zero scale) cannot make geometry measurement
+    // singular. Screen matrices remain a fallback for older SVG engines.
+    const elementMatrix = element.getCTM() ?? element.getScreenCTM();
+    const rootMatrix = root.getCTM() ?? root.getScreenCTM();
     let resolved = point;
     if (elementMatrix && rootMatrix) {
       const relativeMatrix = rootMatrix.inverse().multiply(elementMatrix);
@@ -772,7 +775,10 @@ export function readSvgStationLabelPolygons(
 ): Map<string, MapPolygon> {
   const expectedIds = new Set(stationIds);
   const polygonsByStationId = new Map<string, MapPolygon>();
-  const rootMatrix = root.getScreenCTM();
+  // Label hit targets live in the root viewBox, so measure them with SVG-local
+  // matrices. getScreenCTM includes the animated map-stage transform and can
+  // be non-invertible during the first entrance frame.
+  const rootMatrix = root.getCTM() ?? root.getScreenCTM();
 
   for (const element of root.querySelectorAll<SVGGraphicsElement>(
     "#ttc-station-labels-layer [data-station-label-for]",
@@ -789,7 +795,7 @@ export function readSvgStationLabelPolygons(
           width: box.width + padding * 2,
           height: box.height + padding * 2,
         },
-        element.getScreenCTM(),
+        element.getCTM() ?? element.getScreenCTM(),
         rootMatrix,
       );
       if (polygon) {
