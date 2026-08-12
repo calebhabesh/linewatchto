@@ -86,7 +86,7 @@ describe("regional application map asset", () => {
   it("does not permanently promote the regional SVG to a composited transform layer", () => {
     assert.doesNotMatch(css, /(?:^|\n)\.regional-map-stage\s*{[^}]*will-change:\s*transform/s);
     assert.doesNotMatch(css, /\.regional-map-camera-moving \.regional-map-stage[^{]*{[^}]*will-change:\s*transform/s);
-    assert.match(css, /\.regional-map-stage > \.regional-map-scene > svg,[\s\S]*?\.regional-map-stage > \.regional-map-scene > div > svg\s*{[^}]*shape-rendering:\s*geometricPrecision/s);
+    assert.match(css, /\.regional-map-stage > svg,[\s\S]*?\.regional-map-stage > div > svg\s*{[^}]*shape-rendering:\s*geometricPrecision/s);
     assert.doesNotMatch(css, /data-regional-map-camera-moving[^}]*shape-rendering:\s*auto/s);
   });
 

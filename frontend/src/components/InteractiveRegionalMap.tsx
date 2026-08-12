@@ -52,7 +52,6 @@ import {
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
-import { useMapRecenterFade } from "../hooks/useMapRecenterFade";
 
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
@@ -122,7 +121,6 @@ const SELECTION_INTRO_DURATION_MS = 2400;
 const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
-const RECENTER_FADE_ANIMATION_ID = "linewatch-regional-map-recenter-fade";
 const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
@@ -1954,6 +1952,11 @@ type CameraMotionOptions = {
   easing?: string;
 };
 
+type MapViewTransition = {
+  finished: Promise<void>;
+  skipTransition: () => void;
+};
+
 const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
   return <div dangerouslySetInnerHTML={{ __html: markup }} className="regional-live-svg raster-map-dynamic-plane absolute inset-0 w-full h-full" />;
 });
@@ -2163,12 +2166,12 @@ function InteractiveRegionalMapComponent({
   const regionalMapRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
-  const mapSceneRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
   const lastRecenterSignalRef = useRef(recenterSignal);
   const lastViewportOrientationRef = useRef(viewportOrientation);
   const automaticResizeRefitBlockedRef = useRef(false);
+  const recenterViewTransitionRef = useRef<MapViewTransition | null>(null);
   const isGestureActiveRef = useRef(false);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
@@ -2240,11 +2243,6 @@ function InteractiveRegionalMapComponent({
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
   const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode;
-  const { clearRecenterFade, playRecenterFade } = useMapRecenterFade({
-    animationId: RECENTER_FADE_ANIMATION_ID,
-    reducedMotion,
-  });
-
   useLayoutEffect(() => {
     selectionRef.current = selection;
     selectedStationIdRef.current = selectedStationId;
@@ -2290,7 +2288,6 @@ function InteractiveRegionalMapComponent({
   }, []);
 
   const clearProgrammaticAnimation = useCallback(() => {
-    clearRecenterFade();
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -2303,7 +2300,7 @@ function InteractiveRegionalMapComponent({
       window.clearTimeout(wheelCommitTimeoutRef.current);
       wheelCommitTimeoutRef.current = null;
     }
-  }, [clearRecenterFade]);
+  }, []);
 
   const currentRenderedCamera = useCallback((): Camera | null => {
     if (!mapStageRef.current) return null;
@@ -2359,7 +2356,7 @@ function InteractiveRegionalMapComponent({
     });
   }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
-  const snapCameraWithFade = useCallback((targetCamera: Camera, nextFitScale: number) => {
+  const snapCameraToNetwork = useCallback((targetCamera: Camera, nextFitScale: number) => {
     clearProgrammaticAnimation();
     setUserZoomMotion(false);
     setMapTransition("none");
@@ -2368,11 +2365,13 @@ function InteractiveRegionalMapComponent({
     setFitScale(nextFitScale);
     setCamera(targetCamera);
     endCameraMotion();
-    playRecenterFade(mapSceneRef.current);
-  }, [clearProgrammaticAnimation, endCameraMotion, playRecenterFade, setMapTransition, setUserZoomMotion, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, writeMapTransform]);
 
   useEffect(() => {
     return () => {
+      recenterViewTransitionRef.current?.skipTransition();
+      recenterViewTransitionRef.current = null;
+      delete document.documentElement.dataset.regionalRecenterTransition;
       clearProgrammaticAnimation();
       if (dragAnimationFrameRef.current !== null) {
         window.cancelAnimationFrame(dragAnimationFrameRef.current);
@@ -2491,8 +2490,37 @@ function InteractiveRegionalMapComponent({
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
-    snapCameraWithFade(fitted.camera, fitted.scale);
-  }, [fittedCamera, snapCameraWithFade]);
+    const commitCamera = () => snapCameraToNetwork(fitted.camera, fitted.scale);
+    const transitionDocument = document as Document & {
+      startViewTransition?: (update: () => void) => MapViewTransition;
+    };
+
+    // The regional raster planes decode well beyond a typical GPU texture
+    // tile. Opacity-animating their transformed ancestor can therefore reveal
+    // one tile (usually a horizontal band) before its neighbours. Snapshot
+    // only the viewport, commit the camera underneath it, and fade that small
+    // snapshot instead. Unsupported and reduced-motion browsers still receive
+    // the same atomic camera commit without an animation.
+    if (
+      reducedMotion
+      || !transitionDocument.startViewTransition
+      || document.documentElement.dataset.networkTransitionDirection
+    ) {
+      commitCamera();
+      return;
+    }
+
+    recenterViewTransitionRef.current?.skipTransition();
+    document.documentElement.dataset.regionalRecenterTransition = "true";
+    const transition = transitionDocument.startViewTransition(commitCamera);
+    recenterViewTransitionRef.current = transition;
+    const finishTransition = () => {
+      if (recenterViewTransitionRef.current !== transition) return;
+      recenterViewTransitionRef.current = null;
+      delete document.documentElement.dataset.regionalRecenterTransition;
+    };
+    void transition.finished.then(finishTransition, finishTransition);
+  }, [fittedCamera, reducedMotion, snapCameraToNetwork]);
 
   const stageInitialEntrance = useCallback(() => {
     if (!svgMarkup) return;
@@ -3986,37 +4014,36 @@ function InteractiveRegionalMapComponent({
             transformOrigin: "0 0",
           }}
         >
-          <div ref={mapSceneRef} className="regional-map-scene">
-            <RasterMapPlane
-              network="regional"
-              plane="background"
-              theme={rasterTheme}
-              density={rasterDensity}
-              onReady={() => markRasterPlaneReady("background")}
-            />
-            <RegionalSvgMarkup markup={svgMarkup} />
-            <RasterMapPlane
-              network="regional"
-              plane="foreground"
-              theme={rasterTheme}
-              density={rasterDensity}
-              onReady={() => markRasterPlaneReady("foreground")}
-            />
-            <RasterMapPlane
-              network="regional"
-              plane="labels"
-              theme={rasterTheme}
-              density={rasterDensity}
-              svgViewBox="-200 -200 17036.959 9031.6719"
-              cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
-              onReady={() => markRasterPlaneReady("labels")}
-            />
-            {/* Static North Compass fixed to regional map canvas */}
-            <svg
-              className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
-              viewBox="-200 -200 17036.959 9031.6719"
-              preserveAspectRatio="xMidYMid meet"
-            >
+          <RasterMapPlane
+            network="regional"
+            plane="background"
+            theme={rasterTheme}
+            density={rasterDensity}
+            onReady={() => markRasterPlaneReady("background")}
+          />
+          <RegionalSvgMarkup markup={svgMarkup} />
+          <RasterMapPlane
+            network="regional"
+            plane="foreground"
+            theme={rasterTheme}
+            density={rasterDensity}
+            onReady={() => markRasterPlaneReady("foreground")}
+          />
+          <RasterMapPlane
+            network="regional"
+            plane="labels"
+            theme={rasterTheme}
+            density={rasterDensity}
+            svgViewBox="-200 -200 17036.959 9031.6719"
+            cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
+            onReady={() => markRasterPlaneReady("labels")}
+          />
+          {/* Static North Compass fixed to regional map canvas */}
+          <svg
+            className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
+            viewBox="-200 -200 17036.959 9031.6719"
+            preserveAspectRatio="xMidYMid meet"
+          >
             {selectedStationId ? (
               <use
                 key={selectedStationId}
@@ -4135,8 +4162,7 @@ function InteractiveRegionalMapComponent({
                 />
               ))}
             </g>
-            </svg>
-          </div>
+          </svg>
         </div>
       </div>
       {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize ? (

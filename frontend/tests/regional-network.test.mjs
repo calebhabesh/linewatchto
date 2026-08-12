@@ -23,7 +23,6 @@ const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
-const recenterFadeSource = readFileSync(new URL("../src/hooks/useMapRecenterFade.ts", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
@@ -904,7 +903,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /computeInsetViewportFocus/);
     assert.match(
       globalsCss,
-      /\.regional-map-stage > \.regional-map-scene > div > svg\s*\{[^}]*display:\s*block;[^}]*width:\s*100%;[^}]*height:\s*100%;/s,
+      /\.regional-map-stage > div > svg\s*\{[^}]*display:\s*block;[^}]*width:\s*100%;[^}]*height:\s*100%;/s,
     );
     assert.match(regionalMapSource, /const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0\.025/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1\.04/);
@@ -947,15 +946,19 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("uses the same short mounted-stage Center fade as TTC", () => {
+  it("fades a viewport snapshot while committing Center without opacity-compositing regional raster tiles", () => {
     assert.match(regionalMapSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
-    assert.match(recenterFadeSource, /MAP_RECENTER_FADE_DURATION_MS = 180/);
-    assert.match(regionalMapSource, /const snapCameraWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(targetCamera\)[\s\S]*playRecenterFade\(mapSceneRef\.current\)/);
-    assert.match(recenterFadeSource, /target\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: MAP_RECENTER_FADE_DURATION_MS[\s\S]*easing: "ease-out"/);
-    assert.match(regionalMapSource, /ref=\{mapSceneRef\} className="regional-map-scene"/);
-    assert.match(regionalMapSource, /playRecenterFade\(mapSceneRef\.current\)/);
-    assert.doesNotMatch(regionalMapSource, /Array\.from\(stage\.children\)/);
-    assert.match(regionalMapSource, /snapCameraWithFade\(fitted\.camera, fitted\.scale\)/);
+    assert.match(regionalMapSource, /const snapCameraToNetwork = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(targetCamera\)/);
+    assert.match(regionalMapSource, /snapCameraToNetwork\(fitted\.camera, fitted\.scale\)/);
+    assert.match(regionalMapSource, /transitionDocument\.startViewTransition\(commitCamera\)/);
+    assert.match(regionalMapSource, /dataset\.regionalRecenterTransition = "true"/);
+    assert.match(regionalMapSource, /delete document\.documentElement\.dataset\.regionalRecenterTransition/);
+    assert.doesNotMatch(regionalMapSource, /useMapRecenterFade|playRecenterFade|mapSceneRef|className="regional-map-scene"/);
+    assert.doesNotMatch(regionalMapSource, /stage\.animate\(|mapStageRef\.current\.animate\(|\[\{ opacity: 0 \}, \{ opacity: 1 \}\]/);
+    assert.match(globalsCss, /data-regional-recenter-transition[^}]*\.regional-map-viewport\s*\{[^}]*view-transition-name:\s*regional-map-recenter/s);
+    assert.match(globalsCss, /::view-transition-new\(regional-map-recenter\)\s*\{[^}]*animation-name:\s*regional-map-recenter-fade-in/s);
+    assert.match(globalsCss, /::view-transition-group\(regional-map-recenter\),[\s\S]*animation-duration:\s*180ms/s);
+    assert.match(globalsCss, /@keyframes regional-map-recenter-fade-in\s*\{\s*from\s*\{\s*opacity:\s*0;\s*\}\s*to\s*\{\s*opacity:\s*1;\s*\}/s);
     assert.doesNotMatch(regionalMapSource, /RECENTER_CAMERA_MOTION/);
     assert.match(regionalMapSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
     assert.match(regionalMapSource, /writeMapTransform\(targetCamera\)/);
@@ -1013,7 +1016,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(globalsCss, /\.regional-map-camera-moving \.regional-map-stage \*/);
     const cameraMotionSimplification = globalsCss.slice(
       globalsCss.indexOf('.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is('),
-      globalsCss.indexOf(".regional-map-stage > .regional-map-scene > svg,"),
+      globalsCss.indexOf(".regional-map-stage > svg,"),
     );
     assert.doesNotMatch(cameraMotionSimplification, /regional-impact-interactive-glow/);
     assert.doesNotMatch(

@@ -59,11 +59,9 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   const regionalMapStage = regionalMap.locator(".regional-map-stage");
   await expect(regionalMap).toBeVisible();
   await page.getByRole("button", { name: "Center map view" }).click();
-  await expect(regionalMapStage).toHaveAttribute(
-    "data-map-recenter-effect",
-    "linewatch-regional-map-recenter-fade",
-  );
+  await expect(regionalMapStage).not.toHaveAttribute("data-map-recenter-effect");
   await expect(regionalMapStage).toHaveCSS("transition-duration", "0s");
+  await expect(regionalMapStage).toHaveCSS("opacity", "1");
   await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
 
   await page.getByRole("button", { name: "Status", exact: true }).click();

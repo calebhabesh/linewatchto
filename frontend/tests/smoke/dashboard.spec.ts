@@ -393,7 +393,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
 
   const regionalStage = page.locator(".regional-map-stage");
   const initialCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
-  const regionalTopPlane = regionalStage.locator(":scope > .regional-map-scene > .raster-map-top-plane");
+  const regionalTopPlane = regionalStage.locator(":scope > .raster-map-top-plane");
   const initialViewBox = await regionalTopPlane.getAttribute("viewBox");
   const initialViewport = page.viewportSize();
   expect(initialViewport).not.toBeNull();
@@ -1779,7 +1779,7 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   const regionalMap = page.locator(".regional-map");
   const regionalViewport = regionalMap.locator(".regional-map-viewport");
   const regionalMapStage = regionalMap.locator(".regional-map-stage");
-  const regionalAuthoredMap = regionalMapStage.locator(":scope > .regional-map-scene > div > svg");
+  const regionalAuthoredMap = regionalMapStage.locator(":scope > div > svg");
   const regionalAuthoredTrack = regionalMapStage.locator("#regional-route-lw-main-path");
   const regionalGlow = regionalMap.locator(
     '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-aura',
@@ -1860,14 +1860,20 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
   expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
 
-  const regionalRecenterPaint = await page.getByRole("button", { name: "Fit regional network" }).evaluate((button) => {
+  const regionalRecenterPaint = await page.getByRole("button", { name: "Fit regional network" }).evaluate(async (button) => {
     (button as HTMLElement).click();
     const root = document.querySelector<HTMLElement>(".regional-map");
     const stage = root?.querySelector<HTMLElement>(".regional-map-stage");
-    const animation = stage?.getAnimations({ subtree: true })
-      .find((candidate) => candidate.id === "linewatch-regional-map-recenter-fade");
-    const keyframes = animation?.effect instanceof KeyframeEffect
-      ? animation.effect.getKeyframes()
+    let snapshotAnimation: Animation | undefined;
+    for (let frame = 0; frame < 10 && !snapshotAnimation; frame += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      snapshotAnimation = document.getAnimations().find((candidate) => (
+        candidate.effect instanceof KeyframeEffect
+        && candidate.effect.pseudoElement === "::view-transition-new(regional-map-recenter)"
+      ));
+    }
+    const snapshotKeyframes = snapshotAnimation?.effect instanceof KeyframeEffect
+      ? snapshotAnimation.effect.getKeyframes()
       : [];
     return {
       cameraMoving: root?.dataset.regionalMapCameraMoving,
@@ -1876,21 +1882,24 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
         if (!(candidate.effect instanceof KeyframeEffect)) return false;
         return candidate.effect.getKeyframes().some((keyframe) => keyframe.opacity !== undefined);
       }).length ?? null,
-      animationId: animation?.id ?? null,
-      opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
-      duration: animation?.effect instanceof KeyframeEffect
-        ? animation.effect.getTiming().duration
+      snapshotPseudoElement: snapshotAnimation?.effect instanceof KeyframeEffect
+        ? snapshotAnimation.effect.pseudoElement
         : null,
+      snapshotDuration: snapshotAnimation?.effect instanceof KeyframeEffect
+        ? snapshotAnimation.effect.getTiming().duration
+        : null,
+      snapshotOpacityKeyframes: snapshotKeyframes.map((keyframe) => Number(keyframe.opacity)),
     };
   });
   expect(regionalRecenterPaint).toEqual({
     cameraMoving: "false",
     transitionDuration: "0s",
     stageOpacityAnimations: 0,
-    animationId: "linewatch-regional-map-recenter-fade",
-    opacityKeyframes: [0, 1],
-    duration: 180,
+    snapshotPseudoElement: "::view-transition-new(regional-map-recenter)",
+    snapshotDuration: 180,
+    snapshotOpacityKeyframes: [0, 1],
   });
+  await expect(page.locator("html")).not.toHaveAttribute("data-regional-recenter-transition");
   await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
