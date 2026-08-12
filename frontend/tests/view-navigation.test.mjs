@@ -21,6 +21,25 @@ describe("view navigation history", () => {
     assert.deepEqual(pushViewHistory(["more"], "commutes", "commutes"), ["more"]);
     assert.deepEqual(popViewHistory([], "status"), { history: [], view: "status" });
   });
+
+  it("restores a submenu after a temporary Show on Map drill-down", () => {
+    let history = [];
+    history = pushViewHistory(history, "status", "delays");
+    history = pushViewHistory(history, "delays", "map");
+
+    const backFromFocusedMap = popViewHistory(history, "map");
+    assert.equal(backFromFocusedMap.view, "delays");
+
+    const backFromDelays = popViewHistory(backFromFocusedMap.history, "map");
+    assert.equal(backFromDelays.view, "status");
+
+    const backFromStatus = popViewHistory(backFromDelays.history, "map");
+    assert.deepEqual(backFromStatus, { history: [], view: "map" });
+  });
+
+  it("keeps a direct map selection on the map when no launching view exists", () => {
+    assert.deepEqual(popViewHistory([], "map"), { history: [], view: "map" });
+  });
 });
 
 describe("browser back actions", () => {

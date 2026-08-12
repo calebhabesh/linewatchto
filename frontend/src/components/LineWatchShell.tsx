@@ -561,6 +561,29 @@ export function LineWatchShell({
     setActiveView(nextView);
   }, [consumeBrowserNavigationEntries, pushBrowserNavigationEntry, setActiveView]);
 
+  const navigateToMapDrilldown = useCallback(() => {
+    const currentView = activeViewRef.current;
+    if (currentView === "map") {
+      setActiveView("map");
+      return;
+    }
+    viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, "map" as ActiveView);
+    activeViewRef.current = "map";
+    setActiveView("map");
+  }, [setActiveView]);
+
+  const restorePreviousView = useCallback(() => {
+    const previous = popViewHistory(viewHistoryRef.current, "map" as ActiveView);
+    viewHistoryRef.current = previous.history;
+    activeViewRef.current = previous.view;
+    setActiveView(previous.view);
+  }, [setActiveView]);
+
+  const restoreMapDrilldownOrigin = useCallback(() => {
+    if (activeViewRef.current !== "map") return;
+    restorePreviousView();
+  }, [restorePreviousView]);
+
   useEffect(() => {
     if (
       activeView !== "alerts"
@@ -756,6 +779,7 @@ export function LineWatchShell({
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
   const selectedStationIdRef = useRef<string | null>(null);
   const selectionRef = useRef<ImpactSelection>(null);
+  const selectionBackBehaviorRef = useRef<"clear" | "restore-view">("clear");
   const accountDialogModeRef = useRef<AccountDialogMode | null>(null);
   const commutePathPreviewRef = useRef<AccountCommutePathPreview | null>(null);
 
@@ -805,22 +829,37 @@ export function LineWatchShell({
           setAccountDialogMode(null);
           return;
         case "close-station":
+          selectedStationIdRef.current = null;
           setSelectedStationId(null);
+          restoreMapDrilldownOrigin();
           return;
         case "close-commute-preview":
+          commutePathPreviewRef.current = null;
           setCommutePathPreview(null);
+          selectionRef.current = null;
+          setSelection(null);
+          restorePreviousView();
           return;
         case "navigate-view": {
-          const previous = popViewHistory(viewHistoryRef.current, "map" as ActiveView);
-          viewHistoryRef.current = previous.history;
-          activeViewRef.current = previous.view;
-          setActiveView(previous.view);
+          if (selectionRef.current && selectionBackBehaviorRef.current === "clear") {
+            selectionRef.current = null;
+            setSelection(null);
+            return;
+          }
+          restorePreviousView();
+          selectionRef.current = null;
+          selectionBackBehaviorRef.current = "clear";
           setSelection(null);
           setAccessibilityOutageTarget(null);
           return;
         }
         case "clear-impact":
+          selectionRef.current = null;
           setSelection(null);
+          if (selectionBackBehaviorRef.current === "restore-view") {
+            restoreMapDrilldownOrigin();
+          }
+          selectionBackBehaviorRef.current = "clear";
           return;
         case "none":
           return;
@@ -832,7 +871,7 @@ export function LineWatchShell({
       window.removeEventListener("popstate", handlePopState);
       browserNavigationSessionRef.current = "";
     };
-  }, [pushBrowserNavigationEntry, setAccountDialogMode]);
+  }, [pushBrowserNavigationEntry, restoreMapDrilldownOrigin, restorePreviousView, setAccountDialogMode]);
 
   const openAccountDialog = useCallback((mode: AccountDialogMode) => {
     if (!accountDialogModeRef.current) {
@@ -1034,6 +1073,7 @@ export function LineWatchShell({
       // impact should instead take the same focused map path as Show on Map, where
       // mobile reserves a real viewport above the selected impact details.
       pushBrowserNavigationEntry();
+      selectionBackBehaviorRef.current = "clear";
       selectionRef.current = impactSelection;
       setSelection(impactSelection);
       setMobileInspectorDetent("details-focus");
@@ -1535,10 +1575,12 @@ export function LineWatchShell({
       setClosedMapPeek(true);
       setSelectedNetwork(commuteNetwork);
     }
+    pushBrowserNavigationEntry();
+    commutePathPreviewRef.current = preview;
     setCommutePathPreview(preview);
     setSelection(null);
     setSelectedStationId(null);
-    setActiveView("map");
+    navigateToMapDrilldown();
   };
 
   const handleViewCommuteImpactOnPath = (
@@ -1561,14 +1603,20 @@ export function LineWatchShell({
       commuteDashboard.activeAlerts,
       commuteNetwork,
     );
+    commutePathPreviewRef.current = preview;
     setCommutePathPreview(preview);
     setSelection(impactSelection);
     setSelectedStationId(null);
     setMobileInspectorDetent("details-focus");
-    setActiveView(isMobile ? "map" : viewForSavedCommuteImpact(
-      { ...impact, kind: impactSelection.kind, id: impactSelection.id },
-      commuteDashboard.activeAlerts,
-    ));
+    if (isMobile) {
+      pushBrowserNavigationEntry();
+      navigateToMapDrilldown();
+    } else {
+      navigateForward(viewForSavedCommuteImpact(
+        { ...impact, kind: impactSelection.kind, id: impactSelection.id },
+        commuteDashboard.activeAlerts,
+      ));
+    }
   };
 
   const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
@@ -1578,14 +1626,17 @@ export function LineWatchShell({
       if (commuteId && current.id !== commuteId && current.commuteId !== commuteId) {
         return current;
       }
+      consumeBrowserNavigationEntries();
+      commutePathPreviewRef.current = null;
       window.setTimeout(() => {
+        selectionRef.current = null;
         setSelection(null);
         setSelectedStationId(null);
-        setActiveView("commutes");
+        restorePreviousView();
       }, 0);
       return null;
     });
-  }, [setCommutePathPreview, setSelection, setSelectedStationId, setActiveView]);
+  }, [consumeBrowserNavigationEntries, restorePreviousView, setCommutePathPreview, setSelection, setSelectedStationId]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);
@@ -1951,9 +2002,9 @@ export function LineWatchShell({
       if (isMobile) {
         setMobileInspectorDetent("details-focus");
       }
-      setActiveView("map");
+      navigateToMapDrilldown();
     }
-  }, [consumeBrowserNavigationEntries, pushBrowserNavigationEntry, setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, setActiveView, isMobile, recordPwaInstallEngagement]);
+  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, isMobile, recordPwaInstallEngagement]);
 
 
   const mobileNavKey = useMemo<MobileNavKey>(() => {
@@ -2026,6 +2077,8 @@ export function LineWatchShell({
   const handleSearchSelectImpact = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
     setSelectedStationId(null);
     setCommutePathPreview(null);
+    selectionBackBehaviorRef.current = "restore-view";
+    selectionRef.current = nextSelection;
     setSelection(nextSelection);
     setMobileInspectorDetent("details-focus");
     navigateForward(viewForImpactSelection(nextSelection));
@@ -2037,6 +2090,8 @@ export function LineWatchShell({
       return;
     }
 
+    pushBrowserNavigationEntry();
+    navigateToMapDrilldown();
     crossNetworkStationSelectionRef.current = { networkId, stationId };
     recordPwaInstallEngagement();
     handleNetworkChange(networkId);
@@ -2070,6 +2125,8 @@ export function LineWatchShell({
     }
     setSelectedStationId(null);
     setCommutePathPreview(null);
+    selectionBackBehaviorRef.current = "restore-view";
+    selectionRef.current = nextSelection;
     setSelection(nextSelection);
     setMobileInspectorDetent("details-focus");
     const targetView = nextSelection.kind === "planned-closure"
@@ -2111,20 +2168,32 @@ export function LineWatchShell({
     if (!nextSelection) {
       if (selectionRef.current) consumeBrowserNavigationEntries();
       selectionRef.current = null;
+      selectionBackBehaviorRef.current = "clear";
       setSelection(null);
       return;
     }
     if (!selectionRef.current) pushBrowserNavigationEntry();
+    const currentView = activeViewRef.current;
+    const targetView = viewForImpactSelection(nextSelection);
+    if (isMobile) {
+      selectionBackBehaviorRef.current = currentView === "map" ? "clear" : "restore-view";
+    } else if (currentView === targetView) {
+      selectionBackBehaviorRef.current = "clear";
+    } else {
+      selectionBackBehaviorRef.current = "restore-view";
+      viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, targetView);
+    }
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
     if (isMobile) {
       recordPwaInstallEngagement();
       setMobileInspectorDetent("details-focus");
-      setActiveView("map");
+      navigateToMapDrilldown();
       return;
     }
-    setActiveView(viewForImpactSelection(nextSelection));
-  }, [consumeBrowserNavigationEntries, pushBrowserNavigationEntry, setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
+    activeViewRef.current = targetView;
+    setActiveView(targetView);
+  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
 
   const handlePeekClosedMap = () => {
     if (isClosedScreenExiting) return;
@@ -2182,6 +2251,7 @@ export function LineWatchShell({
   const handleClearMobileImpactSelection = useCallback(() => {
     if (selectionRef.current) consumeBrowserNavigationEntries();
     selectionRef.current = null;
+    selectionBackBehaviorRef.current = "clear";
     setSelection(null);
     setMobileInspectorDetent("map-focus");
   }, [consumeBrowserNavigationEntries, setMobileInspectorDetent, setSelection]);
@@ -2189,6 +2259,7 @@ export function LineWatchShell({
   const handleClearRotatedSelection = useCallback(() => {
     if (selectionRef.current || selectedStationIdRef.current) consumeBrowserNavigationEntries();
     selectionRef.current = null;
+    selectionBackBehaviorRef.current = "clear";
     selectedStationIdRef.current = null;
     setSelection(null);
     setSelectedStationId(null);
@@ -2422,11 +2493,16 @@ export function LineWatchShell({
             networkId={selectedNetwork}
             initialTarget={accessibilityOutageTarget}
             onSelectStation={(stationId) => {
+              if (isMobile) {
+                handleSelectStationId(stationId);
+                return;
+              }
+              if (!selectedStationIdRef.current) {
+                pushBrowserNavigationEntry();
+              }
+              selectedStationIdRef.current = stationId;
               setSelectedStationId(stationId);
               setMobileInspectorDetent("details-focus");
-              if (isMobile) {
-                setActiveView("map");
-              }
             }}
             onBack={handleSubmenuBack}
             /* setActiveView(isMobile ? "status" : "menu") */

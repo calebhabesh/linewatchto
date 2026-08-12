@@ -358,6 +358,27 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
     }
   };
 
+  const handleJumpToStationImpact = (impactId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    const impactElement = document.getElementById(`station-impact-${impactId}`);
+    if (impactElement) {
+      impactElement.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "center",
+      });
+
+      impactElement.classList.remove("station-impact-card-highlight");
+      void impactElement.offsetWidth;
+      impactElement.classList.add("station-impact-card-highlight");
+
+      window.setTimeout(() => {
+        impactElement.classList.remove("station-impact-card-highlight");
+      }, 2200);
+    }
+  };
+
   const handleSummaryClick = (e: React.MouseEvent<HTMLElement>) => {
     const detailsElement = accessibilityDetailsRef.current;
     if (!detailsElement) return;
@@ -633,6 +654,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                             <a
                               key={impact.id}
                               href={`#station-impact-${impact.id}`}
+                              onClick={(e) => handleJumpToStationImpact(impact.id, e)}
                               aria-label={`Jump to station impact: ${targetLabel} - ${impact.title}`}
                               title={`Jump to ${targetLabel}: ${impact.title}`}
                               className="station-impact-jump-button"
@@ -871,6 +893,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                    <div
 	                      key={impact.id}
 	                      id={`station-impact-${impact.id}`}
+	                      data-station-impact-tone={impactTone}
 	                      className={stationImpactCardClassName(impactTone)}
 	                    >
 	                      <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-white">

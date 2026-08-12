@@ -10835,6 +10835,36 @@ img.transit-line-badge {
   color: #e2e8f0;
 }
 
+@keyframes station-impact-card-highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  30% {
+    box-shadow: 0 0 0 3.5px var(--highlight-color, rgba(245, 158, 11, 0.9)), 0 0 16px var(--highlight-glow, rgba(245, 158, 11, 0.5));
+    border-color: var(--highlight-color, rgba(245, 158, 11, 0.9));
+  }
+  60% {
+    box-shadow: 0 0 0 3.5px var(--highlight-color, rgba(245, 158, 11, 0.9)), 0 0 16px var(--highlight-glow, rgba(245, 158, 11, 0.5));
+    border-color: var(--highlight-color, rgba(245, 158, 11, 0.9));
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.station-impact-card-highlight {
+  animation: station-impact-card-highlight-pulse 2s ease-in-out 1 forwards;
+  position: relative;
+  z-index: 5;
+}
+
+.motion-paused .station-impact-card-highlight {
+  animation: none !important;
+  box-shadow: 0 0 0 3px var(--highlight-color, rgba(245, 158, 11, 0.9)) !important;
+  border-color: var(--highlight-color, rgba(245, 158, 11, 0.9)) !important;
+}
+
+
 .motion-paused .station-detail-panel {
   animation: none !important;
 }
@@ -11688,16 +11718,32 @@ img.transit-line-badge {
   color: #FEEC41;
 }
 
-.suspension-card-border {
+.suspension-card-border,
+[data-station-impact-tone="active"] {
   border-left-color: #ef4444;
+  --highlight-color: rgba(239, 68, 68, 0.95);
+  --highlight-glow: rgba(239, 68, 68, 0.55);
 }
 
-.delay-card-border {
+.delay-card-border,
+[data-station-impact-tone="delay"] {
   border-left-color: #FEEC41;
+  --highlight-color: rgba(254, 236, 65, 0.95);
+  --highlight-glow: rgba(254, 236, 65, 0.55);
 }
 
-.planned-closure-card-border {
+.planned-closure-card-border,
+[data-station-impact-tone="planned"] {
   border-left-color: #3b82f6;
+  --highlight-color: rgba(59, 130, 246, 0.95);
+  --highlight-glow: rgba(59, 130, 246, 0.55);
+}
+
+.rsz-card-border,
+[data-station-impact-tone="reduced-speed-zone"] {
+  border-left-color: var(--impact-rsz);
+  --highlight-color: rgba(245, 158, 11, 0.95);
+  --highlight-glow: rgba(245, 158, 11, 0.55);
 }
 
 .rsz-card-active {

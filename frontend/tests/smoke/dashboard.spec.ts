@@ -3736,6 +3736,52 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
   await expect(page.getByRole("button", { name: /High Contrast Mode/ })).toBeVisible();
 });
 
+test("mobile browser Back restores the path that launched Show on Map", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only browser history behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Status", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
+  await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Show on Map" }).first().click();
+  await expect(page.locator("[data-mobile-impact-inspector]")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
+
+  await page.goBack();
+  await expect(page.locator("[data-mobile-impact-inspector]")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "System Status" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+});
+
+test("desktop browser Back unfocuses an impact before leaving its submenu", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only browser history behavior");
+  await setStubMode(request, "seeded");
+  await openDashboardMenu(page, isMobile);
+  await openServiceCategory(page, isMobile, /Delay/);
+
+  const showOnMap = page.getByRole("button", { name: "Show on Map" }).first();
+  await showOnMap.click();
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Unfocus" }).first()).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Show on Map" }).first()).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("menu")).toBeVisible();
+});
+
 test("submenu Back reverses the path used to open account features", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await openDashboardMenu(page, isMobile);

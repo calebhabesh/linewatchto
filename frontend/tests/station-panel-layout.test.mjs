@@ -40,7 +40,13 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /data-arrivals-disrupted/);
     assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
     assert.match(panelSource, /href=\{`#station-impact-\$\{impact\.id\}`\}/);
-    assert.match(panelSource, /Jump to station impact:/);
+    assert.match(panelSource, /handleJumpToStationImpact/);
+    assert.match(panelSource, /onClick=\{\(e\) => handleJumpToStationImpact\(impact\.id, e\)\}/);
+    assert.match(panelSource, /data-station-impact-tone=\{impactTone\}/);
+    assert.match(globalCss, /--highlight-color:\s*rgba\(239,\s*68,\s*68/);
+    assert.match(globalCss, /--highlight-color:\s*rgba\(59,\s*130,\s*246/);
+    assert.match(globalCss, /--highlight-color:\s*rgba\(245,\s*158,\s*11/);
+    assert.match(globalCss, /--highlight-color:\s*rgba\(254,\s*236,\s*65/);
     assert.match(panelSource, /station-impact-jump-actions/);
     assert.doesNotMatch(panelSource, /View impacts/);
     assert.match(panelSource, /station-impact-jump-button/);
