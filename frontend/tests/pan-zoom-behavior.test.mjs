@@ -194,7 +194,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
     assert.match(recenterFadeSource, /MAP_RECENTER_FADE_DURATION_MS = 180/);
     assert.match(hookSource, /const snapTransformWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(snapped\)[\s\S]*playRecenterFade\(mapRef\.current\)/);
-    assert.match(recenterFadeSource, /target\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: MAP_RECENTER_FADE_DURATION_MS/);
+    assert.match(recenterFadeSource, /direction === "in"[\s\S]*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: MAP_RECENTER_FADE_DURATION_MS/);
     assert.match(recenterFadeSource, /if \(!target \|\| reducedMotion\) return/);
     assert.match(hookSource, /animationId: RECENTER_FADE_ANIMATION_ID/);
     assert.match(hookSource, /playRecenterFade\(mapRef\.current\)/);

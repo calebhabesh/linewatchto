@@ -23,6 +23,7 @@ const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const recenterFadeSource = readFileSync(new URL("../src/hooks/useMapRecenterFade.ts", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
@@ -952,19 +953,21 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("fades a viewport snapshot while committing Center without opacity-compositing regional raster tiles", () => {
+  it("matches TTC's Center fade without changing opacity on the regional map stack", () => {
     assert.match(regionalMapSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
     assert.match(regionalMapSource, /const snapCameraToNetwork = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(targetCamera\)/);
     assert.match(regionalMapSource, /snapCameraToNetwork\(fitted\.camera, fitted\.scale\)/);
-    assert.match(regionalMapSource, /transitionDocument\.startViewTransition\(commitCamera\)/);
-    assert.match(regionalMapSource, /dataset\.regionalRecenterTransition = "true"/);
-    assert.match(regionalMapSource, /delete document\.documentElement\.dataset\.regionalRecenterTransition/);
-    assert.doesNotMatch(regionalMapSource, /useMapRecenterFade|playRecenterFade|mapSceneRef|className="regional-map-scene"/);
-    assert.doesNotMatch(regionalMapSource, /stage\.animate\(|mapStageRef\.current\.animate\(|\[\{ opacity: 0 \}, \{ opacity: 1 \}\]/);
-    assert.match(globalsCss, /data-regional-recenter-transition[^}]*\.regional-map-viewport\s*\{[^}]*view-transition-name:\s*regional-map-recenter/s);
-    assert.match(globalsCss, /::view-transition-new\(regional-map-recenter\)\s*\{[^}]*animation-name:\s*regional-map-recenter-fade-in/s);
-    assert.match(globalsCss, /::view-transition-group\(regional-map-recenter\),[\s\S]*animation-duration:\s*180ms/s);
-    assert.match(globalsCss, /@keyframes regional-map-recenter-fade-in\s*\{\s*from\s*\{\s*opacity:\s*0;\s*\}\s*to\s*\{\s*opacity:\s*1;\s*\}/s);
+    assert.match(regionalMapSource, /setCamera\(\(current\) => \([\s\S]*current\.x === targetCamera\.x[\s\S]*\? current[\s\S]*: targetCamera/);
+    assert.match(recenterFadeSource, /MAP_RECENTER_FADE_DURATION_MS = 180/);
+    assert.match(regionalMapSource, /useMapRecenterFade\(\{[\s\S]*animationId: RECENTER_FADE_ANIMATION_ID[\s\S]*reducedMotion/);
+    assert.match(regionalMapSource, /direction: "out"/);
+    assert.match(regionalMapSource, /playRecenterFade\(recenterVeilRef\.current\)/);
+    assert.match(recenterFadeSource, /direction === "in"[\s\S]*\[\{ opacity: 1 \}, \{ opacity: 0 \}\][\s\S]*duration: MAP_RECENTER_FADE_DURATION_MS/);
+    assert.doesNotMatch(regionalMapSource, /startViewTransition|regionalRecenterTransition|MapViewTransition/);
+    assert.doesNotMatch(globalsCss, /regional-map-recenter-fade-in|data-regional-recenter-transition|view-transition-name:\s*regional-map-recenter/);
+    assert.match(globalsCss, /\.regional-map-recenter-veil\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;[^}]*will-change:\s*opacity/s);
+    assert.doesNotMatch(globalsCss, /\.regional-map-stage\s*\{[^}]*will-change:\s*opacity/s);
+    assert.doesNotMatch(regionalMapSource, /className="regional-map-scene"/);
     assert.doesNotMatch(regionalMapSource, /RECENTER_CAMERA_MOTION/);
     assert.match(regionalMapSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
     assert.match(regionalMapSource, /writeMapTransform\(targetCamera\)/);

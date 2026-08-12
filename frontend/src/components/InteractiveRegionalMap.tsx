@@ -51,6 +51,7 @@ import {
   transformForMapPointAtViewportPoint,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
+import { useMapRecenterFade } from "../hooks/useMapRecenterFade";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 
 const MAP_WIDTH = 4739.2821;
@@ -121,6 +122,7 @@ const SELECTION_INTRO_DURATION_MS = 2400;
 const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
+const RECENTER_FADE_ANIMATION_ID = "linewatch-regional-map-recenter-fade";
 const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
@@ -1952,11 +1954,6 @@ type CameraMotionOptions = {
   easing?: string;
 };
 
-type MapViewTransition = {
-  finished: Promise<void>;
-  skipTransition: () => void;
-};
-
 const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
   return <div dangerouslySetInnerHTML={{ __html: markup }} className="regional-live-svg raster-map-dynamic-plane absolute inset-0 w-full h-full" />;
 });
@@ -2166,12 +2163,12 @@ function InteractiveRegionalMapComponent({
   const regionalMapRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
+  const recenterVeilRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
   const lastRecenterSignalRef = useRef(recenterSignal);
   const lastViewportOrientationRef = useRef(viewportOrientation);
   const automaticResizeRefitBlockedRef = useRef(false);
-  const recenterViewTransitionRef = useRef<MapViewTransition | null>(null);
   const isGestureActiveRef = useRef(false);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
@@ -2243,6 +2240,11 @@ function InteractiveRegionalMapComponent({
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
   const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode;
+  const { clearRecenterFade, playRecenterFade } = useMapRecenterFade({
+    animationId: RECENTER_FADE_ANIMATION_ID,
+    reducedMotion,
+    direction: "out",
+  });
   useLayoutEffect(() => {
     selectionRef.current = selection;
     selectedStationIdRef.current = selectedStationId;
@@ -2288,6 +2290,7 @@ function InteractiveRegionalMapComponent({
   }, []);
 
   const clearProgrammaticAnimation = useCallback(() => {
+    clearRecenterFade();
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -2300,7 +2303,7 @@ function InteractiveRegionalMapComponent({
       window.clearTimeout(wheelCommitTimeoutRef.current);
       wheelCommitTimeoutRef.current = null;
     }
-  }, []);
+  }, [clearRecenterFade]);
 
   const currentRenderedCamera = useCallback((): Camera | null => {
     if (!mapStageRef.current) return null;
@@ -2362,16 +2365,20 @@ function InteractiveRegionalMapComponent({
     setMapTransition("none");
     cameraRef.current = targetCamera;
     writeMapTransform(targetCamera);
-    setFitScale(nextFitScale);
-    setCamera(targetCamera);
+    setFitScale((current) => current === nextFitScale ? current : nextFitScale);
+    setCamera((current) => (
+      current.x === targetCamera.x
+      && current.y === targetCamera.y
+      && current.scale === targetCamera.scale
+        ? current
+        : targetCamera
+    ));
     endCameraMotion();
-  }, [clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, writeMapTransform]);
+    playRecenterFade(recenterVeilRef.current);
+  }, [clearProgrammaticAnimation, endCameraMotion, playRecenterFade, setMapTransition, setUserZoomMotion, writeMapTransform]);
 
   useEffect(() => {
     return () => {
-      recenterViewTransitionRef.current?.skipTransition();
-      recenterViewTransitionRef.current = null;
-      delete document.documentElement.dataset.regionalRecenterTransition;
       clearProgrammaticAnimation();
       if (dragAnimationFrameRef.current !== null) {
         window.cancelAnimationFrame(dragAnimationFrameRef.current);
@@ -2490,37 +2497,13 @@ function InteractiveRegionalMapComponent({
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
-    const commitCamera = () => snapCameraToNetwork(fitted.camera, fitted.scale);
-    const transitionDocument = document as Document & {
-      startViewTransition?: (update: () => void) => MapViewTransition;
-    };
-
-    // The regional raster planes decode well beyond a typical GPU texture
-    // tile. Opacity-animating their transformed ancestor can therefore reveal
-    // one tile (usually a horizontal band) before its neighbours. Snapshot
-    // only the viewport, commit the camera underneath it, and fade that small
-    // snapshot instead. Unsupported and reduced-motion browsers still receive
-    // the same atomic camera commit without an animation.
-    if (
-      reducedMotion
-      || !transitionDocument.startViewTransition
-      || document.documentElement.dataset.networkTransitionDirection
-    ) {
-      commitCamera();
-      return;
-    }
-
-    recenterViewTransitionRef.current?.skipTransition();
-    document.documentElement.dataset.regionalRecenterTransition = "true";
-    const transition = transitionDocument.startViewTransition(commitCamera);
-    recenterViewTransitionRef.current = transition;
-    const finishTransition = () => {
-      if (recenterViewTransitionRef.current !== transition) return;
-      recenterViewTransitionRef.current = null;
-      delete document.documentElement.dataset.regionalRecenterTransition;
-    };
-    void transition.finished.then(finishTransition, finishTransition);
-  }, [fittedCamera, reducedMotion, snapCameraToNetwork]);
+    // Match TTC's atomic camera commit and short visual fade without changing
+    // opacity on the large regional raster/SVG stack. A lightweight veil is
+    // opaque in the same task as the transform commit, then fades away. The
+    // map stays fully painted, so Chromium cannot expose a partially rebuilt
+    // texture after a real pan or zoom.
+    snapCameraToNetwork(fitted.camera, fitted.scale);
+  }, [fittedCamera, snapCameraToNetwork]);
 
   const stageInitialEntrance = useCallback(() => {
     if (!svgMarkup) return;
@@ -4171,6 +4154,16 @@ function InteractiveRegionalMapComponent({
             </g>
           </svg>
         </div>
+        <div
+          ref={recenterVeilRef}
+          aria-hidden="true"
+          className="regional-map-recenter-veil"
+          style={{
+            backgroundColor: highContrast
+              ? isDark ? "#000000" : "#ffffff"
+              : isDark ? "#0d0808" : "#f8fafc",
+          }}
+        />
       </div>
       {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize ? (
         <MapOverlapChooser

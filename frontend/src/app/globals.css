@@ -232,42 +232,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   animation-name: network-map-slide-in-from-left;
 }
 
-/* GO/UP Center commits the large tiled map atomically beneath a viewport-sized
-   browser snapshot. Fading the snapshot preserves TTC's short Center treatment
-   without opacity-compositing the regional raster planes themselves. */
-html[data-regional-recenter-transition] .regional-map-viewport {
-  view-transition-name: regional-map-recenter;
-}
-
-html[data-regional-recenter-transition]::view-transition-old(root) {
-  display: none;
-}
-
-html[data-regional-recenter-transition]::view-transition-new(root) {
-  animation: none;
-}
-
-html[data-regional-recenter-transition]::view-transition-group(regional-map-recenter),
-html[data-regional-recenter-transition]::view-transition-new(regional-map-recenter) {
-  animation-duration: 180ms;
-  animation-fill-mode: both;
-  animation-timing-function: ease-out;
-}
-
-html[data-regional-recenter-transition]::view-transition-old(regional-map-recenter) {
-  display: none;
-}
-
-html[data-regional-recenter-transition]::view-transition-new(regional-map-recenter) {
-  animation-name: regional-map-recenter-fade-in;
-  mix-blend-mode: normal;
-}
-
-@keyframes regional-map-recenter-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 @keyframes network-map-slide-in-from-right {
   from {
     transform: translateX(100%);
@@ -335,6 +299,20 @@ html[data-regional-recenter-transition]::view-transition-new(regional-map-recent
 .regional-map-stage {
   position: absolute;
   inset: 0;
+}
+
+/* TTC's compact stage can own its camera transform and Center opacity. */
+.ttc-map-stage {
+  will-change: opacity;
+}
+
+.regional-map-recenter-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
 }
 
 /* The authored maps remain in the DOM as non-painting geometry sources for

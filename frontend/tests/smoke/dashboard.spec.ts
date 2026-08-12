@@ -538,6 +538,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await expect(authoredSvg).toHaveAttribute("data-smoke-stable", "regional-base");
   await expect(authoredLines).toHaveAttribute("data-smoke-stable", "regional-lines");
   expect(await regionalStage.evaluate((element) => getComputedStyle(element).willChange)).toBe("auto");
+  await expect(regionalMap.locator(".regional-map-recenter-veil")).toHaveCSS("will-change", "opacity");
 });
 
 test("regional station names share the TTC raster hover glow and station selection", async ({ page, request, isMobile }) => {
@@ -1909,45 +1910,71 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
 
   const regionalRecenterPaint = await page.getByRole("button", { name: "Fit regional network" }).evaluate(async (button) => {
-    (button as HTMLElement).click();
     const root = document.querySelector<HTMLElement>(".regional-map");
     const stage = root?.querySelector<HTMLElement>(".regional-map-stage");
-    let snapshotAnimation: Animation | undefined;
-    for (let frame = 0; frame < 10 && !snapshotAnimation; frame += 1) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      snapshotAnimation = document.getAnimations().find((candidate) => (
-        candidate.effect instanceof KeyframeEffect
-        && candidate.effect.pseudoElement === "::view-transition-new(regional-map-recenter)"
-      ));
+    const veil = root?.querySelector<HTMLElement>(".regional-map-recenter-veil");
+    const zoomIn = root?.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]');
+    if (!stage || !veil || !zoomIn) throw new Error("Missing regional Center regression controls");
+
+    const cycles: Array<{
+      cameraChanged: boolean;
+      animationId: string | null;
+      opacityKeyframes: number[];
+    }> = [];
+    for (let cycle = 0; cycle < 8; cycle += 1) {
+      zoomIn.click();
+      await new Promise((resolve) => window.setTimeout(resolve, 140));
+      const movedTransform = stage.style.transform;
+      (button as HTMLElement).click();
+      const animation = veil.getAnimations()
+        .find((candidate) => candidate.id === "linewatch-regional-map-recenter-fade");
+      const keyframes = animation?.effect instanceof KeyframeEffect
+        ? animation.effect.getKeyframes()
+        : [];
+      cycles.push({
+        cameraChanged: movedTransform !== stage.style.transform,
+        animationId: animation?.id ?? null,
+        opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
+      });
+      if (cycle < 7) await new Promise((resolve) => window.setTimeout(resolve, 220));
     }
-    const snapshotKeyframes = snapshotAnimation?.effect instanceof KeyframeEffect
-      ? snapshotAnimation.effect.getKeyframes()
+
+    const animation = veil?.getAnimations()
+      .find((candidate) => candidate.id === "linewatch-regional-map-recenter-fade");
+    const keyframes = animation?.effect instanceof KeyframeEffect
+      ? animation.effect.getKeyframes()
       : [];
     return {
       cameraMoving: root?.dataset.regionalMapCameraMoving,
       transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
-      stageOpacityAnimations: stage?.getAnimations().filter((candidate) => {
-        if (!(candidate.effect instanceof KeyframeEffect)) return false;
-        return candidate.effect.getKeyframes().some((keyframe) => keyframe.opacity !== undefined);
-      }).length ?? null,
-      snapshotPseudoElement: snapshotAnimation?.effect instanceof KeyframeEffect
-        ? snapshotAnimation.effect.pseudoElement
-        : null,
-      snapshotDuration: snapshotAnimation?.effect instanceof KeyframeEffect
-        ? snapshotAnimation.effect.getTiming().duration
-        : null,
-      snapshotOpacityKeyframes: snapshotKeyframes.map((keyframe) => Number(keyframe.opacity)),
+      stageWillChange: stage ? getComputedStyle(stage).willChange : null,
+      veilWillChange: veil ? getComputedStyle(veil).willChange : null,
+      animationId: animation?.id ?? null,
+      opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
+      documentViewTransitionAnimations: document.getAnimations().filter((candidate) => (
+        candidate.effect instanceof KeyframeEffect
+        && candidate.effect.pseudoElement?.startsWith("::view-transition")
+      )).length,
+      transform: stage?.style.transform ?? null,
+      cycles,
     };
   });
-  expect(regionalRecenterPaint).toEqual({
+  expect(regionalRecenterPaint).toMatchObject({
     cameraMoving: "false",
     transitionDuration: "0s",
-    stageOpacityAnimations: 0,
-    snapshotPseudoElement: "::view-transition-new(regional-map-recenter)",
-    snapshotDuration: 180,
-    snapshotOpacityKeyframes: [0, 1],
+    stageWillChange: "auto",
+    veilWillChange: "opacity",
+    animationId: "linewatch-regional-map-recenter-fade",
+    opacityKeyframes: [1, 0],
+    documentViewTransitionAnimations: 0,
   });
-  await expect(page.locator("html")).not.toHaveAttribute("data-regional-recenter-transition");
+  expect(regionalRecenterPaint.transform).toMatch(/^translate\(.+px, .+px\) scale\(.+\)$/);
+  expect(regionalRecenterPaint.cycles).toHaveLength(8);
+  expect(regionalRecenterPaint.cycles.every((cycle) => (
+    cycle.cameraChanged
+    && cycle.animationId === "linewatch-regional-map-recenter-fade"
+    && cycle.opacityKeyframes.join(",") === "1,0"
+  ))).toBe(true);
   await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");

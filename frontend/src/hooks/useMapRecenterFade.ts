@@ -5,9 +5,11 @@ export const MAP_RECENTER_FADE_DURATION_MS = 180;
 export function useMapRecenterFade({
   animationId,
   reducedMotion,
+  direction = "in",
 }: {
   animationId: string;
   reducedMotion: boolean;
+  direction?: "in" | "out";
 }) {
   const animationRef = useRef<Animation | null>(null);
 
@@ -23,7 +25,9 @@ export function useMapRecenterFade({
 
     clearRecenterFade();
     const animation = target.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
+      direction === "in"
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [{ opacity: 1 }, { opacity: 0 }],
       {
         duration: MAP_RECENTER_FADE_DURATION_MS,
         easing: "ease-out",
@@ -40,7 +44,7 @@ export function useMapRecenterFade({
     };
     animation.onfinish = clearFadeReference;
     animation.oncancel = clearFadeReference;
-  }, [animationId, clearRecenterFade, reducedMotion]);
+  }, [animationId, clearRecenterFade, direction, reducedMotion]);
 
   useEffect(() => clearRecenterFade, [clearRecenterFade]);
 
