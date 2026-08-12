@@ -524,7 +524,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.regional-station-hit-target:focus-visible \+ \.regional-station-hover-indicator/);
     assert.match(regionalMapSource, /"station-hover-indicator", "regional-station-hover-indicator"/);
     assert.match(regionalMapSource, /stationId === "union" \? 75/);
-    assert.match(regionalMapSource, /"station-selected-indicator", "regional-station-selected-indicator"/);
+    assert.match(regionalMapSource, /"station-selected-indicator",[\s\S]*?"regional-station-selected-indicator"/);
     assert.match(regionalMapSource, /"map-segment-hit-target", "regional-impact-hit-target"/);
     assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", visualState, "regional-impact-hover-boundary"/);
     assert.match(regionalMapSource, /setLinkedImpactHover/);
@@ -544,7 +544,10 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(regionalMapSource, /createElementNS\(SVG_NAMESPACE, "title"\)/);
     assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*--selection-intro-name:\s*none/s);
-    assert.match(regionalMapSource, /"map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator"/);
+    assert.match(
+      regionalMapSource,
+      /"map-selection-attention",[\s\S]*?"station-selected-indicator",[\s\S]*?"regional-station-selected-indicator",[\s\S]*?"foreground-flash-active"/,
+    );
     assert.match(regionalMapSource, /selectionSource\.id = `regional-station-selection-source-\$\{stationId\}`/);
     assert.match(regionalMapSource, /transformedAncestors\.reverse\(\)/);
     assert.match(regionalMapSource, /className="regional-station-top-selection map-selection-attention"/);
@@ -622,7 +625,10 @@ describe("network-scoped regional dashboard", () => {
 
   it("reuses the smooth attention-to-breathing lifecycle for every selected regional station and impact", () => {
     assert.doesNotMatch(regionalMapSource, /selectionPulsePhase|data-regional-selection-phase/);
-    assert.match(regionalMapSource, /"map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator"/);
+    assert.match(
+      regionalMapSource,
+      /"map-selection-attention",[\s\S]*?"station-selected-indicator",[\s\S]*?"regional-station-selected-indicator",[\s\S]*?"foreground-flash-active"/,
+    );
     assert.match(regionalMapSource, /"regional-impact-interactive-glow", "map-selection-attention"/);
     assert.doesNotMatch(
       regionalMapSource,

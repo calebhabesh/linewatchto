@@ -824,7 +824,23 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /@media \(min-width:\s*768px\) \{[\s\S]*?\.station-selected-indicator\.foreground-flash-active\s*\{[^}]*animation:\s*none;[^}]*opacity:\s*0;/,
+      /\.linewatch-shell \.station-selected-indicator\.foreground-flash-active\s*\{[^}]*animation:\s*none !important;[^}]*opacity:\s*0 !important;/,
+    );
+    assert.match(
+      interactiveRegionalMapSource,
+      /selectedIndicator\.classList\.add\([\s\S]*?"regional-station-selected-indicator",[\s\S]*?"foreground-flash-active"/,
+    );
+    assert.match(
+      interactiveRegionalMapSource,
+      /selectionArtworkIndicator\?\.classList\.remove\("foreground-flash-active"\);[\s\S]*?selectionArtworkIndicator\?\.classList\.add\("regional-station-selection-source-artwork"\)/,
+    );
+    assert.match(
+      globalCss,
+      /\.regional-station-selection-source-artwork\s*\{[^}]*animation:\s*none !important;[^}]*opacity:\s*1 !important;/,
+    );
+    assert.doesNotMatch(
+      globalCss,
+      /\.motion-paused \.station-selected-indicator(?::not\([^)]*\)|\.[\w-]+)*\.foreground-flash-active[^}]*opacity:\s*0\.55 !important/,
     );
     const impactRingsIndex = interactiveMapSource.indexOf('aria-label="Station impact rings"');
     const foregroundHighlightsIndex = interactiveMapSource.indexOf('aria-label="Station impact foreground highlights"');

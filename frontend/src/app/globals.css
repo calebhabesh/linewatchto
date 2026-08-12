@@ -7808,16 +7808,20 @@ img.transit-line-badge {
   filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
 }
 
-/*
- * The foreground flash occupies the same circle as the selected-station
- * indicator. Hide that underlay while desktop animation is active so the
- * flash can fully fade out instead of appearing as two competing pulses.
- */
-@media (min-width: 768px) {
-  .station-selected-indicator.foreground-flash-active {
-    animation: none;
-    opacity: 0;
-  }
+/* The foreground selection owns the complete attention lifecycle. Keep its
+   selected-dot underlay inert and hidden in both map modes and at every
+   viewport size so two coincident station animations cannot compete. */
+.linewatch-shell .station-selected-indicator.foreground-flash-active {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+/* A regional top-plane <use> animates this referenced artwork as one unit.
+   The source retains selected-marker styling, but must not run the base
+   station pulse inside the parent's flash-to-breathe lifecycle. */
+.regional-station-selection-source-artwork {
+  animation: none !important;
+  opacity: 1 !important;
 }
 
 .motion-paused .station-selection-flash {
@@ -7825,8 +7829,8 @@ img.transit-line-badge {
   opacity: 0.95;
 }
 
-.motion-paused .station-selected-indicator:not(.multi-anchor),
-.motion-paused .station-selected-indicator.multi-anchor.active {
+.motion-paused .station-selected-indicator:not(.multi-anchor):not(.foreground-flash-active),
+.motion-paused .station-selected-indicator.multi-anchor.active:not(.foreground-flash-active) {
   animation: none !important;
   opacity: 0.55 !important;
   transform: scale(1) !important;

@@ -2670,7 +2670,12 @@ function InteractiveRegionalMapComponent({
           }
           removeDescendantIds(selectedIndicator);
           selectedIndicator.dataset.regionalStationSelectionId = stationId;
-          selectedIndicator.classList.add("map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator");
+          selectedIndicator.classList.add(
+            "map-selection-attention",
+            "station-selected-indicator",
+            "regional-station-selected-indicator",
+            "foreground-flash-active",
+          );
           selectedIndicator.setAttribute("aria-hidden", "true");
           const selectedShapes = selectedIndicator.matches("circle, rect, ellipse") ? [selectedIndicator] : [...selectedIndicator.querySelectorAll<SVGElement>("circle, rect, ellipse")];
           for (const shape of selectedShapes) {
@@ -2727,6 +2732,8 @@ function InteractiveRegionalMapComponent({
             ? selectionArtwork
             : selectionArtwork.querySelector<SVGElement>(".regional-station-selected-indicator");
           selectionArtworkIndicator?.classList.remove("map-selection-attention");
+          selectionArtworkIndicator?.classList.remove("foreground-flash-active");
+          selectionArtworkIndicator?.classList.add("regional-station-selection-source-artwork");
           selectionArtworkIndicator?.setAttribute("data-regional-station-selected", "true");
           selectionArtworkIndicator?.removeAttribute("data-regional-station-selection-id");
           transformedSourceParent.append(selectionArtwork);

@@ -1052,7 +1052,7 @@ test("keeps transformed regional junction selection aligned with its station dot
   );
   await expect.poll(() => bloorSelection.evaluate(
     (element) => getComputedStyle(element).animationName,
-  )).toContain("map-selection-station-intro");
+  )).toBe("none");
   const bloorTopSelection = page.locator(
     '.regional-station-top-selection[data-regional-station-top-selected="true"]',
   );
@@ -1096,6 +1096,54 @@ test("keeps transformed regional junction selection aligned with its station dot
   await expect.poll(() => bloorTopSelection.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toBe("map-selection-station-breathe");
+});
+
+test("uses one station selection animation in both map modes", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop verifies the animated selection lifecycle");
+  await setStubMode(request, "seeded");
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Stub Station station details" }).click();
+
+  const ttcUnderlay = page.locator(
+    '.station-selected-indicator.foreground-flash-active[data-station-selected-id="stub-station"]',
+  );
+  const ttcForeground = page.locator(
+    '.station-selection-flash[data-station-selection-foreground="stub-station"]',
+  );
+  await expect(ttcUnderlay).toBeAttached();
+  await expect.poll(() => ttcUnderlay.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toBe("none");
+  await expect.poll(() => ttcUnderlay.evaluate(
+    (element) => getComputedStyle(element).opacity,
+  )).toBe("0");
+  await expect.poll(() => ttcForeground.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toContain("map-selection-station-intro");
+
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await page.locator('.regional-station-hit-target[data-regional-station-id="union"]').click();
+
+  const regionalUnderlay = page.locator(
+    '.regional-station-selected-indicator.foreground-flash-active[data-regional-station-selection-id="union"]',
+  );
+  const regionalForeground = page.locator(
+    '.regional-station-top-selection[data-regional-station-top-selected="true"]',
+  );
+  await expect(regionalUnderlay).toBeAttached();
+  await expect.poll(() => regionalUnderlay.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toBe("none");
+  await expect.poll(() => regionalUnderlay.evaluate(
+    (element) => getComputedStyle(element).opacity,
+  )).toBe("0");
+  await expect.poll(() => regionalForeground.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toContain("map-selection-station-intro");
 });
 
 test("renders regional accessibility outages in the global and station views", async ({ page, request, isMobile }) => {
