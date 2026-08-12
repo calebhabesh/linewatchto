@@ -65,10 +65,7 @@
   pointer-events: none;
   z-index: 0;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  transition:
-    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
-    background 200ms ease-out,
-    box-shadow 200ms ease-out;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s ease, box-shadow 0.35s ease;
 }
 
 .network-selector[data-network="ttc"] .network-selector-glider {
@@ -194,77 +191,84 @@
   }
 }
 
-/* Map-mode changes animate this single opaque compositor layer. The authored
-   maps remain stationary and swap only while the shutter covers the viewport. */
-.network-map-shutter {
-  align-items: center;
-  contain: strict;
-  display: flex;
-  inset: 0;
-  justify-content: center;
-  pointer-events: none;
-  position: absolute;
-  transform: translate3d(100%, 0, 0);
-  visibility: hidden;
-  z-index: 90;
+html[data-network-transition-direction] .network-map-transition-surface {
+  view-transition-name: network-map;
 }
 
-.network-map-shutter[data-active="true"] {
-  visibility: visible;
-}
-
-.network-map-shutter[data-network="ttc"] {
-  background: #c91c24;
-}
-
-.network-map-shutter[data-network="regional"] {
-  background: #087f5b;
-}
-
-.network-map-shutter__content {
-  align-items: center;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  padding: 1rem;
-  text-align: center;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 35%);
-}
-
-.network-map-shutter__eyebrow {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  opacity: 0.78;
-  text-transform: uppercase;
-}
-
-.network-map-shutter__label {
-  font-family: var(--font-subway);
-  font-size: clamp(1.25rem, 3vw, 2rem);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.network-map-shutter__label--regional,
-.network-map-shutter[data-network="regional"] .network-map-shutter__label--ttc {
+html[data-network-transition-direction]::view-transition-old(root) {
   display: none;
 }
 
-.network-map-shutter[data-network="regional"] .network-map-shutter__label--regional {
-  display: inline;
+html[data-network-transition-direction]::view-transition-new(root) {
+  animation: none;
 }
 
-@media (max-width: 767px) {
-  .network-selector-glider {
-    transition-duration: 260ms, 180ms, 180ms;
+html[data-network-transition-direction]::view-transition-group(network-map),
+html[data-network-transition-direction]::view-transition-old(network-map),
+html[data-network-transition-direction]::view-transition-new(network-map) {
+  animation-duration: 700ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html[data-network-transition-direction]::view-transition-old(network-map),
+html[data-network-transition-direction]::view-transition-new(network-map) {
+  mix-blend-mode: normal;
+}
+
+html[data-network-transition-direction="forward"]::view-transition-old(network-map) {
+  animation-name: network-map-slide-out-to-left;
+}
+
+html[data-network-transition-direction="forward"]::view-transition-new(network-map) {
+  animation-name: network-map-slide-in-from-right;
+}
+
+html[data-network-transition-direction="back"]::view-transition-old(network-map) {
+  animation-name: network-map-slide-out-to-right;
+}
+
+html[data-network-transition-direction="back"]::view-transition-new(network-map) {
+  animation-name: network-map-slide-in-from-left;
+}
+
+@keyframes network-map-slide-in-from-right {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .network-map-shutter {
-    display: none;
+@keyframes network-map-slide-out-to-left {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes network-map-slide-in-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes network-map-slide-out-to-right {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
   }
 }
 

@@ -1,4 +1,4 @@
-import { useCallback, type ComponentProps } from "react";
+import type { ComponentProps } from "react";
 import type { NetworkId } from "../app/regional-data";
 import { InteractiveRegionalMap } from "./InteractiveRegionalMap";
 import { InteractiveTtcMap } from "./InteractiveTtcMap";
@@ -8,7 +8,7 @@ type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
 type NetworkMapProps = TtcMapProps & {
   network: NetworkId;
   mobileAnnouncementVisible: boolean;
-  onInitialMapReady: (network: NetworkId) => void;
+  onInitialMapReady: () => void;
   legendProps: Omit<NetworkMapLegendProps, "mode" | "closingSoon">;
 };
 
@@ -20,9 +20,6 @@ export function NetworkMap({
   ...props
 }: NetworkMapProps) {
   const regionalSelected = network === "regional";
-  const handleMapReady = useCallback(() => {
-    onInitialMapReady(network);
-  }, [network, onInitialMapReady]);
 
   return (
     <>
@@ -43,7 +40,7 @@ export function NetworkMap({
           desktopMenuPinned={props.desktopMenuPinned}
           preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
           viewportOrientation={props.viewportOrientation}
-          onReady={handleMapReady}
+          onReady={onInitialMapReady}
           estimatedTrainsEnabled={props.estimatedTrainsEnabled}
           estimatedTrainMarkers={props.estimatedTrainMarkers}
           commutePathPreview={props.commutePathPreview}
@@ -52,7 +49,7 @@ export function NetworkMap({
       ) : (
         <InteractiveTtcMap
           {...props}
-          onReady={handleMapReady}
+          onReady={onInitialMapReady}
         />
       )}
       <NetworkMapLegend

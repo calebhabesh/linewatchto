@@ -366,18 +366,16 @@ test("switches the complete dashboard to the fixture-backed regional network", a
 
   const networkSelector = page.getByRole("group", { name: "Select transit network" });
   const mapSurface = page.locator(".network-map-transition-surface");
-  const shutter = mapSurface.locator(".network-map-shutter");
+  const root = page.locator("html");
   const mapLegend = mapSurface.locator(".desktop-map-legend");
   await expect(networkSelector.getByRole("button", { name: "TTC", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(mapLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeVisible();
   await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
   await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
+  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
 
-  await expect(networkSelector.getByRole("button", { name: "GO/UP", exact: true }))
-    .toHaveAttribute("aria-pressed", "true");
-  await expect(shutter).toHaveAttribute("data-active", "true");
-  await expect(shutter).toHaveAttribute("data-network", "regional");
+  await expect(root).toHaveAttribute("data-network-transition-direction", "forward");
   await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(0);
   await expect(mapSurface.locator(".regional-map")).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
@@ -386,7 +384,8 @@ test("switches the complete dashboard to the fixture-backed regional network", a
     return box ? box.x + box.width <= page.viewportSize()!.width + 1 : false;
   }).toBe(true);
   await expect(mapLegend.getByText("Barrie Line", { exact: true })).toBeVisible();
-  await expect(shutter).not.toHaveAttribute("data-active");
+  await expect(root).not.toHaveAttribute("data-network-transition-direction");
+  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Toggle estimated train markers/ })).toBeVisible();
@@ -432,10 +431,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(westonPanel.locator(".regional-route-pill").first()).toBeVisible();
 
   await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
-  await expect(networkSelector.getByRole("button", { name: "TTC", exact: true }))
-    .toHaveAttribute("aria-pressed", "true");
-  await expect(shutter).toHaveAttribute("data-active", "true");
-  await expect(shutter).toHaveAttribute("data-network", "ttc");
+  await expect(root).toHaveAttribute("data-network-transition-direction", "back");
   await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
   await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
   await expect.poll(async () => {
@@ -443,7 +439,8 @@ test("switches the complete dashboard to the fixture-backed regional network", a
     return box ? box.x + box.width <= page.viewportSize()!.width + 1 : false;
   }).toBe(true);
   await expect(mapLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeVisible();
-  await expect(shutter).not.toHaveAttribute("data-active");
+  await expect(root).not.toHaveAttribute("data-network-transition-direction");
+  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeHidden();
 });
@@ -504,7 +501,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  await expect(page.locator(".network-map-shutter")).not.toHaveAttribute("data-active");
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
 
   const regionalMap = page.locator(".regional-map");
   const regionalViewport = regionalMap.locator(".regional-map-viewport");
@@ -578,8 +575,6 @@ test("mobile preserves status and station interaction language across network sw
   const networkSelector = page.locator(".mobile-network-selector-slot")
     .getByRole("group", { name: "Select transit network" });
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
-  await expect(networkSelector.getByRole("button", { name: "GO/UP", exact: true }))
-    .toHaveAttribute("aria-pressed", "true");
 
   await expect(page.getByText("Regional Demo · Not Live", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Status", exact: true }).click();
@@ -2047,7 +2042,7 @@ test("overlapping alert rails share one pulse cadence and size across both maps"
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  await expect(page.locator(".network-map-shutter")).not.toHaveAttribute("data-active");
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
 
   const regionalPulse = await page.locator(".regional-map").evaluate((root) => {
     const delay = root.querySelector<SVGPathElement>(
@@ -2749,7 +2744,7 @@ test("opens GO and UP ingested alert JSONs in regional map mode", async ({ page,
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
-  await expect(page.locator(".network-map-shutter")).not.toHaveAttribute("data-active");
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();

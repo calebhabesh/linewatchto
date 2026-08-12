@@ -150,7 +150,6 @@ type SavedStationNotice = {
 const DEFAULT_DASHBOARD_REFRESH_MS = 30_000;
 const MIN_DASHBOARD_REFRESH_MS = 10_000;
 const STATION_DETAIL_REFRESH_MS = 15_000;
-const NETWORK_SHUTTER_READY_TIMEOUT_MS = 1_200;
 const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
 const GOOGLE_LINK_SUCCESS_VALUE = "google";
 const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";
@@ -219,29 +218,17 @@ export function LineWatchShell({
 }) {
   const router = useRouter();
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
-  const [networkSelectorNetwork, setNetworkSelectorNetwork] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
-  const [networkTransitionActive, setNetworkTransitionActive] = useState(false);
   const [initialMapReady, setInitialMapReady] = useState(false);
   const [defaultNetworkPreference, setDefaultNetworkPreference] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
   const [ttcData, setTtcData] = useState(initialData);
   const [regionalData, setRegionalData] = useState(regionalDashboardData);
   const regionalScenarioActiveRef = useRef(false);
   const displayData = selectedNetwork === "regional" ? regionalData : ttcData;
-  const selectedNetworkRef = useRef<NetworkId>(initialVisualPreferences.defaultNetwork);
-  const networkSelectorNetworkRef = useRef<NetworkId>(initialVisualPreferences.defaultNetwork);
-  const networkShutterRef = useRef<HTMLDivElement>(null);
-  const networkShutterAnimationRef = useRef<Animation | null>(null);
-  const networkShutterRunningRef = useRef(false);
-  const queuedNetworkRef = useRef<NetworkId | null>(null);
-  const pendingNetworkMapReadyRef = useRef<{
-    network: NetworkId;
-    resolve: () => void;
+  const networkViewTransitionRef = useRef<{
+    finished: Promise<void>;
+    skipTransition: () => void;
   } | null>(null);
   const crossNetworkStationSelectionRef = useRef<{ networkId: NetworkId; stationId: string } | null>(null);
-
-  useEffect(() => {
-    selectedNetworkRef.current = selectedNetwork;
-  }, [selectedNetwork]);
 
   useEffect(() => {
     if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") return;
@@ -1901,150 +1888,61 @@ export function LineWatchShell({
 
   const [stationSearchQuery, setStationSearchQuery] = useState("");
 
-  const applyNetworkChange = (network: NetworkId) => {
-    const pendingStationSelection = crossNetworkStationSelectionRef.current?.networkId === network
-      ? crossNetworkStationSelectionRef.current
-      : null;
-    crossNetworkStationSelectionRef.current = null;
-    selectedNetworkRef.current = network;
-    setClosedScreenAcknowledged(true);
-    setClosedMapPeek(true);
-    setIsClosedScreenExiting(false);
-    setSelectedNetwork(network);
-    setSelection(null);
-    setCommutePathPreview(null);
-    setSelectedStationId(pendingStationSelection?.stationId ?? null);
-    setVisibleStationResult(null);
-    setStationSearchQuery("");
-    setActiveView("map");
-    setMapPresentationMode("standard");
-    setMobileInspectorDetent(pendingStationSelection ? "details-focus" : "map-focus");
-  };
-
-  const runNetworkShutter = async (network: NetworkId) => {
-    const shutter = networkShutterRef.current;
-    if (!shutter) {
-      applyNetworkChange(network);
-      return;
-    }
-
-    networkShutterRunningRef.current = true;
-    setNetworkTransitionActive(true);
-    shutter.dataset.active = "true";
-    shutter.dataset.network = network;
-
-    const mobile = window.matchMedia("(max-width: 767px)").matches;
-    const entryOffset = network === "regional" ? "100%" : "-100%";
-    const exitOffset = network === "regional" ? "-100%" : "100%";
-    const coverAnimation = shutter.animate(
-      [
-        { transform: `translate3d(${entryOffset}, 0, 0)` },
-        { transform: "translate3d(0, 0, 0)" },
-      ],
-      {
-        duration: mobile ? 100 : 130,
-        easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-        fill: "both",
-      },
-    );
-    networkShutterAnimationRef.current = coverAnimation;
-    try {
-      await coverAnimation.finished;
-    } catch {
-      return;
-    }
-
-    let readySettled = false;
-    let readyTimeout = 0;
-    let resolveReady = () => {};
-    const readyPromise = new Promise<void>((resolve) => {
-      resolveReady = resolve;
-    });
-    const settleReady = () => {
-      if (readySettled) return;
-      readySettled = true;
-      window.clearTimeout(readyTimeout);
-      if (pendingNetworkMapReadyRef.current?.resolve === settleReady) {
-        pendingNetworkMapReadyRef.current = null;
-      }
-      resolveReady();
-    };
-    pendingNetworkMapReadyRef.current = { network, resolve: settleReady };
-    readyTimeout = window.setTimeout(settleReady, NETWORK_SHUTTER_READY_TIMEOUT_MS);
-
-    flushSync(() => applyNetworkChange(network));
-    await readyPromise;
-    coverAnimation.cancel();
-
-    const revealAnimation = shutter.animate(
-      [
-        { transform: "translate3d(0, 0, 0)" },
-        { transform: `translate3d(${exitOffset}, 0, 0)` },
-      ],
-      {
-        duration: mobile ? 140 : 170,
-        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-        fill: "both",
-      },
-    );
-    networkShutterAnimationRef.current = revealAnimation;
-    try {
-      await revealAnimation.finished;
-    } catch {
-      return;
-    } finally {
-      shutter.removeAttribute("data-active");
-      revealAnimation.cancel();
-      networkShutterAnimationRef.current = null;
-      networkShutterRunningRef.current = false;
-      setNetworkTransitionActive(false);
-    }
-
-    const queuedNetwork = queuedNetworkRef.current;
-    queuedNetworkRef.current = null;
-    if (queuedNetwork && queuedNetwork !== selectedNetworkRef.current) {
-      void runNetworkShutter(queuedNetwork);
-    } else {
-      networkSelectorNetworkRef.current = selectedNetworkRef.current;
-      setNetworkSelectorNetwork(selectedNetworkRef.current);
-    }
-  };
-
   const handleNetworkChange = (network: NetworkId) => {
-    if (network === networkSelectorNetworkRef.current) return;
+    if (network === selectedNetwork) return;
 
-    networkSelectorNetworkRef.current = network;
-    setNetworkSelectorNetwork(network);
+    const applyNetworkChange = () => {
+      const pendingStationSelection = crossNetworkStationSelectionRef.current?.networkId === network
+        ? crossNetworkStationSelectionRef.current
+        : null;
+      crossNetworkStationSelectionRef.current = null;
+      setClosedScreenAcknowledged(true);
+      setClosedMapPeek(true);
+      setIsClosedScreenExiting(false);
+      setSelectedNetwork(network);
+      setSelection(null);
+      setCommutePathPreview(null);
+      setSelectedStationId(pendingStationSelection?.stationId ?? null);
+      setVisibleStationResult(null);
+      setStationSearchQuery("");
+      setActiveView("map");
+      setMapPresentationMode("standard");
+      setMobileInspectorDetent(pendingStationSelection ? "details-focus" : "map-focus");
+    };
+    const transitionDocument = document as Document & {
+      startViewTransition?: (update: () => void) => {
+        finished: Promise<void>;
+        skipTransition: () => void;
+      };
+    };
 
-    if (reducedMotion) {
-      queuedNetworkRef.current = null;
-      applyNetworkChange(network);
+    if (reducedMotion || !transitionDocument.startViewTransition) {
+      applyNetworkChange();
       return;
     }
 
-    if (networkShutterRunningRef.current) {
-      queuedNetworkRef.current = network;
-      return;
-    }
+    networkViewTransitionRef.current?.skipTransition();
+    document.documentElement.dataset.networkTransitionDirection =
+      network === "regional" ? "forward" : "back";
 
-    void runNetworkShutter(network);
+    const transition = transitionDocument.startViewTransition(() => {
+      flushSync(applyNetworkChange);
+    });
+    networkViewTransitionRef.current = transition;
+    const finishNetworkTransition = () => {
+      if (networkViewTransitionRef.current !== transition) return;
+      networkViewTransitionRef.current = null;
+      delete document.documentElement.dataset.networkTransitionDirection;
+    };
+    void transition.finished.then(finishNetworkTransition, finishNetworkTransition);
   };
 
   const handleDefaultNetworkChange = (network: NetworkId) => {
     setDefaultNetworkPreference(network);
   };
 
-  const handleInitialMapReady = useCallback((network: NetworkId) => {
+  const handleInitialMapReady = useCallback(() => {
     setInitialMapReady(true);
-    const pending = pendingNetworkMapReadyRef.current;
-    if (pending?.network === network) {
-      pending.resolve();
-    }
-  }, []);
-
-  useEffect(() => () => {
-    pendingNetworkMapReadyRef.current?.resolve();
-    networkShutterAnimationRef.current?.cancel();
   }, []);
 
   const handleOpenSearch = () => {
@@ -3564,10 +3462,7 @@ export function LineWatchShell({
                    </span>
                 </div>
                 <span className="desktop-status-divider" />
-                <NetworkSelector
-                  network={networkTransitionActive ? networkSelectorNetwork : selectedNetwork}
-                  onChange={handleNetworkChange}
-                />
+                <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
               </div>
             </div>
           </div>
@@ -3654,7 +3549,7 @@ export function LineWatchShell({
             <SiteGuideDropdown onOpenChange={setGuideOpen} />
             <div className="mobile-network-selector-slot">
               <NetworkSelector
-                network={networkTransitionActive ? networkSelectorNetwork : selectedNetwork}
+                network={selectedNetwork}
                 onChange={handleNetworkChange}
                 compactVertical
               />
@@ -3731,23 +3626,6 @@ export function LineWatchShell({
           estimatedTrainsEnabled={estimatedTrainMarkersVisible}
           estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
         />
-
-        <div
-          ref={networkShutterRef}
-          className="network-map-shutter"
-          data-network={networkSelectorNetwork}
-          aria-hidden="true"
-        >
-          <div className="network-map-shutter__content" aria-hidden="true">
-            <span className="network-map-shutter__eyebrow">LineWatchTO</span>
-            <span className="network-map-shutter__label network-map-shutter__label--ttc">
-              TTC Subway &amp; LRT
-            </span>
-            <span className="network-map-shutter__label network-map-shutter__label--regional">
-              GO &amp; UP Rail
-            </span>
-          </div>
-        </div>
 
         {rotatedMapMode ? (
           <>

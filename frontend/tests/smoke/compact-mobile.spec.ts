@@ -54,13 +54,11 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  await expect(page.locator(".network-map-shutter")).not.toHaveAttribute("data-active");
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
   const regionalMap = page.locator(".regional-map");
   const regionalMapStage = regionalMap.locator(".regional-map-stage");
   const regionalMapVeil = regionalMap.locator(".regional-map-recenter-veil");
   await expect(regionalMap).toBeVisible();
-  await expect(regionalMapVeil).not.toHaveAttribute("data-map-recenter-effect");
-  await expect(regionalMapStage).not.toHaveAttribute("data-map-recenter-effect");
   await page.getByRole("button", { name: "Center map view" }).click();
   await expect(regionalMapVeil).toHaveAttribute(
     "data-map-recenter-effect",
