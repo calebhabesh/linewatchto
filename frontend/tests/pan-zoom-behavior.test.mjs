@@ -20,6 +20,7 @@ import {
 } from "../src/hooks/panZoomMath.ts";
 
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
+const recenterFadeSource = readFileSync(new URL("../src/hooks/useMapRecenterFade.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
@@ -191,12 +192,12 @@ describe("pan zoom behavior guardrails", () => {
   it("snaps recenter before fading the mounted TTC stage back in", () => {
     assert.match(hookSource, /const animateTransformTo = useCallback/);
     assert.match(hookSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
-    assert.match(hookSource, /const RECENTER_FADE_DURATION_MS = 180/);
-    assert.match(hookSource, /const snapTransformWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(snapped\)[\s\S]*playRecenterFade\(\)/);
-    assert.match(hookSource, /map\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: RECENTER_FADE_DURATION_MS/);
-    assert.match(hookSource, /if \(!map \|\| reducedMotion\) return/);
-    assert.match(hookSource, /animation\.id = RECENTER_FADE_ANIMATION_ID/);
-    assert.match(hookSource, /map\.dataset\.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID/);
+    assert.match(recenterFadeSource, /MAP_RECENTER_FADE_DURATION_MS = 180/);
+    assert.match(hookSource, /const snapTransformWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(snapped\)[\s\S]*playRecenterFade\(mapRef\.current\)/);
+    assert.match(recenterFadeSource, /target\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: MAP_RECENTER_FADE_DURATION_MS/);
+    assert.match(recenterFadeSource, /if \(!target \|\| reducedMotion\) return/);
+    assert.match(hookSource, /animationId: RECENTER_FADE_ANIMATION_ID/);
+    assert.match(hookSource, /playRecenterFade\(mapRef\.current\)/);
     assert.match(hookSource, /const recenter[\s\S]*defaultTransformForViewport\(width, height\)[\s\S]*snapTransformWithFade\(next, next\.scale\)/);
     assert.doesNotMatch(hookSource, /RECENTER_CAMERA_MOTION/);
     const animateTransformHandler = hookSource.match(

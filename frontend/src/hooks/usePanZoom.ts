@@ -22,6 +22,7 @@ import {
   type PanZoomTransform,
   type ViewportInsets,
 } from "./panZoomMath";
+import { useMapRecenterFade } from "./useMapRecenterFade";
 
 type UsePanZoomOptions = {
   reducedMotion?: boolean;
@@ -44,7 +45,6 @@ type ZoomToBoundsOptions = ZoomToPointOptions;
 
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
-const RECENTER_FADE_DURATION_MS = 180;
 const RECENTER_FADE_ANIMATION_ID = "linewatch-ttc-map-recenter-fade";
 
 export function usePanZoom({
@@ -60,7 +60,6 @@ export function usePanZoom({
   const animTimeoutRef = useRef<number | null>(null);
   const initialEntranceTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
-  const recenterFadeAnimationRef = useRef<Animation | null>(null);
   const wheelCommitTimeoutRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,6 +84,10 @@ export function usePanZoom({
   const cameraAdjustedByUserRef = useRef(false);
 
   const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
+  const { clearRecenterFade, playRecenterFade } = useMapRecenterFade({
+    animationId: RECENTER_FADE_ANIMATION_ID,
+    reducedMotion,
+  });
 
   useEffect(() => {
     fitScaleRef.current = fitScale;
@@ -188,11 +191,7 @@ export function usePanZoom({
   }, [snapTransform]);
 
   const clearProgrammaticAnimation = useCallback(() => {
-    if (recenterFadeAnimationRef.current) {
-      const animation = recenterFadeAnimationRef.current;
-      recenterFadeAnimationRef.current = null;
-      animation.cancel();
-    }
+    clearRecenterFade();
     if (initialEntranceTimeoutRef.current !== null) {
       window.clearTimeout(initialEntranceTimeoutRef.current);
       initialEntranceTimeoutRef.current = null;
@@ -209,7 +208,7 @@ export function usePanZoom({
       window.clearTimeout(wheelCommitTimeoutRef.current);
       wheelCommitTimeoutRef.current = null;
     }
-  }, []);
+  }, [clearRecenterFade]);
 
   const cancelAnimation = useCallback(() => {
     const renderedTransform = currentRenderedTransform();
@@ -285,29 +284,6 @@ export function usePanZoom({
     writeMapTransform,
   ]);
 
-  const playRecenterFade = useCallback(() => {
-    const map = mapRef.current;
-    if (!map || reducedMotion) return;
-
-    const animation = map.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      {
-        duration: RECENTER_FADE_DURATION_MS,
-        easing: "ease-out",
-      },
-    );
-    animation.id = RECENTER_FADE_ANIMATION_ID;
-    map.dataset.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID;
-    recenterFadeAnimationRef.current = animation;
-    const clearFadeReference = () => {
-      if (recenterFadeAnimationRef.current === animation) {
-        recenterFadeAnimationRef.current = null;
-      }
-    };
-    animation.onfinish = clearFadeReference;
-    animation.oncancel = clearFadeReference;
-  }, [reducedMotion]);
-
   const snapTransformWithFade = useCallback((
     next: PanZoomTransform,
     nextFitScale?: number,
@@ -327,7 +303,7 @@ export function usePanZoom({
       setFitScale(nextFitScale);
     }
     commitTransform(snapped);
-    playRecenterFade();
+    playRecenterFade(mapRef.current);
   }, [
     clearProgrammaticAnimation,
     commitTransform,

@@ -393,7 +393,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
 
   const regionalStage = page.locator(".regional-map-stage");
   const initialCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
-  const regionalTopPlane = regionalStage.locator(":scope > .raster-map-top-plane");
+  const regionalTopPlane = regionalStage.locator(":scope > .regional-map-scene > .raster-map-top-plane");
   const initialViewBox = await regionalTopPlane.getAttribute("viewBox");
   const initialViewport = page.viewportSize();
   expect(initialViewport).not.toBeNull();
@@ -1779,7 +1779,7 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   const regionalMap = page.locator(".regional-map");
   const regionalViewport = regionalMap.locator(".regional-map-viewport");
   const regionalMapStage = regionalMap.locator(".regional-map-stage");
-  const regionalAuthoredMap = regionalMapStage.locator(":scope > div > svg");
+  const regionalAuthoredMap = regionalMapStage.locator(":scope > .regional-map-scene > div > svg");
   const regionalAuthoredTrack = regionalMapStage.locator("#regional-route-lw-main-path");
   const regionalGlow = regionalMap.locator(
     '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-aura',

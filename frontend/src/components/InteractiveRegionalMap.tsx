@@ -52,6 +52,7 @@ import {
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
+import { useMapRecenterFade } from "../hooks/useMapRecenterFade";
 
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
@@ -121,7 +122,6 @@ const SELECTION_INTRO_DURATION_MS = 2400;
 const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
-const RECENTER_FADE_DURATION_MS = 180;
 const RECENTER_FADE_ANIMATION_ID = "linewatch-regional-map-recenter-fade";
 const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
@@ -2163,6 +2163,7 @@ function InteractiveRegionalMapComponent({
   const regionalMapRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
+  const mapSceneRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
   const lastRecenterSignalRef = useRef(recenterSignal);
@@ -2198,7 +2199,6 @@ function InteractiveRegionalMapComponent({
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   const rasterDensity = mobilePerformanceMode ? "mobile" : "desktop";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
-  const recenterFadeAnimationsRef = useRef<Animation[]>([]);
   const markRasterPlaneReady = useCallback((plane: string) => {
     setReadyRasterPlanes((current) => {
       const planeKey = `${rasterVariantKey}:${plane}`;
@@ -2240,6 +2240,10 @@ function InteractiveRegionalMapComponent({
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
   const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode;
+  const { clearRecenterFade, playRecenterFade } = useMapRecenterFade({
+    animationId: RECENTER_FADE_ANIMATION_ID,
+    reducedMotion,
+  });
 
   useLayoutEffect(() => {
     selectionRef.current = selection;
@@ -2286,9 +2290,7 @@ function InteractiveRegionalMapComponent({
   }, []);
 
   const clearProgrammaticAnimation = useCallback(() => {
-    const recenterAnimations = recenterFadeAnimationsRef.current;
-    recenterFadeAnimationsRef.current = [];
-    recenterAnimations.forEach((animation) => animation.cancel());
+    clearRecenterFade();
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -2301,7 +2303,7 @@ function InteractiveRegionalMapComponent({
       window.clearTimeout(wheelCommitTimeoutRef.current);
       wheelCommitTimeoutRef.current = null;
     }
-  }, []);
+  }, [clearRecenterFade]);
 
   const currentRenderedCamera = useCallback((): Camera | null => {
     if (!mapStageRef.current) return null;
@@ -2357,44 +2359,6 @@ function InteractiveRegionalMapComponent({
     });
   }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
-  const playRecenterFade = useCallback(() => {
-    const stage = mapStageRef.current;
-    if (!stage || reducedMotion) return;
-
-    // TTC can fade its compact stage directly. Regional is a transform-bearing
-    // container for several independently composited raster/SVG planes; fading
-    // that parent makes Chromium flatten and rebuild the scene, which flashes.
-    // Fade the existing child planes together for the same visual treatment
-    // without invalidating the parent camera composite.
-    const planes = Array.from(stage.children).filter(
-      (child): child is HTMLElement | SVGElement => child instanceof HTMLElement || child instanceof SVGElement,
-    );
-    const animations = planes.map((plane, index) => {
-      const animation = plane.animate(
-        [{ opacity: 0 }, { opacity: 1 }],
-        {
-          duration: RECENTER_FADE_DURATION_MS,
-          easing: "ease-out",
-        },
-      );
-      animation.id = index === 0
-        ? RECENTER_FADE_ANIMATION_ID
-        : `${RECENTER_FADE_ANIMATION_ID}-${index}`;
-      return animation;
-    });
-    stage.dataset.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID;
-    recenterFadeAnimationsRef.current = animations;
-    const clearFadeReference = (animation: Animation) => {
-      recenterFadeAnimationsRef.current = recenterFadeAnimationsRef.current.filter(
-        (candidate) => candidate !== animation,
-      );
-    };
-    for (const animation of animations) {
-      animation.onfinish = () => clearFadeReference(animation);
-      animation.oncancel = () => clearFadeReference(animation);
-    }
-  }, [reducedMotion]);
-
   const snapCameraWithFade = useCallback((targetCamera: Camera, nextFitScale: number) => {
     clearProgrammaticAnimation();
     setUserZoomMotion(false);
@@ -2404,7 +2368,7 @@ function InteractiveRegionalMapComponent({
     setFitScale(nextFitScale);
     setCamera(targetCamera);
     endCameraMotion();
-    playRecenterFade();
+    playRecenterFade(mapSceneRef.current);
   }, [clearProgrammaticAnimation, endCameraMotion, playRecenterFade, setMapTransition, setUserZoomMotion, writeMapTransform]);
 
   useEffect(() => {
@@ -4022,36 +3986,37 @@ function InteractiveRegionalMapComponent({
             transformOrigin: "0 0",
           }}
         >
-          <RasterMapPlane
-            network="regional"
-            plane="background"
-            theme={rasterTheme}
-            density={rasterDensity}
-            onReady={() => markRasterPlaneReady("background")}
-          />
-          <RegionalSvgMarkup markup={svgMarkup} />
-          <RasterMapPlane
-            network="regional"
-            plane="foreground"
-            theme={rasterTheme}
-            density={rasterDensity}
-            onReady={() => markRasterPlaneReady("foreground")}
-          />
-          <RasterMapPlane
-            network="regional"
-            plane="labels"
-            theme={rasterTheme}
-            density={rasterDensity}
-            svgViewBox="-200 -200 17036.959 9031.6719"
-            cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
-            onReady={() => markRasterPlaneReady("labels")}
-          />
-          {/* Static North Compass fixed to regional map canvas */}
-          <svg
-            className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
-            viewBox="-200 -200 17036.959 9031.6719"
-            preserveAspectRatio="xMidYMid meet"
-          >
+          <div ref={mapSceneRef} className="regional-map-scene">
+            <RasterMapPlane
+              network="regional"
+              plane="background"
+              theme={rasterTheme}
+              density={rasterDensity}
+              onReady={() => markRasterPlaneReady("background")}
+            />
+            <RegionalSvgMarkup markup={svgMarkup} />
+            <RasterMapPlane
+              network="regional"
+              plane="foreground"
+              theme={rasterTheme}
+              density={rasterDensity}
+              onReady={() => markRasterPlaneReady("foreground")}
+            />
+            <RasterMapPlane
+              network="regional"
+              plane="labels"
+              theme={rasterTheme}
+              density={rasterDensity}
+              svgViewBox="-200 -200 17036.959 9031.6719"
+              cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
+              onReady={() => markRasterPlaneReady("labels")}
+            />
+            {/* Static North Compass fixed to regional map canvas */}
+            <svg
+              className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
+              viewBox="-200 -200 17036.959 9031.6719"
+              preserveAspectRatio="xMidYMid meet"
+            >
             {selectedStationId ? (
               <use
                 key={selectedStationId}
@@ -4170,7 +4135,8 @@ function InteractiveRegionalMapComponent({
                 />
               ))}
             </g>
-          </svg>
+            </svg>
+          </div>
         </div>
       </div>
       {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize ? (
