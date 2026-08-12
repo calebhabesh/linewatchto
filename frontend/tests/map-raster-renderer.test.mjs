@@ -40,6 +40,8 @@ describe("stable raster map renderer", () => {
 
   it("reuses decoded textures across map remounts and keeps the previous texture until replacements decode", async () => {
     const source = await readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8");
+    assert.match(source, /import \{ lineWatchBuildLabel \} from "\.\.\/app\/app-build"/);
+    assert.match(source, /\?v=\$\{encodeURIComponent\(lineWatchBuildLabel\)\}/);
     assert.match(source, /const decodedRasterSources = new Set<string>\(\)/);
     assert.match(source, /rasterMapSourceIsDecoded\(desiredSource\) \? desiredSource : null/);
     assert.match(source, /const decode = image\.decode\(\)\.then/);

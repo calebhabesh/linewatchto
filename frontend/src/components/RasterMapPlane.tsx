@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { lineWatchBuildLabel } from "../app/app-build";
+
 export type RasterMapTheme = "light" | "dark" | "high-contrast";
 export type RasterMapDensity = "mobile" | "desktop";
 
@@ -60,7 +62,8 @@ export function rasterMapSource(
   theme: RasterMapTheme,
   density: RasterMapDensity,
 ) {
-  return `/assets/linewatch/raster-maps/${network}-${plane}-${theme}-${density}.png`;
+  const asset = `/assets/linewatch/raster-maps/${network}-${plane}-${theme}-${density}.png`;
+  return `${asset}?v=${encodeURIComponent(lineWatchBuildLabel)}`;
 }
 
 export function RasterMapPlane({
