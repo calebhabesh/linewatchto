@@ -181,7 +181,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\) \{[\s\S]*computeFittedCameraFlyInStart[\s\S]*animateCameraTo\(fitted\.camera, fitted\.scale\)/);
     assert.match(
       networkMapSource,
-      /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{onInitialMapReady\}/,
+      /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{handleMapReady\}/,
     );
   });
 
@@ -200,7 +200,7 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(
       networkMapSource,
-      /onReady=\{onInitialMapReady\}/g,
+      /onReady=\{handleMapReady\}/g,
     );
     assert.match(
       panZoomSource,
@@ -222,20 +222,19 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(shellSource, /animate-map-center-fade/);
   });
 
-  it("slides compositor snapshots while keeping inactive React maps unmounted", () => {
-    assert.match(shellSource, /startViewTransition/);
-    assert.match(shellSource, /flushSync\(applyNetworkChange\)/);
-    assert.match(shellSource, /networkTransitionDirection/);
-    assert.match(shellSource, /network-map-transition-surface/);
+  it("swaps stationary maps beneath a lightweight compositor shutter", () => {
+    assert.doesNotMatch(shellSource, /startViewTransition|networkTransitionDirection/);
+    assert.match(shellSource, /className="network-map-shutter"/);
+    assert.match(shellSource, /coverAnimation = shutter\.animate/);
+    assert.match(shellSource, /await coverAnimation\.finished[\s\S]*flushSync\(\(\) => applyNetworkChange\(network\)\)/);
+    assert.match(shellSource, /pendingNetworkMapReadyRef\.current = \{ network, resolve: settleReady \}/);
+    assert.match(shellSource, /await readyPromise[\s\S]*revealAnimation = shutter\.animate/);
+    assert.match(shellSource, /NETWORK_SHUTTER_READY_TIMEOUT_MS = 1_200/);
     assert.doesNotMatch(networkMapSource, /useState|useEffect|AnimationEvent|network-map-slide/);
     assert.doesNotMatch(shellSource, /<NetworkMapLegends/);
-    assert.match(globalsCss, /view-transition-name:\s*network-map/);
-    assert.match(globalsCss, /::view-transition-old\(network-map\)/);
-    assert.match(globalsCss, /::view-transition-new\(network-map\)/);
-    assert.match(globalsCss, /@keyframes network-map-slide-in-from-right/);
-    assert.match(globalsCss, /@keyframes network-map-slide-out-to-left/);
-    assert.match(globalsCss, /@keyframes network-map-slide-in-from-left/);
-    assert.match(globalsCss, /@keyframes network-map-slide-out-to-right/);
+    assert.match(globalsCss, /\.network-map-shutter\s*\{[\s\S]*contain:\s*strict[\s\S]*transform:\s*translate3d\(100%, 0, 0\)[\s\S]*visibility:\s*hidden/);
+    assert.match(globalsCss, /\.network-map-shutter\[data-active="true"\][\s\S]*visibility:\s*visible/);
+    assert.doesNotMatch(globalsCss, /view-transition-name:\s*network-map|::view-transition-(?:old|new)\(network-map\)/);
     assert.doesNotMatch(
       globalsCss.match(/\.network-selector-glider\s*\{([\s\S]*?)\}/)?.[1] ?? "",
       /will-change/,
