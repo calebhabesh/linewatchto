@@ -26,17 +26,25 @@ const maps = [
     `,
     foregroundCss: `
       #ttc-tracks-layer,
-      #non-linear-guides-layer { opacity: 0 !important; }
-      #ttc-station-labels-layer [data-station-label-for] {
-        font-family: "TeX Gyre Heros", Arial, sans-serif !important;
-        stroke: #000000 !important;
-        stroke-width: 2px !important;
-      }
+      #non-linear-guides-layer,
+      #ttc-station-labels-layer { opacity: 0 !important; }
       .fil3:has(+ .fil0),
       .fil3:has(+ .fil2),
       .fil3:has(+ .fil4),
       .fil3:has(+ .fil5),
       .fil3:has(+ .fil8) { display: none !important; }
+    `,
+    labelsCss: `
+      #ttc-tracks-layer,
+      #non-linear-guides-layer,
+      #ttc-stations-layer,
+      #ttc-line-badges-layer,
+      #ttc-connection-labels-layer { opacity: 0 !important; }
+      #ttc-station-labels-layer [data-station-label-for] {
+        font-family: "TeX Gyre Heros", Arial, sans-serif !important;
+        stroke: #000000 !important;
+        stroke-width: 2px !important;
+      }
     `,
     darkCss: `
       #ttc-station-labels-layer text,
@@ -65,6 +73,7 @@ const maps = [
     id: "regional",
     source: join(assetDirectory, "regional-rail-map.svg"),
     renderedSize: { width: 4739.2821, height: 2616.8174 },
+    labelsRenderedSize: { width: 17036.959, height: 9031.6719 },
     widths: { mobile: 4739, desktop: 7109 },
     backgroundCss: `
       #Layer_x0020_1 > * { opacity: 0 !important; }
@@ -73,7 +82,13 @@ const maps = [
     `,
     foregroundCss: `
       #regional-lines-layer,
-      #regional-lakes-layer { opacity: 0 !important; }
+      #regional-lakes-layer,
+      #regional-station-labels-layer { opacity: 0 !important; }
+      #regional-route-labels-layer rect { stroke: none !important; }
+    `,
+    labelsCss: `
+      #Layer_x0020_1 > * { opacity: 0 !important; }
+      #regional-station-labels-layer { opacity: 1 !important; }
       #regional-station-labels-layer text,
       #regional-station-labels-layer tspan {
         font-family: "TeX Gyre Heros", Arial, sans-serif !important;
@@ -89,6 +104,8 @@ const maps = [
       #regional-station-labels-layer tspan { fill: #f8fafc !important; }
       #regional-station-labels-layer text { stroke: #ffffff !important; }
       #regional-route-lw-div { stroke: #0d0808 !important; }
+      #g6 text,
+      #g6 tspan { fill: #f8fafc !important; }
     `,
     highContrastCss: `
       #regional-route-lw-div { stroke: #000000 !important; }
@@ -124,14 +141,22 @@ async function main() {
     await mkdir(outputDirectory, { recursive: true });
     for (const map of maps) {
       const source = await readFile(map.source, "utf8");
-      for (const plane of ["background", "foreground"]) {
-        const planeCss = plane === "background" ? map.backgroundCss : map.foregroundCss;
+      const planes = map.labelsCss ? ["background", "foreground", "labels"] : ["background", "foreground"];
+      for (const plane of planes) {
+        const planeCss = plane === "background"
+          ? map.backgroundCss
+          : plane === "labels"
+            ? map.labelsCss
+            : map.foregroundCss;
         for (const theme of themes) {
           const themeCss = theme === "light"
             ? ""
             : `${map.darkCss}${theme === "high-contrast" ? map.highContrastCss ?? "" : ""}`;
           const stagedSvg = join(temporaryDirectory, `${map.id}-${plane}-${theme}.svg`);
-          await writeFile(stagedSvg, withRasterStyle(source, `${planeCss}${themeCss}`, map.renderedSize));
+          const renderedSize = plane === "labels" && map.labelsRenderedSize
+            ? map.labelsRenderedSize
+            : map.renderedSize;
+          await writeFile(stagedSvg, withRasterStyle(source, `${planeCss}${themeCss}`, renderedSize));
           for (const [density, width] of Object.entries(map.widths)) {
             const filename = `${map.id}-${plane}-${theme}-${density}.png`;
             const stagedPng = join(temporaryDirectory, filename);

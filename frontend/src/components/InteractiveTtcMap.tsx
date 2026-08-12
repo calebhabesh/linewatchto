@@ -356,7 +356,8 @@ function InteractiveTtcMapComponent({
     });
   }, [rasterVariantKey]);
   const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
-    && readyRasterPlanes.has(`${rasterVariantKey}:foreground`);
+    && readyRasterPlanes.has(`${rasterVariantKey}:foreground`)
+    && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
   const readyNotifiedRef = useRef(false);
   const entranceWasDeferredRef = useRef(false);
 
@@ -1931,9 +1932,20 @@ function InteractiveTtcMapComponent({
               plane="foreground"
               theme={rasterTheme}
               density={rasterDensity}
-              svgViewBox="0 0 8250 4000"
-              cutoutPolygon={hoveredLabelPolygonPoints}
               onReady={() => markRasterPlaneReady("foreground")}
+            />
+
+            {/* Station names use their own static texture so the hover cutout
+                cannot cloak tracks, station dots, badges, or connection art
+                that happens to sit inside the label's padded bounds. */}
+            <RasterMapPlane
+              network="ttc"
+              plane="labels"
+              theme={rasterTheme}
+              density={rasterDensity}
+              svgViewBox="0 0 8250 4000"
+              cutoutElementHref={hoveredStationLabelId ? `#station-label-${hoveredStationLabelId}` : null}
+              onReady={() => markRasterPlaneReady("labels")}
             />
 
             <svg
@@ -1948,16 +1960,26 @@ function InteractiveTtcMapComponent({
                   transform={`translate(${hoveredLabelCenter.x} ${hoveredLabelCenter.y}) scale(1.045) translate(${-hoveredLabelCenter.x} ${-hoveredLabelCenter.y})`}
                 >
                   <defs>
-                    <clipPath id="ttc-hovered-station-label-clip" clipPathUnits="userSpaceOnUse">
-                      <polygon points={hoveredLabelPolygonPoints} />
-                    </clipPath>
+                    <filter id="ttc-hovered-label-white-alpha" colorInterpolationFilters="sRGB">
+                      <feColorMatrix
+                        type="matrix"
+                        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
+                      />
+                    </filter>
+                    <mask id="ttc-hovered-station-label-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="8250" height="4000">
+                      <use
+                        href={`#station-label-${hoveredStationLabelId}`}
+                        filter="url(#ttc-hovered-label-white-alpha)"
+                        visibility="visible"
+                      />
+                    </mask>
                   </defs>
                   <image
-                    href={rasterMapSource("ttc", "foreground", rasterTheme, rasterDensity)}
+                    href={rasterMapSource("ttc", "labels", rasterTheme, rasterDensity)}
                     width="8250"
                     height="4000"
                     preserveAspectRatio="xMidYMid meet"
-                    clipPath="url(#ttc-hovered-station-label-clip)"
+                    mask="url(#ttc-hovered-station-label-mask)"
                   />
                 </g>
               ) : null}

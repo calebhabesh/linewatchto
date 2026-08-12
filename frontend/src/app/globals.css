@@ -322,6 +322,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .raster-map-plane--background { z-index: 0; }
 .raster-map-dynamic-plane { z-index: 1; }
 .raster-map-plane--foreground { z-index: 2; }
+.raster-map-plane--labels { z-index: 2; }
 .raster-map-top-plane { z-index: 3; }
 .raster-map-interaction-plane { z-index: 4; }
 
@@ -333,10 +334,16 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .ttc-map-stage[data-raster-map-ready="true"] .ttc-authored-svg-source,
 .regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-lines-layer,
 .regional-map-stage[data-raster-map-ready="true"] .regional-live-svg .regional-station-visual,
-.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-station-labels-layer [data-regional-station-label-for],
 .regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-route-labels-layer,
 .regional-map-stage[data-raster-map-ready="true"] .regional-live-svg .map-connection-label {
   visibility: hidden;
+}
+
+/* Opacity keeps authored regional labels non-painting while leaving their
+   child glyphs usable as cross-SVG <use> alpha-mask sources. Applying
+   visibility directly would make Chromium resolve an empty hover mask. */
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg .regional-station-label-source {
+  opacity: 0;
 }
 
 .regional-live-svg .regional-station-hover-indicator.active,
@@ -346,16 +353,27 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 .raster-station-label-text-hover {
   pointer-events: none;
-  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 82%));
+  filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 58%));
   transition: filter 180ms ease-in-out;
 }
 
-.regional-station-label-hit-target.regional-raster-label-halo {
-  fill: transparent !important;
-  opacity: 0.72 !important;
-  stroke: rgb(var(--station-selection-accent-rgb) / 78%) !important;
-  stroke-width: 18px !important;
-  filter: blur(6px);
+.regional-raster-station-label-live-copy :is(text, tspan) {
+  fill: #000000 !important;
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+  font-family: "TeX Gyre Heros", Arial, Helvetica, sans-serif !important;
+  font-weight: 700 !important;
+}
+
+/* Regional authored units are roughly 1.7x TTC's at equivalent screen scale. */
+.regional-raster-station-label-live-copy {
+  filter: drop-shadow(0 0 8px rgb(var(--station-selection-accent-rgb) / 64%));
+}
+
+.dark .regional-raster-station-label-live-copy :is(text, tspan),
+.high-contrast .regional-raster-station-label-live-copy :is(text, tspan) {
+  fill: #f8fafc !important;
+  stroke: #ffffff !important;
 }
 
 /* Static authored artwork no longer paints after its raster planes decode.

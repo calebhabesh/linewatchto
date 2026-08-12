@@ -239,26 +239,29 @@ function normalizedRegionalStationLabel(value: string) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function setRegionalStationLabelHover(root: ParentNode, stationId: string | null) {
-  root.querySelectorAll<SVGElement>(
-    "#regional-station-labels-layer .station-label-hover-effect-active",
-  ).forEach((effect) => effect.classList.remove("station-label-hover-effect-active"));
-  root.querySelectorAll<SVGElement>(
-    "#regional-station-labels-layer .regional-station-label-hovered",
-  ).forEach((label) => label.classList.remove("regional-station-label-hovered"));
-  root.querySelectorAll<SVGElement>(
-    "#regional-station-labels-layer .regional-raster-label-halo",
-  ).forEach((label) => label.classList.remove("regional-raster-label-halo"));
-  if (!stationId) return;
-  const label = root.querySelector<SVGElement>(
+function regionalStationLabelHover(
+  root: ParentNode,
+  stationId: string | null,
+): { stationId: string; center: SvgPoint; maskMarkup: string } | null {
+  if (!stationId) return null;
+  const label = root.querySelector<SVGGraphicsElement>(
     `#regional-station-labels-layer [data-regional-station-label-for="${CSS.escape(stationId)}"]`,
   );
-  label?.classList.add("regional-station-label-hovered");
-  label?.closest(".station-label-hover-effect")
-    ?.classList.add("station-label-hover-effect-active");
-  root.querySelector<SVGElement>(
-    `#regional-station-labels-layer .regional-station-label-hit-target[data-regional-station-id="${CSS.escape(stationId)}"]`,
-  )?.classList.add("regional-raster-label-halo");
+  const svg = label?.ownerSVGElement;
+  const maskSource = root.querySelector<SVGGraphicsElement>(
+    `#regional-station-label-mask-source-${CSS.escape(stationId)}`,
+  );
+  if (!label || !svg || !maskSource) return null;
+  const bounds = regionalCollisionBoxForElement(svg, label);
+  if (!bounds) return null;
+  return {
+    stationId,
+    maskMarkup: maskSource.outerHTML,
+    center: {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2,
+    },
+  };
 }
 
 function appendRegionalDelayGlyph(
@@ -2181,6 +2184,11 @@ function InteractiveRegionalMapComponent({
   const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
+  const [hoveredStationLabel, setHoveredStationLabel] = useState<{
+    stationId: string;
+    center: SvgPoint;
+    maskMarkup: string;
+  } | null>(null);
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   const rasterDensity = mobilePerformanceMode ? "mobile" : "desktop";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
@@ -2194,7 +2202,8 @@ function InteractiveRegionalMapComponent({
     });
   }, [rasterVariantKey]);
   const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
-    && readyRasterPlanes.has(`${rasterVariantKey}:foreground`);
+    && readyRasterPlanes.has(`${rasterVariantKey}:foreground`)
+    && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
 
   useEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
@@ -2689,14 +2698,32 @@ function InteractiveRegionalMapComponent({
           regionalStationIds.set(normalizedRegionalStationLabel(stationId), stationId);
         }
         const stationLabelsLayer = documentNode.getElementById("regional-station-labels-layer");
+        const labelMaskSources = documentNode.createElementNS(SVG_NAMESPACE, "defs");
+        labelMaskSources.id = "regional-station-label-mask-sources";
+        documentNode.documentElement.prepend(labelMaskSources);
+        const labelLayerTransform = stationLabelsLayer?.parentElement?.getAttribute("transform");
         for (const label of stationLabelsLayer?.querySelectorAll<SVGTextElement>(":scope > text") ?? []) {
           const stationId = regionalStationIds.get(normalizedRegionalStationLabel(label.textContent ?? ""));
           if (!stationId) continue;
 
           label.dataset.regionalStationLabelFor = stationId;
+          label.id = `regional-station-label-${stationId}`;
 
-          const hoverEffect = documentNode.createElementNS(SVG_NAMESPACE, "g");
-          hoverEffect.classList.add("station-label-hover-effect");
+          const maskSource = documentNode.createElementNS(SVG_NAMESPACE, "g");
+          maskSource.id = `regional-station-label-mask-source-${stationId}`;
+          if (labelLayerTransform) maskSource.setAttribute("transform", labelLayerTransform);
+          const maskLabel = label.cloneNode(true) as SVGTextElement;
+          removeDescendantIds(maskLabel);
+          maskLabel.removeAttribute("data-regional-station-label-for");
+          maskSource.append(maskLabel);
+          labelMaskSources.append(maskSource);
+
+          // Hide the authored label through an ancestor after the raster plane
+          // is ready. Keeping visibility off the referenced text node itself
+          // lets SVG <use> resolve its glyph alpha inside the hover masks, as
+          // the TTC raster path does.
+          const labelSource = documentNode.createElementNS(SVG_NAMESPACE, "g");
+          labelSource.classList.add("regional-station-label-source");
 
           const hitTarget = label.cloneNode(true) as SVGTextElement;
           removeDescendantIds(hitTarget);
@@ -2707,9 +2734,9 @@ function InteractiveRegionalMapComponent({
           hitTarget.setAttribute("role", "button");
           hitTarget.setAttribute("tabindex", "0");
           hitTarget.setAttribute("aria-label", `${(label.textContent ?? stationId).trim()} station details`);
-          label.before(hoverEffect);
-          hoverEffect.append(label);
-          hoverEffect.after(hitTarget);
+          label.before(labelSource);
+          labelSource.append(label);
+          labelSource.after(hitTarget);
         }
         // The authored map and station interaction geometry are immutable after
         // this preparation pass. Dashboard refreshes update only the purpose-built
@@ -3758,11 +3785,11 @@ function InteractiveRegionalMapComponent({
       const target = event.target instanceof Element ? event.target : null;
       if (!root || !target || !root.contains(target) || target.closest(".overlap-indicator")) {
         setHoveredMapImpact(null);
-        if (root) setRegionalStationLabelHover(root, null);
+        setHoveredStationLabel(null);
         return;
       }
       const station = target.closest<SVGElement>("[data-regional-station-id]");
-      setRegionalStationLabelHover(root, station?.dataset.regionalStationId ?? null);
+      setHoveredStationLabel(regionalStationLabelHover(root, station?.dataset.regionalStationId ?? null));
       setHoveredMapImpact(
         regionalStationImpactAtClientPoint(root, event.clientX, event.clientY)
           ?? regionalSegmentImpactAtClientPoint(root, event.clientX, event.clientY),
@@ -3775,7 +3802,7 @@ function InteractiveRegionalMapComponent({
         : null;
       if (station?.dataset.regionalStationId) {
         const root = viewportRef.current;
-        if (root) setRegionalStationLabelHover(root, station.dataset.regionalStationId);
+        if (root) setHoveredStationLabel(regionalStationLabelHover(root, station.dataset.regionalStationId));
       }
     };
     const handleFocusOut = (event: FocusEvent) => {
@@ -3787,7 +3814,7 @@ function InteractiveRegionalMapComponent({
         : null;
       if (currentStation?.dataset.regionalStationId !== nextStation?.dataset.regionalStationId) {
         const root = viewportRef.current;
-        if (root) setRegionalStationLabelHover(root, nextStation?.dataset.regionalStationId ?? null);
+        if (root) setHoveredStationLabel(regionalStationLabelHover(root, nextStation?.dataset.regionalStationId ?? null));
       }
       const currentImpact = regionalImpactIdentity(event.target);
       const nextImpact = regionalImpactIdentity(event.relatedTarget);
@@ -3952,12 +3979,32 @@ function InteractiveRegionalMapComponent({
             density={rasterDensity}
             onReady={() => markRasterPlaneReady("foreground")}
           />
+          <RasterMapPlane
+            network="regional"
+            plane="labels"
+            theme={rasterTheme}
+            density={rasterDensity}
+            svgViewBox="-200 -200 17036.959 9031.6719"
+            cutoutElementHref={hoveredStationLabel
+              ? `#regional-station-label-mask-source-${hoveredStationLabel.stationId}`
+              : null}
+            cutoutMarkup={hoveredStationLabel?.maskMarkup ?? null}
+            onReady={() => markRasterPlaneReady("labels")}
+          />
           {/* Static North Compass fixed to regional map canvas */}
           <svg
             className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
             viewBox="-200 -200 17036.959 9031.6719"
             preserveAspectRatio="xMidYMid meet"
           >
+            {hoveredStationLabel ? (
+              <g
+                aria-hidden="true"
+                className="raster-station-label-text-hover regional-raster-station-label-live-copy"
+                transform={`translate(${hoveredStationLabel.center.x} ${hoveredStationLabel.center.y}) scale(1.045) translate(${-hoveredStationLabel.center.x} ${-hoveredStationLabel.center.y})`}
+                dangerouslySetInnerHTML={{ __html: hoveredStationLabel.maskMarkup }}
+              />
+            ) : null}
             <g aria-label="Cardinal North Compass" transform="translate(14800, 5100)">
               <image
                 href="/assets/linewatch/cardinal-north.svg"

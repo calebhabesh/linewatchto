@@ -453,20 +453,20 @@ test("uses decoded raster artwork while preserving live map geometry in both net
 
   const ttcStage = page.locator(".ttc-map-stage");
   await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(2);
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(ttcStage.locator(".ttc-authored-svg-source").first()).toHaveCSS("visibility", "hidden");
   await ttcStage.locator('[data-station-label-id="kipling"]').hover();
   const rasterLabelHover = ttcStage.locator(".raster-station-label-text-hover");
   await expect(rasterLabelHover).toHaveCount(1);
   await expect(rasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
-  await expect(rasterLabelHover.locator("image")).toHaveAttribute("clip-path", "url(#ttc-hovered-station-label-clip)");
-  await expect(ttcStage.locator(".raster-map-plane--foreground > image")).toHaveAttribute("mask", "url(#ttc-foreground-raster-mask)");
+  await expect(rasterLabelHover.locator("image")).toHaveAttribute("mask", "url(#ttc-hovered-station-label-mask)");
+  await expect(ttcStage.locator(".raster-map-plane--labels > image")).toHaveAttribute("mask", "url(#ttc-labels-raster-mask)");
   await expect(ttcStage.locator('[data-station-label-for="kipling"]')).toHaveCSS("visibility", "hidden");
   const ttcRasterSources = await ttcStage.locator(".raster-map-plane").evaluateAll((images) =>
     images.map((image) => (image as HTMLImageElement).currentSrc)
   );
   await ttcStage.dispatchEvent("wheel", { deltaY: -160, clientX: 720, clientY: 500 });
-  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(2);
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(3);
   expect(await ttcStage.locator(".raster-map-plane").evaluateAll((images) =>
     images.map((image) => (image as HTMLImageElement).currentSrc)
   )).toEqual(ttcRasterSources);
@@ -475,13 +475,21 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
   const regionalStage = page.locator(".regional-map-stage");
   await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(2);
+  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(regionalStage.locator("#regional-lines-layer")).toHaveCSS("visibility", "hidden");
   await expect(regionalStage.locator("#regional-stations-layer")).toHaveCount(1);
   const unionLabelTarget = regionalStage.locator('.regional-station-label-hit-target[data-regional-station-id="union"]');
   await unionLabelTarget.hover();
-  await expect(unionLabelTarget).toHaveClass(/regional-raster-label-halo/);
-  await expect(regionalStage.locator('[data-regional-station-label-for="union"]')).toHaveCSS("visibility", "hidden");
+  const regionalRasterLabelHover = regionalStage.locator(".raster-station-label-text-hover");
+  await expect(regionalRasterLabelHover).toHaveCount(1);
+  await expect(regionalRasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
+  await expect(regionalRasterLabelHover).toHaveClass(/regional-raster-station-label-live-copy/);
+  await expect(regionalStage.locator(".raster-map-plane--labels > image")).toHaveAttribute("mask", "url(#regional-labels-raster-mask)");
+  await unionLabelTarget.dispatchEvent("pointerdown", { pointerId: 31, pointerType: "mouse", button: 0 });
+  await expect(unionLabelTarget).not.toHaveClass(/regional-raster-label-halo|regional-station-label-hovered/);
+  await expect(regionalRasterLabelHover).toHaveCount(1);
+  await unionLabelTarget.dispatchEvent("pointerup", { pointerId: 31, pointerType: "mouse", button: 0 });
+  await expect(regionalStage.locator('[data-regional-station-label-for="union"]').locator("..")).toHaveCSS("opacity", "0");
 });
 
 test("regional refresh, pan, zoom, and center preserve the authored SVG instance", async ({ page, request, isMobile }) => {
@@ -531,7 +539,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   expect(await regionalStage.evaluate((element) => getComputedStyle(element).willChange)).toBe("auto");
 });
 
-test("regional station names share the TTC hover glow and station selection", async ({ page, request, isMobile }) => {
+test("regional station names share the TTC raster hover glow and station selection", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop hover behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
@@ -541,17 +549,14 @@ test("regional station names share the TTC hover glow and station selection", as
     .click();
 
   const authoredLabel = page.locator('[data-regional-station-label-for="kipling"]');
-  const hoverEffect = authoredLabel.locator("..");
   const labelTarget = page.locator('[data-regional-station-label-id="kipling"]');
   await expect(authoredLabel).toHaveCount(1);
   await expect(labelTarget).toHaveCount(1);
 
   await labelTarget.hover();
-  await expect(authoredLabel).toHaveClass(/regional-station-label-hovered/);
-  await expect(hoverEffect).toHaveClass(/station-label-hover-effect-active/);
-  await expect(hoverEffect).toHaveCSS("transition-duration", "0.28s, 0.28s");
-  await expect(hoverEffect).toHaveCSS("transition-delay", "0.06s");
-  await expect(hoverEffect).toHaveCSS("animation-name", "none");
+  const rasterLabelHover = page.locator(".regional-map-stage .raster-station-label-text-hover");
+  await expect(rasterLabelHover).toHaveCount(1);
+  await expect(rasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
 
   await labelTarget.click();
   await expect(page.getByRole("complementary", { name: "Kipling regional station details" })).toBeVisible();

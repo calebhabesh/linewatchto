@@ -101,5 +101,16 @@ describe("regional application map asset", () => {
 
   it("removes white stroke outlines from transit route-label badges", () => {
     assert.match(css, /\.regional-map-stage #regional-route-labels-layer rect\s*{[^}]*stroke:\s*none\s*!important;/s);
+    assert.match(
+      readFileSync(new URL("../scripts/generate-map-rasters.mjs", import.meta.url), "utf8"),
+      /#regional-route-labels-layer rect \{ stroke: none !important; \}/,
+    );
+  });
+
+  it("keeps the Billy Bishop label readable in dark raster themes", () => {
+    assert.match(
+      readFileSync(new URL("../scripts/generate-map-rasters.mjs", import.meta.url), "utf8"),
+      /#g6 text,[\s\S]*?#g6 tspan \{ fill: #f8fafc !important;/,
+    );
   });
 });

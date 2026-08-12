@@ -93,10 +93,11 @@ describe("asset-backed map layering", () => {
 
   it("gives regional station names the TTC hover glow and gradual reveal", () => {
     assert.match(interactiveRegionalMapSource, /dataset\.regionalStationLabelFor = stationId/);
-    assert.match(interactiveRegionalMapSource, /station-label-hover-effect/);
+    assert.match(interactiveRegionalMapSource, /raster-station-label-text-hover/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-station-label-hover-clone/);
     assert.match(interactiveRegionalMapSource, /dataset\.regionalStationId = stationId/);
-    assert.match(interactiveRegionalMapSource, /setRegionalStationLabelHover/);
+    assert.match(interactiveRegionalMapSource, /regionalStationLabelHover/);
+    assert.doesNotMatch(interactiveRegionalMapSource, /regional-raster-label-halo/);
     assert.match(
       globalCss,
       /\.regional-station-label-hit-target\s*\{[^}]*pointer-events:\s*bounding-box\s*!important;/s,

@@ -7,18 +7,19 @@ export type RasterMapDensity = "mobile" | "desktop";
 
 type RasterMapPlaneProps = {
   network: "ttc" | "regional";
-  plane: "background" | "foreground";
+  plane: "background" | "foreground" | "labels";
   theme: RasterMapTheme;
   density: RasterMapDensity;
   className?: string;
-  cutoutPolygon?: string | null;
+  cutoutElementHref?: string | null;
+  cutoutMarkup?: string | null;
   svgViewBox?: string;
   onReady?: () => void;
 };
 
 export function rasterMapSource(
   network: "ttc" | "regional",
-  plane: "background" | "foreground",
+  plane: "background" | "foreground" | "labels",
   theme: RasterMapTheme,
   density: RasterMapDensity,
 ) {
@@ -31,7 +32,8 @@ export function RasterMapPlane({
   theme,
   density,
   className = "",
-  cutoutPolygon = null,
+  cutoutElementHref = null,
+  cutoutMarkup = null,
   svgViewBox,
   onReady,
 }: RasterMapPlaneProps) {
@@ -64,7 +66,7 @@ export function RasterMapPlane({
   if (!displayedSource) return null;
 
   if (svgViewBox) {
-    const [, , viewBoxWidth = "0", viewBoxHeight = "0"] = svgViewBox.split(/\s+/);
+    const [viewBoxX = "0", viewBoxY = "0", viewBoxWidth = "0", viewBoxHeight = "0"] = svgViewBox.split(/\s+/);
     const maskId = `${network}-${plane}-raster-mask`;
     return (
       <svg
@@ -74,13 +76,34 @@ export function RasterMapPlane({
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={viewBoxWidth} height={viewBoxHeight}>
-            <rect width={viewBoxWidth} height={viewBoxHeight} fill="white" />
-            {cutoutPolygon ? <polygon points={cutoutPolygon} fill="black" /> : null}
+          <filter id={`${maskId}-black-alpha`} colorInterpolationFilters="sRGB">
+            <feMorphology in="SourceAlpha" operator="dilate" radius="3" result="expandedAlpha" />
+            <feColorMatrix
+              in="expandedAlpha"
+              type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"
+            />
+          </filter>
+          <mask id={maskId} maskUnits="userSpaceOnUse" x={viewBoxX} y={viewBoxY} width={viewBoxWidth} height={viewBoxHeight}>
+            <rect x={viewBoxX} y={viewBoxY} width={viewBoxWidth} height={viewBoxHeight} fill="white" />
+            {cutoutMarkup ? (
+              <g
+                filter={`url(#${maskId}-black-alpha)`}
+                dangerouslySetInnerHTML={{ __html: cutoutMarkup }}
+              />
+            ) : cutoutElementHref ? (
+              <use
+                href={cutoutElementHref}
+                filter={`url(#${maskId}-black-alpha)`}
+                visibility="visible"
+              />
+            ) : null}
           </mask>
         </defs>
         <image
           href={displayedSource}
+          x={viewBoxX}
+          y={viewBoxY}
           width={viewBoxWidth}
           height={viewBoxHeight}
           preserveAspectRatio="xMidYMid meet"
