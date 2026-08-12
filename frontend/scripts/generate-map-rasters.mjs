@@ -92,17 +92,11 @@ const maps = [
       #regional-station-labels-layer text,
       #regional-station-labels-layer tspan {
         font-family: "TeX Gyre Heros", Arial, sans-serif !important;
-        font-weight: 700 !important;
-      }
-      #regional-station-labels-layer text {
-        stroke: #000000 !important;
-        stroke-width: 2px !important;
       }
     `,
     darkCss: `
       #regional-station-labels-layer text,
       #regional-station-labels-layer tspan { fill: #f8fafc !important; }
-      #regional-station-labels-layer text { stroke: #ffffff !important; }
       #regional-route-lw-div { stroke: #0d0808 !important; }
       #g6 text,
       #g6 tspan { fill: #f8fafc !important; }
@@ -156,7 +150,14 @@ async function main() {
           const renderedSize = plane === "labels" && map.labelsRenderedSize
             ? map.labelsRenderedSize
             : map.renderedSize;
-          await writeFile(stagedSvg, withRasterStyle(source, `${planeCss}${themeCss}`, renderedSize));
+          // The SVG rasterizer does not consistently apply substring attribute
+          // selectors to inline presentation styles. Change only authored black
+          // strokes in the isolated regional label plane so regular 5px outlines
+          // become white on dark canvases while bold no-stroke labels stay intact.
+          const themedSource = map.id === "regional" && plane === "labels" && theme !== "light"
+            ? source.replaceAll("stroke:#000000", "stroke:#ffffff")
+            : source;
+          await writeFile(stagedSvg, withRasterStyle(themedSource, `${planeCss}${themeCss}`, renderedSize));
           for (const [density, width] of Object.entries(map.widths)) {
             const filename = `${map.id}-${plane}-${theme}-${density}.png`;
             const stagedPng = join(temporaryDirectory, filename);

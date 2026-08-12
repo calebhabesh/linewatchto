@@ -72,7 +72,7 @@ describe("stable raster map renderer", () => {
     assert.match(css, /data-raster-map-ready="true"[\s\S]*\.ttc-authored-svg-source/);
   });
 
-  it("preserves authored TTC label weights and theme-aware interchange leaders", async () => {
+  it("preserves authored label weights and theme-aware interchange leaders", async () => {
     const [generator, ttc, regional, css] = await Promise.all([
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
@@ -81,7 +81,11 @@ describe("stable raster map renderer", () => {
     ]);
 
     const ttcLabelsCss = generator.match(/id: "ttc"[\s\S]*?labelsCss: `([\s\S]*?)`,\n    darkCss:/)?.[1] ?? "";
+    const regionalLabelsCss = generator.match(/id: "regional"[\s\S]*?labelsCss: `([\s\S]*?)`,\n    darkCss:/)?.[1] ?? "";
     assert.doesNotMatch(ttcLabelsCss, /font-weight:\s*700/);
+    assert.doesNotMatch(regionalLabelsCss, /font-weight:\s*700/);
+    assert.doesNotMatch(regionalLabelsCss, /stroke-width:\s*2px !important/);
+    assert.match(generator, /map\.id === "regional" && plane === "labels" && theme !== "light"[\s\S]*?source\.replaceAll\("stroke:#000000", "stroke:#ffffff"\)/);
     assert.match(generator, /#polygon771-7,[\s\S]*?#polygon771-7-4-1-5 \{ fill: #f1f5f9 !important; \}/);
     assert.match(ttc, /className="raster-station-label-text-hover"/);
     assert.match(ttc, /scale\(1\.045\)/);
@@ -94,14 +98,25 @@ describe("stable raster map renderer", () => {
       /<feMorphology in="SourceAlpha" operator="dilate" radius="3" result="expandedAlpha" \/>/,
     );
     assert.match(generator, /labelsRenderedSize: \{ width: 17036\.959, height: 9031\.6719 \}/);
-    assert.match(regional, /regional-raster-station-label-live-copy/);
+    assert.match(regional, /rasterMapSource\("regional", "labels", rasterTheme, rasterDensity\)/);
+    assert.match(regional, /mask="url\(#regional-hovered-station-label-mask\)"/);
+    assert.match(regional, /clipPath="url\(#regional-hovered-station-label-clip\)"/);
+    assert.match(regional, /filter="url\(#regional-hovered-label-white-alpha\)"/);
+    assert.match(regional, /removeDescendantIds\(isolatedCutoutSource\)/);
+    assert.match(regional, /cutoutMarkup: isolatedCutoutSource\.outerHTML/);
+    assert.doesNotMatch(regional, /regional-raster-station-label-live-copy/);
     assert.match(regional, /labelSource\.classList\.add\("regional-station-label-source"\)/);
-    assert.match(regional, /labelMaskSources\.id = "regional-station-label-mask-sources"/);
-    assert.match(regional, /maskSource\.id = `regional-station-label-mask-source-\$\{stationId\}`/);
-    assert.match(regional, /maskMarkup: maskSource\.outerHTML/);
-    assert.match(regional, /cutoutMarkup=\{hoveredStationLabel\?\.maskMarkup \?\? null\}/);
+    assert.match(regional, /labelCutoutSources\.id = "regional-station-label-cutout-sources"/);
+    assert.match(regional, /cutoutSource\.id = `regional-station-label-cutout-source-\$\{stationId\}`/);
+    assert.match(regional, /id="regional-hovered-station-target-mask"/);
+    assert.match(regional, /mask="url\(#regional-hovered-station-target-mask\)"/);
+    assert.match(regional, /<feMorphology in="SourceAlpha" operator="dilate" radius="12" result="expandedTargetAlpha" \/>/);
+    assert.doesNotMatch(regional, /cutoutMarkup: `<rect x=/);
+    assert.match(regional, /cutoutMarkup=\{hoveredStationLabel\?\.cutoutMarkup \?\? null\}/);
     assert.doesNotMatch(regional, /regional-raster-label-halo/);
     assert.match(css, /data-raster-map-ready="true"[^}]*\.regional-station-label-source[^}]*opacity:\s*0/s);
+    assert.match(css, /data-raster-map-ready="true"[^}]*#regional-station-labels-layer[^}]*opacity:\s*0/s);
+    assert.doesNotMatch(css, /\.regional-raster-station-label-live-copy/);
     assert.doesNotMatch(
       css,
       /data-raster-map-ready="true"[^}]*#regional-station-labels-layer \[data-regional-station-label-for\][^}]*visibility:\s*hidden/s,

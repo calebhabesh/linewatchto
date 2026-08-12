@@ -346,6 +346,16 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   opacity: 0;
 }
 
+/* Regional station names follow the TTC map's single-paint-source rule: once
+   the decoded label texture is available, no authored text in this layer may
+   paint beneath it. Opacity preserves the invisible label hit targets while
+   preventing newly authored or temporarily unmatched text from flashing when
+   Chromium recomposites the scaled map. Hover glyphs use the independent
+   mask-source clones in the root defs. */
+.regional-map-stage[data-raster-map-ready="true"] .regional-live-svg #regional-station-labels-layer {
+  opacity: 0;
+}
+
 .regional-live-svg .regional-station-hover-indicator.active,
 .regional-live-svg .regional-station-selected-indicator.active {
   visibility: visible;
@@ -355,25 +365,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   pointer-events: none;
   filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 58%));
   transition: filter 180ms ease-in-out;
-}
-
-.regional-raster-station-label-live-copy :is(text, tspan) {
-  fill: #000000 !important;
-  stroke: #000000 !important;
-  stroke-width: 2px !important;
-  font-family: "TeX Gyre Heros", Arial, Helvetica, sans-serif !important;
-  font-weight: 700 !important;
-}
-
-/* Regional authored units are roughly 1.7x TTC's at equivalent screen scale. */
-.regional-raster-station-label-live-copy {
-  filter: drop-shadow(0 0 8px rgb(var(--station-selection-accent-rgb) / 64%));
-}
-
-.dark .regional-raster-station-label-live-copy :is(text, tspan),
-.high-contrast .regional-raster-station-label-live-copy :is(text, tspan) {
-  fill: #f8fafc !important;
-  stroke: #ffffff !important;
 }
 
 /* Static authored artwork no longer paints after its raster planes decode.
@@ -410,13 +401,16 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 .regional-map-stage #regional-station-labels-layer :is(text, tspan) {
   font-family: "TeX Gyre Heros", Arial, Helvetica, sans-serif !important;
-  font-weight: 700 !important;
+  pointer-events: none;
+}
+
+.regional-map-stage .regional-station-label-cutout-source :is(text, tspan) {
+  font-family: "TeX Gyre Heros", Arial, Helvetica, sans-serif !important;
   pointer-events: none;
 }
 
 .regional-map-stage #regional-station-labels-layer [data-regional-station-label-for] {
-  stroke: #000000 !important;
-  stroke-width: 2px !important;
+  pointer-events: none;
 }
 
 .regional-map-stage #regional-station-labels-layer .regional-station-label-hit-target {
@@ -433,8 +427,8 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   pointer-events: bounding-box !important;
 }
 
-.dark .regional-map-stage #regional-station-labels-layer [data-regional-station-label-for],
-.high-contrast .regional-map-stage #regional-station-labels-layer [data-regional-station-label-for] {
+.dark .regional-map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"],
+.high-contrast .regional-map-stage #regional-station-labels-layer :is(text, tspan)[style*="stroke:#000000"] {
   stroke: #ffffff !important;
 }
 
@@ -650,6 +644,18 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   transform-box: fill-box;
   filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
   transition: opacity 0.2s ease-in-out;
+}
+
+/* The authored station texture sits above the live regional geometry. Mirror
+   TTC's foreground selection flash in the top plane so the quick intro is not
+   hidden behind the resting station dot before the slow breathe begins. */
+.regional-station-top-selection {
+  --selection-intro-name: map-selection-station-intro;
+  --selection-breathe-name: map-selection-station-breathe;
+  fill: var(--station-selection-accent);
+  stroke: none;
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
+  pointer-events: none;
 }
 
 /* Generic TTC selection rules are optimized for markers that only exist while
@@ -954,6 +960,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .motion-paused .regional-station-selected-indicator[data-regional-station-selected="true"],
+.motion-paused .regional-station-top-selection,
 .motion-paused .regional-station-hover-indicator,
 .motion-paused .regional-station-impact-ring,
 .motion-paused .regional-station-impact-beacon-group,
@@ -975,6 +982,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   .regional-delay-glyph,
   .regional-impact-interactive-glow,
   .regional-station-selected-indicator,
+  .regional-station-top-selection,
   .regional-station-impact-beacon-group,
   .regional-station-impact-beacon-group .station-impact-dot-red-glow,
   .regional-station-impact-beacon-group .station-impact-dot-red-ping,
@@ -7644,6 +7652,19 @@ img.transit-line-badge {
   animation-fill-mode: both, none;
 }
 
+/* Chromium does not consistently resolve animation-name custom properties on
+   a cross-SVG <use> instance. Spell out the TTC station lifecycle on the
+   regional top-plane copy so its visible flash cannot fall back to `none`. */
+.regional-station-top-selection.map-selection-attention {
+  animation-name: map-selection-station-intro, map-selection-station-breathe;
+  animation-duration: var(--selection-intro-duration), var(--selection-breathe-duration);
+  animation-delay: 0s, var(--selection-intro-duration);
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-direction: normal, alternate;
+  animation-fill-mode: both, none;
+}
+
 /* Dynamic regional alert layers are rebuilt when fresh dashboard data arrives.
    Once a selection has finished its one-time intro, recreated SVG nodes must
    join the breathing phase instead of replaying the fast flashes. */
@@ -7655,6 +7676,10 @@ img.transit-line-badge {
   animation-iteration-count: infinite !important;
   animation-direction: alternate !important;
   animation-fill-mode: none !important;
+}
+
+.regional-station-top-selection.map-selection-attention.selection-intro-complete {
+  animation-name: map-selection-station-breathe !important;
 }
 
 @keyframes map-selection-path-intro {
@@ -10592,10 +10617,10 @@ img.transit-line-badge {
 
 .map-attribution-notice {
   position: absolute;
-  right: 16px;
+  right: 4px;
   bottom: 0px;
   z-index: 28;
-  max-width: min(520px, calc(100vw - 32px));
+  max-width: min(520px, calc(100vw - 8px));
   border: none;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.78);

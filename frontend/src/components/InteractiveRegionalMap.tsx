@@ -51,7 +51,7 @@ import {
   transformForMapPointAtViewportPoint,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
-import { RasterMapPlane, type RasterMapTheme } from "./RasterMapPlane";
+import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
@@ -152,6 +152,7 @@ function synchronizeRegionalOverlayPulses(root: SVGSVGElement) {
 function markCompletedSelectionIntro(root: ParentNode) {
   root.querySelectorAll<SVGElement>(
     '[data-regional-station-selected="true"], '
+      + '[data-regional-station-top-selected="true"], '
       + '[data-regional-impact-selected="true"] .regional-impact-interactive-glow, '
       + '.regional-station-impact-ring[data-regional-impact-selected="true"]',
   ).forEach((element) => element.classList.add("selection-intro-complete"));
@@ -242,21 +243,25 @@ function normalizedRegionalStationLabel(value: string) {
 function regionalStationLabelHover(
   root: ParentNode,
   stationId: string | null,
-): { stationId: string; center: SvgPoint; maskMarkup: string } | null {
+): { stationId: string; bounds: RegionalCollisionBox; center: SvgPoint; cutoutMarkup: string } | null {
   if (!stationId) return null;
   const label = root.querySelector<SVGGraphicsElement>(
     `#regional-station-labels-layer [data-regional-station-label-for="${CSS.escape(stationId)}"]`,
   );
   const svg = label?.ownerSVGElement;
-  const maskSource = root.querySelector<SVGGraphicsElement>(
-    `#regional-station-label-mask-source-${CSS.escape(stationId)}`,
+  const cutoutSource = root.querySelector<SVGGraphicsElement>(
+    `#regional-station-label-cutout-source-${CSS.escape(stationId)}`,
   );
-  if (!label || !svg || !maskSource) return null;
+  if (!label || !svg || !cutoutSource) return null;
   const bounds = regionalCollisionBoxForElement(svg, label);
   if (!bounds) return null;
+  const cropBounds = expandedRegionalCollisionBox(bounds, 8);
+  const isolatedCutoutSource = cutoutSource.cloneNode(true) as SVGGraphicsElement;
+  removeDescendantIds(isolatedCutoutSource);
   return {
     stationId,
-    maskMarkup: maskSource.outerHTML,
+    bounds: cropBounds,
+    cutoutMarkup: isolatedCutoutSource.outerHTML,
     center: {
       x: bounds.x + bounds.width / 2,
       y: bounds.y + bounds.height / 2,
@@ -2186,12 +2191,14 @@ function InteractiveRegionalMapComponent({
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const [hoveredStationLabel, setHoveredStationLabel] = useState<{
     stationId: string;
+    bounds: RegionalCollisionBox;
     center: SvgPoint;
-    maskMarkup: string;
+    cutoutMarkup: string;
   } | null>(null);
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   const rasterDensity = mobilePerformanceMode ? "mobile" : "desktop";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
+  const recenterFadeAnimationsRef = useRef<Animation[]>([]);
   const markRasterPlaneReady = useCallback((plane: string) => {
     setReadyRasterPlanes((current) => {
       const planeKey = `${rasterVariantKey}:${plane}`;
@@ -2210,7 +2217,6 @@ function InteractiveRegionalMapComponent({
   }, [commutePathPreview, selectedStationId, selection]);
   const animTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
-  const recenterFadeAnimationRef = useRef<Animation | null>(null);
   const dragAnimationFrameRef = useRef<number | null>(null);
   const pendingDragPointRef = useRef<{ x: number; y: number } | null>(null);
   const dragMovedRef = useRef(false);
@@ -2280,11 +2286,9 @@ function InteractiveRegionalMapComponent({
   }, []);
 
   const clearProgrammaticAnimation = useCallback(() => {
-    if (recenterFadeAnimationRef.current) {
-      const animation = recenterFadeAnimationRef.current;
-      recenterFadeAnimationRef.current = null;
-      animation.cancel();
-    }
+    const recenterAnimations = recenterFadeAnimationsRef.current;
+    recenterFadeAnimationsRef.current = [];
+    recenterAnimations.forEach((animation) => animation.cancel());
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -2357,23 +2361,38 @@ function InteractiveRegionalMapComponent({
     const stage = mapStageRef.current;
     if (!stage || reducedMotion) return;
 
-    const animation = stage.animate(
-      [{ opacity: 0 }, { opacity: 1 }],
-      {
-        duration: RECENTER_FADE_DURATION_MS,
-        easing: "ease-out",
-      },
+    // TTC can fade its compact stage directly. Regional is a transform-bearing
+    // container for several independently composited raster/SVG planes; fading
+    // that parent makes Chromium flatten and rebuild the scene, which flashes.
+    // Fade the existing child planes together for the same visual treatment
+    // without invalidating the parent camera composite.
+    const planes = Array.from(stage.children).filter(
+      (child): child is HTMLElement | SVGElement => child instanceof HTMLElement || child instanceof SVGElement,
     );
-    animation.id = RECENTER_FADE_ANIMATION_ID;
+    const animations = planes.map((plane, index) => {
+      const animation = plane.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        {
+          duration: RECENTER_FADE_DURATION_MS,
+          easing: "ease-out",
+        },
+      );
+      animation.id = index === 0
+        ? RECENTER_FADE_ANIMATION_ID
+        : `${RECENTER_FADE_ANIMATION_ID}-${index}`;
+      return animation;
+    });
     stage.dataset.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID;
-    recenterFadeAnimationRef.current = animation;
-    const clearFadeReference = () => {
-      if (recenterFadeAnimationRef.current === animation) {
-        recenterFadeAnimationRef.current = null;
-      }
+    recenterFadeAnimationsRef.current = animations;
+    const clearFadeReference = (animation: Animation) => {
+      recenterFadeAnimationsRef.current = recenterFadeAnimationsRef.current.filter(
+        (candidate) => candidate !== animation,
+      );
     };
-    animation.onfinish = clearFadeReference;
-    animation.oncancel = clearFadeReference;
+    for (const animation of animations) {
+      animation.onfinish = () => clearFadeReference(animation);
+      animation.oncancel = () => clearFadeReference(animation);
+    }
   }, [reducedMotion]);
 
   const snapCameraWithFade = useCallback((targetCamera: Camera, nextFitScale: number) => {
@@ -2580,6 +2599,10 @@ function InteractiveRegionalMapComponent({
       .then((source) => {
         if (cancelled) return;
         const documentNode = new DOMParser().parseFromString(source, "image/svg+xml");
+        const regionalSvgRoot = documentNode.documentElement as unknown as SVGSVGElement;
+        const stationSelectionSources = documentNode.createElementNS(SVG_NAMESPACE, "defs");
+        stationSelectionSources.id = "regional-station-selection-sources";
+        regionalSvgRoot.prepend(stationSelectionSources);
         for (const element of documentNode.querySelectorAll<SVGElement>("[id^='station-']")) {
           if (element.id.endsWith("-ki") || element.id.endsWith("-up")) continue;
           const stationId = element.id.replace(/^station-/, "");
@@ -2687,6 +2710,36 @@ function InteractiveRegionalMapComponent({
             }
           }
 
+          // Cross-SVG <use> references omit ancestor transforms. Build a root
+          // defs source with the complete authored transform chain so the
+          // foreground flash remains on its station, including junctions.
+          const selectionSource = documentNode.createElementNS(SVG_NAMESPACE, "g");
+          selectionSource.id = `regional-station-selection-source-${stationId}`;
+          let transformedSourceParent = selectionSource;
+          const transformedAncestors: SVGElement[] = [];
+          for (
+            let ancestor = element.parentElement as SVGElement | null;
+            ancestor && ancestor !== regionalSvgRoot;
+            ancestor = ancestor.parentElement as SVGElement | null
+          ) {
+            if (ancestor.hasAttribute("transform")) transformedAncestors.push(ancestor);
+          }
+          for (const ancestor of transformedAncestors.reverse()) {
+            const transformWrapper = documentNode.createElementNS(SVG_NAMESPACE, "g");
+            transformWrapper.setAttribute("transform", ancestor.getAttribute("transform")!);
+            transformedSourceParent.append(transformWrapper);
+            transformedSourceParent = transformWrapper;
+          }
+          const selectionArtwork = (selectedIndicatorContainer ?? selectedIndicator).cloneNode(true) as SVGElement;
+          const selectionArtworkIndicator = selectionArtwork.matches(".regional-station-selected-indicator")
+            ? selectionArtwork
+            : selectionArtwork.querySelector<SVGElement>(".regional-station-selected-indicator");
+          selectionArtworkIndicator?.classList.remove("map-selection-attention");
+          selectionArtworkIndicator?.setAttribute("data-regional-station-selected", "true");
+          selectionArtworkIndicator?.removeAttribute("data-regional-station-selection-id");
+          transformedSourceParent.append(selectionArtwork);
+          stationSelectionSources.append(selectionSource);
+
           element.before(hitTarget, hoverIndicator);
           element.after(selectedIndicatorContainer ?? selectedIndicator);
           element.classList.add("regional-station-visual");
@@ -2698,9 +2751,9 @@ function InteractiveRegionalMapComponent({
           regionalStationIds.set(normalizedRegionalStationLabel(stationId), stationId);
         }
         const stationLabelsLayer = documentNode.getElementById("regional-station-labels-layer");
-        const labelMaskSources = documentNode.createElementNS(SVG_NAMESPACE, "defs");
-        labelMaskSources.id = "regional-station-label-mask-sources";
-        documentNode.documentElement.prepend(labelMaskSources);
+        const labelCutoutSources = documentNode.createElementNS(SVG_NAMESPACE, "defs");
+        labelCutoutSources.id = "regional-station-label-cutout-sources";
+        documentNode.documentElement.prepend(labelCutoutSources);
         const labelLayerTransform = stationLabelsLayer?.parentElement?.getAttribute("transform");
         for (const label of stationLabelsLayer?.querySelectorAll<SVGTextElement>(":scope > text") ?? []) {
           const stationId = regionalStationIds.get(normalizedRegionalStationLabel(label.textContent ?? ""));
@@ -2709,14 +2762,19 @@ function InteractiveRegionalMapComponent({
           label.dataset.regionalStationLabelFor = stationId;
           label.id = `regional-station-label-${stationId}`;
 
-          const maskSource = documentNode.createElementNS(SVG_NAMESPACE, "g");
-          maskSource.id = `regional-station-label-mask-source-${stationId}`;
-          if (labelLayerTransform) maskSource.setAttribute("transform", labelLayerTransform);
-          const maskLabel = label.cloneNode(true) as SVGTextElement;
-          removeDescendantIds(maskLabel);
-          maskLabel.removeAttribute("data-regional-station-label-for");
-          maskSource.append(maskLabel);
-          labelMaskSources.append(maskSource);
+          // Use authored glyph geometry only for the resting-plane cutout. The
+          // enlarged hover copy is still extracted from the raster texture, so
+          // browser font metrics cannot slice its letterforms. A glyph-shaped
+          // cutout also leaves nearby labels untouched when bounds overlap.
+          const cutoutSource = documentNode.createElementNS(SVG_NAMESPACE, "g");
+          cutoutSource.id = `regional-station-label-cutout-source-${stationId}`;
+          cutoutSource.classList.add("regional-station-label-cutout-source");
+          if (labelLayerTransform) cutoutSource.setAttribute("transform", labelLayerTransform);
+          const cutoutLabel = label.cloneNode(true) as SVGTextElement;
+          removeDescendantIds(cutoutLabel);
+          cutoutLabel.removeAttribute("data-regional-station-label-for");
+          cutoutSource.append(cutoutLabel);
+          labelCutoutSources.append(cutoutSource);
 
           // Hide the authored label through an ancestor after the raster plane
           // is ready. Keeping visibility off the referenced text node itself
@@ -3985,10 +4043,7 @@ function InteractiveRegionalMapComponent({
             theme={rasterTheme}
             density={rasterDensity}
             svgViewBox="-200 -200 17036.959 9031.6719"
-            cutoutElementHref={hoveredStationLabel
-              ? `#regional-station-label-mask-source-${hoveredStationLabel.stationId}`
-              : null}
-            cutoutMarkup={hoveredStationLabel?.maskMarkup ?? null}
+            cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
             onReady={() => markRasterPlaneReady("labels")}
           />
           {/* Static North Compass fixed to regional map canvas */}
@@ -3997,13 +4052,89 @@ function InteractiveRegionalMapComponent({
             viewBox="-200 -200 17036.959 9031.6719"
             preserveAspectRatio="xMidYMid meet"
           >
+            {selectedStationId ? (
+              <use
+                key={selectedStationId}
+                aria-hidden="true"
+                className="regional-station-top-selection map-selection-attention"
+                data-regional-station-top-selected="true"
+                href={`#regional-station-selection-source-${selectedStationId}`}
+              />
+            ) : null}
             {hoveredStationLabel ? (
               <g
                 aria-hidden="true"
-                className="raster-station-label-text-hover regional-raster-station-label-live-copy"
+                className="raster-station-label-text-hover"
                 transform={`translate(${hoveredStationLabel.center.x} ${hoveredStationLabel.center.y}) scale(1.045) translate(${-hoveredStationLabel.center.x} ${-hoveredStationLabel.center.y})`}
-                dangerouslySetInnerHTML={{ __html: hoveredStationLabel.maskMarkup }}
-              />
+              >
+                <defs>
+                  <clipPath id="regional-hovered-station-label-clip" clipPathUnits="userSpaceOnUse">
+                    <rect
+                      x={hoveredStationLabel.bounds.x}
+                      y={hoveredStationLabel.bounds.y}
+                      width={hoveredStationLabel.bounds.width}
+                      height={hoveredStationLabel.bounds.height}
+                    />
+                  </clipPath>
+                  <filter id="regional-hovered-label-white-alpha" colorInterpolationFilters="sRGB">
+                    <feColorMatrix
+                      type="matrix"
+                      values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
+                    />
+                  </filter>
+                  <filter id="regional-hovered-label-target-alpha" colorInterpolationFilters="sRGB">
+                    <feMorphology in="SourceAlpha" operator="dilate" radius="12" result="expandedTargetAlpha" />
+                    <feColorMatrix
+                      in="expandedTargetAlpha"
+                      type="matrix"
+                      values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
+                    />
+                  </filter>
+                  <mask
+                    id="regional-hovered-station-target-mask"
+                    maskUnits="userSpaceOnUse"
+                    x="-200"
+                    y="-200"
+                    width="17036.959"
+                    height="9031.6719"
+                  >
+                    <g
+                      filter="url(#regional-hovered-label-target-alpha)"
+                      dangerouslySetInnerHTML={{ __html: hoveredStationLabel.cutoutMarkup }}
+                    />
+                  </mask>
+                  <mask
+                    id="regional-hovered-station-label-mask"
+                    maskUnits="userSpaceOnUse"
+                    x="-200"
+                    y="-200"
+                    width="17036.959"
+                    height="9031.6719"
+                  >
+                    <g mask="url(#regional-hovered-station-target-mask)">
+                      <image
+                        href={rasterMapSource("regional", "labels", rasterTheme, rasterDensity)}
+                        x="-200"
+                        y="-200"
+                        width="17036.959"
+                        height="9031.6719"
+                        preserveAspectRatio="xMidYMid meet"
+                        clipPath="url(#regional-hovered-station-label-clip)"
+                        filter="url(#regional-hovered-label-white-alpha)"
+                      />
+                    </g>
+                  </mask>
+                </defs>
+                <image
+                  href={rasterMapSource("regional", "labels", rasterTheme, rasterDensity)}
+                  x="-200"
+                  y="-200"
+                  width="17036.959"
+                  height="9031.6719"
+                  preserveAspectRatio="xMidYMid meet"
+                  mask="url(#regional-hovered-station-label-mask)"
+                />
+              </g>
             ) : null}
             <g aria-label="Cardinal North Compass" transform="translate(14800, 5100)">
               <image

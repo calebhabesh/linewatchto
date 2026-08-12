@@ -393,7 +393,8 @@ test("switches the complete dashboard to the fixture-backed regional network", a
 
   const regionalStage = page.locator(".regional-map-stage");
   const initialCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
-  const initialViewBox = await regionalStage.locator(":scope > svg").getAttribute("viewBox");
+  const regionalTopPlane = regionalStage.locator(":scope > .raster-map-top-plane");
+  const initialViewBox = await regionalTopPlane.getAttribute("viewBox");
   const initialViewport = page.viewportSize();
   expect(initialViewport).not.toBeNull();
   await page.setViewportSize({
@@ -404,7 +405,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   }));
   await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe(initialCamera);
-  await expect(regionalStage.locator(":scope > svg")).toHaveAttribute("viewBox", initialViewBox!);
+  await expect(regionalTopPlane).toHaveAttribute("viewBox", initialViewBox!);
   const resizedCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
 
   await regionalStage.hover();
@@ -483,7 +484,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   const regionalRasterLabelHover = regionalStage.locator(".raster-station-label-text-hover");
   await expect(regionalRasterLabelHover).toHaveCount(1);
   await expect(regionalRasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
-  await expect(regionalRasterLabelHover).toHaveClass(/regional-raster-station-label-live-copy/);
+  await expect(regionalRasterLabelHover.locator(":scope > image")).toHaveAttribute("mask", "url(#regional-hovered-station-label-mask)");
   await expect(regionalStage.locator(".raster-map-plane--labels > image")).toHaveAttribute("mask", "url(#regional-labels-raster-mask)");
   await unionLabelTarget.dispatchEvent("pointerdown", { pointerId: 31, pointerType: "mouse", button: 0 });
   await expect(unionLabelTarget).not.toHaveClass(/regional-raster-label-halo|regional-station-label-hovered/);
@@ -557,6 +558,9 @@ test("regional station names share the TTC raster hover glow and station selecti
   const rasterLabelHover = page.locator(".regional-map-stage .raster-station-label-text-hover");
   await expect(rasterLabelHover).toHaveCount(1);
   await expect(rasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
+  await expect(rasterLabelHover.locator("#regional-hovered-station-target-mask")).toHaveCount(1);
+  await expect(rasterLabelHover.locator("#regional-hovered-station-label-mask > g"))
+    .toHaveAttribute("mask", "url(#regional-hovered-station-target-mask)");
 
   await labelTarget.click();
   await expect(page.getByRole("complementary", { name: "Kipling regional station details" })).toBeVisible();
@@ -1049,6 +1053,13 @@ test("keeps transformed regional junction selection aligned with its station dot
   await expect.poll(() => bloorSelection.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toContain("map-selection-station-intro");
+  const bloorTopSelection = page.locator(
+    '.regional-station-top-selection[data-regional-station-top-selected="true"]',
+  );
+  await expect(bloorTopSelection).toBeVisible();
+  await expect.poll(() => bloorTopSelection.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toContain("map-selection-station-intro");
   await page.waitForTimeout(850);
 
   const [dotCenters, selectionCenters] = await Promise.all([
@@ -1067,6 +1078,24 @@ test("keeps transformed regional junction selection aligned with its station dot
     expect(Math.abs(selectionCenters[index].x - dotCenters[index].x)).toBeLessThan(3);
     expect(Math.abs(selectionCenters[index].y - dotCenters[index].y)).toBeLessThan(3);
   }
+  const [sourceSelectionBox, topSelectionBox] = await Promise.all([
+    bloorSelection.boundingBox(),
+    bloorTopSelection.boundingBox(),
+  ]);
+  expect(sourceSelectionBox).not.toBeNull();
+  expect(topSelectionBox).not.toBeNull();
+  expect(Math.abs(
+    sourceSelectionBox!.x + sourceSelectionBox!.width / 2
+      - (topSelectionBox!.x + topSelectionBox!.width / 2),
+  )).toBeLessThan(3);
+  expect(Math.abs(
+    sourceSelectionBox!.y + sourceSelectionBox!.height / 2
+      - (topSelectionBox!.y + topSelectionBox!.height / 2),
+  )).toBeLessThan(3);
+  await expect(bloorTopSelection).toHaveClass(/selection-intro-complete/, { timeout: 4_000 });
+  await expect.poll(() => bloorTopSelection.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toBe("map-selection-station-breathe");
 });
 
 test("renders regional accessibility outages in the global and station views", async ({ page, request, isMobile }) => {
@@ -1835,22 +1864,32 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
     (button as HTMLElement).click();
     const root = document.querySelector<HTMLElement>(".regional-map");
     const stage = root?.querySelector<HTMLElement>(".regional-map-stage");
-    const animation = stage?.getAnimations().find((candidate) => candidate.id === "linewatch-regional-map-recenter-fade");
+    const animation = stage?.getAnimations({ subtree: true })
+      .find((candidate) => candidate.id === "linewatch-regional-map-recenter-fade");
     const keyframes = animation?.effect instanceof KeyframeEffect
       ? animation.effect.getKeyframes()
       : [];
     return {
       cameraMoving: root?.dataset.regionalMapCameraMoving,
       transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
+      stageOpacityAnimations: stage?.getAnimations().filter((candidate) => {
+        if (!(candidate.effect instanceof KeyframeEffect)) return false;
+        return candidate.effect.getKeyframes().some((keyframe) => keyframe.opacity !== undefined);
+      }).length ?? null,
       animationId: animation?.id ?? null,
       opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
+      duration: animation?.effect instanceof KeyframeEffect
+        ? animation.effect.getTiming().duration
+        : null,
     };
   });
   expect(regionalRecenterPaint).toEqual({
     cameraMoving: "false",
     transitionDuration: "0s",
+    stageOpacityAnimations: 0,
     animationId: "linewatch-regional-map-recenter-fade",
     opacityKeyframes: [0, 1],
+    duration: 180,
   });
   await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");

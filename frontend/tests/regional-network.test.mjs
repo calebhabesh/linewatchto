@@ -545,6 +545,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /createElementNS\(SVG_NAMESPACE, "title"\)/);
     assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*--selection-intro-name:\s*none/s);
     assert.match(regionalMapSource, /"map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator"/);
+    assert.match(regionalMapSource, /selectionSource\.id = `regional-station-selection-source-\$\{stationId\}`/);
+    assert.match(regionalMapSource, /transformedAncestors\.reverse\(\)/);
+    assert.match(regionalMapSource, /className="regional-station-top-selection map-selection-attention"/);
+    assert.match(regionalMapSource, /href=\{`#regional-station-selection-source-\$\{selectedStationId\}`\}/);
   });
 
   it("uses TTC-derived disruption motion and selection emphasis at regional map scale", () => {
@@ -627,6 +631,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /"station-impact-ring", "regional-station-impact-ring", "map-selection-attention"/);
     assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/s);
     assert.match(globalsCss, /regional-station-selected-indicator\[data-regional-station-selected="true"\][\s\S]*--selection-intro-name:\s*map-selection-station-intro/);
+    assert.match(globalsCss, /\.regional-station-top-selection\s*\{[^}]*--selection-intro-name:\s*map-selection-station-intro;[^}]*--selection-breathe-name:\s*map-selection-station-breathe;/s);
     assert.match(
       globalsCss,
       /regional-overlay-segment-group\[data-regional-impact-selected="true"\] \.regional-impact-interactive-glow\s*\{[^}]*--selection-intro-name:\s*regional-selection-path-intro;[^}]*animation-name:\s*var\(--selection-intro-name\),\s*var\(--selection-breathe-name\);[^}]*animation-duration:\s*var\(--selection-intro-duration\),\s*var\(--selection-breathe-duration\);[^}]*animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/s,
@@ -941,13 +946,15 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("keeps regional focus animation while Center snaps and fades the mounted stage", () => {
+  it("uses the same short mounted-stage Center fade as TTC", () => {
     assert.match(regionalMapSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
     assert.match(regionalMapSource, /const RECENTER_FADE_DURATION_MS = 180/);
     assert.match(regionalMapSource, /const snapCameraWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(targetCamera\)[\s\S]*playRecenterFade\(\)/);
-    assert.match(regionalMapSource, /stage\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: RECENTER_FADE_DURATION_MS/);
+    assert.match(regionalMapSource, /const planes = Array\.from\(stage\.children\)/);
+    assert.match(regionalMapSource, /planes\.map\(\(plane, index\) => \{[\s\S]*plane\.animate\(\s*\[\{ opacity: 0 \}, \{ opacity: 1 \}\][\s\S]*duration: RECENTER_FADE_DURATION_MS[\s\S]*easing: "ease-out"/);
+    assert.doesNotMatch(regionalMapSource, /const animation = stage\.animate/);
     assert.match(regionalMapSource, /if \(!stage \|\| reducedMotion\) return/);
-    assert.match(regionalMapSource, /animation\.id = RECENTER_FADE_ANIMATION_ID/);
+    assert.match(regionalMapSource, /animation\.id = index === 0[\s\S]*RECENTER_FADE_ANIMATION_ID/);
     assert.match(regionalMapSource, /stage\.dataset\.mapRecenterEffect = RECENTER_FADE_ANIMATION_ID/);
     assert.match(regionalMapSource, /snapCameraWithFade\(fitted\.camera, fitted\.scale\)/);
     assert.doesNotMatch(regionalMapSource, /RECENTER_CAMERA_MOTION/);

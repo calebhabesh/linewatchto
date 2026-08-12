@@ -64,6 +64,25 @@ describe("regional application map asset", () => {
     assert.match(css, /@font-face\s*{[^}]*font-family:\s*"TeX Gyre Heros"[^}]*texgyreheros-bold\.woff2[^}]*font-weight:\s*700/s);
   });
 
+  it("preserves authored regular weight and thick outlines on miscellaneous station labels", () => {
+    for (const stationName of ["Kipling", "Exhibition", "Downsview Park", "Oriole"]) {
+      assert.match(
+        svg,
+        new RegExp(`style="[^"]*font-weight:normal[^"]*stroke-width:5[^"]*"[^>]*>${stationName}<\\/tspan>`),
+        `${stationName} should retain its authored regular weight and 5px text outline`,
+      );
+    }
+  });
+
+  it("imports the latest authored Guildwood VIA spacing without replacing application IDs", () => {
+    assert.match(
+      svg,
+      /<g(?=[^>]*inkscape:label="via-rail-guildwood")(?=[^>]*transform="matrix\(4\.9200533,0,0,4\.9200533,-9995\.2346,-12385\.845\)")[^>]*>/,
+    );
+    assert.match(svg, /id="regional-route-le-path"/);
+    assert.match(svg, /id="regional-stations-layer"/);
+  });
+
   it("does not permanently promote the regional SVG to a composited transform layer", () => {
     assert.doesNotMatch(css, /(?:^|\n)\.regional-map-stage\s*{[^}]*will-change:\s*transform/s);
     assert.doesNotMatch(css, /\.regional-map-camera-moving \.regional-map-stage[^{]*{[^}]*will-change:\s*transform/s);
