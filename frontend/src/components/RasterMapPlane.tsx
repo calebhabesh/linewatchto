@@ -17,6 +17,43 @@ type RasterMapPlaneProps = {
   onReady?: () => void;
 };
 
+const decodedRasterSources = new Set<string>();
+const rasterDecodePromises = new Map<string, Promise<void>>();
+
+export function preloadRasterMapSource(source: string): Promise<void> {
+  if (decodedRasterSources.has(source)) return Promise.resolve();
+
+  const existing = rasterDecodePromises.get(source);
+  if (existing) return existing;
+
+  const image = new Image();
+  image.decoding = "sync";
+  image.src = source;
+  const decode = image.decode().then(() => {
+    decodedRasterSources.add(source);
+  }, () => new Promise<void>((resolve, reject) => {
+    if (image.complete && image.naturalWidth > 0) {
+      decodedRasterSources.add(source);
+      resolve();
+      return;
+    }
+    image.addEventListener("load", () => {
+      decodedRasterSources.add(source);
+      resolve();
+    }, { once: true });
+    image.addEventListener("error", () => reject(new Error(`Unable to decode ${source}`)), { once: true });
+  })).finally(() => {
+    rasterDecodePromises.delete(source);
+  });
+
+  rasterDecodePromises.set(source, decode);
+  return decode;
+}
+
+export function rasterMapSourceIsDecoded(source: string): boolean {
+  return decodedRasterSources.has(source);
+}
+
 export function rasterMapSource(
   network: "ttc" | "regional",
   plane: "background" | "foreground" | "labels",
@@ -41,25 +78,18 @@ export function RasterMapPlane({
     () => rasterMapSource(network, plane, theme, density),
     [density, network, plane, theme],
   );
-  const [displayedSource, setDisplayedSource] = useState<string | null>(null);
+  const [displayedSource, setDisplayedSource] = useState<string | null>(() => (
+    rasterMapSourceIsDecoded(desiredSource) ? desiredSource : null
+  ));
 
   useEffect(() => {
     let cancelled = false;
-    const image = new Image();
-    image.decoding = "sync";
-    image.src = desiredSource;
-
-    const revealDecodedImage = () => {
+    void preloadRasterMapSource(desiredSource).then(() => {
       if (!cancelled) setDisplayedSource(desiredSource);
-    };
-    image.decode().then(revealDecodedImage, () => {
-      if (image.complete && image.naturalWidth > 0) revealDecodedImage();
-      else image.addEventListener("load", revealDecodedImage, { once: true });
-    });
+    }, () => undefined);
 
     return () => {
       cancelled = true;
-      image.removeEventListener("load", revealDecodedImage);
     };
   }, [desiredSource]);
 

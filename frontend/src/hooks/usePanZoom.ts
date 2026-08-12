@@ -799,8 +799,8 @@ export function usePanZoom({
 
   const replayEntrance = useCallback(() => {
     cameraInitializedRef.current = false;
-    recenter();
-  }, [recenter]);
+    moveToDefaultCamera(true, false);
+  }, [moveToDefaultCamera]);
 
   const scheduleUserZoomMotionEnd = useCallback(() => {
     if (wheelCommitTimeoutRef.current !== null) {

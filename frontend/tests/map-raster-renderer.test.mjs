@@ -38,10 +38,12 @@ describe("stable raster map renderer", () => {
     }
   });
 
-  it("predecodes replacement textures and keeps the previous texture until decoding completes", async () => {
+  it("reuses decoded textures across map remounts and keeps the previous texture until replacements decode", async () => {
     const source = await readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8");
-    assert.match(source, /const \[displayedSource, setDisplayedSource\] = useState<string \| null>\(null\)/);
-    assert.match(source, /image\.decode\(\)\.then\(revealDecodedImage/);
+    assert.match(source, /const decodedRasterSources = new Set<string>\(\)/);
+    assert.match(source, /rasterMapSourceIsDecoded\(desiredSource\) \? desiredSource : null/);
+    assert.match(source, /const decode = image\.decode\(\)\.then/);
+    assert.match(source, /decodedRasterSources\.add\(source\)/);
     assert.match(source, /if \(!cancelled\) setDisplayedSource\(desiredSource\)/);
     assert.match(source, /decoding="sync"/);
     assert.doesNotMatch(source, /next\/image/);

@@ -67,6 +67,14 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(regionalMapStage).toHaveCSS("transition-duration", "0s");
   await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
 
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "TTC", exact: true })
+    .click();
+  const returnedTtcStage = page.locator(".ttc-map-stage");
+  await expect(returnedTtcStage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(returnedTtcStage).not.toHaveAttribute("data-map-recenter-effect");
+  await expect(returnedTtcStage).toHaveCSS("opacity", "1");
+
   await page.getByRole("button", { name: "Status", exact: true }).click();
   const statusSheet = page.getByRole("region", { name: "Current service status" });
   await expect(statusSheet).toBeVisible();

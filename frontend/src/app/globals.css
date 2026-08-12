@@ -213,7 +213,16 @@ html[data-network-transition-direction]::view-transition-new(network-map) {
 
 html[data-network-transition-direction]::view-transition-old(network-map),
 html[data-network-transition-direction]::view-transition-new(network-map) {
+  backface-visibility: hidden;
+  isolation: isolate;
   mix-blend-mode: normal;
+  will-change: transform;
+}
+
+/* The View Transition moves stable snapshots. Pause CSS-driven map effects in
+   the live trees so they do not compete with the compositor during the slide. */
+html[data-network-transition-direction] :is(.ttc-map-stage, .regional-map-stage) * {
+  animation-play-state: paused !important;
 }
 
 html[data-network-transition-direction="forward"]::view-transition-old(network-map) {
@@ -234,41 +243,41 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 @keyframes network-map-slide-in-from-right {
   from {
-    transform: translateX(100%);
+    transform: translate3d(100%, 0, 0);
   }
 
   to {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes network-map-slide-out-to-left {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 
   to {
-    transform: translateX(-100%);
+    transform: translate3d(-100%, 0, 0);
   }
 }
 
 @keyframes network-map-slide-in-from-left {
   from {
-    transform: translateX(-100%);
+    transform: translate3d(-100%, 0, 0);
   }
 
   to {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes network-map-slide-out-to-right {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 
   to {
-    transform: translateX(100%);
+    transform: translate3d(100%, 0, 0);
   }
 }
 

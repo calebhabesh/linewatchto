@@ -378,6 +378,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(root).toHaveAttribute("data-network-transition-direction", "forward");
   await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(0);
   await expect(mapSurface.locator(".regional-map")).toHaveCount(1);
+  await expect(mapSurface.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
   await expect.poll(async () => {
     const box = await mapLegend.boundingBox();
@@ -434,6 +435,8 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(root).toHaveAttribute("data-network-transition-direction", "back");
   await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
   await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
+  await expect(mapSurface.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(mapSurface.locator(".ttc-map-stage")).not.toHaveAttribute("data-map-recenter-effect");
   await expect.poll(async () => {
     const box = await mapLegend.boundingBox();
     return box ? box.x + box.width <= page.viewportSize()!.width + 1 : false;

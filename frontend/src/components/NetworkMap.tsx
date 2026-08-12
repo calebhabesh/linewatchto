@@ -8,14 +8,14 @@ type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
 type NetworkMapProps = TtcMapProps & {
   network: NetworkId;
   mobileAnnouncementVisible: boolean;
-  onInitialMapReady: () => void;
+  onMapReady: () => void;
   legendProps: Omit<NetworkMapLegendProps, "mode" | "closingSoon">;
 };
 
 export function NetworkMap({
   network,
   mobileAnnouncementVisible,
-  onInitialMapReady,
+  onMapReady,
   legendProps,
   ...props
 }: NetworkMapProps) {
@@ -40,7 +40,7 @@ export function NetworkMap({
           desktopMenuPinned={props.desktopMenuPinned}
           preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
           viewportOrientation={props.viewportOrientation}
-          onReady={onInitialMapReady}
+          onReady={onMapReady}
           estimatedTrainsEnabled={props.estimatedTrainsEnabled}
           estimatedTrainMarkers={props.estimatedTrainMarkers}
           commutePathPreview={props.commutePathPreview}
@@ -49,7 +49,7 @@ export function NetworkMap({
       ) : (
         <InteractiveTtcMap
           {...props}
-          onReady={onInitialMapReady}
+          onReady={onMapReady}
         />
       )}
       <NetworkMapLegend

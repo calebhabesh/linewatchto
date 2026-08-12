@@ -123,6 +123,8 @@ const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
 const RECENTER_FADE_ANIMATION_ID = "linewatch-regional-map-recenter-fade";
+let regionalMapMarkupCache = "";
+let regionalMapMarkupPromise: Promise<string> | null = null;
 const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
@@ -2177,7 +2179,7 @@ function InteractiveRegionalMapComponent({
     startScale: number;
     mapPointAtMidpoint: { x: number; y: number };
   } | null>(null);
-  const [svgMarkup, setSvgMarkup] = useState("");
+  const [svgMarkup, setSvgMarkup] = useState(() => regionalMapMarkupCache);
   const [readyRasterPlanes, setReadyRasterPlanes] = useState(() => new Set<string>());
   const [overlapBadges, setOverlapBadges] = useState<RegionalOverlapBadge[]>([]);
   const overlapBadgePositionsRef = useRef(new Map<string, SvgPoint>());
@@ -2566,13 +2568,12 @@ function InteractiveRegionalMapComponent({
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/assets/linewatch/regional-rail-map.svg?v=${lineWatchBuildLabel}`)
+    const load = regionalMapMarkupPromise ?? fetch(`/assets/linewatch/regional-rail-map.svg?v=${lineWatchBuildLabel}`)
       .then((response) => {
         if (!response.ok) throw new Error("Regional map unavailable");
         return response.text();
       })
       .then((source) => {
-        if (cancelled) return;
         const documentNode = new DOMParser().parseFromString(source, "image/svg+xml");
         const regionalSvgRoot = documentNode.documentElement as unknown as SVGSVGElement;
         const stationSelectionSources = documentNode.createElementNS(SVG_NAMESPACE, "defs");
@@ -2836,9 +2837,16 @@ function InteractiveRegionalMapComponent({
         root.setAttribute("preserveAspectRatio", "xMidYMid meet");
         root.setAttribute("aria-label", "GO and UP regional rail schematic");
         root.setAttribute("role", "img");
-        setSvgMarkup(new XMLSerializer().serializeToString(root));
-      })
-      .catch(() => setLoadError(true));
+        return new XMLSerializer().serializeToString(root);
+      });
+    regionalMapMarkupPromise = load;
+    void load.then((markup) => {
+      regionalMapMarkupCache = markup;
+      if (!cancelled) setSvgMarkup(markup);
+    }).catch(() => {
+      regionalMapMarkupPromise = null;
+      if (!cancelled) setLoadError(true);
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -3190,7 +3198,13 @@ function InteractiveRegionalMapComponent({
   }, [completeStagedEntrance, deferInitialEntrance, initializeMapCamera, stageInitialEntrance]);
 
   useEffect(() => {
-    if (deferInitialEntrance || !svgMarkup || !cameraInitializedRef.current || readyNotifiedRef.current) return;
+    if (
+      deferInitialEntrance
+      || !svgMarkup
+      || !cameraReady
+      || !rasterMapReady
+      || readyNotifiedRef.current
+    ) return;
 
     let secondPaintFrame: number | null = null;
     const firstPaintFrame = window.requestAnimationFrame(() => {
@@ -3205,7 +3219,7 @@ function InteractiveRegionalMapComponent({
       window.cancelAnimationFrame(firstPaintFrame);
       if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
     };
-  }, [camera, deferInitialEntrance, onReady, svgMarkup]);
+  }, [cameraReady, deferInitialEntrance, onReady, rasterMapReady, svgMarkup]);
 
   useEffect(() => {
     // Treat this as an edge-triggered command. A remount or data refresh must
@@ -3220,9 +3234,9 @@ function InteractiveRegionalMapComponent({
     lastViewportOrientationRef.current = viewportOrientation;
     if (!cameraInitializedRef.current) return;
     cameraAdjustedByUserRef.current = false;
-    const frame = window.requestAnimationFrame(handleFitNetwork);
+    const frame = window.requestAnimationFrame(fitNetwork);
     return () => window.cancelAnimationFrame(frame);
-  }, [handleFitNetwork, viewportOrientation]);
+  }, [fitNetwork, viewportOrientation]);
 
   useEffect(() => {
     const viewport = viewportRef.current;

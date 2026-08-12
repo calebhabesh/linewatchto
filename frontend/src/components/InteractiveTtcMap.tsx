@@ -186,6 +186,35 @@ function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
   };
 }
 
+const ttcMapMarkupCache = new Map<string, TtcMapMarkupParts>();
+const ttcMapMarkupPromises = new Map<string, Promise<TtcMapMarkupParts>>();
+
+export function preloadTtcMapMarkup(source: string): Promise<TtcMapMarkupParts> {
+  const cached = ttcMapMarkupCache.get(source);
+  if (cached) return Promise.resolve(cached);
+
+  const existing = ttcMapMarkupPromises.get(source);
+  if (existing) return existing;
+
+  const separator = source.includes("?") ? "&" : "?";
+  const load = fetch(`${source}${separator}v=${lineWatchBuildLabel}`)
+    .then((response) => {
+      if (!response.ok) throw new Error("Map load failed");
+      return response.text();
+    })
+    .then((text) => {
+      const parts = parseTtcMapMarkup(text);
+      ttcMapMarkupCache.set(source, parts);
+      return parts;
+    })
+    .finally(() => {
+      ttcMapMarkupPromises.delete(source);
+    });
+
+  ttcMapMarkupPromises.set(source, load);
+  return load;
+}
+
 function useRetainedMapLayers<T>(
   items: T[],
   keyForItem: (item: T) => string,
@@ -332,9 +361,14 @@ function InteractiveTtcMapComponent({
   onReady?: () => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
-  const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(null);
+  const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(() => (
+    ttcMapMarkupCache.get(mapAsset.src) ?? null
+  ));
   const [readyRasterPlanes, setReadyRasterPlanes] = useState(() => new Set<string>());
-  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(() => (
+    ttcMapMarkupCache.has(mapAsset.src) ? "ready" : "loading"
+  ));
+  const [geometryReady, setGeometryReady] = useState(false);
   const [hoveredStationId, setHoveredStationId] = useState<string | null>(null);
   const [hoveredStationLabelId, setHoveredStationLabelId] = useState<string | null>(null);
   const [hoveredOverlayHighlight, setHoveredOverlayHighlight] = useState<HoveredOverlayHighlight | null>(null);
@@ -421,6 +455,7 @@ function InteractiveTtcMapComponent({
       ...baseRouteCollisionBoxes,
     ]);
     measuredGeometrySignatureRef.current = geometryMeasurementSignature;
+    setGeometryReady(true);
   }, [geometryMeasurementSignature, loadState, mapStations, networkSegments, stations]);
 
   // The authored labels live inside dangerouslySetInnerHTML while estimated
@@ -583,14 +618,12 @@ function InteractiveTtcMapComponent({
     let cancelled = false;
     async function loadMap() {
       try {
-        setLoadState("loading");
-        const separator = mapAsset.src.includes("?") ? "&" : "?";
-        const response = await fetch(`${mapAsset.src}${separator}v=${lineWatchBuildLabel}`);
-        if (!response.ok) throw new Error("Map load failed");
-        const text = await response.text();
+        const cached = ttcMapMarkupCache.get(mapAsset.src);
+        if (!cached) setLoadState("loading");
+        const parts = cached ?? await preloadTtcMapMarkup(mapAsset.src);
 
         if (!cancelled) {
-          setSvgParts(parseTtcMapMarkup(text));
+          setSvgParts(parts);
           setLoadState("ready");
         }
       } catch {
@@ -621,18 +654,6 @@ function InteractiveTtcMapComponent({
 
     let attempts = 0;
     let retryTimer: number | null = null;
-    let readyTimer: number | null = null;
-    let firstPaintFrame: number | null = null;
-    let secondPaintFrame: number | null = null;
-    const notifyReadyAfterPaint = () => {
-      firstPaintFrame = window.requestAnimationFrame(() => {
-        secondPaintFrame = window.requestAnimationFrame(() => {
-          if (readyNotifiedRef.current) return;
-          readyNotifiedRef.current = true;
-          onReady?.();
-        });
-      });
-    };
     const checkAndCenter = () => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
@@ -648,11 +669,6 @@ function InteractiveTtcMapComponent({
         } else {
           initializeCamera();
         }
-        if (animateInitialEntrance && !reducedMotion && !mobilePerformanceMode) {
-          readyTimer = window.setTimeout(notifyReadyAfterPaint, 850);
-        } else {
-          notifyReadyAfterPaint();
-        }
       } else if (attempts < 10) {
         attempts++;
         retryTimer = window.setTimeout(checkAndCenter, 100);
@@ -662,17 +678,46 @@ function InteractiveTtcMapComponent({
     checkAndCenter();
     return () => {
       if (retryTimer !== null) window.clearTimeout(retryTimer);
-      if (readyTimer !== null) window.clearTimeout(readyTimer);
-      if (firstPaintFrame !== null) window.cancelAnimationFrame(firstPaintFrame);
-      if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateInitialEntrance, completeStagedEntrance, deferInitialEntrance, initializeCamera, loadState, mobilePerformanceMode, onReady, reducedMotion, stageInitialEntrance]);
-
-
+  }, [completeStagedEntrance, containerRef, deferInitialEntrance, initializeCamera, loadState, stageInitialEntrance]);
 
   useEffect(() => {
-    if (!recenterSignal || loadState !== "ready") return;
+    if (
+      deferInitialEntrance
+      || loadState !== "ready"
+      || !geometryReady
+      || !rasterMapReady
+      || readyNotifiedRef.current
+    ) return;
+
+    let secondPaintFrame: number | null = null;
+    const firstPaintFrame = window.requestAnimationFrame(() => {
+      secondPaintFrame = window.requestAnimationFrame(() => {
+        if (readyNotifiedRef.current) return;
+        readyNotifiedRef.current = true;
+        onReady?.();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstPaintFrame);
+      if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
+    };
+  }, [deferInitialEntrance, geometryReady, loadState, onReady, rasterMapReady]);
+
+
+
+  const lastRecenterSignalRef = useRef(recenterSignal ?? 0);
+
+  useEffect(() => {
+    // Recenter is an edge-triggered command. Remounting after a network change
+    // must not replay the last Center click and fade the incoming TTC map.
+    if (
+      recenterSignal === undefined
+      || recenterSignal === lastRecenterSignalRef.current
+      || loadState !== "ready"
+    ) return;
+    lastRecenterSignalRef.current = recenterSignal;
     recenter();
   }, [recenterSignal, loadState, recenter]);
 

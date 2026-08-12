@@ -23,6 +23,7 @@ const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const recenterFadeSource = readFileSync(new URL("../src/hooks/useMapRecenterFade.ts", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
@@ -181,7 +182,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\) \{[\s\S]*computeFittedCameraFlyInStart[\s\S]*animateCameraTo\(fitted\.camera, fitted\.scale\)/);
     assert.match(
       networkMapSource,
-      /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{onInitialMapReady\}/,
+      /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{onMapReady\}/,
     );
   });
 
@@ -196,11 +197,11 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(
       shellSource,
-      /onInitialMapReady=\{handleInitialMapReady\}/,
+      /onMapReady=\{handleMapReady\}/,
     );
     assert.match(
       networkMapSource,
-      /onReady=\{onInitialMapReady\}/g,
+      /onReady=\{onMapReady\}/g,
     );
     assert.match(
       panZoomSource,
@@ -1089,6 +1090,8 @@ describe("network-scoped regional dashboard", () => {
   it("does not replay a stale recenter command after a remount or refresh", () => {
     assert.match(regionalMapSource, /const lastRecenterSignalRef = useRef\(recenterSignal\)/);
     assert.match(regionalMapSource, /recenterSignal === lastRecenterSignalRef\.current/);
+    assert.match(ttcMapSource, /const lastRecenterSignalRef = useRef\(recenterSignal \?\? 0\)/);
+    assert.match(ttcMapSource, /recenterSignal === lastRecenterSignalRef\.current/);
   });
 
   it("does not refit an initialized camera when refreshed dashboard data updates dynamic layers", () => {

@@ -1941,7 +1941,7 @@ export function LineWatchShell({
     setDefaultNetworkPreference(network);
   };
 
-  const handleInitialMapReady = useCallback(() => {
+  const handleMapReady = useCallback(() => {
     setInitialMapReady(true);
   }, []);
 
@@ -3592,7 +3592,7 @@ export function LineWatchShell({
           deferInitialEntrance={disclaimerVisible
             || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
             || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
-          onInitialMapReady={handleInitialMapReady}
+          onMapReady={handleMapReady}
           mobileAnnouncementVisible={selectedNetwork === "ttc"
             ? subwayOperatingState.closingSoon
               || (subwayOperatingState.status === "closed" && closedMapPeek)
