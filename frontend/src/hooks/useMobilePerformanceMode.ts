@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-const MOBILE_PERFORMANCE_QUERY = "(max-width: 767px), (pointer: coarse)";
+export const MOBILE_PERFORMANCE_QUERY = "(max-width: 767px), (pointer: coarse)";
+
+export function mobilePerformanceModeMatches() {
+  return typeof window !== "undefined" && window.matchMedia(MOBILE_PERFORMANCE_QUERY).matches;
+}
 
 export function useMobilePerformanceMode() {
   const [mobilePerformanceMode, setMobilePerformanceMode] = useState(false);

@@ -18,8 +18,8 @@ function pngDimensions(buffer) {
 describe("stable raster map renderer", () => {
   it("ships static artwork planes for every network, theme, and density", async () => {
     const expectedWidths = {
-      ttc: { mobile: 4500, desktop: 6750 },
-      regional: { mobile: 4739, desktop: 7109 },
+      ttc: { mobile: 3000, desktop: 6750 },
+      regional: { mobile: 3200, desktop: 7109 },
     };
 
     for (const network of ["ttc", "regional"]) {
@@ -30,7 +30,7 @@ describe("stable raster map renderer", () => {
             const buffer = await readFile(`${assetRoot}/${network}-${plane}-${theme}-${density}.png`);
             const dimensions = pngDimensions(buffer);
             assert.equal(dimensions.width, expectedWidths[network][density]);
-            assert.ok(dimensions.height > 2000);
+            assert.ok(dimensions.height > 1000);
             assert.ok(buffer.byteLength > 10_000, "raster plane must contain rendered artwork");
           }
         }
@@ -49,6 +49,27 @@ describe("stable raster map renderer", () => {
     assert.match(source, /if \(!cancelled\) setDisplayedSource\(desiredSource\)/);
     assert.match(source, /decoding="sync"/);
     assert.doesNotMatch(source, /next\/image/);
+  });
+
+  it("keeps mobile hydration and label planes on the lightweight compositor path", async () => {
+    const [ttc, regional, plane, mobileHook, css] = await Promise.all([
+      readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
+      readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
+      readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8"),
+      readFile(`${frontendRoot}/src/hooks/useMobilePerformanceMode.ts`, "utf8"),
+      readFile(`${frontendRoot}/src/app/globals.css`, "utf8"),
+    ]);
+
+    assert.match(mobileHook, /export function mobilePerformanceModeMatches\(\)/);
+    assert.match(ttc, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
+    assert.match(regional, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
+    assert.match(ttc, /rasterDensity === "mobile" \|\| readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
+    assert.match(regional, /rasterDensity === "mobile" \|\| readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
+    assert.match(ttc, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
+    assert.match(regional, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
+    assert.doesNotMatch(plane, /density === "mobile" && svgViewBox/);
+    assert.match(css, /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*transform/s);
+    assert.match(css, /\.linewatch-shell\.mobile-performance-mode \.raster-map-plane\s*\{[^}]*transform:\s*none;[^}]*backface-visibility:\s*visible/s);
   });
 
   it("sandwiches live overlays between raster artwork and keeps interaction planes on top", async () => {
@@ -93,7 +114,10 @@ describe("stable raster map renderer", () => {
     assert.match(generator, /#polygon771-7,[\s\S]*?#polygon771-7-4-1-5 \{ fill: #f1f5f9 !important; \}/);
     assert.match(ttc, /className="raster-station-label-text-hover"/);
     assert.match(ttc, /scale\(1\.045\)/);
-    assert.match(ttc, /cutoutElementHref=\{hoveredStationLabelId \? `#station-label-\$\{hoveredStationLabelId\}` : null\}/);
+    assert.match(
+      ttc,
+      /cutoutElementHref=\{hoveredStationLabelId[\s\S]*?`#station-label-\$\{hoveredStationLabelId\}`[\s\S]*?: null\}/,
+    );
     assert.match(ttc, /rasterMapSource\("ttc", "labels", rasterTheme, rasterDensity\)/);
     assert.match(ttc, /mask="url\(#ttc-hovered-station-label-mask\)"/);
     assert.match(ttc, /href=\{`#station-label-\$\{hoveredStationLabelId\}`\}/);
@@ -116,7 +140,10 @@ describe("stable raster map renderer", () => {
     assert.match(regional, /mask="url\(#regional-hovered-station-target-mask\)"/);
     assert.match(regional, /<feMorphology in="SourceAlpha" operator="dilate" radius="12" result="expandedTargetAlpha" \/>/);
     assert.doesNotMatch(regional, /cutoutMarkup: `<rect x=/);
-    assert.match(regional, /cutoutMarkup=\{hoveredStationLabel\?\.cutoutMarkup \?\? null\}/);
+    assert.match(
+      regional,
+      /cutoutMarkup=\{hoveredStationLabel\?\.cutoutMarkup \?\? null\}/,
+    );
     assert.doesNotMatch(regional, /regional-raster-label-halo/);
     assert.match(css, /data-raster-map-ready="true"[^}]*\.regional-station-label-source[^}]*opacity:\s*0/s);
     assert.match(css, /data-raster-map-ready="true"[^}]*#regional-station-labels-layer[^}]*opacity:\s*0/s);

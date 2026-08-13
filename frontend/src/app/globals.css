@@ -349,6 +349,19 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .raster-map-top-plane { z-index: 3; }
 .raster-map-interaction-plane { z-index: 4; }
 
+/* Keep phone navigation to one promoted camera surface. Promoting each large
+   raster child separately multiplies texture tiling and sampling work during
+   every touch frame; the transformed stage already provides the compositor
+   boundary needed to keep the static raster artwork flicker-free. */
+.linewatch-shell.mobile-performance-mode :is(.ttc-map-stage, .regional-map-stage) {
+  will-change: transform;
+}
+
+.linewatch-shell.mobile-performance-mode .raster-map-plane {
+  transform: none;
+  backface-visibility: visible;
+}
+
 .ttc-map-stage:not([data-raster-map-ready="true"]) .raster-map-plane,
 .regional-map-stage:not([data-raster-map-ready="true"]) .raster-map-plane {
   visibility: hidden;

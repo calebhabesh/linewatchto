@@ -53,6 +53,7 @@ import {
 } from "../hooks/panZoomMath";
 import { useMapRecenterFade } from "../hooks/useMapRecenterFade";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
+import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
@@ -2199,7 +2200,11 @@ function InteractiveRegionalMapComponent({
     cutoutMarkup: string;
   } | null>(null);
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
-  const rasterDensity = mobilePerformanceMode ? "mobile" : "desktop";
+  // Select the mobile textures on the first client render. Waiting for the
+  // shell effect would start decoding all three desktop planes on phones.
+  const rasterDensity = mobilePerformanceMode || mobilePerformanceModeMatches()
+    ? "mobile"
+    : "desktop";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
   const markRasterPlaneReady = useCallback((plane: string) => {
     setReadyRasterPlanes((current) => {
@@ -2212,7 +2217,7 @@ function InteractiveRegionalMapComponent({
   }, [rasterVariantKey]);
   const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
     && readyRasterPlanes.has(`${rasterVariantKey}:foreground`)
-    && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
+    && (rasterDensity === "mobile" || readyRasterPlanes.has(`${rasterVariantKey}:labels`));
 
   useEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
@@ -4033,15 +4038,17 @@ function InteractiveRegionalMapComponent({
             density={rasterDensity}
             onReady={() => markRasterPlaneReady("foreground")}
           />
-          <RasterMapPlane
-            network="regional"
-            plane="labels"
-            theme={rasterTheme}
-            density={rasterDensity}
-            svgViewBox="-200 -200 17036.959 9031.6719"
-            cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
-            onReady={() => markRasterPlaneReady("labels")}
-          />
+          {rasterDensity === "desktop" ? (
+            <RasterMapPlane
+              network="regional"
+              plane="labels"
+              theme={rasterTheme}
+              density={rasterDensity}
+              svgViewBox="-200 -200 17036.959 9031.6719"
+              cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
+              onReady={() => markRasterPlaneReady("labels")}
+            />
+          ) : null}
           {/* Static North Compass fixed to regional map canvas */}
           <svg
             className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
@@ -4057,7 +4064,7 @@ function InteractiveRegionalMapComponent({
                 href={`#regional-station-selection-source-${selectedStationId}`}
               />
             ) : null}
-            {hoveredStationLabel ? (
+            {rasterDensity === "desktop" && hoveredStationLabel ? (
               <g
                 aria-hidden="true"
                 className="raster-station-label-text-hover"

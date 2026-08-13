@@ -59,6 +59,7 @@ import {
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
+import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import {
   alignedOverlapBadgePositionCandidates,
   buildStationOverlapBadgeGroups,
@@ -378,7 +379,12 @@ function InteractiveTtcMapComponent({
   const [hoveredOverlapChooserImpact, setHoveredOverlapChooserImpact] = useState<ImpactSelection>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
-  const rasterDensity = mobilePerformanceMode ? "mobile" : "desktop";
+  // The shell's media-query hook resolves after hydration. Read the same query
+  // synchronously for texture selection so a phone never starts decoding the
+  // much larger desktop planes during that first client render.
+  const rasterDensity = mobilePerformanceMode || mobilePerformanceModeMatches()
+    ? "mobile"
+    : "desktop";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
   const markRasterPlaneReady = useCallback((plane: string) => {
     setReadyRasterPlanes((current) => {
@@ -391,7 +397,7 @@ function InteractiveTtcMapComponent({
   }, [rasterVariantKey]);
   const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
     && readyRasterPlanes.has(`${rasterVariantKey}:foreground`)
-    && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
+    && (rasterDensity === "mobile" || readyRasterPlanes.has(`${rasterVariantKey}:labels`));
   const readyNotifiedRef = useRef(false);
   const entranceWasDeferredRef = useRef(false);
 
@@ -1983,22 +1989,26 @@ function InteractiveTtcMapComponent({
             {/* Station names use their own static texture so the hover cutout
                 cannot cloak tracks, station dots, badges, or connection art
                 that happens to sit inside the label's padded bounds. */}
-            <RasterMapPlane
-              network="ttc"
-              plane="labels"
-              theme={rasterTheme}
-              density={rasterDensity}
-              svgViewBox="0 0 8250 4000"
-              cutoutElementHref={hoveredStationLabelId ? `#station-label-${hoveredStationLabelId}` : null}
-              onReady={() => markRasterPlaneReady("labels")}
-            />
+            {rasterDensity === "desktop" ? (
+              <RasterMapPlane
+                network="ttc"
+                plane="labels"
+                theme={rasterTheme}
+                density={rasterDensity}
+                svgViewBox="0 0 8250 4000"
+                cutoutElementHref={hoveredStationLabelId
+                  ? `#station-label-${hoveredStationLabelId}`
+                  : null}
+                onReady={() => markRasterPlaneReady("labels")}
+              />
+            ) : null}
 
             <svg
               className="raster-map-top-plane absolute top-0 left-0 w-[4500px] h-[2181.8px] pointer-events-none"
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
-              {hoveredLabelPolygonPoints && hoveredLabelCenter ? (
+              {rasterDensity === "desktop" && hoveredLabelPolygonPoints && hoveredLabelCenter ? (
                 <g
                   aria-hidden="true"
                   className="raster-station-label-text-hover"

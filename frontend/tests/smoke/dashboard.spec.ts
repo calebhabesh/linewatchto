@@ -496,6 +496,34 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(regionalStage.locator('[data-regional-station-label-for="union"]').locator("..")).toHaveCSS("opacity", "0");
 });
 
+test("mobile loads only two compact raster textures per map", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile raster compositor coverage");
+  const rasterRequests: string[] = [];
+  page.on("request", (browserRequest) => {
+    const pathname = new URL(browserRequest.url()).pathname;
+    if (pathname.includes("/assets/linewatch/raster-maps/")) rasterRequests.push(pathname);
+  });
+
+  await setStubMode(request, "unavailable");
+  await page.goto("/");
+
+  const ttcStage = page.locator(".ttc-map-stage");
+  await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(2);
+  await expect(ttcStage.locator(".raster-map-plane--labels")).toHaveCount(0);
+
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  const regionalStage = page.locator(".regional-map-stage");
+  await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(2);
+  await expect(regionalStage.locator(".raster-map-plane--labels")).toHaveCount(0);
+
+  expect(rasterRequests.length).toBeGreaterThanOrEqual(4);
+  expect(rasterRequests.every((pathname) => pathname.endsWith("-mobile.png"))).toBe(true);
+});
+
 test("regional refresh, pan, zoom, and center preserve the authored SVG instance", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop regional camera regression");
   await setStubMode(request, "seeded");
