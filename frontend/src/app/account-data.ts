@@ -135,6 +135,7 @@ export type AccountCommuteLeg = {
 export type AccountSavedCommuteNotificationEventTypes = {
   suspensions: boolean;
   delays: boolean;
+  tripCancellations: boolean;
   reducedSpeedZones: boolean;
   plannedClosures: boolean;
   serviceRestored: boolean;
@@ -168,6 +169,7 @@ export const defaultSavedCommuteNotificationRule: AccountSavedCommuteNotificatio
   eventTypes: {
     suspensions: true,
     delays: true,
+    tripCancellations: true,
     reducedSpeedZones: true,
     plannedClosures: true,
     serviceRestored: true,
@@ -357,6 +359,7 @@ export type UpdateSavedCommuteInput = {
 export type PushNotificationEventTypePreferences = {
   suspensions: boolean;
   delays: boolean;
+  tripCancellations: boolean;
   reducedSpeedZones: boolean;
   plannedClosures: boolean;
   serviceRestored: boolean;
@@ -416,6 +419,7 @@ export const defaultPushNotificationPreferences: PushNotificationPreferences = {
     eventTypes: {
       suspensions: true,
       delays: true,
+      tripCancellations: true,
       reducedSpeedZones: true,
       plannedClosures: true,
       serviceRestored: true,
@@ -440,6 +444,7 @@ export const defaultPushNotificationPreferences: PushNotificationPreferences = {
     eventTypes: {
       suspensions: true,
       delays: true,
+      tripCancellations: true,
       reducedSpeedZones: true,
       plannedClosures: true,
       serviceRestored: true,

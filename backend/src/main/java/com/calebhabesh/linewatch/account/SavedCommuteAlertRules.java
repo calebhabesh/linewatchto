@@ -31,6 +31,7 @@ public final class SavedCommuteAlertRules {
         return switch (safe(eventType)) {
             case "suspension" -> commute.isNotificationSuspensionEnabled();
             case "delay" -> commute.isNotificationDelayEnabled();
+            case "trip-cancellation" -> commute.isNotificationTripCancellationEnabled();
             case "reduced-speed-zone" -> commute.isNotificationReducedSpeedZoneEnabled();
             case "planned-closure" -> commute.isNotificationPlannedClosureEnabled();
             case "service-restored" -> commute.isNotificationRestoredEnabled();

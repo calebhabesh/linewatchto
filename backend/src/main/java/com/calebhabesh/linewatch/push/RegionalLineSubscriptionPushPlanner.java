@@ -5,19 +5,38 @@ import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import com.calebhabesh.linewatch.regional.RegionalNormalizedAlert;
 import com.calebhabesh.linewatch.regional.RegionalServiceDateFormatter;
+import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses;
+import com.calebhabesh.linewatch.regional.RegionalTripChangeService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
-/** Plans corridor-wide Web Push candidates only from fresh dashboard-visible Metrolinx alerts. */
+/** Plans corridor Web Push candidates from fresh dashboard impacts and structured trip cancellations. */
 @Service
 public class RegionalLineSubscriptionPushPlanner {
     private final RegionalAlertStore alertStore;
     private final RegionalIngestionFreshness freshness;
     private final Clock clock;
     private final PushNotificationFormatter formatter;
+    private final RegionalTripChangeService tripChangeService;
+
+    @Autowired
+    public RegionalLineSubscriptionPushPlanner(
+        RegionalAlertStore alertStore,
+        RegionalIngestionFreshness freshness,
+        Clock clock,
+        PushNotificationFormatter formatter,
+        RegionalTripChangeService tripChangeService
+    ) {
+        this.alertStore = alertStore;
+        this.freshness = freshness;
+        this.clock = clock;
+        this.formatter = formatter;
+        this.tripChangeService = tripChangeService;
+    }
 
     public RegionalLineSubscriptionPushPlanner(
         RegionalAlertStore alertStore,
@@ -25,10 +44,7 @@ public class RegionalLineSubscriptionPushPlanner {
         Clock clock,
         PushNotificationFormatter formatter
     ) {
-        this.alertStore = alertStore;
-        this.freshness = freshness;
-        this.clock = clock;
-        this.formatter = formatter;
+        this(alertStore, freshness, clock, formatter, null);
     }
 
     public List<PushNotificationCandidate> candidatesFor(
@@ -57,7 +73,49 @@ public class RegionalLineSubscriptionPushPlanner {
                 : "on-change";
             candidates.add(candidate(accountId, alert, category, reminderBucket));
         }
+        if (tripChangeService != null) {
+            tripChangeService.get(null, null, 250).changes().stream()
+                .filter(change -> "cancellation".equals(change.kind()))
+                .filter(change -> subscribedLineIds.contains(change.lineId()))
+                .map(change -> cancellationCandidate(accountId, change))
+                .forEach(candidates::add);
+        }
         return List.copyOf(candidates);
+    }
+
+    private PushNotificationCandidate cancellationCandidate(
+        String accountId,
+        RegionalTripChangeResponses.TripChange change
+    ) {
+        String location = cancellationLocation(change);
+        String eventType = "trip-cancellation";
+        String category = "line-trip-change";
+        String url = "/?network=regional&panel=trip-changes";
+        FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
+            change.lineId(), change.lineNumber(), eventType, "on-change", location, null, false,
+            null, null,
+            change.scheduleMatched() && change.scheduledStartAt() != null
+                ? change.scheduledStartAt().toInstant() : null,
+            change.cause(), change.title(), change.description(), null, null
+        ));
+        String sourceIncidentKey = String.join("|", category, change.lineId(), change.id());
+        String notificationKey = String.join("|", category, change.lineId(), eventType, change.id());
+        String updateFingerprint = PushNotificationUpdateFingerprint.forRegionalCandidate(eventType, notification, url);
+        String dedupeKey = String.join(
+            "|", accountId, "line", change.lineId(), eventType, change.id(), "update", updateFingerprint
+        );
+        return new PushNotificationCandidate(
+            accountId, null, null, change.lineId(), change.lineNumber(), category, eventType, "on-change",
+            sourceIncidentKey, notificationKey, dedupeKey, notification, url, updateFingerprint, true,
+            change.updatedAt() == null ? null : change.updatedAt().toInstant()
+        );
+    }
+
+    private String cancellationLocation(RegionalTripChangeResponses.TripChange change) {
+        if (change.affectedStops().isEmpty()) return change.lineName() + " corridor";
+        String first = change.affectedStops().getFirst().stationName();
+        String last = change.affectedStops().getLast().stationName();
+        return first.equals(last) ? first : first + " → " + last;
     }
 
     private PushNotificationCandidate candidate(

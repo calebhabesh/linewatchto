@@ -825,6 +825,10 @@ const server = createServer(async (request, response) => {
       serviceDate: "2026-06-04",
       scheduledStartAt: "2026-06-04T16:03:00Z",
       updatedAt: "2026-06-04T15:58:00Z",
+      scheduleMatched: true,
+      title: "Train cancelled",
+      description: "Train 681 has been cancelled.",
+      cause: "Operational issue",
       sourceSystems: ["metrolinx-go-train-exceptions", "metrolinx-go-gtfs-trip-updates"],
       affectedStops: [{
         stationId: "union",
@@ -844,8 +848,9 @@ const server = createServer(async (request, response) => {
     sendJson(request, response, 200, {
       generatedAt: "2026-06-04T16:00:00Z",
       fresh,
-      source: "Metrolinx GO operational trip updates",
+      source: "Metrolinx GO trip-change feeds",
       sourceUpdatedAt: fresh ? "2026-06-04T15:58:00Z" : null,
+      totalCount: fresh && matchesStation && matchesQuery ? 1 : 0,
       changes: fresh && matchesStation && matchesQuery ? [change] : [],
     });
     return;

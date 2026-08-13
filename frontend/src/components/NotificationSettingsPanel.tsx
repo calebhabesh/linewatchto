@@ -9,6 +9,7 @@ import {
   Construction,
   Loader2,
   Navigation,
+  TrainFront,
   X,
 } from "lucide-react";
 import type { AccountState } from "../app/account-data";
@@ -270,7 +271,7 @@ export function NotificationSettingsPanel({
                     </span>
                     <div>
                       <strong>Current Disruptions Affecting My Commutes</strong>
-                      <em>Delays, suspensions, planned closures, TTC Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
+                      <em>Delays, suspensions, planned closures, regional train cancellations, TTC Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
                       {!subscribed && accountNotificationsDesired ? (
                         <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
                           Account notifications are on. Enable this device to receive pushes here.
@@ -440,6 +441,11 @@ export function NotificationSettingsPanel({
                     key: "delays" as const,
                     label: "Delays",
                     icon: <DelayIcon size={15} filled={false} className="text-yellow-500" />,
+                  },
+                  {
+                    key: "tripCancellations" as const,
+                    label: "Train Cancellations",
+                    icon: <TrainFront size={15} className="text-red-500" />,
                   },
                   {
                     key: "reducedSpeedZones" as const,

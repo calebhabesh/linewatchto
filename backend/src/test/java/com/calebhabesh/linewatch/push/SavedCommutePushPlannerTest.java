@@ -13,8 +13,11 @@ import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
 import com.calebhabesh.linewatch.regional.RegionalCommuteImpactService;
 import com.calebhabesh.linewatch.regional.RegionalCommutePathService;
+import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses;
+import com.calebhabesh.linewatch.regional.RegionalTripChangeService;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -607,6 +610,42 @@ class SavedCommutePushPlannerTest {
     }
 
     @Test
+    void matchesAScheduleBackedCancellationToTheCorrectRegionalCommuteDirectionAndWindow() {
+        RegionalCommutePathService regionalPathService = mock(RegionalCommutePathService.class);
+        RegionalCommuteImpactService regionalImpactService = mock(RegionalCommuteImpactService.class);
+        RegionalTripChangeService tripChangeService = mock(RegionalTripChangeService.class);
+        Clock morning = Clock.fixed(Instant.parse("2026-06-05T12:00:00Z"), java.time.ZoneOffset.UTC);
+        SavedCommutePushPlanner regionalPlanner = new SavedCommutePushPlanner(
+            commutePathService, commuteImpactService, regionalPathService, regionalImpactService,
+            morning, formatter, tripChangeService
+        );
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_st", account, "Morning train", "regional", "union", "old-elm",
+            false, Instant.parse("2026-06-01T12:00:00Z")
+        );
+        CommuteResponses.PathResponse path = new CommuteResponses.PathResponse(
+            "available", List.of("union", "unionville", "old-elm"),
+            List.of("segment-st-union-unionville", "segment-st-unionville-old-elm"),
+            List.of(), List.of("regional-st"), List.of(), 4200,
+            "regional-topology-estimate", "Stouffville planning path"
+        );
+        when(regionalPathService.path("union", "old-elm")).thenReturn(path);
+        when(regionalImpactService.impactFor(path)).thenReturn(clearImpact());
+        when(tripChangeService.get(null, null, 250)).thenReturn(new RegionalTripChangeResponses.Response(
+            OffsetDateTime.now(morning), true, "Metrolinx GO trip-change feeds", OffsetDateTime.now(morning), 1,
+            List.of(regionalCancellation())
+        ));
+
+        assertThat(regionalPlanner.candidatesFor(commute)).singleElement().satisfies(candidate -> {
+            assertThat(candidate.eventType()).isEqualTo("trip-cancellation");
+            assertThat(candidate.category()).isEqualTo("saved-commute-trip-change");
+            assertThat(candidate.deliveryAllowed()).isTrue();
+            assertThat(candidate.legId()).isEqualTo("outbound");
+            assertThat(candidate.url()).isEqualTo("/?network=regional&panel=trip-changes");
+        });
+    }
+
+    @Test
     void dateOnlyRegionalClosureMatchesTheCommuteServiceDateWithoutInventingMidnight() {
         RegionalCommutePathService regionalPathService = mock(RegionalCommutePathService.class);
         RegionalCommuteImpactService regionalImpactService = mock(RegionalCommuteImpactService.class);
@@ -647,6 +686,28 @@ class SavedCommutePushPlannerTest {
         assertThat(candidate.body()).contains("Closure dates: Aug 17–18.");
         assertThat(candidate.body()).doesNotContain("12:00 AM").doesNotContain("Closure starts");
         assertThat(candidate.sourceEventAt()).isNull();
+    }
+
+    private RegionalTripChangeResponses.TripChange regionalCancellation() {
+        return new RegionalTripChangeResponses.TripChange(
+            "regional-trip-change-2026-06-05-ST7824-cancellation", "cancellation", "ST7824", "7824",
+            "regional-st", "ST", "Stouffville", "Old Elm", LocalDate.parse("2026-06-05"),
+            OffsetDateTime.parse("2026-06-05T07:30:00-04:00"),
+            OffsetDateTime.parse("2026-06-05T07:20:00-04:00"), true,
+            "Train cancelled - Union Station 7:30 AM - Old Elm GO 8:43 AM",
+            "The Union Station 7:30 AM train has been cancelled due to an operational issue.",
+            "operational issue", List.of("metrolinx-go-service-alerts"), List.of(
+                new RegionalTripChangeResponses.AffectedStop(
+                    "union", "Union Station", "cancellation", OffsetDateTime.parse("2026-06-05T07:30:00-04:00"), ""
+                ),
+                new RegionalTripChangeResponses.AffectedStop(
+                    "unionville", "Unionville", "cancellation", OffsetDateTime.parse("2026-06-05T08:05:00-04:00"), ""
+                ),
+                new RegionalTripChangeResponses.AffectedStop(
+                    "old-elm", "Old Elm", "cancellation", OffsetDateTime.parse("2026-06-05T08:43:00-04:00"), ""
+                )
+            )
+        );
     }
 
     private CommuteResponses.PathResponse path(String fromStationId, String toStationId, String segmentId) {

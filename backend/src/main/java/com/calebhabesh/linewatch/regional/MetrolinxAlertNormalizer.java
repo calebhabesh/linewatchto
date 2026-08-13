@@ -48,6 +48,11 @@ public class MetrolinxAlertNormalizer {
     private static final List<String> DELAY_PHRASES = List.of(
         "delay", "delayed", "later than usual", "holding", "operating slowly"
     );
+    private static final List<String> TRIP_CANCELLATION_PHRASES = List.of(
+        "train cancellation", "train cancelled", "train canceled",
+        "train has been cancelled", "train has been canceled",
+        "trip cancelled", "trip canceled"
+    );
     private static final List<String> SERVICE_ADJUSTMENT_PHRASES = List.of(
         "service adjusted", "service adjustment", "service change", "modified service",
         "modified trip", "schedule adjustment"
@@ -137,8 +142,12 @@ public class MetrolinxAlertNormalizer {
         String description = text(message, "BodyEnglish");
         String category = text(message, "Category");
         String subcategory = text(message, "SubCategory");
+        List<String> tripNumbers = values(message.path("Trips"), "TripNumber").stream()
+            .filter(value -> !value.isBlank())
+            .distinct()
+            .toList();
         return new Evidence(
-            canonicalEventId(record), record, lineIds, stationIds,
+            canonicalEventId(record), record, lineIds, stationIds, tripNumbers,
             title, description, category, subcategory, "", "",
             null, null, parseMetrolinxDateTime(text(message, "PostedDateTime"))
         );
@@ -168,7 +177,7 @@ public class MetrolinxAlertNormalizer {
         OffsetDateTime endsAt = periods.stream().map(period -> epoch(period.get("end")))
             .filter(java.util.Objects::nonNull).max(OffsetDateTime::compareTo).orElse(null);
         return new Evidence(
-            canonicalEventId(record), record, lineIds, stationIds,
+            canonicalEventId(record), record, lineIds, stationIds, List.of(),
             translation(alert.path("header_text"), ""), translation(alert.path("description_text"), ""),
             "", "", text(alert, "effect").toUpperCase(Locale.CANADA),
             text(alert, "cause").toUpperCase(Locale.CANADA), startsAt, endsAt, null
@@ -179,8 +188,9 @@ public class MetrolinxAlertNormalizer {
         List<Evidence> ordered = evidence.stream().sorted(Comparator.comparingInt(this::sourcePriority)).toList();
         Evidence primary = ordered.getFirst();
         String title = firstValue(ordered, Evidence::title, "Regional service update");
-        String description = firstValue(ordered, Evidence::description, title);
+        String description = trimRiderBoilerplate(firstValue(ordered, Evidence::description, title));
         List<String> lineIds = ordered.stream().flatMap(value -> value.lineIds().stream()).distinct().toList();
+        List<String> tripNumbers = ordered.stream().flatMap(value -> value.tripNumbers().stream()).distinct().toList();
         List<String> structuredStations = ordered.stream().flatMap(value -> value.stationIds().stream()).distinct().toList();
         OffsetDateTime sourceStartsAt = ordered.stream().map(Evidence::startsAt).filter(java.util.Objects::nonNull)
             .min(OffsetDateTime::compareTo).orElse(null);
@@ -190,7 +200,7 @@ public class MetrolinxAlertNormalizer {
             .min(OffsetDateTime::compareTo).orElse(null);
         String searchable = ordered.stream()
             .map(value -> String.join(" ", value.category(), value.subcategory(), value.effect(), value.cause(),
-                value.title(), value.description()))
+                value.title(), trimRiderBoilerplate(value.description())))
             .reduce("", (left, right) -> left + " " + right)
             .toLowerCase(Locale.CANADA);
         RegionalAlertTextDateParser.DateRange textDateRange = RegionalAlertTextDateParser.parse(
@@ -206,17 +216,23 @@ public class MetrolinxAlertNormalizer {
             : sourceStartsAt != null || sourceEndsAt != null ? "source-active-period" : "unknown";
         Set<String> effects = ordered.stream().map(Evidence::effect).filter(value -> !value.isBlank()).collect(
             java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        boolean structuredTripCancellation = ordered.stream().anyMatch(value ->
+            "train cancellation".equals(value.subcategory().trim().toLowerCase(Locale.CANADA))
+        );
 
-        String serviceEffect = serviceEffect(searchable, effects);
-        String operatingChange = searchable.contains("reduced speed") ? "reduced-speed" : null;
+        String serviceEffect = serviceEffect(searchable, effects, structuredTripCancellation);
+        String operatingChange = "trip-cancellation".equals(serviceEffect)
+            ? "cancelled-trip"
+            : searchable.contains("reduced speed") ? "reduced-speed" : null;
         String timing = startsAt == null
             ? (containsAny(searchable, PLANNED_PHRASES) ? "planned" : "current")
             : (startsAt.isAfter(OffsetDateTime.now(clock)) ? "planned" : "current");
-        String cause = searchable.contains("construction") || ordered.stream().anyMatch(value -> "CONSTRUCTION".equals(value.cause()))
-            ? "construction" : sourceCause(ordered);
+        String cause = classifiedCause(searchable, ordered);
         String replacementService = replacementService(searchable);
         Integer maximumDelayMinutes = maximumDelay(searchable);
-        List<String> spanStations = spanStations(searchable, lineIds);
+        List<String> spanStations = "trip-cancellation".equals(serviceEffect)
+            ? List.of()
+            : spanStations(searchable, lineIds);
         String scope = scope(searchable, serviceEffect, structuredStations, spanStations);
         Map<String, String> stationRoles = stationRoles(
             searchable, lineIds, serviceEffect, scope, replacementService, structuredStations
@@ -224,6 +240,7 @@ public class MetrolinxAlertNormalizer {
 
         Map<String, List<String>> fieldSources = new LinkedHashMap<>();
         addSources(fieldSources, "lineIds", ordered, value -> !value.lineIds().isEmpty());
+        addSources(fieldSources, "tripNumbers", ordered, value -> !value.tripNumbers().isEmpty());
         addSources(fieldSources, "stationIds", ordered, value -> !value.stationIds().isEmpty());
         if (textOverridesSourcePeriod) {
             addSources(fieldSources, "serviceDateRange", ordered,
@@ -240,7 +257,7 @@ public class MetrolinxAlertNormalizer {
             primary.canonicalEventId(),
             ordered.stream().map(value -> new RegionalAlertClassification.SourceReference(
                 value.record().sourceSystem(), value.record().sourceId())).toList(),
-            lineIds, timing, serviceEffect, operatingChange, scope, cause, replacementService,
+            lineIds, tripNumbers, timing, serviceEffect, operatingChange, scope, cause, replacementService,
             maximumDelayMinutes, title, description, startsAt, endsAt, activePeriodBasis,
             sourceStartsAt, sourceEndsAt, publishedAt,
             structuredStations, spanStations, Map.copyOf(stationRoles), Map.copyOf(fieldSources),
@@ -248,9 +265,21 @@ public class MetrolinxAlertNormalizer {
         );
     }
 
-    private String serviceEffect(String searchable, Set<String> effects) {
+    private String serviceEffect(
+        String searchable,
+        Set<String> effects,
+        boolean structuredTripCancellation
+    ) {
+        // The rider-alert category identifies a single scheduled trip even if a correlated
+        // GTFS alert uses the broader NO_SERVICE effect for that same train.
+        if (structuredTripCancellation) {
+            return "trip-cancellation";
+        }
         if (effects.stream().anyMatch(NO_SERVICE_EFFECTS::contains) || containsAny(searchable, NO_SERVICE_PHRASES)) {
             return "no-service";
+        }
+        if (containsAny(searchable, TRIP_CANCELLATION_PHRASES)) {
+            return "trip-cancellation";
         }
         if (searchable.contains("reduced speed") || effects.stream().anyMatch(DELAY_EFFECTS::contains)
             || containsAny(searchable, DELAY_PHRASES)) {
@@ -269,6 +298,7 @@ public class MetrolinxAlertNormalizer {
         List<String> structuredStations,
         List<String> spanStations
     ) {
+        if ("trip-cancellation".equals(serviceEffect)) return "scheduled-trip";
         boolean corridorLanguage = searchable.contains("entire corridor")
             || searchable.contains("across the corridor")
             || searchable.contains("full route")
@@ -420,6 +450,25 @@ public class MetrolinxAlertNormalizer {
                 .findFirst().orElse(""));
     }
 
+    private String classifiedCause(String searchable, List<Evidence> evidence) {
+        if (searchable.contains("crew constraint")) return "crew constraints";
+        if (searchable.contains("operational issue")) return "operational issue";
+        if (searchable.contains("track condition")) return "track conditions";
+        if (searchable.contains("construction")
+            || evidence.stream().anyMatch(value -> "CONSTRUCTION".equals(value.cause()))) {
+            return "construction";
+        }
+        return sourceCause(evidence);
+    }
+
+    private String trimRiderBoilerplate(String value) {
+        if (value == null || value.isBlank()) return value == null ? "" : value.trim();
+        String lower = value.toLowerCase(Locale.CANADA);
+        int cutoff = lower.indexOf("subscribe to on the go alerts");
+        if (cutoff < 0) cutoff = lower.indexOf("sign up for on the go alerts");
+        return (cutoff < 0 ? value : value.substring(0, cutoff)).trim();
+    }
+
     private String replacementService(String searchable) {
         if (searchable.contains("go buses replace") || searchable.contains("go bus service will replace")
             || searchable.contains("go buses will replace")) return "go-bus";
@@ -543,6 +592,7 @@ public class MetrolinxAlertNormalizer {
         MetrolinxFetchedRecord record,
         List<String> lineIds,
         List<String> stationIds,
+        List<String> tripNumbers,
         String title,
         String description,
         String category,

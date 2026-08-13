@@ -1135,7 +1135,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 .desktop-map-legend--regional {
   transform: scale(0.9);
-  transform-origin: top right;
+  transform-origin: bottom right;
 }
 
 /* Account-backed station watchlist */

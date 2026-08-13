@@ -203,6 +203,30 @@ public class RegionalAlertStore {
             ));
     }
 
+    public List<StoredClassification> findActiveClassifications(
+        String serviceEffect,
+        OffsetDateTime seenAfter
+    ) {
+        return jdbc.query("""
+            select distinct on (canonical_event_id)
+                   deterministic_classification::text as classification,
+                   last_seen_at
+            from metrolinx_alert_source_records
+            where active = true
+              and canonical_event_id is not null
+              and deterministic_classification is not null
+              and deterministic_classification ->> 'serviceEffect' = :serviceEffect
+              and last_seen_at >= :seenAfter
+            order by canonical_event_id, last_seen_at desc, source_system, source_id
+            """, new MapSqlParameterSource()
+                .addValue("serviceEffect", serviceEffect)
+                .addValue("seenAfter", seenAfter),
+            (resultSet, rowNumber) -> new StoredClassification(
+                classification(resultSet.getString("classification")),
+                resultSet.getObject("last_seen_at", OffsetDateTime.class)
+            ));
+    }
+
     public List<RawAlertDto> findRawAlerts(int limit, int offset) {
         return jdbc.query("""
             select source_system, source_id, payload::text, active, last_seen_at
@@ -251,4 +275,17 @@ public class RegionalAlertStore {
             throw new IllegalStateException("Unable to read regional alert topology", exception);
         }
     }
+
+    private RegionalAlertClassification classification(String json) {
+        try {
+            return objectMapper.readValue(json, RegionalAlertClassification.class);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Unable to read regional alert classification", exception);
+        }
+    }
+
+    public record StoredClassification(
+        RegionalAlertClassification classification,
+        OffsetDateTime lastSeenAt
+    ) {}
 }

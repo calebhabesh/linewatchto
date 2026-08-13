@@ -665,7 +665,8 @@ test("mobile preserves status and station interaction language across network sw
   await expect(statusSheet).toContainText("GO & UP regional rail");
   await expect(statusSheet).toContainText("Regional demo data — not live service information.");
   await expect(statusSheet.getByRole("button", { name: /Accessibility Outages/ })).toBeVisible();
-  await expect(statusSheet.getByRole("button", { name: /GO \/ UP Notices/ })).toBeVisible();
+  await expect(statusSheet.getByRole("button", { name: /Service Notices/ })).toBeVisible();
+  await expect(statusSheet.getByRole("button", { name: /Trip Changes/ })).toBeVisible();
   await expect(statusSheet.getByRole("button", { name: /Reduced Speed Zones/ })).toHaveCount(0);
 
   await statusSheet.getByRole("button", { name: "Close status" }).click();
@@ -687,14 +688,14 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
       .click();
     await page.getByRole("button", { name: "Status", exact: true }).click();
     await page.getByRole("region", { name: "Current service status" })
-      .getByRole("button", { name: /GO \/ UP Notices/ })
+      .getByRole("button", { name: /Service Notices/ })
       .click();
   } else {
     await page.getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true })
       .click();
     await page.getByRole("button", { name: /Toggle menu/ }).click();
-    await page.getByRole("menuitem", { name: "GO / UP Notices" }).click();
+    await page.getByRole("menuitem", { name: "Service Notices" }).click();
   }
 
   await expect(page.getByRole("heading", { name: "GO / UP Notices" })).toBeVisible();
@@ -718,7 +719,35 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await expect(page.getByText("Train 681", { exact: true })).toBeVisible();
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
   await expect(page.getByText("Union Station", { exact: true })).toBeVisible();
-  await expect(page.getByText(/confidently matched to the published GO schedule/)).toBeVisible();
+  await expect(page.getByText(/Schedule-matched changes include published stop times/)).toBeVisible();
+  await expect(page.locator(
+    '[data-regional-impact-id="regional-trip-change-2026-06-04-BR681-cancellation"]',
+  )).toHaveCount(0);
+});
+
+test("opens the dedicated regional Trip Changes entry", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "regional-live");
+  await page.goto("/");
+
+  if (isMobile) {
+    await page.locator(".mobile-network-selector-slot")
+      .getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.getByRole("region", { name: "Current service status" })
+      .getByRole("button", { name: /Trip Changes/ })
+      .click();
+  } else {
+    await page.getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true })
+      .click();
+    await page.getByRole("button", { name: /Toggle menu/ }).click();
+    await page.getByRole("menuitem", { name: "Trip Changes" }).click();
+  }
+  await expect(page.getByRole("group", { name: "GO / UP notice content" })
+    .getByRole("button", { name: "Trip Changes", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Train 681", { exact: true })).toBeVisible();
 });
 
 test("regional segment selections flash quickly then breathe", async ({ page, request, isMobile }) => {

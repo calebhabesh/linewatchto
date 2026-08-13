@@ -8,10 +8,21 @@ public final class PushResponses {
     public record EventTypePreferencesResponse(
         boolean suspensions,
         boolean delays,
+        boolean tripCancellations,
         boolean reducedSpeedZones,
         boolean plannedClosures,
         boolean serviceRestored
-    ) {}
+    ) {
+        public EventTypePreferencesResponse(
+            boolean suspensions,
+            boolean delays,
+            boolean reducedSpeedZones,
+            boolean plannedClosures,
+            boolean serviceRestored
+        ) {
+            this(suspensions, delays, true, reducedSpeedZones, plannedClosures, serviceRestored);
+        }
+    }
 
     public record SavedCommutePreferencesResponse(
         boolean currentDisruptions,

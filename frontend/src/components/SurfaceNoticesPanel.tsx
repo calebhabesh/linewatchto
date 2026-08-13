@@ -19,14 +19,21 @@ interface Props {
   onBack: () => void;
   onClose: () => void;
   initialQuery?: string;
+  initialRegionalContent?: "notices" | "trip-changes";
   networkId?: NetworkId;
 }
 
-export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networkId = "ttc" }: Props) {
+export function SurfaceNoticesPanel({
+  onBack,
+  onClose,
+  initialQuery = "",
+  initialRegionalContent = "notices",
+  networkId = "ttc",
+}: Props) {
   const regional = networkId === "regional";
   const [category, setCategory] = useState<SurfaceNoticeCategory | "all">("all");
   const [serviceType, setServiceType] = useState<"all" | "train" | "bus">("all");
-  const [regionalContent, setRegionalContent] = useState<"notices" | "trip-changes">("notices");
+  const [regionalContent, setRegionalContent] = useState<"notices" | "trip-changes">(initialRegionalContent);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [data, setData] = useState<SurfaceNoticeResponse | null>(null);
@@ -47,6 +54,12 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
     setSearchQuery(initialQuery);
     setDebouncedQuery(initialQuery);
   }, [initialQuery]);
+
+  useEffect(() => {
+    if (!regional) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRegionalContent(initialRegionalContent);
+  }, [initialRegionalContent, regional]);
 
   // Debounce query
   useEffect(() => {

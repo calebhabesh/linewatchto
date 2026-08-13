@@ -8,6 +8,8 @@ import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
 import com.calebhabesh.linewatch.regional.RegionalCommuteImpactService;
 import com.calebhabesh.linewatch.regional.RegionalCommutePathService;
+import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses;
+import com.calebhabesh.linewatch.regional.RegionalTripChangeService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -25,6 +27,7 @@ public class SavedCommutePushPlanner {
     private final RegionalCommuteImpactService regionalCommuteImpactService;
     private final Clock clock;
     private final PushNotificationFormatter formatter;
+    private final RegionalTripChangeService regionalTripChangeService;
 
     @Autowired
     public SavedCommutePushPlanner(
@@ -33,7 +36,8 @@ public class SavedCommutePushPlanner {
         RegionalCommutePathService regionalCommutePathService,
         RegionalCommuteImpactService regionalCommuteImpactService,
         Clock clock,
-        PushNotificationFormatter formatter
+        PushNotificationFormatter formatter,
+        RegionalTripChangeService regionalTripChangeService
     ) {
         this.commutePathService = commutePathService;
         this.commuteImpactService = commuteImpactService;
@@ -41,6 +45,21 @@ public class SavedCommutePushPlanner {
         this.regionalCommuteImpactService = regionalCommuteImpactService;
         this.clock = clock;
         this.formatter = formatter;
+        this.regionalTripChangeService = regionalTripChangeService;
+    }
+
+    public SavedCommutePushPlanner(
+        CommutePathService commutePathService,
+        CommuteImpactService commuteImpactService,
+        RegionalCommutePathService regionalCommutePathService,
+        RegionalCommuteImpactService regionalCommuteImpactService,
+        Clock clock,
+        PushNotificationFormatter formatter
+    ) {
+        this(
+            commutePathService, commuteImpactService, regionalCommutePathService,
+            regionalCommuteImpactService, clock, formatter, null
+        );
     }
 
     public SavedCommutePushPlanner(
@@ -49,7 +68,7 @@ public class SavedCommutePushPlanner {
         Clock clock,
         PushNotificationFormatter formatter
     ) {
-        this(commutePathService, commuteImpactService, null, null, clock, formatter);
+        this(commutePathService, commuteImpactService, null, null, clock, formatter, null);
     }
 
     public SavedCommutePushPlanner(
@@ -62,7 +81,8 @@ public class SavedCommutePushPlanner {
             null,
             null,
             Clock.systemUTC(),
-            new PushNotificationFormatter()
+            new PushNotificationFormatter(),
+            null
         );
     }
 
@@ -120,14 +140,12 @@ public class SavedCommutePushPlanner {
         CommuteResponses.ImpactResponse impact = regional
             ? regionalCommuteImpactService.impactFor(path)
             : commuteImpactService.impactFor(path);
-        if (impact == null || impact.matchedImpacts() == null || impact.matchedImpacts().isEmpty()) {
-            return List.of();
-        }
-
         Instant now = clock.instant();
         List<PushNotificationCandidate> candidates = new ArrayList<>();
 
-        for (CommuteResponses.MatchedImpactResponse match : impact.matchedImpacts()) {
+        for (CommuteResponses.MatchedImpactResponse match : impact == null || impact.matchedImpacts() == null
+            ? List.<CommuteResponses.MatchedImpactResponse>of()
+            : impact.matchedImpacts()) {
             if ("current".equals(match.status())) {
                 String eventType = match.kind(); // e.g. "delay", "suspension", "reduced-speed-zone"
                 candidates.add(candidateFor(commute, legId, path, match, "saved-commute-current", eventType, "on-change"));
@@ -153,7 +171,85 @@ public class SavedCommutePushPlanner {
                 ));
             }
         }
+        if (regional && regionalTripChangeService != null) {
+            candidates.addAll(cancellationCandidatesForLeg(commute, legId, path));
+        }
         return candidates;
+    }
+
+    private List<PushNotificationCandidate> cancellationCandidatesForLeg(
+        SavedCommuteEntity commute,
+        String legId,
+        CommuteResponses.PathResponse path
+    ) {
+        if (path == null || !path.available() || path.stationIds() == null || path.stationIds().size() < 2) {
+            return List.of();
+        }
+        return regionalTripChangeService.get(null, null, 250).changes().stream()
+            .filter(change -> "cancellation".equals(change.kind()) && change.scheduleMatched())
+            .map(change -> cancellationOverlap(path.stationIds(), change))
+            .filter(java.util.Objects::nonNull)
+            .map(overlap -> cancellationCandidate(commute, legId, overlap))
+            .toList();
+    }
+
+    private CancellationOverlap cancellationOverlap(
+        List<String> pathStations,
+        RegionalTripChangeResponses.TripChange change
+    ) {
+        List<RegionalTripChangeResponses.AffectedStop> overlapping = pathStations.stream()
+            .map(pathStation -> change.affectedStops().stream()
+                .filter(stop -> stop.stationId().equals(pathStation))
+                .findFirst().orElse(null))
+            .filter(java.util.Objects::nonNull)
+            .toList();
+        if (overlapping.size() < 2) return null;
+        int previous = -1;
+        for (RegionalTripChangeResponses.AffectedStop stop : overlapping) {
+            int current = change.affectedStops().indexOf(stop);
+            if (current <= previous) return null;
+            previous = current;
+        }
+        OffsetDateTime relevantTime = overlapping.stream()
+            .map(RegionalTripChangeResponses.AffectedStop::scheduledAt)
+            .filter(java.util.Objects::nonNull)
+            .findFirst().orElse(change.scheduledStartAt());
+        return relevantTime == null ? null : new CancellationOverlap(change, overlapping, relevantTime);
+    }
+
+    private PushNotificationCandidate cancellationCandidate(
+        SavedCommuteEntity commute,
+        String legId,
+        CancellationOverlap overlap
+    ) {
+        RegionalTripChangeResponses.TripChange change = overlap.change();
+        String eventType = "trip-cancellation";
+        String category = "saved-commute-trip-change";
+        String location = overlap.stops().getFirst().stationName() + " → " + overlap.stops().getLast().stationName();
+        String url = "/?network=regional&panel=trip-changes";
+        FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
+            change.lineId(), change.lineNumber(), eventType, "on-change", location, null, false,
+            commute.getLabel(), legId, overlap.relevantTime().toInstant(), change.cause(),
+            change.title(), change.description(), null, null
+        ));
+        String sourceIncidentKey = String.join("|", category, commute.getId(), legId, change.id());
+        String notificationKey = String.join("|", category, commute.getId(), legId, eventType, change.id());
+        String updateFingerprint = PushNotificationUpdateFingerprint.forRegionalCandidate(eventType, notification, url);
+        String dedupeKey = String.join(
+            "|", commute.getAccount().getId(), commute.getId(), legId, eventType, change.id(),
+            "update", updateFingerprint
+        );
+        boolean deliveryAllowed = commute.isNotificationEnabled()
+            && SavedCommuteAlertRules.legAllowed(commute, legId)
+            && SavedCommuteAlertRules.eventTypeAllowed(commute, eventType)
+            && SavedCommuteNotificationSchedule.matches(commute, legId, overlap.relevantTime().toInstant())
+            && SavedCommuteNotificationSchedule.matches(commute, legId, clock.instant());
+        return new PushNotificationCandidate(
+            commute.getAccount().getId(), commute.getId(), legId, change.lineId(), change.lineNumber(),
+            category, eventType, "on-change", sourceIncidentKey, notificationKey, dedupeKey,
+            notification, url, updateFingerprint, deliveryAllowed,
+            change.updatedAt() == null ? null : change.updatedAt().toInstant()
+        );
     }
 
     private PushNotificationCandidate candidateFor(
@@ -308,4 +404,10 @@ public class SavedCommutePushPlanner {
             ? displayTitle
             : notificationTitle;
     }
+
+    private record CancellationOverlap(
+        RegionalTripChangeResponses.TripChange change,
+        List<RegionalTripChangeResponses.AffectedStop> stops,
+        OffsetDateTime relevantTime
+    ) {}
 }

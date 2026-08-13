@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Pencil, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Pencil, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -490,6 +490,7 @@ const NOTIFICATION_EVENT_OPTIONS: Array<{
 }> = [
   { key: "suspensions", label: "Suspensions" },
   { key: "delays", label: "Delays" },
+  { key: "tripCancellations", label: "Train Cancellations" },
   { key: "plannedClosures", label: "Planned Closures" },
   { key: "serviceRestored", label: "Service Restored" },
   { key: "reducedSpeedZones", label: "Reduced Speed Zones" },
@@ -498,7 +499,7 @@ const NOTIFICATION_EVENT_OPTIONS: Array<{
 function notificationEventOptionsForNetwork(networkId: NetworkId) {
   return networkId === "regional"
     ? NOTIFICATION_EVENT_OPTIONS.filter((eventType) => eventType.key !== "reducedSpeedZones")
-    : NOTIFICATION_EVENT_OPTIONS;
+    : NOTIFICATION_EVENT_OPTIONS.filter((eventType) => eventType.key !== "tripCancellations");
 }
 
 function scopeNotificationRuleToNetwork(
@@ -537,6 +538,8 @@ function NotificationEventIcon({ eventType }: { eventType: keyof AccountSavedCom
       return <AlertTriangle className="notification-event-icon suspension-tone" size={15} aria-hidden="true" />;
     case "delays":
       return <DelayIcon className="notification-event-icon delay-tone" size={15} filled={false} />;
+    case "tripCancellations":
+      return <TrainFront className="notification-event-icon suspension-tone" size={15} aria-hidden="true" />;
     case "reducedSpeedZones":
       return <Construction className="notification-event-icon rsz-tone" size={15} aria-hidden="true" />;
     case "plannedClosures":

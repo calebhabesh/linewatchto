@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.regional;
 
 import com.calebhabesh.linewatch.regional.RegionalGtfsScheduleRepository.MatchedDeparture;
+import com.calebhabesh.linewatch.regional.RegionalAlertStore.StoredClassification;
 import com.calebhabesh.linewatch.regional.RegionalTripChangeOperationalRepository.OperationalRecord;
 import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses.AffectedStop;
 import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses.TripChange;
@@ -27,12 +28,13 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RegionalTripChangeService {
-    private static final String SOURCE = "Metrolinx GO operational trip updates";
+    private static final String SOURCE = "Metrolinx GO trip-change feeds";
     private static final ZoneId TORONTO = ZoneId.of("America/Toronto");
     private static final Duration PAST_TOLERANCE = Duration.ofHours(1);
     private static final Duration FUTURE_HORIZON = Duration.ofHours(48);
 
     private final RegionalTripChangeOperationalRepository operationalRepository;
+    private final RegionalAlertStore alertStore;
     private final RegionalGtfsScheduleRepository scheduleRepository;
     private final RegionalIngestionFreshness freshness;
     private final ObjectMapper objectMapper;
@@ -41,6 +43,7 @@ public class RegionalTripChangeService {
 
     public RegionalTripChangeService(
         RegionalTripChangeOperationalRepository operationalRepository,
+        RegionalAlertStore alertStore,
         RegionalGtfsScheduleRepository scheduleRepository,
         RegionalIngestionFreshness freshness,
         ObjectMapper objectMapper,
@@ -48,6 +51,7 @@ public class RegionalTripChangeService {
         MetrolinxProperties properties
     ) {
         this.operationalRepository = operationalRepository;
+        this.alertStore = alertStore;
         this.scheduleRepository = scheduleRepository;
         this.freshness = freshness;
         this.objectMapper = objectMapper;
@@ -58,20 +62,26 @@ public class RegionalTripChangeService {
     public RegionalTripChangeResponses.Response get(String stationId, String query, Integer limit) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         if (!freshness.isFresh()) {
-            return new RegionalTripChangeResponses.Response(now, false, SOURCE, null, List.of());
+            return new RegionalTripChangeResponses.Response(now, false, SOURCE, null, 0, List.of());
         }
 
         List<OperationalRecord> records = operationalRepository.findActiveRecords(now.minus(properties.getMaxDashboardAge()));
+        List<StoredClassification> cancellationNotices = alertStore.findActiveClassifications(
+            "trip-cancellation", now.minus(properties.getMaxDashboardAge())
+        );
         Map<String, Accumulator> changes = new LinkedHashMap<>();
         for (OperationalRecord record : records) {
             parse(record, now).forEach(candidate -> merge(changes, candidate));
+        }
+        for (StoredClassification notice : cancellationNotices) {
+            parseCancellationNotice(notice, now).forEach(candidate -> merge(changes, candidate));
         }
         suppressChangesDuplicatedByCancellation(changes);
 
         String stationFilter = normalize(stationId);
         String search = normalize(query);
         int resultLimit = limit == null ? 100 : Math.max(0, Math.min(limit, 250));
-        List<TripChange> visible = changes.values().stream()
+        List<TripChange> matching = changes.values().stream()
             .map(Accumulator::response)
             .filter(change -> stationFilter.isBlank() || change.affectedStops().stream()
                 .anyMatch(stop -> normalize(stop.stationId()).equals(stationFilter)))
@@ -79,11 +89,52 @@ public class RegionalTripChangeService {
             .filter(change -> inDisplayWindow(change, now))
             .sorted(Comparator.comparing(TripChange::scheduledStartAt, Comparator.nullsLast(Comparator.naturalOrder()))
                 .thenComparing(TripChange::tripNumber))
+            .toList();
+        List<TripChange> visible = matching.stream()
             .limit(resultLimit)
             .toList();
-        OffsetDateTime updatedAt = records.stream().map(OperationalRecord::lastSeenAt)
+        OffsetDateTime operationalUpdatedAt = records.stream().map(OperationalRecord::lastSeenAt)
             .filter(java.util.Objects::nonNull).max(OffsetDateTime::compareTo).orElse(null);
-        return new RegionalTripChangeResponses.Response(now, true, SOURCE, updatedAt, visible);
+        OffsetDateTime noticeUpdatedAt = cancellationNotices.stream().map(StoredClassification::lastSeenAt)
+            .filter(java.util.Objects::nonNull).max(OffsetDateTime::compareTo).orElse(null);
+        OffsetDateTime updatedAt = latest(operationalUpdatedAt, noticeUpdatedAt);
+        return new RegionalTripChangeResponses.Response(now, true, SOURCE, updatedAt, matching.size(), visible);
+    }
+
+    private List<Candidate> parseCancellationNotice(StoredClassification stored, OffsetDateTime now) {
+        RegionalAlertClassification classification = stored.classification();
+        LocalDate serviceDate = serviceDate(classification, now);
+        List<String> identities = classification.tripNumbers().isEmpty()
+            ? List.of(classification.canonicalEventId())
+            : classification.tripNumbers();
+        List<Candidate> candidates = new ArrayList<>();
+        for (String identity : identities) {
+            List<MatchedDeparture> schedule = confidentSchedule(identity, serviceDate);
+            if (!schedule.isEmpty() && classification.lineIds().contains(schedule.getFirst().lineId())) {
+                MatchedDeparture first = schedule.getFirst();
+                candidates.add(new Candidate(
+                    "cancellation", first.tripId(), firstNonBlank(first.tripShortName(), identity),
+                    first.lineId(), first.direction(), first.serviceDate(), scheduledAt(first), stored.lastSeenAt(),
+                    true, classification.title(), classification.description(), classification.cause(),
+                    classification.sources().stream().map(RegionalAlertClassification.SourceReference::sourceSystem)
+                        .distinct().toList(),
+                    scheduleStops(schedule, "cancellation")
+                ));
+                continue;
+            }
+            for (String lineId : classification.lineIds()) {
+                String destination = sourceDestination(classification, lineId);
+                candidates.add(new Candidate(
+                    "cancellation", "notice-" + classification.canonicalEventId() + "-" + identity, identity,
+                    lineId, destination, serviceDate, null, stored.lastSeenAt(), false,
+                    classification.title(), classification.description(), classification.cause(),
+                    classification.sources().stream().map(RegionalAlertClassification.SourceReference::sourceSystem)
+                        .distinct().toList(),
+                    sourceStops(classification, lineId)
+                ));
+            }
+        }
+        return List.copyOf(candidates);
     }
 
     private List<Candidate> parse(OperationalRecord record, OffsetDateTime now) {
@@ -181,8 +232,29 @@ public class RegionalTripChangeService {
         return new Candidate(
             kind, first.tripId(), firstNonBlank(first.tripShortName(), first.tripId()), first.lineId(),
             first.direction(), first.serviceDate(), scheduledAt(schedule.getFirst()), record.lastSeenAt(),
-            record.sourceSystem(), affectedStops
+            true, "", "", "", List.of(record.sourceSystem()), affectedStops
         );
+    }
+
+    private List<AffectedStop> sourceStops(RegionalAlertClassification classification, String lineId) {
+        RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
+        if (route == null) return List.of();
+        return classification.stationIds().stream()
+            .filter(route.stationIds()::contains)
+            .distinct()
+            .map(stationId -> new AffectedStop(
+                stationId,
+                RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId),
+                "cancellation",
+                null,
+                ""
+            ))
+            .toList();
+    }
+
+    private String sourceDestination(RegionalAlertClassification classification, String lineId) {
+        List<AffectedStop> stops = sourceStops(classification, lineId);
+        return stops.isEmpty() ? "" : stops.getLast().stationName();
     }
 
     private List<AffectedStop> scheduleStops(List<MatchedDeparture> schedule, String kind) {
@@ -239,6 +311,7 @@ public class RegionalTripChangeService {
     }
 
     private boolean inDisplayWindow(TripChange change, OffsetDateTime now) {
+        if (!change.scheduleMatched()) return true;
         OffsetDateTime first = change.affectedStops().stream().map(AffectedStop::scheduledAt)
             .filter(java.util.Objects::nonNull).min(OffsetDateTime::compareTo).orElse(change.scheduledStartAt());
         OffsetDateTime last = change.affectedStops().stream().map(AffectedStop::scheduledAt)
@@ -246,6 +319,19 @@ public class RegionalTripChangeService {
         return first != null && last != null
             && last.isAfter(now.minus(PAST_TOLERANCE))
             && first.isBefore(now.plus(FUTURE_HORIZON));
+    }
+
+    private LocalDate serviceDate(RegionalAlertClassification classification, OffsetDateTime now) {
+        OffsetDateTime source = classification.activePeriodStart() != null
+            ? classification.activePeriodStart()
+            : classification.publishedAt();
+        return (source == null ? now : source).atZoneSameInstant(TORONTO).toLocalDate();
+    }
+
+    private OffsetDateTime latest(OffsetDateTime first, OffsetDateTime second) {
+        if (first == null) return second;
+        if (second == null) return first;
+        return first.isAfter(second) ? first : second;
     }
 
     private String searchable(TripChange change) {
@@ -326,7 +412,11 @@ public class RegionalTripChangeService {
         LocalDate serviceDate,
         OffsetDateTime scheduledStartAt,
         OffsetDateTime updatedAt,
-        String sourceSystem,
+        boolean scheduleMatched,
+        String title,
+        String description,
+        String cause,
+        List<String> sourceSystems,
         List<AffectedStop> affectedStops
     ) {}
 
@@ -338,6 +428,10 @@ public class RegionalTripChangeService {
         private final String destination;
         private final LocalDate serviceDate;
         private final OffsetDateTime scheduledStartAt;
+        private boolean scheduleMatched;
+        private String title;
+        private String description;
+        private String cause;
         private OffsetDateTime updatedAt;
         private final Set<String> sourceSystems = new LinkedHashSet<>();
         private final Map<String, AffectedStop> affectedStops = new LinkedHashMap<>();
@@ -350,11 +444,19 @@ public class RegionalTripChangeService {
             destination = candidate.destination();
             serviceDate = candidate.serviceDate();
             scheduledStartAt = candidate.scheduledStartAt();
+            scheduleMatched = candidate.scheduleMatched();
+            title = candidate.title();
+            description = candidate.description();
+            cause = candidate.cause();
             merge(candidate);
         }
 
         private void merge(Candidate candidate) {
-            sourceSystems.add(candidate.sourceSystem());
+            sourceSystems.addAll(candidate.sourceSystems());
+            scheduleMatched = scheduleMatched || candidate.scheduleMatched();
+            if (title.isBlank() && !candidate.title().isBlank()) title = candidate.title();
+            if (description.isBlank() && !candidate.description().isBlank()) description = candidate.description();
+            if (cause.isBlank() && !candidate.cause().isBlank()) cause = candidate.cause();
             if (updatedAt == null || candidate.updatedAt() != null && candidate.updatedAt().isAfter(updatedAt)) {
                 updatedAt = candidate.updatedAt();
             }
@@ -370,7 +472,8 @@ public class RegionalTripChangeService {
             return new TripChange(
                 "regional-trip-change-" + serviceDate + "-" + tripId.replaceAll("[^A-Za-z0-9_-]", "-") + "-" + kind,
                 kind, tripId, tripNumber, lineId, number, name, destination, serviceDate,
-                scheduledStartAt, updatedAt, List.copyOf(sourceSystems), List.copyOf(affectedStops.values())
+                scheduledStartAt, updatedAt, scheduleMatched, title, description, cause,
+                List.copyOf(sourceSystems), List.copyOf(affectedStops.values())
             );
         }
     }

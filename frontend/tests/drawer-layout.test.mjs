@@ -277,9 +277,9 @@ describe("floating menu layout", () => {
     assert.match(lineLegendSource, /backgroundColor: LINE_COLORS\[line\.id\]/);
   });
 
-  it("scales and lifts the regional desktop legend above its map attribution", () => {
+  it("scales the regional desktop legend above its map attribution", () => {
     assert.match(networkMapLegendsSource, /desktop-map-legend--regional bottom-7/);
-    assert.match(globalCss, /\.desktop-map-legend--regional\s*\{[^}]*transform:\s*scale\(0\.9\);[^}]*transform-origin:\s*top right;/s);
+    assert.match(globalCss, /\.desktop-map-legend--regional\s*\{[^}]*transform:\s*scale\(0\.9\);[^}]*transform-origin:\s*bottom right;/s);
   });
 
   it("LineLegend formats alert icons compactly depending on count in regional mode (vertical stack for 2, triangle for 3, 2x2 grid for 4)", () => {

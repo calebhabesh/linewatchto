@@ -12,6 +12,7 @@ public final class RegionalTripChangeResponses {
         boolean fresh,
         String source,
         OffsetDateTime sourceUpdatedAt,
+        int totalCount,
         List<TripChange> changes
     ) {}
 
@@ -27,6 +28,10 @@ public final class RegionalTripChangeResponses {
         LocalDate serviceDate,
         OffsetDateTime scheduledStartAt,
         OffsetDateTime updatedAt,
+        boolean scheduleMatched,
+        String title,
+        String description,
+        String cause,
         List<String> sourceSystems,
         List<AffectedStop> affectedStops
     ) {}

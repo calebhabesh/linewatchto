@@ -248,6 +248,78 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
+    void keepsASingleTrainCancellationOutOfDelayStatusAndTopologyOverlays() throws Exception {
+        MetrolinxFetchedRecord record = serviceAlert("""
+            {
+              "Code":"M0000522196",
+              "PostedDateTime":"2026-07-28 15:31:22",
+              "SubjectEnglish":"Train cancelled - Union Station 17:35 - Appleby GO 18:29",
+              "BodyEnglish":"The Union Station 17:35 - Appleby GO 18:29 train has been cancelled due to crew constraints. Please consider the following train options: By GO train: Union Station 17:53 - West Harbour GO 19:15. Subscribe to On the GO alerts and receive customized, real-time alerts for schedule changes, construction updates and more.",
+              "Category":"Service Disruption",
+              "SubCategory":"Train Cancellation",
+              "Lines":[{"Code":"LW"}],
+              "Stops":[{"Code":"EX"},{"Code":"MI"},{"Code":"LO"},{"Code":"PO"},{"Code":"CL"},{"Code":"OA"},{"Code":"BO"},{"Code":"AP"}],
+              "Trips":[{"TripNumber":"1327"}]
+            }
+            """);
+        MetrolinxFeed feed = feed(record);
+
+        assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.serviceEffect()).isEqualTo("trip-cancellation");
+            assertThat(classification.operatingChange()).isEqualTo("cancelled-trip");
+            assertThat(classification.scope()).isEqualTo("scheduled-trip");
+            assertThat(classification.tripNumbers()).containsExactly("1327");
+            assertThat(classification.stationIds()).contains("appleby");
+            assertThat(classification.spanStationIds()).isEmpty();
+            assertThat(classification.cause()).isEqualTo("crew constraints");
+            assertThat(classification.description())
+                .doesNotContain("Subscribe to On the GO alerts")
+                .doesNotContain("construction updates");
+        });
+        assertThat(normalizer.normalize(feed)).isEmpty();
+    }
+
+    @Test
+    void structuredTrainCancellationWinsOverAGroupedNoServiceEffect() throws Exception {
+        MetrolinxFetchedRecord riderAlert = serviceAlert("""
+            {
+              "Code":"M0000522229",
+              "PostedDateTime":"2026-07-28 15:31:22",
+              "SubjectEnglish":"Train cancelled - Union Station 17:12 - Old Elm GO 18:24",
+              "BodyEnglish":"The Union Station 17:12 train has been cancelled.",
+              "Category":"Service Disruption",
+              "SubCategory":"Train Cancellation",
+              "Lines":[{"Code":"ST"}],
+              "Stops":[{"Code":"UN"},{"Code":"LI"}],
+              "Trips":[{"TripNumber":"6712"}]
+            }
+            """);
+        MetrolinxFetchedRecord correlatedGtfs = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_GTFS_ALERTS,
+            "522229",
+            """
+                {
+                  "id":"522229",
+                  "alert":{
+                    "effect":"NO_SERVICE",
+                    "header_text":{"translation":[{"text":"Train cancellation","language":"en"}]},
+                    "description_text":{"translation":[{"text":"This scheduled train will not operate.","language":"en"}]},
+                    "informed_entity":[{"route_id":"ST"}]
+                  }
+                }
+                """
+        );
+        MetrolinxFeed feed = feed(riderAlert, correlatedGtfs);
+
+        assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.serviceEffect()).isEqualTo("trip-cancellation");
+            assertThat(classification.scope()).isEqualTo("scheduled-trip");
+            assertThat(classification.tripNumbers()).containsExactly("6712");
+        });
+        assertThat(normalizer.normalize(feed)).isEmpty();
+    }
+
+    @Test
     void doesNotConfuseUnionvilleWithUnionWhenExtractingAStouffvilleAlertSpan() throws Exception {
         MetrolinxFetchedRecord record = serviceAlert("""
             {

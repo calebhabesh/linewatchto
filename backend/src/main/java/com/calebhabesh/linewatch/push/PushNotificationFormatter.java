@@ -166,6 +166,7 @@ public class PushNotificationFormatter {
         return switch (normalizeText(eventType).toLowerCase(Locale.ROOT)) {
             case "suspension" -> "Suspension";
             case "delay" -> "Delay";
+            case "trip-cancellation" -> "Train Cancellation";
             case "reduced-speed-zone" -> "Reduced Speed Zone";
             case "planned-closure" -> "Planned Closure";
             default -> "Service Alert";
@@ -340,6 +341,7 @@ public class PushNotificationFormatter {
         return switch (normalizeText(eventType).toLowerCase(Locale.ROOT)) {
             case "suspension" -> "No service";
             case "delay" -> "Delays";
+            case "trip-cancellation" -> "Train cancelled";
             case "reduced-speed-zone" -> "Reduced speeds";
             case "planned-closure" -> "Planned closure";
             default -> "Service alert";

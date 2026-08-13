@@ -43,7 +43,7 @@ class RegionalFeedApplicationServiceTest {
             List.of(new RegionalAlertClassification.SourceReference(
                 MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M1"
             )),
-            List.of("regional-ki"), "current", "delay", null, "unknown", null, null, null,
+            List.of("regional-ki"), List.of(), "current", "delay", null, "unknown", null, null, null,
             "Kitchener delay", "Delayed", null, null, "unknown", null, null, NOW,
             List.of(), List.of(), Map.of(), Map.of(), ""
         );

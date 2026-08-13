@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { AlertTriangle, Construction, X, Bus } from "lucide-react";
+import { AlertTriangle, Construction, X, Bus, TrainFront } from "lucide-react";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
@@ -14,7 +14,7 @@ import {
   networkStatusKicker,
 } from "../app/network-presentation";
 
-type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices";
+type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices" | "trip-changes";
 
 type Props = {
   pollText: string;
@@ -23,10 +23,11 @@ type Props = {
   onClose: () => void;
   accessibilityOutageCount?: number;
   surfaceNoticeCount?: number;
+  tripChangeCount?: number;
   networkId?: NetworkId;
 };
 
-export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, networkId = "ttc" }: Props) {
+export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, tripChangeCount = 0, networkId = "ttc" }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, lineStatuses } = useDashboardData();
   const regional = networkId === "regional";
   const reducedSpeedZoneCount = countReducedSpeedZones(reducedSpeedZones);
@@ -98,11 +99,18 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
           </button>
           <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
             <Bus size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            <span className="mobile-status-btn-text">{regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}</span>
+            <span className="mobile-status-btn-text">{regional ? "Service Notices" : "Streetcar & Bus Notices"}</span>
             <span className="mobile-status-btn-circle">
               {surfaceNoticeCount}
             </span>
           </button>
+          {regional ? <button type="button" className="mobile-status-btn-trip-changes flex items-center justify-between" onClick={() => onOpenCategory("trip-changes")}>
+            <TrainFront size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            <span className="mobile-status-btn-text">Trip Changes</span>
+            <span className="mobile-status-btn-circle">
+              {tripChangeCount}
+            </span>
+          </button> : null}
         </div>
 
         <div className="mobile-line-status-list">

@@ -130,6 +130,9 @@ public class PushNotificationPreferenceService {
             if ("saved-commute-current".equals(candidate.category()) && !preferences.isSavedCommuteCurrentEnabled()) {
                 return false;
             }
+            if ("saved-commute-trip-change".equals(candidate.category()) && !preferences.isSavedCommuteCurrentEnabled()) {
+                return false;
+            }
             if ("saved-commute-planned".equals(candidate.category()) && !preferences.isSavedCommutePlannedEnabled()) {
                 return false;
             }
@@ -138,6 +141,7 @@ public class PushNotificationPreferenceService {
             boolean eventTypeAllowed = switch (eventType) {
                 case "suspension" -> preferences.isSavedCommuteSuspensionEnabled();
                 case "delay" -> preferences.isSavedCommuteDelayEnabled();
+                case "trip-cancellation" -> preferences.isSavedCommuteTripCancellationEnabled();
                 case "reduced-speed-zone" -> preferences.isSavedCommuteReducedSpeedZoneEnabled();
                 case "planned-closure" -> preferences.isSavedCommutePlannedClosureEnabled();
                 case "service-restored" -> preferences.isSavedCommuteRestoredEnabled();
@@ -159,6 +163,7 @@ public class PushNotificationPreferenceService {
             boolean eventTypeAllowed = switch (eventType) {
                 case "suspension" -> preferences.isLineSuspensionEnabled();
                 case "delay" -> preferences.isLineDelayEnabled();
+                case "trip-cancellation" -> preferences.isLineTripCancellationEnabled();
                 case "reduced-speed-zone" -> preferences.isLineReducedSpeedZoneEnabled();
                 case "planned-closure" -> preferences.isLinePlannedClosureEnabled();
                 case "service-restored" -> preferences.isLineRestoredEnabled();
@@ -207,6 +212,7 @@ public class PushNotificationPreferenceService {
                 new PushResponses.EventTypePreferencesResponse(
                     prefs.isSavedCommuteSuspensionEnabled(),
                     prefs.isSavedCommuteDelayEnabled(),
+                    prefs.isSavedCommuteTripCancellationEnabled(),
                     prefs.isSavedCommuteReducedSpeedZoneEnabled(),
                     prefs.isSavedCommutePlannedClosureEnabled(),
                     prefs.isSavedCommuteRestoredEnabled()
@@ -217,6 +223,7 @@ public class PushNotificationPreferenceService {
                 new PushResponses.EventTypePreferencesResponse(
                     prefs.isLineSuspensionEnabled(),
                     prefs.isLineDelayEnabled(),
+                    prefs.isLineTripCancellationEnabled(),
                     prefs.isLineReducedSpeedZoneEnabled(),
                     prefs.isLinePlannedClosureEnabled(),
                     prefs.isLineRestoredEnabled()

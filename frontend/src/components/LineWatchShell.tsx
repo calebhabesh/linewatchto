@@ -49,6 +49,7 @@ import {
 import { AccessibilityOutagesPanel, type AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { SurfaceNoticesPanel } from "./SurfaceNoticesPanel";
+import { getRegionalTripChanges } from "../app/regional-trip-changes";
 import { getTtcAnnouncements } from "../app/announcement-data";
 import { TtcAnnouncementsPanel } from "./TtcAnnouncementsPanel";
 import {
@@ -678,8 +679,10 @@ export function LineWatchShell({
   const [accessibilityOutageTarget, setAccessibilityOutageTarget] = useState<AccessibilityOutageTarget | null>(null);
   const [expandedMyStationDisruptionIds, setExpandedMyStationDisruptionIds] = useState<Set<string>>(() => new Set());
   const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
+  const [regionalTripChangeCount, setRegionalTripChangeCount] = useState<number | null>(null);
   const [announcementCount, setAnnouncementCount] = useState<number | null>(null);
   const [surfaceNoticeInitialQuery, setSurfaceNoticeInitialQuery] = useState("");
+  const [surfaceNoticeInitialContent, setSurfaceNoticeInitialContent] = useState<"notices" | "trip-changes">("notices");
 
   useEffect(() => {
     if (activeView !== "accessibility-outages" && accessibilityOutageTarget) {
@@ -1061,7 +1064,11 @@ export function LineWatchShell({
       closures: "closures",
       commutes: "commutes",
       notifications: "notifications",
+      "trip-changes": "surface-notices",
     };
+    if (panel === "trip-changes") {
+      setSurfaceNoticeInitialContent("trip-changes");
+    }
     if (hasReleaseNotes) {
       panelToView["release-notes"] = "release-notes";
     }
@@ -1736,6 +1743,20 @@ export function LineWatchShell({
     }
   }, [selectedNetwork]);
 
+  const fetchRegionalTripChangeCount = useCallback(async () => {
+    if (selectedNetwork !== "regional") {
+      setRegionalTripChangeCount(null);
+      return;
+    }
+    try {
+      const res = await getRegionalTripChanges({ limit: 0 });
+      setRegionalTripChangeCount(res.source === "backend" && res.data.fresh ? res.data.totalCount : null);
+    } catch (err) {
+      console.error("Failed to fetch regional trip change count:", err);
+      setRegionalTripChangeCount(null);
+    }
+  }, [selectedNetwork]);
+
   const fetchAnnouncementCount = useCallback(async () => {
     if (selectedNetwork !== "ttc") {
       setAnnouncementCount(null);
@@ -1769,6 +1790,7 @@ export function LineWatchShell({
       if (selectedNetwork === "ttc") router.refresh();
       fetchAccessibilityOutages();
       fetchSurfaceNoticesCount();
+      fetchRegionalTripChangeCount();
       fetchAnnouncementCount();
     };
 
@@ -1778,6 +1800,7 @@ export function LineWatchShell({
         if (selectedNetwork === "ttc") router.refresh();
         fetchAccessibilityOutages();
         fetchSurfaceNoticesCount();
+        fetchRegionalTripChangeCount();
         fetchAnnouncementCount();
       }
     };
@@ -1788,7 +1811,7 @@ export function LineWatchShell({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [closedMapPeek, router, selectedNetwork, subwayOperatingState.status, regionalRailOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchAnnouncementCount]);
+  }, [closedMapPeek, router, selectedNetwork, subwayOperatingState.status, regionalRailOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchRegionalTripChangeCount, fetchAnnouncementCount]);
 
 
   useEffect(() => {
@@ -1798,9 +1821,11 @@ export function LineWatchShell({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAccessibilityOutageState(null);
       setSurfaceNoticeCount(null);
+      setRegionalTripChangeCount(null);
       setAnnouncementCount(null);
       fetchAccessibilityOutages();
       fetchSurfaceNoticesCount();
+      fetchRegionalTripChangeCount();
       return () => { cancelled = true; };
     }
 
@@ -1812,12 +1837,13 @@ export function LineWatchShell({
 
     fetchAccessibilityOutages();
     fetchSurfaceNoticesCount();
+    fetchRegionalTripChangeCount();
     fetchAnnouncementCount();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedNetwork, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchAnnouncementCount]);
+  }, [selectedNetwork, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchRegionalTripChangeCount, fetchAnnouncementCount]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2109,6 +2135,19 @@ export function LineWatchShell({
       ?? notice.stopIds[0]
       ?? notice.title;
     setSurfaceNoticeInitialQuery(targetQuery);
+    setSurfaceNoticeInitialContent("notices");
+    navigateForward("surface-notices");
+  }, [navigateForward]);
+
+  const openRegionalTripChanges = useCallback(() => {
+    setSurfaceNoticeInitialQuery("");
+    setSurfaceNoticeInitialContent("trip-changes");
+    navigateForward("surface-notices");
+  }, [navigateForward]);
+
+  const openServiceNotices = useCallback(() => {
+    setSurfaceNoticeInitialQuery("");
+    setSurfaceNoticeInitialContent("notices");
     navigateForward("surface-notices");
   }, [navigateForward]);
 
@@ -2377,6 +2416,10 @@ export function LineWatchShell({
                 openImpactCategory(view, lineId);
                 return;
               }
+              if (view === "trip-changes") {
+                openRegionalTripChanges();
+                return;
+              }
               setSelection(null);
               navigateForward(view);
             }}
@@ -2385,6 +2428,7 @@ export function LineWatchShell({
               accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
             }
             surfaceNoticeCount={surfaceNoticeCount ?? 0}
+            tripChangeCount={regionalTripChangeCount ?? 0}
           />
         );
       case "alerts":
@@ -2522,6 +2566,7 @@ export function LineWatchShell({
         return (
           <SurfaceNoticesPanel
             initialQuery={surfaceNoticeInitialQuery}
+            initialRegionalContent={surfaceNoticeInitialContent}
             networkId={selectedNetwork}
             onBack={handleSubmenuBack}
             /* setActiveView(isMobile ? "status" : "menu") */
@@ -3166,12 +3211,12 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => navigateForward("surface-notices")}
+                   onClick={openServiceNotices}
                    aria-current={activeView === "surface-notices" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <div className="flex items-center gap-3">
-                     <Bus size={18} className="text-slate-500 dark:text-slate-400" /> {selectedNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices"}
+                     <Bus size={18} className="text-slate-500 dark:text-slate-400" /> {selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus Notices"}
                    </div>
                    {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
@@ -3179,6 +3224,21 @@ export function LineWatchShell({
                      </span>
                    )}
                  </button>
+                 {selectedNetwork === "regional" ? <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={openRegionalTripChanges}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <div className="flex items-center gap-3">
+                     <Train size={18} className="text-slate-500 dark:text-slate-400" /> Trip Changes
+                   </div>
+                   {regionalTripChangeCount !== null && regionalTripChangeCount > 0 ? (
+                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
+                       {regionalTripChangeCount}
+                     </span>
+                   ) : null}
+                 </button> : null}
                  {selectedNetwork === "ttc" ? <button
                     ref={registerMenuAction(actionIndex++)}
                     role="menuitem"

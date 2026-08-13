@@ -391,6 +391,7 @@ public class SavedCommuteService {
             valueOrDefault(request.returnEnabled(), commute.isNotificationReturnEnabled()),
             eventTypes == null ? commute.isNotificationSuspensionEnabled() : valueOrDefault(eventTypes.suspensions(), commute.isNotificationSuspensionEnabled()),
             eventTypes == null ? commute.isNotificationDelayEnabled() : valueOrDefault(eventTypes.delays(), commute.isNotificationDelayEnabled()),
+            eventTypes == null ? commute.isNotificationTripCancellationEnabled() : valueOrDefault(eventTypes.tripCancellations(), commute.isNotificationTripCancellationEnabled()),
             eventTypes == null ? commute.isNotificationReducedSpeedZoneEnabled() : valueOrDefault(eventTypes.reducedSpeedZones(), commute.isNotificationReducedSpeedZoneEnabled()),
             eventTypes == null ? commute.isNotificationPlannedClosureEnabled() : valueOrDefault(eventTypes.plannedClosures(), commute.isNotificationPlannedClosureEnabled()),
             eventTypes == null ? commute.isNotificationRestoredEnabled() : valueOrDefault(eventTypes.serviceRestored(), commute.isNotificationRestoredEnabled()),
@@ -409,6 +410,7 @@ public class SavedCommuteService {
             new AccountResponses.SavedCommuteNotificationEventTypesResponse(
                 commute.isNotificationSuspensionEnabled(),
                 commute.isNotificationDelayEnabled(),
+                commute.isNotificationTripCancellationEnabled(),
                 commute.isNotificationReducedSpeedZoneEnabled(),
                 commute.isNotificationPlannedClosureEnabled(),
                 commute.isNotificationRestoredEnabled()
@@ -499,10 +501,21 @@ public class SavedCommuteService {
     public record SavedCommuteNotificationEventTypesRequest(
         Boolean suspensions,
         Boolean delays,
+        Boolean tripCancellations,
         Boolean reducedSpeedZones,
         Boolean plannedClosures,
         Boolean serviceRestored
-    ) {}
+    ) {
+        public SavedCommuteNotificationEventTypesRequest(
+            Boolean suspensions,
+            Boolean delays,
+            Boolean reducedSpeedZones,
+            Boolean plannedClosures,
+            Boolean serviceRestored
+        ) {
+            this(suspensions, delays, null, reducedSpeedZones, plannedClosures, serviceRestored);
+        }
+    }
 
     public record SavedCommuteNotificationScheduleRequest(
         Integer dayMask,

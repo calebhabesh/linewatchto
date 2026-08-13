@@ -13,12 +13,14 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class RegionalTripChangeServiceTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-31T16:00:00Z"), ZoneOffset.UTC);
     private RegionalTripChangeOperationalRepository operationalRepository;
+    private RegionalAlertStore alertStore;
     private RegionalGtfsScheduleRepository scheduleRepository;
     private RegionalIngestionFreshness freshness;
     private RegionalTripChangeService service;
@@ -26,11 +28,14 @@ class RegionalTripChangeServiceTest {
     @BeforeEach
     void setUp() {
         operationalRepository = mock(RegionalTripChangeOperationalRepository.class);
+        alertStore = mock(RegionalAlertStore.class);
         scheduleRepository = mock(RegionalGtfsScheduleRepository.class);
         freshness = mock(RegionalIngestionFreshness.class);
         when(freshness.isFresh()).thenReturn(true);
+        when(alertStore.findActiveClassifications(eq("trip-cancellation"), any())).thenReturn(List.of());
         service = new RegionalTripChangeService(
             operationalRepository,
+            alertStore,
             scheduleRepository,
             freshness,
             new ObjectMapper().findAndRegisterModules(),
@@ -59,6 +64,7 @@ class RegionalTripChangeServiceTest {
 
         assertThat(response.fresh()).isTrue();
         assertThat(response.changes()).hasSize(1);
+        assertThat(response.totalCount()).isEqualTo(1);
         assertThat(response.changes().getFirst().kind()).isEqualTo("cancellation");
         assertThat(response.changes().getFirst().tripNumber()).isEqualTo("681");
         assertThat(response.changes().getFirst().sourceSystems())
@@ -69,6 +75,52 @@ class RegionalTripChangeServiceTest {
         assertThat(response.changes().getFirst().affectedStops())
             .extracting(RegionalTripChangeResponses.AffectedStop::stationId)
             .containsExactly("milton", "kipling", "union");
+    }
+
+    @Test
+    void mergesAClassifiedRiderCancellationIntoTheScheduleBackedTripChange() {
+        OffsetDateTime observedAt = OffsetDateTime.parse("2026-07-31T15:58:00Z");
+        when(alertStore.findActiveClassifications(eq("trip-cancellation"), any())).thenReturn(List.of(
+            new RegionalAlertStore.StoredClassification(cancellationClassification("681"), observedAt)
+        ));
+        when(scheduleRepository.findActiveTrip("681", LocalDate.parse("2026-07-31")))
+            .thenReturn(schedule("MI100", "681"));
+
+        RegionalTripChangeResponses.Response response = service.get(null, null, null);
+
+        assertThat(response.changes()).singleElement().satisfies(change -> {
+            assertThat(change.kind()).isEqualTo("cancellation");
+            assertThat(change.scheduleMatched()).isTrue();
+            assertThat(change.tripId()).isEqualTo("MI100");
+            assertThat(change.tripNumber()).isEqualTo("681");
+            assertThat(change.title()).isEqualTo("Train cancelled - Milton 11:00 AM - Union 12:10 PM");
+            assertThat(change.description()).contains("crew constraints");
+            assertThat(change.cause()).isEqualTo("crew constraints");
+            assertThat(change.sourceSystems()).containsExactly(MetrolinxSourceSystem.GO_SERVICE_ALERTS);
+            assertThat(change.affectedStops())
+                .extracting(RegionalTripChangeResponses.AffectedStop::stationId)
+                .containsExactly("milton", "kipling", "union");
+        });
+    }
+
+    @Test
+    void exposesAnUnmatchedRiderCancellationWithoutInventingScheduledTimes() {
+        OffsetDateTime observedAt = OffsetDateTime.parse("2026-07-31T15:58:00Z");
+        when(alertStore.findActiveClassifications(eq("trip-cancellation"), any())).thenReturn(List.of(
+            new RegionalAlertStore.StoredClassification(cancellationClassification("UNKNOWN"), observedAt)
+        ));
+        when(scheduleRepository.findActiveTrip("UNKNOWN", LocalDate.parse("2026-07-31"))).thenReturn(List.of());
+
+        RegionalTripChangeResponses.Response response = service.get(null, null, null);
+
+        assertThat(response.changes()).singleElement().satisfies(change -> {
+            assertThat(change.scheduleMatched()).isFalse();
+            assertThat(change.scheduledStartAt()).isNull();
+            assertThat(change.tripNumber()).isEqualTo("UNKNOWN");
+            assertThat(change.affectedStops())
+                .extracting(RegionalTripChangeResponses.AffectedStop::stationId)
+                .containsExactly("milton", "kipling", "union");
+        });
     }
 
     @Test
@@ -163,6 +215,38 @@ class RegionalTripChangeServiceTest {
             new RegionalGtfsScheduleRepository.MatchedDeparture(
                 "regional-mi", "Union Station", tripId, tripNumber, "union", 3, 16 * 3600 + 600, "4", date
             )
+        );
+    }
+
+    private RegionalAlertClassification cancellationClassification(String tripNumber) {
+        OffsetDateTime publishedAt = OffsetDateTime.parse("2026-07-31T11:00:00-04:00");
+        return new RegionalAlertClassification(
+            "go-cancel-681",
+            List.of(new RegionalAlertClassification.SourceReference(
+                MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M-CANCEL-681"
+            )),
+            List.of("regional-mi"),
+            List.of(tripNumber),
+            "current",
+            "trip-cancellation",
+            "cancelled-trip",
+            "scheduled-trip",
+            "crew constraints",
+            null,
+            null,
+            "Train cancelled - Milton 11:00 AM - Union 12:10 PM",
+            "The Milton 11:00 AM train has been cancelled due to crew constraints.",
+            publishedAt,
+            null,
+            "source-active-period",
+            publishedAt,
+            null,
+            publishedAt,
+            List.of("milton", "kipling", "union"),
+            List.of(),
+            Map.of(),
+            Map.of(),
+            "{}"
         );
     }
 }

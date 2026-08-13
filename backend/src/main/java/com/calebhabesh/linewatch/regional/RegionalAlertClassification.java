@@ -15,6 +15,7 @@ public record RegionalAlertClassification(
     String canonicalEventId,
     List<SourceReference> sources,
     List<String> lineIds,
+    List<String> tripNumbers,
     String timing,
     String serviceEffect,
     String operatingChange,
@@ -36,6 +37,10 @@ public record RegionalAlertClassification(
     Map<String, List<String>> fieldSources,
     @JsonIgnore String primaryRawPayload
 ) {
+    public RegionalAlertClassification {
+        tripNumbers = tripNumbers == null ? List.of() : List.copyOf(tripNumbers);
+    }
+
     public record SourceReference(String sourceSystem, String sourceId) {
         public String key() {
             return sourceSystem + ":" + sourceId;

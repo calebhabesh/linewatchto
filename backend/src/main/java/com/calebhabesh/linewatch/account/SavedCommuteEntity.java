@@ -54,6 +54,8 @@ public class SavedCommuteEntity {
     private boolean notificationSuspensionEnabled = true;
     @Column(name = "notification_delay_enabled")
     private boolean notificationDelayEnabled = true;
+    @Column(name = "notification_trip_cancellation_enabled")
+    private boolean notificationTripCancellationEnabled = true;
     @Column(name = "notification_reduced_speed_zone_enabled")
     private boolean notificationReducedSpeedZoneEnabled = true;
     @Column(name = "notification_planned_closure_enabled")
@@ -138,6 +140,7 @@ public class SavedCommuteEntity {
     public boolean isNotificationReturnEnabled() { return notificationReturnEnabled; }
     public boolean isNotificationSuspensionEnabled() { return notificationSuspensionEnabled; }
     public boolean isNotificationDelayEnabled() { return notificationDelayEnabled; }
+    public boolean isNotificationTripCancellationEnabled() { return notificationTripCancellationEnabled; }
     public boolean isNotificationReducedSpeedZoneEnabled() { return notificationReducedSpeedZoneEnabled; }
     public boolean isNotificationPlannedClosureEnabled() { return notificationPlannedClosureEnabled; }
     public boolean isNotificationRestoredEnabled() { return notificationRestoredEnabled; }
@@ -208,6 +211,44 @@ public class SavedCommuteEntity {
         boolean restoredEnabled,
         Instant now
     ) {
+        updateNotificationRule(
+            enabled,
+            outboundDayMask,
+            outboundStartMinute,
+            outboundEndMinute,
+            returnDayMask,
+            returnStartMinute,
+            returnEndMinute,
+            outboundEnabled,
+            returnEnabled,
+            suspensionEnabled,
+            delayEnabled,
+            notificationTripCancellationEnabled,
+            reducedSpeedZoneEnabled,
+            plannedClosureEnabled,
+            restoredEnabled,
+            now
+        );
+    }
+
+    public void updateNotificationRule(
+        boolean enabled,
+        int outboundDayMask,
+        Integer outboundStartMinute,
+        Integer outboundEndMinute,
+        int returnDayMask,
+        Integer returnStartMinute,
+        Integer returnEndMinute,
+        boolean outboundEnabled,
+        boolean returnEnabled,
+        boolean suspensionEnabled,
+        boolean delayEnabled,
+        boolean tripCancellationEnabled,
+        boolean reducedSpeedZoneEnabled,
+        boolean plannedClosureEnabled,
+        boolean restoredEnabled,
+        Instant now
+    ) {
         this.notificationEnabled = enabled;
         // Keep the original fields synchronized for cached clients during the API transition.
         this.notificationDayMask = outboundDayMask;
@@ -223,6 +264,7 @@ public class SavedCommuteEntity {
         this.notificationReturnEnabled = returnEnabled;
         this.notificationSuspensionEnabled = suspensionEnabled;
         this.notificationDelayEnabled = delayEnabled;
+        this.notificationTripCancellationEnabled = tripCancellationEnabled;
         this.notificationReducedSpeedZoneEnabled = reducedSpeedZoneEnabled;
         this.notificationPlannedClosureEnabled = plannedClosureEnabled;
         this.notificationRestoredEnabled = restoredEnabled;

@@ -44,10 +44,21 @@ public final class PushRequests {
     public record EventTypePreferencesRequest(
         Boolean suspensions,
         Boolean delays,
+        Boolean tripCancellations,
         Boolean reducedSpeedZones,
         Boolean plannedClosures,
         Boolean serviceRestored
-    ) {}
+    ) {
+        public EventTypePreferencesRequest(
+            Boolean suspensions,
+            Boolean delays,
+            Boolean reducedSpeedZones,
+            Boolean plannedClosures,
+            Boolean serviceRestored
+        ) {
+            this(suspensions, delays, null, reducedSpeedZones, plannedClosures, serviceRestored);
+        }
+    }
 
     public record SavedCommutePreferencesRequest(
         Boolean currentDisruptions,

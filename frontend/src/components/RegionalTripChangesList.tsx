@@ -25,7 +25,7 @@ export function RegionalTripChangesList({
   data,
   loading = false,
   compact = false,
-  emptyLabel = "No upcoming confidently matched GO train changes.",
+  emptyLabel = "No upcoming GO train changes.",
 }: Props) {
   if (loading) {
     return <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">Checking GO train changes...</p>;
@@ -76,7 +76,7 @@ export function RegionalTripChangesList({
             </div>
 
             <dl className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-              {change.scheduledStartAt ? (
+              {change.scheduleMatched && change.scheduledStartAt ? (
                 <div className="flex items-start gap-2">
                   <CalendarClock size={14} className="mt-0.5 shrink-0 text-slate-500" />
                   <div><dt className="font-black uppercase tracking-wider text-slate-500">Scheduled</dt><dd className="font-semibold text-slate-800 dark:text-slate-100">{formatOperationalDateTime(change.scheduledStartAt)}</dd></div>
@@ -90,11 +90,19 @@ export function RegionalTripChangesList({
               ) : null}
             </dl>
 
+            {change.description ? (
+              <p className="mt-3 text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-300">
+                {change.description}
+              </p>
+            ) : null}
+
             <div className="mt-3 flex items-start gap-2 rounded-md border border-black/10 bg-slate-50 px-2.5 py-2 dark:border-white/10 dark:bg-black/10">
               <MapPin size={14} className="mt-0.5 shrink-0 text-slate-500" />
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  {change.kind === "cancellation" ? "Scheduled stops affected" : "Stop change"}
+                  {change.kind === "cancellation"
+                    ? change.scheduleMatched ? "Scheduled stops affected" : "Stops listed by Metrolinx"
+                    : "Stop change"}
                 </p>
                 <p className="mt-0.5 text-xs font-semibold leading-relaxed text-slate-800 dark:text-slate-100">
                   {visibleStops.map((stop) => stop.stationName).join(" · ")}
@@ -108,7 +116,7 @@ export function RegionalTripChangesList({
       {!compact ? (
         <p className="flex items-start gap-1.5 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
           <TrainFront size={14} className="mt-0.5 shrink-0" />
-          Only operational records confidently matched to the published GO schedule are shown. Check GO Transit before travelling.
+          Schedule-matched changes include published stop times. Rider-alert cancellations without an exact schedule match remain source-labelled and do not drive map or commute impacts. Check GO Transit before travelling.
         </p>
       ) : null}
     </div>

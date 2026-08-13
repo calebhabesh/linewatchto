@@ -20,6 +20,10 @@ const cancellation = {
   serviceDate: "2026-07-31",
   scheduledStartAt: "2026-07-31T15:00:00-04:00",
   updatedAt: "2026-07-31T11:58:00-04:00",
+  scheduleMatched: true,
+  title: "Train cancelled",
+  description: "",
+  cause: "",
   sourceSystems: ["metrolinx-go-train-exceptions", "metrolinx-go-gtfs-trip-updates"],
   affectedStops: [{
     stationId: "kipling",
@@ -43,6 +47,7 @@ describe("regional trip changes adapter", () => {
           fresh: true,
           source: "Metrolinx GO operational trip updates",
           sourceUpdatedAt: "2026-07-31T11:58:00-04:00",
+          totalCount: 1,
           changes: [cancellation],
         }), { status: 200 });
       },
@@ -70,6 +75,11 @@ describe("regional trip changes adapter", () => {
 
     assert.equal(findRegionalArrivalTripChange(arrival, [cancellation], "kipling")?.id, cancellation.id);
     assert.equal(findRegionalArrivalTripChange(arrival, [cancellation], "milton"), undefined);
+    assert.equal(findRegionalArrivalTripChange(
+      arrival,
+      [{ ...cancellation, scheduleMatched: false }],
+      "kipling",
+    ), undefined);
   });
 
   it("uses short factual labels for supported change kinds", () => {

@@ -115,6 +115,17 @@ class AccountSchemaMigrationTest {
         assertThat(sql).contains("on saved_stations(account_id, network_id, created_at desc)");
     }
 
+    @Test
+    void v64AddsTripCancellationNotificationPreferences() throws IOException {
+        String sql = migrationSql("/db/migration/V64__regional_trip_cancellation_notifications.sql").toLowerCase();
+
+        assertThat(sql).contains("alter table saved_commutes");
+        assertThat(sql).contains("notification_trip_cancellation_enabled boolean not null default true");
+        assertThat(sql).contains("alter table push_notification_preferences");
+        assertThat(sql).contains("saved_commute_trip_cancellation_enabled boolean not null default true");
+        assertThat(sql).contains("line_trip_cancellation_enabled boolean not null default true");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

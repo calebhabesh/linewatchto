@@ -16,7 +16,7 @@ class RegionalTripChangeControllerTest {
     void forwardsOptionalStationSearchAndLimitFilters() {
         RegionalTripChangeResponses.Response response = new RegionalTripChangeResponses.Response(
             OffsetDateTime.parse("2026-07-31T16:00:00Z"), true,
-            "Metrolinx GO operational trip updates", OffsetDateTime.parse("2026-07-31T15:58:00Z"), List.of()
+            "Metrolinx GO trip-change feeds", OffsetDateTime.parse("2026-07-31T15:58:00Z"), 0, List.of()
         );
         when(service.get("union", "681", 20)).thenReturn(response);
 

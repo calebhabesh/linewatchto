@@ -22,6 +22,10 @@ export type RegionalTripChange = {
   serviceDate: string;
   scheduledStartAt: string | null;
   updatedAt: string | null;
+  scheduleMatched: boolean;
+  title: string;
+  description: string;
+  cause: string;
   sourceSystems: string[];
   affectedStops: RegionalTripChangeStop[];
 };
@@ -31,6 +35,7 @@ export type RegionalTripChangeResponse = {
   fresh: boolean;
   source: string;
   sourceUpdatedAt: string | null;
+  totalCount: number;
   changes: RegionalTripChange[];
 };
 
@@ -53,6 +58,7 @@ export const emptyRegionalTripChangeResponse: RegionalTripChangeResponse = {
   fresh: false,
   source: "LineWatchTO fixture",
   sourceUpdatedAt: null,
+  totalCount: 0,
   changes: [],
 };
 
@@ -103,6 +109,8 @@ export function findRegionalArrivalTripChange(
 ): RegionalTripChange | undefined {
   const serviceDate = torontoServiceDate(arrival.scheduledAt);
   return changes.find((change) =>
+    change.scheduleMatched
+    &&
     change.serviceDate === serviceDate
     && (change.tripNumber === arrival.tripNumber || change.tripId === arrival.tripNumber)
     && change.affectedStops.some((stop) => stop.stationId === stationId)

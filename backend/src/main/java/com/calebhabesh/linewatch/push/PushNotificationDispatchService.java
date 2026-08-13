@@ -217,7 +217,9 @@ public class PushNotificationDispatchService {
                 .filter(candidate -> preferenceService.allows(preferences, candidate))
                 .toList();
 
-            List<String> savedCurrentCategories = List.of("saved-commute-current", "saved-commute-impact");
+            List<String> savedCurrentCategories = List.of(
+                "saved-commute-current", "saved-commute-impact", "saved-commute-trip-change"
+            );
             List<PushNotificationCandidate> savedCurrentCandidates = savedCommuteCandidates.stream()
                 .filter(candidate -> savedCurrentCategories.contains(candidate.category()))
                 .toList();
@@ -237,7 +239,7 @@ public class PushNotificationDispatchService {
 
             for (PushNotificationCandidate candidate : allowedCandidates) {
                 try {
-                    if ("line-current".equals(candidate.category())) {
+                    if ("line-current".equals(candidate.category()) || "line-trip-change".equals(candidate.category())) {
                         currentLineNotificationKeys.add(candidate.notificationKey());
                         currentLineSourceIncidentKeys.add(candidate.sourceIncidentKey());
                         currentLineCandidates.add(candidate);
@@ -544,6 +546,10 @@ public class PushNotificationDispatchService {
                 lineEventObservationService.markCleared(observation, now);
                 continue;
             }
+            if ("trip-cancellation".equals(observation.getEventType())) {
+                lineEventObservationService.markCleared(observation, now);
+                continue;
+            }
             if (hasCanonicalCandidate(observation.getSourceIncidentKey(), allLineCandidates)
                 || hasEquivalentLineCandidate(observation, allLineCandidates)) {
                 lineEventObservationService.markCleared(observation, now);
@@ -584,6 +590,7 @@ public class PushNotificationDispatchService {
         return switch (observation.getEventType()) {
             case "suspension" -> preferences.isLineSuspensionEnabled();
             case "delay" -> preferences.isLineDelayEnabled();
+            case "trip-cancellation" -> preferences.isLineTripCancellationEnabled();
             case "reduced-speed-zone" -> preferences.isLineReducedSpeedZoneEnabled();
             case "planned-closure" -> preferences.isLinePlannedClosureEnabled();
             default -> true;

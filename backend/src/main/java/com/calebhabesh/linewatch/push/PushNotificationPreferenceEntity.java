@@ -26,6 +26,9 @@ public class PushNotificationPreferenceEntity {
     @Column(name = "saved_commute_delay_enabled")
     private boolean savedCommuteDelayEnabled = true;
 
+    @Column(name = "saved_commute_trip_cancellation_enabled")
+    private boolean savedCommuteTripCancellationEnabled = true;
+
     @Column(name = "saved_commute_reduced_speed_zone_enabled")
     private boolean savedCommuteReducedSpeedZoneEnabled = true;
 
@@ -40,6 +43,9 @@ public class PushNotificationPreferenceEntity {
 
     @Column(name = "line_delay_enabled")
     private boolean lineDelayEnabled = true;
+
+    @Column(name = "line_trip_cancellation_enabled")
+    private boolean lineTripCancellationEnabled = true;
 
     @Column(name = "line_reduced_speed_zone_enabled")
     private boolean lineReducedSpeedZoneEnabled = true;
@@ -100,6 +106,7 @@ public class PushNotificationPreferenceEntity {
                 var et = sc.eventTypes();
                 if (et.suspensions() != null) this.savedCommuteSuspensionEnabled = et.suspensions();
                 if (et.delays() != null) this.savedCommuteDelayEnabled = et.delays();
+                if (et.tripCancellations() != null) this.savedCommuteTripCancellationEnabled = et.tripCancellations();
                 if (et.reducedSpeedZones() != null) this.savedCommuteReducedSpeedZoneEnabled = et.reducedSpeedZones();
                 if (et.plannedClosures() != null) this.savedCommutePlannedClosureEnabled = et.plannedClosures();
                 if (et.serviceRestored() != null) this.savedCommuteRestoredEnabled = et.serviceRestored();
@@ -112,6 +119,7 @@ public class PushNotificationPreferenceEntity {
                 var et = ls.eventTypes();
                 if (et.suspensions() != null) this.lineSuspensionEnabled = et.suspensions();
                 if (et.delays() != null) this.lineDelayEnabled = et.delays();
+                if (et.tripCancellations() != null) this.lineTripCancellationEnabled = et.tripCancellations();
                 if (et.reducedSpeedZones() != null) this.lineReducedSpeedZoneEnabled = et.reducedSpeedZones();
                 if (et.plannedClosures() != null) this.linePlannedClosureEnabled = et.plannedClosures();
                 if (et.serviceRestored() != null) this.lineRestoredEnabled = et.serviceRestored();
@@ -135,11 +143,13 @@ public class PushNotificationPreferenceEntity {
     public boolean isSavedCommutePlannedEnabled() { return savedCommutePlannedEnabled; }
     public boolean isSavedCommuteSuspensionEnabled() { return savedCommuteSuspensionEnabled; }
     public boolean isSavedCommuteDelayEnabled() { return savedCommuteDelayEnabled; }
+    public boolean isSavedCommuteTripCancellationEnabled() { return savedCommuteTripCancellationEnabled; }
     public boolean isSavedCommuteReducedSpeedZoneEnabled() { return savedCommuteReducedSpeedZoneEnabled; }
     public boolean isSavedCommutePlannedClosureEnabled() { return savedCommutePlannedClosureEnabled; }
     public boolean isSavedCommuteRestoredEnabled() { return savedCommuteRestoredEnabled; }
     public boolean isLineSuspensionEnabled() { return lineSuspensionEnabled; }
     public boolean isLineDelayEnabled() { return lineDelayEnabled; }
+    public boolean isLineTripCancellationEnabled() { return lineTripCancellationEnabled; }
     public boolean isLineReducedSpeedZoneEnabled() { return lineReducedSpeedZoneEnabled; }
     public boolean isLinePlannedClosureEnabled() { return linePlannedClosureEnabled; }
     public boolean isLineRestoredEnabled() { return lineRestoredEnabled; }

@@ -18,7 +18,10 @@ describe("regional trip changes UI", () => {
   it("uses structured factual trip-change cards and source-honest guardrails", () => {
     assert.match(listSource, /Train \{change\.tripNumber \|\| change\.tripId\}/);
     assert.match(listSource, /Scheduled stops affected/);
-    assert.match(listSource, /Only operational records confidently matched/);
+    assert.match(listSource, /Schedule-matched changes include published stop times/);
+    assert.match(listSource, /Stops listed by Metrolinx/);
+    assert.match(listSource, /No upcoming GO train changes\./);
+    assert.match(listSource, /do not drive map or commute impacts/);
     assert.doesNotMatch(listSource, /alternate route/i);
   });
 
