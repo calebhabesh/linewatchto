@@ -18,7 +18,6 @@ import {
   type RegionalArrivalSnapshot,
 } from "../app/regional-arrivals";
 import type { StationSummary } from "../app/station-data";
-import { STATION_LINE_DEFINITIONS, STATION_LINE_STATION_IDS } from "../app/station-data";
 import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
 import { formatImpactTimestamp } from "../app/impact-time";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
@@ -38,7 +37,7 @@ import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { RegionalTripChangesList } from "./RegionalTripChangesList";
-import { regionalStationConnections, ttcStationIdForRegionalStation } from "../app/station-connections";
+import { regionalStationConnections } from "../app/station-connections";
 import { StationConnectionBadges } from "./StationConnectionBadges";
 
 type Props = {
@@ -323,14 +322,6 @@ export function RegionalStationDetailPanel({
     [arrivalSnapshot.arrivals, pinnedLineIds, station.id],
   );
 
-  const ttcLines = useMemo(() => {
-    const ttcStationId = ttcStationIdForRegionalStation(station.id);
-    return Object.values(STATION_LINE_DEFINITIONS).filter((line) =>
-      STATION_LINE_STATION_IDS[line.id]?.includes(ttcStationId)
-    );
-  }, [station.id]);
-
-
   const isWheelchairAccessible = isRegionalStationWheelchairAccessible(station.id);
   const connections = regionalStationConnections(station.id);
 
@@ -524,25 +515,6 @@ export function RegionalStationDetailPanel({
               )}
             </div>
           ))}
-          {ttcLines.length > 0 && (
-            <div className="flex flex-col gap-3 rounded-md border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-              <div className="flex flex-wrap gap-2">
-                {ttcLines.map((line) => (
-                  <span
-                    key={line.id}
-                    className="regional-route-pill inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
-                    style={transitLineBadgeColors(line.id)}
-                  >
-                    <span>{line.number}</span>
-                    <span className="min-w-0 truncate">{line.name}</span>
-                  </span>
-                ))}
-              </div>
-              <p className="break-words text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {ttcLines.length === 1 ? "TTC Connection" : "TTC Connections"}
-              </p>
-            </div>
-          )}
             </div>
 
             <div className="flex flex-col gap-3">

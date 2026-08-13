@@ -102,7 +102,7 @@ const STATION_NAME_OVERRIDES: Record<string, string> = {
   "west-harbour": "West Harbour",
 };
 
-function stationName(id: string) {
+export function stationName(id: string) {
   return STATION_NAME_OVERRIDES[id] ?? id.split("-").map((part) => `${part[0].toUpperCase()}${part.slice(1)}`).join(" ");
 }
 

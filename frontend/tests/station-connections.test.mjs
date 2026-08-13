@@ -46,21 +46,55 @@ describe("station connection metadata and map labels", () => {
       { ttcStationId: "dundas-west", regionalStationId: "bloor", services: ["go", "up"] },
     );
     assert.deepEqual(
-      ttcStationConnections("union").map((connection) => connection.kind),
-      ["go", "via", "up"],
+      ttcStationConnections("union").map((connection) => ({ kind: connection.kind, detail: connection.detail })),
+      [
+        { kind: "go", detail: "All GO Lines" },
+        { kind: "via", detail: "Intercity Rail Connection" },
+        { kind: "up", detail: "Union Station" },
+      ],
     );
     assert.deepEqual(
-      ttcStationConnections("kennedy").map((connection) => connection.kind),
-      ["go"],
+      ttcStationConnections("kipling"),
+      [{ kind: "go", label: "GO Transit", detail: "Milton Line" }],
+    );
+    assert.deepEqual(
+      ttcStationConnections("downsview-park"),
+      [{ kind: "go", label: "GO Transit", detail: "Barrie Line" }],
+    );
+    assert.deepEqual(
+      ttcStationConnections("kennedy"),
+      [{ kind: "go", label: "GO Transit", detail: "Stouffville Line" }],
+    );
+    assert.deepEqual(
+      ttcStationConnections("main-street"),
+      [{ kind: "go", label: "GO Transit", detail: "Lakeshore East Line" }],
+    );
+    assert.deepEqual(
+      ttcStationConnections("leslie"),
+      [{ kind: "go", label: "GO Transit", detail: "Richmond Hill Line" }],
+    );
+    assert.deepEqual(
+      ttcStationConnections("dundas-west"),
+      [
+        { kind: "go", label: "GO Transit", detail: "Kitchener Line" },
+        { kind: "up", label: "UP Express", detail: "Bloor" },
+      ],
+    );
+    assert.deepEqual(
+      ttcStationConnections("mount-dennis"),
+      [
+        { kind: "go", label: "GO Transit", detail: "Kitchener Line" },
+        { kind: "up", label: "UP Express", detail: "Mount Dennis" },
+      ],
     );
     assert.equal(ttcStationIdForRegionalStation("bloor"), "dundas-west");
     assert.equal(ttcStationIdForRegionalStation("danforth"), "main-street");
   });
 
-  it("records VIA Rail and airport connections for regional station details", () => {
+  it("records VIA Rail, airport, and TTC connections for regional station details", () => {
     assert.deepEqual(
       regionalStationConnections("union").map((connection) => connection.label),
-      ["VIA Rail", "Billy Bishop Airport"],
+      ["VIA Rail", "Billy Bishop Airport", "Line 1"],
     );
     assert.deepEqual(
       regionalStationConnections("pearson-airport").map((connection) => connection.label),
@@ -69,6 +103,17 @@ describe("station connection metadata and map labels", () => {
     assert.deepEqual(
       regionalStationConnections("guildwood").map((connection) => connection.kind),
       ["via"],
+    );
+    assert.deepEqual(
+      regionalStationConnections("kipling").map((connection) => ({ label: connection.label, detail: connection.detail })),
+      [{ label: "Line 2", detail: "Bloor-Danforth" }],
+    );
+    assert.deepEqual(
+      regionalStationConnections("kennedy").map((connection) => ({ label: connection.label, detail: connection.detail })),
+      [
+        { label: "Line 2", detail: "Bloor-Danforth" },
+        { label: "Line 5", detail: "Eglinton Crosstown" },
+      ],
     );
   });
 
@@ -103,7 +148,7 @@ describe("station connection metadata and map labels", () => {
     assert.match(css, /\.station-connection-list[^}]*display: grid;[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s);
     assert.match(css, /\.station-connection-row[^}]*border: 1px solid/s);
     assert.match(css, /\.station-connection-row[^}]*width: 100%;/s);
-    assert.match(css, /\.station-connection-row:only-child[^}]*grid-column: span 2;/s);
+    assert.doesNotMatch(css, /\.station-connection-row:only-child/);
     assert.match(css, /\.dark \.station-connection-row,[\s\S]*?background: rgba\(255, 255, 255, 0\.035\)/);
     assert.doesNotMatch(css, /map-connection-airport[^}]*filter:/s);
     assert.match(css, /map-connection-airport :is\(text, tspan\)[\s\S]*?fill: #f8fafc !important/);

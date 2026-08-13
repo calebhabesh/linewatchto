@@ -8,6 +8,7 @@ const CONNECTION_ICON: Record<StationConnection["kind"], string> = {
   via: "/assets/linewatch/connections/via-rail-logo.svg",
   up: "/assets/linewatch/connections/up-express-logo.svg",
   airport: "/assets/linewatch/connections/airport.svg",
+  ttc: "/assets/linewatch/line-1-legend.svg",
 };
 
 export function StationConnectionBadges({ connections }: { connections: readonly StationConnection[] }) {
@@ -29,10 +30,10 @@ export function StationConnectionBadges({ connections }: { connections: readonly
           >
             <span className="station-connection-logo-frame" aria-hidden="true">
               <Image
-                src={CONNECTION_ICON[connection.kind]}
+                src={connection.icon ?? CONNECTION_ICON[connection.kind]}
                 alt=""
-                width={connection.kind === "airport" ? 24 : 44}
-                height={24}
+                width={connection.kind === "airport" ? 30 : connection.kind === "ttc" ? 32 : 44}
+                height={connection.kind === "airport" ? 30 : connection.kind === "ttc" ? 32 : 24}
                 className="station-connection-icon"
               />
             </span>

@@ -565,10 +565,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   padding: 7px 8px;
 }
 
-.station-connection-row:only-child {
-  grid-column: span 2;
-}
-
 .station-connection-logo-frame {
   display: flex;
   width: 36px;
@@ -592,6 +588,9 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   font-weight: 850;
   line-height: 1.15;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .station-connection-copy small {
@@ -599,6 +598,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   font-size: 10px;
   font-weight: 650;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .station-connection-icon {
@@ -610,7 +613,15 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .station-connection-row--airport .station-connection-icon {
-  width: 22px;
+  width: 30px;
+  height: 30px;
+  max-width: 30px;
+}
+
+.station-connection-row--ttc .station-connection-icon {
+  width: 32px;
+  height: 32px;
+  max-width: 32px;
 }
 
 .dark .station-connections-title,
