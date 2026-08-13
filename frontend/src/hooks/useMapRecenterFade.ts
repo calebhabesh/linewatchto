@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef } from "react";
 
 export const MAP_RECENTER_FADE_DURATION_MS = 180;
 
+type RecenterFadeEffect = {
+  animation: Animation;
+  target: HTMLElement;
+};
+
 export function useMapRecenterFade({
   animationId,
   reducedMotion,
@@ -11,19 +16,30 @@ export function useMapRecenterFade({
   reducedMotion: boolean;
   direction?: "in" | "out";
 }) {
-  const animationRef = useRef<Animation | null>(null);
+  const effectRef = useRef<RecenterFadeEffect | null>(null);
+
+  const releaseRecenterFade = useCallback((effect: RecenterFadeEffect, cancel: boolean) => {
+    if (effectRef.current !== effect) return;
+
+    effectRef.current = null;
+    effect.animation.onfinish = null;
+    effect.animation.oncancel = null;
+    if (cancel) effect.animation.cancel();
+    if (effect.target.dataset.mapRecenterEffect === animationId) {
+      delete effect.target.dataset.mapRecenterEffect;
+    }
+  }, [animationId]);
 
   const clearRecenterFade = useCallback(() => {
-    const animation = animationRef.current;
-    if (!animation) return;
-    animationRef.current = null;
-    animation.cancel();
-  }, []);
+    const effect = effectRef.current;
+    if (!effect) return;
+    releaseRecenterFade(effect, true);
+  }, [releaseRecenterFade]);
 
   const playRecenterFade = useCallback((target: HTMLElement | null) => {
+    clearRecenterFade();
     if (!target || reducedMotion) return;
 
-    clearRecenterFade();
     const animation = target.animate(
       direction === "in"
         ? [{ opacity: 0 }, { opacity: 1 }]
@@ -35,16 +51,13 @@ export function useMapRecenterFade({
     );
     animation.id = animationId;
     target.dataset.mapRecenterEffect = animationId;
-    animationRef.current = animation;
+    const effect = { animation, target };
+    effectRef.current = effect;
 
-    const clearFadeReference = () => {
-      if (animationRef.current === animation) {
-        animationRef.current = null;
-      }
-    };
-    animation.onfinish = clearFadeReference;
-    animation.oncancel = clearFadeReference;
-  }, [animationId, clearRecenterFade, direction, reducedMotion]);
+    const releaseFinishedFade = () => releaseRecenterFade(effect, false);
+    animation.onfinish = releaseFinishedFade;
+    animation.oncancel = releaseFinishedFade;
+  }, [animationId, clearRecenterFade, direction, reducedMotion, releaseRecenterFade]);
 
   useEffect(() => clearRecenterFade, [clearRecenterFade]);
 

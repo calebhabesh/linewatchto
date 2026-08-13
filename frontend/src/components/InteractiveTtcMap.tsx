@@ -509,6 +509,7 @@ function InteractiveTtcMapComponent({
     isGestureActive,
     containerRef,
     mapRef,
+    recenterVeilRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
@@ -2527,6 +2528,16 @@ function InteractiveTtcMapComponent({
             </svg>
           </div>
         )}
+        <div
+          ref={recenterVeilRef}
+          aria-hidden="true"
+          className="ttc-map-recenter-veil"
+          style={{
+            backgroundColor: highContrast
+              ? isDark ? "#000000" : "#ffffff"
+              : isDark ? "#0d0808" : "#f8fafc",
+          }}
+        />
         {expandedOverlapBadge && expandedOverlapChooserLayout ? (
           <OverlapChooser
             key={expandedOverlapBadge.segmentId}

@@ -966,7 +966,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(recenterFadeSource, /direction === "in"[\s\S]*\[\{ opacity: 1 \}, \{ opacity: 0 \}\][\s\S]*duration: MAP_RECENTER_FADE_DURATION_MS/);
     assert.doesNotMatch(regionalMapSource, /startViewTransition|regionalRecenterTransition|MapViewTransition/);
     assert.doesNotMatch(globalsCss, /regional-map-recenter-fade-in|data-regional-recenter-transition|view-transition-name:\s*regional-map-recenter/);
-    assert.match(globalsCss, /\.regional-map-recenter-veil\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;[^}]*will-change:\s*opacity/s);
+    assert.match(globalsCss, /\.ttc-map-recenter-veil,[\s\S]*\.regional-map-recenter-veil\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;[^}]*contain:\s*strict/s);
+    assert.match(globalsCss, /\.regional-map-recenter-veil\[data-map-recenter-effect\]\s*\{[^}]*will-change:\s*opacity/s);
     assert.doesNotMatch(globalsCss, /\.regional-map-stage\s*\{[^}]*will-change:\s*opacity/s);
     assert.doesNotMatch(regionalMapSource, /className="regional-map-scene"/);
     assert.doesNotMatch(regionalMapSource, /RECENTER_CAMERA_MOTION/);

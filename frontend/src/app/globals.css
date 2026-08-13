@@ -310,17 +310,18 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   inset: 0;
 }
 
-/* TTC's compact stage can own its camera transform and Center opacity. */
-.ttc-map-stage {
-  will-change: opacity;
-}
-
+.ttc-map-recenter-veil,
 .regional-map-recenter-veil {
   position: absolute;
   inset: 0;
   z-index: 10;
   opacity: 0;
   pointer-events: none;
+  contain: strict;
+}
+
+.ttc-map-recenter-veil[data-map-recenter-effect],
+.regional-map-recenter-veil[data-map-recenter-effect] {
   will-change: opacity;
 }
 

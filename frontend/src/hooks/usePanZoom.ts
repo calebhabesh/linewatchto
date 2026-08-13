@@ -64,6 +64,7 @@ export function usePanZoom({
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+  const recenterVeilRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const dragRafRef = useRef<number | null>(null);
   const lastMoveEvent = useRef<{ clientX: number, clientY: number } | null>(null);
@@ -87,6 +88,7 @@ export function usePanZoom({
   const { clearRecenterFade, playRecenterFade } = useMapRecenterFade({
     animationId: RECENTER_FADE_ANIMATION_ID,
     reducedMotion,
+    direction: "out",
   });
 
   useEffect(() => {
@@ -303,7 +305,7 @@ export function usePanZoom({
       setFitScale(nextFitScale);
     }
     commitTransform(snapped);
-    playRecenterFade(mapRef.current);
+    playRecenterFade(recenterVeilRef.current);
   }, [
     clearProgrammaticAnimation,
     commitTransform,
@@ -955,6 +957,7 @@ export function usePanZoom({
     isGestureActive,
     containerRef,
     mapRef,
+    recenterVeilRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
