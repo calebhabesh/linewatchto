@@ -45,6 +45,13 @@ describe("site guide dropdown", () => {
     assert.match(globalCss, /@keyframes utility-popover-exit/);
   });
 
+  it("uses a red activity icon for source status while keeping the mobile More icon neutral", () => {
+    const logsSource = readFileSync(logsComponentUrl, "utf8");
+
+    assert.doesNotMatch(logsSource, /Newspaper/);
+    assert.match(logsSource, /<Activity[\s\S]*?isMobileMore[\s\S]*?text-slate-500 dark:text-slate-400[\s\S]*?text-red-600 dark:text-red-400/);
+  });
+
   it("ships the guide icon and logo as public LineWatch assets", () => {
     assert.equal(existsSync(guideAssetUrl), true);
     assert.equal(existsSync(logoAssetUrl), true);

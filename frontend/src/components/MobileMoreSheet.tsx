@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Bell, BatteryCharging, Bookmark, Download, FileText, LogIn, LogOut, Megaphone, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
+import { BarChart3, Bell, BatteryCharging, Bookmark, Download, FileText, HeartHandshake, LogIn, LogOut, Megaphone, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
@@ -51,6 +51,7 @@ type Props = {
   onOpenAnnouncements?: () => void;
   onOpenAnalytics: () => void;
   onOpenFeedback: () => void;
+  supportUrl: string;
   onOpenPrivacyAcknowledgements: () => void;
   onOpenReleaseNotes: () => void;
   onShareApp: () => void;
@@ -93,6 +94,7 @@ export function MobileMoreSheet({
   onOpenAnnouncements,
   onOpenAnalytics,
   onOpenFeedback,
+  supportUrl,
   onOpenPrivacyAcknowledgements,
   onOpenReleaseNotes,
   onShareApp,
@@ -392,8 +394,14 @@ export function MobileMoreSheet({
           </button>
           <button type="button" className="mobile-more-row" onClick={onOpenFeedback}>
             <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" />
-            Leave Feedback / Support
+            Leave Feedback
           </button>
+          {supportUrl ? (
+            <a href={supportUrl} target="_blank" rel="noreferrer" className="mobile-more-row">
+              <HeartHandshake size={18} className="text-slate-500 dark:text-slate-400" />
+              Support
+            </a>
+          ) : null}
           <button type="button" className="mobile-more-row" onClick={onOpenPrivacyAcknowledgements}>
             <FileText size={18} className="text-slate-500 dark:text-slate-400" />
             Privacy & Acknowledgements

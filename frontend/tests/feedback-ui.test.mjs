@@ -39,13 +39,18 @@ describe("feedback navigation", () => {
   const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
   const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 
-  it("adds feedback to the desktop menu and mobile More sheet", () => {
+  it("splits feedback and support in the desktop menu and mobile More sheet", () => {
     assert.match(shellSource, /"feedback"/);
     assert.match(shellSource, /FeedbackPanel/);
     assert.match(shellSource, /NEXT_PUBLIC_LINEWATCH_SUPPORT_URL/);
     assert.match(shellSource, /Leave Feedback/);
     assert.match(shellSource, /navigateForward\("feedback"\)/);
+    assert.match(shellSource, /HeartHandshake/);
+    assert.match(shellSource, /> Support\s*</);
     assert.match(moreSheetSource, /onOpenFeedback/);
     assert.match(moreSheetSource, /Leave Feedback/);
+    assert.match(moreSheetSource, /HeartHandshake/);
+    assert.match(moreSheetSource, />\s*Support\s*</);
+    assert.doesNotMatch(moreSheetSource, /Leave Feedback \/ Support/);
   });
 });

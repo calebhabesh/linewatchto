@@ -70,7 +70,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff, Megaphone } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -2340,7 +2340,7 @@ export function LineWatchShell({
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
       case "alert-history": return "Alert History";
-      case "feedback": return "Leave Feedback / Support";
+      case "feedback": return "Leave Feedback";
       case "privacy-acknowledgements": return "Privacy & Acknowledgements";
       case "release-notes": return "What's New";
       case "accessibility-outages": return "Accessibility outages";
@@ -2558,6 +2558,7 @@ export function LineWatchShell({
             onOpenAlertHistory={() => navigateForward("alert-history")}
             onOpenAnnouncements={() => navigateForward("announcements")}
             onOpenFeedback={() => navigateForward("feedback")}
+            supportUrl={supportUrl}
             onOpenPrivacyAcknowledgements={() => navigateForward("privacy-acknowledgements")}
             onOpenReleaseNotes={() => navigateForward("release-notes")}
             onShareApp={handleShareLineWatchApp}
@@ -3282,8 +3283,18 @@ export function LineWatchShell({
                    aria-current={activeView === "feedback" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
-                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Leave Feedback / Support
+                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Leave Feedback
                  </button>
+                 {supportUrl ? (
+                   <button
+                     ref={registerMenuAction(actionIndex++)}
+                     role="menuitem"
+                     onClick={() => window.open(supportUrl, "_blank", "noopener,noreferrer")}
+                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                   >
+                     <HeartHandshake size={18} className="text-slate-500 dark:text-slate-400" /> Support
+                   </button>
+                 ) : null}
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"

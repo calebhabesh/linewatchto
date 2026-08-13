@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, AlertCircle, ChevronDown, ChevronUp, Newspaper, RefreshCw } from "lucide-react";
+import { Activity, AlertCircle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { apiUrl } from "../app/api-client.ts";
 import { formatImpactTimestamp } from "../app/impact-time";
 import type { NetworkId } from "../app/regional-data";
@@ -166,11 +166,12 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
         aria-expanded={isOpen && !isClosing}
       >
         <span className="flex items-center gap-3">
-          <Newspaper
+          <Activity
+            aria-hidden="true"
             className={`shrink-0 ${
               isMobileMore
                 ? "w-[18px] h-[18px] text-slate-500 dark:text-slate-400"
-                : "w-[18px] h-[18px] sm:w-[24px] sm:h-[24px] text-slate-800 dark:text-white"
+                : "w-[18px] h-[18px] sm:w-[24px] sm:h-[24px] text-red-600 dark:text-red-400"
             }`}
           />
           {isMobileMore ? <span>{network === "regional" ? "GO / UP Source Status" : "TTC Source Status"}</span> : null}

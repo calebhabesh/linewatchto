@@ -80,7 +80,7 @@ export function FeedbackPanel({ dataSource, supportUrl, onBack, onClose }: Props
           ) : null}
           <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
             <MessageSquareText className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-blue-500 shrink-0" aria-hidden="true" />
-            <span>Leave Feedback / Support</span>
+            <span>Leave Feedback</span>
           </h2>
         </div>
         {onClose ? (
