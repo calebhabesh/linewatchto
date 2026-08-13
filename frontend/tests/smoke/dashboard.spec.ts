@@ -1308,8 +1308,14 @@ test("renders regional estimated train markers from the network-scoped endpoint"
   await expect(marker.locator(".estimated-train-marker-core")).toHaveCount(1);
   await expect(marker.locator(".estimated-train-marker-window")).toHaveCount(3);
   await expect(marker.locator(".estimated-train-marker-arrow")).toHaveCount(1);
-  expect(await marker.evaluate((node) => node.parentElement?.parentElement?.id)).toBe(
-    "regional-stations-layer",
+  expect(await marker.evaluate((node) => node.parentElement?.id)).toBe(
+    "regional-train-marker-layer",
+  );
+  expect(await marker.evaluate((node) => Boolean(node.closest(".raster-map-top-plane")))).toBe(
+    true,
+  );
+  expect(await marker.evaluate((node) => node.getAttribute("transform"))).toMatch(
+    /^translate\(1885\.\d+\s+2757\.\d+\)/,
   );
 
   const disruptionOverlay = page.locator(".regional-overlay-segment-group").first();

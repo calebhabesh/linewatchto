@@ -1106,6 +1106,120 @@ function authoredRegionalCorridorPathData(documentNode: Document, lineId: string
   return pathData.length > 0 ? pathData.join(" ") : null;
 }
 
+function svgAnchorPointInRootCoordinates(documentNode: Document, anchorId: string | undefined): SvgPoint | null {
+  if (!anchorId) return null;
+  const anchor = documentNode.getElementById(anchorId) as SVGElement | null;
+  if (!anchor) return null;
+  let localCenter: SvgPoint | null = null;
+  if (anchor.matches("circle, ellipse")) {
+    localCenter = {
+      x: Number(anchor.getAttribute("cx") ?? 0),
+      y: Number(anchor.getAttribute("cy") ?? 0),
+    };
+  } else if (anchor.tagName.toLowerCase() === "rect") {
+    const x = Number(anchor.getAttribute("x") ?? 0);
+    const y = Number(anchor.getAttribute("y") ?? 0);
+    localCenter = {
+      x: x + Number(anchor.getAttribute("width") ?? 0) / 2,
+      y: y + Number(anchor.getAttribute("height") ?? 0) / 2,
+    };
+  }
+  if (!localCenter) return null;
+  return pointInSvgRootCoordinates(anchor, localCenter);
+}
+
+function fallbackSegmentPathInRootCoordinates(
+  documentNode: Document,
+  stationAAnchorId: string | undefined,
+  stationBAnchorId: string | undefined,
+) {
+  const start = svgAnchorPointInRootCoordinates(documentNode, stationAAnchorId);
+  const end = svgAnchorPointInRootCoordinates(documentNode, stationBAnchorId);
+  return start && end ? `M ${start.x},${start.y} L ${end.x},${end.y}` : null;
+}
+
+function corridorSegmentPathInRootCoordinates(
+  documentNode: Document,
+  segment: NetworkSegment,
+) {
+  const start = svgAnchorPointInRootCoordinates(documentNode, segment.stationAAnchorId);
+  const end = svgAnchorPointInRootCoordinates(documentNode, segment.stationBAnchorId);
+  if (!start || !end) return null;
+
+  const metrics = regionalRoutePathIds(segment.lineId)
+    .map((pathId) => documentNode.getElementById(pathId) as SVGPathElement | null)
+    .filter((path): path is SVGPathElement => Boolean(path))
+    .map((path): RegionalRouteMetric | null => {
+      try {
+        const length = path.getTotalLength();
+        if (length <= 0) return null;
+        return {
+          path,
+          length,
+          pointAt: (distance) => {
+            const localPoint = path.getPointAtLength(Math.max(0, Math.min(length, distance)));
+            return pointInSvgRootCoordinates(path, { x: localPoint.x, y: localPoint.y });
+          },
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter((metric): metric is RegionalRouteMetric => Boolean(metric));
+  if (metrics.length === 0) return null;
+
+  const startProjections = metrics.map((metric) => closestRouteDistance(metric, start));
+  const endProjections = metrics.map((metric) => closestRouteDistance(metric, end));
+  const startMetricIndex = startProjections.reduce(
+    (best, projection, index) =>
+      projection.distanceSquared < startProjections[best].distanceSquared ? index : best,
+    0,
+  );
+  const endMetricIndex = endProjections.reduce(
+    (best, projection, index) =>
+      projection.distanceSquared < endProjections[best].distanceSquared ? index : best,
+    0,
+  );
+
+  if (startMetricIndex === endMetricIndex) {
+    return pathDataForPoints(routePointsBetween(
+      metrics[startMetricIndex],
+      startProjections[startMetricIndex].distance,
+      endProjections[endMetricIndex].distance,
+    ));
+  }
+
+  const startMetric = metrics[startMetricIndex];
+  const endMetric = metrics[endMetricIndex];
+  const connections = [0, endMetric.length].map((endPathDistance) => {
+    const endPathPoint = endMetric.pointAt(endPathDistance);
+    const startPathProjection = closestRouteDistance(startMetric, endPathPoint);
+    return {
+      startPathDistance: startPathProjection.distance,
+      endPathDistance,
+      gapSquared: squaredPointDistance(
+        startMetric.pointAt(startPathProjection.distance),
+        endPathPoint,
+      ),
+    };
+  });
+  const connection = connections.reduce((best, candidate) =>
+    candidate.gapSquared < best.gapSquared ? candidate : best);
+  if (connection.gapSquared > 4) return null;
+
+  const firstPoints = routePointsBetween(
+    startMetric,
+    startProjections[startMetricIndex].distance,
+    connection.startPathDistance,
+  );
+  const secondPoints = routePointsBetween(
+    endMetric,
+    connection.endPathDistance,
+    endProjections[endMetricIndex].distance,
+  );
+  return pathDataForPoints([...firstPoints, ...secondPoints.slice(1)]);
+}
+
 function resolvedRegionalSegmentPath(documentNode: Document, segment: NetworkSegment) {
   const guide = documentNode.getElementById(segment.guidePathId ?? "") as SVGPathElement | null;
   return guide?.getAttribute("d")
@@ -1118,10 +1232,11 @@ function regionalTrainMarkerFrame(
   segment: NetworkSegment,
   marker: EstimatedTrainMarker,
 ) {
-  const pathD = resolvedRegionalSegmentPath(documentNode, segment);
+  const pathD = corridorSegmentPathInRootCoordinates(documentNode, segment)
+    ?? fallbackSegmentPathInRootCoordinates(documentNode, segment.stationAAnchorId, segment.stationBAnchorId);
   const direction = resolveEstimatedTrainMarkerSegmentDirection(marker, segment);
   if (!direction) return null;
-  const from = svgAnchorPoint(documentNode, direction.fromAnchorId);
+  const from = svgAnchorPointInRootCoordinates(documentNode, direction.fromAnchorId);
   if (!pathD || !from) return null;
 
   const markerPath = documentNode.createElementNS(SVG_NAMESPACE, "path");
@@ -2908,12 +3023,6 @@ function InteractiveRegionalMapComponent({
         stationsLayer.insertBefore(commuteLayer, firstStationTarget);
         stationsLayer.insertBefore(hoverLayer, firstStationTarget);
 
-        const markerLayer = createLayer(REGIONAL_TRAIN_MARKER_LAYER_ID, "estimated-train-marker-layer");
-        markerLayer.classList.add("regional-estimated-train-marker-layer");
-        markerLayer.setAttribute("aria-label", "Estimated regional train markers");
-        markerLayer.setAttribute("pointer-events", "none");
-        stationsLayer.append(markerLayer);
-
         const effectsLayer = createLayer(REGIONAL_DYNAMIC_EFFECTS_LAYER_ID, "regional-station-impact-effects-layer");
         effectsLayer.setAttribute("aria-label", "Station alert beacons and directions");
         effectsLayer.setAttribute("pointer-events", "none");
@@ -4274,6 +4383,13 @@ function InteractiveRegionalMapComponent({
                 />
               </g>
             ) : null}
+            <g
+              id={REGIONAL_TRAIN_MARKER_LAYER_ID}
+              className="estimated-train-marker-layer regional-estimated-train-marker-layer"
+              aria-label="Estimated regional train markers"
+              pointerEvents="none"
+              data-muted={Boolean(selection || selectedStationId || commutePathPreview) ? "true" : "false"}
+            />
             <g aria-label="Cardinal North Compass" transform="translate(14800, 5100)">
               <image
                 href="/assets/linewatch/cardinal-north.svg"

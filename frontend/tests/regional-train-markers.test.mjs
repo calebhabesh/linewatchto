@@ -24,11 +24,11 @@ describe("regional estimated train marker rendering", () => {
     assert.match(regionalMapSource, /estimated-train-marker-arrow/);
   });
 
-  it("projects regional markers onto the authored segment path in station-layer coordinates", () => {
-    assert.match(regionalMapSource, /resolvedRegionalSegmentPath\(documentNode, segment\)/);
+  it("projects regional markers onto the authored segment path in root coordinates", () => {
+    assert.match(regionalMapSource, /corridorSegmentPathInRootCoordinates\(documentNode, segment\)/);
     assert.match(regionalMapSource, /getPointAtLength/);
     assert.match(regionalMapSource, /getTotalLength/);
-    assert.match(regionalMapSource, /stationsLayer\.append\(markerLayer\)/);
+    assert.match(regionalMapSource, /REGIONAL_TRAIN_MARKER_LAYER_ID/);
     assert.doesNotMatch(regionalMapSource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
     assert.doesNotMatch(regionalMapSource, /documentNode\.documentElement\.append\(markerLayer\)/);
   });

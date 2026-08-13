@@ -1043,5 +1043,10 @@ describe("asset-backed map layering", () => {
     assert.ok(stationLayerIndex > overlayIndex);
     assert.ok(trainIndex > stationLayerIndex);
     assert.ok(badgeIndex > trainIndex);
+
+    const regionalTopPlaneIndex = interactiveRegionalMapSource.indexOf('className="raster-map-top-plane');
+    const regionalTrainIndex = interactiveRegionalMapSource.indexOf('id={REGIONAL_TRAIN_MARKER_LAYER_ID}');
+    assert.ok(regionalTopPlaneIndex > -1);
+    assert.ok(regionalTrainIndex > regionalTopPlaneIndex);
   });
 });
