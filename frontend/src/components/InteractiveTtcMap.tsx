@@ -520,6 +520,7 @@ function InteractiveTtcMapComponent({
     stageInitialEntrance,
     completeStagedEntrance,
     recenter,
+    recenterWithFeedback,
     zoomIn,
     zoomOut,
     zoomToScale,
@@ -725,8 +726,8 @@ function InteractiveTtcMapComponent({
       || loadState !== "ready"
     ) return;
     lastRecenterSignalRef.current = recenterSignal;
-    recenter();
-  }, [recenterSignal, loadState, recenter]);
+    recenterWithFeedback();
+  }, [recenterSignal, loadState, recenterWithFeedback]);
 
   const lastEntranceSignalRef = useRef(entranceSignal ?? 0);
 
@@ -1636,7 +1637,7 @@ function InteractiveTtcMapComponent({
       <div ref={mapControlRailRef} className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
         <div className="map-control-recenter-container">
           <button
-            onClick={recenter}
+            onClick={recenterWithFeedback}
             className="map-control-button group"
             title="Center view"
             aria-label="Center map view"

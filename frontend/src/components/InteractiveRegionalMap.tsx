@@ -2511,9 +2511,11 @@ function InteractiveRegionalMapComponent({
     const width = viewport?.clientWidth || mapSurface?.clientWidth || 0;
     const height = viewport?.clientHeight || mapSurface?.clientHeight || 0;
     if (width <= 0 || height <= 0) return;
-    const entryCamera = snapCameraToDevicePixels(
-      computeFittedCameraFlyInStart(fitted.camera, width, height, fitted.focus),
-    );
+    const entryCamera = animateInitialEntrance
+      ? snapCameraToDevicePixels(
+          computeFittedCameraFlyInStart(fitted.camera, width, height, fitted.focus),
+        )
+      : fitted.camera;
 
     cameraInitializedRef.current = true;
     setCameraReady(true);
@@ -2522,13 +2524,17 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(entryCamera);
     setFitScale(fitted.scale);
     setCamera(entryCamera);
-  }, [fittedCamera, setMapTransition, svgMarkup, writeMapTransform]);
+  }, [animateInitialEntrance, fittedCamera, setMapTransition, svgMarkup, writeMapTransform]);
 
   const completeStagedEntrance = useCallback(() => {
     const fitted = fittedCamera();
     if (!fitted) return;
-    animateCameraTo(fitted.camera, fitted.scale);
-  }, [animateCameraTo, fittedCamera]);
+    if (animateInitialEntrance && shouldAnimateProgrammaticTransform) {
+      animateCameraTo(fitted.camera, fitted.scale);
+      return;
+    }
+    snapCameraToNetwork(fitted.camera, fitted.scale);
+  }, [animateCameraTo, animateInitialEntrance, fittedCamera, shouldAnimateProgrammaticTransform, snapCameraToNetwork]);
 
   const initializeMapCamera = useCallback(() => {
     if (cameraInitializedRef.current || !svgMarkup) return;

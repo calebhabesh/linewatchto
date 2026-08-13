@@ -8,7 +8,7 @@ type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
 type NetworkMapProps = TtcMapProps & {
   network: NetworkId;
   mobileAnnouncementVisible: boolean;
-  onMapReady: () => void;
+  onMapReady?: () => void;
   legendProps: Omit<NetworkMapLegendProps, "mode" | "closingSoon">;
 };
 

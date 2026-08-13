@@ -758,31 +758,37 @@ export function usePanZoom({
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const fittedTransform = defaultTransformForViewport(width, height);
-    const entryTransform = snapTransform(
-      computeFittedCameraFlyInStart(fittedTransform, width, height),
-    );
+    const entryTransform = animateInitialEntrance
+      ? snapTransform(computeFittedCameraFlyInStart(fittedTransform, width, height))
+      : snapTransform(fittedTransform);
 
     cameraInitializedRef.current = true;
     transformRef.current = entryTransform;
     setMapTransition("none");
     writeMapTransform(entryTransform);
     setTransform(entryTransform);
-  }, [defaultTransformForViewport, logicalViewportSize, setMapTransition, snapTransform, writeMapTransform]);
+  }, [animateInitialEntrance, defaultTransformForViewport, logicalViewportSize, setMapTransition, snapTransform, writeMapTransform]);
 
   const completeStagedEntrance = useCallback(() => {
-    moveToDefaultCamera(true, false);
-  }, [moveToDefaultCamera]);
+    moveToDefaultCamera(animateInitialEntrance, false);
+  }, [animateInitialEntrance, moveToDefaultCamera]);
 
   const recenter = useCallback(() => {
     cameraAdjustedByUserRef.current = false;
-    if (!containerRef.current) return;
+    if (!containerRef.current) return false;
     const { width, height } = logicalViewportSize();
-    if (width <= 0 || height <= 0) return;
+    if (width <= 0 || height <= 0) return false;
     const next = defaultTransformForViewport(width, height);
     cameraInitializedRef.current = true;
     snapTransformToDefault(next, next.scale);
-    if (!reducedMotion) setRecenterFeedbackKey((current) => current + 1);
-  }, [defaultTransformForViewport, logicalViewportSize, reducedMotion, snapTransformToDefault]);
+    return true;
+  }, [defaultTransformForViewport, logicalViewportSize, snapTransformToDefault]);
+
+  const recenterWithFeedback = useCallback(() => {
+    if (recenter() && !reducedMotion) {
+      setRecenterFeedbackKey((current) => current + 1);
+    }
+  }, [recenter, reducedMotion]);
 
   const refitIfCameraUntouched = useCallback(() => {
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
@@ -955,6 +961,7 @@ export function usePanZoom({
     handlePointerCancel,
     handleWheel,
     recenter,
+    recenterWithFeedback,
     initializeCamera,
     stageInitialEntrance,
     completeStagedEntrance,

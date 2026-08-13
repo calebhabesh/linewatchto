@@ -320,23 +320,23 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   z-index: 10;
   pointer-events: none;
   background-color: transparent;
-  animation: map-center-feedback-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: map-center-feedback-fade 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .dark .map-center-feedback {
-  --map-center-feedback-color: rgba(13, 8, 8, 0.88);
+  --map-center-feedback-color: rgb(13, 8, 8);
 }
 
 .high-contrast .map-center-feedback {
-  --map-center-feedback-color: rgba(255, 255, 255, 0.94);
+  --map-center-feedback-color: rgb(255, 255, 255);
 }
 
 .dark.high-contrast .map-center-feedback {
-  --map-center-feedback-color: rgba(0, 0, 0, 0.94);
+  --map-center-feedback-color: rgb(0, 0, 0);
 }
 
 @keyframes map-center-feedback-fade {
-  from { background-color: var(--map-center-feedback-color, rgba(248, 250, 252, 0.88)); }
+  from { background-color: var(--map-center-feedback-color, rgb(248, 250, 252)); }
   to { background-color: transparent; }
 }
 

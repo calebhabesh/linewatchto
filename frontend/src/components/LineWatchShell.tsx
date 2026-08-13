@@ -218,7 +218,6 @@ export function LineWatchShell({
 }) {
   const router = useRouter();
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
-  const [initialMapReady, setInitialMapReady] = useState(false);
   const [defaultNetworkPreference, setDefaultNetworkPreference] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
   const [ttcData, setTtcData] = useState(initialData);
   const [regionalData, setRegionalData] = useState(regionalDashboardData);
@@ -1941,10 +1940,6 @@ export function LineWatchShell({
     setDefaultNetworkPreference(network);
   };
 
-  const handleMapReady = useCallback(() => {
-    setInitialMapReady(true);
-  }, []);
-
   const handleOpenSearch = () => {
     if (activeViewRef.current !== "search" && activeViewRef.current !== "map") {
       setSelection(null);
@@ -3599,11 +3594,10 @@ export function LineWatchShell({
       <main className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>
         <NetworkMap
           network={selectedNetwork}
-          animateInitialEntrance={!initialMapReady}
+          animateInitialEntrance={false}
           deferInitialEntrance={disclaimerVisible
             || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
             || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
-          onMapReady={handleMapReady}
           mobileAnnouncementVisible={selectedNetwork === "ttc"
             ? subwayOperatingState.closingSoon
               || (subwayOperatingState.status === "closed" && closedMapPeek)

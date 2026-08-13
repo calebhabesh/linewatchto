@@ -176,7 +176,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(networkChangeBody, /setMapLayoutSignal/);
     assert.doesNotMatch(networkMapSource, /key=\{network\}/);
     assert.doesNotMatch(regionalMapSource, /startInitialFlyIn/);
-    assert.match(shellSource, /animateInitialEntrance=\{!initialMapReady\}/);
+    assert.match(shellSource, /animateInitialEntrance=\{false\}/);
     assert.match(regionalMapSource, /const initializeMapCamera = useCallback/);
     assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\) \{[\s\S]*computeFittedCameraFlyInStart[\s\S]*animateCameraTo\(fitted\.camera, fitted\.scale\)/);
     assert.match(
@@ -185,18 +185,11 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("gives either initially preferred map the main-worktree camera fly-in", () => {
+  it("renders either initially preferred map at its fitted camera without a fly-in", () => {
+    assert.doesNotMatch(shellSource, /initialMapReady|setInitialMapReady/);
     assert.match(
       shellSource,
-      /const \[initialMapReady, setInitialMapReady\] = useState\(false\)/,
-    );
-    assert.match(
-      shellSource,
-      /animateInitialEntrance=\{!initialMapReady\}/,
-    );
-    assert.match(
-      shellSource,
-      /onMapReady=\{handleMapReady\}/,
+      /animateInitialEntrance=\{false\}/,
     );
     assert.match(
       networkMapSource,
@@ -210,6 +203,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(networkMapSource, /deferInitialEntrance=\{props\.deferInitialEntrance\}/);
     assert.match(regionalMapSource, /const stageInitialEntrance = useCallback/);
     assert.match(regionalMapSource, /const completeStagedEntrance = useCallback/);
+    assert.match(regionalMapSource, /const entryCamera = animateInitialEntrance[\s\S]*computeFittedCameraFlyInStart[\s\S]*: fitted\.camera/);
+    assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\)[\s\S]*animateCameraTo[\s\S]*snapCameraToNetwork/);
     assert.match(regionalMapSource, /useLayoutEffect\(\(\) => \{[\s\S]*?stageInitialEntrance\(\)[\s\S]*?initializeMapCamera\(\)/);
     assert.match(regionalMapSource, /visibility: svgMarkup && cameraReady \? "visible" : "hidden"/);
     assert.match(regionalMapSource, /setMapTransition\("none"\)/);

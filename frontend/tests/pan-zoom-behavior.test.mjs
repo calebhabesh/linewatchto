@@ -196,10 +196,13 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(hookSource, /useMapRecenterFade|recenterVeilRef|RECENTER_FADE_ANIMATION_ID|playRecenterFade/);
     assert.doesNotMatch(mapSource, /map-recenter-veil/);
     assert.doesNotMatch(globalCss, /map-recenter-veil|data-map-recenter-effect/);
-    assert.match(hookSource, /if \(!reducedMotion\) setRecenterFeedbackKey/);
+    assert.match(hookSource, /const recenterWithFeedback[\s\S]*recenter\(\) && !reducedMotion[\s\S]*setRecenterFeedbackKey/);
+    assert.match(mapSource, /onClick=\{recenterWithFeedback\}/);
+    assert.match(mapSource, /recenterSignal[\s\S]*recenterWithFeedback\(\)/);
     assert.match(mapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback="ttc"/);
     assert.match(globalCss, /\.map-center-feedback\s*\{[^}]*background-color:\s*transparent;[^}]*animation:\s*map-center-feedback-fade/s);
-    assert.match(globalCss, /@keyframes map-center-feedback-fade\s*\{[^}]*background-color:[^}]*\}[^}]*background-color:\s*transparent/s);
+    assert.match(globalCss, /animation:\s*map-center-feedback-fade 420ms cubic-bezier\(0\.16, 1, 0\.3, 1\)/);
+    assert.match(globalCss, /@keyframes map-center-feedback-fade\s*\{[^}]*background-color:[^}]*rgb\([^}]*\}[^}]*background-color:\s*transparent/s);
     assert.doesNotMatch(globalCss, /\.map-center-feedback\s*\{[^}]*(?:opacity|will-change):/s);
     assert.match(globalCss, /\.motion-paused \.map-center-feedback,[\s\S]*animation:\s*none/);
     assert.match(globalCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
@@ -215,7 +218,7 @@ describe("pan zoom behavior guardrails", () => {
   });
 
 
-  it("starts the initial map entrance without a loading hold", () => {
+  it("can initialize without an entrance animation", () => {
     assert.match(
       hookSource,
       /moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,
@@ -235,9 +238,9 @@ describe("pan zoom behavior guardrails", () => {
 
   it("stages a covered map at the zoomed-out entrance before completing it", () => {
     assert.match(hookSource, /const stageInitialEntrance = useCallback/);
-    assert.match(hookSource, /computeFittedCameraFlyInStart\(fittedTransform, width, height\)/);
+    assert.match(hookSource, /animateInitialEntrance[\s\S]*computeFittedCameraFlyInStart\(fittedTransform, width, height\)[\s\S]*snapTransform\(fittedTransform\)/);
     assert.match(hookSource, /const completeStagedEntrance = useCallback/);
-    assert.match(hookSource, /moveToDefaultCamera\(true, false\)/);
+    assert.match(hookSource, /moveToDefaultCamera\(animateInitialEntrance, false\)/);
   });
 
   it("keeps the TTC camera transform outside React render reconciliation", () => {
