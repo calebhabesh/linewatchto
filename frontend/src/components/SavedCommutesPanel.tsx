@@ -1397,7 +1397,7 @@ export function SavedCommutesPanel({
                     expanded={showRoutingDisclaimer}
                     onToggle={() => setShowRoutingDisclaimer((current) => !current)}
                     contentId="create-commute-routing-disclaimer"
-                    message="My Commutes monitors the TTC or GO/UP rail routes you select. If you use both systems, save one route for each so you can review both in this list. LineWatchTO evaluates only the selected rail networks, so the monitored routes may not be the fastest or more optimal choices across every travel scenario or account for buses, walking transfers, and alternatives."
+                    message="My Commutes monitors the TTC or GO/UP rail routes you select. If you use both systems, save one route for each so you can review both in this list. LineWatchTO evaluates only the selected rail networks, so the monitored routes may not be the fastest or most optimal choices across every travel scenario or account for buses, walking transfers, and alternatives."
                   />
                 ) : null}
               </div>
@@ -1894,7 +1894,7 @@ export function SavedCommutesPanel({
             )}
                 <p className="saved-commute-routing-boundary-static" role="note">
                   <Info size={11} aria-hidden="true" />
-                  <span>Monitoring the rail routes you selected. They may not be the fastest or more optimal routes in every scenario.</span>
+                  <span>Monitoring the rail routes you selected. They may not be the fastest or most optimal routes in every scenario.</span>
                 </p>
           </div>
         )}

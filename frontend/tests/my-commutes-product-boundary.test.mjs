@@ -11,11 +11,11 @@ const privacy = readFileSync(new URL("../src/app/privacy-acknowledgements-data.t
 describe("My Commutes launch product boundary", () => {
   it("describes routes as rider-selected disruption monitors rather than journey recommendations", () => {
     assert.match(panel, /My Commutes monitors the TTC or GO\/UP rail routes you select/);
-    assert.match(panel, /the monitored routes may not be the[\s\S]*fastest or more optimal choices across every travel scenario/);
+    assert.match(panel, /the monitored routes may not be the[\s\S]*fastest or most optimal choices across every travel scenario/);
     assert.doesNotMatch(panel, /saved-commute-route-purpose/);
     assert.match(panel, /className="saved-commute-routing-boundary-trigger"[\s\S]*gridTemplateColumns: "minmax\(0, 1fr\) auto"[\s\S]*saved-commute-routing-boundary-label[\s\S]*<Info size=\{11\}[\s\S]*Monitored Routes Disclaimer/);
     assert.doesNotMatch(panel, /contentId="saved-commutes-routing-disclaimer"/);
-    assert.match(panel, /className="saved-commute-routing-boundary-static"[\s\S]*Monitoring the rail routes you selected\. They may not be the fastest or more optimal routes in every scenario\./);
+    assert.match(panel, /className="saved-commute-routing-boundary-static"[\s\S]*Monitoring the rail routes you selected\. They may not be the fastest or most optimal routes in every scenario\./);
     assert.match(styles, /\.saved-commute-routing-boundary-disclosure\s*\{[^}]*margin:\s*-0\.125rem 0 -0\.25rem;/s);
     assert.match(styles, /@media \(max-width:\s*767px\)[\s\S]*?\.saved-commute-routing-boundary-disclosure\s*\{[^}]*margin-bottom:\s*-0\.375rem;/s);
     assert.match(styles, /@media \(max-width:\s*767px\)[\s\S]*?\.saved-commute-routing-boundary-static\s*\{[^}]*margin-bottom:\s*-0\.1875rem;/s);
