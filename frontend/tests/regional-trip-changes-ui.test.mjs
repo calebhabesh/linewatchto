@@ -22,11 +22,11 @@ describe("regional trip changes UI", () => {
     assert.doesNotMatch(listSource, /alternate route/i);
   });
 
-  it("shows all seven collection states and schedule lookahead in the ingestion log", () => {
+  it("shows collection states and schedule lookahead in the source-status panel", () => {
     assert.match(logsSource, /\/api\/health\/regional-ingestion/);
     assert.match(logsSource, /\/api\/health\/regional-schedule/);
-    assert.match(logsSource, /Data Coverage/);
+    assert.match(logsSource, /Collection coverage/);
     assert.match(logsSource, /collection\.recordsFetched/);
-    assert.match(logsSource, /regionalScheduleHealth\.requiredThrough/);
+    assert.match(logsSource, /schedule\.requiredThrough/);
   });
 });

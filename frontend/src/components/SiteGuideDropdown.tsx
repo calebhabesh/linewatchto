@@ -477,8 +477,8 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   <>
                     <GuideActionRow
                       icon={<Newspaper size={14} />}
-                      label="Ingested TTC Alerts"
-                      text="View the raw alert feed used to inspect backend ingestion."
+                      label="TTC Source Status"
+                      text="View freshness, availability, and normalized ingestion counts without exposing source payloads."
                     />
                   </>
                 )}

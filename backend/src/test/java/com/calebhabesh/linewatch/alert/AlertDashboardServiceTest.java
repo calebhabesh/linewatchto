@@ -28,7 +28,6 @@ class AlertDashboardServiceTest {
     private final LineSegmentRepository lineSegmentRepository = mock(LineSegmentRepository.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final AlertActivePeriodRepository alertActivePeriodRepository = mock(AlertActivePeriodRepository.class);
-    private final com.calebhabesh.linewatch.ingestion.TtcAlertStore ttcAlertStore = mock(com.calebhabesh.linewatch.ingestion.TtcAlertStore.class);
     private final AlertDashboardService service = new AlertDashboardService(
         alertRepository,
         lineSegmentRepository,
@@ -36,7 +35,6 @@ class AlertDashboardServiceTest {
         new ReducedSpeedZoneProjector(new AlertSegmentMatcher(), new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()),
         ingestionFreshness,
         alertActivePeriodRepository,
-        ttcAlertStore,
         CLOCK
     );
 
@@ -1101,7 +1099,6 @@ class AlertDashboardServiceTest {
             ),
             ingestionFreshness,
             alertActivePeriodRepository,
-            ttcAlertStore,
             lifecycleClock
         );
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
@@ -1309,7 +1306,6 @@ class AlertDashboardServiceTest {
             new ReducedSpeedZoneProjector(new AlertSegmentMatcher(), new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()),
             ingestionFreshness,
             alertActivePeriodRepository,
-            ttcAlertStore,
             fridayAfternoon
         );
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);

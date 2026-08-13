@@ -17,6 +17,9 @@ describe("privacy and acknowledgement content", () => {
     assert.match(combinedCopy, /LineWatchTO is unofficial/i);
     assert.doesNotMatch(combinedCopy, /LineWatch TO/i);
     assert.match(combinedCopy, /not affiliated with, endorsed by, or operated by the TTC/i);
+    assert.match(combinedCopy, /Contains information licensed under the Open Government Licence – Toronto\./);
+    assert.match(combinedCopy, /does not apply to TTC Live Alerts or Metrolinx source records/i);
+    assert.match(combinedCopy, /Regional naming and branding remain a launch gate pending written Metrolinx confirmation/i);
     assert.match(combinedCopy, /Subway, Light Rail and Streetcar Map/i);
     assert.match(combinedCopy, /Toronto Transit Commission/i);
     assert.match(combinedCopy, /written permission/i);
@@ -38,6 +41,8 @@ describe("privacy and acknowledgement content", () => {
     const urls = privacyAcknowledgementLinks.map((link) => link.href);
 
     assert.ok(urls.includes("https://www.ttc.ca/routes-and-schedules"));
+    assert.ok(urls.includes("https://open.toronto.ca/dataset/ttc-gtfs-realtime-gtfs-rt/"));
+    assert.ok(urls.includes("https://open.toronto.ca/open-data-licence/"));
     assert.ok(urls.includes("https://www.ttc.ca/transparency-and-accountability/policies/web-site-terms-and-conditions-of-use"));
     assert.ok(urls.includes("https://www.ttc.ca/customer-service/contact-us"));
     assert.ok(urls.includes("https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/p_principle/"));

@@ -56,8 +56,7 @@ public class RegionalIngestionHealthController {
             run == null ? null : run.sourceFeedUpdatedAt(),
             run == null ? 0 : run.recordsFetched(),
             run == null ? 0 : run.recordsNormalized(),
-            collections,
-            run == null ? null : run.errorMessage()
+            collections
         );
     }
 
@@ -92,8 +91,7 @@ public class RegionalIngestionHealthController {
         OffsetDateTime sourceUpdatedAt,
         int recordsFetched,
         int recordsNormalized,
-        List<CollectionHealth> collections,
-        String errorMessage
+        List<CollectionHealth> collections
     ) {}
 
     public record CollectionHealth(

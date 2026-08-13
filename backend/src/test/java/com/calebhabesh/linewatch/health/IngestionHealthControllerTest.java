@@ -18,6 +18,7 @@ import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class IngestionHealthControllerTest {
     private static final Clock CLOCK = Clock.fixed(
@@ -83,5 +84,18 @@ class IngestionHealthControllerTest {
 
         assertThat(response.status()).isEqualTo("success");
         assertThat(response.dashboardLive()).isFalse();
+    }
+
+    @Test
+    void publicResponseDoesNotSerializePersistedFailureDetails() throws Exception {
+        OffsetDateTime started = OffsetDateTime.parse("2026-06-01T11:58:00Z");
+        when(store.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+            42L, "failed", started, started.plusSeconds(2),
+            0, 0, 0, 0, null, "jdbc:postgresql://internal-host/linewatch failed"
+        )));
+
+        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(controller.ingestion());
+
+        assertThat(json).doesNotContain("errorMessage", "internal-host");
     }
 }

@@ -1,4 +1,7 @@
 linewatch:
+  diagnostics:
+    raw-alerts:
+      enabled: true
   ingestion:
     alerts:
       enabled: true
@@ -8,4 +11,3 @@ linewatch:
     arrivals:
       schedule-enabled: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED:true}
       schedule-refresh-enabled: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED:true}
-

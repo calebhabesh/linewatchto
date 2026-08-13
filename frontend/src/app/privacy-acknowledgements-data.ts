@@ -13,7 +13,7 @@ export type NoticeLink = {
 export const acknowledgementSections: NoticeSection[] = [
   {
     title: "Unofficial Independent Project",
-    body: "LineWatchTO is unofficial transit software. It is not affiliated with, endorsed by, or operated by the TTC or the City of Toronto.",
+    body: "LineWatchTO is unofficial transit software. It is not affiliated with, endorsed by, or operated by the TTC, the City of Toronto, or Metrolinx.",
     bullets: [
       "LineWatchTO uses TTC service information only to help riders understand disruptions, saved-commute impacts, accessibility outages, and public notices.",
       "For travel decisions, riders should still confirm current service details with official TTC channels.",
@@ -25,6 +25,22 @@ export const acknowledgementSections: NoticeSection[] = [
     bullets: [
       "LineWatchTO adds independent interactive overlays, alert cards, station controls, saved-commute impact checks, and display controls around the map.",
       "Use of the adapted map is being treated as permission-sensitive. If the TTC does not grant written permission for this use, the project will replace the base map with an original LineWatchTO map.",
+    ],
+  },
+  {
+    title: "Toronto Open Data Attribution",
+    body: "Contains information licensed under the Open Government Licence – Toronto.",
+    bullets: [
+      "This attribution applies to the official TTC GTFS Realtime dataset and other City of Toronto open-data inputs identified by LineWatchTO; it does not apply to TTC Live Alerts or Metrolinx source records.",
+      "The Open Government Licence permits reuse with attribution and does not imply that the City of Toronto or TTC endorses LineWatchTO.",
+    ],
+  },
+  {
+    title: "Permission-Sensitive Sources and Regional Names",
+    body: "LineWatchTO does not treat TTC Live Alerts or Metrolinx API records as Toronto open data. Public launch of those integrations requires written source-owner confirmation appropriate to the intended use.",
+    bullets: [
+      "GO, GO Transit, UP Express, TTC, and related names and marks belong to their respective owners. Their use identifies transit services and does not imply affiliation or endorsement.",
+      "Regional naming and branding remain a launch gate pending written Metrolinx confirmation; TTC Live Alerts and TTC map use remain permission-sensitive pending written TTC confirmation.",
     ],
   },
   {
@@ -64,11 +80,21 @@ export const dataPracticeSections: NoticeSection[] = [
   },
   {
     title: "Public Transit Source Data",
-    body: "TTC alerts, schedule-derived estimates, performance metrics, accessibility outages, and public notices are used as public service inputs. Alert text can be vague, source formats can change, and inferred map segments can be imperfect.",
+    body: "TTC alerts, schedule-derived estimates, performance metrics, accessibility outages, and public notices are used as transit-information inputs subject to their distinct source terms. Alert text can be vague, source formats can change, and inferred map segments can be imperfect.",
   },
 ];
 
 export const privacyAcknowledgementLinks: NoticeLink[] = [
+  {
+    label: "TTC GTFS Realtime Dataset",
+    href: "https://open.toronto.ca/dataset/ttc-gtfs-realtime-gtfs-rt/",
+    description: "City of Toronto dataset page identifying the Open Government Licence – Toronto for TTC GTFS Realtime data.",
+  },
+  {
+    label: "Open Government Licence – Toronto",
+    href: "https://open.toronto.ca/open-data-licence/",
+    description: "Licence terms for identified City of Toronto open-data inputs, including attribution and non-endorsement requirements.",
+  },
   {
     label: "TTC Routes and Schedules",
     href: "https://www.ttc.ca/routes-and-schedules",

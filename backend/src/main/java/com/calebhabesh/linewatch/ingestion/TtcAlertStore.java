@@ -632,12 +632,15 @@ public class TtcAlertStore {
         OffsetDateTime sourceUpdatedAt
     ) {}
 
-    public List<RawAlertDto> getRawAlerts() {
+    public List<RawAlertDto> getRawAlerts(int limit, int offset) {
         return jdbc.query("""
             select source_section, source_id, route_type, source_updated_at, payload, active
             from ttc_alert_source_records
             order by active desc, source_updated_at desc, last_seen_at desc
-            """, (resultSet, rowNumber) -> new RawAlertDto(
+            limit :limit offset :offset
+            """, new MapSqlParameterSource()
+                .addValue("limit", limit)
+                .addValue("offset", offset), (resultSet, rowNumber) -> new RawAlertDto(
                 resultSet.getString("source_section"),
                 resultSet.getString("source_id"),
                 resultSet.getString("route_type"),

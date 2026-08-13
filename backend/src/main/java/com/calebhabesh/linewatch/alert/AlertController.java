@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/alerts")
@@ -38,7 +40,7 @@ public class AlertController {
             return cache.getOrCompute("alerts:slowdown", new TypeReference<java.util.List<AlertDashboardService.ReducedSpeedZoneDto>>() {}, cacheProperties.getAlertsTtl(), dashboardService::reducedSpeedZones);
         }
         if ("raw".equals(type)) {
-            return cache.getOrCompute("alerts:raw", new TypeReference<java.util.List<RawAlertDto>>() {}, cacheProperties.getAlertsTtl(), dashboardService::rawAlerts);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
 
         return cache.getOrCompute("alerts:active", new TypeReference<java.util.List<AlertDashboardService.ActiveAlertDto>>() {}, cacheProperties.getAlertsTtl(), dashboardService::activeAlerts);

@@ -20,14 +20,14 @@
 	}
 
 	@linewatch_public_api_cache {
-		path /api/dashboard /api/status /api/map /api/trains /api/alerts /api/performance /api/accessibility-outages /api/surface-notices /api/announcements /api/stations /api/stations/* /api/alert-history /api/reliability/lines /api/reliability/stations/* /api/regional/trains /api/regional/trip-changes /api/regional/alerts/raw /api/regional/stations/*
+		path /api/dashboard /api/status /api/map /api/trains /api/alerts /api/performance /api/accessibility-outages /api/surface-notices /api/announcements /api/stations /api/stations/* /api/alert-history /api/reliability/lines /api/reliability/stations/* /api/regional/trains /api/regional/trip-changes /api/regional/stations/*
 	}
 	header @linewatch_public_api_cache Cache-Control "public, max-age=15, s-maxage=30, stale-while-revalidate=30" {
 		defer
 	}
 
 	@linewatch_private_api_no_store {
-		path /api/auth/* /api/account/* /api/feedback /api/health* /api/actuator*
+		path /api/auth/* /api/account/* /api/admin/* /api/diagnostics/* /api/feedback /api/health* /api/actuator*
 	}
 	header @linewatch_private_api_no_store Cache-Control "no-store" {
 		defer
@@ -38,6 +38,10 @@
 	encode gzip zstd
 	import linewatch_staging_security_headers
 	import linewatch_cache_headers
+
+	handle /api/admin/* {
+		respond 404
+	}
 
 	handle /actuator* {
 		respond 404

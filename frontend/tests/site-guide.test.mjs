@@ -189,7 +189,8 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /Overlap Badge/);
     assert.match(guideSource, /Shuttle Badge/);
     assert.match(guideSource, /Main Menu/);
-    assert.match(guideSource, /Ingested TTC Alerts/);
+    assert.match(guideSource, /TTC Source Status/);
+    assert.doesNotMatch(guideSource, /raw alert feed/i);
   });
 
   it("adds scoped guide styles without broad theme churn", () => {

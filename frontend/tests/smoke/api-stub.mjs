@@ -323,7 +323,7 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "POST" && url.pathname === "/__test/mode") {
     const body = await readJson(request);
-    if (!["seeded", "unavailable", "map-authoritative-overlap", "regional-live"].includes(body.mode)) {
+    if (!["seeded", "diagnostics-disabled", "unavailable", "map-authoritative-overlap", "regional-live"].includes(body.mode)) {
       sendJson(request, response, 400, { error: "Unsupported smoke stub mode" });
       return;
     }
@@ -634,16 +634,71 @@ const server = createServer(async (request, response) => {
       sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeDelaysResponse : delaysResponse);
       return;
     }
-    if (type === "raw") {
-      sendJson(request, response, 200, rawAlertsResponse);
-      return;
-    }
     sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeActiveAlertsResponse : activeAlertsResponse);
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/api/regional/alerts/raw") {
-    sendJson(request, response, 200, regionalRawAlertsResponse);
+  if (request.method === "GET" && url.pathname === "/api/diagnostics/capabilities") {
+    sendJson(request, response, 200, { rawAlertsEnabled: mode !== "diagnostics-disabled" }, { "cache-control": "no-store" });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname.startsWith("/api/diagnostics/raw-alerts/")) {
+    const records = url.pathname.endsWith("/regional") ? regionalRawAlertsResponse : rawAlertsResponse;
+    const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") ?? "50")));
+    const offset = Math.max(0, Number(url.searchParams.get("offset") ?? "0"));
+    sendJson(request, response, 200, {
+      items: records.slice(offset, offset + limit),
+      limit,
+      offset,
+      hasMore: offset + limit < records.length,
+    }, { "cache-control": "no-store" });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/health/ingestion") {
+    sendJson(request, response, 200, {
+      status: "success",
+      dashboardLive: true,
+      startedAt: "2026-06-02T18:11:58Z",
+      completedAt: "2026-06-02T18:12:00Z",
+      recordsFetched: 44,
+      recordsStaged: 44,
+      recordsNormalized: 12,
+      recordsUnmatched: 32,
+      sourceFeedUpdatedAt: "2026-06-02T18:11:30Z",
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/health/regional-ingestion") {
+    sendJson(request, response, 200, {
+      source: "Metrolinx Open API",
+      enabled: true,
+      configured: true,
+      fresh: true,
+      status: "success",
+      startedAt: "2026-07-29T15:59:58Z",
+      completedAt: "2026-07-29T16:00:00Z",
+      sourceUpdatedAt: "2026-07-29T15:59:30Z",
+      recordsFetched: 31,
+      recordsNormalized: 2,
+      collections: [
+        { sourceSystem: "go-service-alerts", label: "GO service alerts", kind: "rider-alert", required: true, status: "complete", recordsFetched: 6, sourceUpdatedAt: "2026-07-29T15:59:30Z" },
+        { sourceSystem: "up-gtfs-alerts", label: "UP rail service alerts", kind: "rider-alert", required: true, status: "complete", recordsFetched: 1, sourceUpdatedAt: "2026-07-29T15:59:25Z" },
+      ],
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/health/regional-schedule") {
+    sendJson(request, response, 200, {
+      status: "healthy",
+      scheduleActive: true,
+      lookaheadCovered: true,
+      requiredThrough: "2026-08-05",
+      mappedStationLines: 90,
+    });
     return;
   }
 

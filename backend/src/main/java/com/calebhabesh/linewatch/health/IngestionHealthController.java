@@ -46,7 +46,7 @@ public class IngestionHealthController {
         return store.findLatest()
             .map(this::toResponse)
             .orElseGet(() -> new IngestionHealthResponse(
-                "not-run", false, null, null, 0, 0, 0, 0, null, null
+                "not-run", false, null, null, 0, 0, 0, 0, null
             ));
     }
 
@@ -60,8 +60,7 @@ public class IngestionHealthController {
             run.recordsStaged(),
             run.recordsNormalized(),
             run.recordsUnmatched(),
-            run.sourceFeedUpdatedAt(),
-            run.errorMessage()
+            run.sourceFeedUpdatedAt()
         );
     }
 
@@ -74,7 +73,6 @@ public class IngestionHealthController {
         int recordsStaged,
         int recordsNormalized,
         int recordsUnmatched,
-        OffsetDateTime sourceFeedUpdatedAt,
-        String errorMessage
+        OffsetDateTime sourceFeedUpdatedAt
     ) {}
 }

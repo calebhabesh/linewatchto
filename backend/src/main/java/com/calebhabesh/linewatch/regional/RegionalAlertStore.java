@@ -203,12 +203,15 @@ public class RegionalAlertStore {
             ));
     }
 
-    public List<RawAlertDto> findRawAlerts() {
+    public List<RawAlertDto> findRawAlerts(int limit, int offset) {
         return jdbc.query("""
             select source_system, source_id, payload::text, active, last_seen_at
             from metrolinx_alert_source_records
             order by active desc, last_seen_at desc, source_system, source_id
-            """, (resultSet, rowNumber) -> {
+            limit :limit offset :offset
+            """, new MapSqlParameterSource()
+                .addValue("limit", limit)
+                .addValue("offset", offset), (resultSet, rowNumber) -> {
                 String sourceSystem = resultSet.getString("source_system");
                 boolean upExpress = MetrolinxSourceSystem.UP_GTFS_ALERTS.equals(sourceSystem);
                 return new RawAlertDto(

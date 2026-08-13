@@ -5,7 +5,7 @@ const stubUrl = "http://127.0.0.1:4174";
 const welcomeStorageKey = "linewatch-welcome-seen-v1";
 const disclaimerStorageKey = "linewatch-unofficial-notice-ack-v1";
 
-async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavailable" | "map-authoritative-overlap" | "regional-live") {
+async function setStubMode(request: APIRequestContext, mode: "seeded" | "diagnostics-disabled" | "unavailable" | "map-authoritative-overlap" | "regional-live") {
   const response = await request.post(`${stubUrl}/__test/mode`, {
     data: { mode },
   });
@@ -2742,8 +2742,8 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   await expect(boundaryClosureCard.getByText("Active Alert", { exact: true })).toBeVisible();
 });
 
-test("opens logs dropdown and expands raw JSON payload", async ({ page, request, isMobile }) => {
-  await setStubMode(request, "seeded");
+test("production capability keeps TTC source status sanitized", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "diagnostics-disabled");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
@@ -2751,22 +2751,41 @@ test("opens logs dropdown and expands raw JSON payload", async ({ page, request,
     await page.getByRole("button", { name: "More", exact: true }).click();
   }
 
-  // Click on the Toggle Ingestion Logs button
-  await page.getByRole("button", { name: "Toggle Ingestion Logs" }).click();
-  await expect(page.getByText("Ingested TTC Alerts")).toBeVisible();
+  await page.getByRole("button", { name: "Toggle Source Status" }).click();
+  await expect(page.getByText("TTC Source Status").last()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard feed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Processing summary" })).toBeVisible();
+  await expect(page.getByText("Rider summaries")).toBeVisible();
+  await expect(page.getByText("12", { exact: true })).toBeVisible();
+  await expect(page.getByText("original source records are not publicly exposed", { exact: false })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Source records" })).toHaveCount(0);
+  await expect(page.getByText("Raw JSON Payload")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Copy JSON" })).toHaveCount(0);
+});
+
+test("opens TTC retained records when non-production diagnostics are enabled", async ({ page, request, context, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await context.grantPermissions(["clipboard-write"], { origin: appUrl });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+  }
+
+  await page.getByRole("button", { name: "Toggle Source Status" }).click();
+  await expect(page.getByRole("tab", { name: "Source records" })).toBeVisible();
+  await page.getByRole("tab", { name: "Source records" }).click();
+  await expect(page.getByText("Development / staging diagnostics")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Routes (1)" })).toBeVisible();
-
-  // Click the alert accordion
-  await page.getByRole("button", { name: "Seeded raw alert title for testing. Active Planned Route 1" }).click();
-  await expect(page.getByText("Raw JSON Payload")).toBeVisible();
+  await page.getByRole("button", { name: /Seeded raw alert title for testing/ }).click();
+  await expect(page.getByText("Raw JSON payload")).toBeVisible();
   await expect(page.locator("pre").filter({ hasText: "stub-route-raw-id" })).toBeVisible();
-
-  // Click copy button and verify
   await page.getByRole("button", { name: "Copy JSON" }).click();
   await expect(page.getByText("Copied!")).toBeVisible();
 });
 
-test("opens GO and UP ingested alert JSONs in regional map mode", async ({ page, request, isMobile }) => {
+test("opens regional source coverage and retained records in non-production", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -2779,16 +2798,19 @@ test("opens GO and UP ingested alert JSONs in regional map mode", async ({ page,
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
-    await expect(page.getByText("GO / UP Ingested Alerts")).toBeVisible();
+    await expect(page.getByText("GO / UP Source Status")).toBeVisible();
   }
 
-  await page.getByRole("button", { name: "Toggle Ingestion Logs" }).click();
-  await expect(page.getByText("Ingested GO / UP Alerts")).toBeVisible();
+  await page.getByRole("button", { name: "Toggle Source Status" }).click();
+  await expect(page.getByText("GO / UP Source Status").last()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Collection coverage" })).toBeVisible();
+  await expect(page.getByText("GO service alerts", { exact: true })).toBeVisible();
+  await expect(page.getByText("UP rail service alerts", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Source records" }).click();
   await expect(page.getByRole("heading", { name: "GO Rail (1)" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "UP Express (1)" })).toBeVisible();
-
   await page.getByRole("button", { name: /Lakeshore East service adjustment/ }).click();
-  await expect(page.getByText("Raw JSON Payload")).toBeVisible();
+  await expect(page.getByText("Raw JSON payload")).toBeVisible();
   await expect(page.locator("pre").filter({ hasText: "Service Disruption" })).toBeVisible();
 });
 

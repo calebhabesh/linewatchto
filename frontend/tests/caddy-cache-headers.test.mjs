@@ -6,6 +6,10 @@ const prodCaddyfile = readFileSync(new URL("../../Caddyfile", import.meta.url), 
 const stagingCaddyfile = readFileSync(new URL("../../Caddyfile.staging", import.meta.url), "utf8");
 const awsLabCaddyfile = readFileSync(new URL("../../Caddyfile.aws-lab", import.meta.url), "utf8");
 const trafficSpikeRunbook = readFileSync(new URL("../../docs/traffic-spike-runbook.md", import.meta.url), "utf8");
+const applicationConfig = readFileSync(new URL("../../backend/src/main/resources/application.yml", import.meta.url), "utf8");
+const devLiveConfig = readFileSync(new URL("../../backend/src/main/resources/application-dev-live.yml", import.meta.url), "utf8");
+const stagingCompose = readFileSync(new URL("../../docker-compose.staging.yml", import.meta.url), "utf8");
+const productionCompose = readFileSync(new URL("../../docker-compose.prod.yml", import.meta.url), "utf8");
 
 function assertCachePolicy(source, label) {
   assert.match(source, /\(linewatch_cache_headers\)/, `${label} should define reusable cache headers`);
@@ -24,21 +28,47 @@ function assertCachePolicy(source, label) {
   assert.match(source, /@linewatch_private_api_no_store/, `${label} should define private API no-store matcher`);
   assert.match(source, /\/api\/auth\/\*/, `${label} should keep auth uncached`);
   assert.match(source, /\/api\/account\/\*/, `${label} should keep account APIs uncached`);
+  assert.match(source, /\/api\/admin\/\*/, `${label} should classify operator APIs as private`);
+  assert.match(source, /\/api\/diagnostics\/\*/, `${label} should keep diagnostics uncached`);
   assert.match(source, /\/api\/feedback/, `${label} should keep feedback uncached`);
   assert.match(source, /Cache-Control "no-store"/, `${label} should set no-store`);
+  assert.match(source, /handle \/api\/admin\/\* \{\s*respond 404\s*\}/, `${label} should block operator APIs at the public edge`);
+  assert.doesNotMatch(source, /\/api\/regional\/alerts\/raw/, `${label} should not cache the retired raw-alert route`);
+}
+
+function assertRawDiagnosticsBlocked(source, label) {
+  assert.match(
+    source,
+    /handle \/api\/diagnostics\/raw-alerts\/\* \{\s*respond 404\s*\}/,
+    `${label} should block browser-visible raw diagnostics at the edge`,
+  );
 }
 
 describe("Caddy cache headers", () => {
   it("sets public and private cache headers in production", () => {
     assertCachePolicy(prodCaddyfile, "Caddyfile");
+    assertRawDiagnosticsBlocked(prodCaddyfile, "Caddyfile");
   });
 
   it("sets matching public and private cache headers in staging", () => {
     assertCachePolicy(stagingCaddyfile, "Caddyfile.staging");
+    assert.doesNotMatch(
+      stagingCaddyfile,
+      /handle \/api\/diagnostics\/raw-alerts\/\*/,
+      "staging should pass enabled raw diagnostics through to the backend",
+    );
   });
 
   it("sets matching public and private cache headers in aws lab", () => {
     assertCachePolicy(awsLabCaddyfile, "Caddyfile.aws-lab");
+    assertRawDiagnosticsBlocked(awsLabCaddyfile, "Caddyfile.aws-lab");
+  });
+
+  it("enables raw diagnostics only in explicit non-production configuration", () => {
+    assert.match(applicationConfig, /LINEWATCH_DIAGNOSTICS_RAW_ALERTS_ENABLED:false/);
+    assert.match(devLiveConfig, /raw-alerts:\s+enabled: true/);
+    assert.match(stagingCompose, /LINEWATCH_DIAGNOSTICS_RAW_ALERTS_ENABLED: "true"/);
+    assert.doesNotMatch(productionCompose, /LINEWATCH_DIAGNOSTICS_RAW_ALERTS_ENABLED/);
   });
 
   it("documents public APIs including train markers, station details, and alert history in traffic spike runbook", () => {

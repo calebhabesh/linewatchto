@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class RegionalIngestionHealthControllerTest {
     @Test
@@ -59,5 +60,25 @@ class RegionalIngestionHealthControllerTest {
             .singleElement().satisfies(collection -> {
             assertThat(collection.status()).isEqualTo("unknown");
         });
+    }
+
+    @Test
+    void publicResponseDoesNotSerializePersistedFailureDetails() throws Exception {
+        MetrolinxProperties properties = new MetrolinxProperties();
+        RegionalIngestionRunStore runStore = mock(RegionalIngestionRunStore.class);
+        RegionalIngestionFreshness freshness = mock(RegionalIngestionFreshness.class);
+        OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-30T12:00:00-04:00");
+        IngestionRunSnapshot run = new IngestionRunSnapshot(
+            42, "failed", completedAt.minusSeconds(2), completedAt, 0, 0, 0, 0, null,
+            "request to internal-upstream-host failed"
+        );
+        when(runStore.findLatest()).thenReturn(Optional.of(run));
+        when(runStore.findSourceStatuses(42)).thenReturn(List.of());
+
+        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(
+            new RegionalIngestionHealthController(properties, runStore, freshness).health()
+        );
+
+        assertThat(json).doesNotContain("errorMessage", "internal-upstream-host");
     }
 }

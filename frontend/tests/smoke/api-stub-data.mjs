@@ -650,10 +650,10 @@ export const rawAlertsResponse = [
       title: "Seeded raw alert title for testing.",
       headerText: "Line 1 Yonge-University: Seeded raw alert title for testing.",
       effect: "REDUCED_SERVICE",
-      cause: "MAINTENANCE"
+      cause: "MAINTENANCE",
     }),
-    active: true
-  }
+    active: true,
+  },
 ];
 
 export const regionalRawAlertsResponse = [

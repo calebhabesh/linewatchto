@@ -101,7 +101,6 @@ Expression:
     "/api/reliability/lines"
     "/api/regional/trains"
     "/api/regional/trip-changes"
-    "/api/regional/alerts/raw"
   }
   or starts_with(http.request.uri.path, "/api/stations/")
   or starts_with(http.request.uri.path, "/api/reliability/stations/")

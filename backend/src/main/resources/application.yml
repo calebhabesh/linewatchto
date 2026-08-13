@@ -20,6 +20,13 @@ server:
   port: ${SERVER_PORT:8080}
 
 linewatch:
+  admin:
+    raw-logs:
+      enabled: ${LINEWATCH_ADMIN_RAW_LOGS_ENABLED:false}
+      token: ${LINEWATCH_ADMIN_RAW_LOGS_TOKEN:}
+  diagnostics:
+    raw-alerts:
+      enabled: ${LINEWATCH_DIAGNOSTICS_RAW_ALERTS_ENABLED:false}
   auth:
     secure-cookie: ${LINEWATCH_AUTH_SECURE_COOKIE:false}
     allowed-origins: ${LINEWATCH_AUTH_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:4173}

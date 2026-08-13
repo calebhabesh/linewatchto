@@ -6,7 +6,6 @@ import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.ingestion.AlertDirection;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
-import com.calebhabesh.linewatch.ingestion.TtcAlertStore;
 import com.calebhabesh.linewatch.ingestion.TtcServiceState;
 import java.time.Clock;
 import java.time.Duration;
@@ -57,7 +56,6 @@ public class AlertDashboardService {
     private final ReducedSpeedZoneProjector reducedSpeedZoneProjector;
     private final IngestionFreshness ingestionFreshness;
     private final AlertActivePeriodRepository periodRepository;
-    private final TtcAlertStore ttcAlertStore;
     private final Clock clock;
 
     public AlertDashboardService(
@@ -67,7 +65,6 @@ public class AlertDashboardService {
         ReducedSpeedZoneProjector reducedSpeedZoneProjector,
         IngestionFreshness ingestionFreshness,
         AlertActivePeriodRepository periodRepository,
-        TtcAlertStore ttcAlertStore,
         Clock clock
     ) {
         this.alertRepository = alertRepository;
@@ -76,12 +73,7 @@ public class AlertDashboardService {
         this.reducedSpeedZoneProjector = reducedSpeedZoneProjector;
         this.ingestionFreshness = ingestionFreshness;
         this.periodRepository = periodRepository;
-        this.ttcAlertStore = ttcAlertStore;
         this.clock = clock;
-    }
-
-    public List<RawAlertDto> rawAlerts() {
-        return ttcAlertStore.getRawAlerts();
     }
 
     public List<ActiveAlertDto> activeAlerts() {

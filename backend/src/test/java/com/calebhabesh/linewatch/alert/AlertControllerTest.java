@@ -12,6 +12,9 @@ import com.calebhabesh.linewatch.cache.DashboardCacheService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AlertControllerTest {
     private final AlertDashboardService dashboardService = mock(AlertDashboardService.class);
@@ -81,6 +84,13 @@ class AlertControllerTest {
         Object response = controller.getAlerts("planned");
 
         assertThat(response).isEqualTo(closures);
+    }
+
+    @Test
+    void doesNotExposeRawSourceRecordsThroughThePublicAlertsRoute() {
+        assertThatThrownBy(() -> controller.getAlerts("raw"))
+            .isInstanceOfSatisfying(ResponseStatusException.class, exception ->
+                assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
     }
 
     @Test

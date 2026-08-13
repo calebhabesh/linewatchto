@@ -15,6 +15,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class ScheduleHealthControllerTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-06-15T14:00:00Z"), ZoneOffset.UTC);
@@ -91,7 +92,7 @@ class ScheduleHealthControllerTest {
     }
 
     @Test
-    void reportsNoImportPlusFailedRefresh() {
+    void reportsNoImportPlusFailedRefresh() throws Exception {
         when(repository.findActiveImport()).thenReturn(Optional.empty());
         when(refreshRunService.latest()).thenReturn(Optional.of(new GtfsScheduleRefreshRunSnapshot(
             19L,
@@ -107,10 +108,11 @@ class ScheduleHealthControllerTest {
         assertThat(response.status()).isEqualTo("not-imported");
         assertThat(response.scheduleActive()).isFalse();
         assertThat(response.refreshStatus()).isEqualTo("failed");
-        assertThat(response.refreshErrorMessage()).isEqualTo("Java heap space");
         assertThat(response.refreshCompletedAt())
             .isEqualTo(OffsetDateTime.parse("2026-06-20T19:05:15Z"));
         assertThat(response.message()).isEqualTo("No TTC GTFS schedule import is active; the latest refresh failed.");
+        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(response);
+        assertThat(json).doesNotContain("refreshErrorMessage", "Java heap space");
     }
 
     @Test
@@ -131,7 +133,6 @@ class ScheduleHealthControllerTest {
         assertThat(response.status()).isEqualTo("active");
         assertThat(response.scheduleActive()).isTrue();
         assertThat(response.refreshStatus()).isEqualTo("failed");
-        assertThat(response.refreshErrorMessage()).isEqualTo("Java heap space");
     }
 
     private GtfsScheduleReadRepository.ActiveScheduleImport activeImport(LocalDate serviceEnd) {
