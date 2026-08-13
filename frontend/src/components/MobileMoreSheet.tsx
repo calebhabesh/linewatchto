@@ -408,13 +408,15 @@ export function MobileMoreSheet({
           </button>
           <div className="mobile-more-row mobile-more-map-attribution" role="note" aria-label="Map Attribution">
             <MapIcon size={18} className="text-slate-500 dark:text-slate-400" />
-            <span className="mobile-more-map-attribution-copy">
-              <span>Map Attribution</span>
-              <span>
-                Base Map
-                <span className="mobile-more-map-attribution-copyright">© 2026 Toronto Transit Commission 02/26 - Map Not to Scale</span>
-              </span>
-            </span>
+            <div className="mobile-more-map-attribution-copy">
+              <span className="mobile-more-map-attribution-title">Map Attribution</span>
+              <span className="mobile-more-map-attribution-summary">Independently re-created in Inkscape</span>
+              <dl className="mobile-more-map-attribution-sources">
+                <div><dt>TTC</dt><dd>Based on the TTC route map</dd></div>
+                <div><dt>GO/UP</dt><dd>Based on the Metrolinx system map</dd></div>
+              </dl>
+              <span className="mobile-more-map-attribution-note">Derivative replicas · Not downloaded originals · Not to scale</span>
+            </div>
           </div>
           {hasReleaseNotes ? (
             <button type="button" className="mobile-more-row" onClick={onOpenReleaseNotes}>

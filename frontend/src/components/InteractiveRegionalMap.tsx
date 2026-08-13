@@ -4006,6 +4006,9 @@ function InteractiveRegionalMapComponent({
         onKeyDown={onKeyDown}
       >
         {loadError ? <p role="alert" className="regional-map-error">Regional map could not be loaded.</p> : null}
+        <div className="map-attribution-notice" aria-label="Metrolinx derivative map attribution">
+          Inkscape re-creation based on Metrolinx map · Not to scale
+        </div>
         <div
           ref={mapStageRef}
           data-raster-map-ready={rasterMapReady ? "true" : "false"}

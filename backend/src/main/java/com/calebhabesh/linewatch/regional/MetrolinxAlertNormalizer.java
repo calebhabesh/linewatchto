@@ -300,17 +300,25 @@ public class MetrolinxAlertNormalizer {
 
     private boolean stationMentioned(String searchable, String stationId) {
         String name = RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId);
-        return searchable.contains(name.toLowerCase(Locale.CANADA))
-            || searchable.contains(stationId.replace('-', ' '));
+        return stationPhraseIndex(searchable, name) >= 0
+            || stationPhraseIndex(searchable, stationId.replace('-', ' ')) >= 0;
     }
 
     private int stationMentionIndex(String searchable, String stationId) {
-        String name = RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId)
-            .toLowerCase(Locale.CANADA);
-        int nameIndex = searchable.indexOf(name);
-        int idIndex = searchable.indexOf(stationId.replace('-', ' '));
+        String name = RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId);
+        int nameIndex = stationPhraseIndex(searchable, name);
+        int idIndex = stationPhraseIndex(searchable, stationId.replace('-', ' '));
         if (nameIndex < 0) return idIndex;
         return idIndex < 0 ? nameIndex : Math.min(nameIndex, idIndex);
+    }
+
+    private int stationPhraseIndex(String searchable, String phrase) {
+        if (searchable == null || phrase == null || phrase.isBlank()) return -1;
+        Matcher matcher = Pattern.compile(
+            "(?<![\\p{L}\\p{N}])" + Pattern.quote(phrase.trim()) + "(?![\\p{L}\\p{N}])",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+        ).matcher(searchable);
+        return matcher.find() ? matcher.start() : -1;
     }
 
     private RegionalNormalizedAlert normalized(

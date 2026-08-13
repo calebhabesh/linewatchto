@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -336,6 +336,10 @@ export function LineWatchShell({
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("details-focus");
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
+  const [rotatedMapViewportFrame, setRotatedMapViewportFrame] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
   const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(initialVisualPreferences.estimatedTrainsEnabled);
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
@@ -2234,6 +2238,16 @@ export function LineWatchShell({
     setEstimatedTrainsEnabled((current) => !current);
   }, [setEstimatedTrainsEnabled]);
 
+  const handleOpenRotatedMap = useCallback(() => {
+    const visualViewport = window.visualViewport;
+    setRotatedMapViewportFrame({
+      width: Math.max(1, Math.round(visualViewport?.width ?? window.innerWidth)),
+      height: Math.max(1, Math.round(visualViewport?.height ?? window.innerHeight)),
+    });
+    setMapPresentationMode("rotated-landscape");
+    setActiveView("map");
+  }, [setActiveView, setMapPresentationMode]);
+
   const handleOpenRotatedSelectionDetails = useCallback(() => {
     setMapPresentationMode("standard");
     setMobileInspectorDetent("details-focus");
@@ -2665,15 +2679,26 @@ export function LineWatchShell({
 
   const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview;
 
+  const mobileMapPerformanceMode = mobilePerformanceMode || rotatedMapMode;
+  const shellViewportStyle = {
+    height: rotatedMapMode && rotatedMapViewportFrame
+      ? `${rotatedMapViewportFrame.height}px`
+      : "var(--visual-viewport-height, 100dvh)",
+    ...(rotatedMapViewportFrame ? {
+      "--rotated-map-viewport-width": `${rotatedMapViewportFrame.width}px`,
+      "--rotated-map-viewport-height": `${rotatedMapViewportFrame.height}px`,
+    } : {}),
+  } as CSSProperties;
+
   let actionIndex = 0;
   return (
     <DataProvider data={displayData}>
       <div
-        style={{ height: "var(--visual-viewport-height, 100dvh)" }}
+        style={shellViewportStyle}
         data-active-view={activeView}
         data-network={selectedNetwork}
         data-menu-pinned={menuPinned ? "true" : undefined}
-        className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobilePerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
+        className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobileMapPerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
         <ScrollOverflowAffordances />
         <h1 className="sr-only">
@@ -3539,10 +3564,7 @@ export function LineWatchShell({
             )}
           </button>
           <button
-            onClick={() => {
-              setMapPresentationMode("rotated-landscape");
-              setActiveView("map");
-            }}
+            onClick={handleOpenRotatedMap}
             className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
             aria-label="Rotate map"
           >
@@ -3622,7 +3644,7 @@ export function LineWatchShell({
           layoutResetSignal={mapLayoutSignal}
           recenterSignal={recenterSignal}
           reducedMotion={reducedMotion}
-          mobilePerformanceMode={mobilePerformanceMode}
+          mobilePerformanceMode={mobileMapPerformanceMode}
           desktopMenuPinned={menuPinned}
           preserveCameraOnSelectionClear
           commutePathPreview={commutePathPreview}

@@ -1122,6 +1122,11 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   font-family: var(--font-subway);
 }
 
+.desktop-map-legend--regional {
+  transform: scale(0.9);
+  transform-origin: top right;
+}
+
 /* Account-backed station watchlist */
 .my-stations-panel {
   border: 1px solid rgba(15, 23, 42, 0.12);
@@ -16314,25 +16319,59 @@ img.transit-line-badge {
     min-width: 0;
   }
 
-  .mobile-more-map-attribution-copy span:first-child {
+  .mobile-more-map-attribution-title {
     color: var(--text);
     font-weight: 850;
   }
 
-  .mobile-more-map-attribution-copy span:last-child {
-    color: var(--quiet);
+  .mobile-more-map-attribution-summary {
+    color: #475569;
     font-size: 11px;
     font-weight: 650;
     line-height: 1.3;
   }
 
-  .mobile-more-map-attribution-copyright {
-    color: #475569;
-    display: block;
-    margin-top: 4px;
+  .dark .mobile-more-map-attribution-summary {
+    color: #cbd5e1;
   }
 
-  .dark .mobile-more-map-attribution-copyright {
+  .mobile-more-map-attribution-sources {
+    display: grid;
+    gap: 3px;
+    margin: 5px 0 0;
+  }
+
+  .mobile-more-map-attribution-sources > div {
+    align-items: baseline;
+    display: grid;
+    gap: 7px;
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .mobile-more-map-attribution-sources dt {
+    color: var(--text);
+    font-size: 10px;
+    font-weight: 850;
+  }
+
+  .mobile-more-map-attribution-sources dd {
+    color: var(--quiet);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.3;
+    margin: 0;
+  }
+
+  .mobile-more-map-attribution-note {
+    color: #475569;
+    display: block;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.3;
+    margin-top: 3px;
+  }
+
+  .dark .mobile-more-map-attribution-note {
     color: #cbd5e1;
   }
 
@@ -18854,16 +18893,23 @@ img.transit-line-badge {
   }
 
   .linewatch-shell.mobile-map-rotated > main {
+    backface-visibility: hidden;
     bottom: auto !important;
-    height: 100vw;
+    contain: strict;
+    height: var(--rotated-map-viewport-width, 100vw);
+    isolation: isolate;
     left: 50%;
     overflow: hidden;
     position: fixed;
     right: auto !important;
     top: 50%;
-    transform: translate(-50%, -50%) rotate(90deg);
+    /* Rotate one stable, viewport-sized compositor surface. Its dimensions are
+       captured when this mode opens so visualViewport updates during a pinch
+       cannot resize the outer surface while the inner map camera is scaling. */
+    transform: translate3d(-50%, -50%, 0) rotate(90deg);
     transform-origin: center center;
-    width: var(--visual-viewport-height, 100dvh);
+    width: var(--rotated-map-viewport-height, 100dvh);
+    will-change: transform;
     z-index: 55;
   }
 
@@ -22793,8 +22839,7 @@ button:active .account-network-badge,
   }
 
   .mobile-more-install-copy span:last-child,
-  .mobile-more-share-copy span:last-child,
-  .mobile-more-map-attribution-copy span:last-child {
+  .mobile-more-share-copy span:last-child {
     font-size: 10px;
   }
 

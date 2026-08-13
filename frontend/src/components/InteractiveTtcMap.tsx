@@ -1716,8 +1716,8 @@ function InteractiveTtcMapComponent({
             Failed to load map asset.
           </div>
         )}
-        <div className="map-attribution-notice" aria-label="TTC map copyright notice">
-          © 2026 Toronto Transit Commission 02/26 - Map Not to Scale
+        <div className="map-attribution-notice" aria-label="TTC derivative map attribution">
+          Inkscape re-creation based on TTC map · Not to scale
         </div>
 
         {loadState === "ready" && (

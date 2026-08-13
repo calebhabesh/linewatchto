@@ -11,7 +11,7 @@ import {
 const panelUrl = new URL("../src/components/PrivacyAcknowledgementsPanel.tsx", import.meta.url);
 
 describe("privacy and acknowledgement content", () => {
-  it("credits TTC assets while keeping LineWatchTO clearly unofficial", () => {
+  it("credits the TTC and Metrolinx map references while keeping LineWatchTO clearly unofficial", () => {
     const combinedCopy = JSON.stringify(acknowledgementSections);
 
     assert.match(combinedCopy, /LineWatchTO is unofficial/i);
@@ -19,10 +19,14 @@ describe("privacy and acknowledgement content", () => {
     assert.match(combinedCopy, /not affiliated with, endorsed by, or operated by the TTC/i);
     assert.match(combinedCopy, /Contains information licensed under the Open Government Licence – Toronto\./);
     assert.match(combinedCopy, /does not apply to TTC Live Alerts or Metrolinx source records/i);
-    assert.match(combinedCopy, /Regional naming and branding remain a launch gate pending written Metrolinx confirmation/i);
-    assert.match(combinedCopy, /Subway, Light Rail and Streetcar Map/i);
+    assert.match(combinedCopy, /Regional naming, branding, and derivative map use remain a launch gate pending written Metrolinx confirmation/i);
+    assert.match(combinedCopy, /independently re-created the rapid-transit map in Inkscape/i);
+    assert.match(combinedCopy, /independently re-created the GO\/UP regional map in Inkscape/i);
+    assert.match(combinedCopy, /optimized app rendering and data referencing\/formatting/i);
+    assert.match(combinedCopy, /not a downloaded TTC map file/i);
+    assert.match(combinedCopy, /not a downloaded Metrolinx map image/i);
     assert.match(combinedCopy, /Toronto Transit Commission/i);
-    assert.match(combinedCopy, /written permission/i);
+    assert.match(combinedCopy, /Metrolinx/i);
   });
 
   it("summarizes privacy-sensitive app behavior", () => {
@@ -40,7 +44,8 @@ describe("privacy and acknowledgement content", () => {
   it("keeps source and contact links centralized", () => {
     const urls = privacyAcknowledgementLinks.map((link) => link.href);
 
-    assert.ok(urls.includes("https://www.ttc.ca/routes-and-schedules"));
+    assert.ok(urls.includes("https://www.ttc.ca/routes-and-schedules/1/0"));
+    assert.ok(urls.includes("https://assets.metrolinx.com/image/upload/v1695737837/Images/GO/system-map.png"));
     assert.ok(urls.includes("https://open.toronto.ca/dataset/ttc-gtfs-realtime-gtfs-rt/"));
     assert.ok(urls.includes("https://open.toronto.ca/open-data-licence/"));
     assert.ok(urls.includes("https://www.ttc.ca/transparency-and-accountability/policies/web-site-terms-and-conditions-of-use"));
@@ -65,11 +70,17 @@ describe("privacy and acknowledgement navigation", () => {
     assert.match(moreSheetSource, /Privacy & Acknowledgements/);
   });
 
-  it("shows the TTC map attribution directly in mobile More", () => {
+  it("shows both derivative-map attributions directly in mobile More", () => {
     assert.match(moreSheetSource, /Map Attribution/);
-    assert.match(moreSheetSource, /© 2026 Toronto Transit Commission 02\/26 - Map Not to Scale/);
+    assert.match(moreSheetSource, /Independently re-created in Inkscape/);
+    assert.match(moreSheetSource, /Based on the TTC route map/);
+    assert.match(moreSheetSource, /Based on the Metrolinx system map/);
+    assert.match(moreSheetSource, /Derivative replicas · Not downloaded originals · Not to scale/);
     assert.match(moreSheetSource, /aria-label="Map Attribution"/);
-    assert.match(globalCss, /\.mobile-more-map-attribution-copyright\s*\{[^}]*color:\s*#475569;/s);
-    assert.match(globalCss, /\.dark \.mobile-more-map-attribution-copyright\s*\{[^}]*color:\s*#cbd5e1;/s);
+    assert.match(globalCss, /\.mobile-more-map-attribution-sources\s*\{[^}]*display:\s*grid;/s);
+    assert.match(globalCss, /\.mobile-more-map-attribution-summary\s*\{[^}]*color:\s*#475569;/s);
+    assert.match(globalCss, /\.dark \.mobile-more-map-attribution-summary\s*\{[^}]*color:\s*#cbd5e1;/s);
+    assert.match(globalCss, /\.mobile-more-map-attribution-note\s*\{[^}]*color:\s*#475569;/s);
+    assert.match(globalCss, /\.dark \.mobile-more-map-attribution-note\s*\{[^}]*color:\s*#cbd5e1;/s);
   });
 });

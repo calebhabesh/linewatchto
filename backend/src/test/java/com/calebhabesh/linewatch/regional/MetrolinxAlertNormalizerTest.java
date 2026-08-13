@@ -248,6 +248,38 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
+    void doesNotConfuseUnionvilleWithUnionWhenExtractingAStouffvilleAlertSpan() throws Exception {
+        MetrolinxFetchedRecord record = serviceAlert("""
+            {
+              "Code":"M0000522001",
+              "PostedDateTime":"2026-07-28 08:18:00",
+              "SubjectEnglish":"Stouffville Line - Railway Crossing Issue",
+              "BodyEnglish":"There is a railway crossing issue between Centennial GO and Unionville GO. All trains travelling through the area are estimated to arrive at their destination 5 to 10 minutes later than usual.",
+              "Category":"Service Disruption",
+              "SubCategory":"Construction",
+              "Lines":[{"Code":"ST"}],
+              "Stops":[]
+            }
+            """);
+        MetrolinxFeed feed = feed(record);
+
+        assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.scope()).isEqualTo("segment-span");
+            assertThat(classification.spanStationIds()).containsExactly("stouffville", "unionville");
+            assertThat(classification.spanStationIds()).doesNotContain("union");
+        });
+        assertThat(normalizer.normalize(feed)).singleElement().satisfies(alert -> {
+            assertThat(alert.stationIds()).containsExactly("stouffville", "unionville");
+            assertThat(alert.affectedSegmentIds()).containsExactly(
+                "segment-st-unionville-centennial",
+                "segment-st-centennial-markham",
+                "segment-st-markham-mount-joy",
+                "segment-st-mount-joy-stouffville"
+            );
+        });
+    }
+
+    @Test
     void bucketsVaguePlannedLakeshoreAdjustmentWithoutInventingAClosure() throws Exception {
         MetrolinxFetchedRecord record = new MetrolinxFetchedRecord(
             MetrolinxSourceSystem.GO_INFORMATION_ALERTS,

@@ -929,17 +929,20 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("renders the TTC map copyright notice as a quiet manually positioned viewport overlay", () => {
+  it("renders derivative-map attribution as a quiet manually positioned viewport overlay", () => {
     const attributionBlock = cssBlockFor(".map-attribution-notice");
     const desktopFontSize = attributionBlock.match(/font-size:\s*(\d+)px;/);
 
-    assert.match(interactiveMapSource, /aria-label="TTC map copyright notice"/);
-    assert.match(interactiveMapSource, /© 2026 Toronto Transit Commission 02\/26 - Map Not to Scale/);
+    assert.match(interactiveMapSource, /aria-label="TTC derivative map attribution"/);
+    assert.match(interactiveMapSource, /Inkscape re-creation based on TTC map · Not to scale/);
+    assert.match(interactiveRegionalMapSource, /aria-label="Metrolinx derivative map attribution"/);
+    assert.match(interactiveRegionalMapSource, /Inkscape re-creation based on Metrolinx map · Not to scale/);
     assert.match(interactiveMapSource, /map-attribution-notice/);
     assert.match(attributionBlock, /position:\s*absolute;/);
     assert.match(attributionBlock, /right:\s*(?!;)[^;]+;/);
     assert.match(attributionBlock, /bottom:\s*(?!;)[^;]+;/);
     assert.match(attributionBlock, /border:\s*none;/);
+    assert.match(attributionBlock, /text-wrap:\s*nowrap;/);
     assert.ok(desktopFontSize, "desktop map attribution should declare a pixel font size");
     assert.ok(Number(desktopFontSize[1]) >= 13, "desktop map attribution should stay larger than the old small caption");
     assert.doesNotMatch(globalCss, /\.dark \.map-attribution-notice\s*\{[^}]*border-color:/s);

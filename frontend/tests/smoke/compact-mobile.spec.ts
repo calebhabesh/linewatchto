@@ -260,6 +260,166 @@ test("mobile TTC recenter cycles keep independent raster planes without composit
   await expect(page.locator(".ttc-map-recenter-veil")).toHaveCount(0);
 });
 
+test("rotated mobile pinch zoom keeps a stable compositor and map instance across both networks", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "rotated compositor coverage runs in the touch-device project");
+
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
+    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+  });
+  await page.goto("/");
+
+  const exerciseRotatedPinch = async (network: "ttc" | "regional") => {
+    await page.getByRole("button", { name: "Rotate map" }).click();
+    const shell = page.locator(".linewatch-shell");
+    await expect(shell).toHaveClass(/mobile-map-rotated/);
+
+    const stage = network === "ttc"
+      ? page.locator(".ttc-map-stage")
+      : page.locator(".regional-map-stage");
+    await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
+
+    const result = await page.evaluate(async ({ activeNetwork }) => {
+      const shellElement = document.querySelector<HTMLElement>(".linewatch-shell.mobile-map-rotated");
+      const main = shellElement?.querySelector<HTMLElement>(":scope > main");
+      const gestureTarget = activeNetwork === "ttc"
+        ? document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]")
+        : document.querySelector<HTMLElement>(".regional-map-viewport");
+      const mapStage = gestureTarget?.querySelector<HTMLElement>(
+        activeNetwork === "ttc" ? ".ttc-map-stage" : ".regional-map-stage",
+      );
+      if (!shellElement || !main || !gestureTarget || !mapStage) {
+        throw new Error(`Missing ${activeNetwork} rotated pinch elements`);
+      }
+
+      const rasterPlanes = Array.from(mapStage.querySelectorAll<HTMLElement>(".raster-map-plane"));
+      const originalChildren = Array.from(mapStage.children);
+      const logicalSize = { width: gestureTarget.clientWidth, height: gestureTarget.clientHeight };
+      const rootStyle = document.documentElement.style;
+      const previousVisualHeight = rootStyle.getPropertyValue("--visual-viewport-height");
+      const previousVisualWidth = rootStyle.getPropertyValue("--visual-viewport-width");
+      const cycles = [];
+
+      const sendPointer = (
+        type: string,
+        pointerId: number,
+        clientX: number,
+        clientY: number,
+      ) => {
+        gestureTarget.dispatchEvent(new PointerEvent(type, {
+          bubbles: true,
+          buttons: type === "pointerup" ? 0 : 1,
+          cancelable: true,
+          clientX,
+          clientY,
+          isPrimary: pointerId === 1,
+          pointerId,
+          pointerType: "touch",
+        }));
+      };
+
+      for (let cycle = 0; cycle < 6; cycle += 1) {
+        const rect = gestureTarget.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const zoomingIn = cycle % 2 === 0;
+        const startSpan = zoomingIn ? 56 : 112;
+        const endSpan = zoomingIn ? 112 : 56;
+        const beforeTransform = mapStage.style.transform;
+
+        sendPointer("pointerdown", 1, centerX - startSpan / 2, centerY);
+        sendPointer("pointerdown", 2, centerX + startSpan / 2, centerY);
+
+        // Simulate the visualViewport resize noise some mobile browsers emit
+        // during pinch. The frozen rotated frame must not consume these values.
+        rootStyle.setProperty("--visual-viewport-height", `${700 - cycle * 7}px`);
+        rootStyle.setProperty("--visual-viewport-width", `${360 - cycle * 3}px`);
+
+        sendPointer("pointermove", 1, centerX - endSpan / 2, centerY);
+        sendPointer("pointermove", 2, centerX + endSpan / 2, centerY);
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        sendPointer("pointerup", 2, centerX + endSpan / 2, centerY);
+        sendPointer("pointerup", 1, centerX - endSpan / 2, centerY);
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+        cycles.push({
+          cameraChanged: mapStage.style.transform !== beforeTransform,
+          gestureActive: activeNetwork === "ttc"
+            ? gestureTarget.dataset.mapGestureActive
+            : gestureTarget.closest<HTMLElement>(".regional-map")?.dataset.mapGestureActive,
+          heightStable: gestureTarget.clientHeight === logicalSize.height,
+          widthStable: gestureTarget.clientWidth === logicalSize.width,
+          stageOpacity: getComputedStyle(mapStage).opacity,
+          stageTransitionDuration: getComputedStyle(mapStage).transitionDuration,
+          stageWillChange: getComputedStyle(mapStage).willChange,
+        });
+      }
+
+      if (previousVisualHeight) {
+        rootStyle.setProperty("--visual-viewport-height", previousVisualHeight);
+      } else {
+        rootStyle.removeProperty("--visual-viewport-height");
+      }
+      if (previousVisualWidth) {
+        rootStyle.setProperty("--visual-viewport-width", previousVisualWidth);
+      } else {
+        rootStyle.removeProperty("--visual-viewport-width");
+      }
+
+      const mainStyle = getComputedStyle(main);
+      return {
+        backfaceVisibility: mainStyle.backfaceVisibility,
+        compositorWillChange: mainStyle.willChange,
+        contain: mainStyle.contain,
+        cycles,
+        independentlyPromotedPlanes: rasterPlanes.filter((plane) => (
+          getComputedStyle(plane).transform !== "none"
+          && getComputedStyle(plane).backfaceVisibility === "hidden"
+        )).length,
+        isolation: mainStyle.isolation,
+        mapChildrenPreserved: Array.from(mapStage.children)
+          .every((child, index) => child === originalChildren[index]),
+        rasterPlanesPreserved: Array.from(mapStage.querySelectorAll(".raster-map-plane"))
+          .every((plane, index) => plane === rasterPlanes[index]),
+      };
+    }, { activeNetwork: network });
+
+    expect(result).toMatchObject({
+      backfaceVisibility: "hidden",
+      compositorWillChange: "transform",
+      contain: "strict",
+      independentlyPromotedPlanes: 3,
+      isolation: "isolate",
+      mapChildrenPreserved: true,
+      rasterPlanesPreserved: true,
+    });
+    expect(result.cycles).toHaveLength(6);
+    expect(result.cycles.every((cycle) => (
+      cycle.cameraChanged
+      && cycle.gestureActive === "false"
+      && cycle.heightStable
+      && cycle.widthStable
+      && cycle.stageOpacity === "1"
+      && cycle.stageTransitionDuration === "0s"
+      && cycle.stageWillChange === "auto"
+    ))).toBe(true);
+
+    await page.getByRole("button", { name: "Exit rotated map" }).click();
+    await expect(shell).not.toHaveClass(/mobile-map-rotated/);
+  };
+
+  await exerciseRotatedPinch("ttc");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await exerciseRotatedPinch("regional");
+});
+
 test("Pixel 6a-sized portrait keeps the regular mobile scale", async ({ page, isMobile }) => {
   test.skip(!isMobile, "mobile scale coverage runs in the touch-device project");
 

@@ -168,8 +168,9 @@ describe("mobile performance guardrails", () => {
     );
     assert.match(
       shellSource,
-      /mobilePerformanceMode=\{mobilePerformanceMode\}/,
+      /mobilePerformanceMode=\{mobileMapPerformanceMode\}/,
     );
+    assert.match(shellSource, /mobileMapPerformanceMode = mobilePerformanceMode \|\| rotatedMapMode/);
   });
 
   it("does not animate search expansion with layout properties", () => {

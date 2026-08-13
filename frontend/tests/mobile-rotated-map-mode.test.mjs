@@ -74,6 +74,22 @@ describe("mobile rotated map mode", () => {
     assert.match(shellSource, /mapPresentationMode === "rotated-landscape"/);
   });
 
+  it("keeps the rotated camera on a frozen viewport-sized compositor during pinch zoom", () => {
+    assert.match(shellSource, /const \[rotatedMapViewportFrame, setRotatedMapViewportFrame\]/);
+    assert.match(shellSource, /visualViewport\?\.width \?\? window\.innerWidth/);
+    assert.match(shellSource, /visualViewport\?\.height \?\? window\.innerHeight/);
+    assert.match(shellSource, /--rotated-map-viewport-width/);
+    assert.match(shellSource, /--rotated-map-viewport-height/);
+    assert.match(shellSource, /mobileMapPerformanceMode = mobilePerformanceMode \|\| rotatedMapMode/);
+    assert.match(shellSource, /mobilePerformanceMode=\{mobileMapPerformanceMode\}/);
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-map-rotated > main\s*\{(?=[^}]*backface-visibility:\s*hidden;)(?=[^}]*contain:\s*strict;)(?=[^}]*isolation:\s*isolate;)(?=[^}]*transform:\s*translate3d\(-50%, -50%, 0\) rotate\(90deg\);)(?=[^}]*will-change:\s*transform;)[^}]*\}/s,
+    );
+    assert.match(globalCss, /height:\s*var\(--rotated-map-viewport-width, 100vw\)/);
+    assert.match(globalCss, /width:\s*var\(--rotated-map-viewport-height, 100dvh\)/);
+  });
+
   it("renders rotated map controls with explicit exit and center actions", () => {
     assert.match(shellSource, /MobileMapControls/);
     assert.match(shellSource, /Rotate map/);

@@ -10,6 +10,7 @@ const delaysPanelSource = readFileSync(new URL("../src/components/DelaysPanel.ts
 const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCardFields.tsx", import.meta.url), "utf8");
 const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
+const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
 const impactOverlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
 const impactOverlapRefsLogicSource = readFileSync(new URL("../src/components/impact-overlap-refs.ts", import.meta.url), "utf8");
@@ -274,6 +275,11 @@ describe("floating menu layout", () => {
   it("uses larger lettering inside fixed-size GO and UP legend badges", () => {
     assert.match(lineLegendSource, /h-\[52px\] w-\[52px\][^"\n]*text-\[26px\]/);
     assert.match(lineLegendSource, /backgroundColor: LINE_COLORS\[line\.id\]/);
+  });
+
+  it("scales and lifts the regional desktop legend above its map attribution", () => {
+    assert.match(networkMapLegendsSource, /desktop-map-legend--regional bottom-7/);
+    assert.match(globalCss, /\.desktop-map-legend--regional\s*\{[^}]*transform:\s*scale\(0\.9\);[^}]*transform-origin:\s*top right;/s);
   });
 
   it("LineLegend formats alert icons compactly depending on count in regional mode (vertical stack for 2, triangle for 3, 2x2 grid for 4)", () => {

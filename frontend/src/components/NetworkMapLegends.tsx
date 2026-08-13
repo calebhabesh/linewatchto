@@ -28,7 +28,7 @@ export function NetworkMapLegend({
     <>
       <aside
         className={`desktop-map-legend absolute right-6 z-20 pointer-events-none ${
-          isRegional ? "bottom-3" : "bottom-7"
+          isRegional ? "desktop-map-legend--regional bottom-7" : "bottom-7"
         }`}
       >
         <LineLegend

@@ -21,10 +21,16 @@ export const acknowledgementSections: NoticeSection[] = [
   },
   {
     title: "TTC Map Acknowledgement",
-    body: "The rapid-transit base map used for wayfinding context is adapted from a TTC-published map asset that appears to match the TTC Subway, Light Rail and Streetcar Map. The map artwork, TTC names, TTC marks, route names, station names, and line colors remain the property of the Toronto Transit Commission or their respective owners.",
+    body: "The LineWatchTO developer independently re-created the rapid-transit map in Inkscape, using the TTC route map as a direct visual reference. The SVG is a derivative replica created for optimized app rendering and data referencing/formatting; it is not a downloaded TTC map file. TTC names, marks, route and station names, line colors, and the referenced map design remain the property of the Toronto Transit Commission or their respective owners.",
     bullets: [
-      "LineWatchTO adds independent interactive overlays, alert cards, station controls, saved-commute impact checks, and display controls around the map.",
-      "Use of the adapted map is being treated as permission-sensitive. If the TTC does not grant written permission for this use, the project will replace the base map with an original LineWatchTO map.",
+      "The derivative map is being treated as permission-sensitive; independent re-creation does not imply TTC affiliation or endorsement.",
+    ],
+  },
+  {
+    title: "Metrolinx Map Acknowledgement",
+    body: "The LineWatchTO developer independently re-created the GO/UP regional map in Inkscape, using the Metrolinx GO system map as a direct visual reference. The SVG is a derivative replica created for optimized app rendering and data referencing/formatting; it is not a downloaded Metrolinx map image. GO, UP Express, Metrolinx, route and station names, service colors, marks, and the referenced map design remain the property of Metrolinx or their respective owners.",
+    bullets: [
+      "The derivative map is being treated as permission-sensitive; independent re-creation does not imply Metrolinx affiliation or endorsement.",
     ],
   },
   {
@@ -40,7 +46,7 @@ export const acknowledgementSections: NoticeSection[] = [
     body: "LineWatchTO does not treat TTC Live Alerts or Metrolinx API records as Toronto open data. Public launch of those integrations requires written source-owner confirmation appropriate to the intended use.",
     bullets: [
       "GO, GO Transit, UP Express, TTC, and related names and marks belong to their respective owners. Their use identifies transit services and does not imply affiliation or endorsement.",
-      "Regional naming and branding remain a launch gate pending written Metrolinx confirmation; TTC Live Alerts and TTC map use remain permission-sensitive pending written TTC confirmation.",
+      "Regional naming, branding, and derivative map use remain a launch gate pending written Metrolinx confirmation; TTC Live Alerts and derivative TTC map use remain permission-sensitive pending written TTC confirmation.",
     ],
   },
   {
@@ -96,9 +102,14 @@ export const privacyAcknowledgementLinks: NoticeLink[] = [
     description: "Licence terms for identified City of Toronto open-data inputs, including attribution and non-endorsement requirements.",
   },
   {
-    label: "TTC Routes and Schedules",
-    href: "https://www.ttc.ca/routes-and-schedules",
-    description: "Current TTC page that links to subway, light rail, streetcar, and system map documents.",
+    label: "TTC Line 1 Route Map Reference",
+    href: "https://www.ttc.ca/routes-and-schedules/1/0",
+    description: "TTC route page containing the map used as the direct visual reference for LineWatchTO's independently re-created TTC map.",
+  },
+  {
+    label: "Metrolinx GO System Map Reference",
+    href: "https://assets.metrolinx.com/image/upload/v1695737837/Images/GO/system-map.png",
+    description: "Metrolinx system-map image used as the direct visual reference for LineWatchTO's independently re-created GO/UP map.",
   },
   {
     label: "TTC Website Terms",

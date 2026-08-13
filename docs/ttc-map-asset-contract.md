@@ -1,5 +1,7 @@
 # TTC custom map asset contract
 
+The authored source is an independent derivative replica re-created by the LineWatchTO developer in Inkscape, using the [TTC Line 1 route-page map](https://www.ttc.ca/routes-and-schedules/1/0) as a direct visual reference. It is structured for optimized app rendering and data referencing/formatting; it is not a downloaded TTC map file. TTC names, marks, line colors, and the referenced map design remain the property of TTC or their respective owners.
+
 LineWatchTO prepares the authored Inkscape file before serving it. Run:
 
 ```bash
