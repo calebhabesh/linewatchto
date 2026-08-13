@@ -35,6 +35,7 @@ import {
   type PlacedOverlapBadge,
 } from "./map-overlap-badges";
 import {
+  cameraFromOrientedTransformMatrix,
   clampPanZoomScale,
   clientPointToLogicalViewportPoint,
   clientRectToLogicalViewportBounds,
@@ -45,6 +46,8 @@ import {
   distanceBetweenPoints,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
+  logicalViewportSizeForOrientation,
+  orientedMapCameraTransform,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   PAN_ZOOM_MIN_RELATIVE_SCALE,
   snapTransformToDevicePixels,
@@ -2250,11 +2253,27 @@ function InteractiveRegionalMapComponent({
     selectedStationIdRef.current = selectedStationId;
   }, [selectedStationId, selection]);
 
+  const logicalViewportSize = useCallback(() => {
+    const viewport = viewportRef.current;
+    const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
+    const physicalWidth = viewport?.clientWidth || mapSurface?.clientWidth || 0;
+    const physicalHeight = viewport?.clientHeight || mapSurface?.clientHeight || 0;
+    return logicalViewportSizeForOrientation(
+      physicalWidth,
+      physicalHeight,
+      viewportOrientation,
+    );
+  }, [viewportOrientation]);
+
   const writeMapTransform = useCallback((nextCamera: Camera) => {
     if (mapStageRef.current) {
-      mapStageRef.current.style.transform = `translate(${nextCamera.x}px, ${nextCamera.y}px) scale(${nextCamera.scale})`;
+      mapStageRef.current.style.transform = orientedMapCameraTransform(
+        nextCamera,
+        viewportOrientation,
+        viewportRef.current?.clientWidth ?? 0,
+      );
     }
-  }, []);
+  }, [viewportOrientation]);
 
   const setMapTransition = useCallback((transition: string) => {
     if (mapStageRef.current) {
@@ -2309,8 +2328,12 @@ function InteractiveRegionalMapComponent({
     const computedTransform = window.getComputedStyle(mapStageRef.current).transform;
     if (!computedTransform || computedTransform === "none") return null;
     const matrix = new DOMMatrixReadOnly(computedTransform);
-    return snapCameraToDevicePixels({ x: matrix.m41, y: matrix.m42, scale: matrix.a });
-  }, []);
+    return snapCameraToDevicePixels(cameraFromOrientedTransformMatrix(
+      { a: matrix.a, b: matrix.b, e: matrix.e, f: matrix.f },
+      viewportOrientation,
+      viewportRef.current?.clientWidth ?? 0,
+    ));
+  }, [viewportOrientation]);
 
   const cancelCameraAnimation = useCallback(() => {
     const renderedCamera = currentRenderedCamera();
@@ -2430,9 +2453,7 @@ function InteractiveRegionalMapComponent({
   const fittedCamera = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport) return null;
-    const mapSurface = viewport.closest<HTMLElement>(".network-map-transition-surface");
-    const width = viewport.clientWidth || mapSurface?.clientWidth || 0;
-    const height = viewport.clientHeight || mapSurface?.clientHeight || 0;
+    const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return null;
     const horizontalInset = desktopMapTopInset > 0
       ? Math.min(64, Math.max(32, width * REGIONAL_MAP_HORIZONTAL_INSET_RATIO))
@@ -2469,7 +2490,7 @@ function InteractiveRegionalMapComponent({
       scale: defaultFrame.scale,
       focus: { x: focus.focusX, y: focus.focusY },
     };
-  }, [desktopMapBottomInset, desktopMapTopInset]);
+  }, [desktopMapBottomInset, desktopMapTopInset, logicalViewportSize]);
 
   const fitNetwork = useCallback(() => {
     const fitted = fittedCamera();
@@ -2506,10 +2527,7 @@ function InteractiveRegionalMapComponent({
     if (!svgMarkup) return;
     const fitted = fittedCamera();
     if (!fitted) return;
-    const viewport = viewportRef.current;
-    const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
-    const width = viewport?.clientWidth || mapSurface?.clientWidth || 0;
-    const height = viewport?.clientHeight || mapSurface?.clientHeight || 0;
+    const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const entryCamera = animateInitialEntrance
       ? snapCameraToDevicePixels(
@@ -2524,7 +2542,7 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(entryCamera);
     setFitScale(fitted.scale);
     setCamera(entryCamera);
-  }, [animateInitialEntrance, fittedCamera, setMapTransition, svgMarkup, writeMapTransform]);
+  }, [animateInitialEntrance, fittedCamera, logicalViewportSize, setMapTransition, svgMarkup, writeMapTransform]);
 
   const completeStagedEntrance = useCallback(() => {
     const fitted = fittedCamera();
@@ -2543,10 +2561,7 @@ function InteractiveRegionalMapComponent({
     cameraInitializedRef.current = true;
     setCameraReady(true);
     if (animateInitialEntrance && shouldAnimateProgrammaticTransform) {
-      const viewport = viewportRef.current;
-      const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
-      const width = viewport?.clientWidth || mapSurface?.clientWidth || 0;
-      const height = viewport?.clientHeight || mapSurface?.clientHeight || 0;
+      const { width, height } = logicalViewportSize();
       const entryCamera = snapCameraToDevicePixels(
         computeFittedCameraFlyInStart(fitted.camera, width, height, fitted.focus),
       );
@@ -2565,7 +2580,7 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(fitted.camera);
     setFitScale(fitted.scale);
     setCamera(fitted.camera);
-  }, [animateCameraTo, animateInitialEntrance, fittedCamera, setMapTransition, shouldAnimateProgrammaticTransform, svgMarkup, writeMapTransform]);
+  }, [animateCameraTo, animateInitialEntrance, fittedCamera, logicalViewportSize, setMapTransition, shouldAnimateProgrammaticTransform, svgMarkup, writeMapTransform]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3187,15 +3202,18 @@ function InteractiveRegionalMapComponent({
   }, [estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, svgMarkup]);
 
   useLayoutEffect(() => {
-    if (deferInitialEntrance) {
-      entranceWasDeferredRef.current = true;
-      stageInitialEntrance();
-    } else if (entranceWasDeferredRef.current) {
-      entranceWasDeferredRef.current = false;
-      completeStagedEntrance();
-    } else {
-      initializeMapCamera();
-    }
+    const frame = window.requestAnimationFrame(() => {
+      if (deferInitialEntrance) {
+        entranceWasDeferredRef.current = true;
+        stageInitialEntrance();
+      } else if (entranceWasDeferredRef.current) {
+        entranceWasDeferredRef.current = false;
+        completeStagedEntrance();
+      } else {
+        initializeMapCamera();
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [completeStagedEntrance, deferInitialEntrance, initializeMapCamera, stageInitialEntrance]);
 
   useEffect(() => {
@@ -3409,9 +3427,10 @@ function InteractiveRegionalMapComponent({
       width: Math.max((right - left) / current.scale, 1),
       height: Math.max((bottom - top) / current.scale, 1),
     };
+    const { width: logicalWidth, height: logicalHeight } = logicalViewportSize();
     const selectionFit = computeBoundedMapFrame(
-      viewport.clientWidth,
-      viewport.clientHeight,
+      logicalWidth,
+      logicalHeight,
       mapBounds,
       focusInsets,
     );
@@ -3420,14 +3439,14 @@ function InteractiveRegionalMapComponent({
       selectionFit.scale * REGIONAL_SELECTION_FIT_COMFORT_RATIO,
     );
     const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
-      viewport.clientWidth,
-      viewport.clientHeight,
+      logicalWidth,
+      logicalHeight,
       focusInsets,
     );
     const focusX = baseFocusX;
     const focusY =
       viewportOrientation === "rotated-landscape"
-        ? viewport.clientHeight * 0.34
+        ? logicalHeight * 0.34
         : baseFocusY;
 
     animateCameraTo(snapCameraToDevicePixels({
@@ -3442,6 +3461,7 @@ function InteractiveRegionalMapComponent({
     desktopMapTopInset,
     desktopMenuPinned,
     fitScale,
+    logicalViewportSize,
     selectedMapElements,
     viewportOrientation,
   ]);
@@ -3512,8 +3532,9 @@ function InteractiveRegionalMapComponent({
     endCameraMotion();
     setUserZoomMotion(true);
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
-    const centerX = viewport.clientWidth / 2;
-    const centerY = viewport.clientHeight / 2;
+    const { width, height } = logicalViewportSize();
+    const centerX = width / 2;
+    const centerY = height / 2;
     const current = cameraRef.current;
     const nextScale = clampPanZoomScale(current.scale * factor, fitScale);
     const ratio = nextScale / current.scale;
@@ -3525,7 +3546,7 @@ function InteractiveRegionalMapComponent({
     cameraRef.current = nextCamera;
     writeMapTransform(nextCamera);
     scheduleCameraCommit();
-  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const zoomToScale = useCallback((targetRelativeScale: number) => {
     const viewport = viewportRef.current;
@@ -3535,8 +3556,9 @@ function InteractiveRegionalMapComponent({
     endCameraMotion();
     setUserZoomMotion(true);
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
-    const centerX = viewport.clientWidth / 2;
-    const centerY = viewport.clientHeight / 2;
+    const { width, height } = logicalViewportSize();
+    const centerX = width / 2;
+    const centerY = height / 2;
     const current = cameraRef.current;
     const nextScale = clampPanZoomScale(targetRelativeScale * fitScale, fitScale);
     const ratio = nextScale / current.scale;
@@ -3548,7 +3570,7 @@ function InteractiveRegionalMapComponent({
     cameraRef.current = nextCamera;
     writeMapTransform(nextCamera);
     scheduleCameraCommit();
-  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault();

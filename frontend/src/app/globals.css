@@ -18893,24 +18893,42 @@ img.transit-line-badge {
   }
 
   .linewatch-shell.mobile-map-rotated > main {
-    backface-visibility: hidden;
-    bottom: auto !important;
-    contain: strict;
-    height: var(--rotated-map-viewport-width, 100vw);
+    bottom: 0 !important;
+    contain: layout paint size;
+    height: auto;
     isolation: isolate;
-    left: 50%;
+    left: 0;
     overflow: hidden;
+    position: absolute;
+    right: 0 !important;
+    top: 0;
+    transform: none;
+    width: auto;
+    z-index: 55;
+  }
+
+  /* The large map camera now folds the 90-degree orientation into its own
+     transform. Only this lightweight controls surface is rotated separately,
+     avoiding Android Chromium's unstable nested map compositor tiles. */
+  .linewatch-shell.mobile-map-rotated .rotated-map-ui-surface {
+    height: var(--rotated-map-viewport-width, 100vw);
+    left: 50%;
+    pointer-events: none;
     position: fixed;
-    right: auto !important;
     top: 50%;
-    /* Rotate one stable, viewport-sized compositor surface. Its dimensions are
-       captured when this mode opens so visualViewport updates during a pinch
-       cannot resize the outer surface while the inner map camera is scaling. */
-    transform: translate3d(-50%, -50%, 0) rotate(90deg);
+    transform: translate(-50%, -50%) rotate(90deg);
     transform-origin: center center;
     width: var(--rotated-map-viewport-height, 100dvh);
-    will-change: transform;
-    z-index: 55;
+    z-index: 80;
+  }
+
+  /* A child translateZ creates one GPU surface per full authored map plane.
+     That is useful for ordinary portrait camera movement, but after the camera
+     itself owns a 90-degree matrix it recreates the Android nested-layer bug
+     inside the stage. Paint the rotated raster planes into the camera surface. */
+  .linewatch-shell.mobile-map-rotated .raster-map-plane {
+    backface-visibility: visible;
+    transform: none;
   }
 
   .linewatch-shell.mobile-map-rotated .map-control-rail {

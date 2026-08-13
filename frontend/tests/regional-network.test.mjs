@@ -235,7 +235,8 @@ describe("network-scoped regional dashboard", () => {
       globalsCss.match(/\.network-selector-glider\s*\{([\s\S]*?)\}/)?.[1] ?? "",
       /will-change/,
     );
-    assert.match(regionalMapSource, /viewport\.clientWidth \|\| mapSurface\?\.clientWidth/);
+    assert.match(regionalMapSource, /physicalWidth = viewport\?\.clientWidth \|\| mapSurface\?\.clientWidth/);
+    assert.match(regionalMapSource, /logicalViewportSizeForOrientation/);
     assert.match(regionalMapSource, /viewport\.getClientRects\(\)\.length > 0/);
   });
 
@@ -932,7 +933,8 @@ describe("network-scoped regional dashboard", () => {
 
   it("keeps the regional camera imperative while preserving TTC camera math", () => {
     assert.match(regionalMapSource, /snapCameraToDevicePixels/);
-    assert.match(regionalMapSource, /mapStageRef\.current\.style\.transform = `translate\(\$\{nextCamera\.x\}px, \$\{nextCamera\.y\}px\) scale\(\$\{nextCamera\.scale\}\)`/);
+    assert.match(regionalMapSource, /mapStageRef\.current\.style\.transform = orientedMapCameraTransform\(/);
+    assert.match(regionalMapSource, /logicalViewportSizeForOrientation/);
     assert.doesNotMatch(regionalMapSource, /transform: `translate\(\$\{camera\.x\}/);
     assert.match(regionalMapSource, /transformOrigin: "0 0"/);
     assert.match(regionalMapSource, /root\.setAttribute\("preserveAspectRatio", "xMidYMid meet"\)/);

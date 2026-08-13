@@ -260,8 +260,8 @@ test("mobile TTC recenter cycles keep independent raster planes without composit
   await expect(page.locator(".ttc-map-recenter-veil")).toHaveCount(0);
 });
 
-test("rotated mobile pinch zoom keeps a stable compositor and map instance across both networks", async ({ page, request, isMobile }) => {
-  test.skip(!isMobile, "rotated compositor coverage runs in the touch-device project");
+test("rotated mobile pinch zoom keeps one oriented map camera across both networks", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "rotated camera coverage runs in the touch-device project");
 
   await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
   await page.setViewportSize({ width: 412, height: 915 });
@@ -286,13 +286,14 @@ test("rotated mobile pinch zoom keeps a stable compositor and map instance acros
     const result = await page.evaluate(async ({ activeNetwork }) => {
       const shellElement = document.querySelector<HTMLElement>(".linewatch-shell.mobile-map-rotated");
       const main = shellElement?.querySelector<HTMLElement>(":scope > main");
+      const uiSurface = main?.querySelector<HTMLElement>(".rotated-map-ui-surface");
       const gestureTarget = activeNetwork === "ttc"
         ? document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]")
         : document.querySelector<HTMLElement>(".regional-map-viewport");
       const mapStage = gestureTarget?.querySelector<HTMLElement>(
         activeNetwork === "ttc" ? ".ttc-map-stage" : ".regional-map-stage",
       );
-      if (!shellElement || !main || !gestureTarget || !mapStage) {
+      if (!shellElement || !main || !uiSurface || !gestureTarget || !mapStage) {
         throw new Error(`Missing ${activeNetwork} rotated pinch elements`);
       }
 
@@ -371,32 +372,35 @@ test("rotated mobile pinch zoom keeps a stable compositor and map instance acros
       }
 
       const mainStyle = getComputedStyle(main);
+      const stageMatrix = new DOMMatrixReadOnly(getComputedStyle(mapStage).transform);
       return {
-        backfaceVisibility: mainStyle.backfaceVisibility,
-        compositorWillChange: mainStyle.willChange,
         contain: mainStyle.contain,
         cycles,
-        independentlyPromotedPlanes: rasterPlanes.filter((plane) => (
-          getComputedStyle(plane).transform !== "none"
-          && getComputedStyle(plane).backfaceVisibility === "hidden"
+        flattenedRasterPlanes: rasterPlanes.filter((plane) => (
+          getComputedStyle(plane).transform === "none"
+          && getComputedStyle(plane).backfaceVisibility === "visible"
         )).length,
         isolation: mainStyle.isolation,
+        mainTransform: mainStyle.transform,
         mapChildrenPreserved: Array.from(mapStage.children)
           .every((child, index) => child === originalChildren[index]),
+        orientedCamera: Math.abs(stageMatrix.a) < 0.0001 && Math.abs(stageMatrix.b) > 0,
         rasterPlanesPreserved: Array.from(mapStage.querySelectorAll(".raster-map-plane"))
           .every((plane, index) => plane === rasterPlanes[index]),
+        uiSurfaceRotated: getComputedStyle(uiSurface).transform !== "none",
       };
     }, { activeNetwork: network });
 
     expect(result).toMatchObject({
-      backfaceVisibility: "hidden",
-      compositorWillChange: "transform",
-      contain: "strict",
-      independentlyPromotedPlanes: 3,
+      flattenedRasterPlanes: 3,
       isolation: "isolate",
+      mainTransform: "none",
       mapChildrenPreserved: true,
+      orientedCamera: true,
       rasterPlanesPreserved: true,
+      uiSurfaceRotated: true,
     });
+    expect(result.contain.split(" ")).toEqual(expect.arrayContaining(["layout", "paint", "size"]));
     expect(result.cycles).toHaveLength(6);
     expect(result.cycles.every((cycle) => (
       cycle.cameraChanged

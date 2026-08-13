@@ -2684,6 +2684,9 @@ export function LineWatchShell({
     height: rotatedMapMode && rotatedMapViewportFrame
       ? `${rotatedMapViewportFrame.height}px`
       : "var(--visual-viewport-height, 100dvh)",
+    width: rotatedMapMode && rotatedMapViewportFrame
+      ? `${rotatedMapViewportFrame.width}px`
+      : undefined,
     ...(rotatedMapViewportFrame ? {
       "--rotated-map-viewport-width": `${rotatedMapViewportFrame.width}px`,
       "--rotated-map-viewport-height": `${rotatedMapViewportFrame.height}px`,
@@ -3655,7 +3658,7 @@ export function LineWatchShell({
         />
 
         {rotatedMapMode ? (
-          <>
+          <div className="rotated-map-ui-surface">
             <div className="rotated-map-hud" aria-label="Rotated map controls">
               <MobileMapControls
                 presentationMode="rotated-landscape"
@@ -3676,7 +3679,7 @@ export function LineWatchShell({
                 />
               </div>
             ) : null}
-          </>
+          </div>
         ) : null}
       </main>
 

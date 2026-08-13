@@ -2196,9 +2196,17 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
     clientHeight: element.clientHeight,
     visualWidth: element.getBoundingClientRect().width,
     visualHeight: element.getBoundingClientRect().height,
+    transform: getComputedStyle(element).transform,
   }));
-  expect(mainDimensions.clientWidth).toBeGreaterThan(mainDimensions.clientHeight);
+  expect(mainDimensions.clientHeight).toBeGreaterThan(mainDimensions.clientWidth);
   expect(mainDimensions.visualHeight).toBeGreaterThan(mainDimensions.visualWidth);
+  expect(mainDimensions.transform).toBe("none");
+  const rotatedStageMatrix = await page.locator(".ttc-map-stage").evaluate((element) => {
+    const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
+    return { a: matrix.a, b: matrix.b };
+  });
+  expect(Math.abs(rotatedStageMatrix.a)).toBeLessThan(0.0001);
+  expect(Math.abs(rotatedStageMatrix.b)).toBeGreaterThan(0);
 
   await page.locator('[data-overlap-segment-id="stub-line-1-segment"]').dispatchEvent("click");
   const rotatedChooser = page.locator("[data-overlap-chooser]");

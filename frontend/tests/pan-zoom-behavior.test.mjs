@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
+  cameraFromOrientedTransformMatrix,
   clampPanZoomScale,
   computeBoundedMapFrame,
   computeFittedCameraFlyInStart,
@@ -12,6 +13,8 @@ import {
   exceedsMapTapMovement,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
+  logicalViewportSizeForOrientation,
+  orientedMapCameraTransform,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   snapToDevicePixel,
   snapTransformToDevicePixels,
@@ -437,6 +440,24 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /clientWidth/);
     assert.match(hookSource, /clientHeight/);
     assert.match(hookSource, /viewportOrientation/);
+    assert.deepEqual(logicalViewportSizeForOrientation(412, 915, "rotated-landscape"), {
+      width: 915,
+      height: 412,
+    });
+    assert.equal(
+      orientedMapCameraTransform({ x: 20, y: -15, scale: 1.5 }, "rotated-landscape", 412),
+      "translate(412px, 0px) rotate(90deg) translate(20px, -15px) scale(1.5)",
+    );
+    assert.deepEqual(
+      cameraFromOrientedTransformMatrix(
+        { a: 0, b: 1.5, e: 427, f: 20 },
+        "rotated-landscape",
+        412,
+      ),
+      { x: 20, y: -15, scale: 1.5 },
+    );
+    assert.match(hookSource, /orientedMapCameraTransform/);
+    assert.match(regionalMapSource, /orientedMapCameraTransform/);
   });
 
   it("biases rotated station and impact focus away from their preview cards", () => {

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, type PointerEvent, type WheelEvent } from "react";
 import {
   clampPanZoomScale,
+  cameraFromOrientedTransformMatrix,
   clientPointToLogicalViewportPoint,
   computeBoundedMapFrame,
   computeFittedCameraFlyInStart,
@@ -11,6 +12,8 @@ import {
   exceedsMapTapMovement,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
+  logicalViewportSizeForOrientation,
+  orientedMapCameraTransform,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   PAN_ZOOM_MIN_RELATIVE_SCALE,
   snapTransformToDevicePixels,
@@ -120,9 +123,13 @@ export function usePanZoom({
 
   const writeMapTransform = useCallback((next: PanZoomTransform) => {
     if (mapRef.current) {
-      mapRef.current.style.transform = `translate(${next.x}px, ${next.y}px) scale(${next.scale})`;
+      mapRef.current.style.transform = orientedMapCameraTransform(
+        next,
+        viewportOrientation,
+        containerRef.current?.clientWidth ?? 0,
+      );
     }
-  }, []);
+  }, [viewportOrientation]);
 
   const setMapTransition = useCallback((transition: string) => {
     if (mapRef.current) {
@@ -177,12 +184,12 @@ export function usePanZoom({
     }
 
     const matrix = new DOMMatrixReadOnly(computedTransform);
-    return snapTransform({
-      x: matrix.m41,
-      y: matrix.m42,
-      scale: matrix.a,
-    });
-  }, [snapTransform]);
+    return snapTransform(cameraFromOrientedTransformMatrix(
+      { a: matrix.a, b: matrix.b, e: matrix.e, f: matrix.f },
+      viewportOrientation,
+      containerRef.current?.clientWidth ?? 0,
+    ));
+  }, [snapTransform, viewportOrientation]);
 
   const clearProgrammaticAnimation = useCallback(() => {
     if (initialEntranceTimeoutRef.current !== null) {
@@ -348,8 +355,13 @@ export function usePanZoom({
     const el = containerRef.current;
     if (!el) return;
 
-    const reconcileViewport = (width: number, height: number) => {
-      if (document.visibilityState === "hidden" || width <= 0 || height <= 0) return;
+    const reconcileViewport = (physicalWidth: number, physicalHeight: number) => {
+      if (document.visibilityState === "hidden" || physicalWidth <= 0 || physicalHeight <= 0) return;
+      const { width, height } = logicalViewportSizeForOrientation(
+        physicalWidth,
+        physicalHeight,
+        viewportOrientation,
+      );
 
       const previousViewport = lastDimensions.current;
       const diffW = Math.abs(previousViewport.width - width);
@@ -402,16 +414,17 @@ export function usePanZoom({
       observer.disconnect();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [defaultTransformForViewport]);
+  }, [defaultTransformForViewport, viewportOrientation]);
 
   const logicalViewportSize = useCallback(() => {
     const element = containerRef.current;
     if (!element) return { width: 0, height: 0 };
-    return {
-      width: element.clientWidth,
-      height: element.clientHeight,
-    };
-  }, []);
+    return logicalViewportSizeForOrientation(
+      element.clientWidth,
+      element.clientHeight,
+      viewportOrientation,
+    );
+  }, [viewportOrientation]);
 
   const pointFromClientPoint = useCallback((clientX: number, clientY: number): PanZoomPoint => {
     const rect = containerRef.current?.getBoundingClientRect();

@@ -3,8 +3,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
+  cameraFromOrientedTransformMatrix,
   clientPointToLogicalViewportPoint,
   clientRectToLogicalViewportBounds,
+  logicalViewportSizeForOrientation,
+  orientedMapCameraTransform,
 } from "../src/hooks/panZoomMath.ts";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
@@ -74,7 +77,7 @@ describe("mobile rotated map mode", () => {
     assert.match(shellSource, /mapPresentationMode === "rotated-landscape"/);
   });
 
-  it("keeps the rotated camera on a frozen viewport-sized compositor during pinch zoom", () => {
+  it("flattens rotated orientation into the map camera instead of nesting the map in a rotated compositor", () => {
     assert.match(shellSource, /const \[rotatedMapViewportFrame, setRotatedMapViewportFrame\]/);
     assert.match(shellSource, /visualViewport\?\.width \?\? window\.innerWidth/);
     assert.match(shellSource, /visualViewport\?\.height \?\? window\.innerHeight/);
@@ -82,12 +85,35 @@ describe("mobile rotated map mode", () => {
     assert.match(shellSource, /--rotated-map-viewport-height/);
     assert.match(shellSource, /mobileMapPerformanceMode = mobilePerformanceMode \|\| rotatedMapMode/);
     assert.match(shellSource, /mobilePerformanceMode=\{mobileMapPerformanceMode\}/);
+    assert.deepEqual(
+      logicalViewportSizeForOrientation(390, 844, "rotated-landscape"),
+      { width: 844, height: 390 },
+    );
+    assert.equal(
+      orientedMapCameraTransform(
+        { x: 12, y: 34, scale: 2 },
+        "rotated-landscape",
+        390,
+      ),
+      "translate(390px, 0px) rotate(90deg) translate(12px, 34px) scale(2)",
+    );
+    assert.deepEqual(
+      cameraFromOrientedTransformMatrix(
+        { a: 0, b: 2, e: 356, f: 12 },
+        "rotated-landscape",
+        390,
+      ),
+      { x: 12, y: 34, scale: 2 },
+    );
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-map-rotated > main\s*\{(?=[^}]*backface-visibility:\s*hidden;)(?=[^}]*contain:\s*strict;)(?=[^}]*isolation:\s*isolate;)(?=[^}]*transform:\s*translate3d\(-50%, -50%, 0\) rotate\(90deg\);)(?=[^}]*will-change:\s*transform;)[^}]*\}/s,
+      /\.linewatch-shell\.mobile-map-rotated > main\s*\{(?=[^}]*contain:\s*layout paint size;)(?=[^}]*transform:\s*none;)[^}]*\}/s,
     );
-    assert.match(globalCss, /height:\s*var\(--rotated-map-viewport-width, 100vw\)/);
-    assert.match(globalCss, /width:\s*var\(--rotated-map-viewport-height, 100dvh\)/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-ui-surface\s*\{[^}]*transform:\s*translate\(-50%, -50%\) rotate\(90deg\);/s);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s);
+    assert.match(shellSource, /className="rotated-map-ui-surface"/);
+    assert.doesNotMatch(globalCss, /\.linewatch-shell\.mobile-map-rotated > main\s*\{[^}]*rotate\(90deg\)/s);
+    assert.match(hookSource, /orientedMapCameraTransform/);
   });
 
   it("renders rotated map controls with explicit exit and center actions", () => {

@@ -21,6 +21,7 @@ import {
 import { usePanZoom } from "../hooks/usePanZoom";
 import {
   clientRectToLogicalViewportBounds,
+  logicalViewportSizeForOrientation,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   type MapContentBounds,
   type MapViewportOrientation,
@@ -575,7 +576,11 @@ function InteractiveTtcMapComponent({
     const viewport = containerRef.current;
     if (!viewport) return;
     const updateSize = () => {
-      setMapViewportSize({ width: viewport.clientWidth, height: viewport.clientHeight });
+      setMapViewportSize(logicalViewportSizeForOrientation(
+        viewport.clientWidth,
+        viewport.clientHeight,
+        viewportOrientation,
+      ));
     };
     const handleWindowResize = () => {
       updateSize();
@@ -591,7 +596,7 @@ function InteractiveTtcMapComponent({
       observer.disconnect();
       window.removeEventListener("resize", handleWindowResize);
     };
-  }, [containerRef, refitIfCameraUntouched]);
+  }, [containerRef, refitIfCameraUntouched, viewportOrientation]);
 
   useLayoutEffect(() => {
     const viewport = containerRef.current;

@@ -157,6 +157,60 @@ export type LogicalViewportBounds = {
   height: number;
 };
 
+export function logicalViewportSizeForOrientation(
+  physicalWidth: number,
+  physicalHeight: number,
+  orientation: MapViewportOrientation = "standard",
+): { width: number; height: number } {
+  return orientation === "rotated-landscape"
+    ? { width: physicalHeight, height: physicalWidth }
+    : { width: physicalWidth, height: physicalHeight };
+}
+
+/**
+ * Keep the rotated map and its camera on one transform node. Android Chromium
+ * can visibly retile a large camera layer when it is scaled inside a second,
+ * full-viewport rotated compositor. Folding the orientation into the camera
+ * matrix removes that nested transformed surface.
+ */
+export function orientedMapCameraTransform(
+  transform: PanZoomTransform,
+  orientation: MapViewportOrientation = "standard",
+  physicalViewportWidth = 0,
+): string {
+  const camera = `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`;
+  return orientation === "rotated-landscape"
+    ? `translate(${physicalViewportWidth}px, 0px) rotate(90deg) ${camera}`
+    : camera;
+}
+
+type TransformMatrixComponents = {
+  a: number;
+  b: number;
+  e: number;
+  f: number;
+};
+
+export function cameraFromOrientedTransformMatrix(
+  matrix: TransformMatrixComponents,
+  orientation: MapViewportOrientation = "standard",
+  physicalViewportWidth = 0,
+): PanZoomTransform {
+  if (orientation === "rotated-landscape") {
+    return {
+      x: matrix.f,
+      y: physicalViewportWidth - matrix.e,
+      scale: Math.abs(matrix.b),
+    };
+  }
+
+  return {
+    x: matrix.e,
+    y: matrix.f,
+    scale: Math.abs(matrix.a),
+  };
+}
+
 export function clientPointToLogicalViewportPoint(
   clientPoint: PanZoomPoint,
   rect: ViewportClientRect,
