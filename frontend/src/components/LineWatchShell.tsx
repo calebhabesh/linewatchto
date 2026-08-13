@@ -3178,6 +3178,21 @@ export function LineWatchShell({
                      </span>
                    )}
                  </button>
+                 {selectedNetwork === "regional" ? <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={openRegionalTripChanges}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <div className="flex items-center gap-3">
+                     <Train size={18} className="text-slate-500 dark:text-slate-400" /> Trip Changes
+                   </div>
+                   {regionalTripChangeCount !== null && regionalTripChangeCount > 0 ? (
+                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
+                       {regionalTripChangeCount}
+                     </span>
+                   ) : null}
+                 </button> : null}
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -3224,21 +3239,6 @@ export function LineWatchShell({
                      </span>
                    )}
                  </button>
-                 {selectedNetwork === "regional" ? <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={openRegionalTripChanges}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <Train size={18} className="text-slate-500 dark:text-slate-400" /> Trip Changes
-                   </div>
-                   {regionalTripChangeCount !== null && regionalTripChangeCount > 0 ? (
-                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
-                       {regionalTripChangeCount}
-                     </span>
-                   ) : null}
-                 </button> : null}
                  {selectedNetwork === "ttc" ? <button
                     ref={registerMenuAction(actionIndex++)}
                     role="menuitem"

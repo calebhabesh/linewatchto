@@ -84,6 +84,13 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               {plannedClosures.length}
             </span>
           </button>
+          {regional ? <button type="button" className="mobile-status-btn-trip-changes flex items-center justify-between" onClick={() => onOpenCategory("trip-changes")}>
+            <TrainFront size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            <span className="mobile-status-btn-text">Trip Changes</span>
+            <span className="mobile-status-btn-circle">
+              {tripChangeCount}
+            </span>
+          </button> : null}
           <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")}>
             <Image
               src="/assets/linewatch/accessibility-alert.svg"
@@ -104,13 +111,6 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               {surfaceNoticeCount}
             </span>
           </button>
-          {regional ? <button type="button" className="mobile-status-btn-trip-changes flex items-center justify-between" onClick={() => onOpenCategory("trip-changes")}>
-            <TrainFront size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            <span className="mobile-status-btn-text">Trip Changes</span>
-            <span className="mobile-status-btn-circle">
-              {tripChangeCount}
-            </span>
-          </button> : null}
         </div>
 
         <div className="mobile-line-status-list">
