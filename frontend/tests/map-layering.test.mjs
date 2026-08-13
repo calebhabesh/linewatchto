@@ -7,6 +7,7 @@ const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const interactiveRegionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
+const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
 const plannedClosureIconSource = readFileSync(new URL("../src/components/PlannedClosureIcon.tsx", import.meta.url), "utf8");
 const mapImpactNormalizationSource = readFileSync(new URL("../src/components/map-impact-normalization.ts", import.meta.url), "utf8");
 const stationImpactDirectionSource = readFileSync(new URL("../src/components/station-impact-direction.ts", import.meta.url), "utf8");
@@ -652,14 +653,28 @@ describe("asset-backed map layering", () => {
       interactiveMapSource,
       /overlapChooserScreenLayout\([\s\S]*?chooserKeepoutBoxes,[\s\S]*?overlayCollisionBoxes/,
     );
-    assert.match(interactiveMapSource, /CHOOSER_KEEPOUT_SELECTOR/);
+    assert.match(interactiveMapSource, /visibleMapChooserKeepouts/);
     assert.match(interactiveMapSource, /chooserKeepoutBoxes/);
-    assert.match(interactiveMapSource, /\.desktop-status-capsule-anchor/);
-    assert.match(interactiveMapSource, /\.desktop-map-control-rail/);
-    assert.match(interactiveMapSource, /\.desktop-map-legend/);
-    assert.match(interactiveMapSource, /\.desktop-status-chip-row-container/);
+    assert.match(interactiveMapSource, /observeMapChooserKeepouts\(updateKeepoutBoxes\)/);
+    assert.match(chooserKeepoutsSource, /mutationChangesMapChooserKeepouts/);
+    assert.match(chooserKeepoutsSource, /element\.checkVisibility/);
+    assert.match(chooserKeepoutsSource, /for \(let current: Element \| null = element; current; current = current\.parentElement\)/);
+    assert.match(chooserKeepoutsSource, /record\.type === "attributes"/);
+    assert.match(chooserKeepoutsSource, /transitionrun/);
+    assert.match(chooserKeepoutsSource, /window\.visualViewport/);
+    assert.match(chooserKeepoutsSource, /\.desktop-status-capsule-anchor/);
+    assert.match(chooserKeepoutsSource, /\.desktop-map-control-rail/);
+    assert.match(chooserKeepoutsSource, /\.desktop-map-legend/);
+    assert.match(chooserKeepoutsSource, /\.desktop-status-chip-row-container/);
+    assert.match(chooserKeepoutsSource, /\.mobile-status-peek/);
+    assert.match(chooserKeepoutsSource, /\.mobile-legend-pill/);
+    assert.match(chooserKeepoutsSource, /\.mobile-my-stations-shortcut/);
     assert.doesNotMatch(interactiveMapSource, /mapViewportSize\.width > OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(interactiveMapSource, /chooserKeepoutEdgeCandidates/);
+    assert.match(interactiveMapSource, /chooserKeepoutGridCandidates/);
+    assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MIN_COMPACT_HEIGHT/);
+    assert.match(interactiveMapSource, /if \(attempt\.clearsUiKeepouts\) break/);
+    assert.match(interactiveMapSource, /width:\s*layout\.width,[\s\S]*?height:\s*layout\.height/);
     assert.match(interactiveMapSource, /boundedChooserViewportCandidates/);
     assert.doesNotMatch(interactiveMapSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
     assert.match(interactiveMapSource, /onHoverImpact/);

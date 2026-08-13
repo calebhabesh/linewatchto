@@ -3544,7 +3544,7 @@ export function LineWatchShell({
           ) : null}
         </div>
 
-        <div className="map-utility-cluster pointer-events-auto flex items-center gap-2">
+        <div className="map-utility-cluster pointer-events-auto flex items-center gap-2" data-map-chooser-keepout>
           <LogsDropdown network={selectedNetwork} />
           <button
             type="button"
@@ -3659,7 +3659,7 @@ export function LineWatchShell({
 
         {rotatedMapMode ? (
           <div className="rotated-map-ui-surface">
-            <div className="rotated-map-hud" aria-label="Rotated map controls">
+            <div className="rotated-map-hud" aria-label="Rotated map controls" data-map-chooser-keepout>
               <MobileMapControls
                 presentationMode="rotated-landscape"
                 onExitRotated={() => {
@@ -3669,7 +3669,7 @@ export function LineWatchShell({
               />
             </div>
             {rotatedSelectionVisible && !mobileInspectorOpen ? (
-              <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item">
+              <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item" data-map-chooser-keepout>
                 <RotatedMapSelectionCard
                   selection={selection}
                   selectedStationId={selectedStationId}
@@ -3697,6 +3697,7 @@ export function LineWatchShell({
               ? "mobile-train-toggle--announcement"
               : ""
           } ${estimatedTrainsEnabled ? "active" : ""}`}
+          data-map-chooser-keepout
           aria-pressed={estimatedTrainsEnabled}
           aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
         >

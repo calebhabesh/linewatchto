@@ -56,6 +56,7 @@ import {
 } from "../hooks/panZoomMath";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
+import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-chooser-keepouts";
 
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
@@ -2022,6 +2023,7 @@ function regionalOverlapChooserLayout({
   chooserSize,
   viewportSize,
   alertCollisionBoxes,
+  uiKeepoutBoxes,
 }: {
   markerCenter: SvgPoint;
   markerSize: { width: number; height: number };
@@ -2029,7 +2031,8 @@ function regionalOverlapChooserLayout({
   chooserSize: { width: number; height: number };
   viewportSize: { width: number; height: number };
   alertCollisionBoxes: RegionalCollisionBox[];
-}): MapOverlapChooserLayout {
+  uiKeepoutBoxes: RegionalCollisionBox[];
+}): { layout: MapOverlapChooserLayout; size: { width: number; height: number } } {
   const margin = 16;
   const outwardLength = Math.hypot(
     markerCenter.x - alertAnchor.x,
@@ -2039,25 +2042,25 @@ function regionalOverlapChooserLayout({
     x: (markerCenter.x - alertAnchor.x) / outwardLength,
     y: (markerCenter.y - alertAnchor.y) / outwardLength,
   };
-  const centerForDirection = (direction: SvgPoint) => {
+  const centerForDirection = (direction: SvgPoint, size: { width: number; height: number }) => {
     const markerExtent = Math.abs(direction.x) * markerSize.width / 2
       + Math.abs(direction.y) * markerSize.height / 2;
-    const chooserExtent = Math.abs(direction.x) * chooserSize.width / 2
-      + Math.abs(direction.y) * chooserSize.height / 2;
+    const chooserExtent = Math.abs(direction.x) * size.width / 2
+      + Math.abs(direction.y) * size.height / 2;
     const distance = markerExtent + REGIONAL_OVERLAP_CHOOSER_GAP + chooserExtent;
     return {
       x: markerCenter.x + direction.x * distance,
       y: markerCenter.y + direction.y * distance,
     };
   };
-  const clampCenter = (center: SvgPoint) => ({
+  const clampCenter = (center: SvgPoint, size: { width: number; height: number }) => ({
     x: Math.min(
-      viewportSize.width - margin - chooserSize.width / 2,
-      Math.max(margin + chooserSize.width / 2, center.x),
+      viewportSize.width - margin - size.width / 2,
+      Math.max(margin + size.width / 2, center.x),
     ),
     y: Math.min(
-      viewportSize.height - margin - chooserSize.height / 2,
-      Math.max(margin + chooserSize.height / 2, center.y),
+      viewportSize.height - margin - size.height / 2,
+      Math.max(margin + size.height / 2, center.y),
     ),
   });
   const outwardAngle = Math.atan2(outward.y, outward.x);
@@ -2066,35 +2069,69 @@ function regionalOverlapChooserLayout({
     return index === 0 ? 0 : index % 2 === 1 ? step : -step;
   });
   const distanceScales = [1, 1.25, 1.55, 1.9, 2.3];
-  const preferredCenter = centerForDirection(outward);
   const markerBox: RegionalCollisionBox = {
     x: markerCenter.x - markerSize.width / 2,
     y: markerCenter.y - markerSize.height / 2,
     width: markerSize.width,
     height: markerSize.height,
   };
-  const center = distanceScales.flatMap((distanceScale) => angleOffsets.map((angleOffset) => {
+  const paddedUiKeepoutBoxes = uiKeepoutBoxes.map((box) => expandedRegionalCollisionBox(box, 8));
+  const minimumHeight = Math.min(
+    chooserSize.height,
+    Math.max(80, Math.min(142, viewportSize.height - margin * 2)),
+  );
+  const heightCandidates: number[] = [];
+  for (let height = chooserSize.height; height > minimumHeight; height -= 4) heightCandidates.push(height);
+  heightCandidates.push(minimumHeight);
+
+  const scoreSize = (size: { width: number; height: number }) => {
+  const preferredCenter = centerForDirection(outward, size);
+  const radialCandidates = distanceScales.flatMap((distanceScale) => angleOffsets.map((angleOffset) => {
     const direction = {
       x: Math.cos(outwardAngle + angleOffset),
       y: Math.sin(outwardAngle + angleOffset),
     };
-    const baseCenter = centerForDirection(direction);
+    const baseCenter = centerForDirection(direction, size);
     return clampCenter({
       x: markerCenter.x + (baseCenter.x - markerCenter.x) * distanceScale,
       y: markerCenter.y + (baseCenter.y - markerCenter.y) * distanceScale,
-    });
-  })).map((candidate) => {
+    }, size);
+  }));
+  const minimumX = margin + size.width / 2;
+  const maximumX = viewportSize.width - margin - size.width / 2;
+  const minimumY = margin + size.height / 2;
+  const maximumY = viewportSize.height - margin - size.height / 2;
+  const xCoordinates = new Set([minimumX, maximumX, Math.min(maximumX, Math.max(minimumX, preferredCenter.x))]);
+  const yCoordinates = new Set([minimumY, maximumY, Math.min(maximumY, Math.max(minimumY, preferredCenter.y))]);
+  [markerBox, ...paddedUiKeepoutBoxes].forEach((box) => {
+    xCoordinates.add(box.x - size.width / 2);
+    xCoordinates.add(box.x + box.width + size.width / 2);
+    yCoordinates.add(box.y - size.height / 2);
+    yCoordinates.add(box.y + box.height + size.height / 2);
+  });
+  const gridCandidates = maximumX < minimumX || maximumY < minimumY
+    ? []
+    : [...xCoordinates]
+        .filter((x) => x >= minimumX && x <= maximumX)
+        .flatMap((x) => [...yCoordinates]
+          .filter((y) => y >= minimumY && y <= maximumY)
+          .map((y) => ({ x, y })));
+  const scoredCandidates = [...radialCandidates, ...gridCandidates].map((candidate) => {
     const box = expandedRegionalCollisionBox({
-      x: candidate.x - chooserSize.width / 2,
-      y: candidate.y - chooserSize.height / 2,
-      width: chooserSize.width,
-      height: chooserSize.height,
-    }, 8);
+      x: candidate.x - size.width / 2,
+      y: candidate.y - size.height / 2,
+      width: size.width,
+      height: size.height,
+    }, 0);
     const alertOverlapArea = alertCollisionBoxes.reduce(
       (total, alertBox) => total + regionalCollisionIntersectionArea(box, alertBox),
       0,
     );
     const markerOverlapArea = regionalCollisionIntersectionArea(box, markerBox);
+    const uiOverlapArea = paddedUiKeepoutBoxes.reduce(
+      (total, keepoutBox) => total + regionalCollisionIntersectionArea(box, keepoutBox),
+      0,
+    );
     const preferredDeviation = Math.hypot(
       candidate.x - preferredCenter.x,
       candidate.y - preferredCenter.y,
@@ -2103,16 +2140,45 @@ function regionalOverlapChooserLayout({
       candidate,
       score: alertOverlapArea * 1_000_000
         + markerOverlapArea * 1_000_000
+        + uiOverlapArea * 1_000_000_000
         + preferredDeviation,
+      uiOverlapArea,
+      markerOverlapArea,
     };
-  }).sort((left, right) => left.score - right.score)[0]?.candidate ?? clampCenter(preferredCenter);
-  const left = center.x - chooserSize.width / 2;
-  const top = center.y - chooserSize.height / 2;
+  });
+  const clearCandidates = scoredCandidates.filter((entry) =>
+    entry.uiOverlapArea === 0 && entry.markerOverlapArea === 0
+  ).sort((left, right) => left.score - right.score);
+  const uiSafeCandidates = scoredCandidates.filter((entry) =>
+    entry.uiOverlapArea === 0
+  ).sort((left, right) => left.score - right.score);
+  const center = (clearCandidates[0]
+    ?? uiSafeCandidates[0]
+    ?? scoredCandidates.sort((left, right) => left.score - right.score)[0]
+  )?.candidate ?? clampCenter(preferredCenter, size);
+  return { center, clearsUiKeepouts: uiSafeCandidates.length > 0 };
+  };
+
+  let chosenSize = chooserSize;
+  let chosenAttempt = scoreSize(chooserSize);
+  for (const height of heightCandidates) {
+    const size = { width: chooserSize.width, height };
+    const attempt = scoreSize(size);
+    chosenSize = size;
+    chosenAttempt = attempt;
+    if (attempt.clearsUiKeepouts) break;
+  }
+  const center = chosenAttempt.center;
+  const left = center.x - chosenSize.width / 2;
+  const top = center.y - chosenSize.height / 2;
   return {
-    left,
-    top,
-    anchorOffsetX: markerCenter.x - left,
-    anchorOffsetY: markerCenter.y - top,
+    layout: {
+      left,
+      top,
+      anchorOffsetX: markerCenter.x - center.x,
+      anchorOffsetY: markerCenter.y - center.y,
+    },
+    size: chosenSize,
   };
 }
 
@@ -2187,6 +2253,8 @@ function InteractiveRegionalMapComponent({
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const [overlapChooserLayout, setOverlapChooserLayout] = useState<MapOverlapChooserLayout | null>(null);
   const [overlapChooserSize, setOverlapChooserSize] = useState<{ width: number; height: number } | null>(null);
+  const [overlapChooserViewportSize, setOverlapChooserViewportSize] = useState<{ width: number; height: number } | null>(null);
+  const [chooserKeepoutRevision, setChooserKeepoutRevision] = useState(0);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
   const [recenterFeedbackKey, setRecenterFeedbackKey] = useState(0);
   const [cameraReady, setCameraReady] = useState(false);
@@ -2200,6 +2268,10 @@ function InteractiveRegionalMapComponent({
     center: SvgPoint;
     cutoutMarkup: string;
   } | null>(null);
+
+  useLayoutEffect(() => observeMapChooserKeepouts(() => {
+    setChooserKeepoutRevision((revision) => revision + 1);
+  }), []);
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   // Select the mobile textures on the first client render. Waiting for the
   // shell effect would start decoding all three desktop planes on phones.
@@ -3919,25 +3991,37 @@ function InteractiveRegionalMapComponent({
     setExpandedOverlapBadgeId(null);
     setOverlapChooserLayout(null);
     setOverlapChooserSize(null);
+    setOverlapChooserViewportSize(null);
   }, [expandedOverlapBadgeId, overlapBadges, setRegionalOverlapImpactsHovered]);
 
-  const openRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
+  const positionRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
     const viewport = viewportRef.current;
     const marker = viewport ? regionalOverlapMarker(viewport, badge.markerId) : null;
-    if (!viewport || !marker) return;
+    if (!viewport || !marker) return false;
     const viewportRect = viewport.getBoundingClientRect();
     const markerRect = marker.getBoundingClientRect();
-    const compact = viewportRect.width <= 640;
+    const logicalViewportSize = logicalViewportSizeForOrientation(
+      viewportRect.width,
+      viewportRect.height,
+      viewportOrientation,
+    );
+    const logicalMarkerRect = clientRectToLogicalViewportBounds(
+      markerRect,
+      viewportRect,
+      viewportOrientation,
+    );
+    if (!logicalMarkerRect) return false;
+    const compact = logicalViewportSize.width <= 640;
     const width = Math.max(
       240,
-      Math.min(compact ? 280 : 360, viewportRect.width - 32),
+      Math.min(compact ? 280 : 360, logicalViewportSize.width - 32),
     );
     const height = compact
       ? Math.min(380, 56 + badge.impacts.length * 64)
       : Math.min(440, 68 + badge.impacts.length * 76);
     const markerCenter = {
-      x: markerRect.left - viewportRect.left + markerRect.width / 2,
-      y: markerRect.top - viewportRect.top + markerRect.height / 2,
+      x: logicalMarkerRect.x + logicalMarkerRect.width / 2,
+      y: logicalMarkerRect.y + logicalMarkerRect.height / 2,
     };
     const svg = marker.ownerSVGElement;
     const screenMatrix = svg?.getScreenCTM();
@@ -3949,30 +4033,49 @@ function InteractiveRegionalMapComponent({
     const screenAnchor = anchorPoint && screenMatrix
       ? anchorPoint.matrixTransform(screenMatrix)
       : null;
-    setOverlapChooserLayout(regionalOverlapChooserLayout({
+    const uiKeepoutBoxes = visibleMapChooserKeepouts()
+      .map((element) => clientRectToLogicalViewportBounds(
+        element.getBoundingClientRect(),
+        viewportRect,
+        viewportOrientation,
+      ))
+      .filter((box): box is RegionalCollisionBox => Boolean(box));
+    const alertCollisionBoxes = regionalReferencedAlertCollisionBoxes(
+      viewport,
+      badge,
+      viewportRect,
+    ).map((box) => clientRectToLogicalViewportBounds({
+      left: viewportRect.left + box.x,
+      top: viewportRect.top + box.y,
+      right: viewportRect.left + box.x + box.width,
+      bottom: viewportRect.top + box.y + box.height,
+      width: box.width,
+      height: box.height,
+    }, viewportRect, viewportOrientation)).filter(
+      (box): box is RegionalCollisionBox => Boolean(box),
+    );
+    const placement = regionalOverlapChooserLayout({
       markerCenter,
-      markerSize: markerRect,
+      markerSize: logicalMarkerRect,
       alertAnchor: screenAnchor
-        ? {
-            x: screenAnchor.x - viewportRect.left,
-            y: screenAnchor.y - viewportRect.top,
-          }
+        ? clientPointToLogicalViewportPoint(screenAnchor, viewportRect, viewportOrientation)
         : markerCenter,
       chooserSize: { width, height },
-      viewportSize: {
-        width: viewportRect.width,
-        height: viewportRect.height,
-      },
-      alertCollisionBoxes: regionalReferencedAlertCollisionBoxes(
-        viewport,
-        badge,
-        viewportRect,
-      ),
-    }));
-    setOverlapChooserSize({ width, height });
+      viewportSize: logicalViewportSize,
+      alertCollisionBoxes,
+      uiKeepoutBoxes,
+    });
+    setOverlapChooserLayout(placement.layout);
+    setOverlapChooserSize(placement.size);
+    setOverlapChooserViewportSize(logicalViewportSize);
+    return true;
+  }, [viewportOrientation]);
+
+  const openRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
+    if (!positionRegionalOverlapChooser(badge)) return;
     setExpandedOverlapBadgeId(badge.markerId);
     setRegionalOverlapImpactsHovered(badge.impacts, false);
-  }, [setRegionalOverlapImpactsHovered]);
+  }, [positionRegionalOverlapChooser, setRegionalOverlapImpactsHovered]);
 
   const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -3984,6 +4087,19 @@ function InteractiveRegionalMapComponent({
   const expandedOverlapBadge = overlapBadges.find(
     (candidate) => candidate.markerId === expandedOverlapBadgeId,
   ) ?? null;
+  useLayoutEffect(() => {
+    if (!expandedOverlapBadge) return;
+    const animationFrame = window.requestAnimationFrame(() => {
+      positionRegionalOverlapChooser(expandedOverlapBadge);
+    });
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [
+    camera,
+    chooserKeepoutRevision,
+    expandedOverlapBadge,
+    positionRegionalOverlapChooser,
+    viewportOrientation,
+  ]);
   const hoverRegionalChooserImpact = useCallback((impact: MapImpact | null) => {
     if (!expandedOverlapBadge) return;
     setRegionalOverlapImpactsHovered(expandedOverlapBadge.impacts, false);
@@ -4203,7 +4319,7 @@ function InteractiveRegionalMapComponent({
           />
         ) : null}
       </div>
-      {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize ? (
+      {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize && overlapChooserViewportSize ? (
         <MapOverlapChooser
           key={expandedOverlapBadge.markerId}
           markerId={expandedOverlapBadge.markerId}
@@ -4217,10 +4333,12 @@ function InteractiveRegionalMapComponent({
           onClose={closeRegionalChooserWithFocus}
           reducedMotion={reducedMotion}
           compactMotion={overlapChooserSize.width <= 280}
+          viewportOrientation={viewportOrientation}
+          viewportSize={overlapChooserViewportSize}
         />
       ) : null}
       {commutePathPreview ? (
-        <div className="commute-path-preview-chip" role="status" aria-live="polite">
+        <div className="commute-path-preview-chip" role="status" aria-live="polite" data-map-chooser-keepout>
           <span>
             Viewing <strong>{commutePathPreview.routeLabel}</strong>
           </span>
@@ -4230,7 +4348,7 @@ function InteractiveRegionalMapComponent({
         </div>
       ) : null}
       {/* Regional map controls positioned vertically on right side centered below top-right info button */}
-      <div className="map-control-rail regional-map-control-rail absolute top-40 sm:top-[176px] right-4 sm:right-6 z-30 flex flex-col items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
+      <div className="map-control-rail regional-map-control-rail absolute top-40 sm:top-[176px] right-4 sm:right-6 z-30 flex flex-col items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
         <div className="map-control-recenter-container">
           <button
             type="button"

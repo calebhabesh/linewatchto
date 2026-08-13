@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
-const appUrl = "http://127.0.0.1:4173";
-const stubUrl = "http://127.0.0.1:4174";
+const appUrl = process.env.LINEWATCH_SMOKE_APP_URL ?? "http://127.0.0.1:4173";
+const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
 const welcomeStorageKey = "linewatch-welcome-seen-v1";
 const disclaimerStorageKey = "linewatch-unofficial-notice-ack-v1";
 
@@ -141,6 +141,56 @@ async function expectRegionalChooserToClearReferencedAlerts(page: Page) {
     });
   });
   expect(overlapsReferencedAlert).toBe(false);
+}
+
+const mapChooserUiKeepoutSelector = [
+  ".desktop-status-capsule-anchor",
+  ".desktop-map-control-rail",
+  ".desktop-map-legend",
+  ".desktop-status-chip-row-container",
+  ".mobile-bottom-nav",
+  ".mobile-status-peek",
+  ".mobile-legend-pill",
+  ".mobile-train-toggle",
+  ".mobile-alert-history-shortcut",
+  ".mobile-my-stations-shortcut",
+  ".map-utility-cluster",
+  ".map-control-rail",
+  ".mobile-map-controls",
+  ".rotated-map-hud",
+  ".rotated-map-selection-hud",
+  ".subway-closing-soon-chip",
+  ".subway-closed-peek-chip",
+  ".release-notes-notice",
+  ".saved-station-global-notice",
+  "header button",
+  "header a",
+  "[data-map-chooser-keepout]",
+].join(",");
+
+async function expectChooserToClearUiKeepouts(page: Page) {
+  const result = await page.locator("[data-overlap-chooser]").evaluate((chooser, selector) => {
+    const chooserRect = chooser.getBoundingClientRect();
+    const keepouts = Array.from(document.querySelectorAll(selector)).filter((element) => {
+      const rect = element.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return false;
+      for (let current: Element | null = element; current; current = current.parentElement) {
+        const style = getComputedStyle(current);
+        if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
+      }
+      return true;
+    }).map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { className: element.className, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+    });
+    return { measuredKeepoutCount: chooser.parentElement?.dataset.overlapChooserKeepoutCount, chooser: { left: chooserRect.left, top: chooserRect.top, right: chooserRect.right, bottom: chooserRect.bottom }, keepouts, collisions: keepouts.filter((rect) => {
+      return chooserRect.left < rect.right
+        && chooserRect.right > rect.left
+        && chooserRect.top < rect.bottom
+        && chooserRect.bottom > rect.top;
+    }).map((rect) => rect.className) };
+  }, mapChooserUiKeepoutSelector);
+  expect(result.collisions, JSON.stringify(result, null, 2)).toEqual([]);
 }
 
 async function freezeBrowserTime(page: Page, isoTime: string) {
@@ -954,6 +1004,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   const lwChooserBox = await lwOverlapChooser.boundingBox();
   expect(lwChooserBox).not.toBeNull();
   await expectRegionalChooserToClearReferencedAlerts(page);
+  await expectChooserToClearUiKeepouts(page);
   await lwOverlapChooser.getByRole("button", { name: "Close alert chooser" }).click();
   await expect(lwOverlapChooser).toHaveCount(0);
 
@@ -981,6 +1032,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   const regionalOverlapChooser = page.locator("[data-overlap-chooser]");
   await expect(regionalOverlapChooser).toBeVisible();
   await expectRegionalChooserToClearReferencedAlerts(page);
+  await expectChooserToClearUiKeepouts(page);
   await expect(regionalOverlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
   await expect(regionalOverlapChooser.locator(".overlap-chooser-choice")).toHaveCount(2);
   await regionalOverlapChooser
@@ -2442,8 +2494,16 @@ test("shows an active planned closure in both current and scheduled views", asyn
 
 test("shows a compact map hint when multiple alert types overlap", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
+  if (isMobile) await page.setViewportSize({ width: 375, height: 667 });
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "Transit line legend" }).click();
+    await expect(page.getByRole("button", { name: "Transit line legend" })).toHaveAttribute("aria-expanded", "true");
+    await expect(page.locator(".mobile-status-peek")).toContainText(/Current Impacts?/);
+    await expect(page.locator(".mobile-my-stations-shortcut")).toBeVisible();
+  }
 
   const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
   await expect(overlapMarker).toBeVisible();
@@ -2464,6 +2524,11 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     element.getAnimations().some((animation) => animation.playState === "running"),
   ), { timeout: 500 }).toBe(true);
   await expect(overlapChooser).toBeVisible();
+  if (isMobile) {
+    await expect(page.getByRole("button", { name: "Transit line legend" })).toBeVisible();
+    await expect(page.locator(".mobile-status-peek")).toBeVisible();
+    await expect(page.locator(".mobile-my-stations-shortcut")).toBeVisible();
+  }
   await expect(overlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
   await expect.poll(async () => overlapChooser.locator(".overlap-chooser-choice").evaluateAll((choices) =>
     choices.every((choice) => choice.scrollHeight <= choice.clientHeight + 1),
@@ -2479,12 +2544,14 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     expect(chooserWidthAtDefaultZoom).toBeGreaterThanOrEqual(350);
   }
   const chooserBox = await overlapChooser.boundingBox();
-  expect(chooserBox && overlapMarkerBox && (
-    chooserBox.x + chooserBox.width <= overlapMarkerBox.x
-    || chooserBox.x >= overlapMarkerBox.x + overlapMarkerBox.width
-    || chooserBox.y + chooserBox.height <= overlapMarkerBox.y
-    || chooserBox.y >= overlapMarkerBox.y + overlapMarkerBox.height
-  )).toBe(true);
+  if (!isMobile) {
+    expect(chooserBox && overlapMarkerBox && (
+      chooserBox.x + chooserBox.width <= overlapMarkerBox.x
+      || chooserBox.x >= overlapMarkerBox.x + overlapMarkerBox.width
+      || chooserBox.y + chooserBox.height <= overlapMarkerBox.y
+      || chooserBox.y >= overlapMarkerBox.y + overlapMarkerBox.height
+    )).toBe(true);
+  }
   if (chooserBox && overlapMarkerBox) {
     const horizontalGap = Math.max(
       chooserBox.x - (overlapMarkerBox.x + overlapMarkerBox.width),
@@ -2498,31 +2565,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     );
     expect(Math.hypot(horizontalGap, verticalGap)).toBeLessThanOrEqual(96);
   }
-  const keepoutSelector = [
-    ".desktop-status-capsule-anchor",
-    ".desktop-map-control-rail",
-    ".desktop-map-legend",
-    ".desktop-status-chip-row-container",
-    ".mobile-bottom-nav",
-    ".mobile-status-peek",
-    ".mobile-legend-pill",
-    ".mobile-train-toggle",
-    ".map-utility-cluster",
-    ".map-control-rail",
-  ].join(",");
-  const collisions = await overlapChooser.evaluate((chooser, selector) => {
-    const chooserRect = chooser.getBoundingClientRect();
-    return Array.from(document.querySelectorAll(selector)).filter((element) => {
-      const style = getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0 || rect.width === 0 || rect.height === 0) return false;
-      return chooserRect.left < rect.right
-        && chooserRect.right > rect.left
-        && chooserRect.top < rect.bottom
-        && chooserRect.bottom > rect.top;
-    }).map((element) => element.className);
-  }, keepoutSelector);
-  expect(collisions).toEqual([]);
+  await expectChooserToClearUiKeepouts(page);
   if (!isMobile) {
     const viewport = page.locator("[data-map-pan-zoom-viewport]");
     const viewportBox = await viewport.boundingBox();
@@ -2589,6 +2632,41 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   }
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
+});
+
+test("keeps the rotated alert chooser clear of Center and Exit controls", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "Rotated map controls are mobile-only");
+  await setStubMode(request, "seeded");
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Rotate map" }).click();
+  await expect(page.getByRole("button", { name: "Exit rotated map" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map", exact: true })).toBeVisible();
+
+  const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+  await expect(overlapMarker).toBeVisible();
+  await overlapMarker.dispatchEvent("click");
+  await expect(page.locator("[data-overlap-chooser]")).toBeVisible();
+  await expectChooserToClearUiKeepouts(page);
+});
+
+test("keeps the rotated GO/UP alert chooser clear of Center and Exit controls", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "Rotated map controls are mobile-only");
+  await setStubMode(request, "regional-live");
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Rotate map" }).click();
+  await expect(page.getByRole("button", { name: "Exit rotated map" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map", exact: true })).toBeVisible();
+
+  const overlapMarker = page.locator('[data-overlap-segment-id^="regional-overlap-"]').first();
+  await expect(overlapMarker).toBeVisible();
+  await overlapMarker.dispatchEvent("click");
+  await expect(page.locator("[data-overlap-chooser]")).toBeVisible();
+  await expectChooserToClearUiKeepouts(page);
 });
 
 test("uses an active-alert overlap badge for an in-effect cached planned closure", async ({ page, request }) => {

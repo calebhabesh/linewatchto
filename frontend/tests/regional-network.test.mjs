@@ -784,8 +784,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /markerCenter\.x - alertAnchor\.x/);
     assert.match(regionalMapSource, /function regionalReferencedAlertCollisionBoxes\(/);
     assert.match(regionalMapSource, /identityKeys\.has\(`\$\{kind\}:\$\{id\}`\)/);
-    assert.match(regionalMapSource, /alertCollisionBoxes:\s*regionalReferencedAlertCollisionBoxes\(/);
-    assert.match(regionalMapSource, /const preferredCenter = centerForDirection\(outward\)/);
+    assert.match(regionalMapSource, /const alertCollisionBoxes = regionalReferencedAlertCollisionBoxes\(/);
+    assert.match(regionalMapSource, /alertCollisionBoxes,\s*uiKeepoutBoxes,/);
+    assert.match(regionalMapSource, /const preferredCenter = centerForDirection\(outward, size\)/);
     assert.match(regionalMapSource, /const angleOffsets = Array\.from\(\{ length: 24 \}/);
     assert.match(regionalMapSource, /const distanceScales = \[1, 1\.25, 1\.55, 1\.9, 2\.3\]/);
     assert.match(regionalMapSource, /alertOverlapArea \* 1_000_000[\s\S]*markerOverlapArea \* 1_000_000/);
@@ -815,12 +816,18 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /regionalCollisionAdjustedOverlapBadges\(svg, badges\)/);
     assert.match(regionalMapSource, /const stablePosition = overlapBadgePositionsRef\.current\.get\(badge\.markerId\)/);
     assert.match(regionalMapSource, /hasStablePosition: Boolean\(stablePosition\)/);
-    assert.doesNotMatch(regionalMapSource, /const animationFrame = window\.requestAnimationFrame/);
+    assert.match(regionalMapSource, /const animationFrame = window\.requestAnimationFrame\(\(\) => \{[\s\S]*positionRegionalOverlapChooser/);
     assert.doesNotMatch(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
     assert.match(overlapIndicatorSource, /const isSingleKindOverlap = kindCounts\.length === 1/);
     assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\} large=\{isSingleKindOverlap\}/);
     assert.match(overlapChooserSource, /<strong>Choose Alert<\/strong>/);
     assert.match(overlapChooserSource, /data-overlap-choice-id=\{impact\.cardId\}/);
+    assert.match(regionalMapSource, /visibleMapChooserKeepouts\(\)/);
+    assert.match(regionalMapSource, /observeMapChooserKeepouts/);
+    assert.match(regionalMapSource, /uiKeepoutBoxes/);
+    assert.match(regionalMapSource, /entry\.uiOverlapArea === 0/);
+    assert.match(regionalMapSource, /if \(attempt\.clearsUiKeepouts\) break/);
+    assert.match(regionalMapSource, /positionRegionalOverlapChooser\(expandedOverlapBadge\)/);
   });
 
   it("supports pointer, wheel, fit-network, and keyboard map interactions", () => {

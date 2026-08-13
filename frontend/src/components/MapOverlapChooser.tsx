@@ -14,6 +14,7 @@ import type {
 import { useDashboardData } from "../app/DataContext";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
+import type { MapViewportOrientation } from "../hooks/panZoomMath";
 
 export type MapOverlapChooserLayout = {
   left: number;
@@ -81,6 +82,8 @@ export function MapOverlapChooser({
   onClose,
   reducedMotion,
   compactMotion,
+  viewportOrientation = "standard",
+  viewportSize,
 }: {
   markerId: string;
   label: string;
@@ -93,6 +96,8 @@ export function MapOverlapChooser({
   onClose: (restoreFocus: boolean) => void;
   reducedMotion: boolean;
   compactMotion: boolean;
+  viewportOrientation?: MapViewportOrientation;
+  viewportSize?: { width: number; height: number };
 }) {
   const data = useDashboardData();
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -110,13 +115,32 @@ export function MapOverlapChooser({
   const stopChooserPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.stopPropagation();
   };
+  const portalStyle = viewportOrientation === "rotated-landscape" && viewportSize
+    ? {
+        left: viewportSize.height - layout.top,
+        top: layout.left,
+        width: chooserSize.width,
+        height: chooserSize.height,
+        transform: "rotate(90deg)",
+        transformOrigin: "top left",
+      }
+    : {
+        left: layout.left,
+        top: layout.top,
+        width: chooserSize.width,
+        height: chooserSize.height,
+      };
 
   useEffect(() => () => onHoverImpact(null), [onHoverImpact]);
 
   useEffect(() => {
     const focusFrame = window.requestAnimationFrame(() =>
       firstChoiceRef.current?.focus({ preventScroll: true }));
-    if (reducedMotion) return () => window.cancelAnimationFrame(focusFrame);
+    // In rotated mode the morph's translated intermediate frames can cross
+    // the fixed Center/Exit rail even when the final chooser box is clear.
+    if (reducedMotion || viewportOrientation === "rotated-landscape") {
+      return () => window.cancelAnimationFrame(focusFrame);
+    }
     const initialAnchorOffset = initialAnchorOffsetRef.current;
     const animation = compactMotion
       ? surfaceRef.current?.animate([
@@ -144,12 +168,12 @@ export function MapOverlapChooser({
       window.cancelAnimationFrame(focusFrame);
       animation?.cancel();
     };
-  }, [compactMotion, reducedMotion]);
+  }, [compactMotion, reducedMotion, viewportOrientation]);
 
   const close = async (restoreFocus: boolean) => {
     if (closingRef.current) return;
     closingRef.current = true;
-    if (!reducedMotion) {
+    if (!reducedMotion && viewportOrientation !== "rotated-landscape") {
       const animation = compactMotion
         ? surfaceRef.current?.animate([
             { borderRadius: "14px", opacity: 1, transform: "scale(1, 1)" },
@@ -183,12 +207,7 @@ export function MapOverlapChooser({
     <div
       id={chooserId}
       className="overlap-chooser-portal overlap-chooser-object open"
-      style={{
-        left: layout.left,
-        top: layout.top,
-        width: chooserSize.width,
-        height: chooserSize.height,
-      }}
+      style={portalStyle}
       data-overlap-chooser-collision-avoided={collisionAvoided ? "true" : "false"}
     >
       <div

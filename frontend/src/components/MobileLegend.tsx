@@ -36,6 +36,7 @@ export function MobileLegend({
   const lines = isRegional ? REGIONAL_LINES : TTC_LINES;
   return (
     <div
+      data-map-chooser-keepout
       onClick={onToggleExpanded}
       className={`mobile-legend-pill fixed left-4 flex flex-col gap-1.5 p-2 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl overflow-hidden cursor-pointer select-none md:hidden ${
         closingSoon ? "mobile-legend-pill--announcement" : "top-4"

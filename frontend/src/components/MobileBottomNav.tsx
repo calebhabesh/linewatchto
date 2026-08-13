@@ -44,6 +44,7 @@ export function MobileBottomNav({
   return (
     <nav
       className="mobile-bottom-nav"
+      data-map-chooser-keepout
       role="navigation"
       aria-label="Primary mobile navigation"
       data-active-key={activeKey}

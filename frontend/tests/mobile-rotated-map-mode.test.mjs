@@ -13,6 +13,7 @@ import {
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const controlsSource = readFileSync(new URL("../src/components/MobileMapControls.tsx", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const rotatedSelectionSource = readFileSync(new URL("../src/components/RotatedMapSelectionCard.tsx", import.meta.url), "utf8");
@@ -64,7 +65,7 @@ describe("mobile rotated map mode", () => {
       { x: 10, y: 10, width: 824, height: 42 },
     );
     assert.match(mapSource, /clientRectToLogicalViewportBounds\([\s\S]*?viewportOrientation/);
-    assert.match(mapSource, /\.rotated-map-hud/);
+    assert.match(chooserKeepoutsSource, /\.rotated-map-hud/);
   });
 
   it("adds shell-owned map presentation mode and rotated mode classes", () => {

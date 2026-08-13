@@ -21860,11 +21860,6 @@ img.transit-line-badge {
 }
 
 @media (max-width: 767px) {
-  .linewatch-shell:has(.overlap-chooser-object.open) .map-utility-cluster {
-    opacity: 0;
-    pointer-events: none;
-  }
-
   /* Match the main search: opening browses in place; focusing/searching promotes
      the picker and its parent panel to the visible viewport above either keyboard. */
   .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-bottom-nav,

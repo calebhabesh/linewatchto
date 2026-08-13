@@ -95,7 +95,7 @@ export function MobileStatusPeek({
     : "No Current Impacts";
 
   return (
-    <div ref={containerRef} className="mobile-status-peek" data-category-count={categoryCount}>
+    <div ref={containerRef} className="mobile-status-peek" data-category-count={categoryCount} data-map-chooser-keepout>
       <div
         className="mobile-status-peek-info-btn"
         role="button"

@@ -34,7 +34,7 @@ export function MobileMapControls({
   if (presentationMode !== "rotated-landscape") return null;
 
   return (
-    <div className="mobile-map-controls" data-mode={presentationMode}>
+    <div className="mobile-map-controls" data-mode={presentationMode} data-map-chooser-keepout>
       <button
         type="button"
         className="mobile-map-control-button mobile-map-control-button-strong"
