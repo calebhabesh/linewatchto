@@ -108,11 +108,12 @@ class ScheduleHealthControllerTest {
         assertThat(response.status()).isEqualTo("not-imported");
         assertThat(response.scheduleActive()).isFalse();
         assertThat(response.refreshStatus()).isEqualTo("failed");
+        assertThat(response.refreshErrorMessage()).isEqualTo("Java heap space");
         assertThat(response.refreshCompletedAt())
             .isEqualTo(OffsetDateTime.parse("2026-06-20T19:05:15Z"));
         assertThat(response.message()).isEqualTo("No TTC GTFS schedule import is active; the latest refresh failed.");
         String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(response);
-        assertThat(json).doesNotContain("refreshErrorMessage", "Java heap space");
+        assertThat(json).contains("refreshErrorMessage", "Java heap space");
     }
 
     @Test
@@ -133,6 +134,7 @@ class ScheduleHealthControllerTest {
         assertThat(response.status()).isEqualTo("active");
         assertThat(response.scheduleActive()).isTrue();
         assertThat(response.refreshStatus()).isEqualTo("failed");
+        assertThat(response.refreshErrorMessage()).isEqualTo("Java heap space");
     }
 
     private GtfsScheduleReadRepository.ActiveScheduleImport activeImport(LocalDate serviceEnd) {

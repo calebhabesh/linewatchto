@@ -43,6 +43,7 @@ public class ScheduleHealthController {
         OffsetDateTime refreshStartedAt = latestRun.map(GtfsScheduleRefreshRunSnapshot::startedAt).orElse(null);
         OffsetDateTime refreshCompletedAt = latestRun.map(GtfsScheduleRefreshRunSnapshot::completedAt).orElse(null);
         Integer refreshRecordsProcessed = latestRun.map(GtfsScheduleRefreshRunSnapshot::recordsProcessed).orElse(null);
+        String refreshErrorMessage = latestRun.map(GtfsScheduleRefreshRunSnapshot::errorMessage).orElse(null);
 
         return repository.findActiveImport()
             .map(activeImport -> toResponse(
@@ -50,7 +51,8 @@ public class ScheduleHealthController {
                 refreshStatus,
                 refreshStartedAt,
                 refreshCompletedAt,
-                refreshRecordsProcessed
+                refreshRecordsProcessed,
+                refreshErrorMessage
             ))
             .orElseGet(() -> {
                 String message = "failed".equals(refreshStatus)
@@ -68,6 +70,7 @@ public class ScheduleHealthController {
                     refreshStartedAt,
                     refreshCompletedAt,
                     refreshRecordsProcessed,
+                    refreshErrorMessage,
                     0,
                     0,
                     java.util.List.of(),
@@ -81,7 +84,8 @@ public class ScheduleHealthController {
         String refreshStatus,
         OffsetDateTime refreshStartedAt,
         OffsetDateTime refreshCompletedAt,
-        Integer refreshRecordsProcessed
+        Integer refreshRecordsProcessed,
+        String refreshErrorMessage
     ) {
         LocalDate serviceEnd = activeImport.serviceEnd();
         Long daysRemaining = serviceEnd == null
@@ -105,6 +109,7 @@ public class ScheduleHealthController {
             refreshStartedAt,
             refreshCompletedAt,
             refreshRecordsProcessed,
+            refreshErrorMessage,
             coverage.expectedStationLines(),
             coverage.mappedStationLines(),
             coverage.missingStationLines(),
@@ -149,6 +154,7 @@ public class ScheduleHealthController {
         OffsetDateTime refreshStartedAt,
         OffsetDateTime refreshCompletedAt,
         Integer refreshRecordsProcessed,
+        String refreshErrorMessage,
         int expectedStationLines,
         int mappedStationLines,
         java.util.List<String> missingStationLines,
