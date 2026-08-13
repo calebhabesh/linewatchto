@@ -2185,6 +2185,7 @@ function InteractiveRegionalMapComponent({
   const [overlapChooserLayout, setOverlapChooserLayout] = useState<MapOverlapChooserLayout | null>(null);
   const [overlapChooserSize, setOverlapChooserSize] = useState<{ width: number; height: number } | null>(null);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
+  const [recenterFeedbackKey, setRecenterFeedbackKey] = useState(0);
   const [cameraReady, setCameraReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
@@ -2494,11 +2495,12 @@ function InteractiveRegionalMapComponent({
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
-    // Commit Center directly. Full-viewport fade layers can force Android
+    // Commit Center directly. Opacity-based fade layers can force Android
     // Chromium to promote and retile the already transformed map at its fitted
-    // scale, leaving stale tiles visible until the next zoom gesture.
+    // scale, so visual feedback is painted separately by the viewport wash.
     snapCameraToNetwork(fitted.camera, fitted.scale);
-  }, [fittedCamera, snapCameraToNetwork]);
+    if (!reducedMotion) setRecenterFeedbackKey((current) => current + 1);
+  }, [fittedCamera, reducedMotion, snapCameraToNetwork]);
 
   const stageInitialEntrance = useCallback(() => {
     if (!svgMarkup) return;
@@ -4161,6 +4163,14 @@ function InteractiveRegionalMapComponent({
             </g>
           </svg>
         </div>
+        {recenterFeedbackKey > 0 ? (
+          <div
+            key={recenterFeedbackKey}
+            aria-hidden="true"
+            className="map-center-feedback"
+            data-map-center-feedback="regional"
+          />
+        ) : null}
       </div>
       {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize ? (
         <MapOverlapChooser

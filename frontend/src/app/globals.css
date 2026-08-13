@@ -310,6 +310,45 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   inset: 0;
 }
 
+/* Center commits the camera atomically, then briefly repaints this lightweight
+   viewport wash to soften the jump. Animating the background color instead of
+   opacity avoids promoting either the transformed map or a full-size veil to
+   a compositor layer, which previously exposed stale Android raster tiles. */
+.map-center-feedback {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background-color: transparent;
+  animation: map-center-feedback-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dark .map-center-feedback {
+  --map-center-feedback-color: rgba(13, 8, 8, 0.88);
+}
+
+.high-contrast .map-center-feedback {
+  --map-center-feedback-color: rgba(255, 255, 255, 0.94);
+}
+
+.dark.high-contrast .map-center-feedback {
+  --map-center-feedback-color: rgba(0, 0, 0, 0.94);
+}
+
+@keyframes map-center-feedback-fade {
+  from { background-color: var(--map-center-feedback-color, rgba(248, 250, 252, 0.88)); }
+  to { background-color: transparent; }
+}
+
+.motion-paused .map-center-feedback,
+.reduced-motion .map-center-feedback {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-center-feedback { animation: none; }
+}
+
 /* The authored maps remain in the DOM as non-painting geometry sources for
    hit testing and dynamic overlay construction. Static tracks, stations, and
    labels are pre-rendered PNG surfaces so Chromium composites stable textures

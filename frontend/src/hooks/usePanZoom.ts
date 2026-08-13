@@ -55,6 +55,7 @@ export function usePanZoom({
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [recenterFeedbackKey, setRecenterFeedbackKey] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
   const initialEntranceTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
@@ -780,7 +781,8 @@ export function usePanZoom({
     const next = defaultTransformForViewport(width, height);
     cameraInitializedRef.current = true;
     snapTransformToDefault(next, next.scale);
-  }, [defaultTransformForViewport, logicalViewportSize, snapTransformToDefault]);
+    if (!reducedMotion) setRecenterFeedbackKey((current) => current + 1);
+  }, [defaultTransformForViewport, logicalViewportSize, reducedMotion, snapTransformToDefault]);
 
   const refitIfCameraUntouched = useCallback(() => {
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
@@ -943,6 +945,7 @@ export function usePanZoom({
     relativeScale,
     isDragging,
     isGestureActive,
+    recenterFeedbackKey,
     containerRef,
     mapRef,
     handlePointerDown,

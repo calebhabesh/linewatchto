@@ -953,7 +953,7 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("matches TTC's direct Center commit without compositor-only fade layers", () => {
+  it("matches TTC's paint-only Center feedback without compositor fade layers", () => {
     assert.match(regionalMapSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
     assert.match(regionalMapSource, /const snapCameraToNetwork = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(targetCamera\)/);
     assert.match(regionalMapSource, /snapCameraToNetwork\(fitted\.camera, fitted\.scale\)/);
@@ -962,6 +962,10 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalMapSource, /startViewTransition|regionalRecenterTransition|MapViewTransition/);
     assert.doesNotMatch(globalsCss, /regional-map-recenter-fade-in|data-regional-recenter-transition|view-transition-name:\s*regional-map-recenter/);
     assert.doesNotMatch(globalsCss, /map-recenter-veil|data-map-recenter-effect/);
+    assert.match(regionalMapSource, /if \(!reducedMotion\) setRecenterFeedbackKey/);
+    assert.match(regionalMapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback="regional"/);
+    assert.match(globalsCss, /\.map-center-feedback\s*\{[^}]*background-color:\s*transparent;[^}]*animation:\s*map-center-feedback-fade/s);
+    assert.doesNotMatch(globalsCss, /\.map-center-feedback\s*\{[^}]*(?:opacity|will-change):/s);
     assert.match(globalsCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
     assert.doesNotMatch(globalsCss, /\.regional-map-stage\s*\{[^}]*will-change:\s*opacity/s);
     assert.doesNotMatch(regionalMapSource, /className="regional-map-scene"/);

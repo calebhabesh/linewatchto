@@ -188,7 +188,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /setTransform\(snapped\)/);
   });
 
-  it("snaps recenter without creating a full-viewport compositor layer", () => {
+  it("snaps recenter with paint-only feedback instead of a compositor fade layer", () => {
     assert.match(hookSource, /const animateTransformTo = useCallback/);
     assert.match(hookSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
     assert.match(hookSource, /const snapTransformToDefault = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(snapped\)[\s\S]*commitTransform\(snapped\)/);
@@ -196,6 +196,12 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(hookSource, /useMapRecenterFade|recenterVeilRef|RECENTER_FADE_ANIMATION_ID|playRecenterFade/);
     assert.doesNotMatch(mapSource, /map-recenter-veil/);
     assert.doesNotMatch(globalCss, /map-recenter-veil|data-map-recenter-effect/);
+    assert.match(hookSource, /if \(!reducedMotion\) setRecenterFeedbackKey/);
+    assert.match(mapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback="ttc"/);
+    assert.match(globalCss, /\.map-center-feedback\s*\{[^}]*background-color:\s*transparent;[^}]*animation:\s*map-center-feedback-fade/s);
+    assert.match(globalCss, /@keyframes map-center-feedback-fade\s*\{[^}]*background-color:[^}]*\}[^}]*background-color:\s*transparent/s);
+    assert.doesNotMatch(globalCss, /\.map-center-feedback\s*\{[^}]*(?:opacity|will-change):/s);
+    assert.match(globalCss, /\.motion-paused \.map-center-feedback,[\s\S]*animation:\s*none/);
     assert.match(globalCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
     assert.doesNotMatch(globalCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*transform/s);
     assert.doesNotMatch(hookSource, /RECENTER_CAMERA_MOTION/);

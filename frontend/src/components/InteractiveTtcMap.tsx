@@ -507,6 +507,7 @@ function InteractiveTtcMapComponent({
     relativeScale,
     isDragging,
     isGestureActive,
+    recenterFeedbackKey,
     containerRef,
     mapRef,
     handlePointerDown,
@@ -2525,6 +2526,14 @@ function InteractiveTtcMapComponent({
             </svg>
           </div>
         )}
+        {recenterFeedbackKey > 0 ? (
+          <div
+            key={recenterFeedbackKey}
+            aria-hidden="true"
+            className="map-center-feedback"
+            data-map-center-feedback="ttc"
+          />
+        ) : null}
         {expandedOverlapBadge && expandedOverlapChooserLayout ? (
           <OverlapChooser
             key={expandedOverlapBadge.segmentId}
