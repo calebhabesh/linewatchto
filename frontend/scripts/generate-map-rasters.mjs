@@ -34,15 +34,6 @@ const maps = [
       .fil3:has(+ .fil5),
       .fil3:has(+ .fil8) { display: none !important; }
     `,
-    mobileForegroundCss: `
-      #ttc-tracks-layer,
-      #non-linear-guides-layer { opacity: 0 !important; }
-      .fil3:has(+ .fil0),
-      .fil3:has(+ .fil2),
-      .fil3:has(+ .fil4),
-      .fil3:has(+ .fil5),
-      .fil3:has(+ .fil8) { display: none !important; }
-    `,
     labelsCss: `
       #ttc-tracks-layer,
       #non-linear-guides-layer,
@@ -93,15 +84,6 @@ const maps = [
       #regional-lines-layer,
       #regional-lakes-layer,
       #regional-station-labels-layer { opacity: 0 !important; }
-      #regional-route-labels-layer rect { stroke: none !important; }
-    `,
-    mobileForegroundCss: `
-      #regional-lines-layer,
-      #regional-lakes-layer { opacity: 0 !important; }
-      #regional-station-labels-layer text,
-      #regional-station-labels-layer tspan {
-        font-family: "TeX Gyre Heros", Arial, sans-serif !important;
-      }
       #regional-route-labels-layer rect { stroke: none !important; }
     `,
     labelsCss: `
@@ -174,9 +156,7 @@ async function main() {
               ? map.backgroundCss
               : plane === "labels"
                 ? map.labelsCss
-                : density === "mobile"
-                  ? map.mobileForegroundCss ?? map.foregroundCss
-                  : map.foregroundCss;
+                : map.foregroundCss;
             const stagedSvg = join(temporaryDirectory, `${map.id}-${plane}-${theme}-${density}.svg`);
             await writeFile(stagedSvg, withRasterStyle(themedSource, `${planeCss}${themeCss}`, renderedSize));
             const filename = `${map.id}-${plane}-${theme}-${density}.png`;

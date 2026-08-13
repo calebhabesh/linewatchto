@@ -43,18 +43,12 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(centerMapButton.locator("svg")).toHaveCSS("width", "24px");
   await expect(centerMapButton.locator("span")).toHaveCSS("font-size", "9px");
   const mobileMapStage = page.locator(".ttc-map-stage");
-  const mobileMapVeil = page.locator(".ttc-map-recenter-veil");
   await centerMapButton.click();
-  await expect(mobileMapVeil).toHaveAttribute(
-    "data-map-recenter-effect",
-    "linewatch-ttc-map-recenter-fade",
-  );
-  await expect(mobileMapStage).not.toHaveAttribute("data-map-recenter-effect");
   await expect(mobileMapStage).toHaveCSS("opacity", "1");
+  await expect(mobileMapStage).toHaveCSS("will-change", "auto");
   await expect(mobileMapStage).toHaveCSS("transition-duration", "0s");
+  await expect(mobileMapStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute("data-map-camera-moving", "false");
-  await expect(mobileMapVeil).not.toHaveAttribute("data-map-recenter-effect");
-  await expect(mobileMapVeil).toHaveCSS("will-change", "auto");
 
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
@@ -62,14 +56,11 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
   const regionalMap = page.locator(".regional-map");
   const regionalMapStage = regionalMap.locator(".regional-map-stage");
-  const regionalMapVeil = regionalMap.locator(".regional-map-recenter-veil");
   await expect(regionalMap).toBeVisible();
   await page.getByRole("button", { name: "Center map view" }).click();
-  await expect(regionalMapVeil).toHaveAttribute(
-    "data-map-recenter-effect",
-    "linewatch-regional-map-recenter-fade",
-  );
   await expect(regionalMapStage).toHaveCSS("transition-duration", "0s");
+  await expect(regionalMapStage).toHaveCSS("will-change", "auto");
+  await expect(regionalMapStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
 
   await page.getByRole("group", { name: "Select transit network" })
@@ -77,7 +68,6 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
     .click();
   const returnedTtcStage = page.locator(".ttc-map-stage");
   await expect(returnedTtcStage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(returnedTtcStage).not.toHaveAttribute("data-map-recenter-effect");
   await expect(returnedTtcStage).toHaveCSS("opacity", "1");
 
   await page.getByRole("button", { name: "Status", exact: true }).click();
@@ -99,7 +89,7 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   expect(statusPeekBounds!.x + statusPeekBounds!.width).toBeLessThanOrEqual(331);
 });
 
-test("mobile TTC recenter cycles keep the base map and overlays on a stable opaque stage", async ({ page, request, isMobile }) => {
+test("mobile TTC recenter cycles keep independent raster planes without compositor churn", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile compositor durability coverage runs in the touch-device project");
 
   await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
@@ -112,8 +102,9 @@ test("mobile TTC recenter cycles keep the base map and overlays on a stable opaq
   await page.goto("/");
 
   const stage = page.locator(".ttc-map-stage");
-  const veil = page.locator(".ttc-map-recenter-veil");
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(stage.locator(".raster-map-plane--labels")).toHaveCount(1);
   await expect(stage.locator(".overlay-segment-group").first()).toBeAttached();
 
   const cycleResults = await page.evaluate(async () => {
@@ -123,61 +114,52 @@ test("mobile TTC recenter cycles keep the base map and overlays on a stable opaq
     const originalOverlay = originalStage?.querySelector<SVGGElement>(".overlay-segment-group");
     const recenter = document.querySelector<HTMLButtonElement>('button[aria-label="Center map view"]');
     const zoomIn = document.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]');
-    const recenterVeil = viewport?.querySelector<HTMLElement>(".ttc-map-recenter-veil");
-    if (!viewport || !originalStage || !originalSvg || !originalOverlay || !recenter || !zoomIn || !recenterVeil) {
+    if (!viewport || !originalStage || !originalSvg || !originalOverlay || !recenter || !zoomIn) {
       throw new Error("Missing TTC mobile recenter durability elements");
     }
 
-    const rasterSources = Array.from(originalStage.querySelectorAll<HTMLImageElement>(".raster-map-plane"))
-      .map((image) => image.currentSrc);
+    const entranceDeadline = performance.now() + 1_500;
+    while (
+      viewport.dataset.mapCameraMoving === "true"
+      && performance.now() < entranceDeadline
+    ) {
+      await new Promise((resolve) => window.setTimeout(resolve, 16));
+    }
+
+    const rasterPlanes = Array.from(originalStage.querySelectorAll<HTMLElement>(".raster-map-plane"));
     const cycles: Array<{
       cameraChanged: boolean;
       stageOpacity: string;
-      stageRecenterAnimations: number;
-      veilAnimationId: string | null;
-      veilKeyframes: number[];
-      veilInsideViewport: boolean;
-      cleanupComplete: boolean;
+      stageWillChange: string;
+      stageAnimations: number;
+      recenterLayerCount: number;
+      rasterPlaneCount: number;
+      independentlyPromotedPlanes: number;
     }> = [];
 
     for (let cycle = 0; cycle < 12; cycle += 1) {
+      const centeredTransform = originalStage.style.transform;
       zoomIn.click();
-      await new Promise((resolve) => window.setTimeout(resolve, 155));
+      const zoomDeadline = performance.now() + 750;
+      while (
+        originalStage.style.transform === centeredTransform
+        && performance.now() < zoomDeadline
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 16));
+      }
       const zoomedTransform = originalStage.style.transform;
       recenter.click();
-
-      const veilAnimation = recenterVeil.getAnimations()
-        .find((candidate) => candidate.id === "linewatch-ttc-map-recenter-fade");
-      const keyframes = veilAnimation?.effect instanceof KeyframeEffect
-        ? veilAnimation.effect.getKeyframes()
-        : [];
-      const viewportBounds = viewport.getBoundingClientRect();
-      const veilBounds = recenterVeil.getBoundingClientRect();
-
-      const cleanupDeadline = performance.now() + 1_000;
-      while (
-        recenterVeil.hasAttribute("data-map-recenter-effect")
-        && performance.now() < cleanupDeadline
-      ) {
-        await new Promise((resolve) => window.setTimeout(resolve, 25));
-      }
       cycles.push({
         cameraChanged: zoomedTransform !== originalStage.style.transform,
         stageOpacity: getComputedStyle(originalStage).opacity,
-        stageRecenterAnimations: originalStage.getAnimations()
-          .filter((candidate) => candidate.id === "linewatch-ttc-map-recenter-fade").length,
-        veilAnimationId: veilAnimation?.id ?? null,
-        veilKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
-        veilInsideViewport: (
-          veilBounds.left >= viewportBounds.left - 1
-          && veilBounds.top >= viewportBounds.top - 1
-          && veilBounds.right <= viewportBounds.right + 1
-          && veilBounds.bottom <= viewportBounds.bottom + 1
-        ),
-        cleanupComplete: (
-          !recenterVeil.hasAttribute("data-map-recenter-effect")
-          && getComputedStyle(recenterVeil).willChange === "auto"
-        ),
+        stageWillChange: getComputedStyle(originalStage).willChange,
+        stageAnimations: originalStage.getAnimations().length,
+        recenterLayerCount: viewport.querySelectorAll(".ttc-map-recenter-veil").length,
+        rasterPlaneCount: rasterPlanes.length,
+        independentlyPromotedPlanes: rasterPlanes.filter((plane) => (
+          getComputedStyle(plane).transform !== "none"
+          && getComputedStyle(plane).backfaceVisibility === "hidden"
+        )).length,
       });
     }
 
@@ -186,9 +168,8 @@ test("mobile TTC recenter cycles keep the base map and overlays on a stable opaq
       stagePreserved: viewport.querySelector(".ttc-map-stage") === originalStage,
       svgPreserved: originalStage.querySelector(".ttc-svg-container > svg") === originalSvg,
       overlayPreserved: originalStage.querySelector(".overlay-segment-group") === originalOverlay,
-      rasterSourcesPreserved: Array.from(originalStage.querySelectorAll<HTMLImageElement>(".raster-map-plane"))
-        .map((image) => image.currentSrc)
-        .every((source, index) => source === rasterSources[index]),
+      rasterPlanesPreserved: Array.from(originalStage.querySelectorAll(".raster-map-plane"))
+        .every((plane, index) => plane === rasterPlanes[index]),
     };
   });
 
@@ -197,27 +178,86 @@ test("mobile TTC recenter cycles keep the base map and overlays on a stable opaq
     expect(cycle).toEqual({
       cameraChanged: true,
       stageOpacity: "1",
-      stageRecenterAnimations: 0,
-      veilAnimationId: "linewatch-ttc-map-recenter-fade",
-      veilKeyframes: [1, 0],
-      veilInsideViewport: true,
-      cleanupComplete: true,
+      stageWillChange: "auto",
+      stageAnimations: 0,
+      recenterLayerCount: 0,
+      rasterPlaneCount: 3,
+      independentlyPromotedPlanes: 3,
     });
   }
   expect(cycleResults).toMatchObject({
     stagePreserved: true,
     svgPreserved: true,
     overlayPreserved: true,
-    rasterSourcesPreserved: true,
+    rasterPlanesPreserved: true,
   });
+
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  const regionalStage = page.locator(".regional-map-stage");
+  await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
+  const regionalCycles = await regionalStage.evaluate(async (originalStage) => {
+    const root = originalStage.closest<HTMLElement>(".regional-map");
+    const recenter = root?.querySelector<HTMLButtonElement>('button[aria-label="Fit regional network"]');
+    const zoomIn = root?.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]');
+    const rasterPlanes = Array.from(originalStage.querySelectorAll(".raster-map-plane"));
+    if (!root || !recenter || !zoomIn || rasterPlanes.length !== 3) {
+      throw new Error("Missing regional mobile recenter durability elements");
+    }
+
+    const entranceDeadline = performance.now() + 1_500;
+    while (
+      root.dataset.regionalMapCameraMoving === "true"
+      && performance.now() < entranceDeadline
+    ) {
+      await new Promise((resolve) => window.setTimeout(resolve, 16));
+    }
+
+    const results = [];
+    for (let cycle = 0; cycle < 12; cycle += 1) {
+      const centeredTransform = originalStage.style.transform;
+      zoomIn.click();
+      const zoomDeadline = performance.now() + 750;
+      while (
+        originalStage.style.transform === centeredTransform
+        && performance.now() < zoomDeadline
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 16));
+      }
+      const zoomedTransform = originalStage.style.transform;
+      recenter.click();
+      results.push({
+        cameraChanged: zoomedTransform !== originalStage.style.transform,
+        stageWillChange: getComputedStyle(originalStage).willChange,
+        stageAnimations: originalStage.getAnimations().length,
+        recenterLayerCount: root.querySelectorAll(".regional-map-recenter-veil").length,
+        rasterPlanesPreserved: Array.from(originalStage.querySelectorAll(".raster-map-plane"))
+          .every((plane, index) => plane === rasterPlanes[index]),
+      });
+    }
+    return results;
+  });
+  expect(regionalCycles).toHaveLength(12);
+  expect(regionalCycles.every((cycle) => (
+    cycle.cameraChanged
+    && cycle.stageWillChange === "auto"
+    && cycle.stageAnimations === 0
+    && cycle.recenterLayerCount === 0
+    && cycle.rasterPlanesPreserved
+  ))).toBe(true);
+
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "TTC", exact: true })
+    .click();
 
   await page.getByRole("button", { name: "Center map view" }).click();
   await page.getByRole("button", { name: "Status", exact: true }).click();
   await expect(page.getByRole("region", { name: "Current service status" })).toBeVisible();
   await expect(stage).toHaveCSS("opacity", "1");
-  await expect(stage).not.toHaveAttribute("data-map-recenter-effect");
-  await expect(veil).not.toHaveAttribute("data-map-recenter-effect");
-  await expect(veil).toHaveCSS("will-change", "auto");
+  await expect(stage).toHaveCSS("will-change", "auto");
+  await expect(page.locator(".ttc-map-recenter-veil")).toHaveCount(0);
 });
 
 test("Pixel 6a-sized portrait keeps the regular mobile scale", async ({ page, isMobile }) => {

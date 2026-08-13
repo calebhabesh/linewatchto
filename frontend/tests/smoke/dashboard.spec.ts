@@ -496,7 +496,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(regionalStage.locator('[data-regional-station-label-for="union"]').locator("..")).toHaveCSS("opacity", "0");
 });
 
-test("mobile loads only two compact raster textures per map", async ({ page, request, isMobile }) => {
+test("mobile loads compact independent label textures for both maps", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile raster compositor coverage");
   const rasterRequests: string[] = [];
   page.on("request", (browserRequest) => {
@@ -509,18 +509,20 @@ test("mobile loads only two compact raster textures per map", async ({ page, req
 
   const ttcStage = page.locator(".ttc-map-stage");
   await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(2);
-  await expect(ttcStage.locator(".raster-map-plane--labels")).toHaveCount(0);
+  await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(ttcStage.locator(".raster-map-plane--labels")).toHaveCount(1);
+  await expect(ttcStage.locator('.raster-map-plane--labels image')).toHaveAttribute("href", /ttc-labels-dark-mobile\.png/);
 
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
   const regionalStage = page.locator(".regional-map-stage");
   await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
-  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(2);
-  await expect(regionalStage.locator(".raster-map-plane--labels")).toHaveCount(0);
+  await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
+  await expect(regionalStage.locator(".raster-map-plane--labels")).toHaveCount(1);
+  await expect(regionalStage.locator('.raster-map-plane--labels image')).toHaveAttribute("href", /regional-labels-dark-mobile\.png/);
 
-  expect(rasterRequests.length).toBeGreaterThanOrEqual(4);
+  expect(rasterRequests.length).toBeGreaterThanOrEqual(6);
   expect(rasterRequests.every((pathname) => pathname.endsWith("-mobile.png"))).toBe(true);
 });
 
@@ -569,8 +571,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await expect(authoredSvg).toHaveAttribute("data-smoke-stable", "regional-base");
   await expect(authoredLines).toHaveAttribute("data-smoke-stable", "regional-lines");
   expect(await regionalStage.evaluate((element) => getComputedStyle(element).willChange)).toBe("auto");
-  await expect(regionalMap.locator(".regional-map-recenter-veil")).not.toHaveAttribute("data-map-recenter-effect");
-  await expect(regionalMap.locator(".regional-map-recenter-veil")).toHaveCSS("will-change", "auto");
+  await expect(regionalMap.locator(".regional-map-recenter-veil")).toHaveCount(0);
 });
 
 test("regional station names share the TTC raster hover glow and station selection", async ({ page, request, isMobile }) => {
@@ -1825,32 +1826,23 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
     (button as HTMLElement).click();
     const root = document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]");
     const stage = root?.querySelector<HTMLElement>(".ttc-map-stage");
-    const veil = root?.querySelector<HTMLElement>(".ttc-map-recenter-veil");
-    const animation = veil?.getAnimations().find((candidate) => candidate.id === "linewatch-ttc-map-recenter-fade");
-    const keyframes = animation?.effect instanceof KeyframeEffect
-      ? animation.effect.getKeyframes()
-      : [];
     return {
       cameraMoving: root?.dataset.mapCameraMoving,
       transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
       stageOpacity: stage ? getComputedStyle(stage).opacity : null,
+      stageWillChange: stage ? getComputedStyle(stage).willChange : null,
       stageAnimationIds: stage?.getAnimations().map((candidate) => candidate.id) ?? [],
-      veilWillChange: veil ? getComputedStyle(veil).willChange : null,
-      animationId: animation?.id ?? null,
-      opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
+      recenterLayerCount: root?.querySelectorAll(".ttc-map-recenter-veil").length ?? -1,
     };
   });
   expect(ttcRecenterPaint).toEqual({
     cameraMoving: "false",
     transitionDuration: "0s",
     stageOpacity: "1",
+    stageWillChange: "auto",
     stageAnimationIds: [],
-    veilWillChange: "opacity",
-    animationId: "linewatch-ttc-map-recenter-fade",
-    opacityKeyframes: [1, 0],
+    recenterLayerCount: 0,
   });
-  await expect(viewport.locator(".ttc-map-recenter-veil")).not.toHaveAttribute("data-map-recenter-effect");
-  await expect(viewport.locator(".ttc-map-recenter-veil")).toHaveCSS("will-change", "auto");
   await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
   expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
@@ -1917,8 +1909,12 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   });
   await expect(regionalMap).toHaveAttribute("data-map-gesture-active", "false");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
-  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
-  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  await expect.poll(() => regionalGlow.evaluate(
+    (element) => getComputedStyle(element).animationPlayState,
+  )).toBe("running");
+  await expect.poll(() => regionalPlannedPath.evaluate(
+    (element) => getComputedStyle(element).animationPlayState,
+  )).toBe("running");
   await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
 
@@ -1953,45 +1949,34 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
   const regionalRecenterPaint = await page.getByRole("button", { name: "Fit regional network" }).evaluate(async (button) => {
     const root = document.querySelector<HTMLElement>(".regional-map");
     const stage = root?.querySelector<HTMLElement>(".regional-map-stage");
-    const veil = root?.querySelector<HTMLElement>(".regional-map-recenter-veil");
     const zoomIn = root?.querySelector<HTMLButtonElement>('button[aria-label="Zoom in"]');
-    if (!stage || !veil || !zoomIn) throw new Error("Missing regional Center regression controls");
+    if (!stage || !zoomIn) throw new Error("Missing regional Center regression controls");
 
     const cycles: Array<{
       cameraChanged: boolean;
-      animationId: string | null;
-      opacityKeyframes: number[];
+      stageWillChange: string;
+      stageAnimations: number;
+      recenterLayerCount: number;
     }> = [];
     for (let cycle = 0; cycle < 8; cycle += 1) {
       zoomIn.click();
       await new Promise((resolve) => window.setTimeout(resolve, 140));
       const movedTransform = stage.style.transform;
       (button as HTMLElement).click();
-      const animation = veil.getAnimations()
-        .find((candidate) => candidate.id === "linewatch-regional-map-recenter-fade");
-      const keyframes = animation?.effect instanceof KeyframeEffect
-        ? animation.effect.getKeyframes()
-        : [];
       cycles.push({
         cameraChanged: movedTransform !== stage.style.transform,
-        animationId: animation?.id ?? null,
-        opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
+        stageWillChange: getComputedStyle(stage).willChange,
+        stageAnimations: stage.getAnimations().length,
+        recenterLayerCount: root?.querySelectorAll(".regional-map-recenter-veil").length ?? -1,
       });
-      if (cycle < 7) await new Promise((resolve) => window.setTimeout(resolve, 220));
+      if (cycle < 7) await new Promise((resolve) => window.setTimeout(resolve, 20));
     }
 
-    const animation = veil?.getAnimations()
-      .find((candidate) => candidate.id === "linewatch-regional-map-recenter-fade");
-    const keyframes = animation?.effect instanceof KeyframeEffect
-      ? animation.effect.getKeyframes()
-      : [];
     return {
       cameraMoving: root?.dataset.regionalMapCameraMoving,
       transitionDuration: stage ? getComputedStyle(stage).transitionDuration : null,
       stageWillChange: stage ? getComputedStyle(stage).willChange : null,
-      veilWillChange: veil ? getComputedStyle(veil).willChange : null,
-      animationId: animation?.id ?? null,
-      opacityKeyframes: keyframes.map((keyframe) => Number(keyframe.opacity)),
+      recenterLayerCount: root?.querySelectorAll(".regional-map-recenter-veil").length ?? -1,
       documentViewTransitionAnimations: document.getAnimations().filter((candidate) => (
         candidate.effect instanceof KeyframeEffect
         && candidate.effect.pseudoElement?.startsWith("::view-transition")
@@ -2004,20 +1989,18 @@ test("desktop map gestures pause every overlay pulse while preserving glows", as
     cameraMoving: "false",
     transitionDuration: "0s",
     stageWillChange: "auto",
-    veilWillChange: "opacity",
-    animationId: "linewatch-regional-map-recenter-fade",
-    opacityKeyframes: [1, 0],
+    recenterLayerCount: 0,
     documentViewTransitionAnimations: 0,
   });
   expect(regionalRecenterPaint.transform).toMatch(/^translate\(.+px, .+px\) scale\(.+\)$/);
   expect(regionalRecenterPaint.cycles).toHaveLength(8);
   expect(regionalRecenterPaint.cycles.every((cycle) => (
     cycle.cameraChanged
-    && cycle.animationId === "linewatch-regional-map-recenter-fade"
-    && cycle.opacityKeyframes.join(",") === "1,0"
+    && cycle.stageWillChange === "auto"
+    && cycle.stageAnimations === 0
+    && cycle.recenterLayerCount === 0
   ))).toBe(true);
-  await expect(regionalMap.locator(".regional-map-recenter-veil")).not.toHaveAttribute("data-map-recenter-effect");
-  await expect(regionalMap.locator(".regional-map-recenter-veil")).toHaveCSS("will-change", "auto");
+  await expect(regionalMap.locator(".regional-map-recenter-veil")).toHaveCount(0);
   await expect(regionalAuthoredMap).toHaveCSS("shape-rendering", "geometricprecision");
   await expect(regionalAuthoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
   expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");

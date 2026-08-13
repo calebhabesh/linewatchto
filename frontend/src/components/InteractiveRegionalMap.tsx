@@ -51,7 +51,6 @@ import {
   transformForMapPointAtViewportPoint,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
-import { useMapRecenterFade } from "../hooks/useMapRecenterFade";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 
@@ -123,7 +122,6 @@ const SELECTION_INTRO_DURATION_MS = 2400;
 const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
-const RECENTER_FADE_ANIMATION_ID = "linewatch-regional-map-recenter-fade";
 let regionalMapMarkupCache = "";
 let regionalMapMarkupPromise: Promise<string> | null = null;
 const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
@@ -2166,7 +2164,6 @@ function InteractiveRegionalMapComponent({
   const regionalMapRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
-  const recenterVeilRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
   const lastRecenterSignalRef = useRef(recenterSignal);
@@ -2217,7 +2214,7 @@ function InteractiveRegionalMapComponent({
   }, [rasterVariantKey]);
   const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
     && readyRasterPlanes.has(`${rasterVariantKey}:foreground`)
-    && (rasterDensity === "mobile" || readyRasterPlanes.has(`${rasterVariantKey}:labels`));
+    && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
 
   useEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
@@ -2247,11 +2244,6 @@ function InteractiveRegionalMapComponent({
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
   const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode;
-  const { clearRecenterFade, playRecenterFade } = useMapRecenterFade({
-    animationId: RECENTER_FADE_ANIMATION_ID,
-    reducedMotion,
-    direction: "out",
-  });
   useLayoutEffect(() => {
     selectionRef.current = selection;
     selectedStationIdRef.current = selectedStationId;
@@ -2297,7 +2289,6 @@ function InteractiveRegionalMapComponent({
   }, []);
 
   const clearProgrammaticAnimation = useCallback(() => {
-    clearRecenterFade();
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -2310,7 +2301,7 @@ function InteractiveRegionalMapComponent({
       window.clearTimeout(wheelCommitTimeoutRef.current);
       wheelCommitTimeoutRef.current = null;
     }
-  }, [clearRecenterFade]);
+  }, []);
 
   const currentRenderedCamera = useCallback((): Camera | null => {
     if (!mapStageRef.current) return null;
@@ -2381,8 +2372,7 @@ function InteractiveRegionalMapComponent({
         : targetCamera
     ));
     endCameraMotion();
-    playRecenterFade(recenterVeilRef.current);
-  }, [clearProgrammaticAnimation, endCameraMotion, playRecenterFade, setMapTransition, setUserZoomMotion, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, writeMapTransform]);
 
   useEffect(() => {
     return () => {
@@ -2504,11 +2494,9 @@ function InteractiveRegionalMapComponent({
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
-    // Match TTC's atomic camera commit and short visual fade without changing
-    // opacity on the large regional raster/SVG stack. A lightweight veil is
-    // opaque in the same task as the transform commit, then fades away. The
-    // map stays fully painted, so Chromium cannot expose a partially rebuilt
-    // texture after a real pan or zoom.
+    // Commit Center directly. Full-viewport fade layers can force Android
+    // Chromium to promote and retile the already transformed map at its fitted
+    // scale, leaving stale tiles visible until the next zoom gesture.
     snapCameraToNetwork(fitted.camera, fitted.scale);
   }, [fittedCamera, snapCameraToNetwork]);
 
@@ -4038,17 +4026,15 @@ function InteractiveRegionalMapComponent({
             density={rasterDensity}
             onReady={() => markRasterPlaneReady("foreground")}
           />
-          {rasterDensity === "desktop" ? (
-            <RasterMapPlane
-              network="regional"
-              plane="labels"
-              theme={rasterTheme}
-              density={rasterDensity}
-              svgViewBox="-200 -200 17036.959 9031.6719"
-              cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
-              onReady={() => markRasterPlaneReady("labels")}
-            />
-          ) : null}
+          <RasterMapPlane
+            network="regional"
+            plane="labels"
+            theme={rasterTheme}
+            density={rasterDensity}
+            svgViewBox="-200 -200 17036.959 9031.6719"
+            cutoutMarkup={hoveredStationLabel?.cutoutMarkup ?? null}
+            onReady={() => markRasterPlaneReady("labels")}
+          />
           {/* Static North Compass fixed to regional map canvas */}
           <svg
             className="raster-map-top-plane absolute top-0 left-0 w-full h-full pointer-events-none"
@@ -4064,7 +4050,7 @@ function InteractiveRegionalMapComponent({
                 href={`#regional-station-selection-source-${selectedStationId}`}
               />
             ) : null}
-            {rasterDensity === "desktop" && hoveredStationLabel ? (
+            {hoveredStationLabel ? (
               <g
                 aria-hidden="true"
                 className="raster-station-label-text-hover"
@@ -4175,16 +4161,6 @@ function InteractiveRegionalMapComponent({
             </g>
           </svg>
         </div>
-        <div
-          ref={recenterVeilRef}
-          aria-hidden="true"
-          className="regional-map-recenter-veil"
-          style={{
-            backgroundColor: highContrast
-              ? isDark ? "#000000" : "#ffffff"
-              : isDark ? "#0d0808" : "#f8fafc",
-          }}
-        />
       </div>
       {expandedOverlapBadge && overlapChooserLayout && overlapChooserSize ? (
         <MapOverlapChooser

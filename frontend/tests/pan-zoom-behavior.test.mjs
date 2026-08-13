@@ -20,7 +20,6 @@ import {
 } from "../src/hooks/panZoomMath.ts";
 
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
-const recenterFadeSource = readFileSync(new URL("../src/hooks/useMapRecenterFade.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
@@ -189,22 +188,16 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /setTransform\(snapped\)/);
   });
 
-  it("snaps recenter behind a viewport veil without fading the TTC stage", () => {
+  it("snaps recenter without creating a full-viewport compositor layer", () => {
     assert.match(hookSource, /const animateTransformTo = useCallback/);
     assert.match(hookSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
-    assert.match(recenterFadeSource, /MAP_RECENTER_FADE_DURATION_MS = 180/);
-    assert.match(hookSource, /const snapTransformWithFade = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(snapped\)[\s\S]*playRecenterFade\(recenterVeilRef\.current\)/);
-    assert.match(hookSource, /direction: "out"/);
-    assert.match(recenterFadeSource, /direction === "in"[\s\S]*\[\{ opacity: 1 \}, \{ opacity: 0 \}\][\s\S]*duration: MAP_RECENTER_FADE_DURATION_MS/);
-    assert.match(recenterFadeSource, /if \(!target \|\| reducedMotion\) return/);
-    assert.match(hookSource, /animationId: RECENTER_FADE_ANIMATION_ID/);
-    assert.match(hookSource, /playRecenterFade\(recenterVeilRef\.current\)/);
-    assert.match(mapSource, /ref=\{recenterVeilRef\}[\s\S]*className="ttc-map-recenter-veil"/);
-    assert.doesNotMatch(hookSource, /playRecenterFade\(mapRef\.current\)/);
-    assert.doesNotMatch(globalCss, /\.ttc-map-stage\s*\{[^}]*will-change:\s*opacity/s);
-    assert.match(globalCss, /\.ttc-map-recenter-veil,[\s\S]*\.regional-map-recenter-veil\s*\{[^}]*inset:\s*0;[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;[^}]*contain:\s*strict/s);
-    assert.match(globalCss, /\.ttc-map-recenter-veil\[data-map-recenter-effect\],[\s\S]*\.regional-map-recenter-veil\[data-map-recenter-effect\]\s*\{[^}]*will-change:\s*opacity/s);
-    assert.match(hookSource, /const recenter[\s\S]*defaultTransformForViewport\(width, height\)[\s\S]*snapTransformWithFade\(next, next\.scale\)/);
+    assert.match(hookSource, /const snapTransformToDefault = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(snapped\)[\s\S]*commitTransform\(snapped\)/);
+    assert.match(hookSource, /const recenter[\s\S]*defaultTransformForViewport\(width, height\)[\s\S]*snapTransformToDefault\(next, next\.scale\)/);
+    assert.doesNotMatch(hookSource, /useMapRecenterFade|recenterVeilRef|RECENTER_FADE_ANIMATION_ID|playRecenterFade/);
+    assert.doesNotMatch(mapSource, /map-recenter-veil/);
+    assert.doesNotMatch(globalCss, /map-recenter-veil|data-map-recenter-effect/);
+    assert.match(globalCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
+    assert.doesNotMatch(globalCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*transform/s);
     assert.doesNotMatch(hookSource, /RECENTER_CAMERA_MOTION/);
     const animateTransformHandler = hookSource.match(
       /const animateTransformTo = useCallback\(([\s\S]*?)\n  \}, \[/,
@@ -215,14 +208,6 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(hookSource, /commitTransform\(\{ x, y, scale \}\);\s*setFitScale\(scale\);\s*startAnimation\(\);/);
   });
 
-  it("releases recenter animation state after finish, cancellation, and unmount", () => {
-    assert.match(recenterFadeSource, /type RecenterFadeEffect = \{[\s\S]*animation: Animation;[\s\S]*target: HTMLElement;/);
-    assert.match(recenterFadeSource, /effect\.animation\.onfinish = null;[\s\S]*effect\.animation\.oncancel = null;/);
-    assert.match(recenterFadeSource, /if \(cancel\) effect\.animation\.cancel\(\)/);
-    assert.match(recenterFadeSource, /delete effect\.target\.dataset\.mapRecenterEffect/);
-    assert.match(recenterFadeSource, /animation\.onfinish = releaseFinishedFade;[\s\S]*animation\.oncancel = releaseFinishedFade/);
-    assert.match(recenterFadeSource, /useEffect\(\(\) => clearRecenterFade, \[clearRecenterFade\]\)/);
-  });
 
   it("starts the initial map entrance without a loading hold", () => {
     assert.match(

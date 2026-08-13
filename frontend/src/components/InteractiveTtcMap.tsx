@@ -397,7 +397,7 @@ function InteractiveTtcMapComponent({
   }, [rasterVariantKey]);
   const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
     && readyRasterPlanes.has(`${rasterVariantKey}:foreground`)
-    && (rasterDensity === "mobile" || readyRasterPlanes.has(`${rasterVariantKey}:labels`));
+    && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
   const readyNotifiedRef = useRef(false);
   const entranceWasDeferredRef = useRef(false);
 
@@ -509,7 +509,6 @@ function InteractiveTtcMapComponent({
     isGestureActive,
     containerRef,
     mapRef,
-    recenterVeilRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
@@ -1990,26 +1989,24 @@ function InteractiveTtcMapComponent({
             {/* Station names use their own static texture so the hover cutout
                 cannot cloak tracks, station dots, badges, or connection art
                 that happens to sit inside the label's padded bounds. */}
-            {rasterDensity === "desktop" ? (
-              <RasterMapPlane
-                network="ttc"
-                plane="labels"
-                theme={rasterTheme}
-                density={rasterDensity}
-                svgViewBox="0 0 8250 4000"
-                cutoutElementHref={hoveredStationLabelId
-                  ? `#station-label-${hoveredStationLabelId}`
-                  : null}
-                onReady={() => markRasterPlaneReady("labels")}
-              />
-            ) : null}
+            <RasterMapPlane
+              network="ttc"
+              plane="labels"
+              theme={rasterTheme}
+              density={rasterDensity}
+              svgViewBox="0 0 8250 4000"
+              cutoutElementHref={hoveredStationLabelId
+                ? `#station-label-${hoveredStationLabelId}`
+                : null}
+              onReady={() => markRasterPlaneReady("labels")}
+            />
 
             <svg
               className="raster-map-top-plane absolute top-0 left-0 w-[4500px] h-[2181.8px] pointer-events-none"
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
-              {rasterDensity === "desktop" && hoveredLabelPolygonPoints && hoveredLabelCenter ? (
+              {hoveredLabelPolygonPoints && hoveredLabelCenter ? (
                 <g
                   aria-hidden="true"
                   className="raster-station-label-text-hover"
@@ -2528,16 +2525,6 @@ function InteractiveTtcMapComponent({
             </svg>
           </div>
         )}
-        <div
-          ref={recenterVeilRef}
-          aria-hidden="true"
-          className="ttc-map-recenter-veil"
-          style={{
-            backgroundColor: highContrast
-              ? isDark ? "#000000" : "#ffffff"
-              : isDark ? "#0d0808" : "#f8fafc",
-          }}
-        />
         {expandedOverlapBadge && expandedOverlapChooserLayout ? (
           <OverlapChooser
             key={expandedOverlapBadge.segmentId}

@@ -51,7 +51,7 @@ describe("stable raster map renderer", () => {
     assert.doesNotMatch(source, /next\/image/);
   });
 
-  it("keeps mobile hydration and label planes on the lightweight compositor path", async () => {
+  it("keeps mobile hydration on compact, independently composited artwork planes", async () => {
     const [ttc, regional, plane, mobileHook, css] = await Promise.all([
       readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
@@ -63,13 +63,16 @@ describe("stable raster map renderer", () => {
     assert.match(mobileHook, /export function mobilePerformanceModeMatches\(\)/);
     assert.match(ttc, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
     assert.match(regional, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
-    assert.match(ttc, /rasterDensity === "mobile" \|\| readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
-    assert.match(regional, /rasterDensity === "mobile" \|\| readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
-    assert.match(ttc, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
-    assert.match(regional, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
+    assert.match(ttc, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
+    assert.match(regional, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
+    assert.match(ttc, /<RasterMapPlane[\s\S]*?plane="labels"/);
+    assert.match(regional, /<RasterMapPlane[\s\S]*?plane="labels"/);
+    assert.doesNotMatch(ttc, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
+    assert.doesNotMatch(regional, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
     assert.doesNotMatch(plane, /density === "mobile" && svgViewBox/);
-    assert.match(css, /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*transform/s);
-    assert.match(css, /\.linewatch-shell\.mobile-performance-mode \.raster-map-plane\s*\{[^}]*transform:\s*none;[^}]*backface-visibility:\s*visible/s);
+    assert.match(css, /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
+    assert.doesNotMatch(css, /\.linewatch-shell\.mobile-performance-mode \.raster-map-plane/);
+    assert.match(css, /\.raster-map-plane\s*\{[^}]*transform:\s*translateZ\(0\);[^}]*backface-visibility:\s*hidden/s);
   });
 
   it("sandwiches live overlays between raster artwork and keeps interaction planes on top", async () => {
@@ -110,6 +113,7 @@ describe("stable raster map renderer", () => {
     assert.doesNotMatch(ttcLabelsCss, /font-weight:\s*700/);
     assert.doesNotMatch(regionalLabelsCss, /font-weight:\s*700/);
     assert.doesNotMatch(regionalLabelsCss, /stroke-width:\s*2px !important/);
+    assert.doesNotMatch(generator, /mobileForegroundCss/);
     assert.match(generator, /map\.id === "regional" && plane === "labels" && theme !== "light"[\s\S]*?source\.replaceAll\("stroke:#000000", "stroke:#ffffff"\)/);
     assert.match(generator, /#polygon771-7,[\s\S]*?#polygon771-7-4-1-5 \{ fill: #f1f5f9 !important; \}/);
     assert.match(ttc, /className="raster-station-label-text-hover"/);

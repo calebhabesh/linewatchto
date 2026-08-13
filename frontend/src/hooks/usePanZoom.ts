@@ -22,7 +22,6 @@ import {
   type PanZoomTransform,
   type ViewportInsets,
 } from "./panZoomMath";
-import { useMapRecenterFade } from "./useMapRecenterFade";
 
 type UsePanZoomOptions = {
   reducedMotion?: boolean;
@@ -45,7 +44,6 @@ type ZoomToBoundsOptions = ZoomToPointOptions;
 
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
-const RECENTER_FADE_ANIMATION_ID = "linewatch-ttc-map-recenter-fade";
 
 export function usePanZoom({
   reducedMotion = false,
@@ -64,7 +62,6 @@ export function usePanZoom({
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
-  const recenterVeilRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const dragRafRef = useRef<number | null>(null);
   const lastMoveEvent = useRef<{ clientX: number, clientY: number } | null>(null);
@@ -85,12 +82,6 @@ export function usePanZoom({
   const cameraAdjustedByUserRef = useRef(false);
 
   const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
-  const { clearRecenterFade, playRecenterFade } = useMapRecenterFade({
-    animationId: RECENTER_FADE_ANIMATION_ID,
-    reducedMotion,
-    direction: "out",
-  });
-
   useEffect(() => {
     fitScaleRef.current = fitScale;
   }, [fitScale]);
@@ -193,7 +184,6 @@ export function usePanZoom({
   }, [snapTransform]);
 
   const clearProgrammaticAnimation = useCallback(() => {
-    clearRecenterFade();
     if (initialEntranceTimeoutRef.current !== null) {
       window.clearTimeout(initialEntranceTimeoutRef.current);
       initialEntranceTimeoutRef.current = null;
@@ -210,7 +200,7 @@ export function usePanZoom({
       window.clearTimeout(wheelCommitTimeoutRef.current);
       wheelCommitTimeoutRef.current = null;
     }
-  }, [clearRecenterFade]);
+  }, []);
 
   const cancelAnimation = useCallback(() => {
     const renderedTransform = currentRenderedTransform();
@@ -286,7 +276,7 @@ export function usePanZoom({
     writeMapTransform,
   ]);
 
-  const snapTransformWithFade = useCallback((
+  const snapTransformToDefault = useCallback((
     next: PanZoomTransform,
     nextFitScale?: number,
   ) => {
@@ -305,11 +295,9 @@ export function usePanZoom({
       setFitScale(nextFitScale);
     }
     commitTransform(snapped);
-    playRecenterFade(recenterVeilRef.current);
   }, [
     clearProgrammaticAnimation,
     commitTransform,
-    playRecenterFade,
     setMapTransition,
     setProgrammaticCameraMotion,
     setUserZoomMotion,
@@ -791,8 +779,8 @@ export function usePanZoom({
     if (width <= 0 || height <= 0) return;
     const next = defaultTransformForViewport(width, height);
     cameraInitializedRef.current = true;
-    snapTransformWithFade(next, next.scale);
-  }, [defaultTransformForViewport, logicalViewportSize, snapTransformWithFade]);
+    snapTransformToDefault(next, next.scale);
+  }, [defaultTransformForViewport, logicalViewportSize, snapTransformToDefault]);
 
   const refitIfCameraUntouched = useCallback(() => {
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
@@ -957,7 +945,6 @@ export function usePanZoom({
     isGestureActive,
     containerRef,
     mapRef,
-    recenterVeilRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,

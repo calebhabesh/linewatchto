@@ -24,7 +24,6 @@ const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx"
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-const recenterFadeSource = readFileSync(new URL("../src/hooks/useMapRecenterFade.ts", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
@@ -954,20 +953,16 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("matches TTC's Center fade without changing opacity on the regional map stack", () => {
+  it("matches TTC's direct Center commit without compositor-only fade layers", () => {
     assert.match(regionalMapSource, /setMapTransition\(`transform \$\{durationMs\}ms \$\{easing\}`\)/);
     assert.match(regionalMapSource, /const snapCameraToNetwork = useCallback[\s\S]*setMapTransition\("none"\)[\s\S]*writeMapTransform\(targetCamera\)/);
     assert.match(regionalMapSource, /snapCameraToNetwork\(fitted\.camera, fitted\.scale\)/);
     assert.match(regionalMapSource, /setCamera\(\(current\) => \([\s\S]*current\.x === targetCamera\.x[\s\S]*\? current[\s\S]*: targetCamera/);
-    assert.match(recenterFadeSource, /MAP_RECENTER_FADE_DURATION_MS = 180/);
-    assert.match(regionalMapSource, /useMapRecenterFade\(\{[\s\S]*animationId: RECENTER_FADE_ANIMATION_ID[\s\S]*reducedMotion/);
-    assert.match(regionalMapSource, /direction: "out"/);
-    assert.match(regionalMapSource, /playRecenterFade\(recenterVeilRef\.current\)/);
-    assert.match(recenterFadeSource, /direction === "in"[\s\S]*\[\{ opacity: 1 \}, \{ opacity: 0 \}\][\s\S]*duration: MAP_RECENTER_FADE_DURATION_MS/);
+    assert.doesNotMatch(regionalMapSource, /useMapRecenterFade|RECENTER_FADE_ANIMATION_ID|recenterVeilRef|playRecenterFade/);
     assert.doesNotMatch(regionalMapSource, /startViewTransition|regionalRecenterTransition|MapViewTransition/);
     assert.doesNotMatch(globalsCss, /regional-map-recenter-fade-in|data-regional-recenter-transition|view-transition-name:\s*regional-map-recenter/);
-    assert.match(globalsCss, /\.ttc-map-recenter-veil,[\s\S]*\.regional-map-recenter-veil\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;[^}]*contain:\s*strict/s);
-    assert.match(globalsCss, /\.regional-map-recenter-veil\[data-map-recenter-effect\]\s*\{[^}]*will-change:\s*opacity/s);
+    assert.doesNotMatch(globalsCss, /map-recenter-veil|data-map-recenter-effect/);
+    assert.match(globalsCss, /mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
     assert.doesNotMatch(globalsCss, /\.regional-map-stage\s*\{[^}]*will-change:\s*opacity/s);
     assert.doesNotMatch(regionalMapSource, /className="regional-map-scene"/);
     assert.doesNotMatch(regionalMapSource, /RECENTER_CAMERA_MOTION/);

@@ -100,9 +100,10 @@ describe("station connection metadata and map labels", () => {
     assert.match(css, /\.dark \.station-connections-title,[\s\S]*?color: #f8fafc/);
     assert.match(css, /\.station-connections-card[^}]*gap: 6px/s);
     assert.match(css, /\.station-connections-title[^}]*margin: 0;/s);
-    assert.match(css, /\.station-connection-list[^}]*display: flex;[^}]*width: 100%;[^}]*flex-wrap: wrap;/s);
+    assert.match(css, /\.station-connection-list[^}]*display: grid;[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s);
     assert.match(css, /\.station-connection-row[^}]*border: 1px solid/s);
-    assert.match(css, /\.station-connection-row[^}]*flex: 1 1 0px;[^}]*max-width: max-content/s);
+    assert.match(css, /\.station-connection-row[^}]*width: 100%;/s);
+    assert.match(css, /\.station-connection-row:only-child[^}]*grid-column: span 2;/s);
     assert.match(css, /\.dark \.station-connection-row,[\s\S]*?background: rgba\(255, 255, 255, 0\.035\)/);
     assert.doesNotMatch(css, /map-connection-airport[^}]*filter:/s);
     assert.match(css, /map-connection-airport :is\(text, tspan\)[\s\S]*?fill: #f8fafc !important/);
