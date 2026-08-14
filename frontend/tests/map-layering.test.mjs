@@ -715,20 +715,17 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /surfaceRef\.current\?\.animate/);
     assert.match(interactiveMapSource, /<OverlapChooser[\s\S]*?key=\{expandedOverlapBadge\.segmentId\}/);
     assert.match(interactiveMapSource, /compactMotion/);
-    assert.match(interactiveMapSource, /duration:\s*380/);
-    assert.match(interactiveMapSource, /duration:\s*200/);
-    assert.match(interactiveMapSource, /duration:\s*650/);
+    assert.match(interactiveMapSource, /duration:\s*compactMotion\s*\?\s*200\s*:\s*250/);
     assert.match(interactiveMapSource, /const close = async/);
-    assert.match(interactiveMapSource, /duration:\s*220/);
+    assert.match(interactiveMapSource, /duration:\s*compactMotion\s*\?\s*190\s*:\s*230/);
     assert.match(interactiveMapSource, /animation\?\.finished/);
-    assert.match(interactiveMapSource, /borderRadius:\s*"999px"/);
     assert.match(
       interactiveMapSource,
-      /translate\(\$\{initialAnchorOffset\.x\}px, \$\{initialAnchorOffset\.y\}px\) scale\(0\.12, 0\.06\)/,
+      /opacity:\s*0,\s*transform:\s*`translate\(\$\{targetX\}px, \$\{targetY\}px\) scale\(0\.14\)`/,
     );
     assert.match(
       interactiveMapSource,
-      /translate\(\$\{layout\.anchorOffsetX\}px, \$\{layout\.anchorOffsetY\}px\) scale\(0\.12, 0\.06\)/,
+      /opacity:\s*1,\s*transform:\s*"translate\(0px, 0px\) scale\(1\)"/,
     );
     assert.match(interactiveMapSource, /details\.displayDirection/);
     assert.match(interactiveMapSource, /return "Planned Closure"/);
@@ -737,8 +734,8 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-chooser-surface/);
     assert.match(globalCss, /\.overlap-chooser-portal\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*45;/s);
     assert.match(globalCss, /@keyframes overlap-chooser-enter/);
-    assert.match(globalCss, /border-radius:\s*50%/);
-    assert.match(globalCss, /scale\(1\.04,\s*0\.96\)/);
+    assert.match(globalCss, /opacity:\s*0;\s*transform:\s*scale\(0\.96\);/);
+    assert.match(globalCss, /opacity:\s*1;\s*transform:\s*scale\(1\);/);
     assert.match(globalCss, /\.overlap-chooser-header-count/);
     assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border-left-width:\s*2px;/s);
     assert.match(globalCss, /\.overlap-chooser-list\s*\{[^}]*margin-right:\s*-6px;[^}]*padding-right:\s*6px;/s);

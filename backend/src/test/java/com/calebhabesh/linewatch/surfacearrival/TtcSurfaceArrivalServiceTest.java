@@ -49,6 +49,31 @@ class TtcSurfaceArrivalServiceTest {
         });
     }
 
+    @Test
+    void returnsNoServiceMessageWhenStationHasNoMappedConnections() {
+        StationRepository stations = mock(StationRepository.class);
+        TtcSurfaceArrivalCache cache = mock(TtcSurfaceArrivalCache.class);
+        SurfaceArrivalProperties properties = new SurfaceArrivalProperties();
+        properties.setTtcEnabled(true);
+        when(stations.findById("bay")).thenReturn(Optional.of(
+            new StationEntity("bay", "Bay", 0, 0, false, 2, null)
+        ));
+        when(cache.get("bus")).thenReturn(Optional.of(new TtcSurfaceArrivalSnapshot(
+            "bus", NOW.minusSeconds(10), NOW.minusSeconds(9), true,
+            Set.of("broadview"), List.of()
+        )));
+        when(cache.get("streetcar")).thenReturn(Optional.empty());
+        TtcSurfaceArrivalService service = new TtcSurfaceArrivalService(
+            stations, cache, properties, Clock.fixed(Instant.parse("2026-08-14T13:00:00Z"), ZoneOffset.UTC)
+        );
+
+        SurfaceArrivalResponses.SnapshotResponse response = service.arrivals("bay");
+
+        assertThat(response.availability()).isEqualTo("no-service");
+        assertThat(response.message()).isEqualTo("No surface connections originating at this station.");
+        assertThat(response.arrivals()).isEmpty();
+    }
+
     private SurfaceArrivalRecord row(OffsetDateTime predictedAt, String tripId) {
         return new SurfaceArrivalRecord(
             "broadview", "TTC", "streetcar", "504", "King", "Dundas West Station",

@@ -69,7 +69,7 @@ public class TtcSurfaceArrivalService {
         if (bounded.isEmpty()) {
             String message = mapped
                 ? "No TTC bus or streetcar predictions are available at this station right now."
-                : "TTC does not publish a parent-linked bus or streetcar stop for this mapped station.";
+                : "No surface connections originating at this station.";
             return snapshot(station, "no-service", now, updatedAt,
                 TtcSurfaceArrivalIndexer.SOURCE, message, List.of());
         }

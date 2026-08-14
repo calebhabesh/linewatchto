@@ -6177,32 +6177,35 @@ button {
   pointer-events: auto;
   transform-box: fill-box;
   transform-origin: center;
-  transition: opacity 180ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 160ms ease-out,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .overlap-indicator.open {
   opacity: 0;
-  transform: scale(0.18);
+  pointer-events: none;
+  transform: scale(0.78);
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
 }
 
 .overlap-chooser-object {
   opacity: 0;
   overflow: visible;
   pointer-events: none;
-  transition:
-    opacity 180ms ease,
-    visibility 0s linear 180ms;
   visibility: hidden;
 }
 
 .overlap-chooser-object.open {
   opacity: 1;
   pointer-events: auto;
-  transition-delay: 0s;
   visibility: visible;
 }
 
 .overlap-chooser-portal {
+  isolation: isolate;
   position: absolute;
   z-index: 45;
 }
@@ -6213,40 +6216,30 @@ button {
   border-radius: 16px;
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.28);
   color: #0f172a;
+  contain: paint layout style;
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
   padding: 12px;
+  transform-origin: center;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
   width: 100%;
 }
 
 .overlap-chooser-object.open .overlap-chooser-surface {
-  animation: overlap-chooser-enter 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: none;
 }
 
 @keyframes overlap-chooser-enter {
   0% {
-    border-radius: 50%;
-    opacity: 0.42;
-    transform: scale(0.22, 0.08);
-  }
-  58% {
-    border-radius: 20px;
-    opacity: 1;
-    transform: scale(1.04, 0.96);
-  }
-  76% {
-    border-radius: 14px;
-    transform: scale(0.975, 1.025);
-  }
-  90% {
-    transform: scale(1.012, 0.99);
+    opacity: 0;
+    transform: scale(0.96);
   }
   100% {
-    border-radius: 16px;
     opacity: 1;
-    transform: scale(1, 1);
+    transform: scale(1);
   }
 }
 

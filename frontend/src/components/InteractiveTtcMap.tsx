@@ -4495,10 +4495,6 @@ function OverlapChooser({
   const surfaceRef = useRef<HTMLDivElement>(null);
   const firstChoiceRef = useRef<HTMLButtonElement>(null);
   const closingRef = useRef(false);
-  const initialAnchorOffsetRef = useRef({
-    x: layout.anchorOffsetX,
-    y: layout.anchorOffsetY,
-  });
   const orderedImpacts = [...badge.impacts].sort(
     (a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind)
       || a.cardId.localeCompare(b.cardId),
@@ -4527,62 +4523,65 @@ function OverlapChooser({
 
   useEffect(() => {
     const focusFrame = window.requestAnimationFrame(() => firstChoiceRef.current?.focus({ preventScroll: true }));
-    // In rotated mode the morph's translated intermediate frames can cross
-    // the fixed Center/Exit rail even when the final chooser box is clear.
-    if (reducedMotion || viewportOrientation === "rotated-landscape") return;
-    const initialAnchorOffset = initialAnchorOffsetRef.current;
-    const animation = compactMotion
-      ? surfaceRef.current?.animate([
-          {
-            borderRadius: "999px",
-            opacity: 0.35,
-            transform: `translate(${initialAnchorOffset.x}px, ${initialAnchorOffset.y}px) scale(0.12, 0.06)`,
-          },
-          { borderRadius: "20px", opacity: 1, offset: 0.62, transform: "scale(1.025, 0.98)" },
-          { borderRadius: "14px", offset: 0.82, transform: "scale(0.99, 1.01)" },
-          { borderRadius: "14px", opacity: 1, transform: "scale(1, 1)" },
-        ], { duration: 380, easing: "cubic-bezier(0.16, 1, 0.3, 1)" })
-      : surfaceRef.current?.animate([
-          {
-            borderRadius: "999px",
-            filter: "blur(8px)",
-            opacity: 0.28,
-            transform: `translate(${initialAnchorOffset.x}px, ${initialAnchorOffset.y}px) scale(0.08, 0.04)`,
-          },
-          { borderRadius: "28px", filter: "blur(1px)", opacity: 1, offset: 0.56, transform: "scale(1.04, 0.96)" },
-          { borderRadius: "14px", offset: 0.78, transform: "scale(0.975, 1.025)" },
-          { borderRadius: "16px", filter: "blur(0)", opacity: 1, transform: "scale(1, 1)" },
-        ], { duration: 650, easing: "cubic-bezier(0.16, 1, 0.3, 1)" });
+    if (reducedMotion) return;
+    const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
+    const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
+    const animation = surfaceRef.current?.animate([
+      {
+        borderRadius: "999px",
+        opacity: 0,
+        transform: `translate(${targetX}px, ${targetY}px) scale(0.14)`,
+      },
+      {
+        borderRadius: "24px",
+        opacity: 0.95,
+        offset: 0.6,
+        transform: `translate(${Math.round(targetX * 0.15)}px, ${Math.round(targetY * 0.15)}px) scale(0.88)`,
+      },
+      {
+        borderRadius: "16px",
+        opacity: 1,
+        transform: "translate(0px, 0px) scale(1)",
+      },
+    ], {
+      duration: compactMotion ? 200 : 250,
+      easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+      fill: "both",
+    });
     return () => {
       window.cancelAnimationFrame(focusFrame);
       animation?.cancel();
     };
-  }, [compactMotion, reducedMotion, viewportOrientation]);
+  }, [compactMotion, layout.anchorOffsetX, layout.anchorOffsetY, reducedMotion, viewportOrientation]);
 
   const close = async (restoreFocus: boolean) => {
     if (closingRef.current) return;
     closingRef.current = true;
-    if (!reducedMotion && viewportOrientation !== "rotated-landscape") {
-      const animation = compactMotion
-        ? surfaceRef.current?.animate([
-            { borderRadius: "14px", opacity: 1, transform: "scale(1, 1)" },
-            { borderRadius: "20px", offset: 0.34, transform: "scale(1.015, 0.97)" },
-            {
-              borderRadius: "999px",
-              opacity: 0,
-              transform: `translate(${layout.anchorOffsetX}px, ${layout.anchorOffsetY}px) scale(0.12, 0.06)`,
-            },
-          ], { duration: 200, easing: "cubic-bezier(0.7, 0, 0.84, 0)", fill: "forwards" })
-        : surfaceRef.current?.animate([
-            { borderRadius: "16px", filter: "blur(0)", opacity: 1, transform: "scale(1, 1)" },
-            { borderRadius: "22px", offset: 0.32, transform: "scale(1.025, 0.96)" },
-            {
-              borderRadius: "999px",
-              filter: "blur(8px)",
-              opacity: 0,
-              transform: `translate(${layout.anchorOffsetX}px, ${layout.anchorOffsetY}px) scale(0.08, 0.04)`,
-            },
-          ], { duration: 220, easing: "cubic-bezier(0.7, 0, 0.84, 0)", fill: "forwards" });
+    if (!reducedMotion) {
+      const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
+      const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
+      const animation = surfaceRef.current?.animate([
+        {
+          borderRadius: "16px",
+          opacity: 1,
+          transform: "translate(0px, 0px) scale(1)",
+        },
+        {
+          borderRadius: "28px",
+          opacity: 0.85,
+          offset: 0.4,
+          transform: `translate(${Math.round(targetX * 0.38)}px, ${Math.round(targetY * 0.38)}px) scale(0.68)`,
+        },
+        {
+          borderRadius: "999px",
+          opacity: 0,
+          transform: `translate(${targetX}px, ${targetY}px) scale(0.12)`,
+        },
+      ], {
+        duration: compactMotion ? 190 : 230,
+        easing: "cubic-bezier(0.35, 0, 0.65, 0.1)",
+        fill: "forwards",
+      });
       try {
         await animation?.finished;
       } catch {

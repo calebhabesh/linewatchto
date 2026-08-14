@@ -848,7 +848,13 @@ export function RegionalStationDetailPanel({
                       </div>
                     ))}
                   </div>
-                ) : null}
+                ) : (
+                  <div className="mt-2 rounded-md border border-black/10 bg-white/60 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
+                    <p className="text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+                      No active impacts for this station.
+                    </p>
+                  </div>
+                )}
               </section>
 
               <details
