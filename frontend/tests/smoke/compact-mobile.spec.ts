@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const stubUrl = "http://127.0.0.1:4174";
+const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
 
 test("iPhone SE uses compact chrome and contained onboarding and status sheets", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "compact phone coverage runs in the touch-device project");
@@ -12,7 +13,7 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
     window.localStorage.removeItem("linewatch-unofficial-notice-ack-v1");
     window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
   });
-  await page.goto("/");
+  await page.goto(openMapPreviewUrl);
 
   const welcome = page.getByRole("dialog", { name: "Welcome to LineWatchTO" });
   await expect(welcome).toBeVisible();
@@ -99,7 +100,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
     window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
     window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
   });
-  await page.goto("/");
+  await page.goto(openMapPreviewUrl);
 
   const stage = page.locator(".ttc-map-stage");
   await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
@@ -260,6 +261,149 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
   await expect(page.locator(".ttc-map-recenter-veil")).toHaveCount(0);
 });
 
+test("fixed mobile pinch zoom keeps one stable camera surface across both networks", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "fixed mobile pinch durability coverage runs in the touch-device project");
+
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
+    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+  });
+  await page.goto(openMapPreviewUrl);
+
+  const exerciseFixedPinch = async (network: "ttc" | "regional") => {
+    const stage = network === "ttc"
+      ? page.locator(".ttc-map-stage")
+      : page.locator(".regional-map-stage");
+    await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
+
+    const result = await page.evaluate(async ({ activeNetwork }) => {
+      const gestureTarget = activeNetwork === "ttc"
+        ? document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]")
+        : document.querySelector<HTMLElement>(".regional-map-viewport");
+      const mapStage = gestureTarget?.querySelector<HTMLElement>(
+        activeNetwork === "ttc" ? ".ttc-map-stage" : ".regional-map-stage",
+      );
+      if (!gestureTarget || !mapStage) throw new Error(`Missing ${activeNetwork} fixed map`);
+
+      const rasterPlanes = Array.from(mapStage.querySelectorAll<HTMLElement>(".raster-map-plane"));
+      const originalChildren = Array.from(mapStage.children);
+      const viewportSize = { width: gestureTarget.clientWidth, height: gestureTarget.clientHeight };
+      const cycles = [];
+      const sendPointer = (
+        type: string,
+        pointerId: number,
+        clientX: number,
+        clientY: number,
+      ) => gestureTarget.dispatchEvent(new PointerEvent(type, {
+        bubbles: true,
+        buttons: type === "pointerup" ? 0 : 1,
+        cancelable: true,
+        clientX,
+        clientY,
+        isPrimary: pointerId === 1,
+        pointerId,
+        pointerType: "touch",
+      }));
+
+      for (let cycle = 0; cycle < 8; cycle += 1) {
+        const rect = gestureTarget.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const zoomingIn = cycle % 2 === 0;
+        const startSpan = zoomingIn ? 52 : 104;
+        const endSpan = zoomingIn ? 104 : 52;
+        const beforeTransform = mapStage.style.transform;
+
+        sendPointer("pointerdown", 1, centerX - startSpan / 2, centerY);
+        sendPointer("pointerdown", 2, centerX + startSpan / 2, centerY);
+        sendPointer("pointermove", 1, centerX - endSpan / 2, centerY);
+        sendPointer("pointermove", 2, centerX + endSpan / 2, centerY);
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        sendPointer("pointerup", 2, centerX + endSpan / 2, centerY);
+        sendPointer("pointerup", 1, centerX - endSpan / 2, centerY);
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+        cycles.push({
+          cameraChanged: mapStage.style.transform !== beforeTransform,
+          gestureActive: activeNetwork === "ttc"
+            ? gestureTarget.dataset.mapGestureActive
+            : gestureTarget.closest<HTMLElement>(".regional-map")?.dataset.mapGestureActive,
+          heightStable: gestureTarget.clientHeight === viewportSize.height,
+          stageOpacity: getComputedStyle(mapStage).opacity,
+          stageTransitionDuration: getComputedStyle(mapStage).transitionDuration,
+          widthStable: gestureTarget.clientWidth === viewportSize.width,
+        });
+      }
+
+      return {
+        cycles,
+        flattenedRasterPlanes: rasterPlanes.filter((plane) => (
+          getComputedStyle(plane).transform === "none"
+          && getComputedStyle(plane).backfaceVisibility === "visible"
+        )).length,
+        mapChildrenPreserved: Array.from(mapStage.children)
+          .every((child, index) => child === originalChildren[index]),
+        mapStagePreserved: gestureTarget.querySelector(
+          activeNetwork === "ttc" ? ".ttc-map-stage" : ".regional-map-stage",
+        ) === mapStage,
+        rasterPlanesPreserved: Array.from(mapStage.querySelectorAll(".raster-map-plane"))
+          .every((plane, index) => plane === rasterPlanes[index]),
+      };
+    }, { activeNetwork: network });
+
+    expect(result).toMatchObject({
+      flattenedRasterPlanes: 3,
+      mapChildrenPreserved: true,
+      mapStagePreserved: true,
+      rasterPlanesPreserved: true,
+    });
+    expect(result.cycles).toHaveLength(8);
+    expect(result.cycles.every((cycle) => (
+      cycle.cameraChanged
+      && cycle.gestureActive === "false"
+      && cycle.heightStable
+      && cycle.stageOpacity === "1"
+      && cycle.stageTransitionDuration === "0s"
+      && cycle.widthStable
+    ))).toBe(true);
+  };
+
+  await exerciseFixedPinch("ttc");
+  const ttcStage = page.locator(".ttc-map-stage");
+  await ttcStage.evaluate((stage) => {
+    stage.dataset.fixedPinchStageProbe = "preserved";
+  });
+  const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+  await expect(overlapMarker).toBeVisible();
+  await overlapMarker.dispatchEvent("pointerdown", {
+    button: 0,
+    buttons: 1,
+    isPrimary: true,
+    pointerId: 31,
+    pointerType: "touch",
+  });
+  await overlapMarker.dispatchEvent("pointerup", {
+    button: 0,
+    buttons: 0,
+    isPrimary: true,
+    pointerId: 31,
+    pointerType: "touch",
+  });
+  await overlapMarker.dispatchEvent("click");
+  await expect(page.locator("[data-overlap-chooser]")).toBeVisible();
+  await expect(ttcStage).toHaveAttribute("data-fixed-pinch-stage-probe", "preserved");
+  await page.getByRole("button", { name: "Close alert chooser", exact: true }).click();
+
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await exerciseFixedPinch("regional");
+});
+
 test("rotated mobile pinch zoom keeps one oriented map camera across both networks", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "rotated camera coverage runs in the touch-device project");
 
@@ -270,7 +414,7 @@ test("rotated mobile pinch zoom keeps one oriented map camera across both networ
     window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
     window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
   });
-  await page.goto("/");
+  await page.goto(openMapPreviewUrl);
 
   const exerciseRotatedPinch = async (network: "ttc" | "regional") => {
     await page.getByRole("button", { name: "Rotate map" }).click();
