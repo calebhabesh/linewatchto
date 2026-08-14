@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, LoaderCircle, Plus, Search, X } from "lucide-react";
+import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, FileText, LoaderCircle, Plus, Search, Train, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
 import type { AccountState } from "../app/account-data";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -15,7 +15,7 @@ import {
   isArrivalDue,
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
-import { getStationDetail, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
+import { getStationDetail, isLrtOnlyStation, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
 import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelectionsByStation } from "../app/station-impact-types";
 import { DataProvider, useDashboardData, type DashboardData } from "../app/DataContext";
 import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId } from "../app/regional-data";
@@ -288,6 +288,9 @@ function SavedStationRow({
     const order: SavedStationDisruptionKind[] = ["suspension", "active-closure", "delay", "reduced-speed-zone", "planned-closure", "elevator", "escalator"];
     return order.flatMap((kind) => counts.has(kind) ? [{ kind, count: counts.get(kind) ?? 0 }] : []);
   })();
+  const isLrt = detail ? isLrtOnlyStation(detail.lines) : false;
+  const closedTitle = isLrt ? "LRT Closed" : "Subway Closed";
+  const arrivalHeading = isLrt ? "LRT Arrivals" : "Train Arrivals";
   const hasUnavailableArrivals = detail?.arrivals.some((arrival) => arrival.status === "unavailable") ?? false;
   const hasLiveArrivals = detail?.arrivals.some((arrival) => arrival.status === "live") ?? false;
   const arrivalGroups = sortArrivalGroupsByPinnedLine(detail && !hasUnavailableArrivals
@@ -457,7 +460,7 @@ function SavedStationRow({
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
             <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
             <div className="saved-station-arrivals-heading">
-              <span><Clock3 size={15} aria-hidden="true" /><strong>Arrivals</strong></span>
+              <span><Train size={15} aria-hidden="true" /><strong>Train Arrivals</strong></span>
               <small>{regionalArrivalSnapshot?.availability === "available"
                 ? regionalArrivalSnapshot.source
                 : regionalArrivalSnapshot?.availability === "no-service"
@@ -641,20 +644,20 @@ function SavedStationRow({
           </details>
 
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
-            <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
-            <div className="saved-station-arrivals-heading">
-              <span><Clock3 size={15} aria-hidden="true" /><strong>Arrivals</strong></span>
-              <small>{formatArrivalSourceSummary(detail.arrivals, detail.arrivalsSource)}</small>
-            </div>
-            {subwayClosed ? (
-              <p className="saved-station-arrivals-empty">Subway Closed · Arrivals Not Available</p>
-            ) : hasUnavailableArrivals ? (
-              <p className="saved-station-arrivals-empty">Arrival Data Unavailable</p>
-            ) : arrivalGroups.length === 0 ? (
-              <p className="saved-station-arrivals-empty">No Arrivals Available</p>
-            ) : (
-              <div className="saved-station-arrival-groups">
-                {arrivalLineSections.map((section, sectionIndex) => {
+              <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
+              <div className="saved-station-arrivals-heading">
+                <span><Train size={15} aria-hidden="true" /><strong>{arrivalHeading}</strong></span>
+                <small>{formatArrivalSourceSummary(detail.arrivals, detail.arrivalsSource)}</small>
+              </div>
+              {subwayClosed ? (
+                <p className="saved-station-arrivals-empty">{closedTitle} · Arrivals Not Available</p>
+              ) : hasUnavailableArrivals ? (
+                <p className="saved-station-arrivals-empty">Arrival Data Unavailable</p>
+              ) : arrivalGroups.length === 0 ? (
+                <p className="saved-station-arrivals-empty">No Arrivals Available</p>
+              ) : (
+                <div className="saved-station-arrival-groups">
+                  {arrivalLineSections.map((section, sectionIndex) => {
                   const showLineDivider = sectionIndex > 0;
                   const isPinned = pinnedLineIds.includes(section.lineId);
                   const isHoveredPin = hoveredPinLineId === section.lineId;

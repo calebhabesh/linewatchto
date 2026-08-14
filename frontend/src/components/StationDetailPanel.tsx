@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Check, ChevronDown, Clock3, Construction } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Check, ChevronDown, Construction, Train } from "lucide-react";
 import Image from "next/image";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
@@ -17,7 +17,7 @@ import {
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
-import type { StationArrival, StationDataResult, StationDetail, StationImpact } from "../app/station-data";
+import { isLrtOnlyStation, type StationArrival, type StationDataResult, type StationDetail, type StationImpact } from "../app/station-data";
 import { distinctStationImpacts } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
@@ -574,9 +574,12 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
           {(() => {
             const subwayClosed = subwayOperatingState.status === "closed";
-            const arrivalHeading = station.arrivals.every((arrival) => arrival.status === "demo")
-              ? "Demo Arrivals"
-              : "Arrivals";
+            const isLrt = isLrtOnlyStation(station.lines);
+            const isDemo = station.arrivals.length > 0 && station.arrivals.every((arrival) => arrival.status === "demo");
+            const arrivalHeading = isDemo
+              ? (isLrt ? "Demo LRT Arrivals" : "Demo Train Arrivals")
+              : (isLrt ? "LRT Arrivals" : "Train Arrivals");
+            const closedTitle = isLrt ? "LRT Closed" : "Subway Closed";
 
             if (subwayClosed) {
               return (
@@ -586,7 +589,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   data-station-section="arrivals"
                 >
                   <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                    <Clock3 size={20} className="shrink-0" />
+                    <Train size={20} className="shrink-0" />
                     <span>{arrivalHeading}</span>
                   </h3>
                   <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -594,7 +597,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   </p>
                   <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
                     <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
-                      <span className="block">Subway Closed</span>
+                      <span className="block">{closedTitle}</span>
                       <span className="block">Arrivals Not Available</span>
                     </p>
                   </div>
@@ -627,7 +630,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               >
                 {/* Schedule May Be Disrupted */}
                 <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                  <Clock3 size={20} className="shrink-0" />
+                  <Train size={20} className="shrink-0" />
                   <span>{arrivalHeading}</span>
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">

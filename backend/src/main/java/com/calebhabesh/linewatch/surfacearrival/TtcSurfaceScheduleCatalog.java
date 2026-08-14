@@ -80,6 +80,8 @@ public class TtcSurfaceScheduleCatalog {
         Set<String> mappedStationIds
     ) {
         static Catalog empty() { return new Catalog(-1, Map.of(), Map.of(), Map.of(), Set.of()); }
-        public boolean available() { return importId >= 0; }
+        public boolean available() {
+            return importId >= 0 && !routes.isEmpty() && !stops.isEmpty() && !trips.isEmpty();
+        }
     }
 }

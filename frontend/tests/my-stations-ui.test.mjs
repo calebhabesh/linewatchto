@@ -142,7 +142,7 @@ describe("My Stations UI", () => {
     assert.match(panel, /detailedCountdown: detailed/);
     assert.match(panel, /formatCondensedArrivalDirection/);
     assert.match(panel, /saved-station-arrival-destination/);
-    assert.match(panel, /<strong>Arrivals<\/strong>/);
+    assert.match(panel, /<strong>(Train Arrivals|\{arrivalHeading\})<\/strong>/);
     assert.match(panel, /isArrivalDue/);
     assert.match(panel, /is-due/);
     assert.match(panel, /is-soon/);

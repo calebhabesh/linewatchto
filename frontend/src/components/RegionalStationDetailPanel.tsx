@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, BadgeInfo, Check, ChevronDown, Clock3, Construction, ExternalLink, FileText, LoaderCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeInfo, Check, ChevronDown, Construction, ExternalLink, FileText, LoaderCircle, Train } from "lucide-react";
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
@@ -524,8 +524,8 @@ export function RegionalStationDetailPanel({
                 data-station-section="arrivals"
               >
                 <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                  <Clock3 size={20} className="shrink-0" />
-                  <span>Arrivals</span>
+                  <Train size={20} className="shrink-0" />
+                  <span>Train Arrivals</span>
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   {arrivalsLoading

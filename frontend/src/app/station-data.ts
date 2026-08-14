@@ -1680,3 +1680,27 @@ export function isStationWheelchairAccessible(stationId: string, lineIds: string
 export function isStationElevatorAccessible(stationId: string, lineIds: string[]): boolean {
   return lineIds.some((lineId) => !FALLBACK_WITHOUT_ELEVATOR.has(`${stationId}:${lineId}`));
 }
+
+export function isLrtOnlyLine(line: { id: string; number?: string } | string): boolean {
+  const id = typeof line === "string" ? line : line.id;
+  const num = typeof line === "string" ? line : line.number;
+  return id === "line-5" || id === "line-6" || num === "5" || num === "6";
+}
+
+export function isLrtOnlyStation(lines: readonly (StationLine | { id: string; number?: string } | string)[]): boolean {
+  if (!lines || lines.length === 0) return false;
+  return lines.every(isLrtOnlyLine);
+}
+
+export function isLrtOnlyStationId(stationId: string): boolean {
+  const isSubway = Boolean(
+    STATION_LINE_STATION_IDS["line-1"]?.includes(stationId) ||
+    STATION_LINE_STATION_IDS["line-2"]?.includes(stationId) ||
+    STATION_LINE_STATION_IDS["line-4"]?.includes(stationId)
+  );
+  if (isSubway) return false;
+  return Boolean(
+    STATION_LINE_STATION_IDS["line-5"]?.includes(stationId) ||
+    STATION_LINE_STATION_IDS["line-6"]?.includes(stationId)
+  );
+}

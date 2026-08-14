@@ -92,6 +92,21 @@ public class GtfsScheduleReadRepository {
         return imports.stream().findFirst();
     }
 
+    public boolean hasSurfaceCatalog(long importId) {
+        Boolean available = jdbc.queryForObject("""
+            select exists (
+                       select 1 from ttc_surface_routes where import_id = :importId
+                   )
+               and exists (
+                       select 1 from ttc_surface_station_stops where import_id = :importId
+                   )
+               and exists (
+                       select 1 from ttc_surface_trips where import_id = :importId
+                   )
+            """, Map.of("importId", importId), Boolean.class);
+        return Boolean.TRUE.equals(available);
+    }
+
     public ScheduleCoverage findStationLineCoverage(long importId) {
         List<String> missing = jdbc.query("""
             select station_line.station_id || ':' || station_line.line_id as station_line

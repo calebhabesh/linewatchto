@@ -66,6 +66,12 @@ public class MetrolinxAlertNormalizer {
         "(?:delays? (?:of )?(?:up to|approximately|about)|up to)\\s+(\\d{1,3})\\s+minutes?",
         Pattern.CASE_INSENSITIVE
     );
+    private static final Pattern RAIL_REPLACED_BY_BUS = Pattern.compile(
+        "(?:go )?buses? (?:will )?(?:replace|replaces|are replacing) "
+            + "(?:all |the |up express )?trains?"
+            + "|(?:all |the |up express )?trains? (?:will be|are|is) replaced by (?:go )?buses?",
+        Pattern.CASE_INSENSITIVE
+    );
 
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -147,7 +153,8 @@ public class MetrolinxAlertNormalizer {
             .distinct()
             .toList();
         return new Evidence(
-            canonicalEventId(record), record, lineIds, stationIds, tripNumbers,
+            canonicalEventId(record, lineIds.equals(List.of("regional-up"))),
+            record, lineIds, stationIds, tripNumbers,
             title, description, category, subcategory, "", "",
             null, null, parseMetrolinxDateTime(text(message, "PostedDateTime"))
         );
@@ -177,7 +184,7 @@ public class MetrolinxAlertNormalizer {
         OffsetDateTime endsAt = periods.stream().map(period -> epoch(period.get("end")))
             .filter(java.util.Objects::nonNull).max(OffsetDateTime::compareTo).orElse(null);
         return new Evidence(
-            canonicalEventId(record), record, lineIds, stationIds, List.of(),
+            canonicalEventId(record, upExpress), record, lineIds, stationIds, List.of(),
             translation(alert.path("header_text"), ""), translation(alert.path("description_text"), ""),
             "", "", text(alert, "effect").toUpperCase(Locale.CANADA),
             text(alert, "cause").toUpperCase(Locale.CANADA), startsAt, endsAt, null
@@ -233,7 +240,7 @@ public class MetrolinxAlertNormalizer {
         List<String> spanStations = "trip-cancellation".equals(serviceEffect)
             ? List.of()
             : spanStations(searchable, lineIds);
-        String scope = scope(searchable, serviceEffect, structuredStations, spanStations);
+        String scope = scope(searchable, serviceEffect, lineIds, structuredStations, spanStations);
         Map<String, String> stationRoles = stationRoles(
             searchable, lineIds, serviceEffect, scope, replacementService, structuredStations
         );
@@ -275,7 +282,9 @@ public class MetrolinxAlertNormalizer {
         if (structuredTripCancellation) {
             return "trip-cancellation";
         }
-        if (effects.stream().anyMatch(NO_SERVICE_EFFECTS::contains) || containsAny(searchable, NO_SERVICE_PHRASES)) {
+        if (effects.stream().anyMatch(NO_SERVICE_EFFECTS::contains)
+            || containsAny(searchable, NO_SERVICE_PHRASES)
+            || RAIL_REPLACED_BY_BUS.matcher(searchable).find()) {
             return "no-service";
         }
         if (containsAny(searchable, TRIP_CANCELLATION_PHRASES)) {
@@ -295,6 +304,7 @@ public class MetrolinxAlertNormalizer {
     private String scope(
         String searchable,
         String serviceEffect,
+        List<String> lineIds,
         List<String> structuredStations,
         List<String> spanStations
     ) {
@@ -303,12 +313,22 @@ public class MetrolinxAlertNormalizer {
             || searchable.contains("across the corridor")
             || searchable.contains("full route")
             || searchable.matches("(?s).*no (?:go )?train service on (?:the )?.+ line.*")
-            || searchable.matches("(?s).*no (?:go )?train service (?:across|along) (?:the )?.+ line.*");
+            || searchable.matches("(?s).*no (?:go )?train service (?:across|along) (?:the )?.+ line.*")
+            || spansFullRoute(lineIds, spanStations);
         if (corridorLanguage) return "corridor";
         if (spanStations.size() == 2) return "segment-span";
         if (!structuredStations.isEmpty()) return "listed-stations";
         if ("delay".equals(serviceEffect) && searchable.contains("corridor")) return "corridor";
         return "unknown";
+    }
+
+    private boolean spansFullRoute(List<String> lineIds, List<String> spanStations) {
+        if (spanStations.size() != 2) return false;
+        Set<String> endpoints = Set.copyOf(spanStations);
+        return lineIds.stream()
+            .map(RegionalNetworkCatalog::route)
+            .flatMap(java.util.Optional::stream)
+            .anyMatch(route -> endpoints.equals(Set.of(route.stationIds().getFirst(), route.stationIds().getLast())));
     }
 
     private List<String> spanStations(String searchable, List<String> lineIds) {
@@ -423,14 +443,17 @@ public class MetrolinxAlertNormalizer {
         return null;
     }
 
-    private String canonicalEventId(MetrolinxFetchedRecord record) {
+    private String canonicalEventId(MetrolinxFetchedRecord record, boolean upExpress) {
         Matcher rest = REST_NUMERIC_ID.matcher(record.sourceId());
         Matcher numeric = NUMERIC_ID.matcher(record.sourceId());
         String id;
         if (rest.matches()) id = rest.group(1);
-        else if (MetrolinxSourceSystem.GO_GTFS_ALERTS.equals(record.sourceSystem()) && numeric.matches()) id = numeric.group(1);
+        else if ((MetrolinxSourceSystem.GO_GTFS_ALERTS.equals(record.sourceSystem())
+            || MetrolinxSourceSystem.UP_GTFS_ALERTS.equals(record.sourceSystem())) && numeric.matches()) {
+            id = numeric.group(1);
+        }
         else id = sourceAbbreviation(record.sourceSystem()) + "-" + safeId(record.sourceId());
-        return (MetrolinxSourceSystem.UP_GTFS_ALERTS.equals(record.sourceSystem()) ? "up-" : "go-") + id;
+        return (upExpress ? "up-" : "go-") + id;
     }
 
     private int sourcePriority(Evidence evidence) {
@@ -438,7 +461,7 @@ public class MetrolinxAlertNormalizer {
             case MetrolinxSourceSystem.GO_SERVICE_ALERTS -> 0;
             case MetrolinxSourceSystem.GO_INFORMATION_ALERTS -> 1;
             case MetrolinxSourceSystem.GO_MARKETING_ALERTS -> 2;
-            case MetrolinxSourceSystem.GO_GTFS_ALERTS -> 3;
+            case MetrolinxSourceSystem.GO_GTFS_ALERTS, MetrolinxSourceSystem.UP_GTFS_ALERTS -> 3;
             default -> 0;
         };
     }

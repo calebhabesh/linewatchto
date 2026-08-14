@@ -10,6 +10,7 @@ import {
   surfaceSourceSummary,
   type SurfaceArrivalSnapshot,
 } from "../app/surface-arrivals";
+import { isLrtOnlyStationId } from "../app/station-data";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperatingState";
 
@@ -24,10 +25,11 @@ export function SurfaceConnectionsSection({ networkId, stationId }: Props) {
   const subwayOperatingState = useSubwayOperatingState();
   const regionalRailOperatingState = useRegionalRailOperatingState();
 
+  const isLrt = networkId === "ttc" && isLrtOnlyStationId(stationId);
   const isClosed = networkId === "ttc"
     ? subwayOperatingState.status === "closed"
     : regionalRailOperatingState.status === "closed";
-  const closedTitle = networkId === "ttc" ? "Subway Closed" : "GO & UP Rail Closed";
+  const closedTitle = networkId === "ttc" ? (isLrt ? "LRT Closed" : "Subway Closed") : "GO & UP Rail Closed";
 
   const [state, setState] = useState<{ stationId: string; snapshot: SurfaceArrivalSnapshot }>(() => ({
     stationId: "",
@@ -77,24 +79,28 @@ export function SurfaceConnectionsSection({ networkId, stationId }: Props) {
       data-station-section="surface-connections"
       data-surface-connections-closed={isClosed ? "true" : undefined}
     >
-      <summary className="surface-connections-summary flex cursor-pointer list-none items-center gap-2.5">
-        <Bus size={20} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
-        <span className="min-w-0">
-          <span className="block text-lg font-black text-slate-900 dark:text-white">Surface Connections</span>
-          <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            {isClosed
-              ? networkId === "regional" ? "GO Bus connections" : "TTC bus and streetcar connections"
-              : loading
-                ? "Checking station connections"
-                : surfaceSourceSummary(snapshot)}
-          </span>
-        </span>
-        {!loading && !isClosed && groups.length > 0 ? (
-          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 text-xs font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
-            {groups.length}
-          </span>
-        ) : <span className="ml-auto" />}
-        <ChevronDown size={18} className="surface-connections-chevron shrink-0 text-slate-500" aria-hidden="true" />
+      <summary className="surface-connections-summary block cursor-pointer list-none">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Bus size={20} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
+            <span className="text-lg font-black text-slate-900 dark:text-white truncate">Surface Connections</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {!loading && !isClosed && groups.length > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 text-xs font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                {groups.length}
+              </span>
+            )}
+            <ChevronDown size={18} className="surface-connections-chevron shrink-0 text-slate-500" aria-hidden="true" />
+          </div>
+        </div>
+        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          {isClosed
+            ? networkId === "regional" ? "GO Bus connections" : "TTC bus and streetcar connections"
+            : loading
+              ? "Checking station connections"
+              : surfaceSourceSummary(snapshot)}
+        </p>
       </summary>
 
       <div className="surface-connections-content pt-3">

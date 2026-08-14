@@ -7,6 +7,11 @@ linewatch:
       enabled: true
       fixed-delay: ${LINEWATCH_INGESTION_ALERTS_FIXED_DELAY:PT15S}
       max-dashboard-age: ${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:PT2M}
+  arrivals:
+    gtfs-refresh-enabled: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED:true}
+  surface-arrivals:
+    ttc-enabled: ${LINEWATCH_TTC_SURFACE_ARRIVALS_ENABLED:true}
+    regional-enabled: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_ENABLED:true}
   regional:
     arrivals:
       schedule-enabled: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED:true}

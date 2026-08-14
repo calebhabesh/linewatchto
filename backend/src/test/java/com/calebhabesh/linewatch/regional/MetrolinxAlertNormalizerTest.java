@@ -119,6 +119,72 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
+    void correlatesRouteWideUpBusReplacementPublishedAsServiceAndGtfsAlerts() throws Exception {
+        MetrolinxFetchedRecord rest = serviceAlert("""
+            {
+              "Code":"M0000522063",
+              "PostedDateTime":"2026-08-14 00:00:56",
+              "SubjectEnglish":"Service Adjustments from Aug. 15-16",
+              "BodyEnglish":"Starting late-evening tonight, and throughout the weekend, GO buses replace UP Express trains for planned construction. On Saturday, Aug. 15 and Sunday, Aug. 16, GO buses will run direct between Pearson Airport Terminal 1 and Union Station Bus Terminal. Learn more.",
+              "Category":"Disruptions",
+              "SubCategory":"Broadcast Message",
+              "Lines":[{"Code":"UP"}],
+              "Stops":[]
+            }
+            """);
+        MetrolinxFetchedRecord gtfs = upAlert("522063", """
+            {
+              "id":"522063",
+              "is_deleted":false,
+              "alert":{
+                "active_period":[{"start":1786680000,"end":1786939200}],
+                "cause":"CONSTRUCTION",
+                "effect":"MODIFIED_SERVICE",
+                "header_text":{"translation":[{"text":"Service Adjustments from Aug. 15-16","language":"en"}]},
+                "description_text":{"translation":[{"text":"Starting late-evening tonight, and throughout the weekend, GO buses replace UP Express trains for planned construction. On Saturday, Aug. 15 and Sunday, Aug. 16, GO buses will run direct between Pearson Airport Terminal 1 and Union Station Bus Terminal. Learn more.","language":"en"}]},
+                "informed_entity":[{"route_id":"UP","agency_id":"UPExpress","route_type":2}]
+              }
+            }
+            """);
+        MetrolinxFeed feed = feed(gtfs, rest);
+        MetrolinxAlertNormalizer augustFourteenth = new MetrolinxAlertNormalizer(Clock.fixed(
+            Instant.parse("2026-08-14T16:00:00Z"), ZoneOffset.UTC
+        ));
+
+        assertThat(augustFourteenth.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.canonicalEventId()).isEqualTo("up-522063");
+            assertThat(classification.sources())
+                .extracting(RegionalAlertClassification.SourceReference::sourceSystem)
+                .containsExactly(MetrolinxSourceSystem.GO_SERVICE_ALERTS, MetrolinxSourceSystem.UP_GTFS_ALERTS);
+            assertThat(classification.lineIds()).containsExactly("regional-up");
+            assertThat(classification.timing()).isEqualTo("planned");
+            assertThat(classification.serviceEffect()).isEqualTo("no-service");
+            assertThat(classification.scope()).isEqualTo("corridor");
+            assertThat(classification.cause()).isEqualTo("construction");
+            assertThat(classification.replacementService()).isEqualTo("go-bus");
+            assertThat(classification.stationIds()).isEmpty();
+            assertThat(classification.spanStationIds()).containsExactly("pearson-airport", "union");
+            assertThat(classification.activePeriodBasis()).isEqualTo("text-date-range");
+            assertThat(classification.activePeriodStart())
+                .isEqualTo(OffsetDateTime.parse("2026-08-15T00:00:00-04:00"));
+            assertThat(classification.activePeriodEnd())
+                .isEqualTo(OffsetDateTime.parse("2026-08-17T00:00:00-04:00"));
+        });
+        assertThat(augustFourteenth.normalize(feed)).singleElement().satisfies(alert -> {
+            assertThat(alert.sourceSystem()).isEqualTo(MetrolinxSourceSystem.GO_SERVICE_ALERTS);
+            assertThat(alert.lineId()).isEqualTo("regional-up");
+            assertThat(alert.impactKind()).isEqualTo("planned-closure");
+            assertThat(alert.stationIds()).isEmpty();
+            assertThat(alert.affectedSegmentIds()).containsExactly(
+                "segment-up-union-bloor",
+                "segment-up-bloor-mount-dennis",
+                "segment-up-mount-dennis-weston",
+                "segment-up-weston-pearson-airport"
+            );
+        });
+    }
+
+    @Test
     void keepsVagueFutureUpChangesOutOfTheClosureBucket() throws Exception {
         MetrolinxFetchedRecord future = upAlert("up-future", """
             {

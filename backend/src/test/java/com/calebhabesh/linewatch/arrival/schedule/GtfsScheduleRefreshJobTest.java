@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class GtfsScheduleRefreshJobTest {
@@ -41,6 +42,11 @@ class GtfsScheduleRefreshJobTest {
 
     private final GtfsScheduleImportService.ImportSummary summary =
         new GtfsScheduleImportService.ImportSummary(11L, 5, 76, 12, 4, 3000, 90000, 154);
+
+    @BeforeEach
+    void surfaceCatalogIsReadyByDefault() {
+        when(readRepository.hasSurfaceCatalog(anyLong())).thenReturn(true);
+    }
 
     @Test
     void doesNotRefreshWhenJobIsDisabled() throws Exception {
@@ -94,6 +100,24 @@ class GtfsScheduleRefreshJobTest {
 
         verify(downloadClient, never()).downloadCurrentZip();
         verify(runService, never()).start();
+    }
+
+    @Test
+    void refreshesActiveScheduleWithMissingSurfaceCatalogBeforeExpiryThreshold() throws Exception {
+        properties.setGtfsRefreshEnabled(true);
+        properties.setGtfsRefreshMinServiceDaysRemaining(14);
+        when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-07-20"))));
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
+        when(readRepository.hasSurfaceCatalog(7L)).thenReturn(false);
+        when(downloadClient.downloadCurrentZip()).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
+        when(importService.importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip"))
+            .thenReturn(summary);
+        when(runService.start()).thenReturn(17L);
+
+        job.refresh();
+
+        verify(importService).importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip");
+        verify(runService).succeed(17L, summary);
     }
 
     @Test

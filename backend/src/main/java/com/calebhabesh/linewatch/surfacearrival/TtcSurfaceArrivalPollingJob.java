@@ -1,6 +1,5 @@
 package com.calebhabesh.linewatch.surfacearrival;
 
-import java.net.URI;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import org.slf4j.Logger;
@@ -40,20 +39,24 @@ public class TtcSurfaceArrivalPollingJob {
     )
     public void refresh() {
         if (!properties.isTtcEnabled()) return;
-        refresh("bus", properties.getTtcBusUrl());
-        refresh("streetcar", properties.getTtcStreetcarUrl());
+        try {
+            TtcSurfaceTripUpdateParser.Feed feed = parser.parse(client.fetch(properties.getTtcTripUpdatesUrl()));
+            OffsetDateTime indexedAt = OffsetDateTime.now(clock);
+            refreshMode("bus", feed, indexedAt);
+            refreshMode("streetcar", feed, indexedAt);
+        } catch (Exception exception) {
+            log.warn("Failed to refresh TTC bus and streetcar trip updates", exception);
+        }
     }
 
-    private void refresh(String mode, URI uri) {
+    private void refreshMode(String mode, TtcSurfaceTripUpdateParser.Feed feed, OffsetDateTime indexedAt) {
         try {
-            TtcSurfaceArrivalSnapshot snapshot = indexer.index(
-                mode, parser.parse(client.fetch(uri)), OffsetDateTime.now(clock)
-            );
+            TtcSurfaceArrivalSnapshot snapshot = indexer.index(mode, feed, indexedAt);
             cache.replace(snapshot);
             log.debug("Indexed {} TTC {} station-connection arrivals", snapshot.arrivals().size(), mode);
         } catch (Exception exception) {
             // Keep the last-good snapshot for this mode. Freshness gating happens on read.
-            log.warn("Failed to refresh TTC {} trip updates", mode, exception);
+            log.warn("Failed to index TTC {} trip updates", mode, exception);
         }
     }
 }

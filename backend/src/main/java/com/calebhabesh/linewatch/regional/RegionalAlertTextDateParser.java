@@ -49,8 +49,12 @@ final class RegionalAlertTextDateParser {
             LocalDateRange range = localRange(matcher, anchor);
             if (range != null) ranges.add(range);
         }
-        if (ranges.size() != 1) return null;
-        LocalDateRange range = ranges.iterator().next();
+        if (ranges.isEmpty()) return null;
+        LocalDateRange range = ranges.stream()
+            .filter(candidate -> ranges.stream().allMatch(candidate::contains))
+            .findFirst()
+            .orElse(null);
+        if (range == null) return null;
         return new DateRange(
             range.start().atStartOfDay(TORONTO).toOffsetDateTime(),
             range.endInclusive().plusDays(1).atStartOfDay(TORONTO).toOffsetDateTime()
@@ -86,5 +90,9 @@ final class RegionalAlertTextDateParser {
 
     record DateRange(OffsetDateTime start, OffsetDateTime endExclusive) {}
 
-    private record LocalDateRange(LocalDate start, LocalDate endInclusive) {}
+    private record LocalDateRange(LocalDate start, LocalDate endInclusive) {
+        private boolean contains(LocalDateRange other) {
+            return !other.start().isBefore(start) && !other.endInclusive().isAfter(endInclusive);
+        }
+    }
 }

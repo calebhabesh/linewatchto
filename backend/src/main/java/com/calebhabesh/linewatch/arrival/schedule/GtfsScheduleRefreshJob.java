@@ -113,6 +113,13 @@ public class GtfsScheduleRefreshJob {
                 .map(latest -> latest.serviceEnd() == null || latest.serviceEnd().isBefore(today))
                 .orElse(true);
         }
+        if (!readRepository.hasSurfaceCatalog(activeImport.get().id())) {
+            log.info(
+                "Refreshing TTC GTFS schedule because active import {} predates or lacks the surface catalog",
+                activeImport.get().id()
+            );
+            return true;
+        }
         LocalDate serviceEnd = activeImport.get().serviceEnd();
         if (serviceEnd == null) {
             return true;

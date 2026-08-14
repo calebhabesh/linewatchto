@@ -680,10 +680,11 @@ Station surface connections are separate from rail arrivals and fail independent
 
 ```bash
 LINEWATCH_TTC_SURFACE_ARRIVALS_ENABLED=true
+LINEWATCH_TTC_SURFACE_ARRIVALS_TRIP_UPDATES_URL=https://gtfsrt.ttc.ca/trips/update?format=text
 LINEWATCH_REGIONAL_SURFACE_ARRIVALS_ENABLED=true
 ```
 
-TTC bus and streetcar feeds default to 15-second backend polling with a two-minute freshness window. GO Bus reads are cached for 30 seconds and use a five-minute source-freshness window. Both endpoints return explicit `available`, `no-service`, `disabled`, or `unavailable` states, and each row is labeled `live` or `scheduled`. A missing bay is omitted rather than inferred. These connections do not feed maps, status, saved commutes, reliability, surface notices, or push notifications.
+TTC's combined bus and streetcar Trip Updates feed defaults to 15-second backend polling with a two-minute freshness window. On the first refresh after deploying the surface-catalog schema, an active GTFS import without surface routes, parent-linked stops, or trips is replaced even when its service calendar has more than the normal refresh threshold remaining. GO Bus reads are cached for 30 seconds and use a five-minute source-freshness window. Both endpoints return explicit `available`, `no-service`, `disabled`, or `unavailable` states, and each row is labeled `live` or `scheduled`. A missing bay is omitted rather than inferred. These connections do not feed maps, status, saved commutes, reliability, surface notices, or push notifications.
 
 > [!NOTE]
 > `JAVA_TOOL_OPTIONS=-Xmx4g` is configured as production headroom, but the refresh logic is designed to complete correctness guarantees through bounded memory allocations rather than heap expansion. If an OutOfMemoryError is observed prior to running this bounded version, refresh should remain disabled until the bounded-memory release is fully deployed.
@@ -916,7 +917,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 - Metrolinx notices may identify a whole corridor, a set of stations, or scheduled adjustments rather than exact affected track geometry. Regional segment and station highlighting is a reviewed topology projection and may be approximate.
 - Regional accessibility outages use fresh Metrolinx GO service-update records categorized as elevator/escalator amenity disruptions. Only reviewed rail station/corridor mappings are shown; restoration notices and bus-only or unmappable facilities are omitted. The feed does not provide stable facility asset IDs, complete platform-level coverage, or guaranteed outage end times.
 - The optional live-arrival provider reads TTC GTFS-RT Subway Trip Updates from `https://gtfsrt.ttc.ca/trips/subway?format=text`; it infers schematic estimated train positions from predicted arrival times and falls back to scheduled service when fresh mapped live rows are unavailable.
-- Optional TTC surface arrivals use the separate bus and streetcar GTFS-RT Trip Updates feeds and only static-GTFS parent-linked mapped-station stops. Bay/platform text comes from source stop names and is absent when unpublished. Optional GO Bus connections use station-scoped Metrolinx Next Service bus rows; neither integration establishes complete local-transit coverage around a station.
+- Optional TTC surface arrivals use TTC's combined bus and streetcar GTFS-RT Trip Updates feed and only static-GTFS parent-linked mapped-station stops. Bay/platform text comes from source stop names and is absent when unpublished. Optional GO Bus connections use station-scoped Metrolinx Next Service bus rows; neither integration establishes complete local-transit coverage around a station.
 - Estimated train markers are schematic placements inferred from arrival predictions. They should not be treated as exact train locations or live train movement.
 - TTC alerts can be vague.
 - GTFS-RT service alerts can be less structured than TTC Live Alerts and may lack usable subway/LRT affected-segment detail. LineWatchTO uses only the bus and streetcar GTFS-RT service-alert feeds for surface notices by default.

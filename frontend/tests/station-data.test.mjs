@@ -6,6 +6,9 @@ import {
   fallbackStationSummaries,
   getStationDetail,
   getStationSummaries,
+  isLrtOnlyLine,
+  isLrtOnlyStation,
+  isLrtOnlyStationId,
 } from "../src/app/station-data.ts";
 import { groupStationArrivals } from "../src/app/station-arrivals.ts";
 
@@ -190,5 +193,32 @@ describe("station data adapter", () => {
     const cedarvale = fallbackStationSummaries.stations.find((station) => station.id === "cedarvale");
     assert.equal(cedarvale?.mapX, 2936);
     assert.equal(cedarvale?.mapY, 1810);
+  });
+
+  it("correctly identifies LRT-only lines and stations", () => {
+    assert.equal(isLrtOnlyLine("line-5"), true);
+    assert.equal(isLrtOnlyLine("line-6"), true);
+    assert.equal(isLrtOnlyLine("5"), true);
+    assert.equal(isLrtOnlyLine("6"), true);
+    assert.equal(isLrtOnlyLine("line-1"), false);
+    assert.equal(isLrtOnlyLine("line-2"), false);
+    assert.equal(isLrtOnlyLine("line-4"), false);
+
+    assert.equal(isLrtOnlyStation(["line-5"]), true);
+    assert.equal(isLrtOnlyStation(["line-6"]), true);
+    assert.equal(isLrtOnlyStation(["line-1"]), false);
+    assert.equal(isLrtOnlyStation(["line-1", "line-5"]), false);
+    assert.equal(isLrtOnlyStation(fallbackStationDetails["mount-dennis"].lines), true);
+    assert.equal(isLrtOnlyStation(fallbackStationDetails["humber-college"].lines), true);
+    assert.equal(isLrtOnlyStation(fallbackStationDetails.union.lines), false);
+    assert.equal(isLrtOnlyStation(fallbackStationDetails.cedarvale.lines), false);
+
+    assert.equal(isLrtOnlyStationId("mount-dennis"), true);
+    assert.equal(isLrtOnlyStationId("humber-college"), true);
+    assert.equal(isLrtOnlyStationId("union"), false);
+    assert.equal(isLrtOnlyStationId("cedarvale"), false);
+    assert.equal(isLrtOnlyStationId("eglinton"), false);
+    assert.equal(isLrtOnlyStationId("finch-west"), false);
+    assert.equal(isLrtOnlyStationId("kennedy"), false);
   });
 });

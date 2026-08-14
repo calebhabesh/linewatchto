@@ -106,8 +106,7 @@ linewatch:
     gtfs-promotion-fixed-delay: ${LINEWATCH_ARRIVALS_GTFS_PROMOTION_FIXED_DELAY:PT5M}
   surface-arrivals:
     ttc-enabled: ${LINEWATCH_TTC_SURFACE_ARRIVALS_ENABLED:false}
-    ttc-bus-url: ${LINEWATCH_TTC_SURFACE_ARRIVALS_BUS_URL:https://gtfsrt.ttc.ca/trips/bus?format=text}
-    ttc-streetcar-url: ${LINEWATCH_TTC_SURFACE_ARRIVALS_STREETCAR_URL:https://gtfsrt.ttc.ca/trips/streetcar?format=text}
+    ttc-trip-updates-url: ${LINEWATCH_TTC_SURFACE_ARRIVALS_TRIP_UPDATES_URL:https://gtfsrt.ttc.ca/trips/update?format=text}
     ttc-initial-delay: ${LINEWATCH_TTC_SURFACE_ARRIVALS_INITIAL_DELAY:PT10S}
     ttc-fixed-delay: ${LINEWATCH_TTC_SURFACE_ARRIVALS_FIXED_DELAY:PT15S}
     ttc-max-source-age: ${LINEWATCH_TTC_SURFACE_ARRIVALS_MAX_SOURCE_AGE:PT2M}

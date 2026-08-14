@@ -374,7 +374,7 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
   const closedArrivalsSection = page.locator('[data-arrivals-subway-closed="true"]');
   await expect(closedArrivalsSection).toBeVisible();
-  await expect(closedArrivalsSection.getByRole("heading", { name: "Arrivals" })).toBeVisible();
+  await expect(closedArrivalsSection.getByRole("heading", { name: "Train Arrivals" })).toBeVisible();
   await expect(closedArrivalsSection.getByText(/TTC scheduled service/i)).toBeVisible();
   await expect(closedArrivalsSection.getByText("Subway Closed")).toBeVisible();
   await expect(closedArrivalsSection.getByText("Arrivals Not Available")).toBeVisible();
@@ -2498,7 +2498,7 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(stationPanel.getByAltText("Wheelchair accessible", { exact: true })).toBeVisible();
   await expect(stationPanel.getByAltText("Elevator available, outage reported", { exact: true })).toBeVisible();
   await expect(page.locator('[data-facility-warning="elevator"]')).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Arrivals" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Train Arrivals" })).toBeVisible();
   await expect(page.getByText("TTC scheduled service")).toBeVisible();
   await expect(page.getByText("Schedule May Be Disrupted")).toBeVisible();
   const arrivalsSection = page.locator('[data-arrivals-disrupted="true"]');
