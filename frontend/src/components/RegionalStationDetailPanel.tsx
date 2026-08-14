@@ -33,6 +33,7 @@ import {
 import { StationDetailHeader } from "./StationDetailHeader";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
+import { LiveSignalIcon } from "./LiveSignalIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
@@ -644,6 +645,9 @@ export function RegionalStationDetailPanel({
                                           return (
                                             <span className={regionalArrivalSourceBadgeClassName(statusLabel)}>
                                               {statusLabel}
+                                              {statusLabel === "Live" ? (
+                                                <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={14} />
+                                              ) : null}
                                             </span>
                                           );
                                         })()}

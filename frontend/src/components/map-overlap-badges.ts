@@ -183,47 +183,219 @@ function overlapBadgeComponents(
   return components.sort((a, b) => badges[a[0]].id.localeCompare(badges[b[0]].id));
 }
 
-function sizeAwareThreeBadgeFormation(
+function centeredFormation(positions: OverlapChooserPoint[]): OverlapChooserPoint[] {
+  const center = pointAverage(positions);
+  return positions.map((position) => ({
+    x: position.x - center.x,
+    y: position.y - center.y,
+  }));
+}
+
+function twoBadgeFormations(
   cluster: ClusteredOverlapBadge[],
   gap: number,
-  sideDirection: -1 | 1,
-): OverlapChooserPoint[] | null {
-  const widestIndex = cluster.reduce((widest, badge, index) => (
-    badge.size.width > cluster[widest].size.width ? index : widest
-  ), 0);
-  const compactIndexes = cluster
+): OverlapChooserPoint[][] {
+  const formations: OverlapChooserPoint[][] = [];
+  for (const [firstIndex, secondIndex] of [[0, 1], [1, 0]] as const) {
+    const horizontalDistance = cluster[firstIndex].size.width / 2
+      + gap
+      + cluster[secondIndex].size.width / 2;
+    const verticalDistance = cluster[firstIndex].size.height / 2
+      + gap
+      + cluster[secondIndex].size.height / 2;
+    const horizontal = cluster.map(() => ({ x: 0, y: 0 }));
+    horizontal[firstIndex] = { x: 0, y: 0 };
+    horizontal[secondIndex] = { x: horizontalDistance, y: 0 };
+    formations.push(centeredFormation(horizontal));
+
+    const vertical = cluster.map(() => ({ x: 0, y: 0 }));
+    vertical[firstIndex] = { x: 0, y: 0 };
+    vertical[secondIndex] = { x: 0, y: verticalDistance };
+    formations.push(centeredFormation(vertical));
+  }
+  return formations;
+}
+
+function threeBadgeFormation(
+  cluster: ClusteredOverlapBadge[],
+  gap: number,
+  apexIndex: number,
+  firstBaseIndex: number,
+  secondBaseIndex: number,
+  apexSide: "top" | "right" | "bottom" | "left",
+): OverlapChooserPoint[] {
+  const apex = cluster[apexIndex];
+  const firstBase = cluster[firstBaseIndex];
+  const secondBase = cluster[secondBaseIndex];
+  const positions = cluster.map(() => ({ x: 0, y: 0 }));
+
+  if (apexSide === "top" || apexSide === "bottom") {
+    positions[firstBaseIndex] = { x: firstBase.size.width / 2, y: firstBase.size.height / 2 };
+    positions[secondBaseIndex] = {
+      x: firstBase.size.width + gap + secondBase.size.width / 2,
+      y: secondBase.size.height / 2,
+    };
+    positions[apexIndex] = {
+      x: firstBase.size.width + gap / 2,
+      y: -gap - apex.size.height / 2,
+    };
+    if (apexSide === "bottom") {
+      positions.forEach((position) => {
+        position.y = -position.y;
+      });
+    }
+  } else {
+    positions[firstBaseIndex] = { x: firstBase.size.width / 2, y: firstBase.size.height / 2 };
+    positions[secondBaseIndex] = {
+      x: secondBase.size.width / 2,
+      y: firstBase.size.height + gap + secondBase.size.height / 2,
+    };
+    positions[apexIndex] = {
+      x: -gap - apex.size.width / 2,
+      y: firstBase.size.height + gap / 2,
+    };
+    if (apexSide === "right") {
+      positions.forEach((position) => {
+        position.x = -position.x;
+      });
+    }
+  }
+
+  return centeredFormation(positions);
+}
+
+function threeBadgeFormations(
+  cluster: ClusteredOverlapBadge[],
+  gap: number,
+): OverlapChooserPoint[][] {
+  return cluster.flatMap((_badge, apexIndex) => {
+    const baseIndexes = cluster
+      .map((_candidate, index) => index)
+      .filter((index) => index !== apexIndex);
+    return ([baseIndexes, [...baseIndexes].reverse()] as number[][]).flatMap((orderedBaseIndexes) => (
+      (["top", "right", "bottom", "left"] as const).map((apexSide) => threeBadgeFormation(
+        cluster,
+        gap,
+        apexIndex,
+        orderedBaseIndexes[0],
+        orderedBaseIndexes[1],
+        apexSide,
+      ))
+    ));
+  });
+}
+
+function gridBadgeFormation(
+  cluster: ClusteredOverlapBadge[],
+  gap: number,
+  columnCount: number,
+  orderedIndexes: number[],
+): OverlapChooserPoint[] {
+  const rowCount = Math.ceil(cluster.length / columnCount);
+  const slots = orderedIndexes.map((badgeIndex, slotIndex) => ({
+    badgeIndex,
+    column: slotIndex % columnCount,
+    row: Math.floor(slotIndex / columnCount),
+  }));
+  const columnWidths = Array.from({ length: columnCount }, (_unused, column) => Math.max(
+    ...slots.filter((slot) => slot.column === column).map((slot) => cluster[slot.badgeIndex].size.width),
+    0,
+  ));
+  const rowHeights = Array.from({ length: rowCount }, (_unused, row) => Math.max(
+    ...slots.filter((slot) => slot.row === row).map((slot) => cluster[slot.badgeIndex].size.height),
+    0,
+  ));
+  const columnCenters = columnWidths.map((width, column) => (
+    columnWidths.slice(0, column).reduce((sum, previousWidth) => sum + previousWidth + gap, 0) + width / 2
+  ));
+  const rowCenters = rowHeights.map((height, row) => (
+    rowHeights.slice(0, row).reduce((sum, previousHeight) => sum + previousHeight + gap, 0) + height / 2
+  ));
+  const positions = cluster.map(() => ({ x: 0, y: 0 }));
+  for (const slot of slots) {
+    positions[slot.badgeIndex] = {
+      x: columnCenters[slot.column],
+      y: rowCenters[slot.row],
+    };
+  }
+  return centeredFormation(positions);
+}
+
+function gridBadgeFormations(
+  cluster: ClusteredOverlapBadge[],
+  gap: number,
+): OverlapChooserPoint[][] {
+  const squareRoot = Math.sqrt(cluster.length);
+  const columnCounts = Array.from(new Set([
+    Math.ceil(squareRoot),
+    Math.floor(squareRoot),
+  ])).filter((columnCount) => columnCount > 1);
+  const rowMajor = cluster
     .map((_badge, index) => index)
-    .filter((index) => index !== widestIndex)
     .sort((left, right) => (
       cluster[left].anchor.y - cluster[right].anchor.y
       || cluster[left].anchor.x - cluster[right].anchor.x
       || cluster[left].id.localeCompare(cluster[right].id)
     ));
-  if (compactIndexes.length !== 2) return null;
+  const columnMajor = [...rowMajor].sort((left, right) => (
+    cluster[left].anchor.x - cluster[right].anchor.x
+    || cluster[left].anchor.y - cluster[right].anchor.y
+    || cluster[left].id.localeCompare(cluster[right].id)
+  ));
+  const orders = [rowMajor, columnMajor];
+  return columnCounts.flatMap((columnCount) => orders.map((order) => (
+    gridBadgeFormation(cluster, gap, columnCount, order)
+  )));
+}
 
-  const widest = cluster[widestIndex];
-  const firstCompact = cluster[compactIndexes[0]];
-  const secondCompact = cluster[compactIndexes[1]];
-  if (widest.size.width <= Math.max(firstCompact.size.width, secondCompact.size.width) + 20) {
-    return null;
+function overlapBadgeClusterFormations(
+  cluster: ClusteredOverlapBadge[],
+  gap: number,
+): OverlapChooserPoint[][] {
+  const formations = cluster.length === 2
+    ? twoBadgeFormations(cluster, gap)
+    : cluster.length === 3
+      ? threeBadgeFormations(cluster, gap)
+      : gridBadgeFormations(cluster, gap);
+  const seen = new Set<string>();
+  return formations.filter((formation) => {
+    const key = formation
+      .map((position) => `${position.x.toFixed(3)}:${position.y.toFixed(3)}`)
+      .join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function* clusterTranslationRings(
+  anchorCenter: OverlapChooserPoint,
+  currentCenter: OverlapChooserPoint,
+  mapBounds: OverlapChooserBounds,
+): Generator<OverlapChooserPoint[]> {
+  yield [anchorCenter];
+  const currentDistance = Math.hypot(
+    currentCenter.x - anchorCenter.x,
+    currentCenter.y - anchorCenter.y,
+  );
+  let currentCenterAdded = currentDistance < 0.001;
+  const maximumRadius = Math.hypot(mapBounds.width, mapBounds.height);
+
+  for (let radius = 40; radius <= maximumRadius + 40; radius += 40) {
+    const ring: OverlapChooserPoint[] = [];
+    if (!currentCenterAdded && currentDistance <= radius) {
+      ring.push(currentCenter);
+      currentCenterAdded = true;
+    }
+    for (let degrees = 0; degrees < 360; degrees += 15) {
+      const radians = degrees * Math.PI / 180;
+      ring.push({
+        x: anchorCenter.x + Math.cos(radians) * radius,
+        y: anchorCenter.y + Math.sin(radians) * radius,
+      });
+    }
+    yield ring;
   }
-
-  const compactSeparation = firstCompact.size.height / 2
-    + secondCompact.size.height / 2
-    + gap;
-  const sideOffset = Math.max(firstCompact.size.width, secondCompact.size.width) / 2
-    + widest.size.width / 2
-    + gap;
-  const localPositions: OverlapChooserPoint[] = cluster.map(() => ({ x: 0, y: 0 }));
-  localPositions[compactIndexes[0]] = { x: 0, y: -compactSeparation / 2 };
-  localPositions[compactIndexes[1]] = { x: 0, y: compactSeparation / 2 };
-  localPositions[widestIndex] = { x: sideDirection * sideOffset, y: 0 };
-  const localCenter = pointAverage(localPositions);
-
-  return localPositions.map((position) => ({
-    x: position.x - localCenter.x,
-    y: position.y - localCenter.y,
-  }));
 }
 
 export function organizeOverlapBadgeClusters({
@@ -243,35 +415,11 @@ export function organizeOverlapBadgeClusters({
   const components = overlapBadgeComponents(arranged, maxAnchorDistance);
 
   for (const component of components) {
-    if (component.length !== 3) continue;
+    if (component.length < 2) continue;
     const cluster = component.map((index) => arranged[index]);
     const currentCenter = pointAverage(cluster.map((badge) => badge.position));
     const anchorCenter = pointAverage(cluster.map((badge) => badge.anchor));
-    const formations = ([1, -1] as const)
-      .map((sideDirection) => sizeAwareThreeBadgeFormation(cluster, gap, sideDirection))
-      .filter((formation): formation is OverlapChooserPoint[] => Boolean(formation));
-    if (formations.length === 0) continue;
-    const translationCenters: OverlapChooserPoint[] = [];
-    const seenTranslationCenters = new Set<string>();
-    const addTranslationCenter = (center: OverlapChooserPoint) => {
-      const key = `${center.x.toFixed(3)}:${center.y.toFixed(3)}`;
-      if (seenTranslationCenters.has(key)) return;
-      seenTranslationCenters.add(key);
-      translationCenters.push(center);
-    };
-    addTranslationCenter(anchorCenter);
-    addTranslationCenter(currentCenter);
-    for (const origin of [anchorCenter, currentCenter]) {
-      for (const radius of [40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 480, 560, 640, 720, 800]) {
-        for (let degrees = 0; degrees < 360; degrees += 15) {
-          const radians = degrees * Math.PI / 180;
-          addTranslationCenter({
-            x: origin.x + Math.cos(radians) * radius,
-            y: origin.y + Math.sin(radians) * radius,
-          });
-        }
-      }
-    }
+    const formations = overlapBadgeClusterFormations(cluster, gap);
 
     const componentSet = new Set(component);
     const outsideBadgeBoxes = arranged.flatMap((badge, index) => componentSet.has(index)
@@ -281,43 +429,46 @@ export function organizeOverlapBadgeClusters({
     let best: { positions: OverlapChooserPoint[]; score: number; order: number } | null = null;
     let order = 0;
 
-    for (const center of translationCenters) {
-      for (const formation of formations) {
-        order += 1;
-        const positions = formation.map((position) => ({
-          x: center.x + position.x,
-          y: center.y + position.y,
-        }));
-        const boxes = positions.map((position, index) => (
-          expandedChooserBounds(chooserBounds(position, cluster[index].size), 10)
-        ));
-        const staysInsideMap = boxes.every((box) => (
-          box.x >= mapBounds.x
-          && box.y >= mapBounds.y
-          && box.x + box.width <= mapBounds.x + mapBounds.width
-          && box.y + box.height <= mapBounds.y + mapBounds.height
-        ));
-        const clearsObstacles = boxes.every((box) => obstacles.every(
-          (obstacle) => chooserIntersectionArea(box, obstacle) === 0,
-        ));
-        const clearsSiblings = boxes.every((box, index) => boxes.slice(index + 1).every(
-          (sibling) => chooserIntersectionArea(box, sibling) === 0,
-        ));
-        if (!staysInsideMap || !clearsObstacles || !clearsSiblings) continue;
+    for (const translationRing of clusterTranslationRings(anchorCenter, currentCenter, mapBounds)) {
+      for (const center of translationRing) {
+        for (const formation of formations) {
+          order += 1;
+          const positions = formation.map((position) => ({
+            x: center.x + position.x,
+            y: center.y + position.y,
+          }));
+          const boxes = positions.map((position, index) => (
+            expandedChooserBounds(chooserBounds(position, cluster[index].size), 10)
+          ));
+          const staysInsideMap = boxes.every((box) => (
+            box.x >= mapBounds.x
+            && box.y >= mapBounds.y
+            && box.x + box.width <= mapBounds.x + mapBounds.width
+            && box.y + box.height <= mapBounds.y + mapBounds.height
+          ));
+          const clearsObstacles = boxes.every((box) => obstacles.every(
+            (obstacle) => chooserIntersectionArea(box, obstacle) === 0,
+          ));
+          const clearsSiblings = boxes.every((box, index) => boxes.slice(index + 1).every(
+            (sibling) => chooserIntersectionArea(box, sibling) === 0,
+          ));
+          if (!staysInsideMap || !clearsObstacles || !clearsSiblings) continue;
 
-        const anchorDistance = positions.reduce((sum, position, index) => sum + Math.hypot(
-          position.x - cluster[index].anchor.x,
-          position.y - cluster[index].anchor.y,
-        ), 0);
-        const movementDistance = positions.reduce((sum, position, index) => sum + Math.hypot(
-          position.x - cluster[index].position.x,
-          position.y - cluster[index].position.y,
-        ), 0);
-        const score = anchorDistance + movementDistance * 0.05;
-        if (!best || score < best.score || (score === best.score && order < best.order)) {
-          best = { positions, score, order };
+          const anchorDistance = positions.reduce((sum, position, index) => sum + Math.hypot(
+            position.x - cluster[index].anchor.x,
+            position.y - cluster[index].anchor.y,
+          ), 0);
+          const movementDistance = positions.reduce((sum, position, index) => sum + Math.hypot(
+            position.x - cluster[index].position.x,
+            position.y - cluster[index].position.y,
+          ), 0);
+          const score = anchorDistance + movementDistance * 0.05;
+          if (!best || score < best.score || (score === best.score && order < best.order)) {
+            best = { positions, score, order };
+          }
         }
       }
+      if (best) break;
     }
 
     if (!best) continue;

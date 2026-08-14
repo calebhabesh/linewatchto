@@ -41,6 +41,7 @@ import { TransitLineBadge } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
+import { LiveSignalIcon } from "./LiveSignalIcon";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
@@ -532,7 +533,12 @@ function SavedStationRow({
                                 <strong>{group.directionLabel}</strong>
                                 <span className="saved-station-arrival-destination">{group.destinationLabel}</span>
                               </span>
-                              <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>{sourceLabel}</span>
+                              <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>
+                                {sourceLabel}
+                                {sourceLabel === "Live" ? (
+                                  <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-400" size={12} />
+                                ) : null}
+                              </span>
                               <span className="saved-station-arrival-times">
                                 {arrivals.map((arrival, index) => {
                                   const due = isRegionalArrivalDue(arrival, arrivalTick);
@@ -716,7 +722,12 @@ function SavedStationRow({
                                 <strong>{direction.direction}</strong>
                                 {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
                               </span>
-                              <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>{sourceLabel}</span>
+                              <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>
+                                {sourceLabel}
+                                {sourceLabel === "Live" ? (
+                                  <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-400" size={12} />
+                                ) : null}
+                              </span>
                               <span className="saved-station-arrival-times">
                                 {group.arrivals.length > 0
                                   ? group.arrivals.map((arrival, index) => {

@@ -24,6 +24,7 @@ import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperatingState";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
+import { LiveSignalIcon } from "./LiveSignalIcon";
 
 const REFRESH_MS = 15_000;
 
@@ -95,9 +96,12 @@ function SurfaceRouteCard({
         </div>
         <div className="flex shrink-0 items-center gap-1.5 self-center">
           <span
-            className="shrink-0 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200"
+            className="shrink-0 inline-flex items-center rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200"
           >
             {groupSourceLabel}
+            {groupSourceLabel === "Live" ? (
+              <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+            ) : null}
           </span>
           <ArrivalLinePinButton
             compact
@@ -216,6 +220,9 @@ function SurfaceCompactRouteRow({
           className={`saved-station-arrival-source source-${groupSourceLabel.toLowerCase().replaceAll(" ", "-")}`}
         >
           {groupSourceLabel}
+          {groupSourceLabel === "Live" ? (
+            <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-400" size={12} />
+          ) : null}
         </span>
         <span className="saved-station-arrival-times">
           {hasArrivals ? (

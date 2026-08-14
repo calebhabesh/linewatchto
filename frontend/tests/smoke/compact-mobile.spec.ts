@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const stubUrl = "http://127.0.0.1:4174";
+const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
 const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
 
 test("iPhone SE uses compact chrome and contained onboarding and status sheets", async ({ page, request, isMobile }) => {

@@ -33,6 +33,7 @@ import type {
 } from "../app/linewatch-data";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
+import { LiveSignalIcon } from "./LiveSignalIcon";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
@@ -808,6 +809,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                           aria-label={groupSourceTitle}
                                         >
                                           {groupSourceLabel}
+                                          {groupSourceLabel === "Live" ? (
+                                            <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={14} />
+                                          ) : null}
                                         </span>
                                       </div>
                                     </div>

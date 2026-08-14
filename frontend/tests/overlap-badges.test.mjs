@@ -159,6 +159,120 @@ describe("map overlap badge grouping", () => {
     assert.deepEqual(arrangedById, reversedById);
   });
 
+  it("arranges two nearby mixed-size badges on one viewport axis with an exact edge gap", () => {
+    const badges = [
+      {
+        id: "round",
+        anchor: { x: 500, y: 430 },
+        position: { x: 370, y: 270 },
+        size: { width: 132, height: 132 },
+      },
+      {
+        id: "pill",
+        anchor: { x: 530, y: 470 },
+        position: { x: 690, y: 620 },
+        size: { width: 255, height: 132 },
+      },
+    ];
+    const arranged = organizeOverlapBadgeClusters({
+      badges,
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1200, height: 900 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    });
+
+    assert.ok(
+      arranged[0].position.x === arranged[1].position.x
+        || arranged[0].position.y === arranged[1].position.y,
+      JSON.stringify(arranged.map((badge) => badge.position)),
+    );
+    assert.ok(Math.abs(badgeEdgeGap(arranged[0], arranged[1]) - 36) < 0.001);
+  });
+
+  it("arranges three equal-size badges as an edge-equidistant triangle", () => {
+    const badges = [
+      { id: "a", anchor: { x: 470, y: 410 }, position: { x: 300, y: 250 }, size: { width: 132, height: 132 } },
+      { id: "b", anchor: { x: 530, y: 410 }, position: { x: 730, y: 260 }, size: { width: 132, height: 132 } },
+      { id: "c", anchor: { x: 500, y: 480 }, position: { x: 520, y: 700 }, size: { width: 132, height: 132 } },
+    ];
+    const arranged = organizeOverlapBadgeClusters({
+      badges,
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1200, height: 900 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    });
+    const gaps = arranged.flatMap((first, firstIndex) => (
+      arranged.slice(firstIndex + 1).map((second) => badgeEdgeGap(first, second))
+    ));
+    const [first, second, third] = arranged.map((badge) => badge.position);
+    const triangleArea = Math.abs(
+      first.x * (second.y - third.y)
+        + second.x * (third.y - first.y)
+        + third.x * (first.y - second.y),
+    ) / 2;
+
+    assert.ok(gaps.every((edgeGap) => Math.abs(edgeGap - 36) < 0.001), JSON.stringify(gaps));
+    assert.ok(triangleArea > 0, `expected a triangle, got ${JSON.stringify(arranged)}`);
+  });
+
+  it("arranges four badges as a deterministic two-by-two edge-aware grid", () => {
+    const badges = [
+      { id: "a", anchor: { x: 470, y: 410 }, position: { x: 260, y: 200 }, size: { width: 132, height: 132 } },
+      { id: "b", anchor: { x: 530, y: 410 }, position: { x: 760, y: 230 }, size: { width: 255, height: 132 } },
+      { id: "c", anchor: { x: 470, y: 480 }, position: { x: 330, y: 720 }, size: { width: 132, height: 132 } },
+      { id: "d", anchor: { x: 530, y: 480 }, position: { x: 800, y: 690 }, size: { width: 132, height: 132 } },
+    ];
+    const options = {
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1400, height: 1000 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    };
+    const arranged = organizeOverlapBadgeClusters({ badges, ...options });
+    const reversed = organizeOverlapBadgeClusters({ badges: [...badges].reverse(), ...options });
+    const uniqueX = new Set(arranged.map((badge) => badge.position.x.toFixed(3)));
+    const uniqueY = new Set(arranged.map((badge) => badge.position.y.toFixed(3)));
+
+    assert.equal(uniqueX.size, 2);
+    assert.equal(uniqueY.size, 2);
+    assert.deepEqual(
+      new Map(arranged.map((badge) => [badge.id, badge.position])),
+      new Map(reversed.map((badge) => [badge.id, badge.position])),
+    );
+    assert.ok(arranged.every((first, firstIndex) => arranged.slice(firstIndex + 1).every(
+      (second) => badgeEdgeGap(first, second) >= 36 - 0.001,
+    )));
+  });
+
+  it("expands five badges into a balanced grid instead of an irregular cluster", () => {
+    const badges = [
+      { id: "a", anchor: { x: 460, y: 400 }, position: { x: 220, y: 180 }, size: { width: 132, height: 132 } },
+      { id: "b", anchor: { x: 500, y: 390 }, position: { x: 780, y: 170 }, size: { width: 255, height: 132 } },
+      { id: "c", anchor: { x: 540, y: 410 }, position: { x: 250, y: 460 }, size: { width: 132, height: 132 } },
+      { id: "d", anchor: { x: 470, y: 470 }, position: { x: 820, y: 500 }, size: { width: 132, height: 132 } },
+      { id: "e", anchor: { x: 530, y: 480 }, position: { x: 510, y: 760 }, size: { width: 255, height: 132 } },
+    ];
+    const arranged = organizeOverlapBadgeClusters({
+      badges,
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1600, height: 1100 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    });
+    const columnCount = new Set(arranged.map((badge) => badge.position.x.toFixed(3))).size;
+    const rowCount = new Set(arranged.map((badge) => badge.position.y.toFixed(3))).size;
+
+    assert.ok(
+      (columnCount === 3 && rowCount === 2) || (columnCount === 2 && rowCount === 3),
+      `expected a 3x2 or 2x3 grid, got ${columnCount}x${rowCount}`,
+    );
+    assert.ok(arranged.every((first, firstIndex) => arranged.slice(firstIndex + 1).every(
+      (second) => badgeEdgeGap(first, second) >= 36 - 0.001,
+    )));
+  });
+
   it("searches outward from alert anchors before retaining a distant fallback cluster", () => {
     const badges = [
       {
