@@ -32,7 +32,16 @@ export function ArrivalLinePinButton({
     <button
       type="button"
       className={`arrival-line-pin${pinned ? " is-pinned" : ""}${hovered ? " is-hovered" : ""}${compact ? " is-compact" : ""}`}
-      onClick={onToggle}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
+      onPointerDown={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        if (event.key === " " || event.key === "Enter") {
+          event.stopPropagation();
+        }
+      }}
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
       onFocus={() => onHoverChange?.(true)}

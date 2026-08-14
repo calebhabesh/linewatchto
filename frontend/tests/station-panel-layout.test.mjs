@@ -32,8 +32,10 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /data-arrivals-subway-closed/);
     assert.match(panelSource, /Subway Closed/);
     assert.match(panelSource, /LRT Closed/);
+    assert.match(panelSource, /Subway & LRT Closed/);
     assert.match(panelSource, /Train Arrivals/);
     assert.match(panelSource, /LRT Arrivals/);
+    assert.match(panelSource, /Train & LRT Arrivals/);
     assert.match(panelSource, /<Train size=\{20\}/);
     assert.doesNotMatch(panelSource, /<Clock3 size=\{20\}/);
     assert.match(panelSource, /Arrivals Not Available/);

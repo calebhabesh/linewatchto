@@ -9,6 +9,9 @@ import {
   isLrtOnlyLine,
   isLrtOnlyStation,
   isLrtOnlyStationId,
+  isSubwayLine,
+  isSubwayAndLrtStation,
+  isSubwayAndLrtStationId,
 } from "../src/app/station-data.ts";
 import { groupStationArrivals } from "../src/app/station-arrivals.ts";
 
@@ -220,5 +223,42 @@ describe("station data adapter", () => {
     assert.equal(isLrtOnlyStationId("eglinton"), false);
     assert.equal(isLrtOnlyStationId("finch-west"), false);
     assert.equal(isLrtOnlyStationId("kennedy"), false);
+  });
+
+  it("correctly identifies subway lines and subway/LRT junction stations", () => {
+    assert.equal(isSubwayLine("line-1"), true);
+    assert.equal(isSubwayLine("line-2"), true);
+    assert.equal(isSubwayLine("line-4"), true);
+    assert.equal(isSubwayLine("1"), true);
+    assert.equal(isSubwayLine("2"), true);
+    assert.equal(isSubwayLine("4"), true);
+    assert.equal(isSubwayLine("line-5"), false);
+    assert.equal(isSubwayLine("line-6"), false);
+    assert.equal(isSubwayLine("5"), false);
+    assert.equal(isSubwayLine("6"), false);
+
+    assert.equal(isSubwayAndLrtStation(["line-1", "line-5"]), true);
+    assert.equal(isSubwayAndLrtStation(["line-2", "line-5"]), true);
+    assert.equal(isSubwayAndLrtStation(["line-1", "line-6"]), true);
+    assert.equal(isSubwayAndLrtStation(["line-1"]), false);
+    assert.equal(isSubwayAndLrtStation(["line-2"]), false);
+    assert.equal(isSubwayAndLrtStation(["line-4"]), false);
+    assert.equal(isSubwayAndLrtStation(["line-5"]), false);
+    assert.equal(isSubwayAndLrtStation(["line-6"]), false);
+    assert.equal(isSubwayAndLrtStation(fallbackStationDetails.cedarvale.lines), true);
+    assert.equal(isSubwayAndLrtStation(fallbackStationDetails.eglinton.lines), true);
+    assert.equal(isSubwayAndLrtStation(fallbackStationDetails.kennedy.lines), true);
+    assert.equal(isSubwayAndLrtStation(fallbackStationDetails["finch-west"].lines), true);
+    assert.equal(isSubwayAndLrtStation(fallbackStationDetails.union.lines), false);
+    assert.equal(isSubwayAndLrtStation(fallbackStationDetails["mount-dennis"].lines), false);
+    assert.equal(isSubwayAndLrtStation(fallbackStationDetails["humber-college"].lines), false);
+
+    assert.equal(isSubwayAndLrtStationId("cedarvale"), true);
+    assert.equal(isSubwayAndLrtStationId("eglinton"), true);
+    assert.equal(isSubwayAndLrtStationId("kennedy"), true);
+    assert.equal(isSubwayAndLrtStationId("finch-west"), true);
+    assert.equal(isSubwayAndLrtStationId("union"), false);
+    assert.equal(isSubwayAndLrtStationId("mount-dennis"), false);
+    assert.equal(isSubwayAndLrtStationId("humber-college"), false);
   });
 });

@@ -17,7 +17,7 @@ import {
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
-import { isLrtOnlyStation, type StationArrival, type StationDataResult, type StationDetail, type StationImpact } from "../app/station-data";
+import { isLrtOnlyStation, isSubwayAndLrtStation, type StationArrival, type StationDataResult, type StationDetail, type StationImpact } from "../app/station-data";
 import { distinctStationImpacts } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
@@ -575,11 +575,12 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           {(() => {
             const subwayClosed = subwayOperatingState.status === "closed";
             const isLrt = isLrtOnlyStation(station.lines);
+            const isSubwayAndLrt = isSubwayAndLrtStation(station.lines);
             const isDemo = station.arrivals.length > 0 && station.arrivals.every((arrival) => arrival.status === "demo");
             const arrivalHeading = isDemo
-              ? (isLrt ? "Demo LRT Arrivals" : "Demo Train Arrivals")
-              : (isLrt ? "LRT Arrivals" : "Train Arrivals");
-            const closedTitle = isLrt ? "LRT Closed" : "Subway Closed";
+              ? (isSubwayAndLrt ? "Demo Train & LRT Arrivals" : isLrt ? "Demo LRT Arrivals" : "Demo Train Arrivals")
+              : (isSubwayAndLrt ? "Train & LRT Arrivals" : isLrt ? "LRT Arrivals" : "Train Arrivals");
+            const closedTitle = isSubwayAndLrt ? "Subway & LRT Closed" : isLrt ? "LRT Closed" : "Subway Closed";
 
             if (subwayClosed) {
               return (

@@ -7,6 +7,17 @@
   --color-logo-blue: #81c9ff;
 }
 
+.surface-connections-details.is-saved-station,
+.saved-station-rich-content .surface-connections-details {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: block;
+  margin-top: 0;
+  padding: 0;
+}
+
 .surface-connections-summary::-webkit-details-marker {
   display: none;
 }
@@ -17,6 +28,17 @@
 
 .surface-connections-details[open] .surface-connections-chevron {
   transform: rotate(180deg);
+}
+
+.surface-connections-details[open] .surface-connections-collapsed-pinned {
+  display: none;
+}
+
+.saved-station-arrival-group.is-surface-group {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2064,7 +2086,12 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 .saved-station-section-divider {
   height: 4px;
-  margin: 0 2px 5px;
+  margin: 14px 2px 10px;
+}
+
+.saved-station-surface-divider {
+  height: 4px;
+  margin: 16px 2px 12px;
 }
 
 .saved-station-arrivals-heading {

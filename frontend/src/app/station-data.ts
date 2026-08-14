@@ -1681,6 +1681,19 @@ export function isStationElevatorAccessible(stationId: string, lineIds: string[]
   return lineIds.some((lineId) => !FALLBACK_WITHOUT_ELEVATOR.has(`${stationId}:${lineId}`));
 }
 
+export function isSubwayLine(line: { id: string; number?: string } | string): boolean {
+  const id = typeof line === "string" ? line : line.id;
+  const num = typeof line === "string" ? line : line.number;
+  return (
+    id === "line-1" ||
+    id === "line-2" ||
+    id === "line-4" ||
+    num === "1" ||
+    num === "2" ||
+    num === "4"
+  );
+}
+
 export function isLrtOnlyLine(line: { id: string; number?: string } | string): boolean {
   const id = typeof line === "string" ? line : line.id;
   const num = typeof line === "string" ? line : line.number;
@@ -1690,6 +1703,11 @@ export function isLrtOnlyLine(line: { id: string; number?: string } | string): b
 export function isLrtOnlyStation(lines: readonly (StationLine | { id: string; number?: string } | string)[]): boolean {
   if (!lines || lines.length === 0) return false;
   return lines.every(isLrtOnlyLine);
+}
+
+export function isSubwayAndLrtStation(lines: readonly (StationLine | { id: string; number?: string } | string)[]): boolean {
+  if (!lines || lines.length === 0) return false;
+  return lines.some(isSubwayLine) && lines.some(isLrtOnlyLine);
 }
 
 export function isLrtOnlyStationId(stationId: string): boolean {
@@ -1703,4 +1721,17 @@ export function isLrtOnlyStationId(stationId: string): boolean {
     STATION_LINE_STATION_IDS["line-5"]?.includes(stationId) ||
     STATION_LINE_STATION_IDS["line-6"]?.includes(stationId)
   );
+}
+
+export function isSubwayAndLrtStationId(stationId: string): boolean {
+  const hasSubway = Boolean(
+    STATION_LINE_STATION_IDS["line-1"]?.includes(stationId) ||
+    STATION_LINE_STATION_IDS["line-2"]?.includes(stationId) ||
+    STATION_LINE_STATION_IDS["line-4"]?.includes(stationId)
+  );
+  const hasLrt = Boolean(
+    STATION_LINE_STATION_IDS["line-5"]?.includes(stationId) ||
+    STATION_LINE_STATION_IDS["line-6"]?.includes(stationId)
+  );
+  return hasSubway && hasLrt;
 }

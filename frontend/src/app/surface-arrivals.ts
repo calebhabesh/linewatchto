@@ -42,6 +42,23 @@ export type SurfaceArrivalGroup = {
   arrivals: SurfaceArrival[];
 };
 
+export type SurfaceBaySection = {
+  bayKey: string;
+  bayLabel: string;
+  groups: SurfaceArrivalGroup[];
+};
+
+export type SurfaceRouteDetails = {
+  displayRouteName: string;
+  destinationTarget: string;
+  cleanDestination: string;
+  direction: string;
+  metaSubtitle: string;
+};
+
+export const SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
+export const SURFACE_DUE_EXPIRY_SECONDS = 90;
+
 type FetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
@@ -113,6 +130,309 @@ export function groupSurfaceArrivals(arrivals: SurfaceArrival[]): SurfaceArrival
         ? a.route.localeCompare(b.route, undefined, { numeric: true })
         : time;
     });
+}
+
+export function parseSurfaceRouteDetails(
+  group: Pick<SurfaceArrivalGroup, "mode" | "route" | "routeName" | "destination" | "bayPlatform">,
+  networkId: "ttc" | "regional" = "ttc",
+): SurfaceRouteDetails {
+  const rawDestination = (group.destination || "").trim();
+  const rawRouteName = (group.routeName || "").trim();
+  const rawRoute = (group.route || "").trim();
+
+  let direction = "";
+  let working = rawDestination;
+
+  // 1. Extract leading cardinal direction (e.g. "North - 935 Jane...", "Northbound towards...", "East: ...")
+  const cardinalMatch = working.match(
+    /^(Northbound|Southbound|Eastbound|Westbound|North|South|East|West)(?:\s*[-–—:]\s*|\s+)/i
+  );
+  if (cardinalMatch) {
+    const rawDir = cardinalMatch[1].toLowerCase();
+    if (rawDir.startsWith("north")) direction = "North";
+    else if (rawDir.startsWith("south")) direction = "South";
+    else if (rawDir.startsWith("east")) direction = "East";
+    else if (rawDir.startsWith("west")) direction = "West";
+
+    working = working.slice(cardinalMatch[0].length).trim();
+  }
+
+  // 2. Strip leading route number / branch (e.g. "935 ", "935A - ", "504 ", etc.)
+  if (rawRoute) {
+    const escapedRoute = rawRoute.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const routeNumberRegex = new RegExp(`^(?:${escapedRoute}[a-zA-Z]?|\\d+[a-zA-Z]?)(?:\\s*[-–—:]\\s*|\\s+)`, "i");
+    working = working.replace(routeNumberRegex, "").trim();
+  } else {
+    working = working.replace(/^\d+[a-zA-Z]?(?:\s*[-–—:]\s*|\s+)/, "").trim();
+  }
+
+  // 3. Extract destination target and condensed route name
+  let destinationTarget = "";
+  const towardMatch = working.match(/\btowards?\s+(.+)$/i);
+  const toMatch = working.match(/\bto\s+(.+)$/i);
+
+  if (towardMatch) {
+    destinationTarget = `To ${towardMatch[1].trim()}`;
+  } else if (toMatch) {
+    destinationTarget = `To ${toMatch[1].trim()}`;
+  } else if (working && rawRouteName && working.toLowerCase() !== rawRouteName.toLowerCase()) {
+    destinationTarget = `To ${working}`;
+  } else if (working && !rawRouteName) {
+    destinationTarget = `To ${working}`;
+  }
+
+  // 4. Derive concise display route name (e.g. "Dupont", "Jane Express", "King", "Etobicoke-Bloor")
+  let displayRouteName = rawRouteName;
+  if (!displayRouteName) {
+    if (towardMatch) {
+      displayRouteName = working.slice(0, towardMatch.index).trim();
+    } else if (toMatch) {
+      displayRouteName = working.slice(0, toMatch.index).trim();
+    } else {
+      displayRouteName = working;
+    }
+  }
+  if (!displayRouteName) {
+    displayRouteName = `${group.mode === "streetcar" ? "Streetcar" : "Bus"} service`;
+  }
+
+  let cleanDestination = working;
+  if (!cleanDestination) {
+    cleanDestination = rawRouteName || displayRouteName;
+  } else if (rawRouteName && cleanDestination.toLowerCase().startsWith("to ")) {
+    cleanDestination = `${rawRouteName} ${cleanDestination}`;
+  }
+
+  // 5. Format bay label
+  let bayLabel = (group.bayPlatform || "").trim();
+  if (bayLabel && /^\d+$/.test(bayLabel)) {
+    bayLabel = `Bay ${bayLabel}`;
+  }
+
+  // 6. Mode label
+  const modeLabel = group.mode === "streetcar"
+    ? "TTC Streetcar"
+    : networkId === "regional"
+      ? "GO Bus"
+      : "TTC Bus";
+
+  // 7. Assemble subtitle meta (e.g. "TTC Bus · East · Bay 3")
+  const metaParts: string[] = [modeLabel];
+  if (direction) {
+    metaParts.push(direction);
+  }
+  if (bayLabel) {
+    metaParts.push(bayLabel);
+  } else {
+    metaParts.push("Bay not supplied");
+  }
+
+  return {
+    displayRouteName,
+    destinationTarget,
+    cleanDestination,
+    direction,
+    metaSubtitle: metaParts.join(" · "),
+  };
+}
+
+export function buildPinnedSurfaceGroups(
+  activeGroups: SurfaceArrivalGroup[],
+  allSnapshotArrivals: SurfaceArrival[],
+  pinnedLineIds: Iterable<string>,
+  networkId: "ttc" | "regional" = "ttc",
+): SurfaceArrivalGroup[] {
+  const pinnedSet = new Set(pinnedLineIds);
+  const isPinned = (route: string) => pinnedSet.has(route) || pinnedSet.has(`surface:${route}`);
+
+  const pinnedActive = activeGroups.filter((group) => isPinned(group.route));
+  const activePinnedRoutes = new Set(pinnedActive.map((group) => group.route));
+
+  const missingPinnedRoutes: string[] = [];
+  for (const pin of pinnedSet) {
+    let route = "";
+    if (pin.startsWith("surface:")) {
+      route = pin.slice("surface:".length);
+    } else if (!pin.startsWith("line-") && !pin.startsWith("regional-")) {
+      route = pin;
+    }
+    if (route && !activePinnedRoutes.has(route) && !missingPinnedRoutes.includes(route)) {
+      missingPinnedRoutes.push(route);
+    }
+  }
+
+  const syntheticGroups: SurfaceArrivalGroup[] = missingPinnedRoutes.map((route) => {
+    const sample = allSnapshotArrivals.find((arrival) => arrival.route === route);
+    const mode = sample?.mode ?? (networkId === "regional" ? "bus" : (/^5[0-1][0-9]/.test(route) ? "streetcar" : "bus"));
+    const routeName = sample?.routeName ?? `Route ${route}`;
+    const destination = sample?.destination ?? "";
+    const bayPlatform = sample?.bayPlatform ?? "";
+    const stopName = sample?.stopName ?? "";
+
+    return {
+      key: `placeholder:surface:${route}`,
+      mode,
+      route,
+      routeName,
+      destination,
+      bayPlatform,
+      stopName,
+      arrivals: [],
+    };
+  });
+
+  return [...pinnedActive, ...syntheticGroups];
+}
+
+export function groupSurfaceArrivalsByBay(
+  groups: SurfaceArrivalGroup[],
+  pinnedRouteIds: Iterable<string> = [],
+): SurfaceBaySection[] {
+  const pinnedSet = new Set(pinnedRouteIds);
+  const isGroupPinned = (g: SurfaceArrivalGroup) =>
+    pinnedSet.has(g.route) || pinnedSet.has(`surface:${g.route}`);
+
+  const bayMap = new Map<string, SurfaceBaySection>();
+
+  for (const group of groups) {
+    let bayLabel = (group.bayPlatform || "").trim();
+    if (bayLabel && /^\d+$/.test(bayLabel)) {
+      bayLabel = `Bay ${bayLabel}`;
+    }
+    const bayKey = bayLabel || "unspecified";
+
+    const section = bayMap.get(bayKey) ?? {
+      bayKey,
+      bayLabel: bayLabel || "Bay not supplied",
+      groups: [],
+    };
+    section.groups.push(group);
+    bayMap.set(bayKey, section);
+  }
+
+  for (const section of bayMap.values()) {
+    section.groups.sort((a, b) => {
+      const aPinned = isGroupPinned(a) ? 0 : 1;
+      const bPinned = isGroupPinned(b) ? 0 : 1;
+      if (aPinned !== bPinned) return aPinned - bPinned;
+
+      const timeA = Date.parse(a.arrivals[0]?.predictedAt ?? "");
+      const timeB = Date.parse(b.arrivals[0]?.predictedAt ?? "");
+      if (!Number.isNaN(timeA) && !Number.isNaN(timeB) && timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return a.route.localeCompare(b.route, undefined, { numeric: true });
+    });
+  }
+
+  return [...bayMap.values()].sort((a, b) => {
+    const aHasPinned = a.groups.some(isGroupPinned) ? 0 : 1;
+    const bHasPinned = b.groups.some(isGroupPinned) ? 0 : 1;
+    if (aHasPinned !== bHasPinned) return aHasPinned - bHasPinned;
+
+    if (a.bayKey === "unspecified") return 1;
+    if (b.bayKey === "unspecified") return -1;
+
+    const numA = a.bayLabel.match(/\d+/);
+    const numB = b.bayLabel.match(/\d+/);
+    if (numA && numB) {
+      const diff = parseInt(numA[0], 10) - parseInt(numB[0], 10);
+      if (diff !== 0) return diff;
+    }
+
+    return a.bayLabel.localeCompare(b.bayLabel, undefined, { numeric: true });
+  });
+}
+
+export function isSurfaceArrivalDue(
+  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt">,
+  now: number | Date = Date.now(),
+): boolean {
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  const predictedAt = Date.parse(arrival.predictedAt);
+  if (!Number.isNaN(predictedAt)) {
+    return predictedAt <= nowMs;
+  }
+  return arrival.minutes <= 0;
+}
+
+export function isSurfaceArrivalExpired(
+  arrival: Pick<SurfaceArrival, "predictedAt">,
+  now: number | Date = Date.now(),
+  graceSeconds: number = SURFACE_DUE_EXPIRY_SECONDS,
+): boolean {
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  const predictedAt = Date.parse(arrival.predictedAt);
+  if (Number.isNaN(predictedAt)) return false;
+  return nowMs - predictedAt > graceSeconds * 1000;
+}
+
+export function filterActiveSurfaceArrivals(
+  arrivals: SurfaceArrival[],
+  now: number | Date = Date.now(),
+  graceSeconds: number = SURFACE_DUE_EXPIRY_SECONDS,
+): SurfaceArrival[] {
+  return arrivals.filter((arrival) => !isSurfaceArrivalExpired(arrival, now, graceSeconds));
+}
+
+export function shouldUseDetailedSurfaceArrivalCountdown(
+  arrival: Pick<SurfaceArrival, "predictedAt">,
+  now: number | Date = Date.now(),
+): boolean {
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  const predictedAt = Date.parse(arrival.predictedAt);
+  if (Number.isNaN(predictedAt)) return false;
+  const secondsUntilArrival = Math.ceil((predictedAt - nowMs) / 1000);
+  return secondsUntilArrival > 0 && secondsUntilArrival < SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS;
+}
+
+export function formatSurfaceCountdownDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+export function formatSurfaceArrivalTileLabel(
+  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt">,
+  options: { detailedCountdown?: boolean; now?: number | Date } = {},
+): string {
+  const nowMs = options.now instanceof Date
+    ? options.now.getTime()
+    : options.now ?? Date.now();
+  const predictedAt = Date.parse(arrival.predictedAt);
+
+  if (options.detailedCountdown && shouldUseDetailedSurfaceArrivalCountdown(arrival, nowMs)) {
+    const secondsUntilArrival = Math.ceil((predictedAt - nowMs) / 1000);
+    return `${formatSurfaceCountdownDuration(secondsUntilArrival)} - ${formatSurfaceCountdownDuration(secondsUntilArrival + 60)}`;
+  }
+
+  if (!Number.isNaN(predictedAt)) {
+    const millisUntilArrival = predictedAt - nowMs;
+    if (millisUntilArrival <= 0) {
+      return "Due";
+    }
+    return `${Math.ceil(millisUntilArrival / 60_000)}m`;
+  }
+
+  if (arrival.minutes <= 0) {
+    return "Due";
+  }
+  return `${arrival.minutes}m`;
+}
+
+export function formatSurfaceArrivalClockTime(
+  predictedAt: string | null | undefined,
+): string | null {
+  if (!predictedAt) return null;
+  const date = new Date(predictedAt);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Toronto",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
 }
 
 export function surfaceArrivalMinutes(

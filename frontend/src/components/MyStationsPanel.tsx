@@ -15,7 +15,7 @@ import {
   isArrivalDue,
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
-import { getStationDetail, isLrtOnlyStation, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
+import { getStationDetail, isLrtOnlyStation, isSubwayAndLrtStation, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
 import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelectionsByStation } from "../app/station-impact-types";
 import { DataProvider, useDashboardData, type DashboardData } from "../app/DataContext";
 import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId } from "../app/regional-data";
@@ -42,6 +42,7 @@ import { StationOutageBadge } from "./StationOutageBadge";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
+import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
 
 type Props = {
   accountState?: AccountState;
@@ -288,9 +289,11 @@ function SavedStationRow({
     const order: SavedStationDisruptionKind[] = ["suspension", "active-closure", "delay", "reduced-speed-zone", "planned-closure", "elevator", "escalator"];
     return order.flatMap((kind) => counts.has(kind) ? [{ kind, count: counts.get(kind) ?? 0 }] : []);
   })();
-  const isLrt = detail ? isLrtOnlyStation(detail.lines) : false;
-  const closedTitle = isLrt ? "LRT Closed" : "Subway Closed";
-  const arrivalHeading = isLrt ? "LRT Arrivals" : "Train Arrivals";
+  const linesForClassification = detail?.lines ?? saved.station.lineIds;
+  const isLrt = isLrtOnlyStation(linesForClassification);
+  const isSubwayAndLrt = isSubwayAndLrtStation(linesForClassification);
+  const closedTitle = isSubwayAndLrt ? "Subway & LRT Closed" : isLrt ? "LRT Closed" : "Subway Closed";
+  const arrivalHeading = isSubwayAndLrt ? "Train & LRT Arrivals" : isLrt ? "LRT Arrivals" : "Train Arrivals";
   const hasUnavailableArrivals = detail?.arrivals.some((arrival) => arrival.status === "unavailable") ?? false;
   const hasLiveArrivals = detail?.arrivals.some((arrival) => arrival.status === "live") ?? false;
   const arrivalGroups = sortArrivalGroupsByPinnedLine(detail && !hasUnavailableArrivals
@@ -556,6 +559,8 @@ function SavedStationRow({
               </div>
             )}
           </section>
+          <div className="station-arrival-line-divider saved-station-section-divider saved-station-surface-divider" aria-hidden="true" />
+          <SurfaceConnectionsSection variant="saved-station" networkId="regional" stationId={saved.station.id} />
         </div>
       ) : !detailResult ? (
         <div className="saved-station-detail-loading" role="status">
@@ -737,6 +742,8 @@ function SavedStationRow({
               </div>
             )}
           </section>
+          <div className="station-arrival-line-divider saved-station-section-divider saved-station-surface-divider" aria-hidden="true" />
+          <SurfaceConnectionsSection variant="saved-station" networkId="ttc" stationId={saved.station.id} />
           {detailResult.source === "fallback" ? <p className="saved-station-source-note">Showing local demo station data.</p> : null}
         </div>
       )}
