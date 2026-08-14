@@ -61,6 +61,41 @@ class MetrolinxArrivalClientTest {
     }
 
     @Test
+    void normalizesGoBusRowsWithOptionalPublishedBayAndScheduledFallback() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Stop/NextService/BE?key=" + KEY))
+            .andRespond(withSuccess("""
+                {"Metadata":{"TimeStamp":"2026-07-28 15:47:43","ErrorCode":"200"},
+                 "NextService":{"Lines":[
+                   {"StopCode":"BE","LineCode":"30","LineName":"Bramalea / Kitchener","ServiceType":"B",
+                    "DirectionName":"30 - Kitchener GO","ScheduledDepartureTime":"2026-07-28 16:10:00",
+                    "ComputedDepartureTime":"2026-07-28 16:12:00","ScheduledPlatform":"4","ActualPlatform":"5",
+                    "TripNumber":"3001"},
+                   {"StopCode":"BE","LineCode":"31","LineName":"Georgetown","ServiceType":"B",
+                    "DirectionName":"31 - Guelph","ScheduledDepartureTime":"2026-07-28 16:20:00"},
+                   {"StopCode":"BE","LineCode":"KI","ServiceType":"T",
+                    "DirectionName":"KI - Kitchener","ComputedDepartureTime":"2026-07-28 16:30:00"}
+                 ]}}
+                """, MediaType.APPLICATION_JSON));
+
+        var feed = client.fetchGoBusNextService("bramalea", "BE");
+
+        assertThat(feed.arrivals()).hasSize(2);
+        assertThat(feed.arrivals().getFirst()).satisfies(arrival -> {
+            assertThat(arrival.stationId()).isEqualTo("bramalea");
+            assertThat(arrival.route()).isEqualTo("30");
+            assertThat(arrival.destination()).isEqualTo("Kitchener GO");
+            assertThat(arrival.bayPlatform()).isEqualTo("5");
+            assertThat(arrival.status()).isEqualTo("live");
+        });
+        assertThat(feed.arrivals().getLast()).satisfies(arrival -> {
+            assertThat(arrival.route()).isEqualTo("31");
+            assertThat(arrival.status()).isEqualTo("scheduled");
+            assertThat(arrival.bayPlatform()).isEmpty();
+        });
+        server.verify();
+    }
+
+    @Test
     void normalizesUpGtfsRealtimeDeparturesForRequestedStop() {
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/TripUpdates?key=" + KEY))
             .andRespond(withSuccess("""

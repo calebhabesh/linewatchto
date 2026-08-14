@@ -37,6 +37,7 @@ import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ttcStationConnections } from "../app/station-connections";
 import { StationConnectionBadges } from "./StationConnectionBadges";
+import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
 
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
@@ -867,6 +868,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	              </section>
 	            );
 	          })()}
+
+              <SurfaceConnectionsSection networkId="ttc" stationId={station.id} />
 
 	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
 	            <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">

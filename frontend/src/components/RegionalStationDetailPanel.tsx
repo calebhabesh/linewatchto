@@ -39,6 +39,7 @@ import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { RegionalTripChangesList } from "./RegionalTripChangesList";
 import { regionalStationConnections } from "../app/station-connections";
 import { StationConnectionBadges } from "./StationConnectionBadges";
+import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
 
 type Props = {
   station: StationSummary;
@@ -769,6 +770,8 @@ export function RegionalStationDetailPanel({
                   ) : null}
                 </div>
               </section>
+
+              <SurfaceConnectionsSection networkId="regional" stationId={station.id} />
 
               {station.lineIds.some((lineId) => lineId !== "regional-up") ? <section
                 className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"

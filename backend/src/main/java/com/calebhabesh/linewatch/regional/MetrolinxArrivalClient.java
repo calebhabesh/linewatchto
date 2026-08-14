@@ -2,6 +2,8 @@ package com.calebhabesh.linewatch.regional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.calebhabesh.linewatch.surfacearrival.RegionalSurfaceArrivalFeed;
+import com.calebhabesh.linewatch.surfacearrival.SurfaceArrivalRecord;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -80,6 +82,41 @@ public class MetrolinxArrivalClient {
             ));
         }
         return new RegionalArrivalFeed(
+            parseTimestamp(root.path("Metadata").path("TimeStamp").asText("")),
+            List.copyOf(arrivals)
+        );
+    }
+
+    public RegionalSurfaceArrivalFeed fetchGoBusNextService(String stationId, String stopCode) {
+        JsonNode root = fetch(GO_NEXT_SERVICE_PATH + stopCode, "GO Bus station connections");
+        if (!"200".equals(root.path("Metadata").path("ErrorCode").asText(""))) {
+            throw new MetrolinxClientException("Metrolinx GO Bus station-arrival response was unsuccessful");
+        }
+        List<SurfaceArrivalRecord> arrivals = new ArrayList<>();
+        for (JsonNode row : array(root.path("NextService").path("Lines"))) {
+            if (!"B".equalsIgnoreCase(row.path("ServiceType").asText(""))) continue;
+            OffsetDateTime scheduledAt = parseTimestamp(row.path("ScheduledDepartureTime").asText(""));
+            OffsetDateTime computedAt = parseTimestamp(row.path("ComputedDepartureTime").asText(""));
+            OffsetDateTime predictedAt = computedAt == null ? scheduledAt : computedAt;
+            String route = row.path("LineCode").asText("").trim();
+            if (route.isEmpty() || predictedAt == null) continue;
+            arrivals.add(new SurfaceArrivalRecord(
+                stationId,
+                "GO Transit",
+                "bus",
+                route,
+                row.path("LineName").asText("").trim(),
+                destination(row.path("DirectionName").asText("")),
+                scheduledAt,
+                predictedAt,
+                preferred(row.path("ActualPlatform").asText(""), row.path("ScheduledPlatform").asText("")),
+                row.path("StopCode").asText(stopCode).trim(),
+                row.path("TripNumber").asText("").trim(),
+                "Metrolinx GO Next Service",
+                computedAt == null ? "scheduled" : "live"
+            ));
+        }
+        return new RegionalSurfaceArrivalFeed(
             parseTimestamp(root.path("Metadata").path("TimeStamp").asText("")),
             List.copyOf(arrivals)
         );

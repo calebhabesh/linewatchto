@@ -903,6 +903,38 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  const surfaceConnectionMatch = url.pathname.match(/^\/api\/(regional\/)?stations\/([^/]+)\/surface-connections$/);
+  if (request.method === "GET" && surfaceConnectionMatch) {
+    const regional = Boolean(surfaceConnectionMatch[1]);
+    const stationId = decodeURIComponent(surfaceConnectionMatch[2]);
+    sendJson(request, response, 200, {
+      networkId: regional ? "regional" : "ttc",
+      stationId,
+      stationName: regional ? "Weston" : "Stub Station",
+      availability: "available",
+      generatedAt: "2026-08-14T13:00:00Z",
+      sourceUpdatedAt: "2026-08-14T12:59:50Z",
+      source: regional ? "Metrolinx GO Next Service" : "TTC GTFS-RT bus and streetcar trip updates",
+      message: "Fresh station surface connections.",
+      arrivals: [{
+        agency: regional ? "GO Transit" : "TTC",
+        mode: regional ? "bus" : "streetcar",
+        route: regional ? "31" : "504",
+        routeName: regional ? "Georgetown" : "King",
+        destination: regional ? "Guelph" : "Dundas West Station",
+        minutes: 5,
+        predictedAt: "2026-08-14T13:05:00Z",
+        scheduledAt: "2026-08-14T13:04:00Z",
+        bayPlatform: regional ? "" : "Bay 7",
+        stopName: regional ? "Weston GO" : "Stub Station at Bay 7",
+        tripId: regional ? "go-bus-31" : "ttc-504",
+        source: regional ? "Metrolinx GO Next Service" : "TTC GTFS-RT bus and streetcar trip updates",
+        status: "live",
+      }],
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/stations") {
     sendJson(request, response, 200, stationSummariesResponse);
     return;

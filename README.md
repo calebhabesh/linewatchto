@@ -54,6 +54,7 @@ Implemented now:
 - Authored wheelchair and elevator icons in station detail panels.
 - Fresh directly linked TTC station alerts and elevator/escalator outage rows when ingestion is current.
 - Source-labeled station arrivals. The default provider uses TTC scheduled service when a merged GTFS schedule import is active. The opt-in `live` provider polls TTC GTFS-RT Subway Trip Updates, maps `stop_id` values through the active static GTFS import, and falls back to scheduled rows when the live feed is stale, missing a direction, or missing a line. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
+- Independently opt-in surface connections inside mapped station details. TTC mode polls the TTC bus and streetcar GTFS-RT Trip Updates feeds once on the backend, indexes predictions through published static-GTFS `parent_station` links, and displays route, destination, countdown, and a bay/platform only when TTC supplies one in the stop name. GO/UP mode reads GO Bus rows from Metrolinx Next Service for the reviewed mapped station code and likewise treats bay/platform as optional. Surface routes, vehicles, alerts, and proximity-inferred stops remain off both schematic maps.
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
 - Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
 - Network-scoped `/api/dashboard?network=ttc|regional`, including the complete GO/UP static catalog and freshness-gated Metrolinx rail impacts.
@@ -675,6 +676,15 @@ LINEWATCH_ARRIVALS_TRAIN_MARKER_HORIZON=PT20M
 
 The live provider still depends on the active static GTFS schedule import for station/platform `stop_id` mapping. It uses fresh GTFS-RT arrival times for mapped station directions and falls back to scheduled arrivals when the feed is stale, a station/direction is absent, or a supported line has no live TripUpdate rows. Polling defaults to every 1 second and skips re-indexing when TTC returns the same feed timestamp. `LINEWATCH_ARRIVALS_TRAIN_MARKER_HORIZON` caps how far ahead `/api/trains` emits schematic map markers; it is intentionally shorter than the station-arrival horizon to keep mobile rendering usable.
 
+Station surface connections are separate from rail arrivals and fail independently. TTC connections require a newly imported active merged GTFS schedule so migration-backed route, trip, parent-stop, and published bay metadata are populated; no geographic-radius matching is used. GO Bus connections require the backend-only Metrolinx key. Enable either network independently:
+
+```bash
+LINEWATCH_TTC_SURFACE_ARRIVALS_ENABLED=true
+LINEWATCH_REGIONAL_SURFACE_ARRIVALS_ENABLED=true
+```
+
+TTC bus and streetcar feeds default to 15-second backend polling with a two-minute freshness window. GO Bus reads are cached for 30 seconds and use a five-minute source-freshness window. Both endpoints return explicit `available`, `no-service`, `disabled`, or `unavailable` states, and each row is labeled `live` or `scheduled`. A missing bay is omitted rather than inferred. These connections do not feed maps, status, saved commutes, reliability, surface notices, or push notifications.
+
 > [!NOTE]
 > `JAVA_TOOL_OPTIONS=-Xmx4g` is configured as production headroom, but the refresh logic is designed to complete correctness guarantees through bounded memory allocations rather than heap expansion. If an OutOfMemoryError is observed prior to running this bounded version, refresh should remain disabled until the bounded-memory release is fully deployed.
 
@@ -792,6 +802,7 @@ Current backend scope:
 | `GET` | `/api/regional/trip-changes` | Fresh, confidently static-schedule-matched GO cancellations and stop changes; supports `stationId`, `query`, and bounded `limit` filters. |
 | `GET` | `/api/dashboard?network=ttc\|regional` | Network-scoped dashboard payload; the regional response includes fresh Metrolinx rail impacts only when ingestion is current. |
 | `GET` | `/api/regional/stations/{stationId}/arrivals` | Source-labeled GO/UP live estimates, scheduled fallback, and explicit no-service/unavailable states. |
+| `GET` | `/api/regional/stations/{stationId}/surface-connections` | Station-scoped GO Bus live/scheduled departures with optional source-published bay/platform. |
 | `GET` | `/api/regional/trains` | Source-labeled, freshness-checked schematic GO/UP estimated train markers when regional vehicle-position reads are enabled. |
 | `GET` | `/api/accessibility-outages?network=ttc\|regional` | Fresh network-scoped elevator and escalator notices grouped by line/corridor and mapped station; defaults to TTC. |
 | `GET` | `/api/surface-notices` | Searchable detours, bypasses, service changes, and notices for surface routes (bus/streetcar). |
@@ -800,6 +811,7 @@ Current backend scope:
 | `GET` | `/api/alerts?type=live\|delay\|planned\|slowdown` | Fresh normalized suspension/active alert cards, ordinary delay cards, planned closures, and Reduced Speed Zone groups. |
 | `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
 | `GET` | `/api/stations/{id}` | Station detail with reviewed facilities, source-labeled arrivals (demo/unavailable/live), and fresh directly linked TTC outage/alert rows when ingestion is current. |
+| `GET` | `/api/stations/{id}/surface-connections` | Freshness-gated TTC bus/streetcar predictions for static-GTFS parent-linked stops, with optional published bay/platform. |
 | `GET` | `/api/account/commutes` | Signed-in saved commutes with default route path, per-leg impact matching, standard-vs-impacted travel-time estimate ranges, and per-route notification rules. |
 | `POST` | `/api/account/commutes` | Create a signed-in saved commute and optional notification rule, then return the computed route, impact summary, travel-time estimate, and rule. |
 | `PATCH` | `/api/account/commutes/{id}/notification-rule` | Update one signed-in saved commute's granular notification rule for independent outbound/return day and time schedules and event types across the complete saved route. |
@@ -904,6 +916,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 - Metrolinx notices may identify a whole corridor, a set of stations, or scheduled adjustments rather than exact affected track geometry. Regional segment and station highlighting is a reviewed topology projection and may be approximate.
 - Regional accessibility outages use fresh Metrolinx GO service-update records categorized as elevator/escalator amenity disruptions. Only reviewed rail station/corridor mappings are shown; restoration notices and bus-only or unmappable facilities are omitted. The feed does not provide stable facility asset IDs, complete platform-level coverage, or guaranteed outage end times.
 - The optional live-arrival provider reads TTC GTFS-RT Subway Trip Updates from `https://gtfsrt.ttc.ca/trips/subway?format=text`; it infers schematic estimated train positions from predicted arrival times and falls back to scheduled service when fresh mapped live rows are unavailable.
+- Optional TTC surface arrivals use the separate bus and streetcar GTFS-RT Trip Updates feeds and only static-GTFS parent-linked mapped-station stops. Bay/platform text comes from source stop names and is absent when unpublished. Optional GO Bus connections use station-scoped Metrolinx Next Service bus rows; neither integration establishes complete local-transit coverage around a station.
 - Estimated train markers are schematic placements inferred from arrival predictions. They should not be treated as exact train locations or live train movement.
 - TTC alerts can be vague.
 - GTFS-RT service alerts can be less structured than TTC Live Alerts and may lack usable subway/LRT affected-segment detail. LineWatchTO uses only the bus and streetcar GTFS-RT service-alert feeds for surface notices by default.

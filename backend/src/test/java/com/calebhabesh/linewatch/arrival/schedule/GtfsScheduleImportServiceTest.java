@@ -22,7 +22,7 @@ class GtfsScheduleImportServiceTest {
     Path tempDir;
 
     @Test
-    void importsOnlyRapidTransitRoutesAndResolvesStationAliases() throws Exception {
+    void importsRapidTransitScheduleAndParentLinkedSurfaceCatalog() throws Exception {
         Path zip = tempDir.resolve("gtfs.zip");
         writeZip(zip);
 
@@ -50,6 +50,20 @@ class GtfsScheduleImportServiceTest {
             .containsExactlyInAnyOrder("UNION", "UNION_N", "UNION_S");
         assertThat(summary.stopTimes()).isEqualTo(2);
 
+        assertThat(prepared.getValue().surfaceRoutes())
+            .extracting(GtfsImportModels.SurfaceRouteRow::shortName, GtfsImportModels.SurfaceRouteRow::mode)
+            .containsExactly(org.assertj.core.groups.Tuple.tuple("501", "streetcar"));
+        assertThat(prepared.getValue().surfaceStationStops())
+            .filteredOn(row -> row.stopId().equals("UNION_STREETCAR"))
+            .singleElement()
+            .satisfies(row -> {
+                assertThat(row.stationId()).isEqualTo("union");
+                assertThat(row.bayPlatform()).isEqualTo("Streetcar Platform");
+            });
+        assertThat(prepared.getValue().surfaceTrips())
+            .extracting(GtfsImportModels.SurfaceTripRow::tripId)
+            .containsExactly("QUEEN_1");
+
         // Prove that the first pass ignores surface stop times
         assertThat(prepared.getValue().stops())
             .extracting(GtfsImportModels.StopRow::stopId)
@@ -68,6 +82,7 @@ class GtfsScheduleImportServiceTest {
                 UNION,Union Station,
                 UNION_N,Union Station,UNION
                 UNION_S,Union Station,UNION
+                UNION_STREETCAR,Union Station Streetcar Platform,UNION
                 QUEEN_SURFACE,Queen St West,
                 """);
             entry(output, "calendar.txt", """
@@ -87,7 +102,7 @@ class GtfsScheduleImportServiceTest {
                 trip_id,arrival_time,departure_time,stop_id,stop_sequence
                 L1_N_1,09:00:00,09:00:00,UNION_N,10
                 L1_N_1,09:05:00,09:05:00,UNION_S,11
-                QUEEN_1,09:01:00,09:01:00,QUEEN_SURFACE,1
+                QUEEN_1,09:01:00,09:01:00,UNION_STREETCAR,1
                 """);
         }
     }

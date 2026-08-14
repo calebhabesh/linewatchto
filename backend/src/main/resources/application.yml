@@ -104,6 +104,18 @@ linewatch:
     gtfs-refresh-min-service-days-remaining: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING:14}
     gtfs-promotion-initial-delay: ${LINEWATCH_ARRIVALS_GTFS_PROMOTION_INITIAL_DELAY:PT30S}
     gtfs-promotion-fixed-delay: ${LINEWATCH_ARRIVALS_GTFS_PROMOTION_FIXED_DELAY:PT5M}
+  surface-arrivals:
+    ttc-enabled: ${LINEWATCH_TTC_SURFACE_ARRIVALS_ENABLED:false}
+    ttc-bus-url: ${LINEWATCH_TTC_SURFACE_ARRIVALS_BUS_URL:https://gtfsrt.ttc.ca/trips/bus?format=text}
+    ttc-streetcar-url: ${LINEWATCH_TTC_SURFACE_ARRIVALS_STREETCAR_URL:https://gtfsrt.ttc.ca/trips/streetcar?format=text}
+    ttc-initial-delay: ${LINEWATCH_TTC_SURFACE_ARRIVALS_INITIAL_DELAY:PT10S}
+    ttc-fixed-delay: ${LINEWATCH_TTC_SURFACE_ARRIVALS_FIXED_DELAY:PT15S}
+    ttc-max-source-age: ${LINEWATCH_TTC_SURFACE_ARRIVALS_MAX_SOURCE_AGE:PT2M}
+    regional-enabled: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_ENABLED:false}
+    regional-cache-ttl: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_CACHE_TTL:PT30S}
+    regional-max-source-age: ${LINEWATCH_REGIONAL_SURFACE_ARRIVALS_MAX_SOURCE_AGE:PT5M}
+    horizon: ${LINEWATCH_SURFACE_ARRIVALS_HORIZON:PT2H}
+    max-arrivals-per-route: ${LINEWATCH_SURFACE_ARRIVALS_MAX_PER_ROUTE:3}
   regional:
     arrivals:
       enabled: ${LINEWATCH_REGIONAL_ARRIVALS_ENABLED:false}

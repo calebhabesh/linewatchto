@@ -409,6 +409,22 @@ test("station activation survives repeated clicks and an earlier panel close", a
   await expect(stubPanel).toBeVisible();
 });
 
+test("mapped station details expose compact source-honest surface connections", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Stub Station station details" }).click();
+
+  const panel = page.getByRole("complementary", { name: "Stub Station station details" });
+  const surface = panel.locator('[data-station-section="surface-connections"]');
+  await expect(surface).toBeVisible();
+  await expect(surface.getByText("TTC live surface estimates")).toBeVisible();
+  await surface.getByText("Surface Connections").click();
+  await expect(surface.locator('[data-surface-route="504"]')).toBeVisible();
+  await expect(surface.getByText("Dundas West Station")).toBeVisible();
+  await expect(surface.getByText(/Bay 7/)).toBeVisible();
+  await expect(surface.getByText("Live", { exact: true })).toBeVisible();
+});
+
 test("switches the complete dashboard to the fixture-backed regional network", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "network selection is desktop-only");
   await setStubMode(request, "seeded");

@@ -15,12 +15,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GtfsScheduleImportService {
+    private static final Pattern BAY_PLATFORM = Pattern.compile(
+        "(?i)\\b(Bay\\s+[A-Za-z0-9-]+(?:\\s*,\\s*Platform\\s+[A-Za-z0-9-]+)?|Streetcar\\s+Platform|Platform\\s+[A-Za-z0-9-]+)\\b"
+    );
     private final GtfsScheduleImportWriter writer;
 
     public GtfsScheduleImportService(GtfsScheduleImportWriter writer) {
@@ -35,10 +40,16 @@ public class GtfsScheduleImportService {
         List<GtfsImportModels.ServiceExceptionRow> serviceExceptions = new ArrayList<>();
         List<GtfsImportModels.TripRow> trips = new ArrayList<>();
         List<GtfsImportModels.StationStopRow> stationStops = new ArrayList<>();
+        List<GtfsImportModels.SurfaceRouteRow> surfaceRoutes = new ArrayList<>();
+        List<GtfsImportModels.SurfaceStationStopRow> surfaceStationStops = new ArrayList<>();
+        List<GtfsImportModels.SurfaceTripRow> surfaceTrips = new ArrayList<>();
 
         Set<String> rapidTransitRouteIds = new HashSet<>();
         Map<String, String> routeIdToLineId = new HashMap<>();
+        Set<String> surfaceRouteIds = new HashSet<>();
         Set<String> rapidTransitTripIds = new HashSet<>();
+        Set<String> surfaceTripIds = new HashSet<>();
+        Map<String, Set<String>> surfaceTripsByStop = new HashMap<>();
         Set<String> rapidTransitServiceIds = new HashSet<>();
         Set<String> rapidTransitStopIds = new HashSet<>();
 
@@ -61,6 +72,22 @@ public class GtfsScheduleImportService {
                         routeShortName,
                         row.value("route_long_name")
                     ));
+                } else {
+                    String mode = switch (row.value("route_type")) {
+                        case "0" -> "streetcar";
+                        case "3" -> "bus";
+                        default -> "";
+                    };
+                    if (!mode.isEmpty()) {
+                        String routeId = row.value("route_id");
+                        surfaceRouteIds.add(routeId);
+                        surfaceRoutes.add(new GtfsImportModels.SurfaceRouteRow(
+                            routeId,
+                            routeShortName,
+                            row.value("route_long_name"),
+                            mode
+                        ));
+                    }
                 }
             });
 
@@ -89,14 +116,8 @@ public class GtfsScheduleImportService {
                 }
             });
 
-            // 3. Process stop_times.txt (Pass 1: Collect stop IDs only)
-            forEachRow(zipFile, "stop_times.txt", row -> {
-                if (rapidTransitTripIds.contains(row.value("trip_id"))) {
-                    rapidTransitStopIds.add(row.value("stop_id"));
-                }
-            });
-
-            // 4. Process stops.txt
+            // 3. Load stops before the first stop-time pass so parent-linked
+            // surface stops can be selected without geographic inference.
             Map<String, GtfsImportModels.StopRow> allStopsById = new HashMap<>();
             forEachRow(zipFile, "stops.txt", row -> {
                 String stopId = row.value("stop_id");
@@ -106,21 +127,6 @@ public class GtfsScheduleImportService {
                     row.value("parent_station")
                 ));
             });
-
-            // Filter stops and parent stations
-            Set<String> stopsToKeep = new HashSet<>(rapidTransitStopIds);
-            for (String stopId : rapidTransitStopIds) {
-                GtfsImportModels.StopRow r = allStopsById.get(stopId);
-                if (r != null && !r.parentStation().isEmpty()) {
-                    stopsToKeep.add(r.parentStation());
-                }
-            }
-            for (String stopId : stopsToKeep) {
-                GtfsImportModels.StopRow r = allStopsById.get(stopId);
-                if (r != null) {
-                    stops.add(r);
-                }
-            }
 
             // Load station-line aliases
             Map<String, Set<StationLineKey>> normalizedAliasToStationLine = new HashMap<>();
@@ -146,6 +152,78 @@ public class GtfsScheduleImportService {
                         }
                     }
                 }
+            }
+
+            Map<String, Set<String>> normalizedAliasToStations = new HashMap<>();
+            normalizedAliasToStationLine.forEach((alias, matches) -> {
+                Set<String> stationIds = new HashSet<>();
+                matches.forEach(match -> stationIds.add(match.stationId()));
+                normalizedAliasToStations.put(alias, stationIds);
+            });
+
+            Set<String> mappedSurfaceStopIds = new HashSet<>();
+            for (GtfsImportModels.StopRow stop : allStopsById.values()) {
+                if (stop.parentStation().isEmpty()) continue;
+                GtfsImportModels.StopRow parent = allStopsById.get(stop.parentStation());
+                if (parent == null) continue;
+                Set<String> stationIds = normalizedAliasToStations.getOrDefault(
+                    GtfsCsvReader.normalizeStationName(parent.stopName()), Set.of()
+                );
+                if (stationIds.size() != 1) continue;
+                mappedSurfaceStopIds.add(stop.stopId());
+                surfaceStationStops.add(new GtfsImportModels.SurfaceStationStopRow(
+                    stop.stopId(),
+                    stationIds.iterator().next(),
+                    stop.stopName(),
+                    stop.parentStation(),
+                    bayPlatform(stop.stopName())
+                ));
+            }
+
+            // 4. First stop-time pass: collect rapid-transit stops and retain
+            // only surface trips that actually serve a parent-linked station stop.
+            forEachRow(zipFile, "stop_times.txt", row -> {
+                String tripId = row.value("trip_id");
+                if (rapidTransitTripIds.contains(tripId)) {
+                    rapidTransitStopIds.add(row.value("stop_id"));
+                }
+                if (mappedSurfaceStopIds.contains(row.value("stop_id"))) {
+                    surfaceTripIds.add(tripId);
+                    surfaceTripsByStop.computeIfAbsent(row.value("stop_id"), ignored -> new HashSet<>())
+                        .add(tripId);
+                }
+            });
+
+            // A second, small trips.txt read avoids retaining every TTC surface
+            // trip in heap while the 4.2M-row stop_times.txt is streamed.
+            Set<String> validSurfaceTripIds = new HashSet<>();
+            forEachRow(zipFile, "trips.txt", row -> {
+                if (surfaceTripIds.contains(row.value("trip_id"))
+                    && surfaceRouteIds.contains(row.value("route_id"))) {
+                    validSurfaceTripIds.add(row.value("trip_id"));
+                    surfaceTrips.add(new GtfsImportModels.SurfaceTripRow(
+                        row.value("trip_id"),
+                        row.value("route_id"),
+                        row.value("trip_headsign")
+                    ));
+                }
+            });
+            surfaceStationStops.removeIf(stop -> surfaceTripsByStop
+                .getOrDefault(stop.stopId(), Set.of())
+                .stream()
+                .noneMatch(validSurfaceTripIds::contains));
+
+            // Filter rapid-transit stops and parent stations for the schedule tables.
+            Set<String> stopsToKeep = new HashSet<>(rapidTransitStopIds);
+            for (String stopId : rapidTransitStopIds) {
+                GtfsImportModels.StopRow r = allStopsById.get(stopId);
+                if (r != null && !r.parentStation().isEmpty()) {
+                    stopsToKeep.add(r.parentStation());
+                }
+            }
+            for (String stopId : stopsToKeep) {
+                GtfsImportModels.StopRow r = allStopsById.get(stopId);
+                if (r != null) stops.add(r);
             }
 
             // Resolve station stops
@@ -231,12 +309,21 @@ public class GtfsScheduleImportService {
             serviceExceptions,
             trips,
             stationStops,
+            surfaceRoutes,
+            surfaceStationStops,
+            surfaceTrips,
             rapidTransitTripIds,
             dateRange[0],
             dateRange[1]
         );
 
         return writer.write(zipPath, sourceUrl, prepared);
+    }
+
+    static String bayPlatform(String stopName) {
+        if (stopName == null) return "";
+        Matcher matcher = BAY_PLATFORM.matcher(stopName);
+        return matcher.find() ? matcher.group(1).replaceAll("\\s+", " ").trim() : "";
     }
 
     private void forEachRow(

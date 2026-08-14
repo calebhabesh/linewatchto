@@ -7,6 +7,24 @@
   --color-logo-blue: #81c9ff;
 }
 
+.surface-connections-summary::-webkit-details-marker {
+  display: none;
+}
+
+.surface-connections-chevron {
+  transition: transform 150ms ease;
+}
+
+.surface-connections-details[open] .surface-connections-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-connections-chevron {
+    transition: none;
+  }
+}
+
 @font-face {
   font-family: "TeX Gyre Heros";
   src: url("/assets/fonts/texgyreheros-regular.woff2") format("woff2");
