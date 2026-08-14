@@ -2001,8 +2001,8 @@ export function LineWatchShell({
     const fadeAnimation = networkMapSurfaceRef.current?.animate(
       [{ opacity: 1 }, { opacity: 0 }],
       {
-        duration: 50,
-        easing: "cubic-bezier(0.4, 0, 0.8, 1)",
+        duration: 80,
+        easing: "cubic-bezier(0.3, 0, 0.7, 1)",
         fill: "forwards",
       },
     );

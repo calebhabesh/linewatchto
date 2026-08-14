@@ -3057,7 +3057,10 @@ test("mobile GO and UP map uses the rotated logical landscape viewport", async (
 
   const mobileNetworkSelector = page.locator(".mobile-network-selector-slot").getByRole("group", { name: "Select transit network" });
   const siteGuideButton = page.getByRole("button", { name: "Open site guide" });
+  const mobileLegend = page.getByRole("button", { name: "Transit line legend" });
   await expect(mobileNetworkSelector).toBeVisible();
+  await expect(mobileLegend).toBeVisible();
+  await expect(mobileLegend).not.toHaveClass(/mobile-legend-pill--regional/);
   await expect.poll(async () => {
     const [selectorBox, guideBox] = await Promise.all([
       mobileNetworkSelector.boundingBox(),
@@ -3072,6 +3075,8 @@ test("mobile GO and UP map uses the rotated logical landscape viewport", async (
   }).toEqual({ belowGuide: true, sameWidth: true });
   await mobileNetworkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
+  await expect(mobileLegend).toBeVisible();
+  await expect(mobileLegend).toHaveClass(/mobile-legend-pill--regional/);
   await expect(page.locator(".regional-station-selected-indicator")).toHaveCount(72);
   await expect.poll(() => page.locator(".regional-station-selected-indicator").evaluateAll((indicators) => (
     indicators.every((indicator) => getComputedStyle(indicator).opacity === "0")

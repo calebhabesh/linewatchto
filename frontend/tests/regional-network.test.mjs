@@ -223,7 +223,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(shellSource, /networkTransitionDirection/);
     assert.match(shellSource, /networkTransitionPhase = "fade-out"/);
     assert.match(shellSource, /networkMapSurfaceRef\.current\?\.animate/);
-    assert.match(shellSource, /duration:\s*50/);
+    assert.match(shellSource, /duration:\s*80/);
     assert.match(shellSource, /fadeAnimation\.finished\.then\(startNetworkSlide, startNetworkSlide\)/);
     assert.match(shellSource, /network-map-transition-surface/);
     assert.doesNotMatch(networkMapSource, /useState|useEffect|AnimationEvent|network-map-slide/);
@@ -239,7 +239,7 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(globalsCss, /::view-transition-old\(network-map\)/);
     assert.match(globalsCss, /::view-transition-new\(network-map\)/);
-    assert.match(globalsCss, /animation-duration:\s*480ms/);
+    assert.match(globalsCss, /animation-duration:\s*420ms/);
     assert.match(globalsCss, /@keyframes network-map-slide-in-from-right/);
     assert.match(globalsCss, /@keyframes network-map-slide-out-to-left/);
     assert.match(globalsCss, /@keyframes network-map-slide-in-from-left/);
@@ -261,7 +261,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(networkSelectorSource, /aria-busy=\{isTransitioning\}/);
     assert.match(networkSelectorSource, /data-network=\{displayedNetwork\}/);
     assert.match(networkSelectorSource, /disabled=\{isTransitioning\}/g);
-    assert.match(globalsCss, /transform 100ms cubic-bezier\(0\.22, 1, 0\.36, 1\)/);
+    assert.match(globalsCss, /transform 160ms cubic-bezier\(0\.22, 1, 0\.36, 1\)/);
     assert.doesNotMatch(
       globalsCss.match(/\.network-selector-glider\s*\{([\s\S]*?)\}/)?.[1] ?? "",
       /transition:[^;]*width/,
