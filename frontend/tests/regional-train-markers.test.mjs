@@ -26,11 +26,16 @@ describe("regional estimated train marker rendering", () => {
 
   it("projects regional markers onto the authored segment path in root coordinates", () => {
     assert.match(regionalMapSource, /corridorSegmentPathInRootCoordinates\(documentNode, segment\)/);
+    assert.match(regionalMapSource, /\["regional-route-up-path", "regional-route-up-airport-path"\]/);
     assert.match(regionalMapSource, /getPointAtLength/);
     assert.match(regionalMapSource, /getTotalLength/);
     assert.match(regionalMapSource, /REGIONAL_TRAIN_MARKER_LAYER_ID/);
     assert.doesNotMatch(regionalMapSource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
     assert.doesNotMatch(regionalMapSource, /documentNode\.documentElement\.append\(markerLayer\)/);
+    assert.doesNotMatch(
+      regionalMapSource,
+      /const pathD = corridorSegmentPathInRootCoordinates\(documentNode, segment\)\s*\?\?\s*fallbackSegmentPathInRootCoordinates/,
+    );
   });
 
   it("updates regional markers without rebuilding the map or replaying marker motion", () => {

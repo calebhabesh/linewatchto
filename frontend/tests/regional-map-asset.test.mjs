@@ -24,8 +24,22 @@ describe("regional application map asset", () => {
   it("normalizes route paths and uses an unambiguous Stouffville limited-service label", () => {
     assert.match(svg, /id="regional-route-ki-path"/);
     assert.match(svg, /id="regional-route-up-path"/);
+    assert.match(svg, /id="regional-route-up-airport-path"/);
     assert.match(svg, /inkscape:label="service-pattern-stouffville-limited"/);
     assert.doesNotMatch(svg, /inkscape:label="service-pattern-st-limited"/);
+  });
+
+  it("keeps each UP route metric on one continuous authored subpath", () => {
+    for (const id of ["regional-route-up-path", "regional-route-up-airport-path"]) {
+      const path = svg.match(new RegExp(`<path(?=[^>]*id="${id}")[^>]*>`))?.[0];
+      assert.ok(path, `${id} should exist`);
+      const pathData = path.match(/\sd="([^"]+)"/)?.[1] ?? "";
+      assert.equal(
+        (pathData.match(/[Mm]/g) ?? []).length,
+        1,
+        `${id} must not contain a getPointAtLength discontinuity`,
+      );
+    }
   });
 
   it("keeps the authored TTC-weight regional corridor strokes", () => {
@@ -33,6 +47,7 @@ describe("regional application map asset", () => {
       "regional-route-br-path",
       "regional-route-ki-path",
       "regional-route-up-path",
+      "regional-route-up-airport-path",
       "regional-route-mi-path",
       "regional-route-lw-main-path",
       "regional-route-lw-branch-path",

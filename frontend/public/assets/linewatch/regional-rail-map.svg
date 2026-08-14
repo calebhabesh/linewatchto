@@ -1279,10 +1279,14 @@
      id="regional-route-mi-path"
      inkscape:label="MI"
      sodipodi:nodetypes="cccc" /><path
+     id="regional-route-up-airport-path"
+     style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision;display:inline;fill:none;stroke:#4084cd;stroke-width:175;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-dasharray:none"
+     d="M 2368.6357,3398.8426 1137.7377,2688.1833 H 445.3036 L -205.462,3186.8047"
+     inkscape:label="UP-airport" /><path
      id="regional-route-up-path"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision;display:inline;fill:none;stroke:#4084cd;stroke-width:175;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-dasharray:none"
-     d="M 2368.6357,3398.8426 1137.7377,2688.1833 H 445.3036 L -205.462,3186.8047 M 4894.7065,5632.9394 H 3612.9105 L 2368.6357,4388.6645 v -989.8219"
-     inkscape:label="UP" /><path
+     d="M 4894.7065,5632.9394 H 3612.9105 L 2368.6357,4388.6645 v -989.8219"
+     inkscape:label="UP-downtown" /><path
      style="clip-rule:evenodd;display:inline;fill:none;fill-rule:evenodd;stroke:#8b0a31;stroke-width:175;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      d="M 4925.854,6111.5668 H 3631.5217 -2107.2488 v 1097.8816 h 5709.6536 l 677.3968,391.0953 h 783.4727"
      id="regional-route-lw-main-path"

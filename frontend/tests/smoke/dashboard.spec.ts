@@ -1348,8 +1348,69 @@ test("renders regional estimated train markers from the network-scoped endpoint"
     true,
   );
   expect(await marker.evaluate((node) => node.getAttribute("transform"))).toMatch(
-    /^translate\(1885\.\d+\s+2757\.\d+\)/,
+    /^translate\(-?\d+(?:\.\d+)?\s+-?\d+(?:\.\d+)?\)/,
   );
+
+  const upMarkers = page.locator('[data-train-marker-line-id="regional-up"]');
+  await expect(upMarkers).toHaveCount(4);
+  const regionalMarkerCenterlineDeviations = await page.locator(
+    '.regional-estimated-train-marker-layer .estimated-train-marker',
+  ).evaluateAll((markers) => {
+    const airportSegments = new Set([
+      "segment-up-mount-dennis-weston",
+      "segment-up-weston-pearson-airport",
+    ]);
+    return markers.map((marker) => {
+      const segmentId = (marker as SVGElement).dataset.trainMarkerSegmentId ?? "";
+      const lineId = (marker as SVGElement).dataset.trainMarkerLineId ?? "";
+      const routePathId = lineId === "regional-up"
+        ? airportSegments.has(segmentId)
+          ? "regional-route-up-airport-path"
+          : "regional-route-up-path"
+        : `regional-route-${lineId.replace("regional-", "")}-path`;
+      const route = document.getElementById(routePathId) as SVGPathElement | null;
+      const markerMatrix = (marker as SVGGraphicsElement).getCTM();
+      const routeMatrix = route?.getCTM();
+      if (!route || !markerMatrix || !routeMatrix) {
+        return { segmentId, deviation: Number.POSITIVE_INFINITY };
+      }
+      const markerCenter = new DOMPoint(0, 0).matrixTransform(markerMatrix);
+      const routeLength = route.getTotalLength();
+      const sampleCount = Math.max(64, Math.ceil(routeLength / 12));
+      let closestDistance = 0;
+      let closestDistanceSquared = Number.POSITIVE_INFINITY;
+      const distanceSquaredAt = (distance: number) => {
+        const point = route.getPointAtLength(distance).matrixTransform(routeMatrix);
+        return (point.x - markerCenter.x) ** 2 + (point.y - markerCenter.y) ** 2;
+      };
+      for (let index = 0; index <= sampleCount; index += 1) {
+        const distance = routeLength * index / sampleCount;
+        const distanceSquared = distanceSquaredAt(distance);
+        if (distanceSquared < closestDistanceSquared) {
+          closestDistance = distance;
+          closestDistanceSquared = distanceSquared;
+        }
+      }
+      let step = routeLength / sampleCount;
+      for (let iteration = 0; iteration < 14; iteration += 1) {
+        for (const candidate of [
+          Math.max(0, closestDistance - step),
+          Math.min(routeLength, closestDistance + step),
+        ]) {
+          const distanceSquared = distanceSquaredAt(candidate);
+          if (distanceSquared < closestDistanceSquared) {
+            closestDistance = candidate;
+            closestDistanceSquared = distanceSquared;
+          }
+        }
+        step /= 2;
+      }
+      return { segmentId, deviation: Math.sqrt(closestDistanceSquared) };
+    });
+  });
+  for (const { segmentId, deviation } of regionalMarkerCenterlineDeviations) {
+    expect(deviation, `${segmentId} marker should stay on its authored track centerline`).toBeLessThan(1);
+  }
 
   const disruptionOverlay = page.locator(".regional-overlay-segment-group").first();
   await expect(disruptionOverlay).toBeAttached();

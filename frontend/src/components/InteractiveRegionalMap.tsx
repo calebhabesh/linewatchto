@@ -907,9 +907,13 @@ type RegionalRouteMetric = {
 
 function regionalRoutePathIds(lineId: string) {
   const routeCode = lineId.replace("regional-", "");
-  return routeCode === "lw"
-    ? ["regional-route-lw-main-path", "regional-route-lw-branch-path"]
-    : [`regional-route-${routeCode}-path`];
+  if (routeCode === "lw") {
+    return ["regional-route-lw-main-path", "regional-route-lw-branch-path"];
+  }
+  if (routeCode === "up") {
+    return ["regional-route-up-path", "regional-route-up-airport-path"];
+  }
+  return [`regional-route-${routeCode}-path`];
 }
 
 function pointInSvgRootCoordinates(element: SVGElement, point: SvgPoint) {
@@ -1128,16 +1132,6 @@ function svgAnchorPointInRootCoordinates(documentNode: Document, anchorId: strin
   return pointInSvgRootCoordinates(anchor, localCenter);
 }
 
-function fallbackSegmentPathInRootCoordinates(
-  documentNode: Document,
-  stationAAnchorId: string | undefined,
-  stationBAnchorId: string | undefined,
-) {
-  const start = svgAnchorPointInRootCoordinates(documentNode, stationAAnchorId);
-  const end = svgAnchorPointInRootCoordinates(documentNode, stationBAnchorId);
-  return start && end ? `M ${start.x},${start.y} L ${end.x},${end.y}` : null;
-}
-
 function corridorSegmentPathInRootCoordinates(
   documentNode: Document,
   segment: NetworkSegment,
@@ -1232,8 +1226,9 @@ function regionalTrainMarkerFrame(
   segment: NetworkSegment,
   marker: EstimatedTrainMarker,
 ) {
-  const pathD = corridorSegmentPathInRootCoordinates(documentNode, segment)
-    ?? fallbackSegmentPathInRootCoordinates(documentNode, segment.stationAAnchorId, segment.stationBAnchorId);
+  // Train markers must use authored corridor geometry. A straight anchor-to-anchor
+  // fallback can visibly leave a bent track, so omit an unresolvable marker instead.
+  const pathD = corridorSegmentPathInRootCoordinates(documentNode, segment);
   const direction = resolveEstimatedTrainMarkerSegmentDirection(marker, segment);
   if (!direction) return null;
   const from = svgAnchorPointInRootCoordinates(documentNode, direction.fromAnchorId);
