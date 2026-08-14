@@ -34,6 +34,12 @@ describe("surface station arrivals", () => {
     assert.match(regional, /SurfaceConnectionsSection networkId="regional"/);
     assert.match(section, /data-station-section="surface-connections"/);
     assert.match(section, /Bay and platform labels are source-published and are never inferred by proximity/);
+    assert.match(section, /useSubwayOperatingState/);
+    assert.match(section, /useRegionalRailOperatingState/);
+    assert.match(section, /Subway Closed/);
+    assert.match(section, /GO & UP Rail Closed/);
+    assert.match(section, /Arrivals Not Available/);
+    assert.match(section, /data-surface-connections-closed/);
   });
 
   it("uses network-scoped same-origin station endpoints", async () => {
