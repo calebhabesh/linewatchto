@@ -395,12 +395,21 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .raster-map-top-plane { z-index: 3; }
 .raster-map-interaction-plane { z-index: 4; }
 
-/* Keep the compact raster planes as independent, bounded textures. Promoting
-   the complete 4500px/4739px stage on phones makes Android Chromium tile a
-   much larger mixed raster/SVG surface; a Center transform can then expose
-   stale or missing tiles until another zoom forces a repaint. */
+/* The camera stage owns movement; it must not gain a transient will-change
+   layer when Center or a direct gesture starts. */
 .linewatch-shell.mobile-performance-mode :is(.ttc-map-stage, .regional-map-stage) {
   will-change: auto;
+}
+
+/* Keep every mobile base-map plane, live overlay, and overlap badge in the
+   same camera surface. Separate translateZ layers can be composited from
+   different Android Chromium tile generations during a pinch, which looks
+   like the map and its badges are flickering or sliding apart. Rotated mode
+   already uses this flattened model; using it for the fixed portrait maps
+   makes both presentations follow the same durable composition contract. */
+.linewatch-shell.mobile-performance-mode :is(.ttc-map-stage, .regional-map-stage) .raster-map-plane {
+  backface-visibility: visible;
+  transform: none;
 }
 
 .ttc-map-stage:not([data-raster-map-ready="true"]) .raster-map-plane,
@@ -19053,15 +19062,6 @@ img.transit-line-badge {
     transform-origin: center center;
     width: var(--rotated-map-viewport-height, 100dvh);
     z-index: 80;
-  }
-
-  /* A child translateZ creates one GPU surface per full authored map plane.
-     That is useful for ordinary portrait camera movement, but after the camera
-     itself owns a 90-degree matrix it recreates the Android nested-layer bug
-     inside the stage. Paint the rotated raster planes into the camera surface. */
-  .linewatch-shell.mobile-map-rotated .raster-map-plane {
-    backface-visibility: visible;
-    transform: none;
   }
 
   .linewatch-shell.mobile-map-rotated .map-control-rail {

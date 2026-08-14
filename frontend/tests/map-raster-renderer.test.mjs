@@ -51,7 +51,7 @@ describe("stable raster map renderer", () => {
     assert.doesNotMatch(source, /next\/image/);
   });
 
-  it("keeps mobile hydration on compact, independently composited artwork planes", async () => {
+  it("keeps mobile hydration on compact artwork planes flattened into one camera surface", async () => {
     const [ttc, regional, plane, mobileHook, css] = await Promise.all([
       readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
@@ -71,7 +71,10 @@ describe("stable raster map renderer", () => {
     assert.doesNotMatch(regional, /rasterDensity === "desktop" \? \([\s\S]*?plane="labels"/);
     assert.doesNotMatch(plane, /density === "mobile" && svgViewBox/);
     assert.match(css, /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\)\s*\{[^}]*will-change:\s*auto/s);
-    assert.doesNotMatch(css, /\.linewatch-shell\.mobile-performance-mode \.raster-map-plane/);
+    assert.match(
+      css,
+      /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\) \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s,
+    );
     assert.match(css, /\.raster-map-plane\s*\{[^}]*transform:\s*translateZ\(0\);[^}]*backface-visibility:\s*hidden/s);
   });
 

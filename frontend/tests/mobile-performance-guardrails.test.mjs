@@ -211,6 +211,19 @@ describe("mobile performance guardrails", () => {
     assert.match(mapSource, /touch-none/);
   });
 
+  it("keeps the fixed app viewport stable while a map camera gesture is active", () => {
+    assert.match(shellSource, /const mapCameraInteractionActive = \(\) => Boolean\(document\.querySelector/);
+    assert.match(shellSource, /\[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]/);
+    assert.match(shellSource, /if \(!force && mapCameraInteractionActive\(\)\) \{[\s\S]*?viewportUpdatePending = true;[\s\S]*?return;/);
+    assert.match(shellSource, /const pageZoomed = Math\.abs\(scale - 1\) > 0\.01/);
+    assert.match(shellSource, /const layoutHeight = pageZoomed \? window\.innerHeight : height/);
+    assert.match(shellSource, /window\.addEventListener\("pointerup", flushPendingViewportUpdate\)/);
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode :is\(\.ttc-map-stage, \.regional-map-stage\) \.raster-map-plane\s*\{[^}]*backface-visibility:\s*visible;[^}]*transform:\s*none;/s,
+    );
+  });
+
   it("does not end captured touch gestures on pointer leave", () => {
     assert.match(mapSource, /onPointerLeave=\{handlePointerLeave\}/);
     assert.match(panZoomSource, /const handlePointerLeave = useCallback/);

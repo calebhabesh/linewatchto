@@ -89,7 +89,7 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   expect(statusPeekBounds!.x + statusPeekBounds!.width).toBeLessThanOrEqual(331);
 });
 
-test("mobile TTC recenter cycles keep independent raster planes without compositor churn", async ({ page, request, isMobile }) => {
+test("mobile TTC recenter cycles keep one stable camera surface without compositor churn", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile compositor durability coverage runs in the touch-device project");
 
   await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
@@ -134,7 +134,7 @@ test("mobile TTC recenter cycles keep independent raster planes without composit
       stageAnimations: number;
       recenterLayerCount: number;
       rasterPlaneCount: number;
-      independentlyPromotedPlanes: number;
+      flattenedRasterPlanes: number;
     }> = [];
 
     for (let cycle = 0; cycle < 12; cycle += 1) {
@@ -156,9 +156,9 @@ test("mobile TTC recenter cycles keep independent raster planes without composit
         stageAnimations: originalStage.getAnimations().length,
         recenterLayerCount: viewport.querySelectorAll(".ttc-map-recenter-veil").length,
         rasterPlaneCount: rasterPlanes.length,
-        independentlyPromotedPlanes: rasterPlanes.filter((plane) => (
-          getComputedStyle(plane).transform !== "none"
-          && getComputedStyle(plane).backfaceVisibility === "hidden"
+        flattenedRasterPlanes: rasterPlanes.filter((plane) => (
+          getComputedStyle(plane).transform === "none"
+          && getComputedStyle(plane).backfaceVisibility === "visible"
         )).length,
       });
     }
@@ -182,7 +182,7 @@ test("mobile TTC recenter cycles keep independent raster planes without composit
       stageAnimations: 0,
       recenterLayerCount: 0,
       rasterPlaneCount: 3,
-      independentlyPromotedPlanes: 3,
+      flattenedRasterPlanes: 3,
     });
   }
   expect(cycleResults).toMatchObject({

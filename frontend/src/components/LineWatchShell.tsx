@@ -484,40 +484,92 @@ export function LineWatchShell({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const visualViewport = window.visualViewport;
+    let viewportUpdatePending = false;
+    let viewportUpdateTimer: number | null = null;
 
-    const updateViewportHeight = () => {
+    const mapCameraInteractionActive = () => Boolean(document.querySelector(
+      '[data-map-gesture-active="true"], [data-map-zoom-active="true"]',
+    ));
+
+    const updateViewportHeight = (force = false) => {
+      // Mobile browsers can emit visualViewport resize/scroll noise while two
+      // fingers are manipulating the custom map camera. Resizing the shell in
+      // the middle of that gesture also resizes the map viewport, causing its
+      // ResizeObserver to refit against a moving target. Keep the fixed map
+      // frame atomic and reconcile any legitimate browser-chrome change after
+      // the final pointer is released.
+      if (!force && mapCameraInteractionActive()) {
+        viewportUpdatePending = true;
+        if (viewportUpdateTimer === null) {
+          viewportUpdateTimer = window.setTimeout(() => {
+            viewportUpdateTimer = null;
+            updateViewportHeight();
+          }, 160);
+        }
+        return;
+      }
+
       const height = visualViewport ? visualViewport.height : window.innerHeight;
       const width = visualViewport ? visualViewport.width : window.innerWidth;
       const offsetTop = visualViewport ? visualViewport.offsetTop : 0;
       const offsetLeft = visualViewport ? visualViewport.offsetLeft : 0;
       const scale = visualViewport ? visualViewport.scale : 1;
-      const keyboardInset = Math.max(0, window.innerHeight - height - offsetTop);
-      const keyboardOpen = keyboardInset > 120 || height < window.innerHeight * 0.78;
+      const pageZoomed = Math.abs(scale - 1) > 0.01;
+      // visualViewport dimensions shrink during browser page zoom. Feeding
+      // those dimensions back into the app shell double-applies that zoom and
+      // makes every fixed map layer jump. Keyboard resizing occurs at scale 1
+      // and still uses the true visual viewport dimensions.
+      const layoutHeight = pageZoomed ? window.innerHeight : height;
+      const layoutWidth = pageZoomed ? window.innerWidth : width;
+      const keyboardInset = pageZoomed
+        ? 0
+        : Math.max(0, window.innerHeight - height - offsetTop);
+      const keyboardOpen = !pageZoomed
+        && (keyboardInset > 120 || height < window.innerHeight * 0.78);
       const root = document.documentElement;
 
-      root.style.setProperty("--visual-viewport-height", `${Math.round(height)}px`);
-      root.style.setProperty("--visual-viewport-width", `${Math.round(width)}px`);
+      root.style.setProperty("--visual-viewport-height", `${Math.round(layoutHeight)}px`);
+      root.style.setProperty("--visual-viewport-width", `${Math.round(layoutWidth)}px`);
       root.style.setProperty("--visual-viewport-offset-top", `${Math.round(offsetTop)}px`);
       root.style.setProperty("--visual-viewport-offset-left", `${Math.round(offsetLeft)}px`);
       root.style.setProperty("--visual-viewport-scale", String(scale));
       root.style.setProperty("--visual-keyboard-inset", `${Math.round(keyboardInset)}px`);
       root.dataset.visualKeyboard = keyboardOpen ? "open" : "closed";
+      viewportUpdatePending = false;
+      if (viewportUpdateTimer !== null) {
+        window.clearTimeout(viewportUpdateTimer);
+        viewportUpdateTimer = null;
+      }
     };
 
-    updateViewportHeight();
+    const flushPendingViewportUpdate = () => {
+      if (!viewportUpdatePending) return;
+      window.requestAnimationFrame(() => updateViewportHeight());
+    };
+    const handleViewportChange = () => updateViewportHeight();
+
+    updateViewportHeight(true);
+    window.addEventListener("pointerup", flushPendingViewportUpdate);
+    window.addEventListener("pointercancel", flushPendingViewportUpdate);
 
     if (visualViewport) {
-      visualViewport.addEventListener("resize", updateViewportHeight);
-      visualViewport.addEventListener("scroll", updateViewportHeight);
+      visualViewport.addEventListener("resize", handleViewportChange);
+      visualViewport.addEventListener("scroll", handleViewportChange);
       return () => {
-        visualViewport.removeEventListener("resize", updateViewportHeight);
-        visualViewport.removeEventListener("scroll", updateViewportHeight);
+        visualViewport.removeEventListener("resize", handleViewportChange);
+        visualViewport.removeEventListener("scroll", handleViewportChange);
+        window.removeEventListener("pointerup", flushPendingViewportUpdate);
+        window.removeEventListener("pointercancel", flushPendingViewportUpdate);
+        if (viewportUpdateTimer !== null) window.clearTimeout(viewportUpdateTimer);
         delete document.documentElement.dataset.visualKeyboard;
       };
     } else {
-      window.addEventListener("resize", updateViewportHeight);
+      window.addEventListener("resize", handleViewportChange);
       return () => {
-        window.removeEventListener("resize", updateViewportHeight);
+        window.removeEventListener("resize", handleViewportChange);
+        window.removeEventListener("pointerup", flushPendingViewportUpdate);
+        window.removeEventListener("pointercancel", flushPendingViewportUpdate);
+        if (viewportUpdateTimer !== null) window.clearTimeout(viewportUpdateTimer);
         delete document.documentElement.dataset.visualKeyboard;
       };
     }
