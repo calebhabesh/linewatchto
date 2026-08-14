@@ -25,6 +25,16 @@ function badgeEdgeGap(first, second) {
   return Math.hypot(horizontalGap, verticalGap);
 }
 
+function lockedLayoutsFor(badges) {
+  const layouts = new Map();
+  for (const badge of badges) {
+    const positions = layouts.get(badge.layoutKey) ?? new Map();
+    positions.set(badge.id, badge.position);
+    layouts.set(badge.layoutKey, positions);
+  }
+  return layouts;
+}
+
 describe("map overlap badge grouping", () => {
   it("uses stable geometry tie-breaks for equally near alignment lanes", () => {
     const placedBadges = [
@@ -271,6 +281,236 @@ describe("map overlap badge grouping", () => {
     assert.ok(arranged.every((first, firstIndex) => arranged.slice(firstIndex + 1).every(
       (second) => badgeEdgeGap(first, second) >= 36 - 0.001,
     )));
+  });
+
+  it("locks an unchanged neighborhood to the same coordinates across refresh inputs", () => {
+    const badges = [
+      { id: "a", anchor: { x: 470, y: 410 }, position: { x: 260, y: 200 }, size: { width: 132, height: 132 } },
+      { id: "b", anchor: { x: 530, y: 410 }, position: { x: 760, y: 230 }, size: { width: 255, height: 132 } },
+      { id: "c", anchor: { x: 470, y: 480 }, position: { x: 330, y: 720 }, size: { width: 132, height: 132 } },
+      { id: "d", anchor: { x: 530, y: 480 }, position: { x: 800, y: 690 }, size: { width: 132, height: 132 } },
+    ];
+    const options = {
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1400, height: 1000 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    };
+    const first = organizeOverlapBadgeClusters({ badges, ...options });
+    const refreshed = organizeOverlapBadgeClusters({
+      ...options,
+      badges: badges.map((badge, index) => ({
+        ...badge,
+        position: { x: 1050 + index * 40, y: 700 + index * 25 },
+      })),
+      blockedBoxes: [{ x: 350, y: 250, width: 420, height: 420 }],
+      lockedLayouts: lockedLayoutsFor(first),
+    });
+
+    assert.deepEqual(
+      new Map(refreshed.map((badge) => [badge.id, badge.position])),
+      new Map(first.map((badge) => [badge.id, badge.position])),
+    );
+  });
+
+  it("moves a singleton badge from a distant fallback to the nearest clear space around its segment anchor", () => {
+    const badges = [
+      {
+        id: "pill",
+        anchor: { x: 500, y: 450 },
+        position: { x: 1250, y: 850 },
+        size: { width: 255, height: 132 },
+      },
+    ];
+    const options = {
+      blockedBoxes: [
+        { x: 475, y: 350, width: 50, height: 200 },
+        { x: 430, y: 210, width: 300, height: 140 },
+        { x: 620, y: 350, width: 300, height: 220 },
+        { x: 430, y: 550, width: 300, height: 150 },
+      ],
+      mapBounds: { x: 0, y: 0, width: 1600, height: 1100 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    };
+    const arranged = organizeOverlapBadgeClusters({ badges, ...options });
+    const anchorDistance = Math.hypot(
+      arranged[0].position.x - badges[0].anchor.x,
+      arranged[0].position.y - badges[0].anchor.y,
+    );
+    const fallbackDistance = Math.hypot(
+      badges[0].position.x - badges[0].anchor.x,
+      badges[0].position.y - badges[0].anchor.y,
+    );
+
+    assert.ok(arranged[0].position.x < badges[0].anchor.x, JSON.stringify(arranged[0].position));
+    assert.ok(anchorDistance < fallbackDistance / 2, `${anchorDistance} should be much closer than ${fallbackDistance}`);
+
+    const refreshed = organizeOverlapBadgeClusters({
+      ...options,
+      badges: [{ ...badges[0], position: { x: 1400, y: 900 } }],
+      lockedLayouts: lockedLayoutsFor(arranged),
+    });
+    assert.deepEqual(refreshed[0].position, arranged[0].position);
+  });
+
+  it("measures a singleton badge against its full overlap corridor instead of only its midpoint", () => {
+    const placementAnchors = [
+      { x: 2934, y: 1810 },
+      { x: 3068, y: 1892 },
+      { x: 3202, y: 1974 },
+      { x: 3336, y: 2056 },
+      { x: 3470, y: 2137 },
+      { x: 3604, y: 2220 },
+      { x: 3739, y: 2303 },
+    ];
+    const corridorBoxes = placementAnchors.map((point) => ({
+      x: point.x - 54,
+      y: point.y - 54,
+      width: 108,
+      height: 108,
+    }));
+    const badge = {
+      id: "cedarvale-corridor-pill",
+      anchor: { x: 3336, y: 2056 },
+      placementAnchors,
+      position: { x: 3137, y: 2402 },
+      size: { width: 255, height: 132 },
+    };
+    const arranged = organizeOverlapBadgeClusters({
+      badges: [badge],
+      blockedBoxes: [
+        ...corridorBoxes,
+        { x: 2411, y: 1844, width: 386, height: 386 },
+        { x: 2838, y: 1714, width: 192, height: 192 },
+        { x: 2918, y: 2152, width: 507, height: 172 },
+        { x: 3300, y: 1700, width: 750, height: 800 },
+      ],
+      mapBounds: { x: 0, y: 0, width: 8250, height: 4000 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    });
+    const distanceToCorridor = (position) => Math.min(...placementAnchors.map((point) => Math.hypot(
+      position.x - point.x,
+      position.y - point.y,
+    )));
+
+    assert.ok(arranged[0].position.x < 3100, JSON.stringify(arranged[0].position));
+    assert.ok(arranged[0].position.y > 1950 && arranged[0].position.y < 2150, JSON.stringify(arranged[0].position));
+    assert.ok(
+      distanceToCorridor(arranged[0].position) < distanceToCorridor(badge.position) / 2,
+      `${distanceToCorridor(arranged[0].position)} should be much closer than ${distanceToCorridor(badge.position)}`,
+    );
+  });
+
+  it("keeps an existing neighborhood locked when a distant badge appears", () => {
+    const badges = [
+      { id: "a", anchor: { x: 400, y: 400 }, position: { x: 300, y: 300 }, size: { width: 132, height: 132 } },
+      { id: "b", anchor: { x: 480, y: 430 }, position: { x: 620, y: 500 }, size: { width: 132, height: 132 } },
+    ];
+    const options = {
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1800, height: 1200 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    };
+    const first = organizeOverlapBadgeClusters({ badges, ...options });
+    const next = organizeOverlapBadgeClusters({
+      ...options,
+      badges: [
+        ...badges.map((badge) => ({ ...badge, position: { x: 900, y: 900 } })),
+        { id: "distant", anchor: { x: 1550, y: 950 }, position: { x: 1500, y: 900 }, size: { width: 132, height: 132 } },
+      ],
+      lockedLayouts: lockedLayoutsFor(first),
+    });
+
+    assert.deepEqual(
+      new Map(next.filter((badge) => badge.id !== "distant").map((badge) => [badge.id, badge.position])),
+      new Map(first.map((badge) => [badge.id, badge.position])),
+    );
+  });
+
+  it("recomputes only when a badge is added within the locked neighborhood", () => {
+    const badges = [
+      { id: "a", anchor: { x: 400, y: 400 }, position: { x: 300, y: 300 }, size: { width: 132, height: 132 } },
+      { id: "b", anchor: { x: 480, y: 430 }, position: { x: 620, y: 500 }, size: { width: 132, height: 132 } },
+    ];
+    const options = {
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1200, height: 900 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    };
+    const first = organizeOverlapBadgeClusters({ badges, ...options });
+    const next = organizeOverlapBadgeClusters({
+      ...options,
+      badges: [
+        ...badges,
+        { id: "nearby", anchor: { x: 440, y: 500 }, position: { x: 520, y: 650 }, size: { width: 132, height: 132 } },
+      ],
+      lockedLayouts: lockedLayoutsFor(first),
+    });
+
+    assert.equal(new Set(next.map((badge) => badge.layoutKey)).size, 1);
+    assert.notDeepEqual(
+      new Map(next.filter((badge) => badge.id !== "nearby").map((badge) => [badge.id, badge.position])),
+      new Map(first.map((badge) => [badge.id, badge.position])),
+    );
+  });
+
+  it("recomputes a locked neighborhood when one of its badges is removed", () => {
+    const badges = [
+      { id: "a", anchor: { x: 400, y: 400 }, position: { x: 300, y: 300 }, size: { width: 132, height: 132 } },
+      { id: "b", anchor: { x: 480, y: 430 }, position: { x: 620, y: 500 }, size: { width: 132, height: 132 } },
+      { id: "c", anchor: { x: 440, y: 500 }, position: { x: 520, y: 650 }, size: { width: 132, height: 132 } },
+    ];
+    const options = {
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1200, height: 900 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    };
+    const first = organizeOverlapBadgeClusters({ badges, ...options });
+    const next = organizeOverlapBadgeClusters({
+      ...options,
+      badges: badges.slice(0, 2),
+      lockedLayouts: lockedLayoutsFor(first),
+    });
+
+    assert.notEqual(next[0].layoutKey, first[0].layoutKey);
+    assert.ok(Math.abs(badgeEdgeGap(next[0], next[1]) - 36) < 0.001);
+  });
+
+  it("does not merge distant alert neighborhoods just because their fallback badges are close", () => {
+    const badges = [
+      {
+        id: "station:cedarvale",
+        anchor: { x: 2933.924, y: 1810 },
+        position: { x: 2977.898, y: 2379.246 },
+        size: { width: 255, height: 132 },
+      },
+      {
+        id: "station:st-clair-west",
+        anchor: { x: 3470.279, y: 2137.114 },
+        position: { x: 3208.898, y: 2379.246 },
+        size: { width: 132, height: 132 },
+      },
+    ];
+    const arranged = organizeOverlapBadgeClusters({
+      badges,
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 8250, height: 4000 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    });
+
+    assert.ok(badgeEdgeGap(badges[0], badges[1]) < 260);
+    assert.ok(Math.hypot(
+      badges[0].anchor.x - badges[1].anchor.x,
+      badges[0].anchor.y - badges[1].anchor.y,
+    ) > 600);
+    assert.equal(new Set(arranged.map((badge) => badge.layoutKey)).size, 2);
+    assert.deepEqual(arranged.map((badge) => badge.position), badges.map((badge) => badge.anchor));
   });
 
   it("searches outward from alert anchors before retaining a distant fallback cluster", () => {

@@ -70,6 +70,7 @@ import {
   overlapBadgeKindCounts,
   overlapBadgeVisualItemCount,
   organizeOverlapBadgeClusters,
+  type LockedOverlapBadgeLayouts,
   type PlacedOverlapBadge,
 } from "./map-overlap-badges";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
@@ -383,6 +384,7 @@ function InteractiveTtcMapComponent({
   const [hoveredOverlapBadgeId, setHoveredOverlapBadgeId] = useState<string | null>(null);
   const [hoveredOverlapChooserImpact, setHoveredOverlapChooserImpact] = useState<ImpactSelection>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
+  const lockedOverlapBadgeLayoutsRef = useRef<LockedOverlapBadgeLayouts>(new Map());
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   // The shell's media-query hook resolves after hydration. Read the same query
   // synchronously for texture selection so a phone never starts decoding the
@@ -1378,16 +1380,19 @@ function InteractiveTtcMapComponent({
         if (!frame) return null;
 
         const size = overlapBadgeSize(overlapBadgeVisualItemCount(overlapBadgeKindCounts(group.impacts)));
+        const placementAnchors = overlapBadgePlacementAnchors(segment.pathD);
         const position = chooseNonIntersectingBadgePosition(frame.point, size, occupiedBoxes, frame, placedBadges);
         occupiedBoxes.push(expandBox(boundsForBadgePosition(position, size), 12));
         placedBadges.push({ anchor: frame.point, position, size });
 
         return {
           segmentId: group.segments[0]?.id ?? segment.id,
+          layoutId: `segment:${group.segments.map((source) => source.id).sort().join("|")}`,
           label: segment.label,
           impactKinds: group.impactKinds,
           impacts: group.impacts,
           anchor: frame.point,
+          placementAnchors,
           position,
           size,
           protectedBoxes: protectedBoxesForImpacts(
@@ -1408,6 +1413,7 @@ function InteractiveTtcMapComponent({
     ];
     const placedBadges: PlacedOverlapBadge[] = overlapBadgeSegments.map((badge) => ({
       anchor: badge.anchor,
+      placementAnchors: badge.placementAnchors,
       position: badge.position,
       size: badge.size,
     }));
@@ -1431,10 +1437,12 @@ function InteractiveTtcMapComponent({
 
         return {
           segmentId: `station-${group.stationId}-${group.signature}`,
+          layoutId: `station:${group.stationId}`,
           label: station.name,
           impactKinds: group.impactKinds,
           impacts: group.impacts,
           anchor: point,
+          placementAnchors: [point],
           position,
           size,
           protectedBoxes: protectedBoxesForImpacts(
@@ -1455,12 +1463,17 @@ function InteractiveTtcMapComponent({
     stationPointFor,
   ]);
 
-  const overlapBadges = useMemo<OverlapBadgeWithChooser[]>(() => {
+  const organizedOverlapBadgeLayouts = useMemo(() => {
     const badges = [...overlapBadgeSegments, ...stationOverlapBadges];
-    const clusteredPositions = new Map(organizeOverlapBadgeClusters({
+    // This ref is an inert geometry cache: reading it does not drive rendering,
+    // and the current badge inputs still own every recomputation boundary.
+    // eslint-disable-next-line react-hooks/refs
+    const lockedLayouts = lockedOverlapBadgeLayoutsRef.current;
+    return organizeOverlapBadgeClusters({
       badges: badges.map((badge) => ({
-        id: badge.segmentId,
+        id: badge.layoutId,
         anchor: badge.anchor,
+        placementAnchors: badge.placementAnchors,
         position: badge.position,
         size: badge.size,
       })),
@@ -1468,9 +1481,31 @@ function InteractiveTtcMapComponent({
       mapBounds: MAP_VIEWBOX_BOUNDS,
       gap: OVERLAP_BADGE_SIBLING_CLEARANCE,
       maxAnchorDistance: OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE,
-    }).map((badge) => [badge.id, badge.position]));
+      lockedLayouts,
+    });
+  }, [
+    mapCollisionBoxes,
+    overlayCollisionBoxes,
+    overlapBadgeSegments,
+    stationOverlapBadges,
+  ]);
+
+  useLayoutEffect(() => {
+    if (!geometryReady) return;
+    const nextLayouts = new Map<string, Map<string, MapPoint>>();
+    for (const badge of organizedOverlapBadgeLayouts) {
+      const positions = nextLayouts.get(badge.layoutKey) ?? new Map<string, MapPoint>();
+      positions.set(badge.id, { ...badge.position });
+      nextLayouts.set(badge.layoutKey, positions);
+    }
+    lockedOverlapBadgeLayoutsRef.current = nextLayouts;
+  }, [geometryReady, organizedOverlapBadgeLayouts]);
+
+  const overlapBadges = useMemo<OverlapBadgeWithChooser[]>(() => {
+    const badges = [...overlapBadgeSegments, ...stationOverlapBadges];
+    const clusteredPositions = new Map(organizedOverlapBadgeLayouts.map((badge) => [badge.id, badge.position]));
     const arrangedBadges = badges.map((badge) => {
-      const clusteredPosition = clusteredPositions.get(badge.segmentId);
+      const clusteredPosition = clusteredPositions.get(badge.layoutId);
       if (!clusteredPosition || (
         clusteredPosition.x === badge.position.x
         && clusteredPosition.y === badge.position.y
@@ -1498,9 +1533,8 @@ function InteractiveTtcMapComponent({
       return { ...badge, chooserPosition, chooserSize };
     });
   }, [
-    mapCollisionBoxes,
     mapViewportSize.width,
-    overlayCollisionBoxes,
+    organizedOverlapBadgeLayouts,
     overlapBadgeSegments,
     stationOverlapBadges,
   ]);
@@ -2626,10 +2660,12 @@ type OverlapBadgePosition = MapPoint & {
 
 type OverlapBadgeSegment = {
   segmentId: string;
+  layoutId: string;
   label: string;
   impactKinds: MapImpactKind[];
   impacts: MapImpact[];
   anchor: MapPoint;
+  placementAnchors: MapPoint[];
   position: OverlapBadgePosition;
   size: OverlapBadgeSize;
   protectedBoxes: SvgBounds[];
@@ -2703,6 +2739,18 @@ function protectedBoxesForImpacts(
 ): SvgBounds[] {
   const boxes = impacts.flatMap((impact) => boxesByImpact.get(impactCollisionKey(impact.kind, impact.cardId)) ?? []);
   return boxes.length > 0 ? boxes : fallback;
+}
+
+function overlapBadgePlacementAnchors(pathD: string, maximumCount = 7): MapPoint[] {
+  const points = pathCorridorCollisionBoxes(pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS).map((box) => ({
+    x: box.x + box.width / 2,
+    y: box.y + box.height / 2,
+  }));
+  if (points.length <= maximumCount) return points;
+
+  return Array.from({ length: maximumCount }, (_unused, index) => (
+    points[Math.round(index * (points.length - 1) / (maximumCount - 1))]
+  ));
 }
 
 function stationOverlapProtectedBox(point: MapPoint): SvgBounds {

@@ -38,11 +38,17 @@ export type OverlapChooserBounds = OverlapChooserPoint & OverlapChooserSize;
 export type OverlapChooserPosition = OverlapChooserPoint & { collisionAvoided: boolean };
 export type PlacedOverlapBadge = {
   anchor: OverlapChooserPoint;
+  placementAnchors?: OverlapChooserPoint[];
   position: OverlapChooserPoint;
   size: OverlapChooserSize;
 };
 
 export type ClusteredOverlapBadge = PlacedOverlapBadge & { id: string };
+export type OrganizedOverlapBadge = ClusteredOverlapBadge & { layoutKey: string };
+export type LockedOverlapBadgeLayouts = ReadonlyMap<
+  string,
+  ReadonlyMap<string, OverlapChooserPoint>
+>;
 
 export type SegmentOverlapBadgeCoverageGroup = {
   signature: string;
@@ -166,11 +172,11 @@ function overlapBadgeComponents(
     while (queue.length > 0) {
       const current = queue.shift()!;
       for (const candidate of [...remaining]) {
-        const distance = Math.hypot(
+        const anchorDistance = Math.hypot(
           badges[current].anchor.x - badges[candidate].anchor.x,
           badges[current].anchor.y - badges[candidate].anchor.y,
         );
-        if (distance > maxAnchorDistance) continue;
+        if (anchorDistance > maxAnchorDistance) continue;
         remaining.delete(candidate);
         component.push(candidate);
         queue.push(candidate);
@@ -181,6 +187,14 @@ function overlapBadgeComponents(
   }
 
   return components.sort((a, b) => badges[a[0]].id.localeCompare(badges[b[0]].id));
+}
+
+function overlapBadgeComponentLayoutKey(cluster: ClusteredOverlapBadge[]): string {
+  return JSON.stringify(cluster.map((badge) => [
+    badge.id,
+    badge.size.width,
+    badge.size.height,
+  ]));
 }
 
 function centeredFormation(positions: OverlapChooserPoint[]): OverlapChooserPoint[] {
@@ -352,11 +366,13 @@ function overlapBadgeClusterFormations(
   cluster: ClusteredOverlapBadge[],
   gap: number,
 ): OverlapChooserPoint[][] {
-  const formations = cluster.length === 2
-    ? twoBadgeFormations(cluster, gap)
-    : cluster.length === 3
-      ? threeBadgeFormations(cluster, gap)
-      : gridBadgeFormations(cluster, gap);
+  const formations = cluster.length === 1
+    ? [[{ x: 0, y: 0 }]]
+    : cluster.length === 2
+      ? twoBadgeFormations(cluster, gap)
+      : cluster.length === 3
+        ? threeBadgeFormations(cluster, gap)
+        : gridBadgeFormations(cluster, gap);
   const seen = new Set<string>();
   return formations.filter((formation) => {
     const key = formation
@@ -369,33 +385,55 @@ function overlapBadgeClusterFormations(
 }
 
 function* clusterTranslationRings(
-  anchorCenter: OverlapChooserPoint,
+  anchorCenters: OverlapChooserPoint[],
   currentCenter: OverlapChooserPoint,
   mapBounds: OverlapChooserBounds,
 ): Generator<OverlapChooserPoint[]> {
-  yield [anchorCenter];
-  const currentDistance = Math.hypot(
+  const uniqueAnchorCenters = anchorCenters.filter((center, index) => anchorCenters.findIndex((candidate) => (
+    Math.abs(candidate.x - center.x) < 0.001
+    && Math.abs(candidate.y - center.y) < 0.001
+  )) === index);
+  yield uniqueAnchorCenters;
+  const currentDistance = Math.min(...uniqueAnchorCenters.map((anchorCenter) => Math.hypot(
     currentCenter.x - anchorCenter.x,
     currentCenter.y - anchorCenter.y,
-  );
+  )));
   let currentCenterAdded = currentDistance < 0.001;
   const maximumRadius = Math.hypot(mapBounds.width, mapBounds.height);
 
-  for (let radius = 40; radius <= maximumRadius + 40; radius += 40) {
+  // Map labels and icons can leave narrow, irregular pockets around an alert
+  // corridor. Coarse 40-unit/15-degree rings skip those pockets and then admit
+  // a much farther legacy fallback as soon as its radius is reached. Search at
+  // roughly half a badge-stroke width instead so the first successful ring is
+  // also a close approximation of the nearest genuinely clear region.
+  for (let radius = 20; radius <= maximumRadius + 20; radius += 20) {
     const ring: OverlapChooserPoint[] = [];
     if (!currentCenterAdded && currentDistance <= radius) {
       ring.push(currentCenter);
       currentCenterAdded = true;
     }
-    for (let degrees = 0; degrees < 360; degrees += 15) {
-      const radians = degrees * Math.PI / 180;
-      ring.push({
-        x: anchorCenter.x + Math.cos(radians) * radius,
-        y: anchorCenter.y + Math.sin(radians) * radius,
-      });
+    for (const anchorCenter of uniqueAnchorCenters) {
+      for (let degrees = 0; degrees < 360; degrees += 5) {
+        const radians = degrees * Math.PI / 180;
+        ring.push({
+          x: anchorCenter.x + Math.cos(radians) * radius,
+          y: anchorCenter.y + Math.sin(radians) * radius,
+        });
+      }
     }
     yield ring;
   }
+}
+
+function badgeAttachmentDistance(
+  position: OverlapChooserPoint,
+  badge: ClusteredOverlapBadge,
+): number {
+  const anchors = badge.placementAnchors?.length ? badge.placementAnchors : [badge.anchor];
+  return Math.min(...anchors.map((anchor) => Math.hypot(
+    position.x - anchor.x,
+    position.y - anchor.y,
+  )));
 }
 
 export function organizeOverlapBadgeClusters({
@@ -404,21 +442,47 @@ export function organizeOverlapBadgeClusters({
   mapBounds,
   gap,
   maxAnchorDistance,
+  lockedLayouts = new Map(),
 }: {
   badges: ClusteredOverlapBadge[];
   blockedBoxes: OverlapChooserBounds[];
   mapBounds: OverlapChooserBounds;
   gap: number;
   maxAnchorDistance: number;
-}): ClusteredOverlapBadge[] {
-  const arranged = badges.map((badge) => ({ ...badge, position: { ...badge.position } }));
+  lockedLayouts?: LockedOverlapBadgeLayouts;
+}): OrganizedOverlapBadge[] {
+  const lockedPositionsById = new Map<string, OverlapChooserPoint>();
+  for (const positions of lockedLayouts.values()) {
+    for (const [badgeId, position] of positions) {
+      lockedPositionsById.set(badgeId, position);
+    }
+  }
+  const arranged = badges.map((badge) => ({
+    ...badge,
+    position: { ...(lockedPositionsById.get(badge.id) ?? badge.position) },
+  }));
   const components = overlapBadgeComponents(arranged, maxAnchorDistance);
+  const layoutKeyByBadgeIndex = new Map<number, string>();
 
   for (const component of components) {
-    if (component.length < 2) continue;
     const cluster = component.map((index) => arranged[index]);
+    const layoutKey = overlapBadgeComponentLayoutKey(cluster);
+    component.forEach((badgeIndex) => layoutKeyByBadgeIndex.set(badgeIndex, layoutKey));
+    const lockedLayout = lockedLayouts.get(layoutKey);
+    if (lockedLayout && cluster.every((badge) => lockedLayout.has(badge.id))) {
+      component.forEach((badgeIndex) => {
+        arranged[badgeIndex] = {
+          ...arranged[badgeIndex],
+          position: { ...lockedLayout.get(arranged[badgeIndex].id)! },
+        };
+      });
+      continue;
+    }
     const currentCenter = pointAverage(cluster.map((badge) => badge.position));
     const anchorCenter = pointAverage(cluster.map((badge) => badge.anchor));
+    const translationAnchors = cluster.length === 1 && cluster[0].placementAnchors?.length
+      ? cluster[0].placementAnchors
+      : [anchorCenter];
     const formations = overlapBadgeClusterFormations(cluster, gap);
 
     const componentSet = new Set(component);
@@ -429,7 +493,7 @@ export function organizeOverlapBadgeClusters({
     let best: { positions: OverlapChooserPoint[]; score: number; order: number } | null = null;
     let order = 0;
 
-    for (const translationRing of clusterTranslationRings(anchorCenter, currentCenter, mapBounds)) {
+    for (const translationRing of clusterTranslationRings(translationAnchors, currentCenter, mapBounds)) {
       for (const center of translationRing) {
         for (const formation of formations) {
           order += 1;
@@ -454,7 +518,10 @@ export function organizeOverlapBadgeClusters({
           ));
           if (!staysInsideMap || !clearsObstacles || !clearsSiblings) continue;
 
-          const anchorDistance = positions.reduce((sum, position, index) => sum + Math.hypot(
+          const attachmentDistance = positions.reduce((sum, position, index) => (
+            sum + badgeAttachmentDistance(position, cluster[index])
+          ), 0);
+          const midpointDistance = positions.reduce((sum, position, index) => sum + Math.hypot(
             position.x - cluster[index].anchor.x,
             position.y - cluster[index].anchor.y,
           ), 0);
@@ -462,7 +529,7 @@ export function organizeOverlapBadgeClusters({
             position.x - cluster[index].position.x,
             position.y - cluster[index].position.y,
           ), 0);
-          const score = anchorDistance + movementDistance * 0.05;
+          const score = attachmentDistance + midpointDistance * 0.01 + movementDistance * 0.05;
           if (!best || score < best.score || (score === best.score && order < best.order)) {
             best = { positions, score, order };
           }
@@ -480,7 +547,10 @@ export function organizeOverlapBadgeClusters({
     });
   }
 
-  return arranged;
+  return arranged.map((badge, index) => ({
+    ...badge,
+    layoutKey: layoutKeyByBadgeIndex.get(index) ?? overlapBadgeComponentLayoutKey([badge]),
+  }));
 }
 
 function getImpactPriority(kind: MapImpactKind): number {
