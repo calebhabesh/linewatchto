@@ -38,6 +38,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusPeekSource, /data-category-count=\{categoryCount\}/);
     assert.match(statusPeekSource, /\.filter\(\(count\) => count > 0\)\.length/);
     assert.match(statusPeekSource, /Reduced Speed Zones/);
+    assert.match(statusPeekSource, /Trip Change/);
+    assert.match(shellSource, /tripChangeCount=\{selectedNetwork === "regional" \? regionalTripChangeCount \?\? 0 : 0\}/);
     assert.match(statusPeekSource, /onOpenStatus/);
     assert.match(statusPeekSource, /onRecenter/);
     assert.match(statusPeekSource, /aria-label="Open current service status"/);

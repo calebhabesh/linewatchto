@@ -699,6 +699,10 @@ test("mobile preserves status and station interaction language across network sw
   await expect(statusSheet.getByRole("button", { name: /Reduced Speed Zones/ })).toHaveCount(0);
 
   await statusSheet.getByRole("button", { name: "Close status" }).click();
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  const moreSheet = page.getByRole("region", { name: "More LineWatchTO options" });
+  await expect(moreSheet.getByRole("button", { name: /My Commutes/ })).toBeVisible();
+  await moreSheet.getByRole("button", { name: "Close more options" }).click();
   const weston = page.locator('.regional-station-hit-target[data-regional-station-id="weston"]');
   await weston.press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Weston regional station details" });
@@ -723,6 +727,7 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
     await page.getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true })
       .click();
+    await expect(page.locator(".desktop-status-chip--trip-changes")).toBeVisible();
     await page.getByRole("button", { name: /Toggle menu/ }).click();
     await page.getByRole("menuitem", { name: "Service Notices" }).click();
   }
@@ -763,10 +768,9 @@ test("opens the dedicated regional Trip Changes entry", async ({ page, request, 
       .getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true })
       .click();
-    await page.getByRole("button", { name: "Status", exact: true }).click();
-    await page.getByRole("region", { name: "Current service status" })
-      .getByRole("button", { name: /Trip Changes/ })
-      .click();
+    const tripChangesPeek = page.locator(".mobile-status-peek-count-badge.trip-changes");
+    await expect(tripChangesPeek).toContainText("1Trip Change");
+    await tripChangesPeek.click();
   } else {
     await page.getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true })

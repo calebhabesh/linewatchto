@@ -2703,6 +2703,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   --impact-rsz-soft: rgba(245, 158, 11, 0.14);
   --impact-rsz-border: rgba(245, 158, 11, 0.55);
   --impact-rsz-active: rgba(245, 158, 11, 0.22);
+  --trip-change: #f59e0b;
+  --trip-change-ink: #92400e;
+  --trip-change-soft: rgba(245, 158, 11, 0.14);
+  --trip-change-border: rgba(245, 158, 11, 0.4);
 
   /* Regional Rail / Metrolinx Line Palette (Official July 2026) */
   --line-up: #4084cd;
@@ -4025,6 +4029,16 @@ button {
   border-color: rgba(59, 130, 246, 0.5);
 }
 
+.desktop-header-impact-chips .desktop-status-chip--trip-changes:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:hover {
+  background: rgba(245, 158, 11, 0.26);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
 /* Active/press state — slight scale down */
 .desktop-header-impact-chips .desktop-status-chip:active {
   transform: translateY(0px) scale(0.97);
@@ -4059,6 +4073,12 @@ button {
   color: #2563eb;
 }
 
+.desktop-status-chip--trip-changes {
+  background: var(--trip-change-soft);
+  border-color: var(--trip-change-border);
+  color: var(--trip-change-ink);
+}
+
 .dark .desktop-status-chip--alerts {
   background: rgba(239, 68, 68, 0.16);
   border-color: rgba(239, 68, 68, 0.26);
@@ -4079,6 +4099,12 @@ button {
   background: rgba(59, 130, 246, 0.16);
   border-color: rgba(59, 130, 246, 0.26);
   color: #60a5fa;
+}
+
+.dark .desktop-status-chip--trip-changes {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
 }
 
 .high-contrast .desktop-status-capsule {
@@ -4119,6 +4145,12 @@ button {
   background: #3b82f6;
   border-color: #3b82f6;
   color: #ffffff;
+}
+
+.high-contrast .desktop-status-chip--trip-changes {
+  background: var(--trip-change);
+  border-color: var(--trip-change);
+  color: #000000;
 }
 
 @media (max-width: 1023px) {
@@ -15674,6 +15706,15 @@ img.transit-line-badge {
     border-color: rgba(59, 130, 246, 0.4);
   }
 
+  .mobile-status-peek-count-badge.trip-changes:hover {
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+  .dark .mobile-status-peek-count-badge.trip-changes:hover {
+    background: rgba(245, 158, 11, 0.24);
+    border-color: rgba(245, 158, 11, 0.45);
+  }
+
   .mobile-status-peek-count-badge.active-alerts {
     background: rgba(220, 38, 38, 0.08);
     color: #dc2626;
@@ -15696,6 +15737,12 @@ img.transit-line-badge {
     background: rgba(37, 99, 235, 0.08);
     color: #2563eb;
     border: 1px solid rgba(37, 99, 235, 0.18);
+  }
+
+  .mobile-status-peek-count-badge.trip-changes {
+    background: var(--trip-change-soft);
+    color: var(--trip-change-ink);
+    border: 1px solid var(--trip-change-border);
   }
 
   .dark .mobile-status-peek-count-badge.active-alerts {
@@ -15722,6 +15769,12 @@ img.transit-line-badge {
     border: 1px solid rgba(59, 130, 246, 0.25);
   }
 
+  .dark .mobile-status-peek-count-badge.trip-changes {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
   .high-contrast .mobile-status-peek-count-badge.active-alerts {
     background: #ef4444;
     color: #ffffff;
@@ -15741,6 +15794,11 @@ img.transit-line-badge {
     background: #3b82f6;
     color: #ffffff;
     border-color: #3b82f6;
+  }
+  .high-contrast .mobile-status-peek-count-badge.trip-changes {
+    background: var(--trip-change);
+    color: #000000;
+    border-color: var(--trip-change);
   }
 
   .mobile-status-peek-recenter-btn {
@@ -15910,6 +15968,10 @@ img.transit-line-badge {
 
   .mobile-status-btn-closures {
     border-color: rgba(59, 130, 246, 0.45) !important;
+  }
+
+  .mobile-status-btn-trip-changes {
+    border-color: var(--trip-change-border) !important;
   }
 
   .mobile-line-status-list {
@@ -17830,6 +17892,10 @@ img.transit-line-badge {
   border-color: rgba(59, 130, 246, 0.25) !important;
 }
 
+.mobile-status-actions button.mobile-status-btn-trip-changes {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
 /* Keep More-menu groupings legible in light mode, especially on mobile. */
 .mobile-more-account,
 .mobile-more-row,
@@ -18644,6 +18710,19 @@ img.transit-line-badge {
 .mobile-line-status-impacts button.mobile-line-status-btn-closures {
   background: #eff6ff !important;
 }
+.mobile-status-actions button.mobile-status-btn-trip-changes {
+  background: #fffbeb !important;
+}
+
+.trip-change-tone {
+  color: var(--trip-change-ink);
+}
+
+.trip-change-count-badge {
+  background: var(--trip-change) !important;
+  color: #000000 !important;
+  border-color: #78350f !important;
+}
 
 /* Hover and active states for light mode */
 @media (hover: hover) {
@@ -18663,6 +18742,9 @@ img.transit-line-badge {
   .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
     background: #dbeafe !important;
   }
+  .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
+    background: #fef3c7 !important;
+  }
 }
 .mobile-status-actions button.mobile-status-btn-alerts:active,
 .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
@@ -18679,6 +18761,9 @@ img.transit-line-badge {
 .mobile-status-actions button.mobile-status-btn-closures:active,
 .mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
   background: #dbeafe !important;
+}
+.mobile-status-actions button.mobile-status-btn-trip-changes:active {
+  background: #fef3c7 !important;
 }
 
 /* Dark mode tints */
@@ -18697,6 +18782,13 @@ img.transit-line-badge {
 .dark .mobile-status-actions button.mobile-status-btn-closures,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures {
   background: #0e1c30 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes {
+  background: #2a1f08 !important;
+}
+
+.dark .trip-change-tone {
+  color: #fbbf24;
 }
 
 /* Hover and active states for dark mode */
@@ -18717,6 +18809,9 @@ img.transit-line-badge {
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
     background: #132540 !important;
   }
+  .dark .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
+    background: #38280d !important;
+  }
 }
 .dark .mobile-status-actions button.mobile-status-btn-alerts:active,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
@@ -18733,6 +18828,9 @@ img.transit-line-badge {
 .dark .mobile-status-actions button.mobile-status-btn-closures:active,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
   background: #132540 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes:active {
+  background: #38280d !important;
 }
 
 /* High-contrast mode borders matching the alert type */
@@ -18751,6 +18849,9 @@ img.transit-line-badge {
 .high-contrast .mobile-status-actions button.mobile-status-btn-closures,
 .high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-closures {
   border-color: #4aa3ff !important;
+}
+.high-contrast .mobile-status-actions button.mobile-status-btn-trip-changes {
+  border-color: var(--trip-change) !important;
 }
 
 /* ============================================================

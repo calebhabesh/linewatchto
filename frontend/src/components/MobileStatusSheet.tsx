@@ -85,7 +85,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             </span>
           </button>
           {regional ? <button type="button" className="mobile-status-btn-trip-changes flex items-center justify-between" onClick={() => onOpenCategory("trip-changes")}>
-            <TrainFront size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            <TrainFront size={16} className="trip-change-tone shrink-0" />
             <span className="mobile-status-btn-text">Trip Changes</span>
             <span className="mobile-status-btn-circle">
               {tripChangeCount}

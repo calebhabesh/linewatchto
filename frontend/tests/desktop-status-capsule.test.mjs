@@ -15,6 +15,7 @@ describe("desktop status capsule", () => {
     assert.match(shellSource, /desktop-status-chip desktop-status-chip--delays/);
     assert.match(shellSource, /desktop-status-chip desktop-status-chip--reduced-speed-zone/);
     assert.match(shellSource, /desktop-status-chip desktop-status-chip--closures/);
+    assert.match(shellSource, /desktop-status-chip desktop-status-chip--trip-changes/);
     assert.match(shellSource, /AlertTriangle size=\{18\}/);
     assert.match(shellSource, /DelayIcon size=\{18\}/);
     assert.match(shellSource, /Construction size=\{18\}/);
@@ -61,8 +62,8 @@ describe("desktop status capsule", () => {
       globalCss,
       /\.desktop-status-chip-count\[data-digit-count="multiple"\] \.desktop-status-chip-count-value\s*\{[^}]*transform:\s*translate\(-0\.75px, -0\.5px\);[^}]*\}/s,
     );
-    assert.equal((shellSource.match(/data-digit-count=\{/g) ?? []).length, 4);
-    assert.equal((shellSource.match(/desktop-status-chip-count-value/g) ?? []).length, 4);
+    assert.equal((shellSource.match(/data-digit-count=\{/g) ?? []).length, 5);
+    assert.equal((shellSource.match(/desktop-status-chip-count-value/g) ?? []).length, 5);
   });
 
   it("keeps the labeled estimated-train switch in the center status console", () => {

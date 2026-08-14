@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AlertTriangle, Construction, Locate, ArrowRight } from "lucide-react";
+import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront } from "lucide-react";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
 import type { LineStatus } from "../app/linewatch-data";
@@ -29,11 +29,12 @@ type Props = {
   delayCount: number;
   reducedSpeedZoneCount: number;
   plannedClosureCount: number;
+  tripChangeCount?: number;
   pollText: string;
   dataSource: "backend" | "fallback";
   networkId?: NetworkId;
   onOpenStatus: () => void;
-  onOpenCategory?: (view: "alerts" | "delays" | "reduced-speed-zones" | "closures") => void;
+  onOpenCategory?: (view: "alerts" | "delays" | "reduced-speed-zones" | "closures" | "trip-changes") => void;
   onRecenter?: () => void;
 };
 
@@ -43,6 +44,7 @@ export function MobileStatusPeek({
   delayCount,
   reducedSpeedZoneCount,
   plannedClosureCount,
+  tripChangeCount = 0,
   pollText,
   dataSource,
   networkId = "ttc",
@@ -51,8 +53,8 @@ export function MobileStatusPeek({
   onRecenter,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const impactCount = activeAlertCount + delayCount + reducedSpeedZoneCount + plannedClosureCount;
-  const categoryCount = [activeAlertCount, delayCount, reducedSpeedZoneCount, plannedClosureCount]
+  const impactCount = activeAlertCount + delayCount + reducedSpeedZoneCount + plannedClosureCount + tripChangeCount;
+  const categoryCount = [activeAlertCount, delayCount, reducedSpeedZoneCount, plannedClosureCount, tripChangeCount]
     .filter((count) => count > 0).length;
   const sourceLabel = dashboardStatusSourceLabel(
     { networkId, dataSource },
@@ -263,6 +265,39 @@ export function MobileStatusPeek({
               <span>
                 <strong className="mobile-status-peek-number">{plannedClosureCount}</strong>
                 {plannedClosureCount === 1 ? "Planned Closure" : "Planned Closures"}
+              </span>
+              <ArrowRight size={11} strokeWidth={2.75} className="mobile-status-peek-chevron" />
+            </span>
+          ) : null}
+          {tripChangeCount > 0 ? (
+            <span
+              role="button"
+              tabIndex={0}
+              className="mobile-status-peek-count-badge trip-changes cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenCategory) {
+                  onOpenCategory("trip-changes");
+                } else {
+                  onOpenStatus();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (onOpenCategory) {
+                    onOpenCategory("trip-changes");
+                  } else {
+                    onOpenStatus();
+                  }
+                }
+              }}
+            >
+              <TrainFront size={12} />
+              <span>
+                <strong className="mobile-status-peek-number">{tripChangeCount}</strong>
+                {tripChangeCount === 1 ? "Trip Change" : "Trip Changes"}
               </span>
               <ArrowRight size={11} strokeWidth={2.75} className="mobile-status-peek-chevron" />
             </span>

@@ -3236,7 +3236,7 @@ export function LineWatchShell({
                      <Train size={18} className="text-slate-500 dark:text-slate-400" /> Trip Changes
                    </div>
                    {regionalTripChangeCount !== null && regionalTripChangeCount > 0 ? (
-                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
+                     <span className="trip-change-count-badge flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold">
                        {regionalTripChangeCount}
                      </span>
                    ) : null}
@@ -3946,6 +3946,19 @@ export function LineWatchShell({
               </span>
               <span className="desktop-status-chip-label">{plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
             </button>
+            {selectedNetwork === "regional" ? <button
+              type="button"
+              className="desktop-status-chip desktop-status-chip--trip-changes"
+              onClick={openRegionalTripChanges}
+              aria-label={`${regionalTripChangeCount ?? 0} ${(regionalTripChangeCount ?? 0) === 1 ? "trip change" : "trip changes"}`}
+              title={`${regionalTripChangeCount ?? 0} ${(regionalTripChangeCount ?? 0) === 1 ? "Trip Change" : "Trip Changes"}`}
+            >
+              <Train size={18} aria-hidden="true" />
+              <span className="desktop-status-chip-count" data-digit-count={(regionalTripChangeCount ?? 0) >= 10 ? "multiple" : "single"}>
+                <span className="desktop-status-chip-count-value">{regionalTripChangeCount ?? 0}</span>
+              </span>
+              <span className="desktop-status-chip-label">{(regionalTripChangeCount ?? 0) === 1 ? "Trip Change" : "Trip Changes"}</span>
+            </button> : null}
           </div>
         </aside>
 
@@ -3999,12 +4012,17 @@ export function LineWatchShell({
           delayCount={delays.length}
           reducedSpeedZoneCount={reducedSpeedZoneCount}
           plannedClosureCount={plannedClosures.length}
+          tripChangeCount={selectedNetwork === "regional" ? regionalTripChangeCount ?? 0 : 0}
           pollText={pollText}
           dataSource={displayData.dataSource}
           networkId={selectedNetwork}
           onOpenStatus={() => navigateForward("status")}
           onOpenCategory={(view) => {
             setSelection(null);
+            if (view === "trip-changes") {
+              openRegionalTripChanges();
+              return;
+            }
             navigateForward(view);
           }}
           onRecenter={() => setRecenterSignal((prev) => prev + 1)}

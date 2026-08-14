@@ -202,7 +202,7 @@ export function MobileMoreSheet({
                   </button>
                 )
               ) : null}
-              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenCommutes}>
+              <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenCommutes}>
                 <span className="flex items-center gap-[9px]">
                   <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
                   My Commutes
@@ -217,7 +217,7 @@ export function MobileMoreSheet({
                     </span>
                   </span>
                 ) : null}
-              </button> : null}
+              </button>
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
                   <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
@@ -244,7 +244,7 @@ export function MobileMoreSheet({
                 <UserRound size={18} />
                 Demo Account
               </button>
-              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenCommutes}>
+              <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenCommutes}>
                 <span className="flex items-center gap-[9px]">
                   <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
                   My Commutes
@@ -259,7 +259,7 @@ export function MobileMoreSheet({
                     </span>
                   </span>
                 ) : null}
-              </button> : null}
+              </button>
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
                   <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
