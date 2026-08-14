@@ -65,7 +65,7 @@
   pointer-events: none;
   z-index: 0;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s ease, box-shadow 0.35s ease;
+  transition: transform 100ms cubic-bezier(0.22, 1, 0.36, 1), background 80ms ease-out, box-shadow 80ms ease-out;
 }
 
 .network-selector[data-network="ttc"] .network-selector-glider {
@@ -113,6 +113,11 @@
 
 .network-selector-btn:active {
   transform: scale(0.95);
+}
+
+.network-selector[data-transitioning="true"] .network-selector-btn:disabled {
+  cursor: progress;
+  opacity: 1;
 }
 
 .network-indicator-dot {
@@ -195,6 +200,23 @@ html[data-network-transition-direction] .network-map-transition-surface {
   view-transition-name: network-map;
 }
 
+/* The shell runs the surface opacity fade on the compositor before Chromium
+   snapshots it. Keep the map inert during that short settling phase while the
+   independently rendered selector remains immediately responsive. */
+html[data-network-transition-phase="fade-out"] .network-map-transition-surface {
+  pointer-events: none;
+  will-change: opacity;
+}
+
+html[data-network-transition-phase="fade-out"] .linewatch-shell::after {
+  background: transparent;
+  content: "";
+  inset: 0;
+  pointer-events: auto;
+  position: fixed;
+  z-index: 2147483647;
+}
+
 html[data-network-transition-direction]::view-transition-old(root) {
   display: none;
 }
@@ -206,7 +228,7 @@ html[data-network-transition-direction]::view-transition-new(root) {
 html[data-network-transition-direction]::view-transition-group(network-map),
 html[data-network-transition-direction]::view-transition-old(network-map),
 html[data-network-transition-direction]::view-transition-new(network-map) {
-  animation-duration: 700ms;
+  animation-duration: 480ms;
   animation-fill-mode: both;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

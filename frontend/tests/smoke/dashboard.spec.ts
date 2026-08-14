@@ -481,7 +481,36 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(westonPanel.getByRole("button", { name: "Close station details" })).toBeVisible();
   await expect(westonPanel.locator(".regional-route-pill").first()).toBeVisible();
 
-  await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
+  await page.getByRole("button", { name: "Fit regional network" }).click({ force: true });
+  const [regionalFadeSamples] = await Promise.all([
+    page.evaluate(() => new Promise<number[]>((resolve) => {
+      const samples: number[] = [];
+      const root = document.documentElement;
+      const surface = document.querySelector<HTMLElement>(".network-map-transition-surface");
+      if (!surface) {
+        resolve(samples);
+        return;
+      }
+
+      const sampleFade = () => {
+        samples.push(Number.parseFloat(getComputedStyle(surface).opacity));
+        if (root.dataset.networkTransitionDirection) {
+          resolve(samples);
+          return;
+        }
+        requestAnimationFrame(sampleFade);
+      };
+      const observer = new MutationObserver(() => {
+        if (root.dataset.networkTransitionPhase !== "fade-out") return;
+        observer.disconnect();
+        requestAnimationFrame(sampleFade);
+      });
+      observer.observe(root, { attributes: true });
+    })),
+    networkSelector.getByRole("button", { name: "TTC", exact: true }).click(),
+  ]);
+  expect(regionalFadeSamples.some((opacity) => opacity > 0 && opacity < 1)).toBe(true);
+  expect(regionalFadeSamples.at(-1)).toBeLessThanOrEqual(0.01);
   await expect(root).toHaveAttribute("data-network-transition-direction", "back");
   await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
   await expect(mapSurface.locator(".regional-map")).toHaveCount(0);

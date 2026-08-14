@@ -221,12 +221,25 @@ describe("network-scoped regional dashboard", () => {
     assert.match(shellSource, /startViewTransition/);
     assert.match(shellSource, /flushSync\(applyNetworkChange\)/);
     assert.match(shellSource, /networkTransitionDirection/);
+    assert.match(shellSource, /networkTransitionPhase = "fade-out"/);
+    assert.match(shellSource, /networkMapSurfaceRef\.current\?\.animate/);
+    assert.match(shellSource, /duration:\s*50/);
+    assert.match(shellSource, /fadeAnimation\.finished\.then\(startNetworkSlide, startNetworkSlide\)/);
     assert.match(shellSource, /network-map-transition-surface/);
     assert.doesNotMatch(networkMapSource, /useState|useEffect|AnimationEvent|network-map-slide/);
     assert.doesNotMatch(shellSource, /<NetworkMapLegends/);
     assert.match(globalsCss, /view-transition-name:\s*network-map/);
+    assert.match(
+      globalsCss,
+      /data-network-transition-phase="fade-out"[\s\S]*\.network-map-transition-surface\s*\{[^}]*pointer-events:\s*none[^}]*will-change:\s*opacity/s,
+    );
+    assert.match(
+      globalsCss,
+      /data-network-transition-phase="fade-out"[\s\S]*\.linewatch-shell::after\s*\{[^}]*pointer-events:\s*auto[^}]*z-index:\s*2147483647/s,
+    );
     assert.match(globalsCss, /::view-transition-old\(network-map\)/);
     assert.match(globalsCss, /::view-transition-new\(network-map\)/);
+    assert.match(globalsCss, /animation-duration:\s*480ms/);
     assert.match(globalsCss, /@keyframes network-map-slide-in-from-right/);
     assert.match(globalsCss, /@keyframes network-map-slide-out-to-left/);
     assert.match(globalsCss, /@keyframes network-map-slide-in-from-left/);
@@ -238,6 +251,21 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /physicalWidth = viewport\?\.clientWidth \|\| mapSurface\?\.clientWidth/);
     assert.match(regionalMapSource, /logicalViewportSizeForOrientation/);
     assert.match(regionalMapSource, /viewport\.getClientRects\(\)\.length > 0/);
+  });
+
+  it("gives the network selector immediate pending and busy feedback before the map swap", () => {
+    assert.match(networkSelectorSource, /useState<NetworkId \| null>\(null\)/);
+    assert.match(networkSelectorSource, /setPendingNetwork\(nextNetwork\)/);
+    assert.doesNotMatch(shellSource, /networkTransitionTarget, setNetworkTransitionTarget/);
+    assert.match(networkSelectorSource, /const displayedNetwork = isTransitioning \? pendingNetwork : network/);
+    assert.match(networkSelectorSource, /aria-busy=\{isTransitioning\}/);
+    assert.match(networkSelectorSource, /data-network=\{displayedNetwork\}/);
+    assert.match(networkSelectorSource, /disabled=\{isTransitioning\}/g);
+    assert.match(globalsCss, /transform 100ms cubic-bezier\(0\.22, 1, 0\.36, 1\)/);
+    assert.doesNotMatch(
+      globalsCss.match(/\.network-selector-glider\s*\{([\s\S]*?)\}/)?.[1] ?? "",
+      /transition:[^;]*width/,
+    );
   });
 
   it("keeps an acknowledged overnight screen dismissed across network swaps", () => {

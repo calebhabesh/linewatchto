@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { NetworkId } from "../app/regional-data";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -17,6 +17,15 @@ export function NetworkSelector({
   const containerRef = useRef<HTMLDivElement>(null);
   const ttcRef = useRef<HTMLButtonElement>(null);
   const regionalRef = useRef<HTMLButtonElement>(null);
+  const [pendingNetwork, setPendingNetwork] = useState<NetworkId | null>(null);
+  const isTransitioning = pendingNetwork !== null && pendingNetwork !== network;
+  const displayedNetwork = isTransitioning ? pendingNetwork : network;
+
+  const requestNetworkChange = (nextNetwork: NetworkId) => {
+    if (nextNetwork === displayedNetwork || isTransitioning) return;
+    setPendingNetwork(nextNetwork);
+    onChange(nextNetwork);
+  };
 
   useIsomorphicLayoutEffect(() => {
     const updateDimensions = () => {
@@ -42,14 +51,17 @@ export function NetworkSelector({
       className={`network-selector panel${compactVertical ? " network-selector--compact-vertical" : ""}`}
       role="group"
       aria-label="Select transit network"
-      data-network={network}
+      aria-busy={isTransitioning}
+      data-network={displayedNetwork}
+      data-transitioning={isTransitioning ? "true" : undefined}
     >
       <div className="network-selector-glider" aria-hidden="true" />
       <button
         ref={ttcRef}
         type="button"
-        aria-pressed={network === "ttc"}
-        onClick={() => onChange("ttc")}
+        aria-pressed={displayedNetwork === "ttc"}
+        disabled={isTransitioning}
+        onClick={() => requestNetworkChange("ttc")}
         className="network-selector-btn network-btn-ttc"
       >
         <span className="network-indicator-dot network-dot-ttc" aria-hidden="true" />
@@ -59,8 +71,9 @@ export function NetworkSelector({
       <button
         ref={regionalRef}
         type="button"
-        aria-pressed={network === "regional"}
-        onClick={() => onChange("regional")}
+        aria-pressed={displayedNetwork === "regional"}
+        disabled={isTransitioning}
+        onClick={() => requestNetworkChange("regional")}
         className="network-selector-btn network-btn-regional"
       >
         <span className="network-indicator-dot network-dot-regional" aria-hidden="true" />

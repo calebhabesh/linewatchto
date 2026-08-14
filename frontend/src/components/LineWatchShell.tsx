@@ -224,11 +224,21 @@ export function LineWatchShell({
   const [regionalData, setRegionalData] = useState(regionalDashboardData);
   const regionalScenarioActiveRef = useRef(false);
   const displayData = selectedNetwork === "regional" ? regionalData : ttcData;
+  const networkTransitionTargetRef = useRef<NetworkId | null>(null);
+  const networkFadeAnimationRef = useRef<Animation | null>(null);
+  const networkMapSurfaceRef = useRef<HTMLElement | null>(null);
   const networkViewTransitionRef = useRef<{
     finished: Promise<void>;
     skipTransition: () => void;
   } | null>(null);
   const crossNetworkStationSelectionRef = useRef<{ networkId: NetworkId; stationId: string } | null>(null);
+
+  useEffect(() => () => {
+    networkFadeAnimationRef.current?.cancel();
+    networkViewTransitionRef.current?.skipTransition();
+    delete document.documentElement.dataset.networkTransitionPhase;
+    delete document.documentElement.dataset.networkTransitionDirection;
+  }, []);
 
   useEffect(() => {
     if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") return;
@@ -1918,7 +1928,9 @@ export function LineWatchShell({
   const [stationSearchQuery, setStationSearchQuery] = useState("");
 
   const handleNetworkChange = (network: NetworkId) => {
-    if (network === selectedNetwork) return;
+    if (network === selectedNetwork || networkTransitionTargetRef.current !== null) return;
+
+    networkTransitionTargetRef.current = network;
 
     const applyNetworkChange = () => {
       const pendingStationSelection = crossNetworkStationSelectionRef.current?.networkId === network
@@ -1947,23 +1959,59 @@ export function LineWatchShell({
 
     if (reducedMotion || !transitionDocument.startViewTransition) {
       applyNetworkChange();
+      networkTransitionTargetRef.current = null;
       return;
     }
 
     networkViewTransitionRef.current?.skipTransition();
-    document.documentElement.dataset.networkTransitionDirection =
-      network === "regional" ? "forward" : "back";
+    document.documentElement.dataset.networkTransitionPhase = "fade-out";
 
-    const transition = transitionDocument.startViewTransition(() => {
-      flushSync(applyNetworkChange);
-    });
-    networkViewTransitionRef.current = transition;
-    const finishNetworkTransition = () => {
-      if (networkViewTransitionRef.current !== transition) return;
-      networkViewTransitionRef.current = null;
-      delete document.documentElement.dataset.networkTransitionDirection;
+    const startNetworkSlide = () => {
+      if (networkTransitionTargetRef.current !== network) return;
+      document.documentElement.dataset.networkTransitionDirection =
+        network === "regional" ? "forward" : "back";
+      const transition = transitionDocument.startViewTransition?.(() => {
+        networkFadeAnimationRef.current?.cancel();
+        networkFadeAnimationRef.current = null;
+        delete document.documentElement.dataset.networkTransitionPhase;
+        flushSync(applyNetworkChange);
+        networkTransitionTargetRef.current = null;
+      });
+
+      if (!transition) {
+        networkFadeAnimationRef.current?.cancel();
+        networkFadeAnimationRef.current = null;
+        delete document.documentElement.dataset.networkTransitionPhase;
+        delete document.documentElement.dataset.networkTransitionDirection;
+        applyNetworkChange();
+        networkTransitionTargetRef.current = null;
+        return;
+      }
+
+      networkViewTransitionRef.current = transition;
+      const finishNetworkTransition = () => {
+        if (networkViewTransitionRef.current !== transition) return;
+        networkViewTransitionRef.current = null;
+        delete document.documentElement.dataset.networkTransitionPhase;
+        delete document.documentElement.dataset.networkTransitionDirection;
+      };
+      void transition.finished.then(finishNetworkTransition, finishNetworkTransition);
     };
-    void transition.finished.then(finishNetworkTransition, finishNetworkTransition);
+
+    const fadeAnimation = networkMapSurfaceRef.current?.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      {
+        duration: 50,
+        easing: "cubic-bezier(0.4, 0, 0.8, 1)",
+        fill: "forwards",
+      },
+    );
+    networkFadeAnimationRef.current = fadeAnimation ?? null;
+    if (!fadeAnimation) {
+      startNetworkSlide();
+      return;
+    }
+    void fadeAnimation.finished.then(startNetworkSlide, startNetworkSlide);
   };
 
   const handleDefaultNetworkChange = (network: NetworkId) => {
@@ -3676,7 +3724,10 @@ export function LineWatchShell({
       {activeFloatingPanel}
 
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
-      <main className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>
+      <main
+        ref={networkMapSurfaceRef}
+        className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}
+      >
         <NetworkMap
           network={selectedNetwork}
           animateInitialEntrance={false}
