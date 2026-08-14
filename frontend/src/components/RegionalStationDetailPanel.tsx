@@ -13,6 +13,7 @@ import {
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
+  REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS,
   regionalArrivalTimeDisplay,
   shouldUseDetailedRegionalArrivalCountdown,
   type RegionalArrivalSnapshot,
@@ -240,7 +241,7 @@ export function RegionalStationDetailPanel({
   }>(() => ({ stationId: "", snapshot: emptyRegionalArrivalSnapshot(station.id) }));
 
   useEffect(() => {
-    const timer = window.setInterval(() => setArrivalTick(Date.now()), 3000);
+    const timer = window.setInterval(() => setArrivalTick(Date.now()), REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS);
     return () => window.clearInterval(timer);
   }, []);
   const [noticesState, setNoticesState] = useState<{

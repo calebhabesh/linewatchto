@@ -2085,12 +2085,18 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .saved-station-section-divider {
-  height: 4px;
+  height: 3px;
   margin: 14px 2px 10px;
 }
 
 .saved-station-surface-divider {
-  height: 4px;
+  height: 3px;
+  margin: 16px 2px 12px;
+}
+
+.saved-station-rich-content .saved-station-surface-divider,
+.station-arrival-line-divider.saved-station-surface-divider {
+  height: 3px;
   margin: 16px 2px 12px;
 }
 

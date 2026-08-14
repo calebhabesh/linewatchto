@@ -13,6 +13,7 @@ import {
   isSurfaceArrivalExpired,
   parseSurfaceRouteDetails,
   shouldUseDetailedSurfaceArrivalCountdown,
+  SURFACE_ARRIVAL_COUNTDOWN_TICK_MS,
   surfaceArrivalLabel,
   surfaceSourceSummary,
 } from "../src/app/surface-arrivals.ts";
@@ -56,6 +57,8 @@ describe("surface station arrivals", () => {
     assert.match(section, /ArrivalLinePinButton/);
     assert.match(section, /station-arrival-line-divider/);
     assert.match(section, /data-pinned-route/);
+    assert.equal(SURFACE_ARRIVAL_COUNTDOWN_TICK_MS, 3000);
+    assert.match(section, /window\.setInterval\(\(\) => setTick\(Date\.now\(\)\), SURFACE_ARRIVAL_COUNTDOWN_TICK_MS\)/);
   });
 
   it("uses network-scoped same-origin station endpoints", async () => {
@@ -142,6 +145,18 @@ describe("surface station arrivals", () => {
     assert.equal(r5.destinationTarget, "To Guelph");
     assert.equal(r5.direction, "North");
     assert.equal(r5.metaSubtitle, "GO Bus · North · Bay 5");
+
+    const r6 = parseSurfaceRouteDetails({
+      mode: "streetcar",
+      route: "510",
+      routeName: "Spadina",
+      destination: "South - 510 Spadina towards Union Station",
+      bayPlatform: "Streetcar Platform",
+    }, "ttc");
+    assert.equal(r6.displayRouteName, "Spadina");
+    assert.equal(r6.destinationTarget, "To Union Station");
+    assert.equal(r6.direction, "South");
+    assert.equal(r6.metaSubtitle, "TTC Streetcar · South · Platform");
   });
 
   it("groups arrivals by bus bays and prioritizes starred/pinned routes", () => {

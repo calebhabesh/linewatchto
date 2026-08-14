@@ -10,6 +10,7 @@ import {
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
+  REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS,
   regionalArrivalMinuteLabel,
   regionalArrivalTimeDisplay,
   shouldUseDetailedRegionalArrivalCountdown,
@@ -325,5 +326,9 @@ describe("regional station arrivals adapter", () => {
       "Tomorrow, 10:32 AM",
     );
     assert.equal(formatRegionalArrivalClockTime(""), "");
+  });
+
+  it("exports a standardized 3-second countdown interval", () => {
+    assert.equal(REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS, 3000);
   });
 });

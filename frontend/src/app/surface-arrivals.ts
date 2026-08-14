@@ -58,6 +58,7 @@ export type SurfaceRouteDetails = {
 
 export const SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
 export const SURFACE_DUE_EXPIRY_SECONDS = 90;
+export const SURFACE_ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
 
 type FetchOptions = {
   fetcher?: typeof fetch;
@@ -207,6 +208,8 @@ export function parseSurfaceRouteDetails(
   let bayLabel = (group.bayPlatform || "").trim();
   if (bayLabel && /^\d+$/.test(bayLabel)) {
     bayLabel = `Bay ${bayLabel}`;
+  } else if (/^streetcar\s+platform$/i.test(bayLabel)) {
+    bayLabel = "Platform";
   }
 
   // 6. Mode label

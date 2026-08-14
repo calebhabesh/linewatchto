@@ -121,6 +121,7 @@ const LIVE_ARRIVALS_DISCLAIMER =
 const MIXED_ARRIVALS_DISCLAIMER =
   "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.";
 const DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
+export const ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
 
 export function groupStationArrivals(
   arrivals: StationArrival[],

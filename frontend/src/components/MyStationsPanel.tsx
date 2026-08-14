@@ -8,6 +8,7 @@ import type { AccountState } from "../app/account-data";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { filterAndSortSavedStations, type SavedStationSort } from "../app/saved-stations";
 import {
+  ARRIVAL_COUNTDOWN_TICK_MS,
   formatArrivalSourceBadgeLabel,
   formatArrivalSourceSummary,
   formatArrivalTileLabel,
@@ -949,7 +950,7 @@ export function MyStationsPanel({
   }, [mode, visibleRegionalStationIds]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setArrivalTick(Date.now()), 3_000);
+    const interval = window.setInterval(() => setArrivalTick(Date.now()), ARRIVAL_COUNTDOWN_TICK_MS);
     return () => window.clearInterval(interval);
   }, []);
 

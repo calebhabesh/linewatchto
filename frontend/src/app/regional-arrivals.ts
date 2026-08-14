@@ -197,6 +197,7 @@ type RegionalArrivalTimeDisplayOptions = {
 };
 
 const DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
+export const REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
 
 export function regionalArrivalTimeDisplay(
   arrival: Pick<RegionalArrival, "minutes" | "predictedAt">,

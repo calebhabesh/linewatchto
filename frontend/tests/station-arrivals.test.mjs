@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  ARRIVAL_COUNTDOWN_TICK_MS,
   formatArrivalDirection,
   formatArrivalClockTime,
   formatArrivalDisclaimer,
@@ -517,5 +518,9 @@ describe("station arrival grouping", () => {
       ], "Scheduled arrivals use TTC timetable data and are not live train predictions."),
       "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.",
     );
+  });
+
+  it("exports a standardized 3-second countdown interval", () => {
+    assert.equal(ARRIVAL_COUNTDOWN_TICK_MS, 3000);
   });
 });

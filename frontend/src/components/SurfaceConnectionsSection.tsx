@@ -14,6 +14,7 @@ import {
   isSurfaceArrivalDue,
   parseSurfaceRouteDetails,
   shouldUseDetailedSurfaceArrivalCountdown,
+  SURFACE_ARRIVAL_COUNTDOWN_TICK_MS,
   surfaceSourceSummary,
   type SurfaceArrivalGroup,
   type SurfaceArrivalSnapshot,
@@ -115,7 +116,7 @@ function SurfaceRouteCard({
           group.arrivals.map((arrival, index) => {
             const detailedCountdown = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
             const due = isSurfaceArrivalDue(arrival, tick);
-            const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt, tick);
+            const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
             const arrivalLabelClassName = detailedCountdown && !due
               ? "whitespace-nowrap text-xs sm:text-lg font-black leading-none tabular-nums"
               : "text-base sm:text-lg font-black leading-none";
@@ -329,7 +330,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
 
   useEffect(() => {
     if (isClosed) return;
-    const interval = window.setInterval(() => setTick(Date.now()), 1000);
+    const interval = window.setInterval(() => setTick(Date.now()), SURFACE_ARRIVAL_COUNTDOWN_TICK_MS);
     return () => window.clearInterval(interval);
   }, [isClosed]);
 

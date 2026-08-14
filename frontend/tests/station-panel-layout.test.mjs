@@ -73,7 +73,7 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /arrivalTick/);
     assert.match(panelSource, /hasArrivalCountdownTicker/);
     assert.doesNotMatch(panelSource, /hasLiveArrivalCountdown/);
-    assert.match(panelSource, /window\.setInterval\(\(\) => setArrivalTick\(Date\.now\(\)\), 3000\)/);
+    assert.match(panelSource, /window\.setInterval\(\(\) => setArrivalTick\(Date\.now\(\)\), ARRIVAL_COUNTDOWN_TICK_MS\)/);
     assert.match(panelSource, /includeEmptyDirections:\s*hasLiveArrivals/);
     assert.match(panelSource, /Refreshing Live Arrivals/);
     assert.match(panelSource, /No live ETA for this direction right now\. Live updates may appear at any moment\./);

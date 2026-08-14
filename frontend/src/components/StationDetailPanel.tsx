@@ -7,6 +7,7 @@ import Image from "next/image";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
 import {
+  ARRIVAL_COUNTDOWN_TICK_MS,
   formatArrivalClockTime,
   formatArrivalDisclaimer,
   formatArrivalSourceBadgeLabel,
@@ -327,7 +328,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       return;
     }
 
-    const timer = window.setInterval(() => setArrivalTick(Date.now()), 3000);
+    const timer = window.setInterval(() => setArrivalTick(Date.now()), ARRIVAL_COUNTDOWN_TICK_MS);
     return () => window.clearInterval(timer);
   }, [hasArrivalCountdownTicker, station?.id]);
 
