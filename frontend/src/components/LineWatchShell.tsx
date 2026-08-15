@@ -27,6 +27,7 @@ import { ReleaseNotesNotice } from "./ReleaseNotesNotice";
 import { ReleaseNotesPanel } from "./ReleaseNotesPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
+import { OverlappingCountBadge } from "./OverlappingCountBadge";
 import { MobileStatusPeek } from "./MobileStatusPeek";
 import { MobileMapControls, PhoneRotateLandscapeIcon, type MapPresentationMode } from "./MobileMapControls";
 import { RotatedMapSelectionCard } from "./RotatedMapSelectionCard";
@@ -2884,12 +2885,10 @@ export function LineWatchShell({
                />
             </div>
             {totalAlertCount > 0 && !menuVisible && (
-              <span
-                aria-hidden="true"
-                className="overlapping-count-badge absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white shadow-md border border-white dark:border-[#12151c]"
-              >
-                {totalAlertCount}
-              </span>
+              <OverlappingCountBadge
+                className="desktop-menu-count-badge absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-white shadow-md border border-white dark:border-[#12151c]"
+                count={totalAlertCount}
+              />
             )}
           </button>
 

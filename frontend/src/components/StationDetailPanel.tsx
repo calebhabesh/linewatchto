@@ -40,6 +40,7 @@ import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ttcStationConnections } from "../app/station-connections";
 import { StationConnectionBadges } from "./StationConnectionBadges";
 import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
+import { OverlappingCountBadge } from "./OverlappingCountBadge";
 
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
@@ -190,7 +191,7 @@ function StationAccessOutageBadge({
         height={30}
         aria-hidden="true"
       />
-      <span className="station-access-outage-count overlapping-count-badge">{count}</span>
+      <OverlappingCountBadge className="station-access-outage-count" count={count} />
     </span>
   );
 }

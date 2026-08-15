@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, Map as MapIcon, MoreHorizontal, Navigation, Search } from "lucide-react";
+import { OverlappingCountBadge } from "./OverlappingCountBadge";
 
 export type MobileNavKey = "map" | "status" | "search" | "commutes" | "more";
 
@@ -65,7 +66,7 @@ export function MobileBottomNav({
           >
             <span className="mobile-bottom-nav-icon">
               <Icon size={21} aria-hidden="true" />
-              {badge ? <span className="mobile-bottom-nav-badge overlapping-count-badge" aria-hidden="true">{badge}</span> : null}
+              {badge ? <OverlappingCountBadge className="mobile-bottom-nav-badge" count={badge} /> : null}
             </span>
             <span className="mobile-bottom-nav-label">{label}</span>
           </button>

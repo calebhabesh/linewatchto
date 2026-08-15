@@ -1405,7 +1405,7 @@ export function SavedCommutesPanel({
                 ) : null}
               </div>
             ) : (
-              <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
+              <div className={`flex flex-col gap-3 min-w-0 max-w-full w-full box-border ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
                 <div className="account-network-filter" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Commutes by network">
                   <div className="account-network-glider" aria-hidden="true" />
                   {ACCOUNT_NETWORK_OPTIONS.map((option) => (
@@ -1460,37 +1460,32 @@ export function SavedCommutesPanel({
                         <button
                           type="button"
                           className="site-dropdown-trigger saved-commute-sort-trigger"
-                          aria-label="Sort My Commutes"
+                          onClick={() => setSortDropdownOpen((prev) => !prev)}
                           aria-haspopup="listbox"
                           aria-expanded={sortDropdownOpen}
-                          onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                          aria-label="Sort My Commutes"
                         >
                           <span className="truncate">
-                            {sortBy === "impact" && "Most Affected"}
-                            {sortBy === "recent" && "Recently Saved"}
-                            {sortBy === "oldest" && "Oldest Saved"}
-                            {sortBy === "name" && "Route Name A–Z"}
+                            {sortBy === "impact" ? "Most Affected" : sortBy === "recent" ? "Recently Saved" : sortBy === "oldest" ? "Oldest Saved" : "Route Name A–Z"}
                           </span>
-                          <ChevronDown size={14} className="text-slate-400 dark:text-slate-500 shrink-0" style={{ transform: sortDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                          <ChevronDown size={14} className="site-dropdown-chevron" />
                         </button>
                         {sortDropdownOpen && (
                           <div className="site-dropdown-menu saved-commute-sort-options" role="listbox">
-                            {(
-                              [
-                                { value: "impact", label: "Most Affected" },
-                                { value: "recent", label: "Recently Saved" },
-                                { value: "oldest", label: "Oldest Saved" },
-                                { value: "name", label: "Route Name A–Z" },
-                              ] as const
-                            ).map((option) => {
-                              const isSelected = option.value === sortBy;
+                            {([
+                              { value: "impact", label: "Most Affected" },
+                              { value: "recent", label: "Recently Saved" },
+                              { value: "oldest", label: "Oldest Saved" },
+                              { value: "name", label: "Route Name A–Z" },
+                            ] as const).map((option) => {
+                              const isSelected = sortBy === option.value;
                               return (
                                 <button
                                   key={option.value}
                                   type="button"
+                                  className={`site-dropdown-item ${isSelected ? "is-selected font-bold" : ""}`}
                                   role="option"
                                   aria-selected={isSelected}
-                                  className={`site-dropdown-option saved-commute-sort-option${isSelected ? " selected" : ""}`}
                                   onClick={() => {
                                     setSortBy(option.value);
                                     setSortDropdownOpen(false);
@@ -1552,8 +1547,8 @@ export function SavedCommutesPanel({
                 const selectedLegImpactSummary = summarizeMatchedImpacts(selectedLeg.impact.matchedImpacts);
 
                 return (
-                  <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
-                    <div className="min-w-0">
+                  <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 max-w-full w-full rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
+                    <div className="min-w-0 max-w-full w-full">
                       <div className="saved-commute-card-header">
                         <div className="saved-commute-card-identity">
                           <div className="min-w-0 flex-1">
@@ -1592,15 +1587,15 @@ export function SavedCommutesPanel({
                           );
                         })()}
                       </div>
-                      <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{routeLabel}</p>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold">
-                        <div>
+                      <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400 min-w-0 max-w-full break-words">{routeLabel}</p>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold min-w-0 max-w-full">
+                        <div className="min-w-0 max-w-full break-words">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Origin:</span>
-                          <span className="text-slate-800 dark:text-white">{commute.originStationName}</span>
+                          <span className="text-slate-800 dark:text-white break-words">{commute.originStationName}</span>
                         </div>
-                        <div>
+                        <div className="min-w-0 max-w-full break-words">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Destination:</span>
-                          <span className="text-slate-800 dark:text-white">{commute.destinationStationName}</span>
+                          <span className="text-slate-800 dark:text-white break-words">{commute.destinationStationName}</span>
                         </div>
                       </div>
 
@@ -1617,8 +1612,9 @@ export function SavedCommutesPanel({
                                 aria-selected={selectedLeg.id === leg.id}
                                 className={isClearByFilters ? "leg-btn-filtered" : isClear ? "leg-btn-clear" : "leg-btn-affected"}
                                 onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
+                                title={`To ${leg.toStationName}`}
                               >
-                                To {leg.toStationName}
+                                <span className="truncate min-w-0 max-w-full block">To {leg.toStationName}</span>
                               </button>
                             );
                           })}

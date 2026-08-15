@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { OverlappingCountBadge } from "./OverlappingCountBadge";
 
 const OUTAGE_ICON_SRC = {
   elevator: "/assets/linewatch/outages/elevator.svg",
@@ -24,7 +25,7 @@ export function StationOutageBadge({
         height={22}
         aria-hidden="true"
       />
-      <span className="station-search-outage-count overlapping-count-badge">{count}</span>
+      <OverlappingCountBadge className="station-search-outage-count" count={count} />
     </span>
   );
 }

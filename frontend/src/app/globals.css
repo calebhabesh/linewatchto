@@ -3025,10 +3025,8 @@ html[data-safe-area-debug="iphone-dynamic-island"] {
 }
 
 html {
-  -webkit-text-size-adjust: 100%;
   min-width: 320px;
   scroll-behavior: smooth;
-  text-size-adjust: 100%;
 }
 
 body {
@@ -3160,18 +3158,39 @@ button {
   cursor: pointer;
 }
 
-/* Keep counters that overlap another control immune to browser text inflation.
-   Mobile Chromium can otherwise enlarge only the glyph after a viewport or
-   compositor change while leaving the badge's fixed box at its authored size. */
+/* Render overlapping counters in a fixed SVG coordinate system. Chromium can
+   intermittently rasterize tiny HTML badge text at the wrong compositor scale
+   after viewport changes; SVG keeps the glyph and badge geometry in lockstep. */
 .overlapping-count-badge {
-  -webkit-text-size-adjust: 100%;
+  --overlapping-count-font-size: 9px;
+  -webkit-text-size-adjust: none;
   box-sizing: border-box;
   flex: none;
-  font-variant-numeric: tabular-nums;
+  font-size: 0 !important;
   line-height: 1 !important;
   overflow: hidden;
-  text-size-adjust: 100%;
+  text-size-adjust: none;
   white-space: nowrap;
+}
+
+.overlapping-count-badge__svg {
+  display: block;
+  flex: none;
+  height: 100%;
+  overflow: hidden;
+  width: auto;
+}
+
+.overlapping-count-badge__text {
+  fill: currentColor;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-size: var(--overlapping-count-font-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+}
+
+.desktop-menu-count-badge {
+  --overlapping-count-font-size: 8px;
 }
 
 @media (max-width: 767px) {
@@ -3692,6 +3711,7 @@ button {
 }
 
 .station-access-outage-count {
+  --overlapping-count-font-size: 7px;
   position: absolute;
   top: -5px;
   right: -6px;
@@ -7075,8 +7095,13 @@ img.transit-line-badge {
 
 .commute-card {
   background: var(--panel-soft);
+  box-sizing: border-box;
+  max-width: 100%;
   min-width: 0;
+  overflow: hidden;
+  overflow-x: hidden;
   padding: 13px;
+  width: 100%;
 }
 
 .commute-card h3 {
@@ -10944,6 +10969,7 @@ img.transit-line-badge {
 }
 
 .station-search-outage-count {
+  --overlapping-count-font-size: 7px;
   position: absolute;
   top: -4px;
   right: -5px;
@@ -13878,8 +13904,10 @@ img.transit-line-badge {
   background: rgba(15, 23, 42, 0.06);
   border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 8px;
-  display: inline-flex;
-  flex-wrap: wrap;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
   max-width: 100%;
   gap: 0.18rem;
   margin-top: 0.55rem;
@@ -13887,17 +13915,34 @@ img.transit-line-badge {
 }
 
 .commute-leg-toggle button {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
   border-radius: 6px;
   color: rgb(71, 85, 105);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.66rem;
   font-weight: 950;
-  max-width: 100%;
   min-height: 28px;
-  padding: 0.32rem 0.5rem;
+  padding: 0.32rem 0.35rem;
   text-transform: uppercase;
   border: 1px solid transparent;
   transition: all 0.15s ease-in-out;
-  word-break: break-word;
+  overflow: hidden;
+  text-align: center;
+}
+
+.commute-leg-toggle button span {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .commute-leg-toggle button[aria-selected="true"] {
@@ -15542,6 +15587,7 @@ img.transit-line-badge {
   }
 
   .mobile-bottom-nav-badge {
+    --overlapping-count-font-size: 7px;
     align-items: center;
     background: #ef4444;
     border: 1px solid rgba(255, 255, 255, 0.86);
