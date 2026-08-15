@@ -88,6 +88,9 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-line-identity/);
     assert.match(cssSource, /\.alert-history-fact-grid/);
     assert.match(cssSource, /\.alert-history-status-label/);
+    assert.match(timelineSource, /alert-history-fact-location/);
+    assert.match(cssSource, /\.alert-history-fact-location\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;/s);
+    assert.match(cssSource, /\.alert-history-fact-location\s*>\s*strong\s*\{[^}]*white-space:\s*normal;/s);
     assert.doesNotMatch(timelineSource, /alert-history-line-number/);
     assert.doesNotMatch(cssSource, /\.alert-history-line-number/);
     assert.doesNotMatch(cssSource, /\.alert-history-line-identity\s*\{[^}]*box-shadow/s);

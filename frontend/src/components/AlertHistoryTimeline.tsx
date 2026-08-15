@@ -327,7 +327,7 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
         <strong className="alert-history-title">{title}</strong>
         <div className="alert-history-fact-grid" aria-label="Alert summary">
           {incident.location ? (
-            <span className="alert-history-fact">
+            <span className="alert-history-fact alert-history-fact-location">
               <span>Location</span>
               <strong><CompactImpactLocation location={incident.location} /></strong>
             </span>

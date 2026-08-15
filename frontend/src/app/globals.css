@@ -20546,6 +20546,10 @@ img.transit-line-badge {
   min-width: 0;
 }
 
+.alert-history-fact-location {
+  grid-column: 1 / -1;
+}
+
 .alert-history-fact > span {
   color: rgb(100, 116, 139);
   font-size: 0.58rem;
@@ -20564,9 +20568,16 @@ img.transit-line-badge {
   white-space: nowrap;
 }
 
+.alert-history-fact-location > strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .compact-impact-location {
   align-items: center;
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 0.32rem;
   max-width: 100%;
   vertical-align: middle;
