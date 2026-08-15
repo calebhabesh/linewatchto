@@ -203,7 +203,7 @@ function SurfaceCompactRouteRow({
 
   return (
     <article
-      className={`saved-station-arrival-group is-surface-group w-full min-w-0 max-w-full overflow-hidden rounded-md border p-2.5 shadow-sm transition-colors duration-150 ${
+      className={`saved-station-arrival-group is-surface-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${
         isPinned || isHoveredPin
           ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned"
           : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
@@ -255,7 +255,7 @@ function SurfaceCompactRouteRow({
         </div>
       </div>
 
-      <div className="saved-station-arrival-times mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+      <div className="saved-station-arrival-times mt-1.5 sm:mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
         {hasArrivals ? (
           group.arrivals.slice(0, 3).map((arrival, index) => {
             const detailed = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);

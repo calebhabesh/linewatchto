@@ -182,7 +182,7 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-arrival-times strong\.is-soon/);
     assert.match(styles, /\.saved-station-arrival-group\s*\{[^}]*min-height:\s*44px/s);
     assert.match(styles, /\.saved-station-arrival-line-badge\s*\{[^}]*height:\s*22px !important;[^}]*width:\s*22px !important;/s);
-    assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-group\s*\{[^}]*min-height:\s*52px/s);
+    assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-group\s*\{[^}]*gap:\s*0;[^}]*min-height:\s*52px;[^}]*padding:\s*8px 10px 5px;/s);
     assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-line-badge\s*\{[^}]*height:\s*24px !important;[^}]*width:\s*24px !important;/s);
     assert.match(styles, /\.saved-commute-impact-disclosure\.saved-station-disruption-disclosure\s*\{[^}]*border:\s*0;[^}]*margin-top:\s*0;/s);
     assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*padding:\s*0 12px 14px;/s);

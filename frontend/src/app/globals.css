@@ -2234,7 +2234,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   min-height: 44px;
   min-width: 0;
   overflow: hidden;
-  padding: 8px 10px;
+  padding: 8px 10px 6px;
   transition: background-color 150ms ease, border-color 150ms ease;
   width: 100%;
 }
@@ -2634,9 +2634,9 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 @media (min-width: 768px) {
   .saved-station-arrival-group {
-    gap: 9px;
+    gap: 0;
     min-height: 52px;
-    padding: 9px 10px;
+    padding: 8px 10px 5px;
   }
 
   .saved-station-arrival-line-badge {

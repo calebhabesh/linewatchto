@@ -564,7 +564,7 @@ function SavedStationRow({
                           const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
 
                           return (
-                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border p-2.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
+                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
                               <div className="flex w-full min-w-0 max-w-full items-center gap-2">
                                 <TransitLineBadge
                                   lineId={group.lineId}
@@ -595,7 +595,7 @@ function SavedStationRow({
                                   </span>
                                 </div>
                               </div>
-                              <div className="saved-station-arrival-times mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+                              <div className="saved-station-arrival-times mt-1.5 sm:mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
                                 {arrivals.map((arrival, index) => {
                                   const due = isRegionalArrivalDue(arrival, arrivalTick);
                                   const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
@@ -799,7 +799,7 @@ function SavedStationRow({
                           const direction = formatCondensedArrivalDirection(group.directionLabel);
 
                           return (
-                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border p-2.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
+                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
                               <div className="flex w-full min-w-0 max-w-full items-center gap-2">
                                 <TransitLineBadge
                                   lineId={group.lineId}
@@ -830,7 +830,7 @@ function SavedStationRow({
                                   </span>
                                 </div>
                               </div>
-                              <div className="saved-station-arrival-times mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+                              <div className="saved-station-arrival-times mt-1.5 sm:mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
                                 {arrivals.length > 0
                                   ? arrivals.map((arrival, index) => {
                                       const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
