@@ -190,7 +190,7 @@ function StationAccessOutageBadge({
         height={30}
         aria-hidden="true"
       />
-      <span className="station-access-outage-count">{count}</span>
+      <span className="station-access-outage-count overlapping-count-badge">{count}</span>
     </span>
   );
 }

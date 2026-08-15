@@ -2950,8 +2950,10 @@ html[data-safe-area-debug="iphone-dynamic-island"] {
 }
 
 html {
+  -webkit-text-size-adjust: 100%;
   min-width: 320px;
   scroll-behavior: smooth;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -3081,6 +3083,20 @@ select {
 
 button {
   cursor: pointer;
+}
+
+/* Keep counters that overlap another control immune to browser text inflation.
+   Mobile Chromium can otherwise enlarge only the glyph after a viewport or
+   compositor change while leaving the badge's fixed box at its authored size. */
+.overlapping-count-badge {
+  -webkit-text-size-adjust: 100%;
+  box-sizing: border-box;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  line-height: 1 !important;
+  overflow: hidden;
+  text-size-adjust: 100%;
+  white-space: nowrap;
 }
 
 @media (max-width: 767px) {
@@ -15457,6 +15473,7 @@ img.transit-line-badge {
     font-weight: 1000;
     height: 17px;
     justify-content: center;
+    line-height: 1;
     min-width: 17px;
     padding: 0 4px;
     position: absolute;

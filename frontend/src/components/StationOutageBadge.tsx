@@ -24,7 +24,7 @@ export function StationOutageBadge({
         height={22}
         aria-hidden="true"
       />
-      <span className="station-search-outage-count">{count}</span>
+      <span className="station-search-outage-count overlapping-count-badge">{count}</span>
     </span>
   );
 }

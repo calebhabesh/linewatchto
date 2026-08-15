@@ -65,7 +65,7 @@ export function MobileBottomNav({
           >
             <span className="mobile-bottom-nav-icon">
               <Icon size={21} aria-hidden="true" />
-              {badge ? <span className="mobile-bottom-nav-badge" aria-hidden="true">{badge}</span> : null}
+              {badge ? <span className="mobile-bottom-nav-badge overlapping-count-badge" aria-hidden="true">{badge}</span> : null}
             </span>
             <span className="mobile-bottom-nav-label">{label}</span>
           </button>

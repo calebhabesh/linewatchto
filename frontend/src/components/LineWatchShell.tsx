@@ -2886,7 +2886,7 @@ export function LineWatchShell({
             {totalAlertCount > 0 && !menuVisible && (
               <span
                 aria-hidden="true"
-                className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white shadow-md border border-white dark:border-[#12151c]"
+                className="overlapping-count-badge absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white shadow-md border border-white dark:border-[#12151c]"
               >
                 {totalAlertCount}
               </span>
