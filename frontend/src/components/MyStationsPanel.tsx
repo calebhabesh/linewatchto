@@ -9,6 +9,7 @@ import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { filterAndSortSavedStations, type SavedStationSort } from "../app/saved-stations";
 import {
   ARRIVAL_COUNTDOWN_TICK_MS,
+  formatArrivalClockTime,
   formatArrivalSourceBadgeLabel,
   formatArrivalSourceSummary,
   formatArrivalTileLabel,
@@ -223,6 +224,40 @@ function formatArrivalLineHeaderLabel(lineNumber: string, lineName?: string): st
   return lineName;
 }
 
+function arrivalSourceBadgeClassName(label: string) {
+  const base = "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none";
+  if (label === "Live") {
+    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
+  }
+  if (label === "Scheduled") {
+    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+  }
+  if (label === "Mixed") {
+    return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200`;
+  }
+  if (label === "No live ETA") {
+    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+  }
+  if (label === "Demo") {
+    return `${base} border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-200`;
+  }
+  return `${base} border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400`;
+}
+
+function regionalArrivalSourceBadgeClassName(label: string) {
+  const base = "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none";
+  if (label === "Live") {
+    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
+  }
+  if (label === "Scheduled") {
+    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+  }
+  if (label === "Mixed") {
+    return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200`;
+  }
+  return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
+}
+
 function SavedStationRow({
   saved,
   detailResult,
@@ -301,7 +336,7 @@ function SavedStationRow({
   const arrivalGroups = sortArrivalGroupsByPinnedLine(detail && !hasUnavailableArrivals
     ? groupStationArrivals(detail.arrivals, detail.lines, {
         stationId: detail.id,
-        maxArrivalsPerDirection: 2,
+        maxArrivalsPerDirection: 3,
         includeEmptyDirections: hasLiveArrivals,
       })
     : [], pinnedLineIds);
@@ -464,13 +499,18 @@ function SavedStationRow({
 
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
             <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
-            <div className="saved-station-arrivals-heading">
-              <span><Train size={15} aria-hidden="true" /><strong>Train Arrivals</strong></span>
-              <small>{regionalArrivalSnapshot?.availability === "available"
-                ? regionalArrivalSnapshot.source
-                : regionalArrivalSnapshot?.availability === "no-service"
-                  ? "Published regional schedule"
-                  : "Regional arrivals unavailable"}</small>
+            <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
+              <span className="flex items-center justify-start text-left gap-1.5 min-w-0 text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                <Train size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
+                <strong>Train Arrivals</strong>
+              </span>
+              <p className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">
+                {regionalArrivalSnapshot?.availability === "available"
+                  ? regionalArrivalSnapshot.source
+                  : regionalArrivalSnapshot?.availability === "no-service"
+                    ? "Published regional schedule"
+                    : "Regional arrivals unavailable"}
+              </p>
             </div>
             {regionalArrivalSnapshot?.availability === "no-service" ? (
               <p className="saved-station-arrivals-empty">No Scheduled Service</p>
@@ -484,7 +524,6 @@ function SavedStationRow({
                   const showLineDivider = sectionIndex > 0;
                   const isPinned = pinnedLineIds.includes(section.lineId);
                   const isHoveredPin = hoveredPinLineId === section.lineId;
-                  const lineLabel = section.lineName ? (isNaN(Number(section.lineNumber)) ? section.lineName : `Line ${section.lineNumber}`) : section.lineNumber;
 
                   return (
                     <div key={section.lineId} className="saved-station-arrival-line-section" data-arrival-line-section={section.lineId} data-pinned-line={isPinned ? "true" : "false"}>
@@ -505,57 +544,101 @@ function SavedStationRow({
                           </span>
                         </div>
                         <ArrivalLinePinButton
+                          compact
                           pinned={isPinned}
                           hovered={isHoveredPin}
                           onHoverChange={(hovered) => setHoveredPinLineId(hovered ? section.lineId : null)}
-                          lineLabel={lineLabel}
+                          lineLabel={`Line ${section.lineNumber}`}
                           stationName={saved.station.name}
                           onToggle={() => togglePin(section.lineId)}
                         />
                       </div>
                       <div className="flex flex-col gap-1.5 mt-0.5">
                         {section.groups.map((group) => {
-                          const arrivals = group.platforms.flatMap((platform) => platform.arrivals).sort((left, right) => left.minutes - right.minutes).slice(0, 2);
+                          const arrivals = group.platforms
+                            .flatMap((platform) => platform.arrivals)
+                            .sort((left, right) => left.minutes - right.minutes)
+                            .slice(0, 3);
                           const hasLive = arrivals.some((arrival) => arrival.status === "live");
                           const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
                           const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
 
                           return (
-                            <div key={group.key} className={`saved-station-arrival-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}>
-                              <TransitLineBadge
-                                lineId={group.lineId}
-                                lineNumber={group.lineNumber}
-                                lineName={group.lineName}
-                                size={22}
-                                className="saved-station-arrival-line-badge"
-                              />
-                              <span className="saved-station-arrival-direction">
-                                <strong>{group.directionLabel}</strong>
-                                <span className="saved-station-arrival-destination">{group.destinationLabel}</span>
-                              </span>
-                              <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>
-                                {sourceLabel}
-                                {sourceLabel === "Live" ? (
-                                  <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-400" size={12} />
-                                ) : null}
-                              </span>
-                              <span className="saved-station-arrival-times">
+                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border p-2.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
+                              <div className="flex w-full min-w-0 max-w-full items-center gap-2">
+                                <TransitLineBadge
+                                  lineId={group.lineId}
+                                  lineNumber={group.lineNumber}
+                                  lineName={group.lineName}
+                                  size={22}
+                                  className="saved-station-arrival-line-badge shrink-0"
+                                />
+                                <div className="saved-station-arrival-direction min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, width: 0 }}>
+                                  <strong className="block truncate text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                                    {group.directionLabel}
+                                  </strong>
+                                  {group.destinationLabel ? (
+                                    <p className="saved-station-arrival-destination mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+                                      {group.destinationLabel}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1.5 self-center">
+                                  <span
+                                    className={`saved-station-arrival-source ${regionalArrivalSourceBadgeClassName(sourceLabel)}`}
+                                    data-arrival-source={sourceLabel.toLowerCase()}
+                                  >
+                                    {sourceLabel}
+                                    {sourceLabel === "Live" ? (
+                                      <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+                                    ) : null}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="saved-station-arrival-times mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
                                 {arrivals.map((arrival, index) => {
                                   const due = isRegionalArrivalDue(arrival, arrivalTick);
                                   const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
                                   const detailed = index === 0
                                     && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
                                   const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown: detailed });
+                                  const arrivalTileClassName = [
+                                    "flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+                                    due
+                                      ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
+                                      : soon
+                                        ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon"
+                                        : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                  ].join(" ");
+
                                   return (
-                                    <strong
-                                      className={[detailed ? "is-detailed" : "", soon ? "is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
+                                    <div
                                       key={`${arrival.tripNumber}:${arrival.predictedAt}`}
+                                      data-arrival-due={due ? "true" : "false"}
+                                      className={arrivalTileClassName}
                                     >
-                                      {timeDisplay.primary}
-                                    </strong>
+                                      <strong
+                                        className={detailed
+                                          ? "whitespace-nowrap text-xs font-black leading-none tabular-nums sm:text-sm"
+                                          : "text-sm sm:text-base font-black leading-none tracking-tight"}
+                                      >
+                                        {timeDisplay.primary}
+                                      </strong>
+                                      <span
+                                        className={
+                                          due
+                                            ? "mt-0.5 text-[10px] font-semibold text-red-100/80"
+                                            : soon
+                                              ? "mt-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
+                                              : "mt-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400"
+                                        }
+                                      >
+                                        {timeDisplay.secondary}
+                                      </span>
+                                    </div>
                                   );
                                 })}
-                              </span>
+                              </div>
                             </div>
                           );
                         })}
@@ -593,7 +676,7 @@ function SavedStationRow({
                 <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
                   {disruptionSummary.map(({ kind, count }) => (
                     <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
-                      <DisruptionIcon kind={kind} size={14} />
+                      <DisruptionIcon kind={kind} size={12} />
                       {disruptionKindCountLabel(kind, count)}
                     </span>
                   ))}
@@ -657,9 +740,14 @@ function SavedStationRow({
 
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
               <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
-              <div className="saved-station-arrivals-heading">
-                <span><Train size={15} aria-hidden="true" /><strong>{arrivalHeading}</strong></span>
-                <small>{formatArrivalSourceSummary(detail.arrivals, detail.arrivalsSource)}</small>
+              <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
+                <span className="flex items-center justify-start text-left gap-1.5 min-w-0 text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                  <Train size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
+                  <strong>{arrivalHeading}</strong>
+                </span>
+                <p className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">
+                  {formatArrivalSourceSummary(detail.arrivals, detail.arrivalsSource)}
+                </p>
               </div>
               {subwayClosed ? (
                 <p className="saved-station-arrivals-empty">{closedTitle} · Arrivals Not Available</p>
@@ -673,7 +761,6 @@ function SavedStationRow({
                   const showLineDivider = sectionIndex > 0;
                   const isPinned = pinnedLineIds.includes(section.lineId);
                   const isHoveredPin = hoveredPinLineId === section.lineId;
-                  const lineLabel = `Line ${section.lineNumber}`;
 
                   return (
                     <div key={section.lineId} className="saved-station-arrival-line-section" data-arrival-line-section={section.lineId} data-pinned-line={isPinned ? "true" : "false"}>
@@ -694,56 +781,103 @@ function SavedStationRow({
                           </span>
                         </div>
                         <ArrivalLinePinButton
+                          compact
                           pinned={isPinned}
                           hovered={isHoveredPin}
                           onHoverChange={(hovered) => setHoveredPinLineId(hovered ? section.lineId : null)}
-                          lineLabel={lineLabel}
+                          lineLabel={`Line ${section.lineNumber}`}
                           stationName={saved.station.name}
                           onToggle={() => togglePin(section.lineId)}
                         />
                       </div>
                       <div className="flex flex-col gap-1.5 mt-0.5">
                         {section.groups.map((group) => {
-                          const sourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, {
-                            emptyLiveDirection: hasLiveArrivals && group.arrivals.length === 0,
+                          const arrivals = group.arrivals.slice(0, 3);
+                          const sourceLabel = formatArrivalSourceBadgeLabel(arrivals, {
+                            emptyLiveDirection: hasLiveArrivals && arrivals.length === 0,
                           });
                           const direction = formatCondensedArrivalDirection(group.directionLabel);
 
                           return (
-                            <div key={group.key} className={`saved-station-arrival-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}>
-                              <TransitLineBadge
-                                lineId={group.lineId}
-                                lineNumber={group.lineNumber}
-                                lineName={group.line?.name}
-                                size={22}
-                                className="saved-station-arrival-line-badge"
-                              />
-                              <span className="saved-station-arrival-direction">
-                                <strong>{direction.direction}</strong>
-                                {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
-                              </span>
-                              <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>
-                                {sourceLabel}
-                                {sourceLabel === "Live" ? (
-                                  <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-400" size={12} />
-                                ) : null}
-                              </span>
-                              <span className="saved-station-arrival-times">
-                                {group.arrivals.length > 0
-                                  ? group.arrivals.map((arrival, index) => {
+                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border p-2.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
+                              <div className="flex w-full min-w-0 max-w-full items-center gap-2">
+                                <TransitLineBadge
+                                  lineId={group.lineId}
+                                  lineNumber={group.lineNumber}
+                                  lineName={group.line?.name}
+                                  size={22}
+                                  className="saved-station-arrival-line-badge"
+                                />
+                                <div className="saved-station-arrival-direction min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, width: 0 }}>
+                                  <strong className="block truncate text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                                    {direction.direction}
+                                  </strong>
+                                  {direction.destination ? (
+                                    <p className="saved-station-arrival-destination mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+                                      {direction.destination}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1.5 self-center">
+                                  <span
+                                    className={`saved-station-arrival-source ${arrivalSourceBadgeClassName(sourceLabel)}`}
+                                    data-arrival-source={sourceLabel.toLowerCase()}
+                                  >
+                                    {sourceLabel}
+                                    {sourceLabel === "Live" ? (
+                                      <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+                                    ) : null}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="saved-station-arrival-times mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+                                {arrivals.length > 0
+                                  ? arrivals.map((arrival, index) => {
                                       const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
                                       const due = isArrivalDue(arrival, arrivalTick);
+                                      const clockTime = formatArrivalClockTime(arrival.predictedAt);
+                                      const arrivalTileClassName = [
+                                        "flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+                                        due
+                                          ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
+                                          : detailed
+                                            ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon is-detailed"
+                                            : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                      ].join(" ");
+
                                       return (
-                                        <strong
-                                          className={[detailed ? "is-detailed is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
+                                        <div
                                           key={`${arrival.predictedAt ?? arrival.label}-${index}`}
+                                          data-arrival-due={due ? "true" : "false"}
+                                          className={arrivalTileClassName}
                                         >
-                                          {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
-                                        </strong>
+                                          <strong
+                                            className={detailed && !due
+                                              ? "whitespace-nowrap text-xs sm:text-sm font-black leading-none tabular-nums"
+                                              : "text-sm sm:text-base font-black leading-none"}
+                                          >
+                                            {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
+                                          </strong>
+                                          {clockTime && (
+                                            <span
+                                              className={
+                                                due
+                                                  ? "mt-0.5 text-[10px] font-semibold text-red-100/80"
+                                                  : "mt-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400"
+                                              }
+                                            >
+                                              {clockTime}
+                                            </span>
+                                          )}
+                                        </div>
                                       );
                                     })
-                                  : <em>—</em>}
-                              </span>
+                                  : (
+                                    <div className="col-span-3 flex min-h-[44px] items-center justify-center rounded-md border border-dashed border-black/10 bg-slate-950/[0.02] text-xs font-semibold text-slate-500 dark:border-white/10 dark:bg-[#0f1117]/50 dark:text-slate-400">
+                                      <em>—</em>
+                                    </div>
+                                  )}
+                              </div>
                             </div>
                           );
                         })}

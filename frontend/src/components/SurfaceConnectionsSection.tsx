@@ -193,67 +193,115 @@ function SurfaceCompactRouteRow({
       ? group.arrivals.some((arrival) => arrival.status === "scheduled") ? "Mixed" : "Live"
       : "Scheduled";
 
+  const sourceBadgeClassName = groupSourceLabel === "Live"
+    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center"
+    : groupSourceLabel === "Scheduled"
+      ? "border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center"
+      : groupSourceLabel === "Mixed"
+        ? "border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center"
+        : "border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center";
+
   return (
     <article
-      className={`saved-station-arrival-group is-surface-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}
+      className={`saved-station-arrival-group is-surface-group w-full min-w-0 max-w-full overflow-hidden rounded-md border p-2.5 shadow-sm transition-colors duration-150 ${
+        isPinned || isHoveredPin
+          ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned"
+          : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+      }`}
       data-surface-route={group.route}
       data-surface-mode={group.mode}
       data-pinned-route={isPinned ? "true" : "false"}
     >
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex w-full min-w-0 max-w-full items-center gap-2">
         <span
-          className={`inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded px-1 text-[10px] font-black text-white ${
+          className={`inline-flex min-h-7 min-w-7 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-black leading-none text-white ${
             networkId === "regional" ? "bg-emerald-700" : "bg-red-600"
           }`}
         >
           {group.route}
         </span>
-        <div className="saved-station-arrival-direction min-w-0 flex-1">
-          <strong className="truncate">{details.displayRouteName}</strong>
-          <span className="saved-station-arrival-destination truncate">
-            {details.destinationTarget ? `${details.destinationTarget} · ${details.metaSubtitle}` : details.metaSubtitle}
+        <div className="saved-station-arrival-direction min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, width: 0 }}>
+          <strong className="block truncate text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+            {details.displayRouteName}
+          </strong>
+          {details.destinationTarget ? (
+            <p className="saved-station-arrival-destination mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+              {details.destinationTarget}
+            </p>
+          ) : null}
+          <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            {details.metaSubtitle}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 self-center">
+          <span
+            className={`saved-station-arrival-source ${sourceBadgeClassName}`}
+            data-arrival-source={groupSourceLabel.toLowerCase()}
+          >
+            {groupSourceLabel}
+            {groupSourceLabel === "Live" ? (
+              <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+            ) : null}
           </span>
+          <ArrivalLinePinButton
+            compact
+            pinned={isPinned}
+            hovered={isHoveredPin}
+            onHoverChange={onHoverPinChange}
+            lineLabel={`Route ${group.route}`}
+            stationName={stationName || "Station"}
+            onToggle={onTogglePin}
+          />
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <span
-          className={`saved-station-arrival-source source-${groupSourceLabel.toLowerCase().replaceAll(" ", "-")}`}
-        >
-          {groupSourceLabel}
-          {groupSourceLabel === "Live" ? (
-            <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-400" size={12} />
-          ) : null}
-        </span>
-        <span className="saved-station-arrival-times">
-          {hasArrivals ? (
-            group.arrivals.slice(0, 2).map((arrival, index) => {
-              const detailed = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
-              const due = isSurfaceArrivalDue(arrival, tick);
-              const soon = !due && ((Date.parse(arrival.predictedAt) - tick) <= 120_000 || arrival.minutes <= 2);
 
-              return (
+      <div className="saved-station-arrival-times mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+        {hasArrivals ? (
+          group.arrivals.slice(0, 3).map((arrival, index) => {
+            const detailed = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
+            const due = isSurfaceArrivalDue(arrival, tick);
+            const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
+            const arrivalTileClassName = [
+              "flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+              due
+                ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
+                : detailed
+                  ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon is-detailed"
+                  : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+            ].join(" ");
+
+            return (
+              <div
+                key={`${arrival.tripId}:${arrival.predictedAt}:${index}`}
+                data-arrival-due={due ? "true" : "false"}
+                className={arrivalTileClassName}
+              >
                 <strong
-                  key={`${arrival.tripId}:${arrival.predictedAt}:${index}`}
-                  className={[detailed ? "is-detailed" : "", soon ? "is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
-                  data-arrival-due={due ? "true" : "false"}
+                  className={detailed && !due
+                    ? "whitespace-nowrap text-xs sm:text-sm font-black leading-none tabular-nums"
+                    : "text-sm sm:text-base font-black leading-none"}
                 >
                   {formatSurfaceArrivalTileLabel(arrival, { detailedCountdown: detailed, now: tick })}
                 </strong>
-              );
-            })
-          ) : (
+                {clockTime && (
+                  <span
+                    className={
+                      due
+                        ? "mt-0.5 text-[10px] font-semibold text-red-100/80"
+                        : "mt-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400"
+                    }
+                  >
+                    {clockTime}
+                  </span>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="col-span-3 flex min-h-[44px] items-center justify-center rounded-md border border-dashed border-black/10 bg-slate-950/[0.02] text-xs font-semibold text-slate-500 dark:border-white/10 dark:bg-[#0f1117]/50 dark:text-slate-400">
             <em>—</em>
-          )}
-        </span>
-        <ArrivalLinePinButton
-          compact
-          pinned={isPinned}
-          hovered={isHoveredPin}
-          onHoverChange={onHoverPinChange}
-          lineLabel={`Route ${group.route}`}
-          stationName={stationName || "Station"}
-          onToggle={onTogglePin}
-        />
+          </div>
+        )}
       </div>
     </article>
   );
@@ -268,114 +316,110 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
 
   const isLrt = networkId === "ttc" && isLrtOnlyStationId(stationId);
   const isSubwayAndLrt = networkId === "ttc" && isSubwayAndLrtStationId(stationId);
-  const isClosed = networkId === "ttc"
-    ? subwayOperatingState.status === "closed"
-    : regionalRailOperatingState.status === "closed";
-  const closedTitle = networkId === "ttc"
-    ? (isSubwayAndLrt ? "Subway & LRT Closed" : isLrt ? "LRT Closed" : "Subway Closed")
-    : "GO & UP Rail Closed";
+  const closedTitle = networkId === "regional"
+    ? "GO & UP Rail Closed"
+    : isSubwayAndLrt
+      ? "Subway & LRT Closed"
+      : isLrt
+        ? "LRT Closed"
+        : "Subway Closed";
+  const isClosed = networkId === "regional"
+    ? regionalRailOperatingState.status === "closed"
+    : subwayOperatingState.status === "closed";
 
-  const [state, setState] = useState<{ stationId: string; snapshot: SurfaceArrivalSnapshot }>(() => ({
-    stationId: "",
-    snapshot: emptySurfaceArrivalSnapshot(networkId, stationId),
-  }));
+  const [snapshot, setSnapshot] = useState<SurfaceArrivalSnapshot>(() =>
+    emptySurfaceArrivalSnapshot(networkId, stationId),
+  );
+  const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(() => Date.now());
-  const loading = !isClosed && (state.stationId !== stationId || state.snapshot.networkId !== networkId);
-  const snapshot = loading ? emptySurfaceArrivalSnapshot(networkId, stationId) : state.snapshot;
-
-  const activeArrivals = useMemo(
-    () => (isClosed ? [] : filterActiveSurfaceArrivals(snapshot.arrivals, tick)),
-    [isClosed, snapshot.arrivals, tick],
-  );
-  const activeGroups = useMemo(
-    () => (isClosed ? [] : groupSurfaceArrivals(activeArrivals)),
-    [isClosed, activeArrivals],
-  );
-  const pinnedGroups = useMemo(
-    () => (isClosed ? [] : buildPinnedSurfaceGroups(activeGroups, snapshot.arrivals, pinnedLineIds, networkId)),
-    [isClosed, activeGroups, snapshot.arrivals, pinnedLineIds, networkId],
-  );
-  const allGroups = useMemo(() => {
-    if (isClosed) return [];
-    const missingPlaceholders = pinnedGroups.filter(
-      (pg) => !activeGroups.some((ag) => ag.route === pg.route),
-    );
-    return [...activeGroups, ...missingPlaceholders];
-  }, [isClosed, activeGroups, pinnedGroups]);
-
-  const baySections = useMemo(
-    () => (isClosed ? [] : groupSurfaceArrivalsByBay(allGroups, pinnedLineIds)),
-    [isClosed, allGroups, pinnedLineIds],
-  );
 
   useEffect(() => {
-    if (isClosed) return;
-    let active = true;
-    let controller: AbortController | null = null;
-    const refresh = () => {
-      controller?.abort();
-      controller = new AbortController();
-      void getSurfaceArrivals(networkId, stationId, { signal: controller.signal }).then((result) => {
-        if (active) setState({ stationId, snapshot: result });
-      }).catch(() => undefined);
-    };
-    refresh();
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") refresh();
-    }, REFRESH_MS);
-    const visible = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", visible);
+    let mounted = true;
+    if (isClosed) {
+      return;
+    }
+
+    async function load() {
+      try {
+        const result = await getSurfaceArrivals(networkId, stationId);
+        if (mounted) {
+          setSnapshot(result);
+          setLoading(false);
+        }
+      } catch {
+        if (mounted) {
+          setSnapshot(emptySurfaceArrivalSnapshot(networkId, stationId));
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+    const interval = window.setInterval(load, REFRESH_MS);
     return () => {
-      active = false;
-      controller?.abort();
+      mounted = false;
       window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", visible);
     };
   }, [networkId, stationId, isClosed]);
 
   useEffect(() => {
-    if (isClosed) return;
-    const interval = window.setInterval(() => setTick(Date.now()), SURFACE_ARRIVAL_COUNTDOWN_TICK_MS);
-    return () => window.clearInterval(interval);
-  }, [isClosed]);
+    const timer = window.setInterval(() => setTick(Date.now()), SURFACE_ARRIVAL_COUNTDOWN_TICK_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const activeArrivals = useMemo(
+    () => filterActiveSurfaceArrivals(snapshot.arrivals, tick),
+    [snapshot.arrivals, tick],
+  );
+
+  const allGroups = useMemo(
+    () => groupSurfaceArrivals(activeArrivals),
+    [activeArrivals],
+  );
+
+  const baySections = useMemo(
+    () => groupSurfaceArrivalsByBay(allGroups, pinnedLineIds),
+    [allGroups, pinnedLineIds],
+  );
+
+  const pinnedGroups = useMemo(
+    () => buildPinnedSurfaceGroups(allGroups, snapshot.arrivals, pinnedLineIds, networkId),
+    [allGroups, snapshot.arrivals, pinnedLineIds, networkId],
+  );
 
   if (isSavedStationVariant) {
     return (
       <details
-        className={`surface-connections-details is-saved-station saved-station-arrivals${className ? ` ${className}` : ""}`}
+        className={`surface-connections-details is-saved-station saved-station-arrivals w-full min-w-0 max-w-full overflow-hidden${className ? ` ${className}` : ""}`}
         data-station-section="surface-connections"
         data-surface-connections-closed={isClosed ? "true" : undefined}
       >
-        <summary className="surface-connections-summary block cursor-pointer list-none">
-          <div className="saved-station-arrivals-heading flex items-center justify-between gap-2 min-w-0">
-            <span className="flex items-center gap-1.5 min-w-0">
-              <Bus size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
-              <strong className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
-                Surface Connections
-              </strong>
-              {!loading && !isClosed && allGroups.length > 0 && (
-                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-200 px-1 text-[10px] font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
-                  {allGroups.length}
-                </span>
-              )}
-            </span>
-            <div className="flex items-center gap-2 shrink-0">
-              <small>
-                {isClosed
-                  ? networkId === "regional" ? "GO Bus connections" : "TTC bus & streetcar connections"
-                  : loading
-                    ? "Checking connections"
-                    : surfaceSourceSummary(snapshot)}
-              </small>
+        <summary className="surface-connections-summary block w-full min-w-0 max-w-full cursor-pointer list-none overflow-hidden">
+          <div className="saved-station-arrivals-heading flex w-full min-w-0 max-w-full flex-col items-start text-left gap-0.5 overflow-hidden">
+            <div className="flex items-center justify-between gap-2 w-full min-w-0 max-w-full">
+              <span className="flex items-center gap-1.5 min-w-0 max-w-full text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                <Bus size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
+                <strong>Surface Connections</strong>
+                {!loading && !isClosed && allGroups.length > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-200 px-1 text-[10px] font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                    {allGroups.length}
+                  </span>
+                )}
+              </span>
               <ChevronDown size={14} className="surface-connections-chevron shrink-0 text-slate-500" aria-hidden="true" />
             </div>
+            <p className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate w-full min-w-0 max-w-full">
+              {isClosed
+                ? networkId === "regional" ? "GO Bus connections" : "TTC bus & streetcar connections"
+                : loading
+                  ? "Checking connections"
+                  : surfaceSourceSummary(snapshot)}
+            </p>
           </div>
 
           {!loading && !isClosed && pinnedGroups.length > 0 && (
             <div
-              className="surface-connections-collapsed-pinned mt-2 flex flex-col gap-1.5"
+              className="surface-connections-collapsed-pinned mt-2 flex w-full min-w-0 max-w-full flex-col gap-1.5 overflow-hidden"
               onClick={(event) => event.stopPropagation()}
             >
               {pinnedGroups.map((group, index) => (
@@ -397,7 +441,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
           )}
         </summary>
 
-        <div className="surface-connections-content pt-2">
+        <div className="surface-connections-content w-full min-w-0 max-w-full overflow-hidden pt-2">
           {isClosed ? (
             <div className="rounded-md border border-black/10 bg-white/60 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
               <p className="text-xs font-semibold leading-snug text-slate-500 dark:text-slate-400">
@@ -410,7 +454,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
               <LoaderCircle size={15} className="animate-spin text-slate-500" aria-label="Loading surface connections" />
             </div>
           ) : snapshot.availability === "available" && baySections.length > 0 ? (
-            <div className="flex flex-col gap-2" aria-label="Upcoming surface connection arrivals">
+            <div className="flex w-full min-w-0 max-w-full flex-col gap-2 overflow-hidden" aria-label="Upcoming surface connection arrivals">
               {baySections.map((baySection, bayIndex) => (
                 <Fragment key={baySection.bayKey}>
                   {bayIndex > 0 && (
@@ -420,7 +464,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                       data-arrival-line-divider
                     />
                   )}
-                  <div className="flex flex-col gap-1.5" data-surface-bay={baySection.bayKey}>
+                  <div className="flex w-full min-w-0 max-w-full flex-col gap-1.5 overflow-hidden" data-surface-bay={baySection.bayKey}>
                     {baySection.groups.map((group, groupIndex) => {
                       const isPinned = pinnedLineIds.includes(`surface:${group.route}`) || pinnedLineIds.includes(group.route);
                       const isHoveredPin = hoveredPinRoute === group.route;

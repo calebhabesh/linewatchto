@@ -110,7 +110,7 @@ describe("My Stations UI", () => {
     assert.doesNotMatch(panel, />Condensed</);
     assert.match(panel, /saved-commute-impact-summary/);
     assert.match(panel, /saved-commute-impact-summary-chip/);
-    assert.match(styles, /\.saved-station-disruption-chips > span\s*\{[^}]*border-radius:\s*6px;[^}]*font-size:\s*0\.78rem;[^}]*gap:\s*0\.35rem;[^}]*line-height:\s*1;[^}]*min-height:\s*29px;[^}]*padding:\s*0\.35rem 0\.65rem;/s);
+    assert.match(styles, /\.saved-station-disruption-chips > span\s*\{[^}]*border-radius:\s*5px;[^}]*font-size:\s*0\.68rem;[^}]*gap:\s*0\.25rem;[^}]*line-height:\s*1;[^}]*min-height:\s*22px;[^}]*padding:\s*0\.2rem 0\.45rem;/s);
     assert.match(panel, /SAVED_STATION_OUTAGE_ICON_SRC/);
     assert.match(panel, /\/assets\/linewatch\/outages\/elevator\.svg/);
     assert.match(panel, /\/assets\/linewatch\/outages\/escalator\.svg/);
