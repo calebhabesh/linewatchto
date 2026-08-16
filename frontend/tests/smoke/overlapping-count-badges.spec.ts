@@ -40,7 +40,7 @@ async function expectMapVectorGlyphInsideBadge(marker: Locator) {
     const badgeBounds = circle.getBoundingClientRect();
     const glyphBounds = glyph?.getBoundingClientRect();
     return {
-      glyphRectCount: glyph?.querySelectorAll("rect").length ?? 0,
+      glyphPathCount: glyph?.querySelectorAll("path").length ?? 0,
       liveTextCount: group?.querySelectorAll("text").length ?? -1,
       leftInset: glyphBounds ? glyphBounds.left - badgeBounds.left : -1,
       rightInset: glyphBounds ? badgeBounds.right - glyphBounds.right : -1,
@@ -50,7 +50,7 @@ async function expectMapVectorGlyphInsideBadge(marker: Locator) {
   }));
 
   for (const result of results) {
-    expect(result.glyphRectCount).toBeGreaterThan(0);
+    expect(result.glyphPathCount).toBeGreaterThan(0);
     expect(result.liveTextCount).toBe(0);
     expect(result.leftInset).toBeGreaterThanOrEqual(0);
     expect(result.rightInset).toBeGreaterThanOrEqual(0);

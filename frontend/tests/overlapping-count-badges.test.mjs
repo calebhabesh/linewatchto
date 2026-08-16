@@ -39,7 +39,8 @@ describe("overlapping count badge sizing", () => {
     assert.match(ttcMap, /<MapOverlapIndicator/);
     assert.match(regionalMap, /<MapOverlapIndicator/);
     assert.match(mapBadge, /function MapBadgeVectorLabel/);
-    assert.match(mapBadge, /MAP_BADGE_DIGIT_SEGMENTS/);
+    assert.match(mapBadge, /MAP_BADGE_GLYPH_OUTLINES/);
+    assert.match(mapBadge, /Fixed Inter Black outlines/);
     assert.match(mapBadge, /className="overlap-indicator-vector-label"/);
     assert.doesNotMatch(mapBadge, /<text(?:\s|>)/);
     assert.match(css, /\.overlap-indicator-vector-label\s*\{[^}]*fill:\s*#ffffff;/s);
