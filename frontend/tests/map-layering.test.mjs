@@ -623,12 +623,14 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*stroke:\s*#FEEC41;/s);
     assert.match(globalCss, /\.overlap-indicator-type-icon\.delay\s*\{[^}]*color:\s*#FEEC41;/s);
     assert.match(globalCss, /\.overlap-indicator-count-badge\s*\{[^}]*fill:\s*#ef4444;/s);
-    assert.match(globalCss, /\.overlap-indicator-count-text\s*\{[^}]*fill:\s*#ffffff;/s);
+    assert.match(globalCss, /\.overlap-indicator-vector-label\s*\{[^}]*fill:\s*#ffffff;/s);
+    assert.match(overlapIndicatorSource, /function MapBadgeVectorLabel/);
+    assert.doesNotMatch(overlapIndicatorSource, /<text(?:\s|>)/);
     assert.match(overlapIndicatorSource, /const radius = large \? 26 : 18;/);
     assert.match(overlapIndicatorSource, /const offset = large \? 35 : 28;/);
     assert.match(overlapIndicatorSource, /key=\{`\$\{kind\}-count`\}/);
-    assert.match(globalCss, /\.overlap-indicator-count-text\.large\s*\{[^}]*font-size:\s*32px;/s);
-    assert.match(globalCss, /\.overlap-indicator-count-text\.mixed\s*\{[^}]*font-size:\s*22px;/s);
+    assert.match(overlapIndicatorSource, /targetHeight=\{large \? 32 : 22\}/);
+    assert.match(overlapIndicatorSource, /maxWidth=\{radius \* 2 - 8\}/);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#0ea5e9/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.suspension,\s*\.overlap-indicator-badge\.planned-closure/);
     assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);

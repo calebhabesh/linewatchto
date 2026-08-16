@@ -6767,30 +6767,14 @@ button {
   color: #3b82f6;
 }
 
-.overlap-indicator-more {
+.overlap-indicator-vector-label {
   fill: #ffffff;
-  font-size: 22px;
-  font-weight: 900;
 }
 
 .overlap-indicator-count-badge {
   fill: #ef4444;
   stroke: rgba(15, 23, 42, 0.95);
   stroke-width: 2.5;
-}
-
-.overlap-indicator-count-text {
-  fill: #ffffff;
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.overlap-indicator-count-text.large {
-  font-size: 32px;
-}
-
-.overlap-indicator-count-text.mixed {
-  font-size: 22px;
 }
 
 .overlap-impact-ref {

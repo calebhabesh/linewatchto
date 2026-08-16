@@ -29,6 +29,36 @@ async function expectGlyphInsideBadge(badge: Locator) {
   expect(bounds.bottomInset).toBeGreaterThanOrEqual(0);
 }
 
+async function expectMapVectorGlyphInsideBadge(marker: Locator) {
+  await expect(marker).toBeVisible();
+  const countBadges = marker.locator(".overlap-indicator-count-badge");
+  expect(await countBadges.count()).toBeGreaterThan(0);
+
+  const results = await countBadges.evaluateAll((circles) => circles.map((circle) => {
+    const group = circle.parentElement;
+    const glyph = group?.querySelector<SVGGraphicsElement>(".overlap-indicator-vector-label");
+    const badgeBounds = circle.getBoundingClientRect();
+    const glyphBounds = glyph?.getBoundingClientRect();
+    return {
+      glyphRectCount: glyph?.querySelectorAll("rect").length ?? 0,
+      liveTextCount: group?.querySelectorAll("text").length ?? -1,
+      leftInset: glyphBounds ? glyphBounds.left - badgeBounds.left : -1,
+      rightInset: glyphBounds ? badgeBounds.right - glyphBounds.right : -1,
+      topInset: glyphBounds ? glyphBounds.top - badgeBounds.top : -1,
+      bottomInset: glyphBounds ? badgeBounds.bottom - glyphBounds.bottom : -1,
+    };
+  }));
+
+  for (const result of results) {
+    expect(result.glyphRectCount).toBeGreaterThan(0);
+    expect(result.liveTextCount).toBe(0);
+    expect(result.leftInset).toBeGreaterThanOrEqual(0);
+    expect(result.rightInset).toBeGreaterThanOrEqual(0);
+    expect(result.topInset).toBeGreaterThanOrEqual(0);
+    expect(result.bottomInset).toBeGreaterThanOrEqual(0);
+  }
+}
+
 test("overlapping count glyphs stay inside their badge through viewport and control transforms", async ({ page, request, isMobile }) => {
   await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
   await page.setViewportSize(isMobile ? { width: 412, height: 915 } : { width: 1280, height: 800 });
@@ -60,5 +90,43 @@ test("overlapping count glyphs stay inside their badge through viewport and cont
     await expectGlyphInsideBadge(badge);
     await page.setViewportSize({ width: 1100, height: 700 });
     await expectGlyphInsideBadge(badge);
+  }
+});
+
+test("TTC and GO/UP map overlap counts stay bounded through mobile compositor changes", async ({ page, request, isMobile }) => {
+  await page.setViewportSize(isMobile ? { width: 412, height: 915 } : { width: 1280, height: 800 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
+    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+  });
+
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+  await page.goto(openMapPreviewUrl);
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  const ttcMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+  await expectMapVectorGlyphInsideBadge(ttcMarker);
+
+  if (isMobile) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Rotate map" }).click();
+    await expectMapVectorGlyphInsideBadge(ttcMarker);
+    await page.getByRole("button", { name: "Exit rotated map" }).click();
+  }
+
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "regional-live" } });
+  await page.reload();
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  const regionalMarker = page.getByRole("button", {
+    name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/,
+  });
+  await expectMapVectorGlyphInsideBadge(regionalMarker);
+
+  if (isMobile) {
+    await page.setViewportSize({ width: 412, height: 915 });
+    await page.getByRole("button", { name: "Rotate map" }).click();
+    await expectMapVectorGlyphInsideBadge(regionalMarker);
   }
 });

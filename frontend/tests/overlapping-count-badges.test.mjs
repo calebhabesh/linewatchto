@@ -4,6 +4,9 @@ import { describe, it } from "node:test";
 
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const badge = readFileSync(new URL("../src/components/OverlappingCountBadge.tsx", import.meta.url), "utf8");
+const mapBadge = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
+const regionalMap = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const ttcMap = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const mobileNav = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const shell = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const stationOutageBadge = readFileSync(new URL("../src/components/StationOutageBadge.tsx", import.meta.url), "utf8");
@@ -30,5 +33,16 @@ describe("overlapping count badge sizing", () => {
     assert.match(shell, /<OverlappingCountBadge[\s\S]*className="desktop-menu-count-badge absolute/);
     assert.match(stationOutageBadge, /<OverlappingCountBadge className="station-search-outage-count" count=\{count\}/);
     assert.match(stationDetail, /<OverlappingCountBadge className="station-access-outage-count" count=\{count\}/);
+  });
+
+  it("renders shared TTC and GO/UP map counts as vector geometry without live glyph text", () => {
+    assert.match(ttcMap, /<MapOverlapIndicator/);
+    assert.match(regionalMap, /<MapOverlapIndicator/);
+    assert.match(mapBadge, /function MapBadgeVectorLabel/);
+    assert.match(mapBadge, /MAP_BADGE_DIGIT_SEGMENTS/);
+    assert.match(mapBadge, /className="overlap-indicator-vector-label"/);
+    assert.doesNotMatch(mapBadge, /<text(?:\s|>)/);
+    assert.match(css, /\.overlap-indicator-vector-label\s*\{[^}]*fill:\s*#ffffff;/s);
+    assert.doesNotMatch(css, /\.overlap-indicator-count-text/);
   });
 });
