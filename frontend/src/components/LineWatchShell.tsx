@@ -2886,7 +2886,7 @@ export function LineWatchShell({
             </div>
             {totalAlertCount > 0 && !menuVisible && (
               <OverlappingCountBadge
-                className="desktop-menu-count-badge absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-white shadow-md border border-white dark:border-[#12151c]"
+                className="desktop-menu-count-badge absolute -top-2.5 -right-2.5 flex h-[26px] min-w-[26px] items-center justify-center rounded-full bg-red-500 px-1 text-white shadow-md border border-white dark:border-[#12151c]"
                 count={totalAlertCount}
               />
             )}
