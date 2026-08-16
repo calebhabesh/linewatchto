@@ -367,9 +367,11 @@ public class TtcAlertStore {
         );
         batchUpdate("""
             insert into alert_active_periods (
-                alert_id, source_period_id, starts_at, ends_at, sort_order
+                alert_id, source_period_id, starts_at, ends_at, sort_order,
+                source_current_continuous
             ) values (
-                :alertId, :sourcePeriodId, :startsAt, :endsAt, :sortOrder
+                :alertId, :sourcePeriodId, :startsAt, :endsAt, :sortOrder,
+                :sourceCurrentContinuous
             )
             """, periods.stream()
                 .map(period -> new MapSqlParameterSource()
@@ -377,13 +379,15 @@ public class TtcAlertStore {
                     .addValue("sourcePeriodId", period.sourcePeriodId())
                     .addValue("startsAt", period.startsAt())
                     .addValue("endsAt", period.endsAt())
-                    .addValue("sortOrder", period.sortOrder()))
+                    .addValue("sortOrder", period.sortOrder())
+                    .addValue("sourceCurrentContinuous", period.sourceCurrentContinuous()))
                 .toList());
     }
 
     private List<NormalizedAlertPeriod> findAlertPeriods(String alertId) {
         return jdbc.query("""
-            select source_period_id, starts_at, ends_at, sort_order
+            select source_period_id, starts_at, ends_at, sort_order,
+                   source_current_continuous
             from alert_active_periods
             where alert_id = :alertId
             order by sort_order asc
@@ -392,7 +396,8 @@ public class TtcAlertStore {
                 rs.getString("source_period_id"),
                 rs.getObject("starts_at", OffsetDateTime.class),
                 rs.getObject("ends_at", OffsetDateTime.class),
-                rs.getInt("sort_order")
+                rs.getInt("sort_order"),
+                rs.getBoolean("source_current_continuous")
             )
         );
     }
@@ -491,7 +496,8 @@ public class TtcAlertStore {
             incoming.sourcePeriodId(),
             startsAt,
             endsAt,
-            incoming.sortOrder()
+            incoming.sortOrder(),
+            incoming.sourceCurrentContinuous()
         );
     }
 

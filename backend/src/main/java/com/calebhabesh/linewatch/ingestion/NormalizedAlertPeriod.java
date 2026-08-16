@@ -6,5 +6,15 @@ public record NormalizedAlertPeriod(
     String sourcePeriodId,
     OffsetDateTime startsAt,
     OffsetDateTime endsAt,
-    int sortOrder
-) {}
+    int sortOrder,
+    boolean sourceCurrentContinuous
+) {
+    public NormalizedAlertPeriod(
+        String sourcePeriodId,
+        OffsetDateTime startsAt,
+        OffsetDateTime endsAt,
+        int sortOrder
+    ) {
+        this(sourcePeriodId, startsAt, endsAt, sortOrder, false);
+    }
+}

@@ -389,7 +389,8 @@ public class AlertDashboardService {
                 "parent",
                 alert.getActivePeriodStart(),
                 alert.getActivePeriodEnd(),
-                0
+                0,
+                false
             ));
         List<AlertActivePeriodRepository.AlertPeriod> reliablePeriods = usablePeriods.stream()
             .filter(period -> isReliableClosureWindow(alert, period))
@@ -399,7 +400,9 @@ public class AlertDashboardService {
         String windowDates = closureWindowDates(reliablePeriods, nightly, now);
 
         Optional<AlertActivePeriodRepository.AlertPeriod> active = reliablePeriods.stream()
-            .filter(period -> !isParentPeriod(period) || isBoundedSingleWindow(period))
+            .filter(period -> !isParentPeriod(period)
+                || isBoundedSingleWindow(period)
+                || period.sourceCurrentContinuous())
             .filter(period -> startsAtOrBefore(period.startsAt(), now))
             .filter(period -> endsAfter(period.endsAt(), now))
             .findFirst();
@@ -436,6 +439,9 @@ public class AlertDashboardService {
     ) {
         if (!isStructurallyValidClosureWindow(period)) {
             return false;
+        }
+        if (period.sourceCurrentContinuous()) {
+            return true;
         }
         if (!isParentPeriod(period) || isBoundedSingleWindow(period)) {
             return true;

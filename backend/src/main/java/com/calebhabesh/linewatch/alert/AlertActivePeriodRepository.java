@@ -22,7 +22,8 @@ public class AlertActivePeriodRepository {
             return Map.of();
         }
         return jdbc.query("""
-            select alert_id, source_period_id, starts_at, ends_at, sort_order
+            select alert_id, source_period_id, starts_at, ends_at, sort_order,
+                   source_current_continuous
             from alert_active_periods
             where alert_id in (:alertIds)
             order by alert_id asc, sort_order asc
@@ -32,7 +33,8 @@ public class AlertActivePeriodRepository {
                 rs.getString("source_period_id"),
                 rs.getObject("starts_at", OffsetDateTime.class),
                 rs.getObject("ends_at", OffsetDateTime.class),
-                rs.getInt("sort_order")
+                rs.getInt("sort_order"),
+                rs.getBoolean("source_current_continuous")
             )
         ).stream().collect(Collectors.groupingBy(AlertPeriod::alertId));
     }
@@ -42,6 +44,17 @@ public class AlertActivePeriodRepository {
         String sourcePeriodId,
         OffsetDateTime startsAt,
         OffsetDateTime endsAt,
-        int sortOrder
-    ) {}
+        int sortOrder,
+        boolean sourceCurrentContinuous
+    ) {
+        public AlertPeriod(
+            String alertId,
+            String sourcePeriodId,
+            OffsetDateTime startsAt,
+            OffsetDateTime endsAt,
+            int sortOrder
+        ) {
+            this(alertId, sourcePeriodId, startsAt, endsAt, sortOrder, false);
+        }
+    }
 }

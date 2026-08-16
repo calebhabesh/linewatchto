@@ -84,7 +84,8 @@ final class TtcPlannedClosureWindowReconciler {
                         existing.sourcePeriodId(),
                         existing.startsAt(),
                         derivedEnd,
-                        existing.sortOrder()
+                        existing.sortOrder(),
+                        existing.sourceCurrentContinuous()
                     ));
                     return alert.withPeriods(sortedPeriods(periods));
                 }
@@ -178,7 +179,8 @@ final class TtcPlannedClosureWindowReconciler {
             period.sourcePeriodId(),
             period.startsAt(),
             period.startsAt().plus(representativeDuration),
-            period.sortOrder()
+            period.sortOrder(),
+            period.sourceCurrentContinuous()
         );
     }
 

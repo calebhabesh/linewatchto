@@ -42,4 +42,16 @@ class AlertIngestionSchemaMigrationTest {
             assertThat(sql).contains("chk_alerts_impact_kind");
         }
     }
+
+    @Test
+    void v66PersistsSourceConfirmedContinuousCurrentClosurePeriods() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+                "/db/migration/V66__ttc_continuous_current_closure_periods.sql")) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+
+            assertThat(sql).contains("alter table alert_active_periods");
+            assertThat(sql).contains("source_current_continuous boolean not null default false");
+        }
+    }
 }

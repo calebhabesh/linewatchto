@@ -1,0 +1,47 @@
+{
+  "total": 1,
+  "lastUpdated": "2026-08-14T23:59:02.013Z",
+  "routes": [
+    {
+      "id": "synthetic-continuous-closure",
+      "priority": 0,
+      "alertType": "Planned",
+      "lastUpdated": "2026-08-14T23:59:02.013Z",
+      "activePeriod": {
+        "start": "2026-08-14T23:59:00Z",
+        "end": "2026-08-17T03:30:00Z"
+      },
+      "activePeriodGroup": ["Current", "Weekend"],
+      "routeOrder": 1,
+      "route": "1",
+      "routeBranch": "",
+      "routeTypeSrc": "400",
+      "routeType": "Subway",
+      "stopStart": "Sheppard West",
+      "stopEnd": "St Clair West",
+      "stopStartId": "11860",
+      "stopEndId": "8195",
+      "stops": ["11860", "1652", "14580", "6507", "14593", "6366", "8195"],
+      "title": "Synthetic scenario: no subway service between Sheppard West and St Clair West due to a test track-work closure. Shuttle buses are running.",
+      "description": "",
+      "url": "",
+      "urlPlaceholder": "",
+      "accessibility": "Routes",
+      "effect": "NO_SERVICE",
+      "effectDesc": "Subway closure",
+      "severityOrder": 1,
+      "severity": "Critical",
+      "customHeaderText": null,
+      "headerText": "Line 1 Yonge-University: Synthetic scenario: no subway service between Sheppard West and St Clair West due to a test track-work closure. Shuttle buses are running.",
+      "direction": "Both ways",
+      "cause": "MAINTENANCE",
+      "causeDescription": "CLOSURE - Planned Track Work",
+      "stopIDList": ["Sheppard West", "Wilson", "Yorkdale", "Lawrence West", "Glencairn", "Cedarvale", "St Clair West"],
+      "stopNameList": [],
+      "stopRouteList": [],
+      "shuttleType": "Running",
+      "childAlerts": []
+    }
+  ],
+  "accessibility": []
+}

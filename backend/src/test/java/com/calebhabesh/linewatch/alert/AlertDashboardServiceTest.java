@@ -746,6 +746,103 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void sourceConfirmedContinuousWeekendClosureRemainsPlannedAndAlsoBecomesActive() {
+        MutableClock weekendClock = new MutableClock(
+            Instant.parse("2026-08-15T03:58:00Z"),
+            ZoneOffset.UTC
+        );
+        AlertDashboardService weekendService = new AlertDashboardService(
+            alertRepository,
+            lineSegmentRepository,
+            new AlertSegmentMatcher(),
+            new ReducedSpeedZoneProjector(
+                new AlertSegmentMatcher(),
+                new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()
+            ),
+            ingestionFreshness,
+            alertActivePeriodRepository,
+            weekendClock
+        );
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity closure = withLine(alert(
+            "ttc-route-synthetic-continuous-closure",
+            "planned-closure",
+            "planned",
+            "Synthetic scenario: no subway service between Sheppard West and St Clair West due to a test track-work closure. Shuttle buses are running.",
+            "",
+            "sheppard-west",
+            "st-clair-west",
+            OffsetDateTime.parse("2026-08-15T03:59:02.013Z"),
+            "Running"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-08-15T03:59:00Z")
+        );
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-08-17T07:30:00Z")
+        );
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(closure));
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of());
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment(
+                "line-1-sheppard-west-st-clair-west",
+                "line-1",
+                "sheppard-west",
+                "st-clair-west",
+                10
+            )
+        ));
+        when(alertActivePeriodRepository.findByAlertIds(List.of("ttc-route-synthetic-continuous-closure")))
+            .thenReturn(Map.of("ttc-route-synthetic-continuous-closure", List.of(
+                new AlertActivePeriodRepository.AlertPeriod(
+                    "ttc-route-synthetic-continuous-closure",
+                    "parent",
+                    OffsetDateTime.parse("2026-08-15T03:59:00Z"),
+                    OffsetDateTime.parse("2026-08-17T07:30:00Z"),
+                    0,
+                    true
+                )
+            )));
+
+        assertThat(weekendService.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.activeNow()).isFalse();
+            assertThat(dto.timingStatus()).isEqualTo("upcoming");
+        });
+        assertThat(weekendService.activeAlerts()).isEmpty();
+
+        weekendClock.advanceTo("2026-08-16T21:00:00Z");
+
+        assertThat(weekendService.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("ttc-route-synthetic-continuous-closure");
+            assertThat(dto.activeNow()).isTrue();
+            assertThat(dto.timingStatus()).isEqualTo("active-now");
+            assertThat(dto.window()).isEqualTo("Fri 11:59 PM - Mon 3:30 AM");
+        });
+        assertThat(weekendService.activeAlerts()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("ttc-route-synthetic-continuous-closure");
+            assertThat(dto.severity()).isEqualTo("planned");
+            assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-08-15T03:59:00Z"));
+        });
+        assertThat(weekendService.activeSegmentImpacts()
+            .get("line-1-sheppard-west-st-clair-west"))
+            .singleElement()
+            .satisfies(impact -> assertThat(impact.kind()).isEqualTo("suspension"));
+
+        weekendClock.advanceTo("2026-08-17T07:30:01Z");
+
+        assertThat(weekendService.plannedClosures()).isEmpty();
+        assertThat(weekendService.activeAlerts()).isEmpty();
+        assertThat(weekendService.activeSegmentImpacts())
+            .doesNotContainKey("line-1-sheppard-west-st-clair-west");
+    }
+
+    @Test
     void activeNightlyClosureRemainsScheduledAndAlsoDrivesCurrentImpactViews() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity alert = withLine(alert(

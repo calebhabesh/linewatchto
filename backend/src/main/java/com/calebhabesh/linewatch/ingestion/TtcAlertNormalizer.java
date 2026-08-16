@@ -30,6 +30,15 @@ public class TtcAlertNormalizer {
         Pattern.compile("^\\s*([^:]+):\\s+.+$");
     private static final Pattern DEGRADED_SERVICE_TEXT =
         Pattern.compile("\\b(?:delays?|slowdowns?)\\b");
+    private static final Pattern CURRENT_CONTINUOUS_CLOSURE_TEXT = Pattern.compile(
+        "\\bthere (?:is|are) no (?:subway|lrt|train )?service\\b"
+            + "|\\b(?:subway|lrt) service (?:is|remains) "
+            + "(?:suspended|closed|not running)\\b"
+    );
+    private static final Pattern FUTURE_OR_RECURRING_CLOSURE_TEXT = Pattern.compile(
+        "\\bthere will be\\b|\\bwill be no\\b|\\bwill start\\b|\\bstarting\\b"
+            + "|\\bnightly\\b|\\bclosure windows?\\b|\\bearly access\\b"
+    );
     private static final Duration MAX_RECURRING_CLOSURE_WINDOW = Duration.ofHours(18);
 
     private final StationAliasResolver stationAliasResolver;
@@ -364,7 +373,8 @@ public class TtcAlertNormalizer {
                 "parent",
                 activePeriodStart(record),
                 activePeriodEnd(record),
-                0
+                0,
+                isExplicitCurrentContinuousClosure(record)
             ));
         }
 
@@ -381,6 +391,29 @@ public class TtcAlertNormalizer {
             }
         }
         return stabilizeRecurringClosurePeriods(record, periods);
+    }
+
+    private boolean isExplicitCurrentContinuousClosure(TtcAlertRecord record) {
+        if (!isPlannedClosure(record)
+            || !equalsIgnoreCase(record.effect(), "NO_SERVICE")
+            || !containsIgnoreCase(record.activePeriodGroup(), "Current")
+            || record.activePeriod() == null
+            || record.activePeriod().start() == null
+            || record.activePeriod().end() == null
+            || !record.activePeriod().end().isAfter(record.activePeriod().start())) {
+            return false;
+        }
+
+        String text = sourceText(record);
+        boolean currentOperationalEvidence = CURRENT_CONTINUOUS_CLOSURE_TEXT.matcher(text).find()
+            || equalsIgnoreCase(record.shuttleType(), "Running");
+        return currentOperationalEvidence
+            && !FUTURE_OR_RECURRING_CLOSURE_TEXT.matcher(text).find();
+    }
+
+    private boolean containsIgnoreCase(List<String> values, String expected) {
+        return values != null && values.stream()
+            .anyMatch(value -> equalsIgnoreCase(value, expected));
     }
 
     private List<NormalizedAlertPeriod> stabilizeRecurringClosurePeriods(
@@ -421,7 +454,8 @@ public class TtcAlertNormalizer {
                 period.sourcePeriodId(),
                 period.startsAt(),
                 canonicalEnd,
-                period.sortOrder()
+                period.sortOrder(),
+                period.sourceCurrentContinuous()
             );
     }
 

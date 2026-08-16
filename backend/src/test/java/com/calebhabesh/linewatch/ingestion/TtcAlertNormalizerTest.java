@@ -82,6 +82,84 @@ class TtcAlertNormalizerTest {
     }
 
     @Test
+    void marksExplicitCurrentParentPeriodAsContinuousWeekendClosure() throws Exception {
+        String body = new String(
+            getClass().getResourceAsStream(
+                "/fixtures/ttc-synthetic-continuous-closure.json"
+            ).readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        TtcAlertRecord record = new TtcAlertClient(
+            RestClient.create(),
+            new ObjectMapper().findAndRegisterModules(),
+            new AlertIngestionProperties(),
+            new GtfsRtServiceAlertTextParser()
+        ).parse(body).routes().getFirst().record();
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.type()).isEqualTo("planned-closure");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.PLANNED_CLOSURE);
+        assertThat(alert.periods()).containsExactly(new NormalizedAlertPeriod(
+            "parent",
+            OffsetDateTime.parse("2026-08-15T03:59:00Z"),
+            OffsetDateTime.parse("2026-08-17T07:30:00Z"),
+            0,
+            true
+        ));
+    }
+
+    @Test
+    void doesNotTrustFutureOrRecurringParentPublicationEnvelopeAsContinuous() {
+        TtcAlertRecord record = new TtcAlertRecord(
+            "future-parent-envelope",
+            "Planned",
+            OffsetDateTime.parse("2026-08-14T10:00:00Z"),
+            new TtcAlertActivePeriod(
+                OffsetDateTime.parse("2026-08-14T10:00:00Z"),
+                OffsetDateTime.parse("2026-08-17T03:30:00Z")
+            ),
+            List.of("Current", "Weekend"),
+            "1",
+            "Subway",
+            "Sheppard West",
+            "St Clair West",
+            List.of("Sheppard West", "St Clair West"),
+            "There will be no subway service between Sheppard West and St Clair West stations "
+                + "starting Saturday due to planned track work.",
+            "",
+            "Line 1: Weekend closure",
+            "NO_SERVICE",
+            "Subway closure",
+            "Both ways",
+            "MAINTENANCE",
+            "CLOSURE - Planned Track Work",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Will Operate",
+            null,
+            null,
+            null,
+            null,
+            List.of()
+        );
+
+        NormalizedAlertPeriod period = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow()
+            .periods()
+            .getFirst();
+
+        assertThat(period.sourceCurrentContinuous()).isFalse();
+    }
+
+    @Test
     void collapsesRecurringClosureExpiryEnvelopesToTheirNightlyWindow() {
         TtcAlertRecord record = new TtcAlertRecord(
             "73253",
