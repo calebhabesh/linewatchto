@@ -253,15 +253,24 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /viewport\.getClientRects\(\)\.length > 0/);
   });
 
-  it("gives the network selector immediate pending and busy feedback before the map swap", () => {
+  it("finishes the network selector motion before handing off to the map swap", () => {
     assert.match(networkSelectorSource, /useState<NetworkId \| null>\(null\)/);
     assert.match(networkSelectorSource, /setPendingNetwork\(nextNetwork\)/);
+    assert.match(networkSelectorSource, /NETWORK_SELECTOR_ANIMATION_MS = 480/);
+    assert.match(networkSelectorSource, /setTimeout\([\s\S]*NETWORK_SELECTOR_ANIMATION_MS/);
+    assert.match(networkSelectorSource, /requestAnimationFrame\([\s\S]*requestAnimationFrame\([\s\S]*onChange\(nextNetwork\)/);
+    assert.ok(
+      networkSelectorSource.indexOf("setPendingNetwork(nextNetwork)")
+        < networkSelectorSource.indexOf("onChange(nextNetwork)"),
+    );
     assert.doesNotMatch(shellSource, /networkTransitionTarget, setNetworkTransitionTarget/);
     assert.match(networkSelectorSource, /const displayedNetwork = isTransitioning \? pendingNetwork : network/);
     assert.match(networkSelectorSource, /aria-busy=\{isTransitioning\}/);
     assert.match(networkSelectorSource, /data-network=\{displayedNetwork\}/);
     assert.match(networkSelectorSource, /disabled=\{isTransitioning\}/g);
-    assert.match(globalsCss, /transform 160ms cubic-bezier\(0\.22, 1, 0\.36, 1\)/);
+    assert.match(globalsCss, /transform 0\.48s cubic-bezier\(0\.34, 1\.56, 0\.64, 1\)/);
+    assert.doesNotMatch(networkSelectorSource, /ResizeObserver|offsetWidth|style\.setProperty/);
+    assert.match(globalsCss, /grid-template-columns:\s*repeat\(2, var\(--network-option-width\)\)/);
     assert.doesNotMatch(
       globalsCss.match(/\.network-selector-glider\s*\{([\s\S]*?)\}/)?.[1] ?? "",
       /transition:[^;]*width/,

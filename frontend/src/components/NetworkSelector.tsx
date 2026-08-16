@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NetworkId } from "../app/regional-data";
 
-const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+const NETWORK_SELECTOR_ANIMATION_MS = 480;
 
 export function NetworkSelector({
   network,
@@ -14,40 +14,55 @@ export function NetworkSelector({
   onChange: (network: NetworkId) => void;
   compactVertical?: boolean;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const ttcRef = useRef<HTMLButtonElement>(null);
-  const regionalRef = useRef<HTMLButtonElement>(null);
   const [pendingNetwork, setPendingNetwork] = useState<NetworkId | null>(null);
+  const pendingTargetRef = useRef<NetworkId | null>(null);
+  const transitionTimerRef = useRef<number | null>(null);
+  const transitionFrameRef = useRef<number | null>(null);
   const isTransitioning = pendingNetwork !== null && pendingNetwork !== network;
   const displayedNetwork = isTransitioning ? pendingNetwork : network;
 
   const requestNetworkChange = (nextNetwork: NetworkId) => {
     if (nextNetwork === displayedNetwork || isTransitioning) return;
+
+    pendingTargetRef.current = nextNetwork;
     setPendingNetwork(nextNetwork);
-    onChange(nextNetwork);
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onChange(nextNetwork);
+      return;
+    }
+
+    // Keep the switch outside the document View Transition capture window.
+    // Paint its landed state before handing off to the map swap.
+    transitionTimerRef.current = window.setTimeout(() => {
+      transitionTimerRef.current = null;
+      transitionFrameRef.current = window.requestAnimationFrame(() => {
+        transitionFrameRef.current = window.requestAnimationFrame(() => {
+          transitionFrameRef.current = null;
+          if (pendingTargetRef.current === nextNetwork) {
+            onChange(nextNetwork);
+          }
+        });
+      });
+    }, NETWORK_SELECTOR_ANIMATION_MS);
   };
 
-  useIsomorphicLayoutEffect(() => {
-    const updateDimensions = () => {
-      if (!containerRef.current || !ttcRef.current || !regionalRef.current) return;
-      const ttcW = ttcRef.current.offsetWidth;
-      const regW = regionalRef.current.offsetWidth;
-      const equalW = Math.max(ttcW, regW);
-      containerRef.current.style.setProperty("--ttc-width", `${equalW}px`);
-      containerRef.current.style.setProperty("--regional-width", `${equalW}px`);
-      containerRef.current.style.setProperty("--glider-offset", `${equalW + 4}px`);
-    };
+  useEffect(() => {
+    if (pendingNetwork !== network) return;
+    pendingTargetRef.current = null;
+  }, [network, pendingNetwork]);
 
-    updateDimensions();
-    const observer = new ResizeObserver(updateDimensions);
-    if (ttcRef.current) observer.observe(ttcRef.current);
-    if (regionalRef.current) observer.observe(regionalRef.current);
-    return () => observer.disconnect();
+  useEffect(() => () => {
+    if (transitionTimerRef.current !== null) {
+      window.clearTimeout(transitionTimerRef.current);
+    }
+    if (transitionFrameRef.current !== null) {
+      window.cancelAnimationFrame(transitionFrameRef.current);
+    }
   }, []);
 
   return (
     <div
-      ref={containerRef}
       className={`network-selector panel${compactVertical ? " network-selector--compact-vertical" : ""}`}
       role="group"
       aria-label="Select transit network"
@@ -57,7 +72,6 @@ export function NetworkSelector({
     >
       <div className="network-selector-glider" aria-hidden="true" />
       <button
-        ref={ttcRef}
         type="button"
         aria-pressed={displayedNetwork === "ttc"}
         disabled={isTransitioning}
@@ -69,7 +83,6 @@ export function NetworkSelector({
         <span className="network-accent-ridges" aria-hidden="true" />
       </button>
       <button
-        ref={regionalRef}
         type="button"
         aria-pressed={displayedNetwork === "regional"}
         disabled={isTransitioning}
