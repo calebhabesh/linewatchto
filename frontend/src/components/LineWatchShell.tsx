@@ -606,7 +606,9 @@ export function LineWatchShell({
     const currentView = activeViewRef.current;
     if (currentView === nextView) return;
     pushBrowserNavigationEntry();
-    viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
+    if (currentView !== "map") {
+      viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
+    }
     activeViewRef.current = nextView;
     setNavDirection("forward");
     setActiveView(nextView);
@@ -808,10 +810,14 @@ export function LineWatchShell({
             ? "map"
             : "more";
       const fallback: ActiveView = isMobile ? mobileFallback : "menu";
-      const previous = popViewHistory(viewHistoryRef.current, fallback);
+      let previous = popViewHistory(viewHistoryRef.current, fallback);
+      while (previous.view === "map" && previous.history.length > 0) {
+        previous = popViewHistory(previous.history, fallback);
+      }
+      const targetView: ActiveView = previous.view === "map" ? fallback : previous.view;
       viewHistoryRef.current = previous.history;
-      activeViewRef.current = previous.view;
-      setActiveView(previous.view);
+      activeViewRef.current = targetView;
+      setActiveView(targetView);
       setIsGoingBack(false);
       setSelection(null);
       setAccessibilityOutageTarget(null);
@@ -2320,7 +2326,9 @@ export function LineWatchShell({
       selectionBackBehaviorRef.current = "clear";
     } else {
       selectionBackBehaviorRef.current = "restore-view";
-      viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, targetView);
+      if (currentView !== "map") {
+        viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, targetView);
+      }
     }
     selectionRef.current = nextSelection;
     setSelection(nextSelection);

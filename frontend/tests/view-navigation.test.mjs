@@ -40,6 +40,14 @@ describe("view navigation history", () => {
   it("keeps a direct map selection on the map when no launching view exists", () => {
     assert.deepEqual(popViewHistory([], "map"), { history: [], view: "map" });
   });
+
+  it("navigates to the menu fallback on desktop when opening a submenu directly from the map", () => {
+    assert.deepEqual(popViewHistory([], "menu"), { history: [], view: "menu" });
+  });
+
+  it("navigates to the status fallback on mobile when opening a submenu directly from the map", () => {
+    assert.deepEqual(popViewHistory([], "status"), { history: [], view: "status" });
+  });
 });
 
 describe("browser back actions", () => {
