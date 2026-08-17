@@ -215,6 +215,12 @@ describe("account UI source", () => {
     );
     assert.match(globalCss, /\.dark \.saved-commute-impact-summary-chip\.kind-delay\s*\{(?=[^}]*#FEEC41)(?=[^}]*rgba\(254, 236, 65, 0\.14\))[^}]*\}/s);
     assert.match(savedCommutesSource, /selectedLeg\.impact\.matchedImpacts\.length === 0 \? \(/);
+    assert.match(savedCommutesSource, /saved-commute-impact-content-wrapper/);
+    assert.match(savedCommutesSource, /saved-commute-impact-content/);
+    assert.match(globalCss, /\.saved-commute-impact-content-wrapper\s*\{(?=[^}]*display:\s*grid;)(?=[^}]*grid-template-rows:\s*0fr;)(?=[^}]*transition:\s*grid-template-rows)[^}]*\}/s);
+    assert.match(globalCss, /\.saved-commute-impact-disclosure\[open\] \.saved-commute-impact-content-wrapper\s*\{[^}]*grid-template-rows:\s*1fr;/s);
+    assert.match(globalCss, /\.saved-commute-impact-content\s*\{(?=[^}]*opacity:\s*0;)(?=[^}]*transform:\s*translateY\(-6px\);)(?=[^}]*transition:)[^}]*\}/s);
+    assert.match(globalCss, /\.saved-commute-impact-summary-chevron\s*\{(?=[^}]*transition:\s*transform)[^}]*\}/s);
   });
 
   it("renders a prominent saved-commute map preview banner", () => {

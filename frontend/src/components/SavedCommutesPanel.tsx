@@ -1745,6 +1745,20 @@ export function SavedCommutesPanel({
                           <details
                             className="saved-commute-impact-disclosure"
                             open={isDisclosureOpen}
+                            onClick={(event) => {
+                              const summary = (event.target as HTMLElement).closest("summary");
+                              if (!summary) return;
+                              const details = event.currentTarget;
+                              if (details.open) {
+                                event.preventDefault();
+                                details.classList.add("collapsing");
+                                window.setTimeout(() => {
+                                  details.open = false;
+                                  details.classList.remove("collapsing");
+                                  handleToggleImpactDisclosure(disclosureKey, false);
+                                }, 220);
+                              }
+                            }}
                             onToggle={(event) => {
                               handleToggleImpactDisclosure(disclosureKey, event.currentTarget.open);
                             }}
@@ -1776,48 +1790,52 @@ export function SavedCommutesPanel({
                                 <ChevronDown className="saved-commute-impact-summary-chevron" size={16} aria-hidden="true" />
                               </span>
                             </summary>
-                            <ul className="saved-commute-impact-list">
-                              {selectedLeg.impact.matchedImpacts.map((impact) => (
-                                <li
-                                  key={`${impact.kind}-${impact.id}`}
-                                  className={impact.ignoredByRule ? "saved-commute-impact-ignored" : undefined}
-                                >
-                                  <span className="saved-commute-impact-icon" aria-hidden="true">
-                                    <ImpactIcon kind={impact.kind} activeClosure={impact.kind === "planned-closure" && impact.status === "current"} className="shrink-0" />
-                                  </span>
-                                  <div className="saved-commute-impact-copy">
-                                    <div className="saved-commute-impact-details">
-                                      <div className="saved-commute-impact-heading">
-                                        <strong className="text-slate-800 dark:text-slate-200">
-                                          <span className="saved-commute-impact-kind-label">
-                                            {toTitleCase(impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current"))}
-                                          </span>
-                                          {impact.ignoredByRule ? (
-                                            <em className="saved-commute-impact-filter-note">
-                                              (Ignored by Route Filter)
-                                            </em>
-                                          ) : null}
-                                        </strong>
-                                      </div>
-                                      <span className="text-slate-600 dark:text-slate-400">
-                                        {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}{impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
+                            <div className="saved-commute-impact-content-wrapper">
+                              <div className="saved-commute-impact-content">
+                                <ul className="saved-commute-impact-list">
+                                  {selectedLeg.impact.matchedImpacts.map((impact) => (
+                                    <li
+                                      key={`${impact.kind}-${impact.id}`}
+                                      className={impact.ignoredByRule ? "saved-commute-impact-ignored" : undefined}
+                                    >
+                                      <span className="saved-commute-impact-icon" aria-hidden="true">
+                                        <ImpactIcon kind={impact.kind} activeClosure={impact.kind === "planned-closure" && impact.status === "current"} className="shrink-0" />
                                       </span>
-                                    </div>
-                                    <div className="saved-commute-impact-action">
-                                      <button
-                                        type="button"
-                                        className="saved-commute-map-action saved-commute-impact-map-button"
-                                        onClick={() => handleViewImpactOnPath(commute, selectedLeg.id, impact)}
-                                        aria-label={`View ${impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current")} on the map for ${commute.label}`}
-                                      >
-                                        <MapPinned size={12} aria-hidden="true" />
-                                        View on Map
-                                      </button>
-                                    </div>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
+                                      <div className="saved-commute-impact-copy">
+                                        <div className="saved-commute-impact-details">
+                                          <div className="saved-commute-impact-heading">
+                                            <strong className="text-slate-800 dark:text-slate-200">
+                                              <span className="saved-commute-impact-kind-label">
+                                                {toTitleCase(impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current"))}
+                                              </span>
+                                              {impact.ignoredByRule ? (
+                                                <em className="saved-commute-impact-filter-note">
+                                                  (Ignored by Route Filter)
+                                                </em>
+                                              ) : null}
+                                            </strong>
+                                          </div>
+                                          <span className="text-slate-600 dark:text-slate-400">
+                                            {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}{impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
+                                          </span>
+                                        </div>
+                                        <div className="saved-commute-impact-action">
+                                          <button
+                                            type="button"
+                                            className="saved-commute-map-action saved-commute-impact-map-button"
+                                            onClick={() => handleViewImpactOnPath(commute, selectedLeg.id, impact)}
+                                            aria-label={`View ${impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current")} on the map for ${commute.label}`}
+                                          >
+                                            <MapPinned size={12} aria-hidden="true" />
+                                            View on Map
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
                           </details>
                         );
                       })() : null}

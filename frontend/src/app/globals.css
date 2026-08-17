@@ -7334,6 +7334,18 @@ img.transit-line-badge {
   min-height: 28px;
   padding: 0.25rem 0.35rem 0.25rem 0.7rem;
   text-transform: uppercase;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 140ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease;
+  user-select: none;
+}
+
+.saved-commute-impact-summary:hover .saved-commute-impact-summary-action {
+  background: rgba(100, 116, 139, 0.18);
+  border-color: rgba(148, 163, 184, 0.45);
+  transform: translateY(-1px);
+}
+
+.saved-commute-impact-summary:active .saved-commute-impact-summary-action {
+  transform: translateY(0) scale(0.97);
 }
 
 .saved-commute-impact-summary-action-expanded {
@@ -7343,7 +7355,7 @@ img.transit-line-badge {
 .saved-commute-impact-summary-chevron {
   color: currentColor;
   flex: 0 0 auto;
-  transition: transform 160ms ease;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .saved-commute-impact-disclosure[open] .saved-commute-impact-summary-action-collapsed {
@@ -7358,16 +7370,80 @@ img.transit-line-badge {
   transform: rotate(180deg);
 }
 
+.saved-commute-impact-disclosure.collapsing .saved-commute-impact-summary-action-collapsed {
+  display: inline;
+}
+
+.saved-commute-impact-disclosure.collapsing .saved-commute-impact-summary-action-expanded {
+  display: none;
+}
+
+.saved-commute-impact-disclosure.collapsing .saved-commute-impact-summary-chevron {
+  transform: rotate(0deg);
+}
+
 .saved-commute-impact-disclosure[open] .saved-commute-impact-summary {
   border-bottom: 1px solid rgba(100, 116, 139, 0.16);
+}
+
+.saved-commute-impact-disclosure.collapsing .saved-commute-impact-summary {
+  border-bottom-color: transparent;
+}
+
+.saved-commute-impact-content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  will-change: grid-template-rows;
+}
+
+.saved-commute-impact-disclosure[open] .saved-commute-impact-content-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.saved-commute-impact-disclosure.collapsing .saved-commute-impact-content-wrapper {
+  grid-template-rows: 0fr;
+}
+
+.saved-commute-impact-content {
+  min-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 190ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.saved-commute-impact-disclosure[open] .saved-commute-impact-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.saved-commute-impact-disclosure.collapsing .saved-commute-impact-content {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .saved-commute-impact-disclosure[open] .saved-commute-impact-list {
   padding: 0.75rem 0.15rem 0.85rem;
 }
 
-.motion-paused .saved-commute-impact-summary-chevron {
-  transition: none;
+.motion-paused .saved-commute-impact-summary-chevron,
+.motion-paused .saved-commute-impact-summary-action,
+.motion-paused .saved-commute-impact-content-wrapper,
+.motion-paused .saved-commute-impact-content {
+  transition: none !important;
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saved-commute-impact-summary-chevron,
+  .saved-commute-impact-summary-action,
+  .saved-commute-impact-content-wrapper,
+  .saved-commute-impact-content {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 @media (max-width: 30rem) {
@@ -14613,10 +14689,10 @@ img.transit-line-badge {
 .commute-path-preview-chip {
   align-items: center;
   background: rgba(248, 250, 252, 0.94);
-  border: 1px solid rgba(29, 78, 216, 0.28);
+  border: 1.5px solid rgba(29, 78, 216, 0.45);
   border-radius: 8px;
   bottom: calc(1.5rem + 64px + 28px);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(29, 78, 216, 0.2);
   color: rgb(15, 23, 42);
   display: flex;
   gap: 1rem;
@@ -14645,9 +14721,9 @@ img.transit-line-badge {
 }
 
 .commute-path-preview-chip button {
-  background: rgb(15, 23, 42);
+  background: #dc2626;
   border-radius: 7px;
-  color: white;
+  color: #ffffff;
   flex: 0 0 auto;
   font-size: 0.68rem;
   font-weight: 900;
@@ -14659,8 +14735,8 @@ img.transit-line-badge {
 }
 
 .commute-path-preview-chip button:hover {
-  background: #1e3a8a;
-  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.35);
+  background: #b91c1c;
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.4);
 }
 
 .commute-path-preview-chip button:active {
@@ -14670,7 +14746,8 @@ img.transit-line-badge {
 .dark .commute-path-preview-chip,
 .high-contrast .commute-path-preview-chip {
   background: rgba(15, 23, 42, 0.94);
-  border-color: rgba(29, 78, 216, 0.34);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.2);
   color: rgb(248, 250, 252);
 }
 
@@ -14681,15 +14758,15 @@ img.transit-line-badge {
 
 .dark .commute-path-preview-chip button,
 .high-contrast .commute-path-preview-chip button {
-  background: rgb(226, 232, 240);
-  color: rgb(15, 23, 42);
+  background: #ef4444;
+  color: #ffffff;
 }
 
 .dark .commute-path-preview-chip button:hover,
 .high-contrast .commute-path-preview-chip button:hover {
-  background: #ffffff;
-  color: rgb(15, 23, 42);
-  box-shadow: 0 0 10px rgba(147, 197, 253, 0.4);
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
 .dark .commute-path-preview-chip button:active,
@@ -14734,12 +14811,18 @@ img.transit-line-badge {
   transform: none;
   width: 100%;
   z-index: 1;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  border: 1.5px solid rgba(29, 78, 216, 0.45);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(29, 78, 216, 0.2);
 }
 
-.dark .commute-path-preview-chip.commute-path-preview-embedded,
+.dark .commute-path-preview-chip.commute-path-preview-embedded {
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
 .high-contrast .commute-path-preview-chip.commute-path-preview-embedded {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #ffffff;
 }
 
 .commute-path-preview-chip.commute-path-preview-embedded span {
