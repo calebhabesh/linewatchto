@@ -608,7 +608,7 @@ function SavedStationRow({
                                     && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
                                   const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown: detailed });
                                   const arrivalTileClassName = [
-                                    "relative flex min-h-[60px] sm:min-h-[64px] flex-col items-center justify-center rounded-md border px-1.5 pt-3 pb-1.5 text-center transition-colors",
+                                    "relative flex min-h-[64px] sm:min-h-[68px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-2 text-center transition-colors",
                                     due
                                       ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                       : soon
@@ -625,8 +625,8 @@ function SavedStationRow({
                                       <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
                                       <strong
                                         className={detailed
-                                          ? "whitespace-nowrap text-[13px] sm:text-sm font-black leading-none tracking-tight tabular-nums"
-                                          : "text-sm sm:text-base font-black leading-none tracking-tight"}
+                                          ? "mt-1.5 whitespace-nowrap text-[13px] sm:text-sm font-black leading-none tracking-tight tabular-nums"
+                                          : "mt-1.5 text-sm sm:text-base font-black leading-none tracking-tight"}
                                       >
                                         {timeDisplay.primary}
                                       </strong>
@@ -847,7 +847,7 @@ function SavedStationRow({
                                       const due = isArrivalDue(arrival, arrivalTick);
                                       const clockTime = formatArrivalClockTime(arrival.predictedAt);
                                       const arrivalTileClassName = [
-                                        "relative flex min-h-[60px] sm:min-h-[64px] flex-col items-center justify-center rounded-md border px-1.5 pt-3 pb-1.5 text-center transition-colors",
+                                        "relative flex min-h-[64px] sm:min-h-[68px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-2 text-center transition-colors",
                                         due
                                           ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                           : detailed
@@ -864,8 +864,8 @@ function SavedStationRow({
                                           <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
                                           <strong
                                             className={detailed && !due
-                                              ? "whitespace-nowrap text-[13px] sm:text-sm font-black leading-none tracking-tight tabular-nums"
-                                              : "text-sm sm:text-base font-black leading-none tracking-tight"}
+                                              ? "mt-1.5 whitespace-nowrap text-[13px] sm:text-sm font-black leading-none tracking-tight tabular-nums"
+                                              : "mt-1.5 text-sm sm:text-base font-black leading-none tracking-tight"}
                                           >
                                             {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
                                           </strong>
@@ -884,7 +884,7 @@ function SavedStationRow({
                                       );
                                     })
                                   : (
-                                    <div className="col-span-3 flex min-h-[52px] items-center justify-center rounded-md border border-dashed border-black/10 bg-slate-950/[0.02] text-xs font-semibold text-slate-500 dark:border-white/10 dark:bg-[#0f1117]/50 dark:text-slate-400">
+                                    <div className="col-span-3 flex min-h-[56px] items-center justify-center rounded-md border border-dashed border-black/10 bg-slate-950/[0.02] text-xs font-semibold text-slate-500 dark:border-white/10 dark:bg-[#0f1117]/50 dark:text-slate-400">
                                       <em>—</em>
                                     </div>
                                   )}
