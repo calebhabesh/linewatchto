@@ -18006,18 +18006,18 @@ img.transit-line-badge {
     z-index: 45;
     border-radius: 8px 8px 0 0;
     box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.38);
-    animation: mobile-impact-inspector-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: mobile-impact-inspector-enter 320ms cubic-bezier(0.18, 0.9, 0.26, 1) both;
     will-change: transform, opacity;
   }
 
   @keyframes mobile-impact-inspector-enter {
     from {
-      opacity: 0;
-      transform: translate3d(0, 28px, 0) scale(0.985);
+      opacity: 0.1;
+      transform: translate3d(0, 100%, 0);
     }
     to {
       opacity: 1;
-      transform: translate3d(0, 0, 0) scale(1);
+      transform: translate3d(0, 0, 0);
     }
   }
 
@@ -18103,7 +18103,7 @@ img.transit-line-badge {
   }
 
   .mobile-impact-inspector-scroll {
-    animation: mobile-impact-inspector-content-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: mobile-impact-inspector-content-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -18116,7 +18116,7 @@ img.transit-line-badge {
   @keyframes mobile-impact-inspector-content-in {
     from {
       opacity: 0;
-      transform: translate3d(0, 6px, 0);
+      transform: translate3d(0, 10px, 0);
     }
     to {
       opacity: 1;
@@ -18211,7 +18211,7 @@ img.transit-line-badge {
   }
 
   .mobile-impact-inspector-metadata {
-    animation: mobile-impact-inspector-meta-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: mobile-impact-inspector-meta-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
     border-top: 1px solid var(--border);
     padding-top: 8px;
     will-change: opacity, transform;
@@ -18220,7 +18220,7 @@ img.transit-line-badge {
   @keyframes mobile-impact-inspector-meta-enter {
     from {
       opacity: 0;
-      transform: translate3d(0, 8px, 0);
+      transform: translate3d(0, 12px, 0);
     }
     to {
       opacity: 1;
