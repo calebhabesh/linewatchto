@@ -591,7 +591,7 @@ function SavedStationRow({
                                   >
                                     {sourceLabel}
                                     {sourceLabel === "Live" ? (
-                                      <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={11.5} />
+                                      <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
                                     ) : sourceLabel === "Scheduled" ? (
                                       <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
                                     ) : sourceLabel === "Mixed" ? (
@@ -831,7 +831,7 @@ function SavedStationRow({
                                   >
                                     {sourceLabel}
                                     {sourceLabel === "Live" ? (
-                                      <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={11.5} />
+                                      <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
                                     ) : sourceLabel === "Scheduled" ? (
                                       <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
                                     ) : sourceLabel === "Mixed" ? (

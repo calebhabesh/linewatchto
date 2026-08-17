@@ -653,7 +653,7 @@ export function RegionalStationDetailPanel({
                                           >
                                             {statusLabel}
                                             {statusLabel === "Live" ? (
-                                              <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
+                                              <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
                                             ) : statusLabel === "Scheduled" ? (
                                               <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
                                             ) : statusLabel === "Mixed" ? (

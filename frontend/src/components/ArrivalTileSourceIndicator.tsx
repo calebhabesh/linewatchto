@@ -22,7 +22,7 @@ export function ArrivalTileSourceIndicator({
   isCompact = false,
 }: Props) {
   const isLive = status === "live";
-  const iconSize = size ?? (isCompact ? 10 : 11.5);
+  const iconSize = size ?? (isCompact ? 11.5 : 13);
   const positionClass = isCompact ? "top-1 right-1" : "top-1 right-1.5";
 
   return (

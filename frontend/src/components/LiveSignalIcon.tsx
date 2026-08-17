@@ -10,7 +10,7 @@ type Props = SVGProps<SVGSVGElement> & {
  * animate an outward-propagating signal wave.
  */
 export function LiveSignalIcon({
-  size = 14,
+  size = 15,
   className = "",
   ...props
 }: Props) {

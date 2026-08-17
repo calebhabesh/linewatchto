@@ -2522,67 +2522,79 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 @keyframes live-signal-dot-pulse {
-  0%, 10% {
-    opacity: 0.85;
-    transform: scale(0.92);
+  0%, 8% {
+    opacity: 0.8;
+    transform: scale(0.96);
+    filter: none;
   }
-  22% {
+  20%, 26% {
     opacity: 1;
-    transform: scale(1.18);
+    transform: scale(1.28);
+    filter: drop-shadow(0 0 2.5px currentColor);
   }
   38% {
-    opacity: 0.95;
+    opacity: 0.9;
     transform: scale(1);
+    filter: none;
   }
-  65%, 100% {
-    opacity: 0.85;
-    transform: scale(0.92);
+  52%, 100% {
+    opacity: 0.8;
+    transform: scale(0.96);
+    filter: none;
   }
 }
 
 @keyframes live-signal-wave-inner {
   0%, 14% {
-    opacity: 0.2;
+    opacity: 0.6;
     stroke-width: 2;
+    filter: none;
   }
   26% {
-    opacity: 0.45;
-    stroke-width: 2;
+    opacity: 0.82;
+    stroke-width: 2.2;
   }
-  38% {
+  38%, 44% {
     opacity: 1;
-    stroke-width: 2.3;
+    stroke-width: 2.6;
+    filter: drop-shadow(0 0 3px currentColor);
   }
-  54% {
-    opacity: 0.25;
-    stroke-width: 2;
+  56% {
+    opacity: 0.72;
+    stroke-width: 2.1;
+    filter: none;
   }
-  100% {
-    opacity: 0.2;
+  68%, 100% {
+    opacity: 0.6;
     stroke-width: 2;
+    filter: none;
   }
 }
 
 @keyframes live-signal-wave-outer {
-  0%, 30% {
-    opacity: 0.12;
+  0%, 28% {
+    opacity: 0.55;
     stroke-width: 2;
+    filter: none;
   }
-  44% {
-    opacity: 0.38;
-    stroke-width: 2;
+  42% {
+    opacity: 0.78;
+    stroke-width: 2.2;
   }
-  56% {
-    opacity: 0.65;
-    stroke-width: 2;
+  54%, 62% {
+    opacity: 1;
+    stroke-width: 2.6;
+    filter: drop-shadow(0 0 3px currentColor);
   }
-  72% {
-    opacity: 0.12;
-    stroke-width: 2;
+  74% {
+    opacity: 0.68;
+    stroke-width: 2.1;
+    filter: none;
   }
-  100% {
-    opacity: 0.12;
+  86%, 100% {
+    opacity: 0.55;
     stroke-width: 2;
+    filter: none;
   }
 }
 
@@ -2591,9 +2603,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   .live-signal-icon .live-signal-arc-inner,
   .live-signal-icon .live-signal-arc-outer {
     animation: none !important;
-    opacity: 1 !important;
+    opacity: 0.85 !important;
     transform: none !important;
     stroke-width: 2 !important;
+    filter: none !important;
   }
 }
 
@@ -2601,9 +2614,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .motion-paused .live-signal-icon .live-signal-arc-inner,
 .motion-paused .live-signal-icon .live-signal-arc-outer {
   animation: none !important;
-  opacity: 1 !important;
+  opacity: 0.85 !important;
   transform: none !important;
   stroke-width: 2 !important;
+  filter: none !important;
 }
 
 .saved-station-arrival-times {
