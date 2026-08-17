@@ -97,8 +97,9 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /createSavedCommute/);
     assert.match(savedCommutesSource, /deleteSavedCommute/);
     assert.match(savedCommutesSource, /SavedCommuteStationPicker/);
-    assert.match(savedCommutesSource, /aria-label="Sort My Commutes"/);
-    assert.match(savedCommutesSource, /<option value="impact">Most Affected<\/option>/);
+    assert.match(savedCommutesSource, /<ToolbarSelectMenu/);
+    assert.match(savedCommutesSource, /ariaLabel="Sort My Commutes"/);
+    assert.match(savedCommutesSource, /COMMUTE_SORT_OPTIONS/);
     assert.match(savedCommutesSource, /sortSavedCommutes/);
     assert.match(savedCommutesSource, /Track Return Route/);
     assert.match(savedCommutesSource, /watchReturnTrip/);
@@ -181,7 +182,7 @@ describe("account UI source", () => {
   });
 
   it("collapses saved-commute disruptions behind alert-type summary chips", () => {
-    assert.match(savedCommutesSource, /<details className="saved-commute-impact-disclosure">/);
+    assert.match(savedCommutesSource, /<details[\s\S]*?className="saved-commute-impact-disclosure"/);
     assert.match(savedCommutesSource, /saved-commute-impact-summary-chips/);
     assert.match(savedCommutesSource, /summarizeMatchedImpacts/);
     assert.match(savedCommutesSource, /<summary className="saved-commute-impact-summary">/);
@@ -218,6 +219,7 @@ describe("account UI source", () => {
 
   it("renders a prominent saved-commute map preview banner", () => {
     assert.match(globalCss, /\.commute-path-preview-chip\s*\{[^}]*min-width:\s*min\(560px, calc\(100vw - 2rem\)\);/s);
+    assert.match(globalCss, /\.commute-path-preview-chip\s*\{[^}]*bottom:\s*calc\(1\.5rem \+ 64px \+ 28px\);/s);
     assert.match(globalCss, /\.commute-path-preview-chip span\s*\{[^}]*font-size:\s*0\.9rem;/s);
     assert.match(globalCss, /@media \(max-width: 767px\)[\s\S]*?\.commute-path-preview-chip\s*\{[^}]*left:\s*1rem;[^}]*right:\s*1rem;/s);
     assert.match(
@@ -326,8 +328,7 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.commute-station-popover/);
     assert.match(savedCommutePickerSource, /site-dropdown-trigger commute-station-trigger/);
     assert.match(savedCommutePickerSource, /site-dropdown-menu commute-station-popover/);
-    assert.match(savedCommutesSource, /site-dropdown-trigger saved-commute-sort-trigger/);
-    assert.match(savedCommutesSource, /site-dropdown-menu saved-commute-sort-options/);
+    assert.match(savedCommutesSource, /<ToolbarSelectMenu/);
     assert.match(globalCss, /\.site-dropdown-option\.selected/);
     assert.match(globalCss, /\.commute-station-popover \.commute-station-search-row\s*\{[^}]*border:\s*1px solid[^}]*border-radius:\s*7px;[^}]*margin:\s*4px 8px 0;/s);
     assert.match(globalCss, /\.commute-station-popover \.commute-station-search-row input\[type="search"\]\s*\{[^}]*appearance:\s*none;[^}]*background:\s*transparent !important;[^}]*box-shadow:\s*none;/s);

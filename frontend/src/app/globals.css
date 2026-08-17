@@ -1041,6 +1041,17 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   filter: none;
 }
 
+.regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-interactive-glow,
+.regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-aura {
+  animation: none !important;
+  display: none !important;
+}
+
+.regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-path {
+  animation: none !important;
+  stroke-opacity: 1 !important;
+}
+
 .regional-station-impact-ring {
   stroke: transparent;
   stroke-width: var(--regional-station-impact-width);
@@ -14639,7 +14650,7 @@ img.transit-line-badge {
   background: rgba(248, 250, 252, 0.94);
   border: 1px solid rgba(29, 78, 216, 0.28);
   border-radius: 8px;
-  bottom: 1rem;
+  bottom: calc(1.5rem + 64px + 28px);
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
   color: rgb(15, 23, 42);
   display: flex;

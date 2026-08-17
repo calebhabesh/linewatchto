@@ -2610,7 +2610,14 @@ function InteractiveTtcMapComponent({
           <span>
             Viewing <strong>{commutePathPreview.routeLabel}</strong>
           </span>
-          <button type="button" onClick={onClearCommutePathPreview} aria-label="Back to My Commutes">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClearCommutePathPreview?.();
+            }}
+            aria-label="Back to My Commutes"
+          >
             Back
           </button>
         </div>

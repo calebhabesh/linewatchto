@@ -731,7 +731,7 @@ describe("network-scoped regional dashboard", () => {
   it("repaints completed regional selections while hover uses a non-interactive foreground copy", () => {
     assert.match(regionalMapSource, /function bringRegionalImpactToFront\(/);
     assert.match(regionalMapSource, /element\.parentElement\?\.append\(element\)/);
-    assert.match(regionalMapSource, /bringRegionalImpactToFront\(root, selection\.kind, selection\.id\)/);
+    assert.match(regionalMapSource, /bringRegionalImpactToFront\(root, selection\.kind, selection\.id/);
     assert.match(regionalMapSource, /bringRegionalStationImpactToFront\(root, selection\.kind, selection\.id\)/);
     assert.match(regionalMapSource, /function setRegionalImpactHoverForeground\(/);
     assert.match(regionalMapSource, /regional-impact-hover-foreground-layer/);
@@ -1082,15 +1082,19 @@ describe("network-scoped regional dashboard", () => {
     assert.equal((regionalMapSource.match(/setSvgMarkup\(/g) ?? []).length, 1);
     assert.match(regionalMapSource, /fetch\(`\/assets\/linewatch\/regional-rail-map\.svg\?v=\$\{lineWatchBuildLabel\}`\)[\s\S]*?\n  \}, \[\]\);/s);
     assert.match(regionalMapSource, /REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer"/);
+    assert.match(regionalMapSource, /REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID = "regional-dynamic-selected-segment-layer"/);
     assert.match(regionalMapSource, /REGIONAL_DYNAMIC_STATION_RING_LAYER_ID = "regional-dynamic-station-ring-layer"/);
     assert.match(regionalMapSource, /REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer"/);
     assert.match(regionalMapSource, /REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer"/);
     assert.match(regionalMapSource, /REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer"/);
     assert.match(regionalMapSource, /segmentLayer\.replaceChildren\(\)/);
+    assert.match(regionalMapSource, /selectedSegmentLayer\?\.replaceChildren\(\)|if \(selectedSegmentLayer\) selectedSegmentLayer\.replaceChildren\(\)/);
     assert.match(regionalMapSource, /stationRingLayer\.replaceChildren\(\)/);
     assert.match(regionalMapSource, /effectsLayer\.replaceChildren\(\)/);
     assert.doesNotMatch(regionalMapSource, /mapStageRef\.current\.replaceChildren/);
     assert.match(regionalMapSource, /element\.style\.removeProperty\("shape-rendering"\)/);
+    assert.match(regionalMapSource, /bringRegionalImpactToFront\(root, selection\.kind, selection\.id, Boolean\(commutePathPreview\)\)/);
+    assert.match(globalsCss, /\.regional-overlay-segment-group\[data-selected-commute-impact-overlay\] \.regional-impact-interactive-glow[\s\S]*?animation:\s*none\s*!important/s);
   });
 
   it("updates regional button zoom imperatively before its deferred React commit", () => {

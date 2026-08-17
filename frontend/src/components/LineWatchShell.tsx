@@ -642,11 +642,16 @@ export function LineWatchShell({
   }, [setActiveView]);
 
   const restorePreviousView = useCallback(() => {
-    const previous = popViewHistory(viewHistoryRef.current, "map" as ActiveView);
+    const fallback: ActiveView = commutePathPreviewRef.current
+      ? "commutes"
+      : isMobile
+        ? "map"
+        : "menu";
+    const previous = popViewHistory(viewHistoryRef.current, fallback);
     viewHistoryRef.current = previous.history;
     activeViewRef.current = previous.view;
     setActiveView(previous.view);
-  }, [setActiveView]);
+  }, [isMobile, setActiveView]);
 
   const restoreMapDrilldownOrigin = useCallback(() => {
     if (activeViewRef.current !== "map") return;
@@ -809,13 +814,21 @@ export function LineWatchShell({
           : activeView === "commutes"
             ? "map"
             : "more";
-      const fallback: ActiveView = isMobile ? mobileFallback : "menu";
+      const fallback: ActiveView = commutePathPreviewRef.current
+        ? "commutes"
+        : isMobile
+          ? mobileFallback
+          : "menu";
       let previous = popViewHistory(viewHistoryRef.current, fallback);
-      while (previous.view === "map" && previous.history.length > 0) {
+      while (previous.view === "map" && previous.history.length > 0 && !commutePathPreviewRef.current) {
         previous = popViewHistory(previous.history, fallback);
       }
-      const targetView: ActiveView = previous.view === "map" ? fallback : previous.view;
-      viewHistoryRef.current = previous.history;
+      const targetView: ActiveView = commutePathPreviewRef.current
+        ? "commutes"
+        : previous.view === "map"
+          ? fallback
+          : previous.view;
+      viewHistoryRef.current = commutePathPreviewRef.current ? ["menu"] : previous.history;
       activeViewRef.current = targetView;
       setActiveView(targetView);
       setIsGoingBack(false);
@@ -913,12 +926,20 @@ export function LineWatchShell({
           setCommutePathPreview(null);
           selectionRef.current = null;
           setSelection(null);
-          restorePreviousView();
+          setActiveView("commutes");
           return;
         case "navigate-view": {
-          if (selectionRef.current && selectionBackBehaviorRef.current === "clear") {
+          if (selectionRef.current && selectionBackBehaviorRef.current === "clear" && !commutePathPreviewRef.current) {
             selectionRef.current = null;
             setSelection(null);
+            return;
+          }
+          if (commutePathPreviewRef.current) {
+            setActiveView("commutes");
+            selectionRef.current = null;
+            selectionBackBehaviorRef.current = "clear";
+            setSelection(null);
+            setAccessibilityOutageTarget(null);
             return;
           }
           restorePreviousView();
@@ -1711,11 +1732,13 @@ export function LineWatchShell({
         selectionRef.current = null;
         setSelection(null);
         setSelectedStationId(null);
-        restorePreviousView();
+        viewHistoryRef.current = ["menu"];
+        activeViewRef.current = "commutes";
+        setActiveView("commutes");
       }, 0);
       return null;
     });
-  }, [consumeBrowserNavigationEntries, restorePreviousView, setCommutePathPreview, setSelection, setSelectedStationId]);
+  }, [consumeBrowserNavigationEntries, setActiveView, setCommutePathPreview, setSelection, setSelectedStationId]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);
@@ -2309,7 +2332,9 @@ export function LineWatchShell({
 
   const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
-    setCommutePathPreview(null);
+    if (!commutePathPreviewRef.current) {
+      setCommutePathPreview(null);
+    }
     if (!nextSelection) {
       if (selectionRef.current) consumeBrowserNavigationEntries();
       selectionRef.current = null;

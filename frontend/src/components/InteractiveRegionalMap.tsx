@@ -117,6 +117,7 @@ const REGIONAL_MAP_VIEWBOX = {
   height: 9031.6719,
 };
 const REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer";
+const REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID = "regional-dynamic-selected-segment-layer";
 const REGIONAL_DYNAMIC_STATION_RING_LAYER_ID = "regional-dynamic-station-ring-layer";
 const REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer";
 const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
@@ -1806,11 +1807,30 @@ function bringRegionalImpactToFront(
   root: HTMLElement,
   kind: ImpactKind,
   id: string,
+  isCommutePreview = false,
 ) {
+  const selectedLayer = root.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID}`);
+  const segmentLayer = root.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SEGMENT_LAYER_ID}`);
+  if (selectedLayer && segmentLayer) {
+    while (selectedLayer.firstChild) {
+      const child = selectedLayer.firstChild as SVGElement;
+      child.removeAttribute?.("data-selected-commute-impact-overlay");
+      segmentLayer.append(child);
+    }
+  }
   root.querySelectorAll<SVGElement>(
     `.regional-overlay-segment-group[data-regional-impact-kind="${kind}"][data-regional-impact-id="${CSS.escape(id)}"]`,
   ).forEach((element) => {
-    element.parentElement?.append(element);
+    if (isCommutePreview) {
+      element.setAttribute("data-selected-commute-impact-overlay", id);
+    } else {
+      element.removeAttribute("data-selected-commute-impact-overlay");
+    }
+    if (selectedLayer) {
+      selectedLayer.append(element);
+    } else {
+      element.parentElement?.append(element);
+    }
   });
 }
 
@@ -3008,14 +3028,16 @@ function InteractiveRegionalMapComponent({
         };
         const firstStationTarget = stationsLayer.querySelector(".regional-station-hit-target");
         const segmentLayer = createLayer(REGIONAL_DYNAMIC_SEGMENT_LAYER_ID);
-        const stationRingLayer = createLayer(REGIONAL_DYNAMIC_STATION_RING_LAYER_ID);
         const commuteLayer = createLayer(REGIONAL_DYNAMIC_COMMUTE_LAYER_ID);
+        const selectedSegmentLayer = createLayer(REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID, "regional-selected-segment-layer");
+        const stationRingLayer = createLayer(REGIONAL_DYNAMIC_STATION_RING_LAYER_ID);
         const hoverLayer = createLayer(REGIONAL_DYNAMIC_HOVER_LAYER_ID, "regional-impact-hover-foreground-layer");
         hoverLayer.setAttribute("aria-hidden", "true");
         hoverLayer.setAttribute("pointer-events", "none");
         stationsLayer.insertBefore(segmentLayer, firstStationTarget);
-        stationsLayer.insertBefore(stationRingLayer, firstStationTarget);
         stationsLayer.insertBefore(commuteLayer, firstStationTarget);
+        stationsLayer.insertBefore(selectedSegmentLayer, firstStationTarget);
+        stationsLayer.insertBefore(stationRingLayer, firstStationTarget);
         stationsLayer.insertBefore(hoverLayer, firstStationTarget);
 
         const effectsLayer = createLayer(REGIONAL_DYNAMIC_EFFECTS_LAYER_ID, "regional-station-impact-effects-layer");
@@ -3051,6 +3073,7 @@ function InteractiveRegionalMapComponent({
 
     const documentNode = svg.ownerDocument;
     const segmentLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SEGMENT_LAYER_ID}`);
+    const selectedSegmentLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID}`);
     const stationRingLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_STATION_RING_LAYER_ID}`);
     const commuteLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_COMMUTE_LAYER_ID}`);
     const hoverLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_HOVER_LAYER_ID}`);
@@ -3058,6 +3081,7 @@ function InteractiveRegionalMapComponent({
     if (!segmentLayer || !stationRingLayer || !commuteLayer || !hoverLayer || !effectsLayer) return;
 
     segmentLayer.replaceChildren();
+    if (selectedSegmentLayer) selectedSegmentLayer.replaceChildren();
     stationRingLayer.replaceChildren();
     commuteLayer.replaceChildren();
     hoverLayer.replaceChildren();
@@ -3474,20 +3498,29 @@ function InteractiveRegionalMapComponent({
   useLayoutEffect(() => {
     const root = viewportRef.current;
     root?.querySelectorAll("[data-regional-impact-selected]").forEach((element) => element.removeAttribute("data-regional-impact-selected"));
+    const selectedLayer = root?.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID}`);
+    const segmentLayer = root?.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SEGMENT_LAYER_ID}`);
+    if (selectedLayer && segmentLayer) {
+      while (selectedLayer.firstChild) {
+        const child = selectedLayer.firstChild as SVGElement;
+        child.removeAttribute?.("data-selected-commute-impact-overlay");
+        segmentLayer.append(child);
+      }
+    }
     if (selection) {
       root?.querySelectorAll(`[data-regional-impact-kind="${selection.kind}"][data-regional-impact-id="${CSS.escape(selection.id)}"]`)
         .forEach((element) => {
           element.setAttribute("data-regional-impact-selected", "true");
         });
       if (root) {
-        bringRegionalImpactToFront(root, selection.kind, selection.id);
+        bringRegionalImpactToFront(root, selection.kind, selection.id, Boolean(commutePathPreview));
         bringRegionalStationImpactToFront(root, selection.kind, selection.id);
-        if (selectionIntroCompletedRef.current) {
+        if (selectionIntroCompletedRef.current || commutePathPreview) {
           markCompletedSelectionIntro(root);
         }
       }
     }
-  }, [selection, svgMarkup]);
+  }, [commutePathPreview, selection, svgMarkup]);
 
   useLayoutEffect(() => {
     const nextKey = selection
@@ -3498,7 +3531,7 @@ function InteractiveRegionalMapComponent({
     if (selectionAttentionKeyRef.current === nextKey) return;
 
     selectionAttentionKeyRef.current = nextKey;
-    selectionIntroCompletedRef.current = false;
+    selectionIntroCompletedRef.current = Boolean(commutePathPreview);
     if (selectionIntroTimerRef.current !== null) {
       window.clearTimeout(selectionIntroTimerRef.current);
       selectionIntroTimerRef.current = null;
@@ -3509,6 +3542,11 @@ function InteractiveRegionalMapComponent({
       .forEach((element) => element.classList.remove("selection-intro-complete"));
     if (!nextKey) return;
 
+    if (commutePathPreview) {
+      if (root) markCompletedSelectionIntro(root);
+      return;
+    }
+
     selectionIntroTimerRef.current = window.setTimeout(() => {
       selectionIntroTimerRef.current = null;
       if (selectionAttentionKeyRef.current !== nextKey) return;
@@ -3516,7 +3554,7 @@ function InteractiveRegionalMapComponent({
       const currentRoot = viewportRef.current;
       if (currentRoot) markCompletedSelectionIntro(currentRoot);
     }, SELECTION_INTRO_DURATION_MS);
-  }, [selectedStationId, selection]);
+  }, [commutePathPreview, selectedStationId, selection]);
 
   useEffect(() => () => {
     if (selectionIntroTimerRef.current !== null) {
@@ -4453,7 +4491,14 @@ function InteractiveRegionalMapComponent({
           <span>
             Viewing <strong>{commutePathPreview.routeLabel}</strong>
           </span>
-          <button type="button" onClick={onClearCommutePathPreview} aria-label="Back to My Commutes">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClearCommutePathPreview?.();
+            }}
+            aria-label="Back to My Commutes"
+          >
             Back
           </button>
         </div>

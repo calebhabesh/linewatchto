@@ -48,6 +48,20 @@ describe("view navigation history", () => {
   it("navigates to the status fallback on mobile when opening a submenu directly from the map", () => {
     assert.deepEqual(popViewHistory([], "status"), { history: [], view: "status" });
   });
+
+  it("chronologically returns to commutes when going back from an active commute disruption", () => {
+    let history = [];
+    history = pushViewHistory(history, "menu", "commutes");
+    history = pushViewHistory(history, "commutes", "alerts");
+
+    const backFromAlerts = popViewHistory(history, "commutes");
+    assert.equal(backFromAlerts.view, "commutes");
+    assert.deepEqual(backFromAlerts.history, ["menu"]);
+
+    const backFromCommutes = popViewHistory(backFromAlerts.history, "menu");
+    assert.equal(backFromCommutes.view, "menu");
+    assert.deepEqual(backFromCommutes.history, []);
+  });
 });
 
 describe("browser back actions", () => {
