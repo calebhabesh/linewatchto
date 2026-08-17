@@ -1832,11 +1832,7 @@ export function SavedCommutesPanel({
 
                       {selectedLeg.impact.matchedImpacts.length > 0 ? (() => {
                         const disclosureKey = `${commute.id}-${selectedLeg.id}`;
-                        const isDisclosureOpen = expandedImpactDisclosures[disclosureKey] ?? (
-                          persistedExpandedImpactDisclosures.has(disclosureKey)
-                          || viewedCommuteId === commute.id
-                          || viewedCommuteId === selectedPreview?.id
-                        );
+                        const isDisclosureOpen = expandedImpactDisclosures[disclosureKey] ?? persistedExpandedImpactDisclosures.has(disclosureKey);
                         return (
                           <details
                             className="saved-commute-impact-disclosure"
