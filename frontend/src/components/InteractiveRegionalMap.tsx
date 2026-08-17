@@ -3637,8 +3637,13 @@ function InteractiveRegionalMapComponent({
     const renderedCenterY = (top + bottom) / 2;
     const mapX = (renderedCenterX - current.x) / current.scale;
     const mapY = (renderedCenterY - current.y) / current.scale;
+    const { width: logicalWidth, height: logicalHeight } = logicalViewportSize();
+    if (logicalWidth <= 0 || logicalHeight <= 0) return false;
+
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    const preferredTargetScale = clampPanZoomScale(fitScale * (isMobile ? 3.8 : 1.8), fitScale);
+    const currentFitted = fittedCamera();
+    const effectiveFitScale = currentFitted?.scale ?? fitScale ?? 0.35;
+    const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
     const focusPadding = isMobile ? 24 : 40;
     const focusInsets = {
       left: focusPadding,
@@ -3675,7 +3680,6 @@ function InteractiveRegionalMapComponent({
       width: Math.max((right - left) / current.scale, 1),
       height: Math.max((bottom - top) / current.scale, 1),
     };
-    const { width: logicalWidth, height: logicalHeight } = logicalViewportSize();
     const selectionFit = computeBoundedMapFrame(
       logicalWidth,
       logicalHeight,
@@ -3683,7 +3687,7 @@ function InteractiveRegionalMapComponent({
       focusInsets,
     );
     const targetScale = Math.min(
-      clampPanZoomScale(preferredTargetScale, fitScale),
+      clampPanZoomScale(preferredTargetScale, effectiveFitScale),
       selectionFit.scale * REGIONAL_SELECTION_FIT_COMFORT_RATIO,
     );
     const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
@@ -3701,7 +3705,7 @@ function InteractiveRegionalMapComponent({
       x: focusX - mapX * targetScale,
       y: focusY - mapY * targetScale,
       scale: targetScale,
-    }));
+    }), effectiveFitScale);
     return true;
   }, [
     animateCameraTo,
@@ -3709,6 +3713,7 @@ function InteractiveRegionalMapComponent({
     desktopMapTopInset,
     desktopMenuPinned,
     fitScale,
+    fittedCamera,
     logicalViewportSize,
     selectedMapElements,
     viewportOrientation,

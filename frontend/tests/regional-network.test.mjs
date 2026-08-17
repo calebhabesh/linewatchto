@@ -882,12 +882,12 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /data-regional-impact-kind/);
     assert.match(regionalMapSource, /selectedMapElements/);
     assert.match(regionalMapSource, /getBoundingClientRect\(\)/);
-    assert.match(regionalMapSource, /preferredTargetScale = clampPanZoomScale\(fitScale \* \(isMobile \? 3\.8 : 1\.8\), fitScale\)/);
+    assert.match(regionalMapSource, /preferredTargetScale = clampPanZoomScale\(effectiveFitScale \* \(isMobile \? 3\.8 : 1\.8\), effectiveFitScale\)/);
     assert.match(regionalMapSource, /if \(!isMobile\)[\s\S]*desktopMenuPinned[\s\S]*\.floating-panel-shell/);
     assert.match(regionalMapSource, /focusInsets\.left = Math\.max\(focusInsets\.left, insetLeft\)/);
     assert.match(regionalMapSource, /const selectionFit = computeBoundedMapFrame\(/);
     assert.match(regionalMapSource, /REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0\.82/);
-    assert.match(regionalMapSource, /const targetScale = Math\.min\([\s\S]*clampPanZoomScale\(preferredTargetScale, fitScale\)[\s\S]*selectionFit\.scale \* REGIONAL_SELECTION_FIT_COMFORT_RATIO/);
+    assert.match(regionalMapSource, /const targetScale = Math\.min\([\s\S]*clampPanZoomScale\(preferredTargetScale, effectiveFitScale\)[\s\S]*selectionFit\.scale \* REGIONAL_SELECTION_FIT_COMFORT_RATIO/);
     assert.match(regionalMapSource, /computeInsetViewportFocus\([\s\S]*focusInsets/);
     assert.match(regionalMapSource, /focusX - mapX \* targetScale/);
     assert.match(regionalMapSource, /focusY - mapY \* targetScale/);

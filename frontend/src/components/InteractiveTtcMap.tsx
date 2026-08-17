@@ -536,6 +536,8 @@ function InteractiveTtcMapComponent({
     zoomToScale,
     zoomToBounds,
     logicalViewportSize,
+    defaultTransformForViewport,
+    moveToDefaultCamera,
     animateTransformTo,
     currentRenderedTransform,
     fitScale,
@@ -700,6 +702,8 @@ function InteractiveTtcMapComponent({
           completeStagedEntrance();
         } else if (focusTargetKey === null) {
           initializeCamera();
+        } else {
+          moveToDefaultCamera(false, false);
         }
       } else if (attempts < 10) {
         attempts++;
@@ -711,7 +715,7 @@ function InteractiveTtcMapComponent({
     return () => {
       if (retryTimer !== null) window.clearTimeout(retryTimer);
     };
-  }, [completeStagedEntrance, containerRef, deferInitialEntrance, focusTargetKey, initializeCamera, loadState, stageInitialEntrance]);
+  }, [completeStagedEntrance, containerRef, deferInitialEntrance, focusTargetKey, initializeCamera, loadState, moveToDefaultCamera, stageInitialEntrance]);
 
   useEffect(() => {
     if (
@@ -873,9 +877,15 @@ function InteractiveTtcMapComponent({
         .filter((bounds): bounds is NonNullable<typeof bounds> => bounds !== null);
     }
 
-    const current = currentRenderedTransform() ?? { x: 0, y: 0, scale: fitScale || 1 };
+    const { width: logicalWidth, height: logicalHeight } = logicalViewportSize();
+    if (logicalWidth <= 0 || logicalHeight <= 0) return false;
+
+    const liveFittedTransform = defaultTransformForViewport(logicalWidth, logicalHeight);
+    const effectiveFitScale = liveFittedTransform.scale || fitScale || 1;
+
+    const current = currentRenderedTransform() ?? { x: 0, y: 0, scale: effectiveFitScale };
     const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
-    const preferredTargetScale = clampPanZoomScale((fitScale || 1) * (isMobile ? 3.8 : 1.8), fitScale || 1);
+    const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
     const focusPadding = isMobile ? 24 : 40;
     const selectionFocusInsets = {
       left: focusPadding,
@@ -921,7 +931,6 @@ function InteractiveTtcMapComponent({
         width: Math.max((right - left) / current.scale, 1),
         height: Math.max((bottom - top) / current.scale, 1),
       };
-      const { width: logicalWidth, height: logicalHeight } = logicalViewportSize();
       const selectionFit = computeBoundedMapFrame(
         logicalWidth,
         logicalHeight,
@@ -929,7 +938,7 @@ function InteractiveTtcMapComponent({
         selectionFocusInsets,
       );
       const targetScale = Math.min(
-        clampPanZoomScale(preferredTargetScale, fitScale || 1),
+        clampPanZoomScale(preferredTargetScale, effectiveFitScale),
         selectionFit.scale * 0.92,
       );
       const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
@@ -947,7 +956,7 @@ function InteractiveTtcMapComponent({
         x: focusX - mapX * targetScale,
         y: focusY - mapY * targetScale,
         scale: targetScale,
-      });
+      }, effectiveFitScale);
       return true;
     }
 
@@ -1039,6 +1048,7 @@ function InteractiveTtcMapComponent({
     commutePathPreview,
     containerRef,
     currentRenderedTransform,
+    defaultTransformForViewport,
     desktopMapTopInset,
     desktopMenuPinned,
     fitScale,

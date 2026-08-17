@@ -912,7 +912,7 @@ export function usePanZoom({
     const newX = focusX - mapX * targetAbsoluteScale;
     const newY = focusY - mapY * targetAbsoluteScale;
 
-    animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale });
+    animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale }, currentFitScale);
   }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
 
   const zoomToBounds = useCallback((
@@ -960,7 +960,7 @@ export function usePanZoom({
       x: focusX - mapCenterX * targetAbsoluteScale,
       y: focusY - mapCenterY * targetAbsoluteScale,
       scale: targetAbsoluteScale,
-    });
+    }, currentFitScale);
   }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
 
   // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
@@ -993,6 +993,8 @@ export function usePanZoom({
     zoomToPoint,
     zoomToBounds,
     logicalViewportSize,
+    defaultTransformForViewport,
+    moveToDefaultCamera,
     animateTransformTo,
     currentRenderedTransform,
     fitScale,

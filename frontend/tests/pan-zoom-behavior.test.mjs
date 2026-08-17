@@ -472,12 +472,19 @@ describe("pan zoom behavior guardrails", () => {
     );
   });
 
-  it("reliably pans to selected impact overlays during cross-network transitions", () => {
+  it("reliably pans to selected impact overlays during cross-network transitions with consistent focus zoom", () => {
     assert.match(regionalMapSource, /if \(focusTargetKey\) \{[\s\S]*cameraRef\.current = fitted\.camera/);
     assert.match(regionalMapSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelectedMapElements\(\)\)/);
     assert.match(regionalMapSource, /rect\.left - viewportRect\.left/);
-    assert.match(mapSource, /else if \(focusTargetKey === null\) \{[\s\S]*initializeCamera\(\)/);
+    assert.match(regionalMapSource, /preferredTargetScale = clampPanZoomScale\(effectiveFitScale \* \(isMobile \? 3\.8 : 1\.8\), effectiveFitScale\)/);
+    assert.match(mapSource, /else if \(focusTargetKey === null\) \{[\s\S]*initializeCamera\(\)[\s\S]*else \{[\s\S]*moveToDefaultCamera\(false, false\);/);
     assert.match(mapSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelectedMapElements\(\)\)/);
+    assert.match(mapSource, /const liveFittedTransform = defaultTransformForViewport\(logicalWidth, logicalHeight\);/);
+    assert.match(mapSource, /const effectiveFitScale = liveFittedTransform\.scale \|\| fitScale \|\| 1;/);
+    assert.match(mapSource, /preferredTargetScale = clampPanZoomScale\(effectiveFitScale \* \(isMobile \? 3\.8 : 1\.8\), effectiveFitScale\)/);
+    assert.match(mapSource, /animateTransformTo\(\{[\s\S]*scale: targetScale,[\s\S]*\}, effectiveFitScale\);/);
+    assert.match(hookSource, /animateTransformTo\(\{ x: newX, y: newY, scale: targetAbsoluteScale \}, currentFitScale\);/);
+    assert.match(hookSource, /animateTransformTo\(\{[\s\S]*scale: targetAbsoluteScale,[\s\S]*\}, currentFitScale\);/);
   });
 });
 
