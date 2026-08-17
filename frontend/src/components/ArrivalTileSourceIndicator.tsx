@@ -22,8 +22,8 @@ export function ArrivalTileSourceIndicator({
   isCompact = false,
 }: Props) {
   const isLive = status === "live";
-  const iconSize = size ?? (isCompact ? 11 : 13);
-  const positionClass = isCompact ? "top-1 right-1" : "top-1.5 right-1.5";
+  const iconSize = size ?? (isCompact ? 10 : 11.5);
+  const positionClass = isCompact ? "top-1 right-1" : "top-1 right-1.5";
 
   return (
     <span
@@ -35,7 +35,7 @@ export function ArrivalTileSourceIndicator({
       {isLive ? (
         <LiveSignalIcon
           size={iconSize}
-          className={isDue ? "text-red-100" : "text-emerald-600 dark:text-emerald-400"}
+          className={isDue ? "text-emerald-400" : "text-emerald-600 dark:text-emerald-400"}
         />
       ) : (
         <CalendarCheck2

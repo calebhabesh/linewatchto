@@ -1371,7 +1371,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
-  padding: 12px;
+  padding: 12px 6px 12px 12px;
 }
 
 .my-stations-controls {
@@ -1379,6 +1379,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   flex: 0 0 auto;
   gap: 8px;
   padding-bottom: 10px;
+  padding-right: 6px;
 }
 
 .my-stations-controls-top {
@@ -1499,7 +1500,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 6px;
   width: 100%;
 }
 
@@ -2893,6 +2894,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
     padding: 12px;
   }
 
+  .my-stations-controls {
+    padding-right: 0;
+  }
+
   .my-stations-title h2 > span {
     line-height: 1.2 !important;
   }
@@ -3909,6 +3914,10 @@ button {
   top: 88px;
   width: min(calc(100vw - 32px), 680px);
   z-index: 44;
+}
+
+.floating-panel-shell[data-floating-panel="my-stations"] {
+  width: min(calc(100vw - 32px), 600px);
 }
 
 .floating-panel-scroll {
@@ -21322,6 +21331,10 @@ img.transit-line-badge {
     left: 400px;
     width: min(calc(100vw - 416px), 680px);
   }
+
+  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell[data-floating-panel="my-stations"] {
+    width: min(calc(100vw - 416px), 600px);
+  }
 }
 
 .motion-paused .menu-attention-beam[data-menu-attention="true"]::before {
@@ -23610,9 +23623,17 @@ button:active .account-network-badge,
     width: min(680px, 72vw, calc(100vw - 48px));
   }
 
+  .floating-panel-shell[data-floating-panel="my-stations"] {
+    width: min(600px, calc(100vw - 48px));
+  }
+
   .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell {
     left: 392px;
     width: min(680px, calc(100vw - 408px));
+  }
+
+  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell[data-floating-panel="my-stations"] {
+    width: min(600px, calc(100vw - 408px));
   }
 }
 

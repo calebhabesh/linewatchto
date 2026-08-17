@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, BadgeInfo, Check, ChevronDown, Construction, ExternalLink, FileText, LoaderCircle, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeInfo, CalendarCheck2, Check, ChevronDown, Construction, ExternalLink, FileText, Layers, LoaderCircle, Train } from "lucide-react";
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
@@ -213,10 +213,10 @@ function regionalArrivalSourceBadgeClassName(label: string) {
     return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
   }
   if (label === "Scheduled") {
-    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
   }
   if (label === "Mixed") {
-    return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200`;
+    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
   }
   return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
 }
@@ -618,7 +618,6 @@ export function RegionalStationDetailPanel({
                                       ? "Mixed"
                                       : "Live"
                                     : "Scheduled";
-                                  const isMixedGroup = statusLabel === "Mixed";
 
                                   return (
                                     <article
@@ -648,10 +647,17 @@ export function RegionalStationDetailPanel({
                                           </span>
                                         </div>
                                         <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
-                                          <span className={regionalArrivalSourceBadgeClassName(statusLabel)}>
+                                          <span
+                                            className={regionalArrivalSourceBadgeClassName(statusLabel)}
+                                            data-arrival-source={statusLabel.toLowerCase()}
+                                          >
                                             {statusLabel}
                                             {statusLabel === "Live" ? (
-                                              <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={14} />
+                                              <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
+                                            ) : statusLabel === "Scheduled" ? (
+                                              <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
+                                            ) : statusLabel === "Mixed" ? (
+                                              <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
                                             ) : null}
                                           </span>
                                         </div>
@@ -688,13 +694,14 @@ export function RegionalStationDetailPanel({
                                                   arrivalTick,
                                                   { detailedCountdown }
                                                 );
+                                                const isCountdown = detailedCountdown && !due && !tripChange;
                                                 return (
                                                   <div
                                                     key={`${arrival.tripNumber}:${arrival.predictedAt}`}
                                                     data-arrival-due={due ? "true" : "false"}
                                                     data-regional-arrival-due={due ? "true" : "false"}
                                                     className={[
-                                                      "relative flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
+                                                      "relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
                                                       tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"
                                                         ? "border-red-500/70 bg-red-500/15 text-red-900 shadow-[0_0_0_1px_rgba(239,68,68,0.16)] dark:text-red-50"
                                                         : tripChange?.kind === "added-stop"
@@ -706,14 +713,12 @@ export function RegionalStationDetailPanel({
                                                             : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
                                                     ].join(" ")}
                                                   >
-                                                    {isMixedGroup && (
-                                                      <ArrivalTileSourceIndicator
-                                                        status={arrival.status}
-                                                        isDue={due || tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"}
-                                                      />
-                                                    )}
-                                                    <strong className={detailedCountdown
-                                                      ? "whitespace-nowrap text-xs font-black leading-none tabular-nums sm:text-lg"
+                                                    <ArrivalTileSourceIndicator
+                                                      status={arrival.status}
+                                                      isDue={due || tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"}
+                                                    />
+                                                    <strong className={isCountdown
+                                                      ? "whitespace-nowrap text-base font-black leading-none tracking-tight tabular-nums"
                                                       : "text-base font-black leading-none tracking-tight"}
                                                     >
                                                       {tripChange ? regionalTripChangeLabel(tripChange.kind) : timeDisplay.primary}
@@ -721,10 +726,10 @@ export function RegionalStationDetailPanel({
                                                     <span
                                                       className={
                                                         due
-                                                          ? "mt-1 text-xs font-semibold text-red-100/80"
+                                                          ? "mt-1.5 text-xs font-semibold text-red-100/80"
                                                           : soon
-                                                            ? "mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
-                                                            : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"
+                                                            ? "mt-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                                                            : "mt-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400"
                                                       }
                                                     >
                                                       {tripChange ? `Train ${arrival.tripNumber}` : timeDisplay.secondary}

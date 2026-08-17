@@ -1,6 +1,6 @@
 "use client";
 
-import { Bus, ChevronDown, LoaderCircle } from "lucide-react";
+import { Bus, CalendarCheck2, ChevronDown, Layers, LoaderCircle } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   buildPinnedSurfaceGroups,
@@ -64,7 +64,6 @@ function SurfaceRouteCard({
     : hasLive
       ? hasScheduled ? "Mixed" : "Live"
       : "Scheduled";
-  const isMixedGroup = groupSourceLabel === "Mixed";
 
   return (
     <article
@@ -100,11 +99,24 @@ function SurfaceRouteCard({
         </div>
         <div className="flex shrink-0 items-center gap-1.5 self-center">
           <span
-            className="shrink-0 inline-flex items-center rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200"
+            className={
+              groupSourceLabel === "Live"
+                ? "shrink-0 inline-flex items-center rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200"
+                : groupSourceLabel === "Scheduled"
+                  ? "shrink-0 inline-flex items-center rounded border border-slate-400/35 bg-slate-500/10 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-slate-600 dark:text-slate-300"
+                  : groupSourceLabel === "Mixed"
+                    ? "shrink-0 inline-flex items-center rounded border border-cyan-500/35 bg-cyan-500/10 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-cyan-700 dark:text-cyan-200"
+                    : "shrink-0 inline-flex items-center rounded border border-slate-400/30 bg-slate-500/5 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
+            }
+            data-arrival-source={groupSourceLabel.toLowerCase()}
           >
             {groupSourceLabel}
             {groupSourceLabel === "Live" ? (
-              <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+              <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+            ) : groupSourceLabel === "Scheduled" ? (
+              <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={11} aria-hidden="true" />
+            ) : groupSourceLabel === "Mixed" ? (
+              <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={11} aria-hidden="true" />
             ) : null}
           </span>
           <ArrivalLinePinButton
@@ -125,11 +137,12 @@ function SurfaceRouteCard({
             const detailedCountdown = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
             const due = isSurfaceArrivalDue(arrival, tick);
             const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
-            const arrivalLabelClassName = detailedCountdown && !due
-              ? "whitespace-nowrap text-xs sm:text-lg font-black leading-none tabular-nums"
+            const isCountdown = detailedCountdown && !due;
+            const arrivalLabelClassName = isCountdown
+              ? "whitespace-nowrap text-base sm:text-lg font-black leading-none tracking-tight tabular-nums"
               : "text-base sm:text-lg font-black leading-none";
             const arrivalTileClassName = [
-              "relative flex min-h-[58px] flex-col items-center justify-center rounded-md border px-2 py-1.5 text-center transition-colors",
+              "relative flex min-h-[68px] sm:min-h-[72px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                 : detailedCountdown
@@ -143,9 +156,7 @@ function SurfaceRouteCard({
                 data-arrival-due={due ? "true" : "false"}
                 className={arrivalTileClassName}
               >
-                {isMixedGroup && (
-                  <ArrivalTileSourceIndicator status={arrival.status} isDue={due} size={12} />
-                )}
+                <ArrivalTileSourceIndicator status={arrival.status} isDue={due} size={12} />
                 <strong className={arrivalLabelClassName}>
                   {formatSurfaceArrivalTileLabel(arrival, { detailedCountdown, now: tick })}
                 </strong>
@@ -153,8 +164,8 @@ function SurfaceRouteCard({
                   <span
                     className={
                       due
-                        ? "mt-1 text-xs font-semibold text-red-100/80"
-                        : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"
+                        ? "mt-1.5 text-xs font-semibold text-red-100/80"
+                        : "mt-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400"
                     }
                   >
                     {clockTime}
@@ -201,15 +212,14 @@ function SurfaceCompactRouteRow({
     : hasLive
       ? hasScheduled ? "Mixed" : "Live"
       : "Scheduled";
-  const isMixedGroup = groupSourceLabel === "Mixed";
 
   const sourceBadgeClassName = groupSourceLabel === "Live"
     ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center"
     : groupSourceLabel === "Scheduled"
-      ? "border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center"
+      ? "border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300 border rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide inline-flex items-center"
       : groupSourceLabel === "Mixed"
-        ? "border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center"
-        : "border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center";
+        ? "border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200 border rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide inline-flex items-center"
+        : "border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400 border rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide inline-flex items-center";
 
   return (
     <article
@@ -250,7 +260,11 @@ function SurfaceCompactRouteRow({
           >
             {groupSourceLabel}
             {groupSourceLabel === "Live" ? (
-              <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+              <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={11.5} />
+            ) : groupSourceLabel === "Scheduled" ? (
+              <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
+            ) : groupSourceLabel === "Mixed" ? (
+              <Layers className="ml-1 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={10.5} aria-hidden="true" />
             ) : null}
           </span>
           <ArrivalLinePinButton
@@ -272,7 +286,7 @@ function SurfaceCompactRouteRow({
             const due = isSurfaceArrivalDue(arrival, tick);
             const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
             const arrivalTileClassName = [
-              "relative flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+              "relative flex min-h-[52px] sm:min-h-[56px] flex-col items-center justify-center rounded-md border px-1 pt-2.5 pb-1 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                 : detailed
@@ -286,12 +300,10 @@ function SurfaceCompactRouteRow({
                 data-arrival-due={due ? "true" : "false"}
                 className={arrivalTileClassName}
               >
-                {isMixedGroup && (
-                  <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
-                )}
+                <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
                 <strong
                   className={detailed && !due
-                    ? "whitespace-nowrap text-xs sm:text-sm font-black leading-none tabular-nums"
+                    ? "whitespace-nowrap text-sm sm:text-base font-black leading-none tracking-tight tabular-nums"
                     : "text-sm sm:text-base font-black leading-none"}
                 >
                   {formatSurfaceArrivalTileLabel(arrival, { detailedCountdown: detailed, now: tick })}

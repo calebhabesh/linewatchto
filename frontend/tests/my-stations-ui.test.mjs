@@ -251,6 +251,7 @@ describe("My Stations UI", () => {
 
   it("fills the submenu shell and uses compact history-sized controls", () => {
     assert.match(styles, /\.my-stations-panel\s*\{[^}]*width:\s*100%;/s);
+    assert.match(styles, /\.floating-panel-shell\[data-floating-panel="my-stations"\]\s*\{[^}]*width:\s*min\(calc\(100vw - 32px\),\s*600px\);/s);
     assert.match(styles, /\.my-stations-search\s*\{[^}]*height:\s*34px;[^}]*min-height:\s*34px;/s);
     assert.match(styles, /\.my-stations-add,[\s\S]*height:\s*34px;[\s\S]*min-height:\s*34px;/);
     assert.match(panel, /<ToolbarSelectMenu/);

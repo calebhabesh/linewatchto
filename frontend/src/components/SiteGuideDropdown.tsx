@@ -14,7 +14,7 @@ import {
   MoreHorizontal,
   MoreVertical,
   Navigation,
-  Newspaper,
+  Activity,
   Search,
   Smartphone,
   SquarePlus,
@@ -476,7 +476,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 ) : (
                   <>
                     <GuideActionRow
-                      icon={<Newspaper size={14} />}
+                      icon={<Activity size={14} />}
                       label="TTC Source Status"
                       text="View freshness, availability, and normalized ingestion counts without exposing source payloads."
                     />

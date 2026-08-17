@@ -52,7 +52,7 @@ describe("live signal indicator and propagating wave visual effect", () => {
 
   it("renders LiveSignalIcon to the right of LIVE arrival badges in MyStationsPanel", () => {
     assert.match(myStationsPanelSource, /import\s*\{[^}]*LiveSignalIcon[^}]*\}\s*from\s*"\.\/LiveSignalIcon"/);
-    assert.match(myStationsPanelSource, /\{sourceLabel\}[\s\S]*\{sourceLabel === "Live"\s*\?\s*\(\s*<LiveSignalIcon[\s\S]*ml-0\.5/);
+    assert.match(myStationsPanelSource, /\{sourceLabel\}[\s\S]*\{sourceLabel === "Live"\s*\?\s*\(\s*<LiveSignalIcon[\s\S]*ml-1/);
   });
 
   it("renders LiveSignalIcon to the right of LIVE arrival badges in SurfaceConnectionsSection", () => {

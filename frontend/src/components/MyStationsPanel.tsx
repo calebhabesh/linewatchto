@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, FileText, LoaderCircle, Plus, Search, Train, X } from "lucide-react";
+import { AlertCircle, Bookmark, CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, LoaderCircle, Plus, Search, Train, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
 import type { AccountState } from "../app/account-data";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -231,13 +231,13 @@ function arrivalSourceBadgeClassName(label: string) {
     return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
   }
   if (label === "Scheduled") {
-    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
   }
   if (label === "Mixed") {
-    return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200`;
+    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
   }
   if (label === "No live ETA") {
-    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
   }
   if (label === "Demo") {
     return `${base} border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-200`;
@@ -251,10 +251,10 @@ function regionalArrivalSourceBadgeClassName(label: string) {
     return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
   }
   if (label === "Scheduled") {
-    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
   }
   if (label === "Mixed") {
-    return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200`;
+    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
   }
   return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
 }
@@ -563,7 +563,6 @@ function SavedStationRow({
                           const hasLive = arrivals.some((arrival) => arrival.status === "live");
                           const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
                           const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
-                          const isMixedGroup = sourceLabel === "Mixed";
 
                           return (
                             <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
@@ -592,7 +591,11 @@ function SavedStationRow({
                                   >
                                     {sourceLabel}
                                     {sourceLabel === "Live" ? (
-                                      <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+                                      <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={11.5} />
+                                    ) : sourceLabel === "Scheduled" ? (
+                                      <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
+                                    ) : sourceLabel === "Mixed" ? (
+                                      <Layers className="ml-1 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={10.5} aria-hidden="true" />
                                     ) : null}
                                   </span>
                                 </div>
@@ -605,7 +608,7 @@ function SavedStationRow({
                                     && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
                                   const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown: detailed });
                                   const arrivalTileClassName = [
-                                    "relative flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+                                    "relative flex min-h-[52px] sm:min-h-[56px] flex-col items-center justify-center rounded-md border px-1 pt-2.5 pb-1 text-center transition-colors",
                                     due
                                       ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                       : soon
@@ -619,12 +622,10 @@ function SavedStationRow({
                                       data-arrival-due={due ? "true" : "false"}
                                       className={arrivalTileClassName}
                                     >
-                                      {isMixedGroup && (
-                                        <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
-                                      )}
+                                      <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
                                       <strong
                                         className={detailed
-                                          ? "whitespace-nowrap text-xs font-black leading-none tabular-nums sm:text-sm"
+                                          ? "whitespace-nowrap text-sm sm:text-base font-black leading-none tracking-tight tabular-nums"
                                           : "text-sm sm:text-base font-black leading-none tracking-tight"}
                                       >
                                         {timeDisplay.primary}
@@ -801,7 +802,6 @@ function SavedStationRow({
                           const sourceLabel = formatArrivalSourceBadgeLabel(arrivals, {
                             emptyLiveDirection: hasLiveArrivals && arrivals.length === 0,
                           });
-                          const isMixedGroup = sourceLabel === "Mixed";
                           const direction = formatCondensedArrivalDirection(group.directionLabel);
 
                           return (
@@ -831,7 +831,11 @@ function SavedStationRow({
                                   >
                                     {sourceLabel}
                                     {sourceLabel === "Live" ? (
-                                      <LiveSignalIcon className="ml-0.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={12} />
+                                      <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={11.5} />
+                                    ) : sourceLabel === "Scheduled" ? (
+                                      <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
+                                    ) : sourceLabel === "Mixed" ? (
+                                      <Layers className="ml-1 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={10.5} aria-hidden="true" />
                                     ) : null}
                                   </span>
                                 </div>
@@ -843,7 +847,7 @@ function SavedStationRow({
                                       const due = isArrivalDue(arrival, arrivalTick);
                                       const clockTime = formatArrivalClockTime(arrival.predictedAt);
                                       const arrivalTileClassName = [
-                                        "relative flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+                                        "relative flex min-h-[52px] sm:min-h-[56px] flex-col items-center justify-center rounded-md border px-1 pt-2.5 pb-1 text-center transition-colors",
                                         due
                                           ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                           : detailed
@@ -857,13 +861,11 @@ function SavedStationRow({
                                           data-arrival-due={due ? "true" : "false"}
                                           className={arrivalTileClassName}
                                         >
-                                          {isMixedGroup && (
-                                            <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
-                                          )}
+                                          <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
                                           <strong
                                             className={detailed && !due
-                                              ? "whitespace-nowrap text-xs sm:text-sm font-black leading-none tabular-nums"
-                                              : "text-sm sm:text-base font-black leading-none"}
+                                              ? "whitespace-nowrap text-sm sm:text-base font-black leading-none tracking-tight tabular-nums"
+                                              : "text-sm sm:text-base font-black leading-none tracking-tight"}
                                           >
                                             {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
                                           </strong>

@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Check, ChevronDown, Construction, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, CalendarCheck2, Check, ChevronDown, Construction, Layers, Train } from "lucide-react";
 import Image from "next/image";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
@@ -265,13 +265,13 @@ function arrivalSourceBadgeClassName(label: string) {
     return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
   }
   if (label === "Scheduled") {
-    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
   }
   if (label === "Mixed") {
-    return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200`;
+    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
   }
   if (label === "No live ETA") {
-    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
   }
   if (label === "Demo") {
     return `${base} border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-200`;
@@ -620,12 +620,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 includeEmptyDirections: hasLiveArrivals,
               }), pinnedLineIds);
             const arrivalDisclaimer = formatArrivalDisclaimer(station.arrivals, station.disclaimer);
-            const arrivalSectionClassName = [
-              "rounded-lg border p-3 transition-colors",
-              arrivalsDisrupted
-                ? "border-slate-300 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/10 dark:text-slate-300"
-                : "border-black/10 bg-slate-50 dark:border-white/10 dark:bg-white/5",
-            ].join(" ");
+            const arrivalSectionClassName = "rounded-lg border border-black/10 bg-slate-50 p-3 transition-colors dark:border-white/10 dark:bg-white/5";
 
             return (
               <section
@@ -755,7 +750,6 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                               {section.groups.map((group) => {
                                 const emptyLiveDirection = hasLiveArrivals && group.arrivals.length === 0;
                                 const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, { emptyLiveDirection });
-                                const isMixedGroup = groupSourceLabel === "Mixed";
                                 const groupSourceTitle = emptyLiveDirection
                                   ? "Live source checked; no prediction for this direction"
                                   : arrivalSourceTitle(group.arrivals);
@@ -813,7 +807,11 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                         >
                                           {groupSourceLabel}
                                           {groupSourceLabel === "Live" ? (
-                                            <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={14} />
+                                             <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
+                                          ) : groupSourceLabel === "Scheduled" ? (
+                                             <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
+                                          ) : groupSourceLabel === "Mixed" ? (
+                                             <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
                                           ) : null}
                                         </span>
                                       </div>
@@ -833,10 +831,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                           const due = isArrivalDue(arrival, arrivalTick);
                                           const clockTime = formatArrivalClockTime(arrival.predictedAt);
                                           const arrivalLabelClassName = detailedCountdown && !due
-                                            ? "whitespace-nowrap text-xs sm:text-lg font-black leading-none tabular-nums"
+                                            ? "whitespace-nowrap text-base sm:text-lg font-black leading-none tracking-tight tabular-nums"
                                             : "text-base sm:text-lg font-black leading-none";
                                           const arrivalTileClassName = [
-                                            "relative flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
+                                            "relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
                                             due
                                               ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                                               : detailedCountdown
@@ -850,16 +848,14 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                               data-arrival-due={due ? "true" : "false"}
                                               className={arrivalTileClassName}
                                             >
-                                              {isMixedGroup && (
-                                                <ArrivalTileSourceIndicator status={arrival.status} isDue={due} />
-                                              )}
+                                              <ArrivalTileSourceIndicator status={arrival.status} isDue={due} />
                                               <strong className={arrivalLabelClassName}>
                                                 {formatArrivalTileLabel(arrival, { detailedCountdown, now: arrivalTick })}
                                               </strong>
                                               {clockTime && (
                                                 <span className={due
-                                                  ? "mt-1 text-xs font-semibold text-red-100/80"
-                                                  : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
+                                                  ? "mt-1.5 text-xs font-semibold text-red-100/80"
+                                                  : "mt-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400"}
                                                 >
                                                   {clockTime}
                                                 </span>
