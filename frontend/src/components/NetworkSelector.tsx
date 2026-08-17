@@ -15,9 +15,28 @@ export function NetworkSelector({
   compactVertical?: boolean;
 }) {
   const [pendingNetwork, setPendingNetwork] = useState<NetworkId | null>(null);
+  const [lastPropNetwork, setLastPropNetwork] = useState<NetworkId>(network);
   const pendingTargetRef = useRef<NetworkId | null>(null);
   const transitionTimerRef = useRef<number | null>(null);
   const transitionFrameRef = useRef<number | null>(null);
+
+  if (lastPropNetwork !== network) {
+    setLastPropNetwork(network);
+    setPendingNetwork(null);
+  }
+
+  useEffect(() => {
+    pendingTargetRef.current = null;
+    if (transitionTimerRef.current !== null) {
+      window.clearTimeout(transitionTimerRef.current);
+      transitionTimerRef.current = null;
+    }
+    if (transitionFrameRef.current !== null) {
+      window.cancelAnimationFrame(transitionFrameRef.current);
+      transitionFrameRef.current = null;
+    }
+  }, [network]);
+
   const isTransitioning = pendingNetwork !== null && pendingNetwork !== network;
   const displayedNetwork = isTransitioning ? pendingNetwork : network;
 
@@ -46,11 +65,6 @@ export function NetworkSelector({
       });
     }, NETWORK_SELECTOR_ANIMATION_MS);
   };
-
-  useEffect(() => {
-    if (pendingNetwork !== network) return;
-    pendingTargetRef.current = null;
-  }, [network, pendingNetwork]);
 
   useEffect(() => () => {
     if (transitionTimerRef.current !== null) {

@@ -20,7 +20,10 @@ import {
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
 import {
+  clampPanZoomScale,
   clientRectToLogicalViewportBounds,
+  computeBoundedMapFrame,
+  computeInsetViewportFocus,
   logicalViewportSizeForOrientation,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   type MapContentBounds,
@@ -532,6 +535,10 @@ function InteractiveTtcMapComponent({
     zoomOut,
     zoomToScale,
     zoomToBounds,
+    logicalViewportSize,
+    animateTransformTo,
+    currentRenderedTransform,
+    fitScale,
     shouldSuppressMapClick,
     replayEntrance,
     refitIfCameraUntouched,
@@ -665,6 +672,13 @@ function InteractiveTtcMapComponent({
     return () => el.removeEventListener("wheel", preventScroll);
   }, [containerRef]);
 
+  const focusTargetKey = useMemo(() => {
+    if (selection) return `${selection.kind}:${selection.id}`;
+    if (selectedStationId) return `station:${selectedStationId}`;
+    if (commutePathPreview) return `commute:${commutePathPreview.id}:${commutePathPreview.legId}`;
+    return null;
+  }, [commutePathPreview, selection, selectedStationId]);
+
   // Center map automatically when SVG loads and container dimensions are resolved
   useLayoutEffect(() => {
     if (loadState !== "ready") return;
@@ -684,7 +698,7 @@ function InteractiveTtcMapComponent({
         if (entranceWasDeferredRef.current) {
           entranceWasDeferredRef.current = false;
           completeStagedEntrance();
-        } else {
+        } else if (focusTargetKey === null) {
           initializeCamera();
         }
       } else if (attempts < 10) {
@@ -697,7 +711,7 @@ function InteractiveTtcMapComponent({
     return () => {
       if (retryTimer !== null) window.clearTimeout(retryTimer);
     };
-  }, [completeStagedEntrance, containerRef, deferInitialEntrance, initializeCamera, loadState, stageInitialEntrance]);
+  }, [completeStagedEntrance, containerRef, deferInitialEntrance, focusTargetKey, initializeCamera, loadState, stageInitialEntrance]);
 
   useEffect(() => {
     if (
@@ -785,12 +799,6 @@ function InteractiveTtcMapComponent({
     return origin && destination ? [origin, destination] : [];
   }, [commutePathPreview]);
 
-  const focusTargetKey = useMemo(() => {
-    if (selection) return `${selection.kind}:${selection.id}`;
-    if (selectedStationId) return `station:${selectedStationId}`;
-    return null;
-  }, [selection, selectedStationId]);
-
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
   const lastHandledLayoutResetSignalRef = useRef(0);
@@ -806,7 +814,249 @@ function InteractiveTtcMapComponent({
     return () => window.clearTimeout(resetTimer);
   }, [layoutResetSignal, loadState, recenter, focusTargetKey]);
 
-  useLayoutEffect(() => {
+  const selectedMapElements = useCallback(() => {
+    const root = containerRef.current;
+    if (!root) return [];
+    if (selection) {
+      return [
+        ...root.querySelectorAll<SVGGraphicsElement>(
+          `[data-selected-commute-impact-overlay="${CSS.escape(selection.id)}"], [data-selected-impact-emphasis="${CSS.escape(selection.id)}"], [data-map-impact-id="${CSS.escape(selection.id)}"], [data-station-impact-selection-id="${CSS.escape(selection.id)}"]`,
+        ),
+      ];
+    }
+    if (selectedStationId) {
+      const station = root.querySelector<SVGGraphicsElement>(
+        `[data-station-selected-id="${CSS.escape(selectedStationId)}"], [data-station-id="${CSS.escape(selectedStationId)}"]`,
+      );
+      return station ? [station] : [];
+    }
+    if (commutePathPreview) {
+      const preview = root.querySelector<SVGGraphicsElement>(
+        `[data-commute-path-preview="${CSS.escape(commutePathPreview.id)}"]`,
+      );
+      return preview ? [preview] : [];
+    }
+    return [];
+  }, [commutePathPreview, containerRef, selectedStationId, selection]);
+
+  const focusSelectedMapElements = useCallback(() => {
+    if (loadState !== "ready") return false;
+    const viewport = containerRef.current;
+    if (!viewport) return false;
+
+    const viewportRect = viewport.getBoundingClientRect();
+    if (viewportRect.width <= 0 || viewportRect.height <= 0) return false;
+
+    const elements = selectedMapElements();
+    let visibleBounds: { x: number; y: number; width: number; height: number }[] = [];
+
+    if (elements.length > 0) {
+      visibleBounds = elements
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          if (rect.width <= 0 && rect.height <= 0) return null;
+          if (viewportOrientation === "rotated-landscape") {
+            return {
+              x: rect.top - viewportRect.top,
+              y: viewportRect.width - (rect.right - viewportRect.left),
+              width: rect.height,
+              height: rect.width,
+            };
+          }
+          return {
+            x: rect.left - viewportRect.left,
+            y: rect.top - viewportRect.top,
+            width: rect.width,
+            height: rect.height,
+          };
+        })
+        .filter((bounds): bounds is NonNullable<typeof bounds> => bounds !== null);
+    }
+
+    const current = currentRenderedTransform() ?? { x: 0, y: 0, scale: fitScale || 1 };
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+    const preferredTargetScale = clampPanZoomScale((fitScale || 1) * (isMobile ? 3.8 : 1.8), fitScale || 1);
+    const focusPadding = isMobile ? 24 : 40;
+    const selectionFocusInsets = {
+      left: focusPadding,
+      right: focusPadding,
+      top: isMobile ? focusPadding : Math.max(desktopMapTopInset + 16, focusPadding),
+      bottom: focusPadding,
+    };
+
+    if (!isMobile && typeof window !== "undefined") {
+      const shell = viewport.closest<HTMLElement>(".linewatch-shell");
+      const overlayRightEdges = [
+        desktopMenuPinned ? shell?.querySelector<HTMLElement>("#linewatch-main-menu") : null,
+        shell?.querySelector<HTMLElement>(".floating-panel-shell"),
+      ].flatMap((element) => {
+        if (!element || element.getAttribute("aria-hidden") === "true") return [];
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 ? [rect.right] : [];
+      });
+
+      if (overlayRightEdges.length > 0) {
+        const overlayRight = Math.max(...overlayRightEdges);
+        const minimumVisibleWidth = Math.min(320, viewportRect.width * 0.4);
+        selectionFocusInsets.left = Math.max(selectionFocusInsets.left, Math.min(
+          Math.max(overlayRight - viewportRect.left + 24, 0),
+          Math.max(viewportRect.width - minimumVisibleWidth, 0),
+        ));
+      }
+    }
+
+    if (visibleBounds.length > 0) {
+      const left = Math.min(...visibleBounds.map((bounds) => bounds.x));
+      const right = Math.max(...visibleBounds.map((bounds) => bounds.x + bounds.width));
+      const top = Math.min(...visibleBounds.map((bounds) => bounds.y));
+      const bottom = Math.max(...visibleBounds.map((bounds) => bounds.y + bounds.height));
+      const renderedCenterX = (left + right) / 2;
+      const renderedCenterY = (top + bottom) / 2;
+      const mapX = (renderedCenterX - current.x) / current.scale;
+      const mapY = (renderedCenterY - current.y) / current.scale;
+
+      const mapBounds = {
+        x: (left - current.x) / current.scale,
+        y: (top - current.y) / current.scale,
+        width: Math.max((right - left) / current.scale, 1),
+        height: Math.max((bottom - top) / current.scale, 1),
+      };
+      const { width: logicalWidth, height: logicalHeight } = logicalViewportSize();
+      const selectionFit = computeBoundedMapFrame(
+        logicalWidth,
+        logicalHeight,
+        mapBounds,
+        selectionFocusInsets,
+      );
+      const targetScale = Math.min(
+        clampPanZoomScale(preferredTargetScale, fitScale || 1),
+        selectionFit.scale * 0.92,
+      );
+      const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
+        logicalWidth,
+        logicalHeight,
+        selectionFocusInsets,
+      );
+      const focusX = baseFocusX;
+      const focusY =
+        viewportOrientation === "rotated-landscape"
+          ? logicalHeight * 0.34
+          : baseFocusY;
+
+      animateTransformTo({
+        x: focusX - mapX * targetScale,
+        y: focusY - mapY * targetScale,
+        scale: targetScale,
+      });
+      return true;
+    }
+
+    // Fallback if DOM elements aren't measured yet: try topology / boxes
+    const rotatedPreviewFocusRatio =
+      viewportOrientation === "rotated-landscape" ? { x: 0.5, y: 0.34 } : undefined;
+    const focusViewportOptions = {
+      viewportFocusRatio: rotatedPreviewFocusRatio,
+      viewportInsets: selectionFocusInsets,
+    };
+
+    if (selection) {
+      if (selectedSegmentIds.length === 0) {
+        const matchingImpacts = stationNodeImpacts.filter(
+          (impact) => impact.cardId === selection.id && impact.kind === selection.kind
+        );
+        if (matchingImpacts.length > 0) {
+          const scaleFactor = 4500 / 8250;
+          const impactPoints = matchingImpacts.flatMap((impact) => {
+            const station = stations.find((s) => s.id === impact.stationId);
+            if (!station) return [];
+            const point = stationPointFor(station);
+            return [{ x: point.x * scaleFactor, y: point.y * scaleFactor }];
+          });
+          if (impactPoints.length > 0) {
+            const targetScale = isMobile ? 3.8 : 1.8;
+            const left = Math.min(...impactPoints.map((point) => point.x));
+            const right = Math.max(...impactPoints.map((point) => point.x));
+            const top = Math.min(...impactPoints.map((point) => point.y));
+            const bottom = Math.max(...impactPoints.map((point) => point.y));
+            zoomToBounds({
+              x: left - 32,
+              y: top - 32,
+              width: right - left + 64,
+              height: bottom - top + 64,
+            }, targetScale, focusViewportOptions);
+            return true;
+          }
+        }
+      } else {
+        const svgBounds = boundsContainingBoxes(
+          selectedSegmentIds.flatMap((segmentId) => focusBoxesBySegmentId.get(segmentId) ?? []),
+        );
+        if (svgBounds) {
+          const targetScale = isMobile ? 3.8 : 1.8;
+          zoomToBounds({
+            x: svgBounds.x * SVG_TO_RENDERED_MAP_SCALE,
+            y: svgBounds.y * SVG_TO_RENDERED_MAP_SCALE,
+            width: svgBounds.width * SVG_TO_RENDERED_MAP_SCALE,
+            height: svgBounds.height * SVG_TO_RENDERED_MAP_SCALE,
+          }, targetScale, focusViewportOptions);
+          return true;
+        }
+      }
+    } else if (selectedStationId) {
+      const station = stations.find((s) => s.id === selectedStationId);
+      if (station) {
+        const scaleFactor = 4500 / 8250;
+        const pt = stationPointFor(station);
+        const targetScale = isMobile ? 3.8 : 1.8;
+        const centerX = pt.x * scaleFactor;
+        const centerY = pt.y * scaleFactor;
+        zoomToBounds({
+          x: centerX - 32,
+          y: centerY - 32,
+          width: 64,
+          height: 64,
+        }, targetScale, focusViewportOptions);
+        return true;
+      }
+    } else if (commutePathPreview && commutePathPreview.segmentIds.length > 0) {
+      const svgBounds = boundsContainingBoxes(
+        commutePathPreview.segmentIds.flatMap((segmentId) => focusBoxesBySegmentId.get(segmentId) ?? []),
+      );
+      if (svgBounds) {
+        const targetScale = isMobile ? 3.8 : 1.8;
+        zoomToBounds({
+          x: svgBounds.x * SVG_TO_RENDERED_MAP_SCALE,
+          y: svgBounds.y * SVG_TO_RENDERED_MAP_SCALE,
+          width: svgBounds.width * SVG_TO_RENDERED_MAP_SCALE,
+          height: svgBounds.height * SVG_TO_RENDERED_MAP_SCALE,
+        }, targetScale, focusViewportOptions);
+        return true;
+      }
+    }
+    return false;
+  }, [
+    animateTransformTo,
+    commutePathPreview,
+    containerRef,
+    currentRenderedTransform,
+    desktopMapTopInset,
+    desktopMenuPinned,
+    fitScale,
+    focusBoxesBySegmentId,
+    loadState,
+    logicalViewportSize,
+    selectedMapElements,
+    selectedSegmentIds,
+    selectedStationId,
+    selection,
+    stationNodeImpacts,
+    stationPointFor,
+    stations,
+    viewportOrientation,
+    zoomToBounds,
+  ]);
+
+  useEffect(() => {
     if (loadState !== "ready") return;
 
     const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${viewportOrientation}`;
@@ -831,130 +1081,35 @@ function InteractiveTtcMapComponent({
       return;
     }
 
-    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
-    const rotatedPreviewFocusRatio =
-      viewportOrientation === "rotated-landscape" ? { x: 0.5, y: 0.34 } : undefined;
-    const focusPadding = isMobile ? 24 : 40;
-    const selectionFocusInsets = {
-      left: focusPadding,
-      right: focusPadding,
-      top: isMobile ? focusPadding : Math.max(desktopMapTopInset + 16, focusPadding),
-      bottom: focusPadding,
-    };
-
-    if (!isMobile && typeof window !== "undefined") {
-      const viewport = containerRef.current;
-      const shell = viewport?.closest<HTMLElement>(".linewatch-shell");
-      if (viewport && shell) {
-        const viewportRect = viewport.getBoundingClientRect();
-        const overlayRightEdges = [
-          shell.querySelector<HTMLElement>("#linewatch-main-menu"),
-          shell.querySelector<HTMLElement>(".floating-panel-shell"),
-        ].flatMap((element) => {
-          if (!element || element.getAttribute("aria-hidden") === "true") return [];
-          const rect = element.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0 ? [rect.right] : [];
-        });
-
-        if (overlayRightEdges.length > 0) {
-          const overlayRight = Math.max(...overlayRightEdges);
-          const minimumVisibleWidth = Math.min(320, viewportRect.width * 0.4);
-          selectionFocusInsets.left = Math.max(selectionFocusInsets.left, Math.min(
-            Math.max(overlayRight - viewportRect.left + 24, 0),
-            Math.max(viewportRect.width - minimumVisibleWidth, 0),
-          ));
-        }
-      }
-    }
-    const focusViewportOptions = {
-      viewportFocusRatio: rotatedPreviewFocusRatio,
-      viewportInsets: selectionFocusInsets,
-    };
-
-    if (selection) {
-      if (selectedSegmentIds.length === 0) {
-        // Fallback: zoom/pan to the station if this is a station-specific impact
-        const matchingImpacts = stationNodeImpacts.filter(
-          (impact) => impact.cardId === selection.id && impact.kind === selection.kind
-        );
-        if (matchingImpacts.length > 0) {
-          const scaleFactor = 4500 / 8250;
-          const impactPoints = matchingImpacts.flatMap((impact) => {
-            const station = stations.find((s) => s.id === impact.stationId);
-            if (!station) return [];
-            const point = stationPointFor(station);
-            return [{ x: point.x * scaleFactor, y: point.y * scaleFactor }];
-          });
-          if (impactPoints.length > 0) {
-            const targetScale = isMobile ? 3.8 : 1.8;
-            const left = Math.min(...impactPoints.map((point) => point.x));
-            const right = Math.max(...impactPoints.map((point) => point.x));
-            const top = Math.min(...impactPoints.map((point) => point.y));
-            const bottom = Math.max(...impactPoints.map((point) => point.y));
-            zoomToBounds({
-              x: left - 32,
-              y: top - 32,
-              width: right - left + 64,
-              height: bottom - top + 64,
-            }, targetScale, focusViewportOptions);
-            lastFocusedTargetKeyRef.current = focusTargetKey;
-            lastFocusLayoutKeyRef.current = currentLayoutKey;
-          }
-        }
-      } else {
-        const svgBounds = boundsContainingBoxes(
-          selectedSegmentIds.flatMap((segmentId) => focusBoxesBySegmentId.get(segmentId) ?? []),
-        );
-        if (svgBounds) {
-          const targetScale = isMobile ? 3.8 : 1.8;
-          zoomToBounds({
-            x: svgBounds.x * SVG_TO_RENDERED_MAP_SCALE,
-            y: svgBounds.y * SVG_TO_RENDERED_MAP_SCALE,
-            width: svgBounds.width * SVG_TO_RENDERED_MAP_SCALE,
-            height: svgBounds.height * SVG_TO_RENDERED_MAP_SCALE,
-          }, targetScale, focusViewportOptions);
-          lastFocusedTargetKeyRef.current = focusTargetKey;
-          lastFocusLayoutKeyRef.current = currentLayoutKey;
-        }
-      }
-    } else if (selectedStationId) {
-      // Zoom/pan to the selected station with the same animation
-      const station = stations.find((s) => s.id === selectedStationId);
-      if (station) {
-        const scaleFactor = 4500 / 8250;
-        const pt = stationPointFor(station);
-        const targetScale = isMobile ? 3.8 : 1.8;
-        const centerX = pt.x * scaleFactor;
-        const centerY = pt.y * scaleFactor;
-        zoomToBounds({
-          x: centerX - 32,
-          y: centerY - 32,
-          width: 64,
-          height: 64,
-        }, targetScale, focusViewportOptions);
+    let retryTimer: number | null = null;
+    let attempts = 0;
+    const tryFocus = () => {
+      if (focusSelectedMapElements()) {
         lastFocusedTargetKeyRef.current = focusTargetKey;
         lastFocusLayoutKeyRef.current = currentLayoutKey;
+      } else if (attempts < 12) {
+        attempts++;
+        retryTimer = window.setTimeout(tryFocus, 50);
       }
-    }
+    };
+
+    const frame = window.requestAnimationFrame(tryFocus);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+      }
+    };
   }, [
+    desktopMenuPinned,
+    focusSelectedMapElements,
     focusTargetKey,
     isGestureActive,
-    selection,
-    selectedStationId,
-    selectedSegmentIds,
-    focusBoxesBySegmentId,
-    zoomToBounds,
+    layoutResetSignal,
     loadState,
     preserveCameraOnSelectionClear,
     recenter,
-    stationNodeImpacts,
-    stations,
-    stationPointFor,
-    layoutResetSignal,
     viewportOrientation,
-    desktopMenuPinned,
-    desktopMapTopInset,
-    containerRef,
   ]);
 
   const stationBySummaryId = useMemo(() => {
@@ -1923,21 +2078,27 @@ function InteractiveTtcMapComponent({
                 <g aria-label="Selected disruption emphasis">
                   {selectedImpactEmphasis ? (
                     commutePreviewLayer ? (
-                      <g data-selected-commute-impact-overlay={selectedImpactEmphasis.id}>
-                        <OverlaySegment
-                          segment={selectedImpactEmphasis.segment}
-                          impact={selectedImpactEmphasis.impact}
-                          plannedClosure={selectedImpactEmphasis.plannedClosure ?? undefined}
-                          selection={selection}
-                          selectedSegmentIds={selectedSegmentIds}
-                          onSelectImpact={onSelectImpact}
-                          shouldSuppressMapClick={shouldSuppressMapClick}
-                          reducedMotion={reducedMotion}
-                          idSuffix="-commute-focus"
-                          onHoverHighlightChange={setHoveredOverlayHighlight}
-                          renderInteractionTarget={false}
+                      <>
+                        <g data-selected-commute-impact-overlay={selectedImpactEmphasis.id}>
+                          <OverlaySegment
+                            segment={selectedImpactEmphasis.segment}
+                            impact={selectedImpactEmphasis.impact}
+                            plannedClosure={selectedImpactEmphasis.plannedClosure ?? undefined}
+                            selection={selection}
+                            selectedSegmentIds={selectedSegmentIds}
+                            onSelectImpact={onSelectImpact}
+                            shouldSuppressMapClick={shouldSuppressMapClick}
+                            reducedMotion={reducedMotion}
+                            idSuffix="-commute-focus"
+                            onHoverHighlightChange={setHoveredOverlayHighlight}
+                            renderInteractionTarget={false}
+                          />
+                        </g>
+                        <SelectedImpactEmphasis
+                          key={`${selection?.kind}:${selectedImpactEmphasis.id}`}
+                          emphasis={selectedImpactEmphasis}
                         />
-                      </g>
+                      </>
                     ) : (
                       <SelectedImpactEmphasis
                         key={`${selection?.kind}:${selectedImpactEmphasis.id}`}

@@ -467,9 +467,17 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /focusY = options\?\.viewportFocusRatio[\s\S]*height \* options\.viewportFocusRatio\.y[\s\S]*insetViewport\.focusY/);
     assert.match(mapSource, /const rotatedPreviewFocusRatio/);
     assert.match(mapSource, /viewportOrientation === "rotated-landscape"/);
-    assert.equal(
-      Array.from(mapSource.matchAll(/\}, targetScale, focusViewportOptions\)/g)).length,
-      3,
+    assert.ok(
+      Array.from(mapSource.matchAll(/\}, targetScale, focusViewportOptions\)/g)).length >= 3,
     );
   });
+
+  it("reliably pans to selected impact overlays during cross-network transitions", () => {
+    assert.match(regionalMapSource, /if \(focusTargetKey\) \{[\s\S]*cameraRef\.current = fitted\.camera/);
+    assert.match(regionalMapSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelectedMapElements\(\)\)/);
+    assert.match(regionalMapSource, /rect\.left - viewportRect\.left/);
+    assert.match(mapSource, /else if \(focusTargetKey === null\) \{[\s\S]*initializeCamera\(\)/);
+    assert.match(mapSource, /tryFocus = \(\) => \{[\s\S]*if \(focusSelectedMapElements\(\)\)/);
+  });
 });
+

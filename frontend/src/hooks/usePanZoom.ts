@@ -137,7 +137,9 @@ export function usePanZoom({
     }
   }, []);
 
+  const isProgrammaticCameraMotionRef = useRef(false);
   const setProgrammaticCameraMotion = useCallback((active: boolean) => {
+    isProgrammaticCameraMotionRef.current = active;
     if (containerRef.current) {
       containerRef.current.dataset.mapCameraMoving = active ? "true" : "false";
     }
@@ -318,7 +320,7 @@ export function usePanZoom({
   // prevents unrelated React renders from resetting a CSS interpolation to a
   // stale transform partway through a station or impact focus.
   useLayoutEffect(() => {
-    if (!isGestureActiveRef.current) {
+    if (!isGestureActiveRef.current && !isProgrammaticCameraMotionRef.current) {
       transformRef.current = transform;
       writeMapTransform(transform);
     }
@@ -374,17 +376,22 @@ export function usePanZoom({
       const newFit = defaultTransform.scale;
       const current = transformRef.current;
       const previousFit = fitScaleRef.current;
-      const next = previousViewport.width <= 0
-        || previousViewport.height <= 0
-        || (current.scale === 1 && previousFit === 1)
-        ? defaultTransform
-        : transformForViewportResize(
-            current,
-            previousViewport,
-            { width, height },
-            previousFit,
-            newFit,
-          );
+      const hasCustomCamera = isProgrammaticCameraMotionRef.current
+        || current.scale !== 1
+        || current.x !== 0
+        || current.y !== 0;
+
+      const next = previousViewport.width <= 0 || previousViewport.height <= 0
+        ? (hasCustomCamera ? current : defaultTransform)
+        : (current.scale === 1 && previousFit === 1)
+          ? defaultTransform
+          : transformForViewportResize(
+              current,
+              previousViewport,
+              { width, height },
+              previousFit,
+              newFit,
+            );
       const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
 
       lastDimensions.current = { width, height };
@@ -985,6 +992,10 @@ export function usePanZoom({
     zoomToScale,
     zoomToPoint,
     zoomToBounds,
+    logicalViewportSize,
+    animateTransformTo,
+    currentRenderedTransform,
+    fitScale,
     cancelAnimation,
     shouldSuppressMapClick,
   };

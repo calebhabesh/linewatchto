@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDirection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
@@ -2756,12 +2756,27 @@ function InteractiveRegionalMapComponent({
     snapCameraToNetwork(fitted.camera, fitted.scale);
   }, [animateCameraTo, animateInitialEntrance, fittedCamera, shouldAnimateProgrammaticTransform, snapCameraToNetwork]);
 
+  const focusTargetKey = useMemo(() => {
+    if (selection) return `${selection.kind}:${selection.id}`;
+    if (selectedStationId) return `station:${selectedStationId}`;
+    if (commutePathPreview) return `commute:${commutePathPreview.id}:${commutePathPreview.legId}`;
+    return null;
+  }, [commutePathPreview, selection, selectedStationId]);
+
   const initializeMapCamera = useCallback(() => {
     if (cameraInitializedRef.current || !svgMarkup) return;
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
     setCameraReady(true);
+    if (focusTargetKey) {
+      cameraRef.current = fitted.camera;
+      setMapTransition("none");
+      writeMapTransform(fitted.camera);
+      setFitScale(fitted.scale);
+      setCamera(fitted.camera);
+      return;
+    }
     if (animateInitialEntrance && shouldAnimateProgrammaticTransform) {
       const { width, height } = logicalViewportSize();
       const entryCamera = snapCameraToDevicePixels(
@@ -2782,7 +2797,7 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(fitted.camera);
     setFitScale(fitted.scale);
     setCamera(fitted.camera);
-  }, [animateCameraTo, animateInitialEntrance, fittedCamera, logicalViewportSize, setMapTransition, shouldAnimateProgrammaticTransform, svgMarkup, writeMapTransform]);
+  }, [animateCameraTo, animateInitialEntrance, fittedCamera, focusTargetKey, logicalViewportSize, setMapTransition, shouldAnimateProgrammaticTransform, svgMarkup, writeMapTransform]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3515,7 +3530,7 @@ function InteractiveRegionalMapComponent({
       if (root) {
         bringRegionalImpactToFront(root, selection.kind, selection.id, Boolean(commutePathPreview));
         bringRegionalStationImpactToFront(root, selection.kind, selection.id);
-        if (selectionIntroCompletedRef.current || commutePathPreview) {
+        if (selectionIntroCompletedRef.current) {
           markCompletedSelectionIntro(root);
         }
       }
@@ -3523,15 +3538,11 @@ function InteractiveRegionalMapComponent({
   }, [commutePathPreview, selection, svgMarkup]);
 
   useLayoutEffect(() => {
-    const nextKey = selection
-      ? `${selection.kind}:${selection.id}`
-      : selectedStationId
-        ? `station:${selectedStationId}`
-        : null;
+    const nextKey = focusTargetKey;
     if (selectionAttentionKeyRef.current === nextKey) return;
 
     selectionAttentionKeyRef.current = nextKey;
-    selectionIntroCompletedRef.current = Boolean(commutePathPreview);
+    selectionIntroCompletedRef.current = false;
     if (selectionIntroTimerRef.current !== null) {
       window.clearTimeout(selectionIntroTimerRef.current);
       selectionIntroTimerRef.current = null;
@@ -3542,11 +3553,6 @@ function InteractiveRegionalMapComponent({
       .forEach((element) => element.classList.remove("selection-intro-complete"));
     if (!nextKey) return;
 
-    if (commutePathPreview) {
-      if (root) markCompletedSelectionIntro(root);
-      return;
-    }
-
     selectionIntroTimerRef.current = window.setTimeout(() => {
       selectionIntroTimerRef.current = null;
       if (selectionAttentionKeyRef.current !== nextKey) return;
@@ -3554,7 +3560,7 @@ function InteractiveRegionalMapComponent({
       const currentRoot = viewportRef.current;
       if (currentRoot) markCompletedSelectionIntro(currentRoot);
     }, SELECTION_INTRO_DURATION_MS);
-  }, [commutePathPreview, selectedStationId, selection]);
+  }, [focusTargetKey]);
 
   useEffect(() => () => {
     if (selectionIntroTimerRef.current !== null) {
@@ -3565,6 +3571,19 @@ function InteractiveRegionalMapComponent({
   const selectedMapElements = useCallback(() => {
     const root = viewportRef.current;
     if (!root) return [];
+    if (commutePathPreview && selection) {
+      return [
+        ...root.querySelectorAll<SVGGraphicsElement>(
+          `[data-selected-commute-impact-overlay="${CSS.escape(selection.id)}"], [data-selected-impact-emphasis="${CSS.escape(selection.id)}"], [data-regional-impact-id="${CSS.escape(selection.id)}"], [data-regional-station-selection-id="${CSS.escape(selection.id)}"]`,
+        ),
+      ];
+    }
+    if (commutePathPreview) {
+      const preview = root.querySelector<SVGGraphicsElement>(
+        `[data-commute-path-preview="${CSS.escape(commutePathPreview.id)}"]`,
+      );
+      return preview ? [preview] : [];
+    }
     if (selection) {
       return [...root.querySelectorAll<SVGGraphicsElement>(
         `[data-regional-impact-kind="${selection.kind}"][data-regional-impact-id="${CSS.escape(selection.id)}"]`,
@@ -3577,7 +3596,7 @@ function InteractiveRegionalMapComponent({
       return station ? [station] : [];
     }
     return [];
-  }, [selectedStationId, selection]);
+  }, [commutePathPreview, selectedStationId, selection]);
 
   const focusSelectedMapElements = useCallback(() => {
     const viewport = viewportRef.current;
@@ -3585,13 +3604,28 @@ function InteractiveRegionalMapComponent({
     if (!viewport || elements.length === 0) return false;
 
     const viewportRect = viewport.getBoundingClientRect();
+    if (viewportRect.width <= 0 || viewportRect.height <= 0) return false;
+
     const visibleBounds = elements
-      .map((element) => clientRectToLogicalViewportBounds(
-        element.getBoundingClientRect(),
-        viewportRect,
-        viewportOrientation,
-      ))
-      .filter((bounds) => bounds !== null);
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        if (rect.width <= 0 && rect.height <= 0) return null;
+        if (viewportOrientation === "rotated-landscape") {
+          return {
+            x: rect.top - viewportRect.top,
+            y: viewportRect.width - (rect.right - viewportRect.left),
+            width: rect.height,
+            height: rect.width,
+          };
+        }
+        return {
+          x: rect.left - viewportRect.left,
+          y: rect.top - viewportRect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+      })
+      .filter((bounds): bounds is NonNullable<typeof bounds> => bounds !== null);
     if (visibleBounds.length === 0) return false;
 
     const current = cameraRef.current;
@@ -3680,12 +3714,6 @@ function InteractiveRegionalMapComponent({
     viewportOrientation,
   ]);
 
-  const focusTargetKey = selection
-    ? `${selection.kind}:${selection.id}`
-    : selectedStationId
-      ? `station:${selectedStationId}`
-      : null;
-
   useEffect(() => {
     if (!cameraInitializedRef.current || !svgMarkup) return;
     const layoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}:${viewportOrientation}`;
@@ -3708,12 +3736,23 @@ function InteractiveRegionalMapComponent({
       return;
     }
 
-    const frame = window.requestAnimationFrame(() => {
-      if (!focusSelectedMapElements()) return;
-      lastFocusedTargetKeyRef.current = focusTargetKey;
-      lastFocusLayoutKeyRef.current = layoutKey;
-    });
-    return () => window.cancelAnimationFrame(frame);
+    let retryTimer: number | null = null;
+    let attempts = 0;
+    const tryFocus = () => {
+      if (focusSelectedMapElements()) {
+        lastFocusedTargetKeyRef.current = focusTargetKey;
+        lastFocusLayoutKeyRef.current = layoutKey;
+      } else if (attempts < 12) {
+        attempts++;
+        retryTimer = window.setTimeout(tryFocus, 50);
+      }
+    };
+
+    const frame = window.requestAnimationFrame(tryFocus);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+    };
   }, [
     desktopMapBottomInset,
     desktopMapTopInset,

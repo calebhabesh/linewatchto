@@ -3928,6 +3928,55 @@ test("regional commute notifications omit TTC-only event types", async ({ page, 
   await expect(commutePanel.getByText("Service Restored", { exact: true })).toBeVisible();
 });
 
+test("saved commute View on Map transitions cleanly across network modes and pans to overlay", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  const networkSelector = page.getByRole("group", { name: "Select transit network" });
+  if (isMobile) {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+    await expect(page.locator(".regional-map-stage")).toBeVisible();
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Demo Account" }).click();
+    await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
+  } else {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+    await expect(page.locator(".regional-map-stage")).toBeVisible();
+    await openDashboardMenu(page, isMobile);
+    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+  }
+
+  // Find TTC morning commute and click View on Map for the suspension impact
+  const impactDisclosure = page.locator(".saved-commute-impact-disclosure").first();
+  await impactDisclosure.locator("summary").click();
+  const viewImpactBtn = page.getByRole("button", { name: /View Suspension on the map for Morning commute/ });
+  await expect(viewImpactBtn).toBeVisible();
+  await viewImpactBtn.click();
+
+  // Verify transition to TTC network
+  await expect(page.locator(".ttc-map-stage")).toBeVisible();
+  await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
+  const selectedImpactOverlay = page.locator('[data-selected-commute-impact-overlay="stub-alert-line-1"]');
+  await expect(selectedImpactOverlay).toBeAttached();
+  await expect(selectedImpactOverlay.locator(".suspension-candy")).toBeVisible();
+
+  // Verify camera animated and zoomed in on the disruption
+  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute(
+    "data-map-camera-moving",
+    "false",
+    { timeout: 3_000 },
+  );
+  const mapTransform = await page.locator(".ttc-map-stage").evaluate((el) => {
+    return el.style.transform;
+  });
+  expect(mapTransform).toContain("scale(");
+  expect(mapTransform).not.toBe("translate(0px, 0px) scale(1)");
+});
+
 test("signed-in riders save, browse, remove, undo, and reload My Stations", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   if (isMobile) {

@@ -350,6 +350,8 @@ export function LineWatchShell({
   const browserNavigationSessionRef = useRef("");
   const browserNavigationDepthRef = useRef(0);
   const suppressedPopstateCountRef = useRef(0);
+  const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
+  const commutePathPreviewRef = useRef<AccountCommutePathPreview | null>(null);
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("details-focus");
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
@@ -901,13 +903,11 @@ export function LineWatchShell({
     }
     setCommutesExpandedImpactDisclosures((prev) => ({ ...prev, [key]: isOpen }));
   }, []);
-  const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
   const selectedStationIdRef = useRef<string | null>(null);
   const selectionRef = useRef<ImpactSelection>(null);
   const selectionBackBehaviorRef = useRef<"clear" | "restore-view">("clear");
   const accountDialogModeRef = useRef<AccountDialogMode | null>(null);
-  const commutePathPreviewRef = useRef<AccountCommutePathPreview | null>(null);
 
   useEffect(() => {
     selectedStationIdRef.current = selectedStationId;
@@ -1711,6 +1711,13 @@ export function LineWatchShell({
 
     const commuteNetwork = commute.networkId ?? "ttc";
     if (commuteNetwork !== selectedNetwork) {
+      networkTransitionTargetRef.current = null;
+      networkFadeAnimationRef.current?.cancel();
+      networkFadeAnimationRef.current = null;
+      networkViewTransitionRef.current?.skipTransition();
+      networkViewTransitionRef.current = null;
+      delete document.documentElement.dataset.networkTransitionPhase;
+      delete document.documentElement.dataset.networkTransitionDirection;
       setClosedScreenAcknowledged(true);
       setClosedMapPeek(true);
       setSelectedNetwork(commuteNetwork);
@@ -1734,6 +1741,13 @@ export function LineWatchShell({
     const commuteNetwork = commute.networkId ?? "ttc";
     const commuteDashboard = commuteNetwork === "regional" ? regionalData : ttcData;
     if (commuteNetwork !== selectedNetwork) {
+      networkTransitionTargetRef.current = null;
+      networkFadeAnimationRef.current?.cancel();
+      networkFadeAnimationRef.current = null;
+      networkViewTransitionRef.current?.skipTransition();
+      networkViewTransitionRef.current = null;
+      delete document.documentElement.dataset.networkTransitionPhase;
+      delete document.documentElement.dataset.networkTransitionDirection;
       setClosedScreenAcknowledged(true);
       setClosedMapPeek(true);
       setSelectedNetwork(commuteNetwork);

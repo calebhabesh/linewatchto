@@ -1094,7 +1094,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalMapSource, /mapStageRef\.current\.replaceChildren/);
     assert.match(regionalMapSource, /element\.style\.removeProperty\("shape-rendering"\)/);
     assert.match(regionalMapSource, /bringRegionalImpactToFront\(root, selection\.kind, selection\.id, Boolean\(commutePathPreview\)\)/);
-    assert.match(globalsCss, /\.regional-overlay-segment-group\[data-selected-commute-impact-overlay\] \.regional-impact-interactive-glow[\s\S]*?animation:\s*none\s*!important/s);
+    assert.match(globalsCss, /\.regional-overlay-segment-group\[data-selected-commute-impact-overlay\] \.regional-impact-aura[\s\S]*?animation:\s*none\s*!important/s);
   });
 
   it("updates regional button zoom imperatively before its deferred React commit", () => {

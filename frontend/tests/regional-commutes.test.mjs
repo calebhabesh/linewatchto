@@ -24,7 +24,18 @@ describe("regional My Commutes UI boundary", () => {
   it("switches to a commute's network before opening its map path or impact", () => {
     assert.match(shellSource, /const commuteNetwork = commute\.networkId \?\? "ttc"/);
     assert.match(shellSource, /setSelectedNetwork\(commuteNetwork\)/);
+    assert.match(shellSource, /networkTransitionTargetRef\.current = null;/);
     assert.match(panelSource, /account-network-badge/);
+  });
+
+  it("plays selection attention flash over solid alert overlay on commute path preview for both map modes", () => {
+    // Regional map: interactive glow runs selection intro/breathe lifecycle while aura is hidden
+    assert.match(regionalMapSource, /bringRegionalImpactToFront\(root, selection\.kind, selection\.id, Boolean\(commutePathPreview\)\)/);
+    assert.match(globalCss, /\.regional-overlay-segment-group\[data-selected-commute-impact-overlay\] \.regional-impact-aura/);
+    assert.doesNotMatch(globalCss, /\.regional-overlay-segment-group\[data-selected-commute-impact-overlay\] \.regional-impact-interactive-glow/);
+    // TTC map: renders both solid OverlaySegment and SelectedImpactEmphasis when commutePreviewLayer is active
+    const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+    assert.match(ttcMapSource, /data-selected-commute-impact-overlay=\{selectedImpactEmphasis\.id\}[\s\S]*?<OverlaySegment[\s\S]*?<SelectedImpactEmphasis/);
   });
 
   it("supports route review and endpoint, label, and return-leg editing", () => {

@@ -1041,7 +1041,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   filter: none;
 }
 
-.regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-interactive-glow,
 .regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-aura {
   animation: none !important;
   display: none !important;
