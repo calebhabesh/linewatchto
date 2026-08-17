@@ -43,6 +43,7 @@ import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { LiveSignalIcon } from "./LiveSignalIcon";
+import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
@@ -562,6 +563,7 @@ function SavedStationRow({
                           const hasLive = arrivals.some((arrival) => arrival.status === "live");
                           const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
                           const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
+                          const isMixedGroup = sourceLabel === "Mixed";
 
                           return (
                             <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
@@ -603,7 +605,7 @@ function SavedStationRow({
                                     && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
                                   const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown: detailed });
                                   const arrivalTileClassName = [
-                                    "flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+                                    "relative flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
                                     due
                                       ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                       : soon
@@ -617,6 +619,9 @@ function SavedStationRow({
                                       data-arrival-due={due ? "true" : "false"}
                                       className={arrivalTileClassName}
                                     >
+                                      {isMixedGroup && (
+                                        <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
+                                      )}
                                       <strong
                                         className={detailed
                                           ? "whitespace-nowrap text-xs font-black leading-none tabular-nums sm:text-sm"
@@ -796,6 +801,7 @@ function SavedStationRow({
                           const sourceLabel = formatArrivalSourceBadgeLabel(arrivals, {
                             emptyLiveDirection: hasLiveArrivals && arrivals.length === 0,
                           });
+                          const isMixedGroup = sourceLabel === "Mixed";
                           const direction = formatCondensedArrivalDirection(group.directionLabel);
 
                           return (
@@ -837,7 +843,7 @@ function SavedStationRow({
                                       const due = isArrivalDue(arrival, arrivalTick);
                                       const clockTime = formatArrivalClockTime(arrival.predictedAt);
                                       const arrivalTileClassName = [
-                                        "flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+                                        "relative flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
                                         due
                                           ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                           : detailed
@@ -851,6 +857,9 @@ function SavedStationRow({
                                           data-arrival-due={due ? "true" : "false"}
                                           className={arrivalTileClassName}
                                         >
+                                          {isMixedGroup && (
+                                            <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
+                                          )}
                                           <strong
                                             className={detailed && !due
                                               ? "whitespace-nowrap text-xs sm:text-sm font-black leading-none tabular-nums"

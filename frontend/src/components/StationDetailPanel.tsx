@@ -34,6 +34,7 @@ import type {
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { LiveSignalIcon } from "./LiveSignalIcon";
+import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
@@ -754,6 +755,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                               {section.groups.map((group) => {
                                 const emptyLiveDirection = hasLiveArrivals && group.arrivals.length === 0;
                                 const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, { emptyLiveDirection });
+                                const isMixedGroup = groupSourceLabel === "Mixed";
                                 const groupSourceTitle = emptyLiveDirection
                                   ? "Live source checked; no prediction for this direction"
                                   : arrivalSourceTitle(group.arrivals);
@@ -834,7 +836,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                             ? "whitespace-nowrap text-xs sm:text-lg font-black leading-none tabular-nums"
                                             : "text-base sm:text-lg font-black leading-none";
                                           const arrivalTileClassName = [
-                                            "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
+                                            "relative flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
                                             due
                                               ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                                               : detailedCountdown
@@ -848,6 +850,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                               data-arrival-due={due ? "true" : "false"}
                                               className={arrivalTileClassName}
                                             >
+                                              {isMixedGroup && (
+                                                <ArrivalTileSourceIndicator status={arrival.status} isDue={due} />
+                                              )}
                                               <strong className={arrivalLabelClassName}>
                                                 {formatArrivalTileLabel(arrival, { detailedCountdown, now: arrivalTick })}
                                               </strong>

@@ -35,6 +35,7 @@ import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
 import { LiveSignalIcon } from "./LiveSignalIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
+import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
@@ -608,132 +609,141 @@ export function RegionalStationDetailPanel({
                               </div>
 
                               <div className="flex flex-col gap-2">
-                                {section.groups.map((group) => (
-                                  <article
-                                    key={group.key}
-                                    data-regional-arrival-direction={group.directionLabel}
-                                    data-pinned-line={isPinned ? "true" : "false"}
-                                    className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
-                                      isPinned || isHoveredPin
-                                        ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
-                                        : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
-                                    }`}
-                                  >
-                                    <div className="flex min-w-0 items-center gap-3">
-                                      <TransitLineBadge
-                                        lineId={section.lineId}
-                                        lineNumber={section.lineNumber}
-                                        lineName={section.lineName}
-                                        size={27}
-                                        className="shrink-0"
-                                      />
-                                      <div className="flex min-w-0 flex-col leading-tight">
-                                        <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                          {group.directionLabel}
-                                        </strong>
-                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                          {group.destinationLabel}
-                                        </span>
-                                      </div>
-                                      <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
-                                        {(() => {
-                                          const statusLabel = group.platforms.flatMap((platform) => platform.arrivals).some((arrival) => arrival.status === "live")
-                                            ? group.platforms.flatMap((platform) => platform.arrivals).some((arrival) => arrival.status === "scheduled")
-                                              ? "Mixed"
-                                              : "Live"
-                                            : "Scheduled";
-                                          return (
-                                            <span className={regionalArrivalSourceBadgeClassName(statusLabel)}>
-                                              {statusLabel}
-                                              {statusLabel === "Live" ? (
-                                                <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={14} />
-                                              ) : null}
-                                            </span>
-                                          );
-                                        })()}
-                                      </div>
-                                    </div>
+                                {section.groups.map((group) => {
+                                  const allGroupArrivals = group.platforms.flatMap((platform) => platform.arrivals);
+                                  const hasLive = allGroupArrivals.some((arrival) => arrival.status === "live");
+                                  const hasScheduled = allGroupArrivals.some((arrival) => arrival.status === "scheduled");
+                                  const statusLabel = hasLive
+                                    ? hasScheduled
+                                      ? "Mixed"
+                                      : "Live"
+                                    : "Scheduled";
+                                  const isMixedGroup = statusLabel === "Mixed";
 
-                                    <div className="mt-3 flex flex-col gap-3">
-                                      {group.platforms.map((platform) => (
-                                        <div key={platform.key} data-regional-arrival-platform={platform.key}>
-                                          <div className="mb-2 flex items-center justify-between gap-2">
-                                            <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                              {platform.label}
-                                            </h4>
-                                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                                              {platform.arrivals.some((arrival) => arrival.status === "live" && arrival.delayMinutes > 0)
-                                                ? "Delayed estimate"
-                                                : platform.arrivals.some((arrival) => arrival.status === "live")
-                                                  ? "On schedule"
-                                                  : "Scheduled timetable"}
-                                            </span>
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-2">
-                                            {platform.arrivals.map((arrival, index) => {
-                                              const due = isRegionalArrivalDue(arrival, arrivalTick);
-                                              const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
-                                              const tripChange = findRegionalArrivalTripChange(
-                                                arrival,
-                                                tripChanges.changes,
-                                                station.id,
-                                              );
-                                              const detailedCountdown = index === 0
-                                                && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
-                                              const timeDisplay = regionalArrivalTimeDisplay(
-                                                arrival,
-                                                arrivalTick,
-                                                { detailedCountdown }
-                                              );
-                                              return (
-                                                <div
-                                                  key={`${arrival.tripNumber}:${arrival.predictedAt}`}
-                                                  data-arrival-due={due ? "true" : "false"}
-                                                  data-regional-arrival-due={due ? "true" : "false"}
-                                                  className={[
-                                                    "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
-                                                    tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"
-                                                      ? "border-red-500/70 bg-red-500/15 text-red-900 shadow-[0_0_0_1px_rgba(239,68,68,0.16)] dark:text-red-50"
-                                                      : tripChange?.kind === "added-stop"
-                                                        ? "border-blue-500/60 bg-blue-500/10 text-blue-900 dark:text-blue-50"
-                                                    : due
-                                                      ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
-                                                      : soon
-                                                        ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
-                                                        : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
-                                                  ].join(" ")}
-                                                >
-                                                  <strong className={detailedCountdown
-                                                    ? "whitespace-nowrap text-xs font-black leading-none tabular-nums sm:text-lg"
-                                                    : "text-base font-black leading-none tracking-tight"}
-                                                  >
-                                                    {tripChange ? regionalTripChangeLabel(tripChange.kind) : timeDisplay.primary}
-                                                  </strong>
-                                                  <span
-                                                    className={
-                                                      due
-                                                        ? "mt-1 text-xs font-semibold text-red-100/80"
-                                                        : soon
-                                                          ? "mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
-                                                          : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"
-                                                    }
-                                                  >
-                                                    {tripChange ? `Train ${arrival.tripNumber}` : timeDisplay.secondary}
-                                                  </span>
-                                                  {tripChange ? (
-                                                    <span className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-75">
-                                                      Scheduled {timeDisplay.secondary}
-                                                    </span>
-                                                  ) : null}
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
+                                  return (
+                                    <article
+                                      key={group.key}
+                                      data-regional-arrival-direction={group.directionLabel}
+                                      data-pinned-line={isPinned ? "true" : "false"}
+                                      className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
+                                        isPinned || isHoveredPin
+                                          ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
+                                          : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+                                      }`}
+                                    >
+                                      <div className="flex min-w-0 items-center gap-3">
+                                        <TransitLineBadge
+                                          lineId={section.lineId}
+                                          lineNumber={section.lineNumber}
+                                          lineName={section.lineName}
+                                          size={27}
+                                          className="shrink-0"
+                                        />
+                                        <div className="flex min-w-0 flex-col leading-tight">
+                                          <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                            {group.directionLabel}
+                                          </strong>
+                                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                            {group.destinationLabel}
+                                          </span>
                                         </div>
-                                      ))}
-                                    </div>
-                                  </article>
-                                ))}
+                                        <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
+                                          <span className={regionalArrivalSourceBadgeClassName(statusLabel)}>
+                                            {statusLabel}
+                                            {statusLabel === "Live" ? (
+                                              <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={14} />
+                                            ) : null}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="mt-3 flex flex-col gap-3">
+                                        {group.platforms.map((platform) => (
+                                          <div key={platform.key} data-regional-arrival-platform={platform.key}>
+                                            <div className="mb-2 flex items-center justify-between gap-2">
+                                              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                                {platform.label}
+                                              </h4>
+                                              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                                {platform.arrivals.some((arrival) => arrival.status === "live" && arrival.delayMinutes > 0)
+                                                  ? "Delayed estimate"
+                                                  : platform.arrivals.some((arrival) => arrival.status === "live")
+                                                    ? "On schedule"
+                                                    : "Scheduled timetable"}
+                                              </span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                              {platform.arrivals.map((arrival, index) => {
+                                                const due = isRegionalArrivalDue(arrival, arrivalTick);
+                                                const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
+                                                const tripChange = findRegionalArrivalTripChange(
+                                                  arrival,
+                                                  tripChanges.changes,
+                                                  station.id,
+                                                );
+                                                const detailedCountdown = index === 0
+                                                  && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
+                                                const timeDisplay = regionalArrivalTimeDisplay(
+                                                  arrival,
+                                                  arrivalTick,
+                                                  { detailedCountdown }
+                                                );
+                                                return (
+                                                  <div
+                                                    key={`${arrival.tripNumber}:${arrival.predictedAt}`}
+                                                    data-arrival-due={due ? "true" : "false"}
+                                                    data-regional-arrival-due={due ? "true" : "false"}
+                                                    className={[
+                                                      "relative flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
+                                                      tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"
+                                                        ? "border-red-500/70 bg-red-500/15 text-red-900 shadow-[0_0_0_1px_rgba(239,68,68,0.16)] dark:text-red-50"
+                                                        : tripChange?.kind === "added-stop"
+                                                          ? "border-blue-500/60 bg-blue-500/10 text-blue-900 dark:text-blue-50"
+                                                        : due
+                                                          ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
+                                                          : soon
+                                                            ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
+                                                            : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                                    ].join(" ")}
+                                                  >
+                                                    {isMixedGroup && (
+                                                      <ArrivalTileSourceIndicator
+                                                        status={arrival.status}
+                                                        isDue={due || tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"}
+                                                      />
+                                                    )}
+                                                    <strong className={detailedCountdown
+                                                      ? "whitespace-nowrap text-xs font-black leading-none tabular-nums sm:text-lg"
+                                                      : "text-base font-black leading-none tracking-tight"}
+                                                    >
+                                                      {tripChange ? regionalTripChangeLabel(tripChange.kind) : timeDisplay.primary}
+                                                    </strong>
+                                                    <span
+                                                      className={
+                                                        due
+                                                          ? "mt-1 text-xs font-semibold text-red-100/80"
+                                                          : soon
+                                                            ? "mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                                                            : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"
+                                                      }
+                                                    >
+                                                      {tripChange ? `Train ${arrival.tripNumber}` : timeDisplay.secondary}
+                                                    </span>
+                                                    {tripChange ? (
+                                                      <span className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-75">
+                                                        Scheduled {timeDisplay.secondary}
+                                                      </span>
+                                                    ) : null}
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </article>
+                                  );
+                                })}
                               </div>
                             </div>
                           </Fragment>

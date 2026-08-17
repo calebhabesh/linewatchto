@@ -25,6 +25,7 @@ import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperating
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { LiveSignalIcon } from "./LiveSignalIcon";
+import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 
 const REFRESH_MS = 15_000;
 
@@ -56,11 +57,14 @@ function SurfaceRouteCard({
 }) {
   const details = parseSurfaceRouteDetails(group, networkId);
   const hasArrivals = group.arrivals.length > 0;
+  const hasLive = group.arrivals.some((arrival) => arrival.status === "live");
+  const hasScheduled = group.arrivals.some((arrival) => arrival.status === "scheduled");
   const groupSourceLabel = !hasArrivals
     ? "No Service"
-    : group.arrivals.some((arrival) => arrival.status === "live")
-      ? group.arrivals.some((arrival) => arrival.status === "scheduled") ? "Mixed" : "Live"
+    : hasLive
+      ? hasScheduled ? "Mixed" : "Live"
       : "Scheduled";
+  const isMixedGroup = groupSourceLabel === "Mixed";
 
   return (
     <article
@@ -125,7 +129,7 @@ function SurfaceRouteCard({
               ? "whitespace-nowrap text-xs sm:text-lg font-black leading-none tabular-nums"
               : "text-base sm:text-lg font-black leading-none";
             const arrivalTileClassName = [
-              "flex min-h-[58px] flex-col items-center justify-center rounded-md border px-2 py-1.5 text-center transition-colors",
+              "relative flex min-h-[58px] flex-col items-center justify-center rounded-md border px-2 py-1.5 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                 : detailedCountdown
@@ -139,6 +143,9 @@ function SurfaceRouteCard({
                 data-arrival-due={due ? "true" : "false"}
                 className={arrivalTileClassName}
               >
+                {isMixedGroup && (
+                  <ArrivalTileSourceIndicator status={arrival.status} isDue={due} size={12} />
+                )}
                 <strong className={arrivalLabelClassName}>
                   {formatSurfaceArrivalTileLabel(arrival, { detailedCountdown, now: tick })}
                 </strong>
@@ -187,11 +194,14 @@ function SurfaceCompactRouteRow({
 }) {
   const details = parseSurfaceRouteDetails(group, networkId);
   const hasArrivals = group.arrivals.length > 0;
+  const hasLive = group.arrivals.some((arrival) => arrival.status === "live");
+  const hasScheduled = group.arrivals.some((arrival) => arrival.status === "scheduled");
   const groupSourceLabel = !hasArrivals
     ? "None"
-    : group.arrivals.some((arrival) => arrival.status === "live")
-      ? group.arrivals.some((arrival) => arrival.status === "scheduled") ? "Mixed" : "Live"
+    : hasLive
+      ? hasScheduled ? "Mixed" : "Live"
       : "Scheduled";
+  const isMixedGroup = groupSourceLabel === "Mixed";
 
   const sourceBadgeClassName = groupSourceLabel === "Live"
     ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide inline-flex items-center"
@@ -262,7 +272,7 @@ function SurfaceCompactRouteRow({
             const due = isSurfaceArrivalDue(arrival, tick);
             const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
             const arrivalTileClassName = [
-              "flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
+              "relative flex min-h-[48px] sm:min-h-[54px] flex-col items-center justify-center rounded-md border px-1.5 py-1 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                 : detailed
@@ -276,6 +286,9 @@ function SurfaceCompactRouteRow({
                 data-arrival-due={due ? "true" : "false"}
                 className={arrivalTileClassName}
               >
+                {isMixedGroup && (
+                  <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
+                )}
                 <strong
                   className={detailed && !due
                     ? "whitespace-nowrap text-xs sm:text-sm font-black leading-none tabular-nums"
