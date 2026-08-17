@@ -1777,24 +1777,28 @@ export function LineWatchShell({
 
   const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
     const commuteId = typeof commuteIdOrEvent === "string" ? commuteIdOrEvent : undefined;
-    setCommutePathPreview((current) => {
-      if (!current) return null;
-      if (commuteId && current.id !== commuteId && current.commuteId !== commuteId) {
-        return current;
-      }
-      consumeBrowserNavigationEntries();
+    if (commuteId && commutePathPreviewRef.current && commutePathPreviewRef.current.id !== commuteId && commutePathPreviewRef.current.commuteId !== commuteId) {
+      return;
+    }
+    consumeBrowserNavigationEntries();
+    setNavDirection("back");
+    setIsGoingBack(true);
+    if (backTimeoutRef.current) {
+      window.clearTimeout(backTimeoutRef.current);
+    }
+    backTimeoutRef.current = window.setTimeout(() => {
       commutePathPreviewRef.current = null;
-      window.setTimeout(() => {
-        selectionRef.current = null;
-        setSelection(null);
-        setSelectedStationId(null);
-        viewHistoryRef.current = isMobile ? ["more"] : ["menu"];
-        activeViewRef.current = "commutes";
-        setActiveView("commutes");
-      }, 0);
-      return null;
-    });
-  }, [consumeBrowserNavigationEntries, isMobile, setActiveView, setCommutePathPreview, setSelection, setSelectedStationId]);
+      setCommutePathPreview(null);
+      selectionRef.current = null;
+      setSelection(null);
+      setSelectedStationId(null);
+      setAccessibilityOutageTarget(null);
+      viewHistoryRef.current = isMobile ? ["more"] : ["menu"];
+      activeViewRef.current = "commutes";
+      setActiveView("commutes");
+      setIsGoingBack(false);
+    }, reducedMotion ? 0 : 380);
+  }, [consumeBrowserNavigationEntries, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setSelection, setSelectedStationId]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);
