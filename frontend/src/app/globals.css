@@ -2516,100 +2516,67 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   top: -1px;
   overflow: visible;
   flex-shrink: 0;
+  contain: paint;
+  isolation: isolate;
 }
 
 .live-signal-icon .live-signal-dot {
-  transform-box: fill-box;
-  transform-origin: center;
   animation: live-signal-dot-pulse 2.1s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  opacity: 0.85;
 }
 
 .live-signal-icon .live-signal-arc-inner {
-  transform-box: fill-box;
-  transform-origin: center;
   animation: live-signal-wave-inner 2.1s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  opacity: 0.6;
 }
 
 .live-signal-icon .live-signal-arc-outer {
-  transform-box: fill-box;
-  transform-origin: center;
   animation: live-signal-wave-outer 2.1s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  opacity: 0.5;
 }
 
 @keyframes live-signal-dot-pulse {
   0%, 8% {
-    opacity: 0.8;
-    transform: scale(0.96);
-    filter: none;
+    opacity: 0.55;
   }
-  20%, 26% {
+  20%, 28% {
     opacity: 1;
-    transform: scale(1.28);
-    filter: drop-shadow(0 0 2.5px currentColor);
   }
-  38% {
-    opacity: 0.9;
-    transform: scale(1);
-    filter: none;
-  }
-  52%, 100% {
+  42% {
     opacity: 0.8;
-    transform: scale(0.96);
-    filter: none;
+  }
+  56%, 100% {
+    opacity: 0.55;
   }
 }
 
 @keyframes live-signal-wave-inner {
-  0%, 14% {
-    opacity: 0.6;
-    stroke-width: 2;
-    filter: none;
+  0%, 16% {
+    opacity: 0.36;
   }
-  26% {
-    opacity: 0.82;
-    stroke-width: 2.2;
-  }
-  38%, 44% {
+  36%, 44% {
     opacity: 1;
-    stroke-width: 2.6;
-    filter: drop-shadow(0 0 3px currentColor);
   }
-  56% {
-    opacity: 0.72;
-    stroke-width: 2.1;
-    filter: none;
+  60% {
+    opacity: 0.65;
   }
-  68%, 100% {
-    opacity: 0.6;
-    stroke-width: 2;
-    filter: none;
+  72%, 100% {
+    opacity: 0.36;
   }
 }
 
 @keyframes live-signal-wave-outer {
-  0%, 28% {
-    opacity: 0.55;
-    stroke-width: 2;
-    filter: none;
+  0%, 30% {
+    opacity: 0.25;
   }
-  42% {
-    opacity: 0.78;
-    stroke-width: 2.2;
-  }
-  54%, 62% {
+  52%, 62% {
     opacity: 1;
-    stroke-width: 2.6;
-    filter: drop-shadow(0 0 3px currentColor);
   }
-  74% {
-    opacity: 0.68;
-    stroke-width: 2.1;
-    filter: none;
-  }
-  86%, 100% {
+  78% {
     opacity: 0.55;
-    stroke-width: 2;
-    filter: none;
+  }
+  90%, 100% {
+    opacity: 0.25;
   }
 }
 
