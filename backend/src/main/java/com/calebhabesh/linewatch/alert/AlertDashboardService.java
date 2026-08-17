@@ -519,15 +519,29 @@ public class AlertDashboardService {
     }
 
     private String summarizedDates(List<LocalDate> dates, OffsetDateTime now) {
+        if (dates == null || dates.isEmpty()) {
+            return null;
+        }
         if (dates.size() == 1) {
             return formattedClosureDate(dates.getFirst(), now);
         }
-        // Child periods are discrete authored closure occurrences. Keep them as a
-        // list even when dates happen to be consecutive; a range could imply an
-        // unreported continuous closure or interpolate a missing nightly window.
-        return dates.stream()
-            .map(date -> formattedClosureDate(date, now))
-            .collect(java.util.stream.Collectors.joining("; "));
+        List<String> formattedSpans = new ArrayList<>();
+        int i = 0;
+        while (i < dates.size()) {
+            LocalDate start = dates.get(i);
+            LocalDate end = start;
+            while (i + 1 < dates.size() && dates.get(i + 1).equals(end.plusDays(1))) {
+                end = dates.get(i + 1);
+                i++;
+            }
+            if (start.equals(end)) {
+                formattedSpans.add(formattedClosureDate(start, now));
+            } else {
+                formattedSpans.add(formattedClosureDate(start, now) + " – " + formattedClosureDate(end, now));
+            }
+            i++;
+        }
+        return String.join("; ", formattedSpans);
     }
 
     private String formattedClosureDate(LocalDate date, OffsetDateTime now) {
@@ -809,16 +823,20 @@ public class AlertDashboardService {
         String hours = naturalClosureHours(windowHours);
         String dates = naturalClosureDates(windowDates);
         boolean discreteOccurrences = windowDates != null && windowDates.contains(";");
+        boolean isDateRange = windowDates != null && (windowDates.contains("–") || windowDates.contains("—") || windowDates.contains(" - "));
         if (hours == null && dates == null) {
             return baseTitle;
         }
 
         StringBuilder titleBuilder = new StringBuilder(baseTitle);
         if (dates != null) {
-            titleBuilder.append(overnight
-                ? discreteOccurrences ? " overnight on " : " overnight from "
-                : discreteOccurrences ? " on " : " from ")
-                .append(dates);
+            String dateConnector;
+            if (isDateRange && !discreteOccurrences) {
+                dateConnector = overnight ? " overnight from " : " from ";
+            } else {
+                dateConnector = overnight ? " overnight on " : " on ";
+            }
+            titleBuilder.append(dateConnector).append(dates);
         } else if (overnight) {
             titleBuilder.append(" overnight");
         }
@@ -876,7 +894,7 @@ public class AlertDashboardService {
     }
 
     private String expandedClosureDateNames(String windowDate) {
-        String natural = windowDate.replace(" – ", " through ");
+        String natural = windowDate.replaceAll("\\s*[–—-]+\\s*", " to ");
         String[][] names = {
             {"Mon", "Monday"}, {"Tue", "Tuesday"}, {"Wed", "Wednesday"},
             {"Thu", "Thursday"}, {"Fri", "Friday"}, {"Sat", "Saturday"}, {"Sun", "Sunday"},
