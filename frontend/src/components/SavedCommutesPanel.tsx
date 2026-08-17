@@ -1600,7 +1600,20 @@ export function SavedCommutesPanel({
                       </div>
 
                       {legs.length > 1 ? (
-                        <div className="commute-leg-toggle" role="tablist" aria-label={`Route direction for ${commute.label}`}>
+                        <div
+                          className="commute-leg-toggle"
+                          role="tablist"
+                          aria-label={`Route direction for ${commute.label}`}
+                          data-selected-index={legs.findIndex((l) => l.id === selectedLeg.id) <= 0 ? "0" : "1"}
+                          data-selected-state={
+                            selectedLegClearByFilters
+                              ? "filtered"
+                              : selectedLeg.impact.severity === "clear"
+                                ? "clear"
+                                : "affected"
+                          }
+                        >
+                          <div className="commute-leg-glider" aria-hidden="true" />
                           {legs.map((leg) => {
                             const isClear = leg.impact.severity === "clear";
                             const isClearByFilters = legIsClearByFilters(leg);
