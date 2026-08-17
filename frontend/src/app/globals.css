@@ -14764,6 +14764,11 @@ img.transit-line-badge {
     transform: none;
     z-index: 1;
   }
+
+  .mobile-impact-inspector .mobile-impact-inspector-commute-preview {
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
 }
 
 .commute-station-browse-container {

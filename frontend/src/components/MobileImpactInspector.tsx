@@ -441,6 +441,14 @@ export function MobileImpactInspector({
       role="complementary"
       aria-label="Selected map impact details"
     >
+      {commutePathPreview ? (
+        <CommutePathPreviewCardBanner
+          commutePathPreview={commutePathPreview}
+          onClearCommutePathPreview={onClearCommutePathPreview}
+          className="mobile-impact-inspector-commute-preview"
+        />
+      ) : null}
+
       <div className="mobile-impact-inspector-header">
         <div className="mobile-impact-inspector-title-row">
           <LineBadge lineId={details.lineId} lineNumber={details.lineNumber || fallbackLineNumber(details.lineId)} />
@@ -497,14 +505,6 @@ export function MobileImpactInspector({
               ...(details.extraRows ?? []),
             ]}
             trailingRows={details.trailingRows}
-          />
-        ) : null}
-
-        {commutePathPreview ? (
-          <CommutePathPreviewCardBanner
-            commutePathPreview={commutePathPreview}
-            onClearCommutePathPreview={onClearCommutePathPreview}
-            className="mobile-impact-inspector-commute-preview"
           />
         ) : null}
       </div>
