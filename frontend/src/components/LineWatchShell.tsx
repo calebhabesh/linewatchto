@@ -790,6 +790,8 @@ export function LineWatchShell({
     setIsClosingPanel(true);
     viewHistoryRef.current = [];
     setSelectedStationId(null);
+    commutePathPreviewRef.current = null;
+    setCommutePathPreview(null);
     if (closingTimeoutRef.current) {
       window.clearTimeout(closingTimeoutRef.current);
     }
@@ -802,7 +804,7 @@ export function LineWatchShell({
       setMobileInspectorDetent("map-focus");
       setAccessibilityOutageTarget(null);
     }, reducedMotion ? 0 : 380);
-  }, [consumeBrowserNavigationEntries, isClosingPanel, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent]);
+  }, [consumeBrowserNavigationEntries, isClosingPanel, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent, setCommutePathPreview]);
 
   const [isGoingBack, setIsGoingBack] = useState(false);
   const backTimeoutRef = useRef<number | null>(null);
@@ -2256,9 +2258,11 @@ export function LineWatchShell({
   const handleMobileSheetClose = useCallback(() => {
     navigateRoot("map");
     setSelection(null);
+    commutePathPreviewRef.current = null;
+    setCommutePathPreview(null);
     setMapPresentationMode("standard");
     setMobileInspectorDetent("map-focus");
-  }, [navigateRoot, setMapPresentationMode, setMobileInspectorDetent, setSelection]);
+  }, [navigateRoot, setMapPresentationMode, setMobileInspectorDetent, setSelection, setCommutePathPreview]);
 
   const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
     switch (kind) {
@@ -2629,6 +2633,8 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
             initialLineId={impactListLaunch.lineId}
+            commutePathPreview={commutePathPreview}
+            onClearCommutePathPreview={handleClearCommutePathPreview}
           />
         );
       case "delays":
@@ -2641,6 +2647,8 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
             initialLineId={impactListLaunch.lineId}
+            commutePathPreview={commutePathPreview}
+            onClearCommutePathPreview={handleClearCommutePathPreview}
           />
         );
       case "reduced-speed-zones":
@@ -2653,6 +2661,8 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
             initialLineId={impactListLaunch.lineId}
+            commutePathPreview={commutePathPreview}
+            onClearCommutePathPreview={handleClearCommutePathPreview}
           />
         );
       case "closures":
@@ -2665,6 +2675,8 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
             initialLineId={impactListLaunch.lineId}
+            commutePathPreview={commutePathPreview}
+            onClearCommutePathPreview={handleClearCommutePathPreview}
           />
         );
       case "commutes":
@@ -4121,6 +4133,8 @@ export function LineWatchShell({
           onUnfocus={handleClearMobileImpactSelection}
           onViewFullDetails={() => setActiveView(viewForImpactSelection(selection))}
           onSelectImpact={handleMapSelectImpact}
+          commutePathPreview={commutePathPreview}
+          onClearCommutePathPreview={handleClearCommutePathPreview}
         />
       ) : null}
 

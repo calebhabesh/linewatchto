@@ -3620,30 +3620,14 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
     await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toBeVisible();
   }
-  const previewChipMetrics = await page.locator(".commute-path-preview-chip").evaluate((chip) => {
-    const bounds = chip.getBoundingClientRect();
-    return { height: bounds.height, width: bounds.width };
-  });
-  expect(previewChipMetrics.height).toBeGreaterThanOrEqual(60);
   if (isMobile) {
-    expect(previewChipMetrics.width).toBeGreaterThanOrEqual((page.viewportSize()?.width ?? 320) - 40);
-    const previewInspectorGap = async () => {
-      const chipBounds = await page.locator(".commute-path-preview-chip").boundingBox();
-      const inspectorBounds = await page
-        .getByRole("complementary", { name: "Selected map impact details" })
-        .boundingBox();
-      if (!chipBounds || !inspectorBounds) return Number.POSITIVE_INFINITY;
-      return inspectorBounds.y - (chipBounds.y + chipBounds.height);
-    };
-    await expect.poll(previewInspectorGap).toBeGreaterThanOrEqual(8);
-    await expect.poll(previewInspectorGap).toBeLessThanOrEqual(12);
-
-    await page.getByRole("button", { name: "Show more map" }).click();
-    await expect(page.getByRole("button", { name: "Show more details" })).toBeVisible();
-    await expect.poll(previewInspectorGap).toBeGreaterThanOrEqual(8);
-    await expect.poll(previewInspectorGap).toBeLessThanOrEqual(12);
+    const mobileChip = page.getByRole("complementary", { name: "Selected map impact details" }).locator(".commute-path-preview-chip");
+    await expect(mobileChip).toBeVisible();
+    await expect(mobileChip.getByRole("button", { name: "Back to My Commutes" })).toBeVisible();
   } else {
-    expect(previewChipMetrics.width).toBeGreaterThanOrEqual(560);
+    const desktopChip = page.locator('[data-impact-card-id="stub-alert-line-1"]').locator(".commute-path-preview-chip");
+    await expect(desktopChip).toBeVisible();
+    await expect(desktopChip.getByRole("button", { name: "Back to My Commutes" })).toBeVisible();
   }
   const selectedImpactOverlay = page.locator('[data-selected-commute-impact-overlay="stub-alert-line-1"]');
   await expect(selectedImpactOverlay).toBeAttached();

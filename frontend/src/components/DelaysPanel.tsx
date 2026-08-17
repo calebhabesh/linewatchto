@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
+import type { AccountCommutePathPreview } from "../app/account-data";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource, JumpToLocationIcon, CommutePathPreviewCardBanner } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -21,9 +22,20 @@ interface Props {
   onClose?: () => void;
   onFocusMap?: () => void;
   initialLineId?: string | null;
+  commutePathPreview?: AccountCommutePathPreview | null;
+  onClearCommutePathPreview?: () => void;
 }
 
-export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap, initialLineId }: Props) {
+export function DelaysPanel({
+  selection,
+  onSelectImpact,
+  onBack,
+  onClose,
+  onFocusMap,
+  initialLineId,
+  commutePathPreview,
+  onClearCommutePathPreview,
+}: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
   const [lineId, setLineId] = useState(initialLineId ?? "all");
@@ -192,7 +204,12 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
                   </button>
                 </div>
 
-
+                {isActive && commutePathPreview ? (
+                  <CommutePathPreviewCardBanner
+                    commutePathPreview={commutePathPreview}
+                    onClearCommutePathPreview={onClearCommutePathPreview}
+                  />
+                ) : null}
               </article>
             );
           })

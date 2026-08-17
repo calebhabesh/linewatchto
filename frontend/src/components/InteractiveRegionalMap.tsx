@@ -4530,7 +4530,7 @@ function InteractiveRegionalMapComponent({
           viewportSize={overlapChooserViewportSize}
         />
       ) : null}
-      {commutePathPreview ? (
+      {commutePathPreview && !selection ? (
         <div className="commute-path-preview-chip" role="status" aria-live="polite" data-map-chooser-keepout>
           <span>
             Viewing <strong>{commutePathPreview.routeLabel}</strong>

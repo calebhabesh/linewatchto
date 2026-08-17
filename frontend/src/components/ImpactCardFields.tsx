@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { AccountCommutePathPreview } from "../app/account-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
@@ -298,3 +299,37 @@ export function JumpToLocationIcon({ className = "w-3.5 h-3.5" }: { className?: 
     </svg>
   );
 }
+
+export function CommutePathPreviewCardBanner({
+  commutePathPreview,
+  onClearCommutePathPreview,
+  className = "",
+}: {
+  commutePathPreview: AccountCommutePathPreview;
+  onClearCommutePathPreview?: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`commute-path-preview-chip commute-path-preview-embedded ${className}`.trim()}
+      role="status"
+      aria-live="polite"
+      data-commute-path-preview-embedded
+    >
+      <span>
+        Viewing <strong>{commutePathPreview.routeLabel}</strong>
+      </span>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClearCommutePathPreview?.();
+        }}
+        aria-label="Back to My Commutes"
+      >
+        Back
+      </button>
+    </div>
+  );
+}
+

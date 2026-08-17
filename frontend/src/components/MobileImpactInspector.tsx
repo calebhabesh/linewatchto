@@ -5,10 +5,11 @@ import { AlertTriangle, ArrowRight, ChevronDown, ChevronUp, Construction, Extern
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
+import type { AccountCommutePathPreview } from "../app/account-data";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
-import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton } from "./ImpactCardFields";
+import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton, CommutePathPreviewCardBanner } from "./ImpactCardFields";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { DirectionalZoneCount } from "./DirectionalZoneCount";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
@@ -53,6 +54,8 @@ type Props = {
   onUnfocus: () => void;
   onViewFullDetails: () => void;
   onSelectImpact: (selection: ImpactSelection) => void;
+  commutePathPreview?: AccountCommutePathPreview | null;
+  onClearCommutePathPreview?: () => void;
 };
 
 function formatSpeed(value: string | null | undefined): string | null {
@@ -368,6 +371,8 @@ export function MobileImpactInspector({
   onUnfocus,
   onViewFullDetails,
   onSelectImpact,
+  commutePathPreview,
+  onClearCommutePathPreview,
 }: Props) {
   const data = useDashboardData();
   const inspectorRef = useRef<HTMLElement | null>(null);
@@ -492,6 +497,14 @@ export function MobileImpactInspector({
               ...(details.extraRows ?? []),
             ]}
             trailingRows={details.trailingRows}
+          />
+        ) : null}
+
+        {commutePathPreview ? (
+          <CommutePathPreviewCardBanner
+            commutePathPreview={commutePathPreview}
+            onClearCommutePathPreview={onClearCommutePathPreview}
+            className="mobile-impact-inspector-commute-preview"
           />
         ) : null}
       </div>

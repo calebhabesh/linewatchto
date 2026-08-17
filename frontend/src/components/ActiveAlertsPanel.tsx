@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus, ChevronLeft, X } from "lucide-react";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
+import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, RelatedPlannedClosureButton } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, RelatedPlannedClosureButton, CommutePathPreviewCardBanner } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -20,6 +21,8 @@ interface Props {
   onClose?: () => void;
   onFocusMap?: () => void;
   initialLineId?: string | null;
+  commutePathPreview?: AccountCommutePathPreview | null;
+  onClearCommutePathPreview?: () => void;
 }
 
 function impactKindForAlert(alert: ActiveAlert): ImpactKind {
@@ -38,6 +41,8 @@ export function ActiveAlertsPanel({
   onClose,
   onFocusMap,
   initialLineId,
+  commutePathPreview,
+  onClearCommutePathPreview,
 }: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, reducedSpeedZones, delays, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
@@ -251,7 +256,12 @@ export function ActiveAlertsPanel({
                   </button>
                 </div>
                 
-
+                {isActive && commutePathPreview ? (
+                  <CommutePathPreviewCardBanner
+                    commutePathPreview={commutePathPreview}
+                    onClearCommutePathPreview={onClearCommutePathPreview}
+                  />
+                ) : null}
               </div>
             );
           })

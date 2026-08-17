@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { ArrowRight, Bus, ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
+import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, CommutePathPreviewCardBanner } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -22,6 +23,8 @@ interface Props {
   onClose?: () => void;
   onFocusMap?: () => void;
   initialLineId?: string | null;
+  commutePathPreview?: AccountCommutePathPreview | null;
+  onClearCommutePathPreview?: () => void;
 }
 
 function formatClosureScheduleValue(value: string) {
@@ -30,7 +33,16 @@ function formatClosureScheduleValue(value: string) {
     .replace(/\s+-\s+/g, " – ");
 }
 
-export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap, initialLineId }: Props) {
+export function PlannedClosuresPanel({
+  selection,
+  onSelectImpact,
+  onBack,
+  onClose,
+  onFocusMap,
+  initialLineId,
+  commutePathPreview,
+  onClearCommutePathPreview,
+}: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
   const [lineId, setLineId] = useState(initialLineId ?? "all");
@@ -282,7 +294,12 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                   </button>
                 </div>
 
-
+                {isActive && commutePathPreview ? (
+                  <CommutePathPreviewCardBanner
+                    commutePathPreview={commutePathPreview}
+                    onClearCommutePathPreview={onClearCommutePathPreview}
+                  />
+                ) : null}
               </div>
             );
           })

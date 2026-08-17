@@ -5,8 +5,9 @@ import { useDashboardData } from "../app/DataContext";
 import { DirectionalZoneCount } from "./DirectionalZoneCount";
 import { Construction, ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
+import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, CommutePathPreviewCardBanner } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -29,6 +30,8 @@ interface Props {
   onClose?: () => void;
   onFocusMap?: () => void;
   initialLineId?: string | null;
+  commutePathPreview?: AccountCommutePathPreview | null;
+  onClearCommutePathPreview?: () => void;
 }
 
 export function ReducedSpeedZonesPanel({
@@ -38,6 +41,8 @@ export function ReducedSpeedZonesPanel({
   onClose,
   onFocusMap,
   initialLineId,
+  commutePathPreview,
+  onClearCommutePathPreview,
 }: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
@@ -229,7 +234,12 @@ export function ReducedSpeedZonesPanel({
                   </button>
                 </div>
 
-
+                {isActive && commutePathPreview ? (
+                  <CommutePathPreviewCardBanner
+                    commutePathPreview={commutePathPreview}
+                    onClearCommutePathPreview={onClearCommutePathPreview}
+                  />
+                ) : null}
               </div>
             );
           })
