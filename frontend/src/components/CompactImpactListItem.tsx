@@ -5,7 +5,7 @@ import { ImpactTimestamp } from "./ImpactTimestamp";
 export type CompactImpactFact = {
   label: string;
   value: ReactNode;
-  column: 1 | 2 | 3 | 4;
+  column?: number;
 };
 
 export function CompactImpactTimeValue({
@@ -46,6 +46,10 @@ export function CompactImpactListItem({
   toneClassName,
   onShowOnMap,
 }: Props) {
+  const renderedFacts = direction
+    ? [{ label: "Direction", value: direction }, ...facts]
+    : facts;
+
   return (
     <button
       type="button"
@@ -62,22 +66,17 @@ export function CompactImpactListItem({
         </span>
         <span className="compact-impact-list-item__location">
           <CompactImpactLocation location={location} />
-          {direction ? (
-            <span className="compact-impact-list-item__direction">
-              <span className="compact-impact-list-item__key">Direction:</span> {direction}
-            </span>
-          ) : null}
         </span>
       </span>
       <span className="compact-impact-list-item__map-action" aria-hidden="true">
         <JumpToLocationIcon className="w-5 h-5" />
       </span>
-      {facts.length > 0 ? (
+      {renderedFacts.length > 0 ? (
         <span className="compact-impact-list-item__detail">
           <span className="compact-impact-list-item__facts">
-            {facts.map((fact) => (
+            {renderedFacts.map((fact) => (
               <span
-                className={`compact-impact-list-item__fact is-column-${fact.column}`}
+                className={`compact-impact-list-item__fact${fact.column ? ` is-column-${fact.column}` : ""}`}
                 key={fact.label}
               >
                 <span className="compact-impact-list-item__key">{fact.label}:</span> {fact.value}

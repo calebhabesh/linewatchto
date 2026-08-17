@@ -10193,9 +10193,9 @@ img.transit-line-badge {
   grid-template-columns: auto minmax(0, 1fr) auto;
   width: 100%;
   min-width: 0;
-  align-items: center;
+  align-items: start;
   column-gap: 10px;
-  row-gap: 3px;
+  row-gap: 5px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 7px;
   background: rgb(248, 250, 252);
@@ -10259,6 +10259,7 @@ img.transit-line-badge {
 .compact-impact-list-item__body,
 .compact-impact-list-item__heading,
 .compact-impact-list-item__location,
+.compact-impact-list-item__direction,
 .compact-impact-list-item__detail {
   min-width: 0;
 }
@@ -10269,21 +10270,19 @@ img.transit-line-badge {
   gap: 3px;
 }
 
-.compact-impact-list-item__heading,
-.compact-impact-list-item__location,
-.compact-impact-list-item__detail {
+.compact-impact-list-item__heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 7px;
 }
 
 .compact-impact-list-item__heading strong {
-  overflow: hidden;
   color: inherit;
   font-size: 12px;
   font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .compact-impact-list-item__status {
@@ -10305,11 +10304,12 @@ img.transit-line-badge {
 }
 
 .compact-impact-list-item__location {
-  overflow: hidden;
   color: rgb(51, 65, 85);
   font-size: 12px;
   font-weight: 750;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 .dark .compact-impact-list-item__location {
@@ -10323,71 +10323,62 @@ img.transit-line-badge {
 }
 
 .compact-impact-list-item__location .compact-impact-location {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .compact-impact-list-item__direction {
-  flex: 0 0 auto;
   color: rgb(100, 116, 139);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.dark .compact-impact-list-item__direction {
+  color: rgb(148, 163, 184);
 }
 
 .compact-impact-list-item__detail {
   grid-column: 2 / 4;
   grid-row: 2;
   justify-content: flex-start;
-  overflow: hidden;
   color: rgb(100, 116, 139);
   font-size: 10px;
   font-weight: 650;
+  line-height: 1.4;
+  margin-top: 2px;
 }
 
 .compact-impact-list-item__detail > span:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  white-space: normal;
 }
 
 .compact-impact-list-item__facts {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   width: 100%;
   min-width: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: center;
-  column-gap: 12px;
-  overflow: hidden;
+  align-items: baseline;
+  gap: 4px 12px;
 }
 
 .compact-impact-list-item__fact {
-  display: block;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.compact-impact-list-item__fact.is-column-1 {
-  grid-column: 1;
-}
-
-.compact-impact-list-item__fact.is-column-2 {
-  grid-column: 2;
-}
-
-.compact-impact-list-item__fact.is-column-3 {
-  grid-column: 3;
-}
-
-.compact-impact-list-item__fact.is-column-4 {
-  grid-column: 4;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .compact-impact-list-item__key {
-  margin-right: 2px;
+  margin-right: 3px;
   color: rgb(71, 85, 105);
   font-weight: 850;
+  white-space: nowrap;
 }
 
 .dark .compact-impact-list-item__key {
@@ -10402,33 +10393,12 @@ img.transit-line-badge {
 
 .compact-impact-list-item__detail time {
   flex: 0 0 auto;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 @container compact-impact (max-width: 520px) {
   .compact-impact-list-item__facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 4px;
-  }
-
-  .compact-impact-list-item__fact.is-column-1 {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .compact-impact-list-item__fact.is-column-2 {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .compact-impact-list-item__fact.is-column-3 {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .compact-impact-list-item__fact.is-column-4 {
-    grid-column: 2;
-    grid-row: 2;
+    gap: 3px 10px;
   }
 }
 
@@ -10455,12 +10425,8 @@ img.transit-line-badge {
 @media (max-width: 420px) {
   .compact-impact-list-item {
     column-gap: 8px;
-    row-gap: 3px;
+    row-gap: 4px;
     padding: 8px;
-  }
-
-  .compact-impact-list-item__direction {
-    display: none;
   }
 }
 

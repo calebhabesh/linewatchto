@@ -142,14 +142,15 @@ export function ReducedSpeedZonesPanel({
                   impactId={zone.id}
                   lineId={zone.lineId}
                   lineNumber={zone.lineNumber}
-                  title={zonesAtLocation > 1 ? `${zone.title} (${zonesAtLocation})` : zone.title}
+                  title={zone.title}
                   location={zone.location}
                   direction={zone.displayDirection}
                   facts={[
-                    { column: 1, label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) || "Not reported" },
-                    { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={zone.startedAt} /> },
-                    { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} /> },
-                    { column: 4, label: "Est. Resolution", value: zone.resolution || zone.targetRemoval || "TBD" },
+                    { column: 1, label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) || "Not reported" },
+                    ...(zonesAtLocation > 1 ? [{ column: 2, label: "Zone Count", value: zonesAtLocation }] : []),
+                    { column: 3, label: "Started", value: <CompactImpactTimeValue timestamp={zone.startedAt} /> },
+                    { column: 4, label: "Updated", value: <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} /> },
+                    { column: 5, label: "Est. Resolution", value: zone.resolution || zone.targetRemoval || "TBD" },
                   ]}
                   active={isActive}
                   toneClassName="rsz-card-border"
@@ -207,8 +208,8 @@ export function ReducedSpeedZonesPanel({
                           ),
                           value: zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null,
                         },
-                        { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
-                        { label: "Typical speed", value: formatSpeed(zone.averageSpeed) },
+                        { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
+                        { label: "Typical Speed", value: formatSpeed(zone.averageSpeed) },
                       ]}
                     />
                   </div>

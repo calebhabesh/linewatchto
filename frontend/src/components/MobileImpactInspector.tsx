@@ -189,8 +189,8 @@ export function getSelectedImpactDetails(
           ),
           value: zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null,
         },
-        { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
-        { label: "Typical speed", value: formatSpeed(zone.averageSpeed) },
+        { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
+        { label: "Typical Speed", value: formatSpeed(zone.averageSpeed) },
       ],
       segmentIds: zone.affectedSegmentIds ?? [],
     };

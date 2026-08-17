@@ -16,7 +16,11 @@ import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
 import { DelaysPanel } from "./DelaysPanel";
 import { ReducedSpeedZonesPanel } from "./ReducedSpeedZonesPanel";
 import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
-import { SavedCommutesPanel } from "./SavedCommutesPanel";
+import {
+  SavedCommutesPanel,
+  persistedExpandedImpactDisclosures,
+  type AccountNetworkFilter,
+} from "./SavedCommutesPanel";
 import { MyStationsPanel } from "./MyStationsPanel";
 import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
@@ -104,6 +108,7 @@ import {
   type AccountCommuteLegId,
   type AccountMatchedImpact,
   type AuthConfig,
+  type SavedCommuteSort,
 } from "../app/account-data";
 import {
   getSavedStations,
@@ -650,6 +655,10 @@ export function LineWatchShell({
     const previous = popViewHistory(viewHistoryRef.current, fallback);
     viewHistoryRef.current = previous.history;
     activeViewRef.current = previous.view;
+    if (commutePathPreviewRef.current && previous.view === "commutes") {
+      commutePathPreviewRef.current = null;
+      setCommutePathPreview(null);
+    }
     setActiveView(previous.view);
   }, [isMobile, setActiveView]);
 
@@ -828,7 +837,16 @@ export function LineWatchShell({
         : previous.view === "map"
           ? fallback
           : previous.view;
-      viewHistoryRef.current = commutePathPreviewRef.current ? ["menu"] : previous.history;
+      const returningToCommutesFromPreview = Boolean(commutePathPreviewRef.current) && targetView === "commutes";
+      if (returningToCommutesFromPreview) {
+        commutePathPreviewRef.current = null;
+        setCommutePathPreview(null);
+      }
+      viewHistoryRef.current = previous.history.length > 0
+        ? previous.history
+        : returningToCommutesFromPreview
+          ? (isMobile ? ["more"] : ["menu"])
+          : [];
       activeViewRef.current = targetView;
       setActiveView(targetView);
       setIsGoingBack(false);
@@ -863,6 +881,26 @@ export function LineWatchShell({
   const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
   const savedStationNoticeTimerRef = useRef<number | null>(null);
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
+  const [commutesSortBy, setCommutesSortBy] = useState<SavedCommuteSort>("impact");
+  const [commutesNetworkFilter, setCommutesNetworkFilter] = useState<AccountNetworkFilter>("all");
+  const [commutesSelectedLegIds, setCommutesSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
+  const [commutesExpandedCommuteId, setCommutesExpandedCommuteId] = useState<string | null>(null);
+  const [commutesExpandedImpactDisclosures, setCommutesExpandedImpactDisclosures] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const key of persistedExpandedImpactDisclosures) {
+      initial[key] = true;
+    }
+    return initial;
+  });
+
+  const handleCommutesToggleImpactDisclosure = useCallback((key: string, isOpen: boolean) => {
+    if (isOpen) {
+      persistedExpandedImpactDisclosures.add(key);
+    } else {
+      persistedExpandedImpactDisclosures.delete(key);
+    }
+    setCommutesExpandedImpactDisclosures((prev) => ({ ...prev, [key]: isOpen }));
+  }, []);
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
   const selectedStationIdRef = useRef<string | null>(null);
@@ -935,6 +973,8 @@ export function LineWatchShell({
             return;
           }
           if (commutePathPreviewRef.current) {
+            commutePathPreviewRef.current = null;
+            setCommutePathPreview(null);
             setActiveView("commutes");
             selectionRef.current = null;
             selectionBackBehaviorRef.current = "clear";
@@ -1732,13 +1772,13 @@ export function LineWatchShell({
         selectionRef.current = null;
         setSelection(null);
         setSelectedStationId(null);
-        viewHistoryRef.current = ["menu"];
+        viewHistoryRef.current = isMobile ? ["more"] : ["menu"];
         activeViewRef.current = "commutes";
         setActiveView("commutes");
       }, 0);
       return null;
     });
-  }, [consumeBrowserNavigationEntries, setActiveView, setCommutePathPreview, setSelection, setSelectedStationId]);
+  }, [consumeBrowserNavigationEntries, isMobile, setActiveView, setCommutePathPreview, setSelection, setSelectedStationId]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);
@@ -2633,6 +2673,16 @@ export function LineWatchShell({
             notificationSummary={notificationSummary}
             activeView={commutesActiveTab}
             onActiveViewChange={setCommutesActiveTab}
+            sortBy={commutesSortBy}
+            onSortByChange={setCommutesSortBy}
+            networkFilter={commutesNetworkFilter}
+            onNetworkFilterChange={setCommutesNetworkFilter}
+            selectedLegIds={commutesSelectedLegIds}
+            onSelectedLegIdsChange={setCommutesSelectedLegIds}
+            expandedCommuteId={commutesExpandedCommuteId}
+            onExpandedCommuteIdChange={setCommutesExpandedCommuteId}
+            expandedImpactDisclosures={commutesExpandedImpactDisclosures}
+            onToggleImpactDisclosure={handleCommutesToggleImpactDisclosure}
           />
         );
       case "my-stations":

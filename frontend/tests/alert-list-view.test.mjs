@@ -34,14 +34,15 @@ describe("alert card and list views", () => {
     assert.match(compactRowSource, /CompactImpactLocation/);
     assert.match(compactRowSource, /data-impact-card-id=\{impactId\}/);
     assert.match(compactRowSource, /Show .* on map/);
-    assert.match(compactRowSource, />Direction:</);
+    assert.match(compactRowSource, /label: "Direction"/);
     assert.match(compactRowSource, /CompactImpactTimeValue/);
-    assert.match(panelSources[2], /label: "Reduced speed"/);
+    assert.match(panelSources[2], /label: "Reduced Speed"/);
+    assert.match(panelSources[2], /label: "Zone Count"/);
     assert.match(panelSources[2], /label: "Started"/);
     assert.match(panelSources[2], /label: "Updated"/);
     assert.match(panelSources[2], /label: "Est\. Resolution"/);
     assert.match(globalCss, /\.compact-impact-list-item__detail\s*\{[^}]*grid-column:\s*2 \/ 4;/s);
-    assert.match(globalCss, /\.compact-impact-list-item__facts\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\);/s);
+    assert.match(globalCss, /\.compact-impact-list-item__facts\s*\{[^}]*display:\s*flex;/s);
     assert.match(globalCss, /@container compact-impact \(max-width: 520px\)/);
     assert.match(globalCss, /\.compact-impact-list-item\.rsz-card-border\s*\{[^}]*border-left-color:\s*var\(--impact-rsz\);/s);
     assert.match(globalCss, /\.compact-impact-list-item\.suspension-card-border\s*\{[^}]*border-left-color:\s*#ef4444;/s);

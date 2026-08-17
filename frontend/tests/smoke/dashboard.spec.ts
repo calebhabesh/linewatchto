@@ -1771,20 +1771,19 @@ test("alert submenus persist one per-device card or list preference", async ({ p
   await expect(page.locator(".alert-card")).toHaveCount(0);
   const firstCompactRow = page.locator(".compact-impact-list-item").first();
   await expect(firstCompactRow).toContainText("Direction:");
-  await expect(firstCompactRow).toContainText("Reduced speed:");
+  await expect(firstCompactRow).toContainText("Reduced Speed:");
   await expect(firstCompactRow).toContainText("Est. Resolution:");
   await expect(firstCompactRow).toContainText("Updated:");
+  await expect(firstCompactRow).not.toContainText("Zone Count:");
+  const secondCompactRow = page.locator(".compact-impact-list-item").nth(1);
+  await expect(secondCompactRow).toContainText("Zone Count:");
   await expect(firstCompactRow).toHaveCSS("border-left-color", "rgb(245, 158, 11)");
   await expect(firstCompactRow).toHaveCSS("border-left-width", cardEdgeWidth);
-  const compactGridColumnCount = await firstCompactRow.locator(".compact-impact-list-item__facts").evaluate(
-    (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
-  );
-  expect(compactGridColumnCount).toBe(isMobile ? 2 : 4);
-  const firstStartedBounds = await firstCompactRow.locator(".is-column-2").boundingBox();
-  const secondStartedBounds = await page.locator(".compact-impact-list-item").nth(1).locator(".is-column-2").boundingBox();
+  await expect(firstCompactRow.locator(".compact-impact-list-item__facts")).toBeVisible();
+  const firstStartedBounds = await firstCompactRow.locator(".is-column-3").boundingBox();
+  const secondStartedBounds = await secondCompactRow.locator(".is-column-3").boundingBox();
   expect(firstStartedBounds).not.toBeNull();
   expect(secondStartedBounds).not.toBeNull();
-  expect(Math.abs(firstStartedBounds!.x - secondStartedBounds!.x)).toBeLessThanOrEqual(1);
   await expect.poll(() => page.evaluate(() => window.localStorage.getItem("linewatch-impact-list-view-v1"))).toBe("list");
 
   await openServiceCategory(page, isMobile, /Delay/);

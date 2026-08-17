@@ -138,6 +138,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
             );
             if (viewMode === "list") {
+              const listWindowHeading = closure.activeNow ? "Current Window" : "Next Window";
               return (
                 <CompactImpactListItem
                   key={closure.id}
@@ -150,7 +151,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                   facts={[
                     {
                       column: 1,
-                      label: specificWindowLabel ? specificWindowHeading : "Closure window",
+                      label: specificWindowLabel ? listWindowHeading : "Closure Window",
                       value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : closure.window,
                     },
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={closure.startedAt} /> },

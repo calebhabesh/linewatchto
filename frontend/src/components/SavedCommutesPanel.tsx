@@ -123,9 +123,25 @@ interface Props {
   };
   activeView?: "create" | "saved";
   onActiveViewChange?: (view: "create" | "saved") => void;
+  sortBy?: SavedCommuteSort;
+  onSortByChange?: (sort: SavedCommuteSort) => void;
+  networkFilter?: AccountNetworkFilter;
+  onNetworkFilterChange?: (filter: AccountNetworkFilter) => void;
+  selectedLegIds?: Record<string, AccountCommuteLegId>;
+  onSelectedLegIdsChange?: (
+    updater:
+      | Record<string, AccountCommuteLegId>
+      | ((prev: Record<string, AccountCommuteLegId>) => Record<string, AccountCommuteLegId>)
+  ) => void;
+  expandedCommuteId?: string | null;
+  onExpandedCommuteIdChange?: (
+    updater: string | null | ((prev: string | null) => string | null)
+  ) => void;
+  expandedImpactDisclosures?: Record<string, boolean>;
+  onToggleImpactDisclosure?: (key: string, isOpen: boolean) => void;
 }
 
-type AccountNetworkFilter = "all" | NetworkId;
+export type AccountNetworkFilter = "all" | NetworkId;
 
 const ACCOUNT_NETWORK_OPTIONS: Array<{ value: AccountNetworkFilter; label: string }> = [
   { value: "all", label: "All" },
@@ -906,7 +922,7 @@ function SavedCommuteNotificationRuleEditor({
   );
 }
 
-const persistedExpandedImpactDisclosures = new Set<string>();
+export const persistedExpandedImpactDisclosures = new Set<string>();
 
 export function SavedCommutesPanel({
   onBack,
@@ -926,14 +942,25 @@ export function SavedCommutesPanel({
   notificationSummary,
   activeView: propActiveView,
   onActiveViewChange,
+  sortBy: propSortBy,
+  onSortByChange,
+  networkFilter: propNetworkFilter,
+  onNetworkFilterChange,
+  selectedLegIds: propSelectedLegIds,
+  onSelectedLegIdsChange,
+  expandedCommuteId: propExpandedCommuteId,
+  onExpandedCommuteIdChange,
+  expandedImpactDisclosures: propExpandedImpactDisclosures,
+  onToggleImpactDisclosure,
 }: Props) {
-  const [expandedImpactDisclosures, setExpandedImpactDisclosures] = useState<Record<string, boolean>>(() => {
+  const [internalExpandedImpactDisclosures, setInternalExpandedImpactDisclosures] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     for (const key of persistedExpandedImpactDisclosures) {
       initial[key] = true;
     }
     return initial;
   });
+  const expandedImpactDisclosures = propExpandedImpactDisclosures ?? internalExpandedImpactDisclosures;
 
   const handleToggleImpactDisclosure = (key: string, isOpen: boolean) => {
     if (isOpen) {
@@ -941,7 +968,11 @@ export function SavedCommutesPanel({
     } else {
       persistedExpandedImpactDisclosures.delete(key);
     }
-    setExpandedImpactDisclosures((prev) => ({ ...prev, [key]: isOpen }));
+    if (onToggleImpactDisclosure) {
+      onToggleImpactDisclosure(key, isOpen);
+    } else {
+      setInternalExpandedImpactDisclosures((prev) => ({ ...prev, [key]: isOpen }));
+    }
   };
 
   const handleViewImpactOnPath = (
@@ -951,7 +982,11 @@ export function SavedCommutesPanel({
   ) => {
     const key = `${commute.id}-${legId}`;
     persistedExpandedImpactDisclosures.add(key);
-    setExpandedImpactDisclosures((prev) => ({ ...prev, [key]: true }));
+    if (onToggleImpactDisclosure) {
+      onToggleImpactDisclosure(key, true);
+    } else {
+      setInternalExpandedImpactDisclosures((prev) => ({ ...prev, [key]: true }));
+    }
     onViewImpactOnPath(commute, legId, impact);
   };
 
@@ -962,9 +997,31 @@ export function SavedCommutesPanel({
   const [saving, setSaving] = useState(false);
   const [commuteError, setCommuteError] = useState<string | null>(null);
   const [watchReturnTrip, setWatchReturnTrip] = useState(true);
-  const [expandedCommuteId, setExpandedCommuteId] = useState<string | null>(null);
+  const [internalExpandedCommuteId, setInternalExpandedCommuteId] = useState<string | null>(null);
+  const expandedCommuteId = propExpandedCommuteId !== undefined ? propExpandedCommuteId : internalExpandedCommuteId;
+  const setExpandedCommuteId = (
+    updater: string | null | ((prev: string | null) => string | null)
+  ) => {
+    if (onExpandedCommuteIdChange) {
+      onExpandedCommuteIdChange(updater);
+    } else {
+      setInternalExpandedCommuteId(updater);
+    }
+  };
   const [deletingCommuteId, setDeletingCommuteId] = useState<string | null>(null);
-  const [selectedLegIds, setSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
+  const [internalSelectedLegIds, setInternalSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
+  const selectedLegIds = propSelectedLegIds ?? internalSelectedLegIds;
+  const setSelectedLegIds = (
+    updater:
+      | Record<string, AccountCommuteLegId>
+      | ((prev: Record<string, AccountCommuteLegId>) => Record<string, AccountCommuteLegId>)
+  ) => {
+    if (onSelectedLegIdsChange) {
+      onSelectedLegIdsChange(updater);
+    } else {
+      setInternalSelectedLegIds(updater);
+    }
+  };
   const [activePicker, setActivePicker] = useState<"origin" | "destination" | null>(null);
   const [activeViewInternal, setActiveViewInternal] = useState<"create" | "saved">("create");
   const activeView = propActiveView ?? activeViewInternal;
@@ -981,8 +1038,24 @@ export function SavedCommutesPanel({
   const [notificationRuleError, setNotificationRuleError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [toastKey, setToastKey] = useState(0);
-  const [sortBy, setSortBy] = useState<SavedCommuteSort>("impact");
-  const [networkFilter, setNetworkFilter] = useState<AccountNetworkFilter>("all");
+  const [internalSortBy, setInternalSortBy] = useState<SavedCommuteSort>("impact");
+  const sortBy = propSortBy ?? internalSortBy;
+  const setSortBy = (nextSort: SavedCommuteSort) => {
+    if (onSortByChange) {
+      onSortByChange(nextSort);
+    } else {
+      setInternalSortBy(nextSort);
+    }
+  };
+  const [internalNetworkFilter, setInternalNetworkFilter] = useState<AccountNetworkFilter>("all");
+  const networkFilter = propNetworkFilter ?? internalNetworkFilter;
+  const setNetworkFilter = (nextFilter: AccountNetworkFilter) => {
+    if (onNetworkFilterChange) {
+      onNetworkFilterChange(nextFilter);
+    } else {
+      setInternalNetworkFilter(nextFilter);
+    }
+  };
   const [draftNetworkId, setDraftNetworkId] = useState<NetworkId>(networkId);
   const deleteConfirmationRef = useRef<HTMLDivElement>(null);
 
