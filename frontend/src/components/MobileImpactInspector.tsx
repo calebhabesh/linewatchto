@@ -417,6 +417,13 @@ export function MobileImpactInspector({
   }, [detent, selectedDetailKey]);
 
   const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+    }
+  }, []);
 
   if (!details) return null;
 
@@ -427,10 +434,11 @@ export function MobileImpactInspector({
 
   const handleUnfocusClick = () => {
     setIsClosing(true);
-    window.setTimeout(() => {
+    closeTimeoutRef.current = window.setTimeout(() => {
+      closeTimeoutRef.current = null;
       onUnfocus();
       setIsClosing(false);
-    }, 200);
+    }, 380);
   };
 
   return (
@@ -462,7 +470,7 @@ export function MobileImpactInspector({
         </button>
       </div>
 
-      <div className="mobile-impact-inspector-scroll">
+      <div className="mobile-impact-inspector-scroll" key={selectedDetailKey}>
         <ImpactRouteHeader location={details.location} direction={details.displayDirection} />
 
         {details.description ? (

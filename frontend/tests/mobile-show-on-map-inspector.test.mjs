@@ -135,4 +135,17 @@ describe("mobile Show on Map inspector", () => {
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector \.mobile-status-peek/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector \.mobile-legend-pill/);
   });
+
+  it("animates inspector entry, content swaps, and metadata expansion with motion safety", () => {
+    assert.match(globalCss, /\.mobile-impact-inspector\s*\{[^}]*animation:\s*mobile-impact-inspector-enter/s);
+    assert.match(globalCss, /@keyframes mobile-impact-inspector-enter/);
+    assert.match(globalCss, /\.mobile-impact-inspector-scroll\s*\{[^}]*animation:\s*mobile-impact-inspector-content-in/s);
+    assert.match(globalCss, /@keyframes mobile-impact-inspector-content-in/);
+    assert.match(globalCss, /\.mobile-impact-inspector-metadata\s*\{[^}]*animation:\s*mobile-impact-inspector-meta-enter/s);
+    assert.match(globalCss, /@keyframes mobile-impact-inspector-meta-enter/);
+    assert.match(inspectorSource, /key=\{selectedDetailKey\}/);
+    assert.match(globalCss, /\.motion-paused \.mobile-impact-inspector/);
+    assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mobile-impact-inspector/);
+  });
 });
+
