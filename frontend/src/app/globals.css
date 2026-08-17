@@ -1051,6 +1051,21 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke-opacity: 1 !important;
 }
 
+.regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-interactive-glow {
+  animation: none !important;
+  display: none !important;
+  opacity: 0 !important;
+}
+
+.regional-station-impact-ring[data-selected-commute-impact-overlay] {
+  animation: none !important;
+}
+
+.regional-station-impact-ring[data-selected-commute-impact-overlay] :is(circle, rect, ellipse),
+.regional-station-impact-ring[data-selected-commute-impact-overlay]:is(circle, rect, ellipse) {
+  animation: none !important;
+}
+
 .regional-station-impact-ring {
   stroke: transparent;
   stroke-width: var(--regional-station-impact-width);
@@ -5645,6 +5660,7 @@ button {
 }
 
 .linewatch-shell.mobile-performance-mode .asset-alert-path-glow,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.planned-preview,
 .linewatch-shell.mobile-performance-mode .asset-alert-path.delay-candy,
 .linewatch-shell.mobile-performance-mode .asset-alert-path.suspension-candy,
 .linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base,
@@ -5710,7 +5726,8 @@ button {
 
 .linewatch-shell.mobile-performance-mode .asset-alert-path.delay-candy,
 .linewatch-shell.mobile-performance-mode .asset-alert-path.suspension-candy,
-.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base {
+.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.planned-preview {
   stroke-width: 112;
 }
 

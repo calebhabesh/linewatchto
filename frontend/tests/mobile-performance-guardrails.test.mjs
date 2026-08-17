@@ -89,6 +89,11 @@ describe("mobile performance guardrails", () => {
       globalCss,
       /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\s*\{[^}]*animation:\s*aura-pulse/s,
     );
+
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.planned-preview[\s\S]*?\{[^}]*animation:\s*none\s*!important;/s,
+    );
   });
 
   it("keeps map and station focus indicators visible but static on mobile", () => {

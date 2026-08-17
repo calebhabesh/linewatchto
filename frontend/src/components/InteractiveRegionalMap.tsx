@@ -1838,10 +1838,16 @@ function bringRegionalStationImpactToFront(
   root: HTMLElement,
   kind: ImpactKind,
   id: string,
+  isCommutePreview = false,
 ) {
   root.querySelectorAll<SVGElement>(
     `.regional-station-impact-ring[data-regional-impact-kind="${kind}"][data-regional-impact-id="${CSS.escape(id)}"]`,
   ).forEach((element) => {
+    if (isCommutePreview) {
+      element.setAttribute("data-selected-commute-impact-overlay", id);
+    } else {
+      element.removeAttribute("data-selected-commute-impact-overlay");
+    }
     element.parentElement?.append(element);
   });
 }
@@ -3513,6 +3519,7 @@ function InteractiveRegionalMapComponent({
   useLayoutEffect(() => {
     const root = viewportRef.current;
     root?.querySelectorAll("[data-regional-impact-selected]").forEach((element) => element.removeAttribute("data-regional-impact-selected"));
+    root?.querySelectorAll("[data-selected-commute-impact-overlay]").forEach((element) => element.removeAttribute("data-selected-commute-impact-overlay"));
     const selectedLayer = root?.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID}`);
     const segmentLayer = root?.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SEGMENT_LAYER_ID}`);
     if (selectedLayer && segmentLayer) {
@@ -3529,7 +3536,7 @@ function InteractiveRegionalMapComponent({
         });
       if (root) {
         bringRegionalImpactToFront(root, selection.kind, selection.id, Boolean(commutePathPreview));
-        bringRegionalStationImpactToFront(root, selection.kind, selection.id);
+        bringRegionalStationImpactToFront(root, selection.kind, selection.id, Boolean(commutePathPreview));
         if (selectionIntroCompletedRef.current) {
           markCompletedSelectionIntro(root);
         }

@@ -2088,27 +2088,21 @@ function InteractiveTtcMapComponent({
                 <g aria-label="Selected disruption emphasis">
                   {selectedImpactEmphasis ? (
                     commutePreviewLayer ? (
-                      <>
-                        <g data-selected-commute-impact-overlay={selectedImpactEmphasis.id}>
-                          <OverlaySegment
-                            segment={selectedImpactEmphasis.segment}
-                            impact={selectedImpactEmphasis.impact}
-                            plannedClosure={selectedImpactEmphasis.plannedClosure ?? undefined}
-                            selection={selection}
-                            selectedSegmentIds={selectedSegmentIds}
-                            onSelectImpact={onSelectImpact}
-                            shouldSuppressMapClick={shouldSuppressMapClick}
-                            reducedMotion={reducedMotion}
-                            idSuffix="-commute-focus"
-                            onHoverHighlightChange={setHoveredOverlayHighlight}
-                            renderInteractionTarget={false}
-                          />
-                        </g>
-                        <SelectedImpactEmphasis
-                          key={`${selection?.kind}:${selectedImpactEmphasis.id}`}
-                          emphasis={selectedImpactEmphasis}
+                      <g data-selected-commute-impact-overlay={selectedImpactEmphasis.id}>
+                        <OverlaySegment
+                          segment={selectedImpactEmphasis.segment}
+                          impact={selectedImpactEmphasis.impact}
+                          plannedClosure={selectedImpactEmphasis.plannedClosure ?? undefined}
+                          selection={selection}
+                          selectedSegmentIds={selectedSegmentIds}
+                          onSelectImpact={onSelectImpact}
+                          shouldSuppressMapClick={shouldSuppressMapClick}
+                          reducedMotion={reducedMotion}
+                          idSuffix="-commute-focus"
+                          onHoverHighlightChange={setHoveredOverlayHighlight}
+                          renderInteractionTarget={false}
                         />
-                      </>
+                      </g>
                     ) : (
                       <SelectedImpactEmphasis
                         key={`${selection?.kind}:${selectedImpactEmphasis.id}`}
@@ -2668,7 +2662,7 @@ function InteractiveTtcMapComponent({
                     <g key={`foreground:${key}`}>
                       {visualAnchors.map(({ id: anchorId, point }) => (
                         <g key={`foreground-anchor:${key}:${anchorId}`}>
-                          {selection && selection.kind === impact.kind && selection.id === impact.cardId ? (
+                          {selection && !commutePreviewLayer && selection.kind === impact.kind && selection.id === impact.cardId ? (
                             <circle
                               data-map-highlight-id={selection.id}
                               data-station-impact-selection-id={impact.cardId}
