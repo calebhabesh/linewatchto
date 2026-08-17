@@ -391,6 +391,10 @@ export function MobileImpactInspector({
     if (!inspector || !shell) return;
 
     const updateInspectorHeight = () => {
+      if (detent === "details-focus") {
+        shell.style.removeProperty(heightProperty);
+        return;
+      }
       const measuredHeight = Math.ceil(inspector.getBoundingClientRect().height);
       if (measuredHeight > 0) {
         shell.style.setProperty(heightProperty, `${measuredHeight}px`);

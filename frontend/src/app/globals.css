@@ -17943,8 +17943,8 @@ img.transit-line-badge {
 
 @media (max-width: 767px) {
   .linewatch-shell.mobile-map-inspector {
-    --mobile-inspector-height: clamp(300px, 45dvh, 430px);
-    --mobile-inspector-total-height: calc(var(--mobile-inspector-height) + var(--mobile-safe-bottom));
+    --mobile-inspector-height: calc(50dvh - var(--mobile-safe-bottom));
+    --mobile-inspector-total-height: 50dvh;
   }
 
   .linewatch-shell.mobile-map-inspector-impact.mobile-map-inspector-map-focus {
@@ -17953,8 +17953,8 @@ img.transit-line-badge {
   }
 
   .linewatch-shell.mobile-map-inspector-impact.mobile-map-inspector-details-focus {
-    --mobile-inspector-height: clamp(380px, 60dvh, 560px);
-    --mobile-inspector-total-height: var(--mobile-impact-inspector-total-height, calc(var(--mobile-inspector-height) + var(--mobile-safe-bottom)));
+    --mobile-inspector-height: calc(50dvh - var(--mobile-safe-bottom));
+    --mobile-inspector-total-height: var(--mobile-impact-inspector-total-height, 50dvh);
   }
 
   .linewatch-shell.mobile-map-inspector-station.mobile-map-inspector-map-focus {
@@ -17962,7 +17962,7 @@ img.transit-line-badge {
   }
 
   .linewatch-shell.mobile-map-inspector-station.mobile-map-inspector-details-focus {
-    --mobile-inspector-height: clamp(360px, 55dvh, 540px);
+    --mobile-inspector-height: calc(50dvh - var(--mobile-safe-bottom));
   }
 
   .linewatch-shell.mobile-map-inspector[data-network="regional"] {
@@ -17976,7 +17976,6 @@ img.transit-line-badge {
 
   .linewatch-shell.mobile-map-inspector > main {
     bottom: var(--mobile-inspector-total-height);
-    transition: bottom 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .motion-paused.linewatch-shell.mobile-map-inspector > main {

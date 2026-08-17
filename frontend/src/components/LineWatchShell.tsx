@@ -2925,7 +2925,7 @@ export function LineWatchShell({
 
     const timer = window.setTimeout(() => {
       setMapLayoutSignal((current) => current + 1);
-    }, 40);
+    }, 0);
 
     return () => window.clearTimeout(timer);
   }, [
