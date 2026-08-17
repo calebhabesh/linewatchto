@@ -658,6 +658,7 @@ export function LineWatchShell({
     viewHistoryRef.current = previous.history;
     activeViewRef.current = previous.view;
     if (commutePathPreviewRef.current && previous.view === "commutes") {
+      setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
       commutePathPreviewRef.current = null;
       setCommutePathPreview(null);
     }
@@ -843,6 +844,9 @@ export function LineWatchShell({
           : previous.view;
       const returningToCommutesFromPreview = Boolean(commutePathPreviewRef.current) && targetView === "commutes";
       if (returningToCommutesFromPreview) {
+        if (commutePathPreviewRef.current) {
+          setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
+        }
         commutePathPreviewRef.current = null;
         setCommutePathPreview(null);
       }
@@ -885,6 +889,7 @@ export function LineWatchShell({
   const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
   const savedStationNoticeTimerRef = useRef<number | null>(null);
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
+  const [commutesFocusedCommuteId, setCommutesFocusedCommuteId] = useState<string | null>(null);
   const [commutesSortBy, setCommutesSortBy] = useState<SavedCommuteSort>("impact");
   const [commutesNetworkFilter, setCommutesNetworkFilter] = useState<AccountNetworkFilter>("all");
   const [commutesSelectedLegIds, setCommutesSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
@@ -962,6 +967,9 @@ export function LineWatchShell({
           restoreMapDrilldownOrigin();
           return;
         case "close-commute-preview":
+          if (commutePathPreviewRef.current) {
+            setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
+          }
           commutePathPreviewRef.current = null;
           setCommutePathPreview(null);
           selectionRef.current = null;
@@ -975,6 +983,7 @@ export function LineWatchShell({
             return;
           }
           if (commutePathPreviewRef.current) {
+            setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
             commutePathPreviewRef.current = null;
             setCommutePathPreview(null);
             setActiveView("commutes");
@@ -1711,6 +1720,7 @@ export function LineWatchShell({
     const preview = commutePathPreviewFromCommute(commute, legId);
     if (!preview) return;
 
+    setCommutesFocusedCommuteId(commute.id);
     const commuteNetwork = commute.networkId ?? "ttc";
     if (commuteNetwork !== selectedNetwork) {
       networkTransitionTargetRef.current = null;
@@ -1740,6 +1750,7 @@ export function LineWatchShell({
     const preview = commutePathPreviewFromCommute(commute, legId);
     if (!preview) return;
 
+    setCommutesFocusedCommuteId(commute.id);
     const commuteNetwork = commute.networkId ?? "ttc";
     const commuteDashboard = commuteNetwork === "regional" ? regionalData : ttcData;
     if (commuteNetwork !== selectedNetwork) {
@@ -1777,8 +1788,20 @@ export function LineWatchShell({
 
   const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
     const commuteId = typeof commuteIdOrEvent === "string" ? commuteIdOrEvent : undefined;
-    if (commuteId && commutePathPreviewRef.current && commutePathPreviewRef.current.id !== commuteId && commutePathPreviewRef.current.commuteId !== commuteId) {
+    if (commuteId && (!commutePathPreviewRef.current || (commutePathPreviewRef.current.id !== commuteId && commutePathPreviewRef.current.commuteId !== commuteId))) {
       return;
+    }
+    if (activeViewRef.current === "commutes") {
+      commutePathPreviewRef.current = null;
+      setCommutePathPreview(null);
+      selectionRef.current = null;
+      setSelection(null);
+      setSelectedStationId(null);
+      setAccessibilityOutageTarget(null);
+      return;
+    }
+    if (commutePathPreviewRef.current) {
+      setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
     }
     consumeBrowserNavigationEntries();
     setNavDirection("back");
@@ -1787,6 +1810,9 @@ export function LineWatchShell({
       window.clearTimeout(backTimeoutRef.current);
     }
     backTimeoutRef.current = window.setTimeout(() => {
+      if (commutePathPreviewRef.current) {
+        setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
+      }
       commutePathPreviewRef.current = null;
       setCommutePathPreview(null);
       selectionRef.current = null;
@@ -2691,7 +2717,9 @@ export function LineWatchShell({
             setAccountCommutes={setAccountCommutes}
             stationCatalogs={stationCatalogs}
             networkId={selectedNetwork}
-            viewedCommuteId={commutePathPreview?.id ?? null}
+            focusedCommuteId={commutesFocusedCommuteId}
+            onFocusedCommuteIdChange={setCommutesFocusedCommuteId}
+            viewedCommuteId={commutesFocusedCommuteId ?? commutePathPreview?.commuteId ?? commutePathPreview?.id ?? null}
             onViewPath={handleViewCommutePath}
             onViewImpactOnPath={handleViewCommuteImpactOnPath}
             onClearViewedPath={handleClearCommutePathPreview}

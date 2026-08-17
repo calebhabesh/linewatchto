@@ -110,6 +110,8 @@ interface Props {
   stationCatalogs: Record<NetworkId, StationSummary[]>;
   networkId: NetworkId;
   viewedCommuteId?: string | null;
+  focusedCommuteId?: string | null;
+  onFocusedCommuteIdChange?: (id: string | null) => void;
   onViewPath: (commute: AccountSavedCommute, legId?: AccountCommuteLegId) => void;
   onViewImpactOnPath: (commute: AccountSavedCommute, legId: AccountCommuteLegId, impact: AccountMatchedImpact) => void;
   onClearViewedPath: (commuteId: string) => void;
@@ -933,6 +935,8 @@ export function SavedCommutesPanel({
   stationCatalogs,
   networkId,
   viewedCommuteId,
+  focusedCommuteId: propFocusedCommuteId,
+  onFocusedCommuteIdChange,
   onViewPath,
   onViewImpactOnPath,
   onClearViewedPath,
@@ -975,6 +979,16 @@ export function SavedCommutesPanel({
     }
   };
 
+  const [internalFocusedCommuteId, setInternalFocusedCommuteId] = useState<string | null>(null);
+  const focusedCommuteId = propFocusedCommuteId !== undefined ? propFocusedCommuteId : internalFocusedCommuteId;
+  const setFocusedCommuteId = (id: string | null) => {
+    if (onFocusedCommuteIdChange) {
+      onFocusedCommuteIdChange(id);
+    } else {
+      setInternalFocusedCommuteId(id);
+    }
+  };
+
   const handleViewImpactOnPath = (
     commute: AccountSavedCommute,
     legId: AccountCommuteLegId,
@@ -987,8 +1001,12 @@ export function SavedCommutesPanel({
     } else {
       setInternalExpandedImpactDisclosures((prev) => ({ ...prev, [key]: true }));
     }
+    lastInteractedCommuteIdRef.current = commute.id;
+    setFocusedCommuteId(commute.id);
     onViewImpactOnPath(commute, legId, impact);
   };
+
+  const lastInteractedCommuteIdRef = useRef<string | null>(null);
 
   const [newLabel, setNewLabel] = useState("");
   const [editingCommuteId, setEditingCommuteId] = useState<string | null>(null);
@@ -1060,12 +1078,80 @@ export function SavedCommutesPanel({
   const deleteConfirmationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (viewedCommuteId) {
+      const normalized = viewedCommuteId.replace(/-(outbound|return)$/, "");
+      lastInteractedCommuteIdRef.current = normalized;
+      setFocusedCommuteId(normalized);
+    }
+  }, [viewedCommuteId]);
+
+  useEffect(() => {
     if (!successMessage) return;
     const timer = setTimeout(() => {
       setSuccessMessage(null);
     }, 3200);
     return () => clearTimeout(timer);
   }, [successMessage]);
+
+  const stationSummaries = stationCatalogs[draftNetworkId];
+  const visibleCommutes = useMemo(
+    () => accountCommutes.filter((commute) => networkFilter === "all" || (commute.networkId ?? "ttc") === networkFilter),
+    [accountCommutes, networkFilter]
+  );
+
+  const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
+    () => summarizeSavedCommuteStatuses(visibleCommutes),
+    [visibleCommutes]
+  );
+
+  const sortedCommutes = useMemo(
+    () => sortSavedCommutes(visibleCommutes, sortBy),
+    [visibleCommutes, sortBy]
+  );
+
+  useEffect(() => {
+    if (activeView !== "saved") return;
+    const rawTarget = focusedCommuteId || lastInteractedCommuteIdRef.current || viewedCommuteId;
+    if (!rawTarget) return;
+    const targetId = rawTarget.replace(/-(outbound|return)$/, "");
+    if (!targetId) return;
+
+    let timeoutId: number | undefined;
+    let animationFrameId: number | undefined;
+    let postAnimationTimeoutId: number | undefined;
+
+    const scrollToCard = () => {
+      const card = document.querySelector<HTMLElement>(
+        `[data-commute-card-id="${CSS.escape(targetId)}"]`,
+      );
+      if (!card) return false;
+
+      const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      card.scrollIntoView({
+        block: "center",
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+      return true;
+    };
+
+    if (!scrollToCard()) {
+      animationFrameId = window.requestAnimationFrame(() => {
+        if (!scrollToCard()) {
+          timeoutId = window.setTimeout(scrollToCard, 100);
+        }
+      });
+    } else {
+      timeoutId = window.setTimeout(scrollToCard, 80);
+    }
+
+    postAnimationTimeoutId = window.setTimeout(scrollToCard, 280);
+
+    return () => {
+      if (animationFrameId !== undefined) window.cancelAnimationFrame(animationFrameId);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      if (postAnimationTimeoutId !== undefined) window.clearTimeout(postAnimationTimeoutId);
+    };
+  }, [activeView, focusedCommuteId, viewedCommuteId, sortedCommutes]);
 
   useEffect(() => {
     if (!deletingCommuteId || !window.matchMedia("(max-width: 767px)").matches) return;
@@ -1097,22 +1183,6 @@ export function SavedCommutesPanel({
 
     return () => window.cancelAnimationFrame(frame);
   }, [deletingCommuteId]);
-
-  const stationSummaries = stationCatalogs[draftNetworkId];
-  const visibleCommutes = useMemo(
-    () => accountCommutes.filter((commute) => networkFilter === "all" || (commute.networkId ?? "ttc") === networkFilter),
-    [accountCommutes, networkFilter]
-  );
-
-  const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
-    () => summarizeSavedCommuteStatuses(visibleCommutes),
-    [visibleCommutes]
-  );
-
-  const sortedCommutes = useMemo(
-    () => sortSavedCommutes(visibleCommutes, sortBy),
-    [visibleCommutes, sortBy]
-  );
 
   function stationNameFor(stationId: string, commuteNetworkId: NetworkId) {
     return stationCatalogs[commuteNetworkId].find((station) => station.id === stationId)?.name ?? stationId;
@@ -1161,6 +1231,7 @@ export function SavedCommutesPanel({
             watchReturnTrip,
             notificationRule: scopeNotificationRuleToNetwork(newNotificationRule, draftNetworkId),
           });
+      const targetCommuteId = editingCommuteId ?? saved.id;
       setAccountCommutes(editingCommuteId
         ? accountCommutes.map((commute) => commute.id === saved.id ? saved : commute)
         : [...accountCommutes, saved]);
@@ -1168,6 +1239,8 @@ export function SavedCommutesPanel({
       setNewNotificationRule(cloneNotificationRule(defaultSavedCommuteNotificationRule));
       setSuccessMessage(editingCommuteId ? "Commute Updated Successfully" : "Commute Saved Successfully");
       setToastKey((prev) => prev + 1);
+      lastInteractedCommuteIdRef.current = targetCommuteId;
+      setFocusedCommuteId(targetCommuteId);
       setActiveView("saved");
     } catch {
       setCommuteError("Could not save that commute.");
@@ -1177,6 +1250,8 @@ export function SavedCommutesPanel({
   };
 
   const startEditingCommute = (commute: AccountSavedCommute) => {
+    lastInteractedCommuteIdRef.current = commute.id;
+    setFocusedCommuteId(commute.id);
     setEditingCommuteId(commute.id);
     setNewLabel(commute.label);
     setOriginStationId(commute.originStationId);
@@ -1191,7 +1266,15 @@ export function SavedCommutesPanel({
     try {
       await deleteSavedCommute(id);
       setAccountCommutes(accountCommutes.filter((commute) => commute.id !== id));
-      onClearViewedPath(id);
+      if (viewedCommuteId === id) {
+        onClearViewedPath(id);
+      }
+      if (focusedCommuteId === id) {
+        setFocusedCommuteId(null);
+      }
+      if (lastInteractedCommuteIdRef.current === id) {
+        lastInteractedCommuteIdRef.current = null;
+      }
       setExpandedCommuteId((current) => current === id ? null : current);
     } catch {
       setCommuteError("Could not delete that commute.");
@@ -1199,6 +1282,8 @@ export function SavedCommutesPanel({
   };
 
   function startEditingNotificationRule(commute: AccountSavedCommute) {
+    lastInteractedCommuteIdRef.current = commute.id;
+    setFocusedCommuteId(commute.id);
     setNotificationRuleError(null);
     setEditingNotificationCommuteId(commute.id);
     setNotificationDrafts((current) => ({
@@ -1251,6 +1336,9 @@ export function SavedCommutesPanel({
                 if (activePicker) {
                   setActivePicker(null);
                 } else if (activeView === "create") {
+                  if (editingCommuteId) {
+                    lastInteractedCommuteIdRef.current = editingCommuteId;
+                  }
                   setActiveView("saved");
                   setCommuteError(null);
                 } else {
@@ -1461,6 +1549,9 @@ export function SavedCommutesPanel({
                     type="button"
                     className="saved-commute-cancel-button flex-1"
                     onClick={() => {
+                      if (editingCommuteId) {
+                        lastInteractedCommuteIdRef.current = editingCommuteId;
+                      }
                       resetRouteDraft();
                       setActiveView("saved");
                       setCommuteError(null);
@@ -1595,7 +1686,12 @@ export function SavedCommutesPanel({
                 const selectedLegImpactSummary = summarizeMatchedImpacts(selectedLeg.impact.matchedImpacts);
 
                 return (
-                  <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 max-w-full w-full rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
+                  <div
+                    key={commute.id}
+                    id={`commute-card-${commute.id}`}
+                    data-commute-card-id={commute.id}
+                    className={`commute-card ${commuteTone(commute)} min-w-0 max-w-full w-full rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}
+                  >
                     <div className="min-w-0 max-w-full w-full">
                       <div className="saved-commute-card-header">
                         <div className="saved-commute-card-identity">
@@ -1924,7 +2020,11 @@ export function SavedCommutesPanel({
                         <button
                           type="button"
                           className="saved-commute-map-action commute-route-map-button"
-                          onClick={() => onViewPath(commute, selectedLeg.id)}
+                          onClick={() => {
+                            lastInteractedCommuteIdRef.current = commute.id;
+                            setFocusedCommuteId(commute.id);
+                            onViewPath(commute, selectedLeg.id);
+                          }}
                           disabled={!canViewPath}
                           aria-pressed={viewingPath}
                         >

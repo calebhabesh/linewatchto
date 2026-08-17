@@ -47,8 +47,29 @@ describe("My Commutes navigation and state restoration", () => {
 
   it("resets commutePathPreview cleanly when returning to commutes via dialog back or popstate", () => {
     assert.match(shellSource, /const returningToCommutesFromPreview = Boolean\(commutePathPreviewRef\.current\) && targetView === "commutes";/);
-    assert.match(shellSource, /if \(returningToCommutesFromPreview\) \{\s*commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
-    assert.match(shellSource, /if \(commutePathPreviewRef\.current && previous\.view === "commutes"\) \{\s*commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
-    assert.match(shellSource, /if \(commutePathPreviewRef\.current\) \{\s*commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);\s*setActiveView\("commutes"\);/);
+    assert.match(shellSource, /if \(returningToCommutesFromPreview\) \{[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
+    assert.match(shellSource, /if \(commutePathPreviewRef\.current && previous\.view === "commutes"\) \{[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
+    assert.match(shellSource, /if \(commutePathPreviewRef\.current\) \{[\s\S]*?commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);\s*setActiveView\("commutes"\);/);
+  });
+
+  it("deletes a commute without triggering navigation animation when already in commutes panel", () => {
+    assert.match(shellSource, /if \(activeViewRef\.current === "commutes"\) \{\s*commutePathPreviewRef\.current = null;\s*setCommutePathPreview\(null\);/);
+    assert.match(panelSource, /if \(viewedCommuteId === id\) \{\s*onClearViewedPath\(id\);\s*\}/);
+  });
+
+  it("records lastInteractedCommuteId and restores scroll to exact card on back from edit view", () => {
+    assert.match(panelSource, /const lastInteractedCommuteIdRef = useRef<string \| null>\(null\);/);
+    assert.match(panelSource, /lastInteractedCommuteIdRef\.current = commute\.id;/);
+    assert.match(panelSource, /data-commute-card-id=\{commute\.id\}/);
+    assert.match(panelSource, /card\.scrollIntoView\(\{/);
+  });
+
+  it("lifts and preserves focusedCommuteId across disruption map drill-down and back navigation", () => {
+    assert.match(shellSource, /const \[commutesFocusedCommuteId, setCommutesFocusedCommuteId\] = useState<string \| null>\(null\);/);
+    assert.match(shellSource, /setCommutesFocusedCommuteId\(commute\.id\);/);
+    assert.match(shellSource, /focusedCommuteId=\{commutesFocusedCommuteId\}/);
+    assert.match(shellSource, /onFocusedCommuteIdChange=\{setCommutesFocusedCommuteId\}/);
+    assert.match(panelSource, /focusedCommuteId\?: string \| null;/);
+    assert.match(panelSource, /const rawTarget = focusedCommuteId \|\| lastInteractedCommuteIdRef\.current \|\| viewedCommuteId;/);
   });
 });
