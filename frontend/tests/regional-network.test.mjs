@@ -855,8 +855,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /hasStablePosition: Boolean\(stablePosition\)/);
     assert.match(regionalMapSource, /const animationFrame = window\.requestAnimationFrame\(\(\) => \{[\s\S]*positionRegionalOverlapChooser/);
     assert.doesNotMatch(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
-    assert.match(overlapIndicatorSource, /const isSingleKindOverlap = kindCounts\.length === 1/);
-    assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\} large=\{isSingleKindOverlap\}/);
+    assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\}/);
     assert.match(overlapChooserSource, /<strong>Choose Alert<\/strong>/);
     assert.match(overlapChooserSource, /data-overlap-choice-id=\{impact\.cardId\}/);
     assert.match(regionalMapSource, /visibleMapChooserKeepouts\(\)/);

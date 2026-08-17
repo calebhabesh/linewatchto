@@ -557,7 +557,6 @@ describe("asset-backed map layering", () => {
     assert.match(overlapIndicatorSource, /overlapBadgeKindCounts\(impacts\)/);
     assert.match(interactiveMapSource, /hasOverlappingImpacts\(impacts\)/);
     assert.match(interactiveMapSource, /overlapBadgeVisualItemCount\(overlapBadgeKindCounts\(group\.impacts\)\)/);
-    assert.match(overlapIndicatorSource, /const isSingleKindOverlap = kindCounts\.length === 1 && \(kindCounts\[0\]\?\.count \?\? 0\) > 1;/);
     assert.match(overlapIndicatorSource, /const isSingleVisualItem = totalItems === 1;/);
     assert.match(overlapIndicatorSource, /isSingleVisualItem \? \(/);
     assert.match(overlapIndicatorSource, /<circle className="overlap-indicator-pill"/);
@@ -626,10 +625,10 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-indicator-vector-label\s*\{[^}]*fill:\s*#ffffff;/s);
     assert.match(overlapIndicatorSource, /function MapBadgeVectorLabel/);
     assert.doesNotMatch(overlapIndicatorSource, /<text(?:\s|>)/);
-    assert.match(overlapIndicatorSource, /const radius = large \? 26 : 18;/);
-    assert.match(overlapIndicatorSource, /const offset = large \? 35 : 28;/);
+    assert.match(overlapIndicatorSource, /const radius = 18;/);
+    assert.match(overlapIndicatorSource, /const offset = 28;/);
     assert.match(overlapIndicatorSource, /key=\{`\$\{kind\}-count`\}/);
-    assert.match(overlapIndicatorSource, /targetHeight=\{large \? 32 : 22\}/);
+    assert.match(overlapIndicatorSource, /targetHeight=\{22\}/);
     assert.match(overlapIndicatorSource, /maxWidth=\{radius \* 2 - 8\}/);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#0ea5e9/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.suspension,\s*\.overlap-indicator-badge\.planned-closure/);

@@ -155,15 +155,15 @@ function MapBadgeVectorLabel({
   );
 }
 
-function OverlapKindCountBadge({ count, large = false }: { count: number; large?: boolean }) {
-  const offset = large ? 35 : 28;
-  const radius = large ? 26 : 18;
+function OverlapKindCountBadge({ count }: { count: number }) {
+  const offset = 28;
+  const radius = 18;
   return (
     <g transform={`translate(${offset} -${offset})`}>
       <circle className="overlap-indicator-count-badge" r={radius} />
       <MapBadgeVectorLabel
         label={String(count)}
-        targetHeight={large ? 32 : 22}
+        targetHeight={22}
         maxWidth={radius * 2 - 8}
       />
     </g>
@@ -218,7 +218,6 @@ export function MapOverlapIndicator({
   const hiddenKindCount = Math.max(0, kindCounts.length - visibleKindCounts.length);
   const totalItems = visibleKindCounts.length + (hiddenKindCount > 0 ? 1 : 0);
   const isSingleVisualItem = totalItems === 1;
-  const isSingleKindOverlap = kindCounts.length === 1 && (kindCounts[0]?.count ?? 0) > 1;
   const isSelected = selection
     ? impacts.some((impact) => impact.kind === selection.kind && impact.cardId === selection.id)
     : false;
@@ -309,7 +308,7 @@ export function MapOverlapIndicator({
             const x = (index - (totalItems - 1) / 2) * OVERLAP_BADGE_ITEM_SPACING;
             return (
               <g key={`${kind}-count`} transform={`translate(${x} 0)`}>
-                <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />
+                <OverlapKindCountBadge count={count} />
               </g>
             );
           })}
