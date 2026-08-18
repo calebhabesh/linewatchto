@@ -957,6 +957,8 @@ export function SavedCommutesPanel({
   expandedImpactDisclosures: propExpandedImpactDisclosures,
   onToggleImpactDisclosure,
 }: Props) {
+  const lastInteractedCommuteIdRef = useRef<string | null>(null);
+  const deleteConfirmationRef = useRef<HTMLDivElement>(null);
   const [internalExpandedImpactDisclosures, setInternalExpandedImpactDisclosures] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     for (const key of persistedExpandedImpactDisclosures) {
@@ -1005,8 +1007,6 @@ export function SavedCommutesPanel({
     setFocusedCommuteId(commute.id);
     onViewImpactOnPath(commute, legId, impact);
   };
-
-  const lastInteractedCommuteIdRef = useRef<string | null>(null);
 
   const [newLabel, setNewLabel] = useState("");
   const [editingCommuteId, setEditingCommuteId] = useState<string | null>(null);
@@ -1075,15 +1075,6 @@ export function SavedCommutesPanel({
     }
   };
   const [draftNetworkId, setDraftNetworkId] = useState<NetworkId>(networkId);
-  const deleteConfirmationRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (viewedCommuteId) {
-      const normalized = viewedCommuteId.replace(/-(outbound|return)$/, "");
-      lastInteractedCommuteIdRef.current = normalized;
-      setFocusedCommuteId(normalized);
-    }
-  }, [viewedCommuteId]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -1118,7 +1109,6 @@ export function SavedCommutesPanel({
 
     let timeoutId: number | undefined;
     let animationFrameId: number | undefined;
-    let postAnimationTimeoutId: number | undefined;
 
     const scrollToCard = () => {
       const card = document.querySelector<HTMLElement>(
@@ -1143,7 +1133,7 @@ export function SavedCommutesPanel({
       timeoutId = window.setTimeout(scrollToCard, 80);
     }
 
-    postAnimationTimeoutId = window.setTimeout(scrollToCard, 280);
+    const postAnimationTimeoutId = window.setTimeout(scrollToCard, 280);
 
     return () => {
       if (animationFrameId !== undefined) window.cancelAnimationFrame(animationFrameId);
@@ -1323,6 +1313,427 @@ export function SavedCommutesPanel({
     } finally {
       setSavingNotificationRuleId(null);
     }
+  }
+
+  const renderedSavedCommutes: React.ReactNode[] = [];
+  for (const commute of sortedCommutes) {
+    const legs = commuteLegs(commute);
+    const selectedLegId = selectedLegIds[commute.id] ?? "outbound";
+    const selectedLeg = legs.find((leg) => leg.id === selectedLegId) ?? legs[0];
+    const stopsExpanded = expandedCommuteId === commute.id;
+    const routeStops = selectedLeg.path.stationIds;
+    const canViewPath = selectedLeg.path.status === "available" && selectedLeg.path.segmentIds.length > 0;
+    const selectedPreview = commutePathPreviewFromCommute(commute, selectedLeg.id);
+    const viewingPath = Boolean(selectedPreview && viewedCommuteId === selectedPreview.id);
+    const routeLabel = commute.watchReturnTrip
+      ? `${commute.originStationName} <-> ${commute.destinationStationName}`
+      : commute.routeLabel;
+    const notificationRule = ruleForCommute(commute);
+    const notificationDraft = notificationDrafts[commute.id] ?? notificationRule;
+    const editingNotificationRule = editingNotificationCommuteId === commute.id;
+    const notificationRuleStatus = notificationRule.enabled ? "On" : "Off";
+    const selectedTravelTimeEstimate = selectedLeg.impact.travelTimeEstimate ?? fallbackTravelTimeEstimate(selectedLeg);
+    const selectedTravelTimeSeverity = travelTimeSeverity(selectedTravelTimeEstimate);
+    const travelTimeHeadline = formatTravelTimeHeadline(selectedTravelTimeEstimate);
+    const selectedLegClearByFilters = legIsClearByFilters(selectedLeg);
+    const selectedLegImpactSummary = summarizeMatchedImpacts(selectedLeg.impact.matchedImpacts);
+    const disclosureKey = `${commute.id}-${selectedLeg.id}`;
+    const isDisclosureOpen = expandedImpactDisclosures[disclosureKey] ?? persistedExpandedImpactDisclosures.has(disclosureKey);
+
+    const renderedMatchedImpacts: React.ReactNode[] = [];
+    for (const impact of selectedLeg.impact.matchedImpacts) {
+      renderedMatchedImpacts.push(
+        <li
+          key={`${impact.kind}-${impact.id}`}
+          className={impact.ignoredByRule ? "saved-commute-impact-ignored" : undefined}
+        >
+          <span className="saved-commute-impact-icon" aria-hidden="true">
+            <ImpactIcon kind={impact.kind} activeClosure={impact.kind === "planned-closure" && impact.status === "current"} className="shrink-0" />
+          </span>
+          <div className="saved-commute-impact-copy">
+            <div className="saved-commute-impact-details">
+              <div className="saved-commute-impact-heading">
+                <strong className="text-slate-800 dark:text-slate-200">
+                  <span className="saved-commute-impact-kind-label">
+                    {toTitleCase(impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current"))}
+                  </span>
+                  {impact.ignoredByRule ? (
+                    <em className="saved-commute-impact-filter-note">
+                      (Ignored by Route Filter)
+                    </em>
+                  ) : null}
+                </strong>
+              </div>
+              <span className="text-slate-600 dark:text-slate-400">
+                {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}{impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
+              </span>
+            </div>
+            <div className="saved-commute-impact-action">
+              <button
+                type="button"
+                className="saved-commute-map-action saved-commute-impact-map-button"
+                onClick={() => handleViewImpactOnPath(commute, selectedLeg.id, impact)}
+                aria-label={`View ${impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current")} on the map for ${commute.label}`}
+              >
+                <MapPinned size={12} aria-hidden="true" />
+                View on Map
+              </button>
+            </div>
+          </div>
+        </li>
+      );
+    }
+
+    renderedSavedCommutes.push(
+      <div
+        key={commute.id}
+        id={`commute-card-${commute.id}`}
+        data-commute-card-id={commute.id}
+        className={`commute-card ${commuteTone(commute)} min-w-0 max-w-full w-full rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}
+      >
+        <div className="min-w-0 max-w-full w-full">
+          <div className="saved-commute-card-header">
+            <div className="saved-commute-card-identity">
+              <div className="min-w-0 flex-1">
+                <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
+                  {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
+                </h3>
+                <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                  <AccountNetworkBadge networkId={commute.networkId ?? "ttc"} />
+                  <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
+                </div>
+              </div>
+            </div>
+            {(() => {
+              const currentImpactsCount = currentImpactCount(legs);
+              const ignoredImpactsCount = ignoredCurrentImpactCount(legs);
+              const hasCurrentImpacts = currentImpactsCount > 0;
+              const impactBgColor = hasCurrentImpacts
+                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60"
+                : ignoredImpactsCount > 0
+                  ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700"
+                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60";
+              const impactText = hasCurrentImpacts
+                ? `${currentImpactsCount} Impact${currentImpactsCount === 1 ? "" : "s"}`
+                : ignoredImpactsCount > 0
+                  ? `${ignoredImpactsCount} Ignored`
+                  : "No Impacts";
+              return (
+                <div className={`saved-commute-current-impact-badge rounded-full font-bold uppercase tracking-wider shrink-0 ${impactBgColor}`}>
+                  {hasCurrentImpacts || ignoredImpactsCount > 0 ? (
+                    <ExclaimAlertIcon className="w-3.5 h-3.5 shrink-0" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={3} aria-hidden="true" />
+                  )}
+                  <span>{impactText}</span>
+                </div>
+              );
+            })()}
+          </div>
+          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400 min-w-0 max-w-full break-words">{routeLabel}</p>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold min-w-0 max-w-full">
+            <div className="min-w-0 max-w-full break-words">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Origin:</span>
+              <span className="text-slate-800 dark:text-white break-words">{commute.originStationName}</span>
+            </div>
+            <div className="min-w-0 max-w-full break-words">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Destination:</span>
+              <span className="text-slate-800 dark:text-white break-words">{commute.destinationStationName}</span>
+            </div>
+          </div>
+
+          {legs.length > 1 ? (
+            <div
+              className="commute-leg-toggle"
+              role="tablist"
+              aria-label={`Route direction for ${commute.label}`}
+              data-selected-index={legs.findIndex((l) => l.id === selectedLeg.id) <= 0 ? "0" : "1"}
+              data-selected-state={
+                selectedLegClearByFilters
+                  ? "filtered"
+                  : selectedLeg.impact.severity === "clear"
+                    ? "clear"
+                    : "affected"
+              }
+            >
+              <div className="commute-leg-glider" aria-hidden="true" />
+              {legs.map((leg) => {
+                const isClear = leg.impact.severity === "clear";
+                const isClearByFilters = legIsClearByFilters(leg);
+                return (
+                  <button
+                    key={leg.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedLeg.id === leg.id}
+                    className={isClearByFilters ? "leg-btn-filtered" : isClear ? "leg-btn-clear" : "leg-btn-affected"}
+                    onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
+                    title={`To ${leg.toStationName}`}
+                  >
+                    <span className="truncate min-w-0 max-w-full block">To {leg.toStationName}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <div className="saved-commute-time-estimate-heading mt-3 justify-center">
+            <strong
+              className={`!text-[0.88rem] inline-block pb-1.5 border-b-2 ${
+                selectedLegClearByFilters
+                  ? "text-slate-500 dark:text-slate-400 border-slate-400/30"
+                  : selectedLeg.impact.severity === "clear"
+                  ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-400/30"
+                  : "text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-400/30"
+              }`}
+              style={{
+                color: selectedLegClearByFilters
+                  ? "var(--quiet)"
+                  : selectedLeg.impact.severity === "clear"
+                    ? "var(--ok)"
+                    : "var(--warning)",
+              }}
+            >
+              {toTitleCase(selectedLeg.impact.statusLabel)}
+            </strong>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mt-2 text-sm sm:text-base text-slate-800 dark:text-white font-bold">
+            <div className="flex items-center gap-2">
+              <NumStationsIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
+              <span>
+                {toTitleCase(`${selectedLeg.path.stationIds.length} Station${selectedLeg.path.stationIds.length === 1 ? "" : "s"}`)}
+              </span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-center">
+              <Clock className={`saved-commute-time-headline-clock severity-${selectedTravelTimeSeverity} w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0`} />
+              <span>{travelTimeHeadline.value}</span>
+            </div>
+          </div>
+
+          <div
+            className={`mt-1 text-center text-[11px] font-bold tracking-wide ${
+              selectedTravelTimeEstimate.status === "standard"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : selectedTravelTimeEstimate.status === "estimated"
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {travelTimeHeadline.context}
+          </div>
+
+          <div className="mt-1 mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            {commute.networkId === "regional" ? "Topology Planning Estimate" : "Default Scheduled Route"} · To {selectedLeg.toStationName}
+          </div>
+
+          <TravelTimeEstimateBlock leg={selectedLeg} />
+
+          {selectedLeg.impact.matchedImpacts.length > 0 ? (
+            <details
+              className="saved-commute-impact-disclosure"
+              open={isDisclosureOpen}
+              onClick={(event) => {
+                const summary = (event.target as HTMLElement).closest("summary");
+                if (!summary) return;
+                const details = event.currentTarget;
+                if (details.open) {
+                  event.preventDefault();
+                  details.classList.add("collapsing");
+                  window.setTimeout(() => {
+                    details.open = false;
+                    details.classList.remove("collapsing");
+                    handleToggleImpactDisclosure(disclosureKey, false);
+                  }, 220);
+                }
+              }}
+              onToggle={(event) => {
+                handleToggleImpactDisclosure(disclosureKey, event.currentTarget.open);
+              }}
+            >
+              <summary className="saved-commute-impact-summary">
+                <span className="saved-commute-impact-summary-heading">
+                  <ExclaimAlertIcon className="saved-commute-impact-summary-icon" />
+                  <strong>Active Commute Disruptions</strong>
+                  <span className="saved-commute-impact-total">
+                    {selectedLeg.impact.matchedImpacts.length}
+                  </span>
+                </span>
+                <span className="saved-commute-impact-summary-chips">
+                  {selectedLegImpactSummary.map(({ key, kind, activeClosure, count }) => (
+                    <span
+                      key={key}
+                      className={`saved-commute-impact-summary-chip kind-${activeClosure ? "suspension" : kind}`}
+                    >
+                      <ImpactIcon kind={kind} activeClosure={activeClosure} className="shrink-0" />
+                      {activeClosure
+                        ? `${count} Active Closure${count === 1 ? "" : "s"}`
+                        : impactKindCountLabel(kind, count)}
+                    </span>
+                  ))}
+                </span>
+                <span className="saved-commute-impact-summary-action">
+                  <span className="saved-commute-impact-summary-action-collapsed">List View</span>
+                  <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
+                  <ChevronDown className="saved-commute-impact-summary-chevron" size={16} aria-hidden="true" />
+                </span>
+              </summary>
+              <div className="saved-commute-impact-content-wrapper">
+                <div className="saved-commute-impact-content">
+                  <ul className="saved-commute-impact-list">
+                    {renderedMatchedImpacts}
+                  </ul>
+                </div>
+              </div>
+            </details>
+          ) : null}
+
+          {selectedLeg.impact.matchedImpacts.length === 0 ? (
+            <hr className="border-slate-800/10 dark:border-slate-200/10 mt-5 mb-1.5 mx-1" />
+          ) : null}
+          <div className="saved-commute-rule-summary">
+            <div>
+              <strong>Route Notifications: {notificationRuleStatus}</strong>
+              <ul className="list-disc list-outside pl-3 mt-1 space-y-0.5 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
+                {notificationRule.enabled ? (
+                  <>
+                    <li>{formatLegSchedule("Outbound", notificationRule.outboundEnabled, notificationRule.outboundSchedule)}</li>
+                    {commute.watchReturnTrip ? (
+                      <li>{formatLegSchedule("Return", notificationRule.returnEnabled, notificationRule.returnSchedule)}</li>
+                    ) : null}
+                    <li>{formatEventTypes(notificationRule, commute.networkId ?? "ttc")}</li>
+                  </>
+                ) : (
+                  <li>Notifications are disabled for this commute.</li>
+                )}
+              </ul>
+            </div>
+            <button
+              type="button"
+              onClick={() => editingNotificationRule ? setEditingNotificationCommuteId(null) : startEditingNotificationRule(commute)}
+              aria-expanded={editingNotificationRule}
+            >
+              {editingNotificationRule ? "Close" : "Edit Alerts"}
+            </button>
+          </div>
+
+          {editingNotificationRule ? (
+            <div className="saved-commute-rule-editor">
+              <SavedCommuteNotificationRuleEditor
+                rule={notificationDraft}
+                onChange={(rule) => updateNotificationDraft(commute.id, rule)}
+                allowReturnLeg={commute.watchReturnTrip}
+                networkId={commute.networkId ?? "ttc"}
+              />
+              {notificationRuleError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{notificationRuleError}</p> : null}
+              <div className="saved-commute-rule-actions">
+                <button
+                  type="button"
+                  onClick={() => saveNotificationRule(commute)}
+                  disabled={savingNotificationRuleId === commute.id}
+                  aria-busy={savingNotificationRuleId === commute.id}
+                >
+                  {savingNotificationRuleId === commute.id ? "Saving" : "Save Alerts"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingNotificationCommuteId(null);
+                    setNotificationRuleError(null);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="commute-route-actions">
+            <button
+              type="button"
+              className="commute-route-stop-toggle"
+              onClick={() => startEditingCommute(commute)}
+              aria-label={`Edit commute ${commute.label}`}
+            >
+              <Pencil size={13} aria-hidden="true" />
+              Edit route
+            </button>
+            <button
+              type="button"
+              className="commute-route-stop-toggle"
+              onClick={() => setExpandedCommuteId((current) => current === commute.id ? null : commute.id)}
+              aria-expanded={stopsExpanded}
+              aria-controls={`commute-stops-${commute.id}`}
+              disabled={routeStops.length === 0}
+            >
+              <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${stopsExpanded ? "rotate-180" : ""}`} />
+              {stopsExpanded ? "Hide stops" : `View ${routeStops.length} stops`}
+            </button>
+            <button
+              type="button"
+              className="saved-commute-map-action commute-route-map-button"
+              onClick={() => {
+                lastInteractedCommuteIdRef.current = commute.id;
+                setFocusedCommuteId(commute.id);
+                onViewPath(commute, selectedLeg.id);
+              }}
+              disabled={!canViewPath}
+              aria-pressed={viewingPath}
+            >
+              <MapPinned size={14} aria-hidden="true" />
+              {viewingPath ? "Viewing path" : "View path on map"}
+            </button>
+            {deletingCommuteId === commute.id ? (
+              <div ref={deleteConfirmationRef} className="commute-route-delete-confirmation">
+                <span className="commute-route-delete-confirmation-prompt text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mr-1">Are you sure?</span>
+                <button
+                  type="button"
+                  className="commute-route-delete-confirm-button"
+                  onClick={() => {
+                    handleDeleteCommute(commute.id);
+                    setDeletingCommuteId(null);
+                  }}
+                  aria-label={`Confirm delete commute ${commute.label}`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  className="commute-route-delete-cancel-button"
+                  onClick={() => setDeletingCommuteId(null)}
+                  aria-label={`Cancel delete commute ${commute.label}`}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="commute-route-delete-button"
+                onClick={() => setDeletingCommuteId(commute.id)}
+                aria-label={`Delete commute ${commute.label}`}
+                title="Delete commute"
+              >
+                <Trash2 size={22} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          {stopsExpanded ? (
+            <ol id={`commute-stops-${commute.id}`} className="commute-route-stop-list" aria-label={`Stops for ${commute.label}`}>
+              {routeStops.map((stationId, index) => (
+                <li key={`${commute.id}-${stationId}-${index}`}>
+                  <span className="commute-route-stop-index">{index + 1}</span>
+                  <span>{stationNameFor(stationId, commute.networkId ?? "ttc")}</span>
+                  {selectedLeg.path.transferStationIds.includes(stationId) ? (
+                    <strong>Transfer</strong>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1662,423 +2073,8 @@ export function SavedCommutesPanel({
                     </button>
                   </div>
                 ) : (
-              sortedCommutes.map((commute) => {
-                const legs = commuteLegs(commute);
-                const selectedLegId = selectedLegIds[commute.id] ?? "outbound";
-                const selectedLeg = legs.find((leg) => leg.id === selectedLegId) ?? legs[0];
-                const stopsExpanded = expandedCommuteId === commute.id;
-                const routeStops = selectedLeg.path.stationIds;
-                const canViewPath = selectedLeg.path.status === "available" && selectedLeg.path.segmentIds.length > 0;
-                const selectedPreview = commutePathPreviewFromCommute(commute, selectedLeg.id);
-                const viewingPath = Boolean(selectedPreview && viewedCommuteId === selectedPreview.id);
-                const routeLabel = commute.watchReturnTrip
-                  ? `${commute.originStationName} <-> ${commute.destinationStationName}`
-                  : commute.routeLabel;
-                const notificationRule = ruleForCommute(commute);
-                const notificationDraft = notificationDrafts[commute.id] ?? notificationRule;
-                const editingNotificationRule = editingNotificationCommuteId === commute.id;
-                const notificationRuleStatus = notificationRule.enabled ? "On" : "Off";
-                const selectedTravelTimeEstimate = selectedLeg.impact.travelTimeEstimate ?? fallbackTravelTimeEstimate(selectedLeg);
-                const selectedTravelTimeSeverity = travelTimeSeverity(selectedTravelTimeEstimate);
-                const travelTimeHeadline = formatTravelTimeHeadline(selectedTravelTimeEstimate);
-                const selectedLegClearByFilters = legIsClearByFilters(selectedLeg);
-                const selectedLegImpactSummary = summarizeMatchedImpacts(selectedLeg.impact.matchedImpacts);
-
-                return (
-                  <div
-                    key={commute.id}
-                    id={`commute-card-${commute.id}`}
-                    data-commute-card-id={commute.id}
-                    className={`commute-card ${commuteTone(commute)} min-w-0 max-w-full w-full rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}
-                  >
-                    <div className="min-w-0 max-w-full w-full">
-                      <div className="saved-commute-card-header">
-                        <div className="saved-commute-card-identity">
-                          <div className="min-w-0 flex-1">
-                            <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
-                              {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
-                            </h3>
-                            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                              <AccountNetworkBadge networkId={commute.networkId ?? "ttc"} />
-                              <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
-                            </div>
-                          </div>
-                        </div>
-                        {(() => {
-                          const currentImpactsCount = currentImpactCount(legs);
-                          const ignoredImpactsCount = ignoredCurrentImpactCount(legs);
-                          const hasCurrentImpacts = currentImpactsCount > 0;
-                          const impactBgColor = hasCurrentImpacts
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60"
-                            : ignoredImpactsCount > 0
-                              ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700"
-                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60";
-                          const impactText = hasCurrentImpacts
-                            ? `${currentImpactsCount} Impact${currentImpactsCount === 1 ? "" : "s"}`
-                            : ignoredImpactsCount > 0
-                              ? `${ignoredImpactsCount} Ignored`
-                              : "No Impacts";
-                          return (
-                            <div className={`saved-commute-current-impact-badge rounded-full font-bold uppercase tracking-wider shrink-0 ${impactBgColor}`}>
-                              {hasCurrentImpacts || ignoredImpactsCount > 0 ? (
-                                <ExclaimAlertIcon className="w-3.5 h-3.5 shrink-0" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={3} aria-hidden="true" />
-                              )}
-                              <span>{impactText}</span>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                      <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400 min-w-0 max-w-full break-words">{routeLabel}</p>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold min-w-0 max-w-full">
-                        <div className="min-w-0 max-w-full break-words">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Origin:</span>
-                          <span className="text-slate-800 dark:text-white break-words">{commute.originStationName}</span>
-                        </div>
-                        <div className="min-w-0 max-w-full break-words">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Destination:</span>
-                          <span className="text-slate-800 dark:text-white break-words">{commute.destinationStationName}</span>
-                        </div>
-                      </div>
-
-                      {legs.length > 1 ? (
-                        <div
-                          className="commute-leg-toggle"
-                          role="tablist"
-                          aria-label={`Route direction for ${commute.label}`}
-                          data-selected-index={legs.findIndex((l) => l.id === selectedLeg.id) <= 0 ? "0" : "1"}
-                          data-selected-state={
-                            selectedLegClearByFilters
-                              ? "filtered"
-                              : selectedLeg.impact.severity === "clear"
-                                ? "clear"
-                                : "affected"
-                          }
-                        >
-                          <div className="commute-leg-glider" aria-hidden="true" />
-                          {legs.map((leg) => {
-                            const isClear = leg.impact.severity === "clear";
-                            const isClearByFilters = legIsClearByFilters(leg);
-                            return (
-                              <button
-                                key={leg.id}
-                                type="button"
-                                role="tab"
-                                aria-selected={selectedLeg.id === leg.id}
-                                className={isClearByFilters ? "leg-btn-filtered" : isClear ? "leg-btn-clear" : "leg-btn-affected"}
-                                onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
-                                title={`To ${leg.toStationName}`}
-                              >
-                                <span className="truncate min-w-0 max-w-full block">To {leg.toStationName}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-
-                      <div className="saved-commute-time-estimate-heading mt-3 justify-center">
-                        <strong
-                          className={`!text-[0.88rem] inline-block pb-1.5 border-b-2 ${
-                            selectedLegClearByFilters
-                              ? "text-slate-500 dark:text-slate-400 border-slate-400/30"
-                              : selectedLeg.impact.severity === "clear"
-                              ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-400/30"
-                              : "text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-400/30"
-                          }`}
-                          style={{
-                            color: selectedLegClearByFilters
-                              ? "var(--quiet)"
-                              : selectedLeg.impact.severity === "clear"
-                                ? "var(--ok)"
-                                : "var(--warning)",
-                          }}
-                        >
-                          {toTitleCase(selectedLeg.impact.statusLabel)}
-                        </strong>
-                      </div>
-
-                      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mt-2 text-sm sm:text-base text-slate-800 dark:text-white font-bold">
-                        <div className="flex items-center gap-2">
-                          <NumStationsIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
-                          <span>
-                            {toTitleCase(`${selectedLeg.path.stationIds.length} Station${selectedLeg.path.stationIds.length === 1 ? "" : "s"}`)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-center gap-2 text-center">
-                          <Clock className={`saved-commute-time-headline-clock severity-${selectedTravelTimeSeverity} w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0`} />
-                          <span>{travelTimeHeadline.value}</span>
-                        </div>
-                      </div>
-
-                      <div
-                        className={`mt-1 text-center text-[11px] font-bold tracking-wide ${
-                          selectedTravelTimeEstimate.status === "standard"
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : selectedTravelTimeEstimate.status === "estimated"
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-red-600 dark:text-red-400"
-                        }`}
-                      >
-                        {travelTimeHeadline.context}
-                      </div>
-
-                      <div className="mt-1 mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        {commute.networkId === "regional" ? "Topology Planning Estimate" : "Default Scheduled Route"} · To {selectedLeg.toStationName}
-                      </div>
-
-                      <TravelTimeEstimateBlock leg={selectedLeg} />
-
-                      {selectedLeg.impact.matchedImpacts.length > 0 ? (() => {
-                        const disclosureKey = `${commute.id}-${selectedLeg.id}`;
-                        const isDisclosureOpen = expandedImpactDisclosures[disclosureKey] ?? persistedExpandedImpactDisclosures.has(disclosureKey);
-                        return (
-                          <details
-                            className="saved-commute-impact-disclosure"
-                            open={isDisclosureOpen}
-                            onClick={(event) => {
-                              const summary = (event.target as HTMLElement).closest("summary");
-                              if (!summary) return;
-                              const details = event.currentTarget;
-                              if (details.open) {
-                                event.preventDefault();
-                                details.classList.add("collapsing");
-                                window.setTimeout(() => {
-                                  details.open = false;
-                                  details.classList.remove("collapsing");
-                                  handleToggleImpactDisclosure(disclosureKey, false);
-                                }, 220);
-                              }
-                            }}
-                            onToggle={(event) => {
-                              handleToggleImpactDisclosure(disclosureKey, event.currentTarget.open);
-                            }}
-                          >
-                            <summary className="saved-commute-impact-summary">
-                              <span className="saved-commute-impact-summary-heading">
-                                <ExclaimAlertIcon className="saved-commute-impact-summary-icon" />
-                                <strong>Active Commute Disruptions</strong>
-                                <span className="saved-commute-impact-total">
-                                  {selectedLeg.impact.matchedImpacts.length}
-                                </span>
-                              </span>
-                              <span className="saved-commute-impact-summary-chips">
-                                {selectedLegImpactSummary.map(({ key, kind, activeClosure, count }) => (
-                                  <span
-                                    key={key}
-                                    className={`saved-commute-impact-summary-chip kind-${activeClosure ? "suspension" : kind}`}
-                                  >
-                                    <ImpactIcon kind={kind} activeClosure={activeClosure} className="shrink-0" />
-                                    {activeClosure
-                                      ? `${count} Active Closure${count === 1 ? "" : "s"}`
-                                      : impactKindCountLabel(kind, count)}
-                                  </span>
-                                ))}
-                              </span>
-                              <span className="saved-commute-impact-summary-action">
-                                <span className="saved-commute-impact-summary-action-collapsed">List View</span>
-                                <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
-                                <ChevronDown className="saved-commute-impact-summary-chevron" size={16} aria-hidden="true" />
-                              </span>
-                            </summary>
-                            <div className="saved-commute-impact-content-wrapper">
-                              <div className="saved-commute-impact-content">
-                                <ul className="saved-commute-impact-list">
-                                  {selectedLeg.impact.matchedImpacts.map((impact) => (
-                                    <li
-                                      key={`${impact.kind}-${impact.id}`}
-                                      className={impact.ignoredByRule ? "saved-commute-impact-ignored" : undefined}
-                                    >
-                                      <span className="saved-commute-impact-icon" aria-hidden="true">
-                                        <ImpactIcon kind={impact.kind} activeClosure={impact.kind === "planned-closure" && impact.status === "current"} className="shrink-0" />
-                                      </span>
-                                      <div className="saved-commute-impact-copy">
-                                        <div className="saved-commute-impact-details">
-                                          <div className="saved-commute-impact-heading">
-                                            <strong className="text-slate-800 dark:text-slate-200">
-                                              <span className="saved-commute-impact-kind-label">
-                                                {toTitleCase(impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current"))}
-                                              </span>
-                                              {impact.ignoredByRule ? (
-                                                <em className="saved-commute-impact-filter-note">
-                                                  (Ignored by Route Filter)
-                                                </em>
-                                              ) : null}
-                                            </strong>
-                                          </div>
-                                          <span className="text-slate-600 dark:text-slate-400">
-                                            {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}{impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
-                                          </span>
-                                        </div>
-                                        <div className="saved-commute-impact-action">
-                                          <button
-                                            type="button"
-                                            className="saved-commute-map-action saved-commute-impact-map-button"
-                                            onClick={() => handleViewImpactOnPath(commute, selectedLeg.id, impact)}
-                                            aria-label={`View ${impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current")} on the map for ${commute.label}`}
-                                          >
-                                            <MapPinned size={12} aria-hidden="true" />
-                                            View on Map
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          </details>
-                        );
-                      })() : null}
-
-                      {selectedLeg.impact.matchedImpacts.length === 0 ? (
-                        <hr className="border-slate-800/10 dark:border-slate-200/10 mt-5 mb-1.5 mx-1" />
-                      ) : null}
-                      <div className="saved-commute-rule-summary">
-                        <div>
-                          <strong>Route Notifications: {notificationRuleStatus}</strong>
-                          <ul className="list-disc list-outside pl-3 mt-1 space-y-0.5 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
-                            {notificationRule.enabled ? (
-                              <>
-                                <li>{formatLegSchedule("Outbound", notificationRule.outboundEnabled, notificationRule.outboundSchedule)}</li>
-                                {commute.watchReturnTrip ? (
-                                  <li>{formatLegSchedule("Return", notificationRule.returnEnabled, notificationRule.returnSchedule)}</li>
-                                ) : null}
-                                <li>{formatEventTypes(notificationRule, commute.networkId ?? "ttc")}</li>
-                              </>
-                            ) : (
-                              <li>Notifications are disabled for this commute.</li>
-                            )}
-                          </ul>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => editingNotificationRule ? setEditingNotificationCommuteId(null) : startEditingNotificationRule(commute)}
-                          aria-expanded={editingNotificationRule}
-                        >
-                          {editingNotificationRule ? "Close" : "Edit Alerts"}
-                        </button>
-                      </div>
-
-                      {editingNotificationRule ? (
-                        <div className="saved-commute-rule-editor">
-                          <SavedCommuteNotificationRuleEditor
-                            rule={notificationDraft}
-                            onChange={(rule) => updateNotificationDraft(commute.id, rule)}
-                            allowReturnLeg={commute.watchReturnTrip}
-                            networkId={commute.networkId ?? "ttc"}
-                          />
-                          {notificationRuleError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{notificationRuleError}</p> : null}
-                          <div className="saved-commute-rule-actions">
-                            <button
-                              type="button"
-                              onClick={() => saveNotificationRule(commute)}
-                              disabled={savingNotificationRuleId === commute.id}
-                              aria-busy={savingNotificationRuleId === commute.id}
-                            >
-                              {savingNotificationRuleId === commute.id ? "Saving" : "Save Alerts"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingNotificationCommuteId(null);
-                                setNotificationRuleError(null);
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <div className="commute-route-actions">
-                        <button
-                          type="button"
-                          className="commute-route-stop-toggle"
-                          onClick={() => startEditingCommute(commute)}
-                          aria-label={`Edit commute ${commute.label}`}
-                        >
-                          <Pencil size={13} aria-hidden="true" />
-                          Edit route
-                        </button>
-                        <button
-                          type="button"
-                          className="commute-route-stop-toggle"
-                          onClick={() => setExpandedCommuteId((current) => current === commute.id ? null : commute.id)}
-                          aria-expanded={stopsExpanded}
-                          aria-controls={`commute-stops-${commute.id}`}
-                          disabled={routeStops.length === 0}
-                        >
-                          <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${stopsExpanded ? "rotate-180" : ""}`} />
-                          {stopsExpanded ? "Hide stops" : `View ${routeStops.length} stops`}
-                        </button>
-                        <button
-                          type="button"
-                          className="saved-commute-map-action commute-route-map-button"
-                          onClick={() => {
-                            lastInteractedCommuteIdRef.current = commute.id;
-                            setFocusedCommuteId(commute.id);
-                            onViewPath(commute, selectedLeg.id);
-                          }}
-                          disabled={!canViewPath}
-                          aria-pressed={viewingPath}
-                        >
-                          <MapPinned size={14} aria-hidden="true" />
-                          {viewingPath ? "Viewing path" : "View path on map"}
-                        </button>
-                        {deletingCommuteId === commute.id ? (
-                          <div ref={deleteConfirmationRef} className="commute-route-delete-confirmation">
-                            <span className="commute-route-delete-confirmation-prompt text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mr-1">Are you sure?</span>
-                            <button
-                              type="button"
-                              className="commute-route-delete-confirm-button"
-                              onClick={() => {
-                                handleDeleteCommute(commute.id);
-                                setDeletingCommuteId(null);
-                              }}
-                              aria-label={`Confirm delete commute ${commute.label}`}
-                            >
-                              Yes
-                            </button>
-                            <button
-                              type="button"
-                              className="commute-route-delete-cancel-button"
-                              onClick={() => setDeletingCommuteId(null)}
-                              aria-label={`Cancel delete commute ${commute.label}`}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="commute-route-delete-button"
-                            onClick={() => setDeletingCommuteId(commute.id)}
-                            aria-label={`Delete commute ${commute.label}`}
-                            title="Delete commute"
-                          >
-                            <Trash2 size={22} aria-hidden="true" />
-                          </button>
-                        )}
-                      </div>
-                      {stopsExpanded ? (
-                        <ol id={`commute-stops-${commute.id}`} className="commute-route-stop-list" aria-label={`Stops for ${commute.label}`}>
-                          {routeStops.map((stationId, index) => (
-                            <li key={`${commute.id}-${stationId}-${index}`}>
-                              <span className="commute-route-stop-index">{index + 1}</span>
-                              <span>{stationNameFor(stationId, commute.networkId ?? "ttc")}</span>
-                              {selectedLeg.path.transferStationIds.includes(stationId) ? (
-                                <strong>Transfer</strong>
-                              ) : null}
-                            </li>
-                          ))}
-                        </ol>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+                  renderedSavedCommutes
+                )}
                 <p className="saved-commute-routing-boundary-static" role="note">
                   <Info size={11} aria-hidden="true" />
                   <span>Monitoring the rail routes you selected. They may not be the fastest or most optimal routes in every scenario.</span>

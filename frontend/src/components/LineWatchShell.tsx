@@ -369,6 +369,59 @@ export function LineWatchShell({
     : regionalRailOperatingState.status === "open";
   const estimatedTrainMarkersVisible = estimatedTrainsEnabled && trainNetworkOpen;
 
+  const [accountState, setAccountState] = useState<AccountState>({
+    source: "unavailable",
+    authenticated: false,
+    user: null,
+  });
+  const [accountDialogMode, setAccountDialogMode] = useState<AccountDialogMode | null>(initialPasswordResetToken.trim() ? "reset-password" : null);
+  const [accountEntryIntent, setAccountEntryIntent] = useState<AccountEntryIntent>("login");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountPasswordConfirmation, setAccountPasswordConfirmation] = useState("");
+  const [accountResetToken, setAccountResetToken] = useState(initialPasswordResetToken.trim());
+  const [accountResetMessage, setAccountResetMessage] = useState<string | null>(null);
+  const [accountDevResetToken, setAccountDevResetToken] = useState<string | null>(null);
+  const [accountDisplayName, setAccountDisplayName] = useState("");
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountSuccessMessage, setAccountSuccessMessage] = useState<string | null>(null);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
+  const [savedStations, setSavedStations] = useState<AccountSavedStation[]>([]);
+  const [savedStationsLoading, setSavedStationsLoading] = useState(false);
+  const [savedStationsError, setSavedStationsError] = useState<string | null>(null);
+  const [pendingSavedStationIds, setPendingSavedStationIds] = useState<Set<string>>(() => new Set());
+  const [savedStationNotice, setSavedStationNotice] = useState<SavedStationNotice | null>(null);
+  const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
+  const savedStationNoticeTimerRef = useRef<number | null>(null);
+  const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
+  const [commutesFocusedCommuteId, setCommutesFocusedCommuteId] = useState<string | null>(null);
+  const [commutesSortBy, setCommutesSortBy] = useState<SavedCommuteSort>("impact");
+  const [commutesNetworkFilter, setCommutesNetworkFilter] = useState<AccountNetworkFilter>("all");
+  const [commutesSelectedLegIds, setCommutesSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
+  const [commutesExpandedCommuteId, setCommutesExpandedCommuteId] = useState<string | null>(null);
+  const [commutesExpandedImpactDisclosures, setCommutesExpandedImpactDisclosures] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const key of persistedExpandedImpactDisclosures) {
+      initial[key] = true;
+    }
+    return initial;
+  });
+
+  const handleCommutesToggleImpactDisclosure = useCallback((key: string, isOpen: boolean) => {
+    if (isOpen) {
+      persistedExpandedImpactDisclosures.add(key);
+    } else {
+      persistedExpandedImpactDisclosures.delete(key);
+    }
+    setCommutesExpandedImpactDisclosures((prev) => ({ ...prev, [key]: isOpen }));
+  }, []);
+  const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
+  const selectedStationIdRef = useRef<string | null>(null);
+  const selectionRef = useRef<ImpactSelection>(null);
+  const selectionBackBehaviorRef = useRef<"clear" | "restore-view">("clear");
+  const accountDialogModeRef = useRef<AccountDialogMode | null>(null);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -663,7 +716,7 @@ export function LineWatchShell({
       setCommutePathPreview(null);
     }
     setActiveView(previous.view);
-  }, [isMobile, setActiveView]);
+  }, [isMobile, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId]);
 
   const restoreMapDrilldownOrigin = useCallback(() => {
     if (activeViewRef.current !== "map") return;
@@ -861,60 +914,7 @@ export function LineWatchShell({
       setSelection(null);
       setAccessibilityOutageTarget(null);
     }, reducedMotion ? 0 : 380);
-  }, [activeView, consumeBrowserNavigationEntries, isMobile, reducedMotion, setActiveView, setSelection]);
-
-  const [accountState, setAccountState] = useState<AccountState>({
-    source: "unavailable",
-    authenticated: false,
-    user: null,
-  });
-  const [accountDialogMode, setAccountDialogMode] = useState<AccountDialogMode | null>(initialPasswordResetToken.trim() ? "reset-password" : null);
-  const [accountEntryIntent, setAccountEntryIntent] = useState<AccountEntryIntent>("login");
-  const [accountEmail, setAccountEmail] = useState("");
-  const [accountPassword, setAccountPassword] = useState("");
-  const [accountPasswordConfirmation, setAccountPasswordConfirmation] = useState("");
-  const [accountResetToken, setAccountResetToken] = useState(initialPasswordResetToken.trim());
-  const [accountResetMessage, setAccountResetMessage] = useState<string | null>(null);
-  const [accountDevResetToken, setAccountDevResetToken] = useState<string | null>(null);
-  const [accountDisplayName, setAccountDisplayName] = useState("");
-  const [accountError, setAccountError] = useState<string | null>(null);
-  const [accountSuccessMessage, setAccountSuccessMessage] = useState<string | null>(null);
-  const [accountBusy, setAccountBusy] = useState(false);
-  const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
-  const [savedStations, setSavedStations] = useState<AccountSavedStation[]>([]);
-  const [savedStationsLoading, setSavedStationsLoading] = useState(false);
-  const [savedStationsError, setSavedStationsError] = useState<string | null>(null);
-  const [pendingSavedStationIds, setPendingSavedStationIds] = useState<Set<string>>(() => new Set());
-  const [savedStationNotice, setSavedStationNotice] = useState<SavedStationNotice | null>(null);
-  const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
-  const savedStationNoticeTimerRef = useRef<number | null>(null);
-  const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
-  const [commutesFocusedCommuteId, setCommutesFocusedCommuteId] = useState<string | null>(null);
-  const [commutesSortBy, setCommutesSortBy] = useState<SavedCommuteSort>("impact");
-  const [commutesNetworkFilter, setCommutesNetworkFilter] = useState<AccountNetworkFilter>("all");
-  const [commutesSelectedLegIds, setCommutesSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
-  const [commutesExpandedCommuteId, setCommutesExpandedCommuteId] = useState<string | null>(null);
-  const [commutesExpandedImpactDisclosures, setCommutesExpandedImpactDisclosures] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    for (const key of persistedExpandedImpactDisclosures) {
-      initial[key] = true;
-    }
-    return initial;
-  });
-
-  const handleCommutesToggleImpactDisclosure = useCallback((key: string, isOpen: boolean) => {
-    if (isOpen) {
-      persistedExpandedImpactDisclosures.add(key);
-    } else {
-      persistedExpandedImpactDisclosures.delete(key);
-    }
-    setCommutesExpandedImpactDisclosures((prev) => ({ ...prev, [key]: isOpen }));
-  }, []);
-  const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
-  const selectedStationIdRef = useRef<string | null>(null);
-  const selectionRef = useRef<ImpactSelection>(null);
-  const selectionBackBehaviorRef = useRef<"clear" | "restore-view">("clear");
-  const accountDialogModeRef = useRef<AccountDialogMode | null>(null);
+  }, [activeView, consumeBrowserNavigationEntries, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setSelection]);
 
   useEffect(() => {
     selectedStationIdRef.current = selectedStationId;
@@ -1824,7 +1824,7 @@ export function LineWatchShell({
       setActiveView("commutes");
       setIsGoingBack(false);
     }, reducedMotion ? 0 : 380);
-  }, [consumeBrowserNavigationEntries, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setSelection, setSelectedStationId]);
+  }, [consumeBrowserNavigationEntries, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setSelection, setSelectedStationId]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);

@@ -137,7 +137,7 @@ export function isRegionalStationParkingAvailable(stationId: string): boolean {
 }
 
 export function isRegionalStationWashroomAvailable(stationId: string): boolean {
-  return true;
+  return Boolean(stationId);
 }
 
 export const regionalStations: Station[] = allRegionalStationIds.map((id) => ({
