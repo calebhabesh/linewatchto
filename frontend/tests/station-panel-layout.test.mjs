@@ -175,7 +175,7 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /Elevator available/);
     assert.match(panelSource, /Washrooms/);
     assert.match(panelSource, /Parking/);
-    assert.match(panelSource, /width=\{37\}[\s\S]*height=\{37\}[\s\S]*w-\[37px\] h-\[37px\]/);
+    assert.match(panelSource, /width=\{37\}[\s\S]*height=\{37\}[\s\S]*w-\[33px\] h-\[33px\] sm:w-\[37px\] sm:h-\[37px\]/);
     assert.equal(
       panelSource.match(/drop-shadow-\[0_0_1\.5px_rgba\(0,130,201,0\.28\)\] dark:drop-shadow-\[0_0_2px_rgba\(0,130,201,0\.38\)\]/g)?.length,
       2,

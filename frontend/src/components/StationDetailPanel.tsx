@@ -527,26 +527,26 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           {station.lines.map((line) => (
             <div
               key={line.id}
-              className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md border border-black/10 bg-slate-50 px-4 py-3.5 dark:border-white/10 dark:bg-white/5"
+              className="grid min-h-[68px] sm:min-h-[76px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 rounded-md border border-black/10 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
             >
               <div className="min-w-0">
                 <span
-                  className="inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
+                  className="inline-flex min-h-7 sm:min-h-8 max-w-full min-w-0 items-center gap-1.5 sm:gap-2 rounded-full border border-black/10 px-2.5 sm:px-3 py-1 text-xs font-black dark:border-white/10"
                   style={{ backgroundColor: line.color, color: lineBadgeTextColor(line.id) }}
                   title={line.platformLabel}
                 >
                   {line.number}
                   <span className="min-w-0 truncate">{line.name}</span>
                 </span>
-                <p className="mt-2 break-words text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <p className="mt-1.5 sm:mt-2 break-words text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {line.platformLabel}
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center justify-end gap-3 pl-2 pr-1">
+              <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3 pl-1 sm:pl-2 pr-0 sm:pr-1">
                 {line.wheelchairAccessible && (
                   <span
-                    className="flex items-center justify-center p-0.5"
+                    className="flex items-center justify-center p-0 sm:p-0.5"
                     title="Wheelchair accessible"
                   >
                     <Image
@@ -554,7 +554,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       alt="Wheelchair accessible"
                       width={34}
                       height={34}
-                      className="w-[34px] h-[34px] rounded-md drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                      className="w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] rounded-[4px] sm:rounded-md drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
                     />
                   </span>
                 )}
@@ -569,7 +569,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       alt={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
                       width={37}
                       height={37}
-                      className="w-[37px] h-[37px] drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
                     />
                   </span>
                 )}
@@ -583,7 +583,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       alt="Washrooms available"
                       width={37}
                       height={37}
-                      className="w-[37px] h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
                     />
                   </span>
                 )}
@@ -597,7 +597,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       alt="Parking available"
                       width={35}
                       height={35}
-                      className="w-[35px] h-[35px] rounded-full drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
+                      className="w-[31px] h-[31px] sm:w-[35px] sm:h-[35px] rounded-full drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
                     />
                   </span>
                 )}
