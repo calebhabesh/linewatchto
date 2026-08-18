@@ -266,15 +266,22 @@ describe("station data adapter", () => {
 
   it("identifies washroom and parking availability across stations", () => {
     assert.equal(isStationWashroomAvailable("wilson"), true);
-    assert.equal(isStationWashroomAvailable("union"), true);
+    assert.equal(isStationWashroomAvailable("bloor-yonge"), true);
+    assert.equal(isStationWashroomAvailable("cedarvale"), true);
+    assert.equal(isStationWashroomAvailable("humber-college"), true);
+    assert.equal(isStationWashroomAvailable("union"), false);
     assert.equal(isStationWashroomAvailable("museum"), false);
 
     assert.equal(isStationParkingAvailable("wilson"), true);
     assert.equal(isStationParkingAvailable("finch"), true);
+    assert.equal(isStationParkingAvailable("highway-407"), true);
     assert.equal(isStationParkingAvailable("union"), false);
+    assert.equal(isStationParkingAvailable("downsview-park"), false);
 
     assert.equal(fallbackStationDetails.wilson.hasWashroom, true);
     assert.equal(fallbackStationDetails.wilson.hasParking, true);
+    assert.equal(fallbackStationDetails.cedarvale.hasWashroom, true);
+    assert.equal(fallbackStationDetails.cedarvale.hasParking, false);
     assert.equal(fallbackStationDetails.museum.hasWashroom, false);
     assert.equal(fallbackStationDetails.museum.hasParking, false);
   });

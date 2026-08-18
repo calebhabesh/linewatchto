@@ -699,6 +699,20 @@ export function StationSearchPanel({
 
       <div className="station-search-content">
         <div className="station-search-amenity-toolbar" role="toolbar" aria-label="Filter stations by amenities">
+          <div className="station-search-amenity-header">
+            <span>Filter amenities</span>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                className="station-search-amenity-clear"
+                onClick={clearAmenityFilters}
+                aria-label="Clear amenity filters"
+              >
+                <X size={12} aria-hidden="true" />
+                <span>Clear</span>
+              </button>
+            )}
+          </div>
           <div className="station-search-amenity-chips">
             <button
               type="button"
@@ -769,17 +783,6 @@ export function StationSearchPanel({
               <span className="station-search-amenity-chip-count">{currentAmenityCounts.parking}</span>
             </button>
           </div>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              className="station-search-amenity-clear"
-              onClick={clearAmenityFilters}
-              aria-label="Clear amenity filters"
-            >
-              <X size={12} aria-hidden="true" />
-              <span>Clear</span>
-            </button>
-          )}
         </div>
 
         {query.trim() ? (

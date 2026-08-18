@@ -62,10 +62,10 @@ function StationOption({
     .map((lineId) => lineById(lineId))
     .filter((line): line is StationSearchLine => Boolean(line));
 
-  const isWheelchair = isStationWheelchairAccessible(station.id, station.lineIds);
-  const hasElevator = isStationElevatorAccessible(station.id, station.lineIds);
-  const hasWashroom = isStationWashroomAvailable(station.id);
-  const hasParking = isStationParkingAvailable(station.id);
+  const isWheelchair = station.wheelchairAccessible ?? isStationWheelchairAccessible(station.id, station.lineIds);
+  const hasElevator = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds);
+  const hasWashroom = station.hasWashroom ?? isStationWashroomAvailable(station.id);
+  const hasParking = station.hasParking ?? isStationParkingAvailable(station.id);
 
   let accessibilityLabel = "";
   if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";

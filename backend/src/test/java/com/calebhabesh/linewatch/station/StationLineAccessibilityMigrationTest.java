@@ -39,6 +39,23 @@ class StationLineAccessibilityMigrationTest {
         assertThat(sql).contains("'kipling'");
     }
 
+    @Test
+    void v68CorrectsStationWashroomsAndParkingAmenities() throws IOException {
+        String sql = migrationSql("/db/migration/V68__correct_station_amenities_washrooms_and_parking.sql");
+
+        assertThat(sql).contains("update stations set has_washroom = false, has_parking = false");
+        assertThat(sql).contains("'bloor-yonge'");
+        assertThat(sql).contains("'cedarvale'");
+        assertThat(sql).contains("'humber-college'");
+        assertThat(sql).contains("'mount-dennis'");
+        assertThat(sql).contains("'finch'");
+        assertThat(sql).contains("'finch-west'");
+        assertThat(sql).contains("'highway-407'");
+        assertThat(sql).contains("'wilson'");
+        assertThat(sql).contains("'kipling'");
+        assertThat(sql).doesNotContain("'union'");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

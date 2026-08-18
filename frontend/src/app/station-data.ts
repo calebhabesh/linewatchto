@@ -235,57 +235,49 @@ const FALLBACK_WITHOUT_ELEVATOR = new Set([
 
 export const FALLBACK_WITH_WASHROOMS = new Set<string>([
   // Line 1
-  "vaughan-metropolitan-centre",
-  "highway-407",
-  "pioneer-village",
-  "finch-west",
-  "downsview-park",
-  "sheppard-west",
-  "wilson",
-  "spadina",
-  "st-george",
-  "union",
   "bloor-yonge",
   "eglinton",
-  "york-mills",
-  "sheppard-yonge",
   "finch",
+  "finch-west",
+  "sheppard-west",
+  "sheppard-yonge",
+  "vaughan-metropolitan-centre",
+  "wilson",
 
   // Line 2
-  "kipling",
-  "islington",
-  "broadview",
-  "warden",
   "kennedy",
+  "kipling",
 
   // Line 4
   "don-mills",
+
+  // Line 5
+  "cedarvale",
+  "mount-dennis",
+
+  // Line 6
+  "humber-college",
 ]);
 
 export const FALLBACK_WITH_PARKING = new Set<string>([
   // Line 1
+  "finch",
+  "finch-west",
   "highway-407",
   "pioneer-village",
-  "finch-west",
-  "downsview-park",
   "sheppard-west",
   "wilson",
   "yorkdale",
-  "york-mills",
-  "finch",
 
   // Line 2
-  "kipling",
   "islington",
   "keele",
-  "high-park",
-  "victoria-park",
+  "kipling",
   "warden",
-  "kennedy",
 
   // Line 4
-  "leslie",
   "don-mills",
+  "leslie",
 ]);
 
 const fallbackStationSummarySeed: StationListResponse = {
