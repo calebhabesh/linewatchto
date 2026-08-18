@@ -31,7 +31,7 @@ import {
   type RegionalTripChangeResponse,
 } from "../app/regional-trip-changes";
 import { StationDetailHeader } from "./StationDetailHeader";
-import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
+import { TransitLineBadge } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
 import { LiveSignalIcon } from "./LiveSignalIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
@@ -460,21 +460,31 @@ export function RegionalStationDetailPanel({
           key={station.id}
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
-          <div className="mt-2 flex flex-col gap-1.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
-            {routes.map((route) => (
-              <div key={route.id} className="flex items-center gap-2 flex-wrap min-w-0">
-                <span
-                  className="regional-route-pill inline-flex min-h-6 sm:min-h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-black/10 px-2.5 py-0.5 text-xs font-black dark:border-white/10 shrink-0"
-                  style={transitLineBadgeColors(route.id)}
-                >
-                  <span>{route.number}</span>
-                  <span className="min-w-0 truncate">{route.name}</span>
-                </span>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  {REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS]}
-                </span>
-              </div>
-            ))}
+          <div className="mt-2 flex flex-col gap-1.5 shrink-0 pr-3 sm:pr-3.5" data-station-header-line-details aria-label="Regional rail corridors">
+            {routes.map((route) => {
+              const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
+              return (
+                <div key={route.id} className="flex items-center justify-between gap-2.5 min-w-0">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <TransitLineBadge
+                      lineId={route.id}
+                      lineNumber={route.number}
+                      lineName={route.name}
+                      size={40}
+                      className="regional-route-pill shrink-0"
+                    />
+                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {route.name}
+                    </span>
+                  </div>
+                  {direction ? (
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0 text-right">
+                      {direction}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
 
           {connections.length > 0 && (

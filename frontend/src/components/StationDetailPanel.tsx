@@ -171,10 +171,6 @@ function StationImpactDetailsIcon({
   return <AlertTriangle size={size} className="shrink-0 text-red-500" />;
 }
 
-function lineBadgeTextColor(lineId: string) {
-  return lineId === "line-1" || lineId === "line-6" ? "#000000" : "#ffffff";
-}
-
 type StationAccessOutageAssetType = "elevator" | "escalator";
 
 const STATION_ACCESS_OUTAGE_ICON_SRC: Record<StationAccessOutageAssetType, string> = {
@@ -464,19 +460,26 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
           {station && (
-            <div className="mt-2 flex flex-col gap-1.5 shrink-0" data-station-header-line-details>
+            <div className="mt-2 flex flex-col gap-1.5 shrink-0 pr-3 sm:pr-3.5" data-station-header-line-details>
               {station.lines.map((line) => (
-                <div key={line.id} className="flex items-center gap-2 flex-wrap min-w-0">
-                  <span
-                    className="inline-flex min-h-6 sm:min-h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-black/10 px-2.5 py-0.5 text-xs font-black dark:border-white/10 shrink-0"
-                    style={{ backgroundColor: line.color, color: lineBadgeTextColor(line.id) }}
-                  >
-                    <span>{line.number}</span>
-                    <span className="min-w-0 truncate">{line.name}</span>
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    {line.platformLabel}
-                  </span>
+                <div key={line.id} className="flex items-center justify-between gap-2.5 min-w-0">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <TransitLineBadge
+                      lineId={line.id}
+                      lineNumber={line.number}
+                      lineName={line.name}
+                      size={40}
+                      className="shrink-0"
+                    />
+                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {line.name}
+                    </span>
+                  </div>
+                  {line.platformLabel ? (
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0 text-right">
+                      {line.platformLabel}
+                    </span>
+                  ) : null}
                 </div>
               ))}
             </div>
