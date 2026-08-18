@@ -510,13 +510,11 @@ export function RegionalStationDetailPanel({
             </div>
           )}
 
-          {connections.length > 0 && (
-            <div className="mt-2.5 shrink-0">
-              <StationConnectionBadges connections={connections} />
-            </div>
-          )}
-
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 pr-4 -mr-4 station-detail-scroll station-detail-section-stack">
+            {connections.length > 0 && (
+              <StationConnectionBadges connections={connections} />
+            )}
+
             {isWheelchairAccessible && (
               <div
                 className="flex flex-col gap-2 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"

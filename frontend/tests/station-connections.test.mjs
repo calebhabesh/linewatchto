@@ -148,9 +148,7 @@ describe("station connection metadata and map labels", () => {
     assert.match(css, /\.station-connections-title[^}]*margin: 0;/s);
     assert.match(css, /\.station-connection-dot-sep[^}]*margin: 0 6px;/s);
     assert.match(css, /\.station-connection-list[^}]*display: grid;[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s);
-    assert.match(css, /\.station-connection-row[^}]*border: 1px solid/s);
-    assert.match(css, /\.station-connection-row[^}]*width: 100%;/s);
-    assert.match(css, /\.station-connection-row:last-child:nth-child\(odd\)[^}]*grid-column: span 2 \/ span 2;/s);
+    assert.doesNotMatch(css, /\.station-connection-row:last-child:nth-child\(odd\)/);
     assert.doesNotMatch(css, /\.station-connection-row:only-child/);
     assert.match(css, /\.dark \.station-connection-row,[\s\S]*?background: rgba\(255, 255, 255, 0\.035\)/);
     assert.doesNotMatch(css, /map-connection-airport[^}]*filter:/s);

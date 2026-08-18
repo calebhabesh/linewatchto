@@ -647,10 +647,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   padding: 7px 10px;
 }
 
-.station-connection-row:last-child:nth-child(odd) {
-  grid-column: span 2 / span 2;
-}
-
 .station-connection-logo-frame {
   display: flex;
   width: 36px;
