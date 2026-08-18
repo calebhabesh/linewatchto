@@ -18,7 +18,16 @@ import {
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
-import { isLrtOnlyStation, isSubwayAndLrtStation, type StationArrival, type StationDataResult, type StationDetail, type StationImpact } from "../app/station-data";
+import {
+  isLrtOnlyStation,
+  isStationParkingAvailable,
+  isStationWashroomAvailable,
+  isSubwayAndLrtStation,
+  type StationArrival,
+  type StationDataResult,
+  type StationDetail,
+  type StationImpact,
+} from "../app/station-data";
 import { distinctStationImpacts } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
@@ -317,6 +326,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   const isWheelchairAccessible = station?.lines.some((line) => line.wheelchairAccessible) ?? false;
   const hasElevator = station?.lines.some((line) => line.hasElevator) ?? false;
+  const hasWashroom = station ? (station.hasWashroom ?? isStationWashroomAvailable(station.id)) : false;
+  const hasParking = station ? (station.hasParking ?? isStationParkingAvailable(station.id)) : false;
   const connections = station ? ttcStationConnections(station.id) : [];
 
   const accessibilityDetailsRef = useRef<HTMLDetailsElement>(null);
@@ -443,18 +454,30 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           key={station?.id ?? "empty"}
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
-          {station && (isWheelchairAccessible || hasElevator) && (
-            <div className="mt-2.5 flex flex-wrap gap-1.5 shrink-0">
+          {station && (isWheelchairAccessible || hasElevator || hasWashroom || hasParking) && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-1 sm:gap-1.5 shrink-0">
               {isWheelchairAccessible && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wider bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={11} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Wheelchair Accessible
+                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                  Accessible
                 </span>
               )}
               {hasElevator && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wider bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={11} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] stroke-[3.5] shrink-0" />
-                  Elevator Access
+                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                  Elevator
+                </span>
+              )}
+              {hasWashroom && (
+                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                  Washrooms
+                </span>
+              )}
+              {hasParking && (
+                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                  Parking
                 </span>
               )}
             </div>
@@ -547,6 +570,34 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       width={37}
                       height={37}
                       className="w-[37px] h-[37px] drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                    />
+                  </span>
+                )}
+                {hasWashroom && (
+                  <span
+                    className="flex items-center justify-center"
+                    title="Washrooms available"
+                  >
+                    <Image
+                      src="/assets/linewatch/washroom.svg"
+                      alt="Washrooms available"
+                      width={37}
+                      height={37}
+                      className="w-[37px] h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                    />
+                  </span>
+                )}
+                {hasParking && (
+                  <span
+                    className="flex items-center justify-center"
+                    title="Parking available"
+                  >
+                    <Image
+                      src="/assets/linewatch/parking.svg"
+                      alt="Parking available"
+                      width={35}
+                      height={35}
+                      className="w-[35px] h-[35px] rounded-full drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
                     />
                   </span>
                 )}

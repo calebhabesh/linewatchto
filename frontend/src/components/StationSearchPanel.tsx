@@ -24,6 +24,8 @@ import {
   type StationSummary,
   isStationWheelchairAccessible,
   isStationElevatorAccessible,
+  isStationWashroomAvailable,
+  isStationParkingAvailable,
 } from "../app/station-data";
 import { stationImpactKindsByStation } from "../app/station-impact-types";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -210,10 +212,14 @@ function StationButton({
 
   const isWheelchair = isStationWheelchairAccessible(station.id, station.lineIds, networkId);
   const hasElevator = networkId === "ttc" && isStationElevatorAccessible(station.id, station.lineIds);
+  const hasWashroom = networkId === "ttc" && isStationWashroomAvailable(station.id);
+  const hasParking = networkId === "ttc" && isStationParkingAvailable(station.id);
 
   let accessibilityLabel = "";
   if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
   if (hasElevator) accessibilityLabel += " (Elevator Access)";
+  if (hasWashroom) accessibilityLabel += " (Washrooms Available)";
+  if (hasParking) accessibilityLabel += " (Parking Available)";
 
   return (
     <div className="station-search-station-row">
@@ -248,6 +254,28 @@ function StationButton({
                 width={14}
                 height={14}
                 className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,130,201,0.22)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.3)]"
+              />
+            </span>
+          )}
+          {hasWashroom && (
+            <span className="inline-flex items-center justify-center shrink-0" title="Washrooms available">
+              <Image
+                src="/assets/linewatch/washroom.svg"
+                alt="Washrooms available"
+                width={14}
+                height={14}
+                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,0,0,0.22)]"
+              />
+            </span>
+          )}
+          {hasParking && (
+            <span className="inline-flex items-center justify-center shrink-0" title="Parking available">
+              <Image
+                src="/assets/linewatch/parking.svg"
+                alt="Parking available"
+                width={14}
+                height={14}
+                className="h-[14px] w-[14px] rounded-full drop-shadow-[0_0_1px_rgba(33,178,82,0.3)]"
               />
             </span>
           )}

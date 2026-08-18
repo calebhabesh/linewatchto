@@ -26,6 +26,19 @@ class StationLineAccessibilityMigrationTest {
             .count()).isEqualTo(117);
     }
 
+    @Test
+    void v67AddsStationWashroomsAndParkingAmenities() throws IOException {
+        String sql = migrationSql("/db/migration/V67__station_amenities_washrooms_and_parking.sql");
+
+        assertThat(sql).contains("add column has_washroom");
+        assertThat(sql).contains("add column has_parking");
+        assertThat(sql).contains("'vaughan-metropolitan-centre'");
+        assertThat(sql).contains("'union'");
+        assertThat(sql).contains("'finch'");
+        assertThat(sql).contains("'wilson'");
+        assertThat(sql).contains("'kipling'");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

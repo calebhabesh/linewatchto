@@ -22,9 +22,29 @@ public class StationEntity {
     @Column(columnDefinition = "geometry(Point, 4326)")
     private org.locationtech.jts.geom.Point geom;
 
+    @Column(name = "has_washroom")
+    private boolean hasWashroom;
+
+    @Column(name = "has_parking")
+    private boolean hasParking;
+
     protected StationEntity() {}
 
     public StationEntity(String id, String name, int mapX, int mapY, boolean interchange, int sortOrder, org.locationtech.jts.geom.Point geom) {
+        this(id, name, mapX, mapY, interchange, sortOrder, geom, false, false);
+    }
+
+    public StationEntity(
+        String id,
+        String name,
+        int mapX,
+        int mapY,
+        boolean interchange,
+        int sortOrder,
+        org.locationtech.jts.geom.Point geom,
+        boolean hasWashroom,
+        boolean hasParking
+    ) {
         this.id = id;
         this.name = name;
         this.mapX = mapX;
@@ -32,6 +52,8 @@ public class StationEntity {
         this.interchange = interchange;
         this.sortOrder = sortOrder;
         this.geom = geom;
+        this.hasWashroom = hasWashroom;
+        this.hasParking = hasParking;
     }
 
     public String getId() { return id; }
@@ -41,4 +63,6 @@ public class StationEntity {
     public boolean isInterchange() { return interchange; }
     public int getSortOrder() { return sortOrder; }
     public org.locationtech.jts.geom.Point getGeom() { return geom; }
+    public boolean hasWashroom() { return hasWashroom; }
+    public boolean hasParking() { return hasParking; }
 }

@@ -45,7 +45,9 @@ public final class StationResponses {
         String arrivalsSource,
         StationArrivalContextResponse arrivalContext,
         String dataMode,
-        String disclaimer
+        String disclaimer,
+        boolean hasWashroom,
+        boolean hasParking
     ) {
     }
 

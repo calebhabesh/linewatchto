@@ -14,6 +14,8 @@ import {
   type StationSummary,
   isStationWheelchairAccessible,
   isStationElevatorAccessible,
+  isStationWashroomAvailable,
+  isStationParkingAvailable,
 } from "../app/station-data";
 import {
   calculateMobilePickerAlignmentScroll,
@@ -62,10 +64,14 @@ function StationOption({
 
   const isWheelchair = isStationWheelchairAccessible(station.id, station.lineIds);
   const hasElevator = isStationElevatorAccessible(station.id, station.lineIds);
+  const hasWashroom = isStationWashroomAvailable(station.id);
+  const hasParking = isStationParkingAvailable(station.id);
 
   let accessibilityLabel = "";
   if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
   if (hasElevator) accessibilityLabel += " (Elevator Access)";
+  if (hasWashroom) accessibilityLabel += " (Washrooms Available)";
+  if (hasParking) accessibilityLabel += " (Parking Available)";
 
   return (
     <button
@@ -99,6 +105,28 @@ function StationOption({
               width={12}
               height={12}
               className="h-3 w-3 drop-shadow-[0_0_1px_rgba(0,130,201,0.2)]"
+            />
+          </span>
+        )}
+        {hasWashroom && (
+          <span className="inline-flex items-center justify-center shrink-0" title="Washrooms available">
+            <Image
+              src="/assets/linewatch/washroom.svg"
+              alt="Washrooms available"
+              width={12}
+              height={12}
+              className="h-3 w-3 drop-shadow-[0_0_1px_rgba(0,0,0,0.2)]"
+            />
+          </span>
+        )}
+        {hasParking && (
+          <span className="inline-flex items-center justify-center shrink-0" title="Parking available">
+            <Image
+              src="/assets/linewatch/parking.svg"
+              alt="Parking available"
+              width={12}
+              height={12}
+              className="h-3 w-3 rounded-full drop-shadow-[0_0_1px_rgba(33,178,82,0.2)]"
             />
           </span>
         )}

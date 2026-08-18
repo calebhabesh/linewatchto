@@ -6,6 +6,8 @@ import {
   fallbackStationSummaries,
   getStationDetail,
   getStationSummaries,
+  isStationParkingAvailable,
+  isStationWashroomAvailable,
   isLrtOnlyLine,
   isLrtOnlyStation,
   isLrtOnlyStationId,
@@ -260,5 +262,20 @@ describe("station data adapter", () => {
     assert.equal(isSubwayAndLrtStationId("union"), false);
     assert.equal(isSubwayAndLrtStationId("mount-dennis"), false);
     assert.equal(isSubwayAndLrtStationId("humber-college"), false);
+  });
+
+  it("identifies washroom and parking availability across stations", () => {
+    assert.equal(isStationWashroomAvailable("wilson"), true);
+    assert.equal(isStationWashroomAvailable("union"), true);
+    assert.equal(isStationWashroomAvailable("museum"), false);
+
+    assert.equal(isStationParkingAvailable("wilson"), true);
+    assert.equal(isStationParkingAvailable("finch"), true);
+    assert.equal(isStationParkingAvailable("union"), false);
+
+    assert.equal(fallbackStationDetails.wilson.hasWashroom, true);
+    assert.equal(fallbackStationDetails.wilson.hasParking, true);
+    assert.equal(fallbackStationDetails.museum.hasWashroom, false);
+    assert.equal(fallbackStationDetails.museum.hasParking, false);
   });
 });

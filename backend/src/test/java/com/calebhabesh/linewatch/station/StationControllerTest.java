@@ -129,7 +129,9 @@ class StationControllerTest {
                     "LineWatchTO"
                 ),
                 "seeded-demo",
-                "Station details use seeded backend data. Arrivals are demo placeholders, not live TTC predictions."
+                "Station details use seeded backend data. Arrivals are demo placeholders, not live TTC predictions.",
+                true,
+                false
             );
         }
     }

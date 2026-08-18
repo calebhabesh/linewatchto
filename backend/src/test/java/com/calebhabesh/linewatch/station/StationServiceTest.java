@@ -90,7 +90,7 @@ class StationServiceTest {
 
     @Test
     void stationDetailIncludesLinesAccessImpactsArrivalsAndDisclaimer() {
-        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false);
         TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
         StationLineEntity stationLine = new StationLineEntity(
             1L, "union", "line-1", "Northbound / Southbound", 1, true, true
@@ -128,6 +128,8 @@ class StationServiceTest {
         assertThat(response.lines()).extracting(StationResponses.StationLineResponse::id).containsExactly("line-1");
         assertThat(response.lines().getFirst().wheelchairAccessible()).isTrue();
         assertThat(response.lines().getFirst().hasElevator()).isTrue();
+        assertThat(response.hasWashroom()).isTrue();
+        assertThat(response.hasParking()).isFalse();
         assertThat(response.access().status()).isEqualTo("normal");
         assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id).containsExactly("impact-union-weekend");
         assertThat(response.arrivals()).isNotEmpty();

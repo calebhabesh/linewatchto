@@ -97,6 +97,8 @@ export type StationDetail = {
   arrivalContext: StationArrivalContext;
   dataMode: "seeded-demo";
   disclaimer: string;
+  hasWashroom?: boolean;
+  hasParking?: boolean;
 };
 
 export type StationDataResult<T> = {
@@ -221,6 +223,61 @@ const FALLBACK_WITHOUT_ELEVATOR = new Set([
   "driftwood:line-6",
   "tobermory:line-6",
   "sentinel:line-6",
+]);
+
+export const FALLBACK_WITH_WASHROOMS = new Set<string>([
+  // Line 1
+  "vaughan-metropolitan-centre",
+  "highway-407",
+  "pioneer-village",
+  "finch-west",
+  "downsview-park",
+  "sheppard-west",
+  "wilson",
+  "spadina",
+  "st-george",
+  "union",
+  "bloor-yonge",
+  "eglinton",
+  "york-mills",
+  "sheppard-yonge",
+  "finch",
+
+  // Line 2
+  "kipling",
+  "islington",
+  "broadview",
+  "warden",
+  "kennedy",
+
+  // Line 4
+  "don-mills",
+]);
+
+export const FALLBACK_WITH_PARKING = new Set<string>([
+  // Line 1
+  "highway-407",
+  "pioneer-village",
+  "finch-west",
+  "downsview-park",
+  "sheppard-west",
+  "wilson",
+  "yorkdale",
+  "york-mills",
+  "finch",
+
+  // Line 2
+  "kipling",
+  "islington",
+  "keele",
+  "high-park",
+  "victoria-park",
+  "warden",
+  "kennedy",
+
+  // Line 4
+  "leslie",
+  "don-mills",
 ]);
 
 const fallbackStationSummarySeed: StationListResponse = {
@@ -1622,6 +1679,8 @@ function toFallbackStationDetail(station: StationSummary): StationDetail {
     },
     dataMode: "seeded-demo",
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
+    hasWashroom: isStationWashroomAvailable(station.id),
+    hasParking: isStationParkingAvailable(station.id),
   };
 }
 
@@ -1679,6 +1738,14 @@ export function isStationWheelchairAccessible(stationId: string, lineIds: string
 
 export function isStationElevatorAccessible(stationId: string, lineIds: string[]): boolean {
   return lineIds.some((lineId) => !FALLBACK_WITHOUT_ELEVATOR.has(`${stationId}:${lineId}`));
+}
+
+export function isStationWashroomAvailable(stationId: string): boolean {
+  return FALLBACK_WITH_WASHROOMS.has(stationId);
+}
+
+export function isStationParkingAvailable(stationId: string): boolean {
+  return FALLBACK_WITH_PARKING.has(stationId);
 }
 
 export function isSubwayLine(line: { id: string; number?: string } | string): boolean {

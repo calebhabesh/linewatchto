@@ -171,7 +171,9 @@ public class StationService {
             arrivalsSource,
             toArrivalContext(impacts),
             DATA_MODE,
-            disclaimerFor(predictions)
+            disclaimerFor(predictions),
+            station.hasWashroom(),
+            station.hasParking()
         );
     }
 
