@@ -28,6 +28,10 @@ export type StationSummary = {
   hasElevator?: boolean;
   hasWashroom?: boolean;
   hasParking?: boolean;
+  hasBicycleLockup?: boolean;
+  hasBicycleRepair?: boolean;
+  hasBikeShare?: boolean;
+  hasPpudo?: boolean;
 };
 
 export type StationListResponse = {
@@ -107,6 +111,10 @@ export type StationDetail = {
   disclaimer: string;
   hasWashroom?: boolean;
   hasParking?: boolean;
+  hasBicycleLockup?: boolean;
+  hasBicycleRepair?: boolean;
+  hasBikeShare?: boolean;
+  hasPpudo?: boolean;
 };
 
 export type StationDataResult<T> = {
@@ -239,6 +247,7 @@ export const FALLBACK_WITH_WASHROOMS = new Set<string>([
   "eglinton",
   "finch",
   "finch-west",
+  "highway-407",
   "sheppard-west",
   "sheppard-yonge",
   "vaughan-metropolitan-centre",
@@ -253,6 +262,7 @@ export const FALLBACK_WITH_WASHROOMS = new Set<string>([
 
   // Line 5
   "cedarvale",
+  "don-valley",
   "mount-dennis",
 
   // Line 6
@@ -278,6 +288,213 @@ export const FALLBACK_WITH_PARKING = new Set<string>([
   // Line 4
   "don-mills",
   "leslie",
+
+  // Line 5
+  "cedarvale",
+  "mount-dennis",
+]);
+
+export const FALLBACK_WITH_BICYCLE_LOCKUP = new Set<string>([
+  "avenue",
+  "bathurst",
+  "bayview",
+  "bessarion",
+  "broadview",
+  "caledonia",
+  "chaplin",
+  "chester",
+  "christie",
+  "coxwell",
+  "davisville",
+  "don-mills",
+  "don-valley",
+  "donlands",
+  "downsview-park",
+  "dufferin",
+  "dundas-west",
+  "dupont",
+  "fairbank",
+  "finch",
+  "finch-west",
+  "forest-hill",
+  "glencairn",
+  "greenwoood",
+  "high-park",
+  "highway-407",
+  "islington",
+  "jane",
+  "keele",
+  "keelesdale",
+  "kennedy",
+  "king",
+  "kipling",
+  "laird",
+  "lansdowne",
+  "lawrence",
+  "lawrence-west",
+  "leaside",
+  "leslie",
+  "main-street",
+  "mount-dennis",
+  "mount-pleasant",
+  "north-york-centre",
+  "oakwood",
+  "old-mill",
+  "ossington",
+  "pape",
+  "pioneer-village",
+  "queens-park",
+  "rosedale",
+  "royal-york",
+  "runnymede",
+  "sheppard-west",
+  "sheppard-yonge",
+  "sherbourne",
+  "spadina",
+  "st-andrew",
+  "st-clair",
+  "st-clair-west",
+  "st-george",
+  "summerhill",
+  "union",
+  "vaughan-metropolitan-centre",
+  "victoria-park",
+  "warden",
+  "wellesley",
+  "wilson",
+  "woodbine",
+  "york-mills",
+  "york-university",
+  "yorkdale",
+]);
+
+export const FALLBACK_WITH_BICYCLE_REPAIR = new Set<string>([
+  "bathurst",
+  "bayview",
+  "bessarion",
+  "broadview",
+  "chester",
+  "coxwell",
+  "davisville",
+  "don-mills",
+  "downsview-park",
+  "dufferin",
+  "dundas-west",
+  "dupont",
+  "finch",
+  "finch-west",
+  "glencairn",
+  "high-park",
+  "highway-407",
+  "islington",
+  "jane",
+  "keele",
+  "kennedy",
+  "kipling",
+  "lawrence",
+  "lawrence-west",
+  "leslie",
+  "main-street",
+  "old-mill",
+  "ossington",
+  "pape",
+  "pioneer-village",
+  "queens-park",
+  "rosedale",
+  "royal-york",
+  "runnymede",
+  "sheppard-west",
+  "sheppard-yonge",
+  "sherbourne",
+  "spadina",
+  "st-clair",
+  "st-clair-west",
+  "st-george",
+  "union",
+  "vaughan-metropolitan-centre",
+  "victoria-park",
+  "wellesley",
+  "wilson",
+  "woodbine",
+  "york-university",
+]);
+
+export const FALLBACK_WITH_BIKE_SHARE = new Set<string>([
+  "bathurst",
+  "bay",
+  "bloor-yonge",
+  "broadview",
+  "castle-frank",
+  "cedarvale",
+  "chester",
+  "christie",
+  "college",
+  "coxwell",
+  "davisville",
+  "donlands",
+  "downsview-park",
+  "dufferin",
+  "dundas-west",
+  "dupont",
+  "finch",
+  "finch-west",
+  "glencairn",
+  "greenwoood",
+  "high-park",
+  "islington",
+  "jane",
+  "keele",
+  "king",
+  "lansdowne",
+  "lawrence",
+  "main-street",
+  "museum",
+  "north-york-centre",
+  "old-mill",
+  "osgoode",
+  "ossington",
+  "pape",
+  "pioneer-village",
+  "queen",
+  "queens-park",
+  "rosedale",
+  "royal-york",
+  "runnymede",
+  "sheppard-yonge",
+  "sherbourne",
+  "spadina",
+  "st-andrew",
+  "st-clair",
+  "st-clair-west",
+  "st-george",
+  "st-patrick",
+  "summerhill",
+  "tmu",
+  "union",
+  "victoria-park",
+  "warden",
+  "wellesley",
+  "woodbine",
+  "york-university",
+]);
+
+export const FALLBACK_WITH_PPUDO = new Set<string>([
+  "don-mills",
+  "finch",
+  "finch-west",
+  "highway-407",
+  "islington",
+  "kennedy",
+  "kipling",
+  "leslie",
+  "mount-dennis",
+  "pioneer-village",
+  "royal-york",
+  "sheppard-west",
+  "vaughan-metropolitan-centre",
+  "victoria-park",
+  "wilson",
+  "york-mills",
 ]);
 
 const fallbackStationSummarySeed: StationListResponse = {
@@ -1621,6 +1838,10 @@ export const fallbackStationSummaries: StationListResponse = {
       hasElevator: isStationElevatorAccessible(station.id, lineIds),
       hasWashroom: isStationWashroomAvailable(station.id, "ttc"),
       hasParking: isStationParkingAvailable(station.id, "ttc"),
+      hasBicycleLockup: isStationBicycleLockupAvailable(station.id, "ttc"),
+      hasBicycleRepair: isStationBicycleRepairAvailable(station.id, "ttc"),
+      hasBikeShare: isStationBikeShareAvailable(station.id, "ttc"),
+      hasPpudo: isStationPpudoAvailable(station.id, "ttc"),
     };
   }),
 };
@@ -1688,6 +1909,10 @@ function toFallbackStationDetail(station: StationSummary): StationDetail {
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
     hasWashroom: isStationWashroomAvailable(station.id),
     hasParking: isStationParkingAvailable(station.id),
+    hasBicycleLockup: isStationBicycleLockupAvailable(station.id),
+    hasBicycleRepair: isStationBicycleRepairAvailable(station.id),
+    hasBikeShare: isStationBikeShareAvailable(station.id),
+    hasPpudo: isStationPpudoAvailable(station.id),
   };
 }
 
@@ -1759,6 +1984,34 @@ export function isStationParkingAvailable(stationId: string, networkId?: string)
     return isRegionalStationParkingAvailable(stationId);
   }
   return FALLBACK_WITH_PARKING.has(stationId);
+}
+
+export function isStationBicycleLockupAvailable(stationId: string, networkId?: string): boolean {
+  if (networkId === "regional") {
+    return false;
+  }
+  return FALLBACK_WITH_BICYCLE_LOCKUP.has(stationId);
+}
+
+export function isStationBicycleRepairAvailable(stationId: string, networkId?: string): boolean {
+  if (networkId === "regional") {
+    return false;
+  }
+  return FALLBACK_WITH_BICYCLE_REPAIR.has(stationId);
+}
+
+export function isStationBikeShareAvailable(stationId: string, networkId?: string): boolean {
+  if (networkId === "regional") {
+    return false;
+  }
+  return FALLBACK_WITH_BIKE_SHARE.has(stationId);
+}
+
+export function isStationPpudoAvailable(stationId: string, networkId?: string): boolean {
+  if (networkId === "regional") {
+    return false;
+  }
+  return FALLBACK_WITH_PPUDO.has(stationId);
 }
 
 export function isSubwayLine(line: { id: string; number?: string } | string): boolean {

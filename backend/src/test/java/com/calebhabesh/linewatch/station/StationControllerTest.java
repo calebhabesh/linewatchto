@@ -84,6 +84,10 @@ class StationControllerTest {
             Boolean elevator,
             Boolean washroom,
             Boolean parking,
+            Boolean bicycleLockup,
+            Boolean bicycleRepair,
+            Boolean bikeShare,
+            Boolean ppudo,
             String lineId,
             String query
         ) {
@@ -146,6 +150,10 @@ class StationControllerTest {
                 ),
                 "seeded-demo",
                 "Station details use seeded backend data. Arrivals are demo placeholders, not live TTC predictions.",
+                true,
+                false,
+                true,
+                true,
                 true,
                 false
             );

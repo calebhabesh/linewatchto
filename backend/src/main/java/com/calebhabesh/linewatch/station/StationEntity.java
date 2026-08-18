@@ -28,10 +28,22 @@ public class StationEntity {
     @Column(name = "has_parking")
     private boolean hasParking;
 
+    @Column(name = "has_bicycle_lockup")
+    private boolean hasBicycleLockup;
+
+    @Column(name = "has_bicycle_repair")
+    private boolean hasBicycleRepair;
+
+    @Column(name = "has_bike_share")
+    private boolean hasBikeShare;
+
+    @Column(name = "has_ppudo")
+    private boolean hasPpudo;
+
     protected StationEntity() {}
 
     public StationEntity(String id, String name, int mapX, int mapY, boolean interchange, int sortOrder, org.locationtech.jts.geom.Point geom) {
-        this(id, name, mapX, mapY, interchange, sortOrder, geom, false, false);
+        this(id, name, mapX, mapY, interchange, sortOrder, geom, false, false, false, false, false, false);
     }
 
     public StationEntity(
@@ -45,6 +57,24 @@ public class StationEntity {
         boolean hasWashroom,
         boolean hasParking
     ) {
+        this(id, name, mapX, mapY, interchange, sortOrder, geom, hasWashroom, hasParking, false, false, false, false);
+    }
+
+    public StationEntity(
+        String id,
+        String name,
+        int mapX,
+        int mapY,
+        boolean interchange,
+        int sortOrder,
+        org.locationtech.jts.geom.Point geom,
+        boolean hasWashroom,
+        boolean hasParking,
+        boolean hasBicycleLockup,
+        boolean hasBicycleRepair,
+        boolean hasBikeShare,
+        boolean hasPpudo
+    ) {
         this.id = id;
         this.name = name;
         this.mapX = mapX;
@@ -54,6 +84,10 @@ public class StationEntity {
         this.geom = geom;
         this.hasWashroom = hasWashroom;
         this.hasParking = hasParking;
+        this.hasBicycleLockup = hasBicycleLockup;
+        this.hasBicycleRepair = hasBicycleRepair;
+        this.hasBikeShare = hasBikeShare;
+        this.hasPpudo = hasPpudo;
     }
 
     public String getId() { return id; }
@@ -65,4 +99,8 @@ public class StationEntity {
     public org.locationtech.jts.geom.Point getGeom() { return geom; }
     public boolean hasWashroom() { return hasWashroom; }
     public boolean hasParking() { return hasParking; }
+    public boolean hasBicycleLockup() { return hasBicycleLockup; }
+    public boolean hasBicycleRepair() { return hasBicycleRepair; }
+    public boolean hasBikeShare() { return hasBikeShare; }
+    public boolean hasPpudo() { return hasPpudo; }
 }

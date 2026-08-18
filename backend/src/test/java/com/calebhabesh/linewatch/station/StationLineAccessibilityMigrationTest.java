@@ -56,6 +56,20 @@ class StationLineAccessibilityMigrationTest {
         assertThat(sql).doesNotContain("'union'");
     }
 
+    @Test
+    void v69AddsExpandedStationAmenities() throws IOException {
+        String sql = migrationSql("/db/migration/V69__expanded_station_amenities.sql");
+
+        assertThat(sql).contains("add column if not exists has_bicycle_lockup");
+        assertThat(sql).contains("add column if not exists has_bicycle_repair");
+        assertThat(sql).contains("add column if not exists has_bike_share");
+        assertThat(sql).contains("add column if not exists has_ppudo");
+        assertThat(sql).contains("'cedarvale'");
+        assertThat(sql).contains("'mount-dennis'");
+        assertThat(sql).contains("'highway-407'");
+        assertThat(sql).contains("'don-valley'");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

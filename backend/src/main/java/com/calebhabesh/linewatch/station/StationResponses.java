@@ -26,7 +26,11 @@ public final class StationResponses {
         boolean wheelchairAccessible,
         boolean hasElevator,
         boolean hasWashroom,
-        boolean hasParking
+        boolean hasParking,
+        boolean hasBicycleLockup,
+        boolean hasBicycleRepair,
+        boolean hasBikeShare,
+        boolean hasPpudo
     ) {
         public StationSummaryResponse(
             String id,
@@ -39,7 +43,25 @@ public final class StationResponses {
             String accessStatus,
             StationAccessOutageCountsResponse accessOutageCounts
         ) {
-            this(id, name, mapX, mapY, interchange, lineIds, hasActiveImpact, accessStatus, accessOutageCounts, false, false, false, false);
+            this(id, name, mapX, mapY, interchange, lineIds, hasActiveImpact, accessStatus, accessOutageCounts, false, false, false, false, false, false, false, false);
+        }
+
+        public StationSummaryResponse(
+            String id,
+            String name,
+            int mapX,
+            int mapY,
+            boolean interchange,
+            List<String> lineIds,
+            boolean hasActiveImpact,
+            String accessStatus,
+            StationAccessOutageCountsResponse accessOutageCounts,
+            boolean wheelchairAccessible,
+            boolean hasElevator,
+            boolean hasWashroom,
+            boolean hasParking
+        ) {
+            this(id, name, mapX, mapY, interchange, lineIds, hasActiveImpact, accessStatus, accessOutageCounts, wheelchairAccessible, hasElevator, hasWashroom, hasParking, false, false, false, false);
         }
     }
 
@@ -64,7 +86,11 @@ public final class StationResponses {
         String dataMode,
         String disclaimer,
         boolean hasWashroom,
-        boolean hasParking
+        boolean hasParking,
+        boolean hasBicycleLockup,
+        boolean hasBicycleRepair,
+        boolean hasBikeShare,
+        boolean hasPpudo
     ) {
     }
 

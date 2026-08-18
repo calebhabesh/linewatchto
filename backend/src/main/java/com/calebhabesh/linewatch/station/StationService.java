@@ -63,7 +63,7 @@ public class StationService {
     }
 
     public StationResponses.StationListResponse stationSummaries() {
-        return stationSummaries(null, null, null, null, null, null);
+        return stationSummaries(null, null, null, null, null, null, null, null, null, null);
     }
 
     public StationResponses.StationListResponse stationSummaries(
@@ -71,6 +71,21 @@ public class StationService {
         Boolean elevator,
         Boolean washroom,
         Boolean parking,
+        String lineId,
+        String query
+    ) {
+        return stationSummaries(wheelchair, elevator, washroom, parking, null, null, null, null, lineId, query);
+    }
+
+    public StationResponses.StationListResponse stationSummaries(
+        Boolean wheelchair,
+        Boolean elevator,
+        Boolean washroom,
+        Boolean parking,
+        Boolean bicycleLockup,
+        Boolean bicycleRepair,
+        Boolean bikeShare,
+        Boolean ppudo,
         String lineId,
         String query
     ) {
@@ -88,7 +103,8 @@ public class StationService {
                 .stream()
                 .collect(Collectors.toMap(
                     StationAccessStatusEntity::getStationId,
-                    StationAccessStatusEntity::getStatus
+                    StationAccessStatusEntity::getStatus,
+                    (existing, replacement) -> existing
                 ));
         Map<String, Boolean> activeImpactByStation = dashboardFresh
             ? flags(liveReadRepository.findStationIdsWithActiveAlerts())
@@ -108,6 +124,10 @@ public class StationService {
                 boolean hasElevator = stationLines.stream().anyMatch(StationLineEntity::hasElevator);
                 boolean hasWashroom = station.hasWashroom();
                 boolean hasParking = station.hasParking();
+                boolean hasBicycleLockup = station.hasBicycleLockup();
+                boolean hasBicycleRepair = station.hasBicycleRepair();
+                boolean hasBikeShare = station.hasBikeShare();
+                boolean hasPpudo = station.hasPpudo();
 
                 return new StationResponses.StationSummaryResponse(
                     station.getId(),
@@ -122,7 +142,11 @@ public class StationService {
                     wheelchairAccessible,
                     hasElevator,
                     hasWashroom,
-                    hasParking
+                    hasParking,
+                    hasBicycleLockup,
+                    hasBicycleRepair,
+                    hasBikeShare,
+                    hasPpudo
                 );
             })
             .filter(summary -> {
@@ -130,6 +154,10 @@ public class StationService {
                 if (Boolean.TRUE.equals(elevator) && !summary.hasElevator()) return false;
                 if (Boolean.TRUE.equals(washroom) && !summary.hasWashroom()) return false;
                 if (Boolean.TRUE.equals(parking) && !summary.hasParking()) return false;
+                if (Boolean.TRUE.equals(bicycleLockup) && !summary.hasBicycleLockup()) return false;
+                if (Boolean.TRUE.equals(bicycleRepair) && !summary.hasBicycleRepair()) return false;
+                if (Boolean.TRUE.equals(bikeShare) && !summary.hasBikeShare()) return false;
+                if (Boolean.TRUE.equals(ppudo) && !summary.hasPpudo()) return false;
                 if (lineId != null && !lineId.isBlank() && !summary.lineIds().contains(lineId)) return false;
                 if (query != null && !query.isBlank() && !summary.name().toLowerCase().contains(query.toLowerCase().trim())) return false;
                 return true;
@@ -203,7 +231,11 @@ public class StationService {
             DATA_MODE,
             disclaimerFor(predictions),
             station.hasWashroom(),
-            station.hasParking()
+            station.hasParking(),
+            station.hasBicycleLockup(),
+            station.hasBicycleRepair(),
+            station.hasBikeShare(),
+            station.hasPpudo()
         );
     }
 

@@ -519,6 +519,10 @@ export const stationSummariesResponse = {
       hasElevator: true,
       hasWashroom: true,
       hasParking: true,
+      hasBicycleLockup: true,
+      hasBicycleRepair: true,
+      hasBikeShare: true,
+      hasPpudo: true,
     },
     {
       id: "stub-union",
@@ -537,6 +541,10 @@ export const stationSummariesResponse = {
       hasElevator: true,
       hasWashroom: true,
       hasParking: false,
+      hasBicycleLockup: true,
+      hasBicycleRepair: true,
+      hasBikeShare: true,
+      hasPpudo: false,
     },
   ],
 };
@@ -547,6 +555,12 @@ export const stationDetailResponse = {
   mapX: 4547,
   mapY: 1808,
   interchange: false,
+  hasWashroom: true,
+  hasParking: true,
+  hasBicycleLockup: true,
+  hasBicycleRepair: true,
+  hasBikeShare: true,
+  hasPpudo: true,
   lines: [
     {
       id: "line-1",

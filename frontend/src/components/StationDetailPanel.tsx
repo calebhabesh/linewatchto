@@ -22,6 +22,10 @@ import {
   isLrtOnlyStation,
   isStationParkingAvailable,
   isStationWashroomAvailable,
+  isStationBicycleLockupAvailable,
+  isStationBicycleRepairAvailable,
+  isStationBikeShareAvailable,
+  isStationPpudoAvailable,
   isSubwayAndLrtStation,
   type StationArrival,
   type StationDataResult,
@@ -328,6 +332,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const hasElevator = station?.lines.some((line) => line.hasElevator) ?? false;
   const hasWashroom = station ? (station.hasWashroom ?? isStationWashroomAvailable(station.id)) : false;
   const hasParking = station ? (station.hasParking ?? isStationParkingAvailable(station.id)) : false;
+  const hasBicycleLockup = station ? (station.hasBicycleLockup ?? isStationBicycleLockupAvailable(station.id)) : false;
+  const hasBicycleRepair = station ? (station.hasBicycleRepair ?? isStationBicycleRepairAvailable(station.id)) : false;
+  const hasBikeShare = station ? (station.hasBikeShare ?? isStationBikeShareAvailable(station.id)) : false;
+  const hasPpudo = station ? (station.hasPpudo ?? isStationPpudoAvailable(station.id)) : false;
   const connections = station ? ttcStationConnections(station.id) : [];
 
   const accessibilityDetailsRef = useRef<HTMLDetailsElement>(null);
@@ -454,7 +462,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           key={station?.id ?? "empty"}
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
-          {station && (isWheelchairAccessible || hasElevator || hasWashroom || hasParking) && (
+          {station && (isWheelchairAccessible || hasElevator || hasWashroom || hasParking || hasBicycleLockup || hasBicycleRepair || hasBikeShare || hasPpudo) && (
             <div className="mt-2.5 flex flex-wrap items-center gap-1 sm:gap-1.5 shrink-0">
               {isWheelchairAccessible && (
                 <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
@@ -478,6 +486,30 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
                   <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
                   Parking
+                </span>
+              )}
+              {hasBicycleLockup && (
+                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                  Bike Lock-up
+                </span>
+              )}
+              {hasBicycleRepair && (
+                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                  Bike Repair
+                </span>
+              )}
+              {hasBikeShare && (
+                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                  Bike Share
+                </span>
+              )}
+              {hasPpudo && (
+                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                  Passenger Pick-up
                 </span>
               )}
             </div>
@@ -543,7 +575,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3 pl-1 sm:pl-2 pr-0 sm:pr-1">
+              <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5 max-w-[160px] sm:max-w-[185px] pl-1 sm:pl-2 pr-0 sm:pr-1">
                 {line.wheelchairAccessible && (
                   <span
                     className="flex items-center justify-center p-0 sm:p-0.5"
@@ -595,9 +627,65 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     <Image
                       src="/assets/linewatch/parking.svg"
                       alt="Parking available"
-                      width={35}
-                      height={35}
-                      className="w-[31px] h-[31px] sm:w-[35px] sm:h-[35px] rounded-full drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
+                      width={37}
+                      height={37}
+                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] rounded-full drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
+                    />
+                  </span>
+                )}
+                {hasBicycleLockup && (
+                  <span
+                    className="flex items-center justify-center"
+                    title="Bicycle lock-up available"
+                  >
+                    <Image
+                      src="/assets/linewatch/bicycle-lockup.svg"
+                      alt="Bicycle lock-up available"
+                      width={37}
+                      height={37}
+                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                    />
+                  </span>
+                )}
+                {hasBicycleRepair && (
+                  <span
+                    className="flex items-center justify-center"
+                    title="Bicycle repair stand available"
+                  >
+                    <Image
+                      src="/assets/linewatch/bicycle-repair.svg"
+                      alt="Bicycle repair stand available"
+                      width={37}
+                      height={37}
+                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                    />
+                  </span>
+                )}
+                {hasBikeShare && (
+                  <span
+                    className="flex items-center justify-center"
+                    title="Bike Share Toronto available"
+                  >
+                    <Image
+                      src="/assets/linewatch/bike-share-toronto.svg"
+                      alt="Bike Share Toronto available"
+                      width={37}
+                      height={37}
+                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] rounded-full drop-shadow-[0_0_1.5px_rgba(0,100,75,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,100,75,0.38)]"
+                    />
+                  </span>
+                )}
+                {hasPpudo && (
+                  <span
+                    className="flex items-center justify-center"
+                    title="Passenger pick-up / drop-off (PPUDO) available"
+                  >
+                    <Image
+                      src="/assets/linewatch/passenger-pick-up.svg"
+                      alt="Passenger pick-up / drop-off available"
+                      width={37}
+                      height={37}
+                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
                     />
                   </span>
                 )}

@@ -218,6 +218,22 @@ describe("station search helpers", () => {
     assert.ok(parkingTtc.some((station) => station.id === "finch"));
     assert.ok(!parkingTtc.some((station) => station.id === "union"));
 
+    const lockupTtc = filterStationSummariesByAmenities(stations, "ttc", { bicycleLockup: true });
+    assert.ok(lockupTtc.every((station) => station.hasBicycleLockup));
+    assert.ok(lockupTtc.some((station) => station.id === "union"));
+
+    const repairTtc = filterStationSummariesByAmenities(stations, "ttc", { bicycleRepair: true });
+    assert.ok(repairTtc.every((station) => station.hasBicycleRepair));
+    assert.ok(repairTtc.some((station) => station.id === "spadina"));
+
+    const bikeShareTtc = filterStationSummariesByAmenities(stations, "ttc", { bikeShare: true });
+    assert.ok(bikeShareTtc.every((station) => station.hasBikeShare));
+    assert.ok(bikeShareTtc.some((station) => station.id === "bloor-yonge"));
+
+    const ppudoTtc = filterStationSummariesByAmenities(stations, "ttc", { ppudo: true });
+    assert.ok(ppudoTtc.every((station) => station.hasPpudo));
+    assert.ok(ppudoTtc.some((station) => station.id === "finch"));
+
     const accessibleOnly = filterStationSummariesByAmenities(stations, "ttc", { wheelchair: true });
     assert.ok(accessibleOnly.every((station) => station.wheelchairAccessible));
 

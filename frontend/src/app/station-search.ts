@@ -6,12 +6,24 @@ import {
   isStationElevatorAccessible,
   isStationWashroomAvailable,
   isStationParkingAvailable,
+  isStationBicycleLockupAvailable,
+  isStationBicycleRepairAvailable,
+  isStationBikeShareAvailable,
+  isStationPpudoAvailable,
 } from "./station-data.ts";
 import type { NetworkId } from "./regional-data.ts";
 
 type MatchKind = "exact" | "acronym" | "prefix" | "token-prefix" | "substring" | "subsequence";
 
-export type StationAmenityFilterKey = "wheelchair" | "elevator" | "washroom" | "parking";
+export type StationAmenityFilterKey =
+  | "wheelchair"
+  | "elevator"
+  | "washroom"
+  | "parking"
+  | "bicycleLockup"
+  | "bicycleRepair"
+  | "bikeShare"
+  | "ppudo";
 
 export type StationAmenityFilter = {
   wheelchair?: boolean;
@@ -19,6 +31,10 @@ export type StationAmenityFilter = {
   operationalElevatorOnly?: boolean;
   washroom?: boolean;
   parking?: boolean;
+  bicycleLockup?: boolean;
+  bicycleRepair?: boolean;
+  bikeShare?: boolean;
+  ppudo?: boolean;
 };
 
 export type StationAmenityCounts = {
@@ -27,6 +43,10 @@ export type StationAmenityCounts = {
   elevator: number;
   washroom: number;
   parking: number;
+  bicycleLockup: number;
+  bicycleRepair: number;
+  bikeShare: number;
+  ppudo: number;
   elevatorOutages: number;
 };
 
@@ -218,6 +238,22 @@ export function stationMatchesAmenityFilter(
     const hasPark = station.hasParking ?? isStationParkingAvailable(station.id, networkId);
     if (!hasPark) return false;
   }
+  if (filter.bicycleLockup) {
+    const hasLockup = station.hasBicycleLockup ?? isStationBicycleLockupAvailable(station.id, networkId);
+    if (!hasLockup) return false;
+  }
+  if (filter.bicycleRepair) {
+    const hasRepair = station.hasBicycleRepair ?? isStationBicycleRepairAvailable(station.id, networkId);
+    if (!hasRepair) return false;
+  }
+  if (filter.bikeShare) {
+    const hasShare = station.hasBikeShare ?? isStationBikeShareAvailable(station.id, networkId);
+    if (!hasShare) return false;
+  }
+  if (filter.ppudo) {
+    const hasPpudo = station.hasPpudo ?? isStationPpudoAvailable(station.id, networkId);
+    if (!hasPpudo) return false;
+  }
   return true;
 }
 
@@ -228,7 +264,11 @@ export function hasActiveAmenityFilters(filter?: StationAmenityFilter | null): b
     filter.elevator ||
     filter.operationalElevatorOnly ||
     filter.washroom ||
-    filter.parking
+    filter.parking ||
+    filter.bicycleLockup ||
+    filter.bicycleRepair ||
+    filter.bikeShare ||
+    filter.ppudo
   );
 }
 
@@ -251,6 +291,10 @@ export function countStationAmenities(
   let elevator = 0;
   let washroom = 0;
   let parking = 0;
+  let bicycleLockup = 0;
+  let bicycleRepair = 0;
+  let bikeShare = 0;
+  let ppudo = 0;
   let elevatorOutages = 0;
 
   for (const station of stations) {
@@ -266,6 +310,18 @@ export function countStationAmenities(
     if (station.hasParking ?? isStationParkingAvailable(station.id, networkId)) {
       parking++;
     }
+    if (station.hasBicycleLockup ?? isStationBicycleLockupAvailable(station.id, networkId)) {
+      bicycleLockup++;
+    }
+    if (station.hasBicycleRepair ?? isStationBicycleRepairAvailable(station.id, networkId)) {
+      bicycleRepair++;
+    }
+    if (station.hasBikeShare ?? isStationBikeShareAvailable(station.id, networkId)) {
+      bikeShare++;
+    }
+    if (station.hasPpudo ?? isStationPpudoAvailable(station.id, networkId)) {
+      ppudo++;
+    }
     if ((station.accessOutageCounts?.elevator ?? 0) > 0) {
       elevatorOutages += station.accessOutageCounts?.elevator ?? 0;
     }
@@ -277,6 +333,10 @@ export function countStationAmenities(
     elevator,
     washroom,
     parking,
+    bicycleLockup,
+    bicycleRepair,
+    bikeShare,
+    ppudo,
     elevatorOutages,
   };
 }

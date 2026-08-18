@@ -22,17 +22,27 @@ public class StationController {
         @RequestParam(required = false) Boolean elevator,
         @RequestParam(required = false) Boolean washroom,
         @RequestParam(required = false) Boolean parking,
+        @RequestParam(required = false) Boolean bicycleLockup,
+        @RequestParam(required = false) Boolean bicycleRepair,
+        @RequestParam(required = false) Boolean bikeShare,
+        @RequestParam(required = false) Boolean ppudo,
         @RequestParam(required = false) String lineId,
         @RequestParam(required = false) String query
     ) {
-        if (wheelchair == null && elevator == null && washroom == null && parking == null && lineId == null && query == null) {
+        if (wheelchair == null && elevator == null && washroom == null && parking == null
+                && bicycleLockup == null && bicycleRepair == null && bikeShare == null && ppudo == null
+                && lineId == null && query == null) {
             return stationService.stationSummaries();
         }
-        return stationService.stationSummaries(wheelchair, elevator, washroom, parking, lineId, query);
+        return stationService.stationSummaries(
+            wheelchair, elevator, washroom, parking,
+            bicycleLockup, bicycleRepair, bikeShare, ppudo,
+            lineId, query
+        );
     }
 
     public StationResponses.StationListResponse stations() {
-        return stations(null, null, null, null, null, null);
+        return stations(null, null, null, null, null, null, null, null, null, null);
     }
 
     @GetMapping("/{id}")

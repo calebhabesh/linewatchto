@@ -170,16 +170,29 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
     assert.match(panelSource, /\/assets\/linewatch\/washroom\.svg/);
     assert.match(panelSource, /\/assets\/linewatch\/parking\.svg/);
+    assert.match(panelSource, /\/assets\/linewatch\/bicycle-lockup\.svg/);
+    assert.match(panelSource, /\/assets\/linewatch\/bicycle-repair\.svg/);
+    assert.match(panelSource, /\/assets\/linewatch\/bike-share-toronto\.svg/);
+    assert.match(panelSource, /\/assets\/linewatch\/passenger-pick-up\.svg/);
     assert.doesNotMatch(panelSource, /elevator-icon\.svg/);
     assert.match(panelSource, /Wheelchair accessible/);
     assert.match(panelSource, /Elevator available/);
     assert.match(panelSource, /Washrooms/);
     assert.match(panelSource, /Parking/);
+    assert.match(panelSource, /Bike Lock-up/);
+    assert.match(panelSource, /Bike Repair/);
+    assert.match(panelSource, /Bike Share/);
+    assert.match(panelSource, /Passenger Pick-up/);
     assert.match(panelSource, /width=\{37\}[\s\S]*height=\{37\}[\s\S]*w-\[33px\] h-\[33px\] sm:w-\[37px\] sm:h-\[37px\]/);
     assert.equal(
       panelSource.match(/drop-shadow-\[0_0_1\.5px_rgba\(0,130,201,0\.28\)\] dark:drop-shadow-\[0_0_2px_rgba\(0,130,201,0\.38\)\]/g)?.length,
       2,
     );
+    assert.equal(
+      panelSource.match(/drop-shadow-\[0_0_1\.5px_rgba\(0,0,0,0\.28\)\] dark:drop-shadow-\[0_0_2px_rgba\(255,255,255,0\.25\)\]/g)?.length,
+      4,
+    );
+    assert.match(panelSource, /max-w-\[160px\] sm:max-w-\[185px\]/);
     assert.match(panelSource, /data-facility-warning/);
     assert.doesNotMatch(panelSource, /opacity-60 grayscale/);
     assert.match(panelSource, /<details[^>]+data-station-section="accessibility"/);

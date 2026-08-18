@@ -30,6 +30,10 @@ import {
   isStationElevatorAccessible,
   isStationWashroomAvailable,
   isStationParkingAvailable,
+  isStationBicycleLockupAvailable,
+  isStationBicycleRepairAvailable,
+  isStationBikeShareAvailable,
+  isStationPpudoAvailable,
 } from "../app/station-data";
 import { stationImpactKindsByStation } from "../app/station-impact-types";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -218,12 +222,20 @@ function StationButton({
   const hasElevator = station.hasElevator ?? (networkId === "ttc" ? isStationElevatorAccessible(station.id, station.lineIds) : isWheelchair);
   const hasWashroom = station.hasWashroom ?? isStationWashroomAvailable(station.id, networkId);
   const hasParking = station.hasParking ?? isStationParkingAvailable(station.id, networkId);
+  const hasBicycleLockup = station.hasBicycleLockup ?? isStationBicycleLockupAvailable(station.id, networkId);
+  const hasBicycleRepair = station.hasBicycleRepair ?? isStationBicycleRepairAvailable(station.id, networkId);
+  const hasBikeShare = station.hasBikeShare ?? isStationBikeShareAvailable(station.id, networkId);
+  const hasPpudo = station.hasPpudo ?? isStationPpudoAvailable(station.id, networkId);
 
   let accessibilityLabel = "";
   if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
   if (hasElevator) accessibilityLabel += " (Elevator Access)";
   if (hasWashroom) accessibilityLabel += " (Washrooms Available)";
   if (hasParking) accessibilityLabel += " (Parking Available)";
+  if (hasBicycleLockup) accessibilityLabel += " (Bicycle Lock-up Available)";
+  if (hasBicycleRepair) accessibilityLabel += " (Bicycle Repair Stand Available)";
+  if (hasBikeShare) accessibilityLabel += " (Bike Share Available)";
+  if (hasPpudo) accessibilityLabel += " (Passenger Pick-up/Drop-off Available)";
 
   return (
     <div className="station-search-station-row">
@@ -280,6 +292,50 @@ function StationButton({
                 width={14}
                 height={14}
                 className="h-[14px] w-[14px] rounded-full drop-shadow-[0_0_1px_rgba(33,178,82,0.3)]"
+              />
+            </span>
+          )}
+          {hasBicycleLockup && (
+            <span className="inline-flex items-center justify-center shrink-0" title="Bicycle lock-up available">
+              <Image
+                src="/assets/linewatch/bicycle-lockup.svg"
+                alt="Bicycle lock-up available"
+                width={14}
+                height={14}
+                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,0,0,0.22)]"
+              />
+            </span>
+          )}
+          {hasBicycleRepair && (
+            <span className="inline-flex items-center justify-center shrink-0" title="Bicycle repair stand available">
+              <Image
+                src="/assets/linewatch/bicycle-repair.svg"
+                alt="Bicycle repair stand available"
+                width={14}
+                height={14}
+                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,0,0,0.22)]"
+              />
+            </span>
+          )}
+          {hasBikeShare && (
+            <span className="inline-flex items-center justify-center shrink-0" title="Bike Share Toronto available">
+              <Image
+                src="/assets/linewatch/bike-share-toronto.svg"
+                alt="Bike Share Toronto available"
+                width={14}
+                height={14}
+                className="h-[14px] w-[14px] rounded-full drop-shadow-[0_0_1px_rgba(0,100,75,0.3)]"
+              />
+            </span>
+          )}
+          {hasPpudo && (
+            <span className="inline-flex items-center justify-center shrink-0" title="Passenger pick-up / drop-off available">
+              <Image
+                src="/assets/linewatch/passenger-pick-up.svg"
+                alt="Passenger pick-up / drop-off available"
+                width={14}
+                height={14}
+                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,0,0,0.22)]"
               />
             </span>
           )}

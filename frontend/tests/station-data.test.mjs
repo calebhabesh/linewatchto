@@ -8,6 +8,10 @@ import {
   getStationSummaries,
   isStationParkingAvailable,
   isStationWashroomAvailable,
+  isStationBicycleLockupAvailable,
+  isStationBicycleRepairAvailable,
+  isStationBikeShareAvailable,
+  isStationPpudoAvailable,
   isLrtOnlyLine,
   isLrtOnlyStation,
   isLrtOnlyStationId,
@@ -269,20 +273,52 @@ describe("station data adapter", () => {
     assert.equal(isStationWashroomAvailable("bloor-yonge"), true);
     assert.equal(isStationWashroomAvailable("cedarvale"), true);
     assert.equal(isStationWashroomAvailable("humber-college"), true);
+    assert.equal(isStationWashroomAvailable("highway-407"), true);
+    assert.equal(isStationWashroomAvailable("don-valley"), true);
     assert.equal(isStationWashroomAvailable("union"), false);
     assert.equal(isStationWashroomAvailable("museum"), false);
 
     assert.equal(isStationParkingAvailable("wilson"), true);
     assert.equal(isStationParkingAvailable("finch"), true);
     assert.equal(isStationParkingAvailable("highway-407"), true);
+    assert.equal(isStationParkingAvailable("cedarvale"), true);
+    assert.equal(isStationParkingAvailable("mount-dennis"), true);
     assert.equal(isStationParkingAvailable("union"), false);
     assert.equal(isStationParkingAvailable("downsview-park"), false);
 
     assert.equal(fallbackStationDetails.wilson.hasWashroom, true);
     assert.equal(fallbackStationDetails.wilson.hasParking, true);
     assert.equal(fallbackStationDetails.cedarvale.hasWashroom, true);
-    assert.equal(fallbackStationDetails.cedarvale.hasParking, false);
+    assert.equal(fallbackStationDetails.cedarvale.hasParking, true);
     assert.equal(fallbackStationDetails.museum.hasWashroom, false);
     assert.equal(fallbackStationDetails.museum.hasParking, false);
+  });
+
+  it("identifies bicycle lockup, repair, bike share, and ppudo availability across stations", () => {
+    assert.equal(isStationBicycleLockupAvailable("union"), true);
+    assert.equal(isStationBicycleLockupAvailable("finch"), true);
+    assert.equal(isStationBicycleLockupAvailable("museum"), false);
+
+    assert.equal(isStationBicycleRepairAvailable("union"), true);
+    assert.equal(isStationBicycleRepairAvailable("spadina"), true);
+    assert.equal(isStationBicycleRepairAvailable("museum"), false);
+
+    assert.equal(isStationBikeShareAvailable("union"), true);
+    assert.equal(isStationBikeShareAvailable("bloor-yonge"), true);
+    assert.equal(isStationBikeShareAvailable("highway-407"), false);
+
+    assert.equal(isStationPpudoAvailable("finch"), true);
+    assert.equal(isStationPpudoAvailable("highway-407"), true);
+    assert.equal(isStationPpudoAvailable("union"), false);
+
+    assert.equal(fallbackStationDetails.finch.hasBicycleLockup, true);
+    assert.equal(fallbackStationDetails.finch.hasBicycleRepair, true);
+    assert.equal(fallbackStationDetails.finch.hasBikeShare, true);
+    assert.equal(fallbackStationDetails.finch.hasPpudo, true);
+
+    assert.equal(fallbackStationDetails.union.hasBicycleLockup, true);
+    assert.equal(fallbackStationDetails.union.hasBicycleRepair, true);
+    assert.equal(fallbackStationDetails.union.hasBikeShare, true);
+    assert.equal(fallbackStationDetails.union.hasPpudo, false);
   });
 });

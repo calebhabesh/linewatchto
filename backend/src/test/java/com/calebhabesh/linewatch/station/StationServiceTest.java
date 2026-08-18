@@ -48,25 +48,15 @@ class StationServiceTest {
 
     @Test
     void stationSummariesIncludeLineIdsAccessStatusAndActiveImpactFlag() {
-        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false);
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false, true, true, true, false);
         StationLineEntity stationLine = new StationLineEntity(
             1L, "union", "line-1", "Northbound / Southbound", 1, true, true
         );
         StationAccessStatusEntity access = new StationAccessStatusEntity(
-            "union",
-            "normal",
-            "No station access advisories in demo data.",
-            "Fixture seed"
+            "union", "normal", "No advisories", "Fixture seed"
         );
         StationImpactEntity impact = new StationImpactEntity(
-            "impact-union-delay",
-            "union",
-            "active-alert",
-            "delay",
-            "Slow trains",
-            "Trains are moving slowly through Union.",
-            "Fixture seed",
-            "TTC service alert fixture",
+            "impact-1", "union", "active-alert", "delay", "Delay", "Summary", "Fixture seed", "Source",
             1
         );
 
@@ -90,12 +80,16 @@ class StationServiceTest {
         assertThat(summary.hasElevator()).isTrue();
         assertThat(summary.hasWashroom()).isTrue();
         assertThat(summary.hasParking()).isFalse();
+        assertThat(summary.hasBicycleLockup()).isTrue();
+        assertThat(summary.hasBicycleRepair()).isTrue();
+        assertThat(summary.hasBikeShare()).isTrue();
+        assertThat(summary.hasPpudo()).isFalse();
     }
 
     @Test
     void stationSummariesFiltersByAmenitiesAndLine() {
-        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false);
-        StationEntity finch = new StationEntity("finch", "Finch", 4311, 1000, false, 20, null, true, true);
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false, true, true, true, false);
+        StationEntity finch = new StationEntity("finch", "Finch", 4311, 1000, false, 20, null, true, true, true, true, true, true);
         StationLineEntity unionLine = new StationLineEntity(1L, "union", "line-1", "Northbound / Southbound", 1, true, true);
         StationLineEntity finchLine = new StationLineEntity(2L, "finch", "line-1", "Northbound / Southbound", 2, true, true);
 
@@ -110,13 +104,16 @@ class StationServiceTest {
         StationResponses.StationListResponse washroomOnly = stationService.stationSummaries(null, null, true, null, null, null);
         assertThat(washroomOnly.stations()).extracting(StationResponses.StationSummaryResponse::id).containsExactly("union", "finch");
 
+        StationResponses.StationListResponse ppudoOnly = stationService.stationSummaries(null, null, null, null, null, null, null, true, null, null);
+        assertThat(ppudoOnly.stations()).extracting(StationResponses.StationSummaryResponse::id).containsExactly("finch");
+
         StationResponses.StationListResponse queryMatched = stationService.stationSummaries(null, null, null, null, null, "uni");
         assertThat(queryMatched.stations()).extracting(StationResponses.StationSummaryResponse::id).containsExactly("union");
     }
 
     @Test
     void stationDetailIncludesLinesAccessImpactsArrivalsAndDisclaimer() {
-        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false);
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false, true, true, true, false);
         TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
         StationLineEntity stationLine = new StationLineEntity(
             1L, "union", "line-1", "Northbound / Southbound", 1, true, true
@@ -156,6 +153,10 @@ class StationServiceTest {
         assertThat(response.lines().getFirst().hasElevator()).isTrue();
         assertThat(response.hasWashroom()).isTrue();
         assertThat(response.hasParking()).isFalse();
+        assertThat(response.hasBicycleLockup()).isTrue();
+        assertThat(response.hasBicycleRepair()).isTrue();
+        assertThat(response.hasBikeShare()).isTrue();
+        assertThat(response.hasPpudo()).isFalse();
         assertThat(response.access().status()).isEqualTo("normal");
         assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id).containsExactly("impact-union-weekend");
         assertThat(response.arrivals()).isNotEmpty();
