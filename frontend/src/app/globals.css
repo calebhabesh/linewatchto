@@ -9658,7 +9658,8 @@ img.transit-line-badge {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 2px 10px 12px 0;
+  margin-left: -10px;
+  padding: 2px 10px 12px 10px;
   margin-bottom: 4px;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   flex-shrink: 0;
@@ -23929,7 +23930,9 @@ button:active .account-network-badge,
   }
 
   .station-search-amenity-toolbar {
-    padding: 2px 0 8px;
+    margin-left: -8px;
+    margin-right: -8px;
+    padding: 2px 8px 8px;
   }
 
   .station-search-line-trigger,

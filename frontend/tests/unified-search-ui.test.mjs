@@ -65,7 +65,7 @@ describe("unified search alert group headings", () => {
     );
     assert.match(
       globalCss,
-      /\.station-search-network-heading span\s*\{[^}]*margin-left:\s*auto;/s,
+      /\.station-search-amenity-toolbar\s*\{[^}]*margin-left:\s*-10px;[^}]*padding:\s*2px 10px 12px 10px;[^}]*border-bottom:\s*1px solid/s,
     );
   });
 });
