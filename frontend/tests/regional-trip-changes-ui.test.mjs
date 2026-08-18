@@ -17,11 +17,25 @@ describe("regional trip changes UI", () => {
     assert.match(stationSource, /data-station-section="trip-changes"/);
     assert.match(stationSource, /Upcoming Trip Changes/);
     assert.match(stationSource, /regionalTripChangeLabel\(tripChange\.kind\)/);
-    assert.match(stationSource, /`Train \$\{arrival\.tripNumber\}`/);
+    assert.match(stationSource, /cleanRegionalTripNumber\(arrival\.tripNumber\)/);
+
+    const arrivalsIdx = stationSource.indexOf('data-station-section="arrivals"');
+    const surfaceIdx = stationSource.indexOf('<SurfaceConnectionsSection');
+    const stationImpactsIdx = stationSource.indexOf('data-station-section="station-impacts"');
+    const tripChangesIdx = stationSource.indexOf('data-station-section="trip-changes"');
+
+    assert.ok(arrivalsIdx !== -1, "arrivals section must exist");
+    assert.ok(surfaceIdx !== -1, "surface connections section must exist");
+    assert.ok(stationImpactsIdx !== -1, "station impacts section must exist");
+    assert.ok(tripChangesIdx !== -1, "trip changes section must exist");
+    assert.ok(arrivalsIdx < surfaceIdx, "arrivals must precede surface connections");
+    assert.ok(surfaceIdx < stationImpactsIdx, "surface connections must precede station impacts");
+    assert.ok(stationImpactsIdx < tripChangesIdx, "station impacts must precede upcoming trip changes");
   });
 
   it("uses structured factual trip-change cards and source-honest guardrails", () => {
-    assert.match(listSource, /Train \{change\.tripNumber \|\| change\.tripId\}/);
+    assert.match(listSource, /formatRegionalTripDisplayName\(change\)/);
+    assert.match(listSource, /formatRegionalTripSubtitle\(change\)/);
     assert.match(listSource, /Scheduled stops affected/);
     assert.match(listSource, /Schedule-matched changes include published stop times/);
     assert.match(listSource, /Stops listed by Metrolinx/);

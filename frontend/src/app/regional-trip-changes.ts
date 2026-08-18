@@ -102,6 +102,65 @@ function torontoServiceDate(timestamp: string): string {
   }).format(parsed);
 }
 
+export function cleanRegionalTripNumber(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.startsWith("notice-")) return "";
+  const dateLineMatch = trimmed.match(/^\d{8}-[A-Za-z0-9]+-(\d+[A-Za-z]?)$/);
+  if (dateLineMatch) return dateLineMatch[1];
+  const dateMatch = trimmed.match(/^\d{8}-(\d+[A-Za-z]?)$/);
+  if (dateMatch) return dateMatch[1];
+  if (/^\d+[A-Za-z]?$/.test(trimmed)) return trimmed;
+  const prefixMatch = trimmed.match(/^[A-Za-z]{1,4}[-_ ]?(\d+[A-Za-z]?)$/);
+  if (prefixMatch) return prefixMatch[1];
+  return trimmed;
+}
+
+export function cleanRegionalDestinationText(destination: string | null | undefined): string {
+  if (!destination) return "";
+  return destination.replace(/^[A-Za-z]{1,4}\s*-\s*/, "").trim();
+}
+
+export function formatRegionalTripDisplayName(change: {
+  tripNumber?: string | null;
+  tripId?: string | null;
+}): string {
+  const number = cleanRegionalTripNumber(change.tripNumber || change.tripId);
+  if (number) {
+    return `Train ${number}`;
+  }
+  return "Train";
+}
+
+export function formatRegionalTripSubtitle(change: {
+  lineName?: string | null;
+  lineNumber?: string | null;
+  destination?: string | null;
+  affectedStops?: Array<{ stationName?: string | null }> | null;
+}): string {
+  const rawLineName = change.lineName?.trim() || "";
+  const lineLabel = rawLineName
+    ? rawLineName.endsWith("Line") || rawLineName.toLowerCase().includes("express")
+      ? rawLineName
+      : `${rawLineName} Line`
+    : "";
+
+  const destination = cleanRegionalDestinationText(change.destination);
+  const firstStop = change.affectedStops?.[0]?.stationName?.trim() || "";
+
+  let routeText = "";
+  if (firstStop && destination && firstStop.toLowerCase() !== destination.toLowerCase()) {
+    routeText = `${firstStop} to ${destination}`;
+  } else if (destination) {
+    routeText = `To ${destination}`;
+  }
+
+  if (lineLabel && routeText) {
+    return `${lineLabel} · ${routeText}`;
+  }
+  return lineLabel || routeText;
+}
+
 export function findRegionalArrivalTripChange(
   arrival: Pick<{ tripNumber: string; scheduledAt: string }, "tripNumber" | "scheduledAt">,
   changes: RegionalTripChange[],

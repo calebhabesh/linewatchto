@@ -23,6 +23,7 @@ export type StationArrivalGroup = {
   lineId: string;
   lineNumber: string;
   directionLabel: string;
+  isTerminating?: boolean;
   arrivals: StationArrival[];
 };
 
@@ -140,12 +141,27 @@ export function groupStationArrivals(
     const lineEntry = linesById.get(arrival.lineId);
     const directionLabel = formatArrivalDirection(arrival, lineEntry?.line ?? null, stationId);
     const key = `${arrival.lineId}:${directionLabel}`;
+    // Determine if this direction group is terminating at the current station.
+    // Extract the cardinal from the direction label (first word) and compare the
+    // canonical terminal station for that direction to the current station.
+    const cardinal = directionLabel.split(" ")[0];
+    const terminalDestination = stationId
+      ? getTerminalDestination(arrival.lineId, cardinal, stationId)
+      : "";
+    const isTerminatingHere = !!stationId && !!terminalDestination
+      && stationId === (arrival.lineId === "line-1"
+        ? LINE_1_STATION_ORDER.find(
+            (id) => id.replace(/-/g, " ") === terminalDestination.toLowerCase().replace(/-/g, " ")
+              || terminalDestination.toLowerCase().replace(/\s+/g, "-") === id,
+          )
+        : terminalDestination.toLowerCase().replace(/\s+/g, "-"));
     const group = groups.get(key) ?? {
       key,
       line: lineEntry?.line ?? null,
       lineId: arrival.lineId,
       lineNumber: lineEntry?.line.number ?? arrival.lineId.replace("line-", ""),
       directionLabel,
+      isTerminating: isTerminatingHere,
       arrivals: [],
     };
 
@@ -185,6 +201,11 @@ export function groupStationArrivals(
       const lineA = linesById.get(a.lineId)?.index ?? Number.MAX_SAFE_INTEGER;
       const lineB = linesById.get(b.lineId)?.index ?? Number.MAX_SAFE_INTEGER;
       if (lineA !== lineB) return lineA - lineB;
+
+      // Terminating arrivals always appear below departing groups.
+      const terminatingA = a.isTerminating ? 1 : 0;
+      const terminatingB = b.isTerminating ? 1 : 0;
+      if (terminatingA !== terminatingB) return terminatingA - terminatingB;
 
       const directionA = directionRank(a.directionLabel);
       const directionB = directionRank(b.directionLabel);

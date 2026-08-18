@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, BadgeInfo, CalendarCheck2, ChevronDown, Construction, ExternalLink, FileText, Layers, LoaderCircle, Train, Wifi } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowDownToLine, BadgeInfo, CalendarCheck2, ChevronDown, Construction, ExternalLink, FileText, Layers, LoaderCircle, Train, Wifi } from "lucide-react";
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
@@ -18,6 +18,7 @@ import {
 } from "../app/regional-data";
 import {
   emptyRegionalArrivalSnapshot,
+  formatRegionalArrivalClockTime,
   formatRegionalArrivalSourceSummary,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
@@ -34,6 +35,7 @@ import { formatImpactTimestamp } from "../app/impact-time";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import {
+  cleanRegionalTripNumber,
   emptyRegionalTripChangeResponse,
   findRegionalArrivalTripChange,
   getRegionalTripChanges,
@@ -773,8 +775,14 @@ export function RegionalStationDetailPanel({
                                           <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
                                             {group.directionLabel}
                                           </strong>
-                                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                          <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                                             {group.destinationLabel}
+                                            {group.isTerminating && (
+                                              <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                Terminating
+                                              </span>
+                                            )}
                                           </span>
                                         </div>
                                         <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
@@ -825,6 +833,10 @@ export function RegionalStationDetailPanel({
                                                   arrivalTick,
                                                   { detailedCountdown }
                                                 );
+                                                const scheduledClockTime = formatRegionalArrivalClockTime(
+                                                  arrival.scheduledAt || arrival.predictedAt,
+                                                  arrivalTick,
+                                                );
                                                 const isCountdown = detailedCountdown && !due && !tripChange;
                                                 return (
                                                   <div
@@ -863,11 +875,21 @@ export function RegionalStationDetailPanel({
                                                             : "mt-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400"
                                                       }
                                                     >
-                                                      {tripChange ? `Train ${arrival.tripNumber}` : timeDisplay.secondary}
+                                                      {tripChange
+                                                        ? `Train ${cleanRegionalTripNumber(arrival.tripNumber) || arrival.tripNumber}`
+                                                        : timeDisplay.secondary}
                                                     </span>
                                                     {tripChange ? (
-                                                      <span className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-75">
-                                                        Scheduled {timeDisplay.secondary}
+                                                      <span className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-85">
+                                                        {tripChange.kind === "cancellation" || tripChange.kind === "skipped-stop" ? (
+                                                          <>
+                                                            Scheduled <span className="line-through decoration-[1.5px] opacity-75">{scheduledClockTime || timeDisplay.secondary}</span>
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            Scheduled {scheduledClockTime || timeDisplay.secondary}
+                                                          </>
+                                                        )}
                                                       </span>
                                                     ) : null}
                                                   </div>
@@ -924,33 +946,6 @@ export function RegionalStationDetailPanel({
 
               <SurfaceConnectionsSection networkId="regional" stationId={station.id} />
 
-              {station.lineIds.some((lineId) => lineId !== "regional-up") ? <section
-                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
-                data-station-section="trip-changes"
-                aria-label="Upcoming GO train changes"
-              >
-                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                  <AlertTriangle size={20} className="shrink-0 text-amber-500" />
-                  <span>Upcoming Trip Changes</span>
-                  {!tripChangesLoading && tripChanges.changes.length > 0 ? (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-xs font-black text-amber-800 dark:text-amber-200">
-                      {tripChanges.changes.length}
-                    </span>
-                  ) : null}
-                </h3>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  GO operational feeds · published schedule matched
-                </p>
-                <div className="mt-2">
-                  <RegionalTripChangesList
-                    data={tripChanges}
-                    loading={tripChangesLoading}
-                    compact
-                    emptyLabel="No upcoming GO train changes matched to this station."
-                  />
-                </div>
-              </section> : null}
-
               <section
                 className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="station-impacts"
@@ -1002,6 +997,33 @@ export function RegionalStationDetailPanel({
                   </div>
                 )}
               </section>
+
+              {station.lineIds.some((lineId) => lineId !== "regional-up") ? <section
+                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                data-station-section="trip-changes"
+                aria-label="Upcoming GO train changes"
+              >
+                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                  <AlertTriangle size={20} className="shrink-0 text-amber-500" />
+                  <span>Upcoming Trip Changes</span>
+                  {!tripChangesLoading && tripChanges.changes.length > 0 ? (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-xs font-black text-amber-800 dark:text-amber-200">
+                      {tripChanges.changes.length}
+                    </span>
+                  ) : null}
+                </h3>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  GO operational feeds · published schedule matched
+                </p>
+                <div className="mt-2">
+                  <RegionalTripChangesList
+                    data={tripChanges}
+                    loading={tripChangesLoading}
+                    compact
+                    emptyLabel="No upcoming GO train changes matched to this station."
+                  />
+                </div>
+              </section> : null}
 
               <details
                 ref={noticesDetailsRef}

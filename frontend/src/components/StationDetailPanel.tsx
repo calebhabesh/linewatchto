@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, BadgeInfo, CalendarCheck2, ChevronDown, Construction, Layers, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowDownToLine, BadgeInfo, CalendarCheck2, ChevronDown, Construction, Layers, Train } from "lucide-react";
 import Image from "next/image";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
@@ -890,16 +890,30 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                               <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
                                                 {directionPart}
                                               </strong>
-                                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                              <span className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                                                 {destinationPart}
+                                                {group.isTerminating && (
+                                                  <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                    <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                    Terminating
+                                                  </span>
+                                                )}
                                               </span>
                                             </div>
                                           );
                                         }
                                         return (
-                                          <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                            {group.directionLabel}
-                                          </strong>
+                                          <div className="flex flex-col min-w-0 leading-tight">
+                                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                              {group.directionLabel}
+                                            </strong>
+                                            {group.isTerminating && (
+                                              <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                Terminating
+                                              </span>
+                                            )}
+                                          </div>
                                         );
                                       })()}
                                       <div className="ml-auto flex shrink-0 items-center gap-2 self-center">

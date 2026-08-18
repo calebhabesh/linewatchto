@@ -1,6 +1,8 @@
 import { CalendarClock, CircleAlert, MapPin, TrainFront } from "lucide-react";
 import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
 import {
+  formatRegionalTripDisplayName,
+  formatRegionalTripSubtitle,
   regionalTripChangeLabel,
   type RegionalTripChangeResponse,
 } from "../app/regional-trip-changes";
@@ -63,14 +65,14 @@ export function RegionalTripChangesList({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <strong className="text-sm font-black text-slate-900 dark:text-white">
-                    Train {change.tripNumber || change.tripId}
+                    {formatRegionalTripDisplayName(change)}
                   </strong>
                   <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${changeTone(change.kind)}`}>
                     {regionalTripChangeLabel(change.kind)}
                   </span>
                 </div>
                 <p className="mt-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  {change.lineName}{change.destination ? ` to ${change.destination}` : ""}
+                  {formatRegionalTripSubtitle(change)}
                 </p>
               </div>
             </div>

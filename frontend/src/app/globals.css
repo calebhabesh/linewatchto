@@ -787,8 +787,24 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke-width: 16px !important;
 }
 
+/* Suppress outer hover ring when the station is selected */
+.regional-station-hit-target[data-regional-station-selected="true"] + .regional-station-hover-indicator,
+.regional-station-hit-target[data-regional-station-selected="true"]:hover + .regional-station-hover-indicator,
+.regional-station-hit-target[data-regional-station-selected="true"]:focus-visible + .regional-station-hover-indicator,
+.regional-station-hit-target[data-regional-station-selected="true"] + .regional-station-hover-indicator :is(circle, rect, ellipse),
+.regional-station-hit-target[data-regional-station-selected="true"] + .regional-station-hover-indicator:is(circle, rect, ellipse) {
+  opacity: 0 !important;
+  fill: transparent !important;
+  stroke: transparent !important;
+  stroke-width: 0 !important;
+}
+
 .regional-station-selected-indicator :is(circle, rect, ellipse),
-.regional-station-selected-indicator:is(circle, rect, ellipse) {
+.regional-station-selected-indicator:is(circle, rect, ellipse),
+.regional-station-selection-source-artwork :is(circle, rect, ellipse),
+.regional-station-selection-source-artwork:is(circle, rect, ellipse),
+.regional-station-top-selection :is(circle, rect, ellipse),
+.regional-station-top-selection:is(circle, rect, ellipse) {
   fill: var(--station-selection-accent) !important;
   stroke: none !important;
 }
@@ -5665,6 +5681,8 @@ button {
 .linewatch-shell.mobile-performance-mode .regional-impact-path,
 .linewatch-shell.mobile-performance-mode .regional-impact-interactive-glow,
 .linewatch-shell.mobile-performance-mode .regional-station-selected-indicator,
+.linewatch-shell.mobile-performance-mode .regional-station-top-selection,
+.linewatch-shell.mobile-performance-mode .regional-station-selection-source-artwork,
 .linewatch-shell.mobile-performance-mode .regional-station-impact-ring {
   animation: none !important;
   filter: none !important;
@@ -5735,7 +5753,20 @@ button {
   opacity: 0.7;
 }
 
+.linewatch-shell.mobile-performance-mode .regional-station-top-selection {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0.7;
+}
+
 .linewatch-shell.mobile-performance-mode .station-selected-indicator {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0.85;
+  transform: scale(1);
+}
+
+.linewatch-shell.mobile-performance-mode .regional-station-selected-indicator {
   animation: none !important;
   filter: none !important;
   opacity: 0.85;
@@ -5797,6 +5828,19 @@ button {
 
 .linewatch-shell.mobile-performance-mode .station-hit-target {
   transition: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .regional-station-hover-indicator,
+.linewatch-shell.mobile-performance-mode .regional-station-hover-indicator :is(circle, rect, ellipse),
+.linewatch-shell.mobile-performance-mode .regional-station-hover-indicator:is(circle, rect, ellipse),
+.linewatch-shell.mobile-performance-mode .station-hover-indicator,
+.linewatch-shell.mobile-performance-mode .station-hover-indicator :is(circle, rect, ellipse),
+.linewatch-shell.mobile-performance-mode .station-hover-indicator:is(circle, rect, ellipse) {
+  opacity: 0 !important;
+  fill: transparent !important;
+  stroke: transparent !important;
+  stroke-width: 0 !important;
+  pointer-events: none !important;
 }
 
 .linewatch-shell.mobile-performance-mode .overlap-indicator {
@@ -5926,6 +5970,7 @@ button {
   .delay-static-path,
   .station-selected-indicator,
   .station-selection-flash,
+  .regional-station-top-selection,
   .asset-alert-path.map-selection-flash,
   .commute-path-preview-glow {
     animation: none !important;
@@ -8128,6 +8173,7 @@ img.transit-line-badge {
   .station-hit-target.selected,
   .station-selected-indicator,
   .station-selection-flash,
+  .regional-station-top-selection,
   .station-impact-ring,
   .station-impact-dot-red-glow,
   .station-impact-dot-red-ping {
@@ -8286,9 +8332,12 @@ img.transit-line-badge {
 .regional-station-selection-source-artwork {
   animation: none !important;
   opacity: 1 !important;
+  fill: var(--station-selection-accent) !important;
+  stroke: none !important;
 }
 
-.motion-paused .station-selection-flash {
+.motion-paused .station-selection-flash,
+.motion-paused .regional-station-top-selection {
   animation: none;
   opacity: 0.95;
 }
@@ -8304,6 +8353,7 @@ img.transit-line-badge {
 .motion-paused.linewatch-shell.mobile-performance-mode .interactive-glow,
 .motion-paused.linewatch-shell.mobile-performance-mode .station-selected-indicator,
 .motion-paused.linewatch-shell.mobile-performance-mode .station-selection-flash,
+.motion-paused.linewatch-shell.mobile-performance-mode .regional-station-top-selection,
 .motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
   animation: none !important;
 }
@@ -8311,6 +8361,10 @@ img.transit-line-badge {
 /* Match the non-animated mobile selection treatment without making it more saturated. */
 .motion-paused.linewatch-shell.mobile-performance-mode .station-selection-flash,
 .motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
+  opacity: 0.7;
+}
+
+.motion-paused.linewatch-shell.mobile-performance-mode .regional-station-top-selection {
   opacity: 0.7;
 }
 
@@ -19443,9 +19497,56 @@ img.transit-line-badge {
 }
 
 .trip-change-count-badge {
-  background: var(--trip-change) !important;
-  color: #000000 !important;
-  border-color: #78350f !important;
+  background: var(--trip-change-soft) !important;
+  color: var(--trip-change-ink) !important;
+  border-color: var(--trip-change-border) !important;
+}
+
+.dark .trip-change-count-badge,
+.high-contrast .trip-change-count-badge {
+  color: var(--trip-change) !important;
+}
+
+.regional-notices-filter {
+  position: relative;
+}
+
+.regional-notices-glider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 12px) / 2);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease;
+  background: white;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.14);
+}
+
+.dark .regional-notices-glider {
+  background: rgb(30 41 59);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.regional-notices-filter[data-content="notices"] .regional-notices-glider {
+  transform: translateX(0);
+}
+
+.regional-notices-filter[data-content="trip-changes"] .regional-notices-glider {
+  transform: translateX(calc(100% + 4px));
+}
+
+.motion-paused .regional-notices-glider {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regional-notices-glider {
+    transition: none !important;
+  }
 }
 
 /* Hover and active states for light mode */
@@ -24076,4 +24177,23 @@ button:active .account-network-badge,
   .desktop-status-capsule {
     padding-inline: 8px;
   }
+}
+
+@keyframes terminating-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+
+.animate-terminating-blink {
+  animation: terminating-blink 3.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-terminating-blink {
+    animation: none;
+  }
+}
+
+.reduced-motion .animate-terminating-blink {
+  animation: none;
 }

@@ -232,9 +232,7 @@ public class RegionalArrivalService {
         };
         if (destinationIndex >= 0) {
             if (destinationIndex == currentIndex) {
-                if (destinationIndex == 0) return inward;
-                if (destinationIndex == route.stationIds().size() - 1) return outward;
-                return "";
+                return currentIndex == 0 ? inward : outward;
             }
             return destinationIndex > currentIndex ? outward : inward;
         }

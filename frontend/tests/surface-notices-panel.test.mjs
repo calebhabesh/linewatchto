@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const panelSource = readFileSync(new URL("../src/components/SurfaceNoticesPanel.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
+const stylesSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("surface notices panel and routing source verification", () => {
   it("verifies LineWatchShell.tsx includes surface-notices view and routing", () => {
@@ -94,6 +95,11 @@ describe("surface notices panel and routing source verification", () => {
   it("keeps GO trip changes in the regional notices panel while promoting a direct entry", () => {
     assert.match(panelSource, /Service Notices/);
     assert.match(panelSource, /Trip Changes/);
+    assert.match(panelSource, /regional-notices-filter/);
+    assert.match(panelSource, /regional-notices-glider/);
+    assert.match(stylesSource, /\.regional-notices-filter/);
+    assert.match(stylesSource, /\.regional-notices-glider/);
+    assert.match(stylesSource, /\.regional-notices-filter\[data-content="trip-changes"\] \.regional-notices-glider/);
     assert.match(panelSource, /getRegionalTripChanges/);
     assert.match(panelSource, /Search train, corridor, or station/);
     assert.match(panelSource, /<RegionalTripChangesList/);

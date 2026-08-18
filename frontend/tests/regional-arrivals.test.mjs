@@ -212,10 +212,10 @@ describe("regional station arrivals adapter", () => {
     const groups = groupRegionalStationArrivals(arrivals, "downsview-park");
     assert.equal(groups.length, 2);
     assert.equal(groups[0].directionLabel, "Northbound");
-    assert.equal(groups[0].destinationLabel, "To Allandale Waterfront GO");
+    assert.equal(groups[0].destinationLabel, "To Allandale Waterfront");
     assert.deepEqual(groups[0].platforms.map((platform) => platform.label), ["Platform 1", "Platform 2"]);
     assert.equal(groups[1].directionLabel, "Southbound");
-    assert.equal(groups[1].destinationLabel, "To Union Station");
+    assert.equal(groups[1].destinationLabel, "To Union");
   });
 
   it("distinguishes prefixed Milton headsigns as westbound and eastbound", () => {
@@ -239,8 +239,8 @@ describe("regional station arrivals adapter", () => {
     assert.deepEqual(
       groups.map((group) => [group.directionLabel, group.destinationLabel]),
       [
-        ["Eastbound", "To Union Station GO"],
-        ["Westbound", "To Milton GO"],
+        ["Eastbound", "To Union"],
+        ["Westbound", "To Milton"],
       ],
     );
   });
@@ -311,11 +311,102 @@ describe("regional station arrivals adapter", () => {
 
     assert.equal(groups.length, 1);
     assert.equal(groups[0].directionLabel, "Westbound");
-    assert.equal(
-      groups[0].destinationLabel,
-      "Destinations: Bramalea GO / Mount Pleasant GO / Kitchener GO",
-    );
+    assert.equal(groups[0].destinationLabel, "To Kitchener");
     assert.equal(groups[0].platforms[0].arrivals.length, 3);
+  });
+
+  it("correctly classifies terminating outward trains and uses canonical line terminus labels", () => {
+    const base = {
+      lineId: "regional-st",
+      lineNumber: "ST",
+      lineName: "Stouffville",
+      minutes: 10,
+      predictedAt: "2026-08-18T19:11:00-04:00",
+      scheduledAt: "2026-08-18T19:11:00-04:00",
+      delayMinutes: 0,
+      platform: "",
+      source: "Metrolinx published schedule",
+      status: "scheduled",
+    };
+
+    // At Mount Joy:
+    // 1. Train terminating at Mount Joy (arrived Northbound from Union)
+    // 2. Trains departing Mount Joy towards Union (Southbound)
+    const arrivals = [
+      { ...base, direction: "ST - Mount Joy GO", tripNumber: "7428", minutes: 10 },
+      { ...base, direction: "ST - Union Station GO", tripNumber: "7433", minutes: 25 },
+      { ...base, direction: "ST - Union Station GO", tripNumber: "7435", minutes: 55 },
+    ];
+
+    const groups = groupRegionalStationArrivals(arrivals, "mount-joy");
+    assert.equal(groups.length, 2);
+
+    const northboundGroup = groups.find((g) => g.directionLabel === "Northbound");
+    const southboundGroup = groups.find((g) => g.directionLabel === "Southbound");
+
+    assert.ok(northboundGroup, "Northbound group must exist for terminating outward train");
+    assert.ok(southboundGroup, "Southbound group must exist for Union-bound trains");
+
+    // Canonical outward terminus for Stouffville line is Old Elm
+    assert.equal(northboundGroup.destinationLabel, "To Old Elm");
+    // Mount Joy is not the last station on ST, so this is NOT a terminal stop — it's an early-terminating trip
+    assert.equal(northboundGroup.isTerminating, false);
+    assert.equal(northboundGroup.platforms[0].arrivals.length, 1);
+    assert.equal(northboundGroup.platforms[0].arrivals[0].tripNumber, "7428");
+
+    // Canonical inward terminus for Stouffville line is Union
+    assert.equal(southboundGroup.destinationLabel, "To Union");
+    assert.equal(southboundGroup.isTerminating, false);
+    assert.equal(southboundGroup.platforms[0].arrivals.length, 2);
+  });
+
+  it("flags isTerminating only at canonical terminal stations", () => {
+    const upBase = {
+      lineId: "regional-up",
+      lineNumber: "UP",
+      lineName: "UP Express",
+      minutes: 10,
+      predictedAt: "2026-08-18T23:10:00-04:00",
+      scheduledAt: "2026-08-18T23:10:00-04:00",
+      delayMinutes: 0,
+      platform: "",
+      source: "UP Express GTFS-RT",
+      status: "live",
+    };
+
+    // At Union (index 0): Eastbound inward arrivals are terminating; Westbound outward departures are not
+    const unionGroups = groupRegionalStationArrivals([
+      { ...upBase, direction: "UP - Union Station", tripNumber: "UP100" },
+      { ...upBase, direction: "UP - Pearson Airport", tripNumber: "UP200" },
+    ], "union");
+
+    const unionEastbound = unionGroups.find((g) => g.directionLabel === "Eastbound");
+    const unionWestbound = unionGroups.find((g) => g.directionLabel === "Westbound");
+
+    assert.ok(unionEastbound, "Eastbound group must exist at Union");
+    assert.ok(unionWestbound, "Westbound group must exist at Union");
+    assert.equal(unionEastbound.isTerminating, true, "Inward arrivals at Union are terminating");
+    assert.equal(unionWestbound.isTerminating, false, "Outward departures from Union are not terminating");
+    // Westbound departures must appear first; Eastbound terminating arrivals must appear last
+    assert.equal(unionGroups[0].directionLabel, "Westbound", "Departing group sorts before terminating group at Union");
+    assert.equal(unionGroups[1].directionLabel, "Eastbound", "Terminating group sorts after departing group at Union");
+
+    // At Pearson Airport (last index): Westbound outward arrivals are terminating; Eastbound inward departures are not
+    const pearsonGroups = groupRegionalStationArrivals([
+      { ...upBase, direction: "UP - Pearson Airport", tripNumber: "UP300" },
+      { ...upBase, direction: "UP - Union Station", tripNumber: "UP400" },
+    ], "pearson-airport");
+
+    const pearsonWestbound = pearsonGroups.find((g) => g.directionLabel === "Westbound");
+    const pearsonEastbound = pearsonGroups.find((g) => g.directionLabel === "Eastbound");
+
+    assert.ok(pearsonWestbound, "Westbound group must exist at Pearson Airport");
+    assert.ok(pearsonEastbound, "Eastbound group must exist at Pearson Airport");
+    assert.equal(pearsonWestbound.isTerminating, true, "Outward arrivals at Pearson Airport are terminating");
+    assert.equal(pearsonEastbound.isTerminating, false, "Inward departures from Pearson Airport are not terminating");
+    // Eastbound departures must appear first; Westbound terminating arrivals must appear last
+    assert.equal(pearsonGroups[0].directionLabel, "Eastbound", "Departing group sorts before terminating group at Pearson Airport");
+    assert.equal(pearsonGroups[1].directionLabel, "Westbound", "Terminating group sorts after departing group at Pearson Airport");
   });
 
   it("formats regional prediction clock times in Toronto time", () => {

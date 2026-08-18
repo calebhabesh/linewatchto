@@ -717,9 +717,15 @@ describe("network-scoped regional dashboard", () => {
       globalsCss,
       /regional-impact-interactive-glow\s*\{[\s\S]*stroke:\s*var\(--station-selection-accent\)/,
     );
+    assert.match(regionalMapSource, /shape\.removeAttribute\("style"\)/);
+    assert.match(regionalMapSource, /shape\.setAttribute\("style", "fill:var\(--station-selection-accent\);stroke:none;"\)/);
     assert.match(
       globalsCss,
-      /regional-station-impact-ring\[data-regional-impact-selected="true"\][\s\S]*fill:\s*rgb\(var\(--station-selection-accent-rgb\)[^;]*!important[\s\S]*stroke:\s*var\(--station-selection-accent\)\s*!important/,
+      /\.regional-station-selection-source-artwork\s*\{[^}]*fill:\s*var\(--station-selection-accent\)\s*!important;[^}]*stroke:\s*none\s*!important;/s,
+    );
+    assert.match(
+      globalsCss,
+      /\.linewatch-shell\.mobile-performance-mode \.regional-station-top-selection\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.7;[^}]*\}/s,
     );
   });
 

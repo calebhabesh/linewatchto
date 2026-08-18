@@ -2906,6 +2906,8 @@ function InteractiveRegionalMapComponent({
               shape.remove();
               continue;
             }
+            shape.removeAttribute("style");
+            shape.setAttribute("style", "fill:var(--station-selection-accent);stroke:none;");
             const tagName = shape.tagName.toLowerCase();
             const selectedScaleFactor = isLarge ? 1 : 1.2;
             if (tagName === "circle") {
@@ -3323,6 +3325,8 @@ function InteractiveRegionalMapComponent({
     const currentSelectedStationId = selectedStationIdRef.current;
     const currentSelection = selectionRef.current;
     if (currentSelectedStationId) {
+      svg.querySelector(`[data-regional-station-id="${CSS.escape(currentSelectedStationId)}"]`)
+        ?.setAttribute("data-regional-station-selected", "true");
       svg.querySelector(`[data-regional-station-selection-id="${CSS.escape(currentSelectedStationId)}"]`)
         ?.setAttribute("data-regional-station-selected", "true");
     }
@@ -3507,6 +3511,9 @@ function InteractiveRegionalMapComponent({
     const root = viewportRef.current;
     root?.querySelectorAll("[data-regional-station-selected]").forEach((element) => element.removeAttribute("data-regional-station-selected"));
     if (selectedStationId) {
+      root?.querySelector(
+        `[data-regional-station-id="${CSS.escape(selectedStationId)}"]`,
+      )?.setAttribute("data-regional-station-selected", "true");
       const indicator = root?.querySelector(
         `[data-regional-station-selection-id="${CSS.escape(selectedStationId)}"]`,
       );

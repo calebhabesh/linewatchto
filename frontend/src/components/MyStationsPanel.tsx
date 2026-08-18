@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlertCircle, Bookmark, CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, LoaderCircle, Plus, Search, Train, X } from "lucide-react";
+import { AlertCircle, ArrowDownToLine, Bookmark, CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, LoaderCircle, Plus, Search, Train, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
 import type { AccountState } from "../app/account-data";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -579,8 +579,14 @@ function SavedStationRow({
                                     {group.directionLabel}
                                   </strong>
                                   {group.destinationLabel ? (
-                                    <p className="saved-station-arrival-destination mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+                                    <p className="saved-station-arrival-destination mt-0.5 flex flex-wrap items-center gap-1.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
                                       {group.destinationLabel}
+                                      {group.isTerminating && (
+                                        <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                          <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                          Terminating
+                                        </span>
+                                      )}
                                     </p>
                                   ) : null}
                                 </div>

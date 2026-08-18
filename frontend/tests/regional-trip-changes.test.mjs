@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  cleanRegionalDestinationText,
+  cleanRegionalTripNumber,
   emptyRegionalTripChangeResponse,
   findRegionalArrivalTripChange,
+  formatRegionalTripDisplayName,
+  formatRegionalTripSubtitle,
   getRegionalTripChanges,
   regionalTripChangeLabel,
 } from "../src/app/regional-trip-changes.ts";
@@ -86,5 +90,66 @@ describe("regional trip changes adapter", () => {
     assert.equal(regionalTripChangeLabel("cancellation"), "Cancelled");
     assert.equal(regionalTripChangeLabel("skipped-stop"), "Not stopping");
     assert.equal(regionalTripChangeLabel("added-stop"), "Additional stop");
+  });
+
+  it("extracts clean front-facing train numbers and destination names", () => {
+    assert.equal(cleanRegionalTripNumber("20260818-LE-9626"), "9626");
+    assert.equal(cleanRegionalTripNumber("20260818-ST-7129"), "7129");
+    assert.equal(cleanRegionalTripNumber("20260818-ST-7428"), "7428");
+    assert.equal(cleanRegionalTripNumber("20260728-4323"), "4323");
+    assert.equal(cleanRegionalTripNumber("681"), "681");
+    assert.equal(cleanRegionalTripNumber("LE-9626"), "9626");
+    assert.equal(cleanRegionalTripNumber("notice-cancellation-123"), "");
+    assert.equal(cleanRegionalTripNumber(""), "");
+    assert.equal(cleanRegionalTripNumber(null), "");
+
+    assert.equal(cleanRegionalDestinationText("LE - Whitby GO"), "Whitby GO");
+    assert.equal(cleanRegionalDestinationText("ST - Union Station GO"), "Union Station GO");
+    assert.equal(cleanRegionalDestinationText("ST - Mount Joy GO"), "Mount Joy GO");
+    assert.equal(cleanRegionalDestinationText("Union Station"), "Union Station");
+    assert.equal(cleanRegionalDestinationText(""), "");
+
+    assert.equal(formatRegionalTripDisplayName({ tripNumber: "20260818-LE-9626" }), "Train 9626");
+    assert.equal(formatRegionalTripDisplayName({ tripId: "20260818-ST-7129" }), "Train 7129");
+    assert.equal(formatRegionalTripDisplayName({ tripNumber: "681" }), "Train 681");
+    assert.equal(formatRegionalTripDisplayName({ tripNumber: "notice-abc", tripId: "notice-abc" }), "Train");
+
+    assert.equal(
+      formatRegionalTripSubtitle({
+        lineName: "Stouffville",
+        lineNumber: "ST",
+        destination: "ST - Mount Joy GO",
+        affectedStops: [{ stationName: "Union" }, { stationName: "Kennedy" }, { stationName: "Mount Joy" }],
+      }),
+      "Stouffville Line · Union to Mount Joy GO",
+    );
+
+    assert.equal(
+      formatRegionalTripSubtitle({
+        lineName: "Lakeshore East",
+        lineNumber: "LE",
+        destination: "Whitby GO",
+        affectedStops: [{ stationName: "Union" }, { stationName: "Whitby" }],
+      }),
+      "Lakeshore East Line · Union to Whitby GO",
+    );
+
+    assert.equal(
+      formatRegionalTripSubtitle({
+        lineName: "UP Express",
+        lineNumber: "UP",
+        destination: "Pearson Airport",
+        affectedStops: [{ stationName: "Union" }, { stationName: "Pearson Airport" }],
+      }),
+      "UP Express · Union to Pearson Airport",
+    );
+
+    assert.equal(
+      formatRegionalTripSubtitle({
+        lineName: "Kitchener",
+        destination: "Mount Pleasant GO",
+      }),
+      "Kitchener Line · To Mount Pleasant GO",
+    );
   });
 });

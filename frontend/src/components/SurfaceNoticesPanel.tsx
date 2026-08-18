@@ -354,7 +354,11 @@ export function SurfaceNoticesPanel({
 
         {regional ? (
           <div className="px-3 pt-3 sm:px-4" role="group" aria-label="GO / UP notice content">
-            <div className="grid grid-cols-2 gap-1 rounded-lg border border-black/10 bg-slate-100 p-1 dark:border-white/10 dark:bg-white/5">
+            <div
+              className="regional-notices-filter relative grid grid-cols-2 gap-1 rounded-lg border border-black/10 bg-slate-100 p-1 dark:border-white/10 dark:bg-white/5"
+              data-content={regionalContent}
+            >
+              <div className="regional-notices-glider" aria-hidden="true" />
               {([[
                 "notices", "Service Notices",
               ], [
@@ -365,9 +369,9 @@ export function SurfaceNoticesPanel({
                   type="button"
                   onClick={() => setRegionalContent(value)}
                   aria-pressed={regionalContent === value}
-                  className={`min-h-9 rounded-md px-2 text-xs font-black transition-colors ${regionalContent === value
-                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
-                    : "text-slate-600 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/5"}`}
+                  className={`relative z-10 min-h-9 rounded-md px-2 text-xs font-black transition-colors ${regionalContent === value
+                    ? "text-slate-950 dark:text-white"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"}`}
                 >
                   {label}
                 </button>

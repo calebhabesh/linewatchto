@@ -79,6 +79,7 @@ export type RegionalArrivalDirectionGroup = {
   lineName: string;
   directionLabel: string;
   destinationLabel: string;
+  isTerminating: boolean;
   platforms: RegionalArrivalPlatformGroup[];
 };
 
@@ -260,6 +261,17 @@ const REGIONAL_OUTWARD_DIRECTIONS: Record<RegionalRouteCode, string> = {
   UP: "Westbound",
 };
 
+export const REGIONAL_ROUTE_TERMINALS: Record<RegionalRouteCode, { outward: string; inward: string }> = {
+  BR: { outward: "Allandale Waterfront", inward: "Union" },
+  KI: { outward: "Kitchener", inward: "Union" },
+  LE: { outward: "Durham College Oshawa", inward: "Union" },
+  LW: { outward: "Niagara Falls", inward: "Union" },
+  MI: { outward: "Milton", inward: "Union" },
+  RH: { outward: "Bloomington", inward: "Union" },
+  ST: { outward: "Old Elm", inward: "Union" },
+  UP: { outward: "Pearson Airport", inward: "Union" },
+};
+
 function normalizeStationName(value: string) {
   return value
     .toLowerCase()
@@ -281,19 +293,26 @@ function regionalTravelDirection(arrival: RegionalArrival, stationId: string) {
     return "Outbound";
   }
 
+  const outwardDirection = REGIONAL_OUTWARD_DIRECTIONS[routeCode];
+  const inwardDirection = pairedDirections.find((direction) => direction !== outwardDirection) ?? pairedDirections[1];
+
+  const rawDirection = (arrival.direction || "").trim().toLowerCase();
+  for (const cardinal of pairedDirections) {
+    if (rawDirection.startsWith(cardinal.toLowerCase())) {
+      return cardinal;
+    }
+  }
+
   const currentIndex = stationIds.indexOf(stationId);
   const destinationName = normalizeStationName(cleanRegionalDestination(arrival.direction, routeCode));
   const destination = regionalStations.find(
     (candidate) => normalizeStationName(candidate.name) === destinationName,
   );
   const destinationIndex = destination ? stationIds.indexOf(destination.id) : -1;
-  const outwardDirection = REGIONAL_OUTWARD_DIRECTIONS[routeCode];
-  const inwardDirection = pairedDirections.find((direction) => direction !== outwardDirection) ?? pairedDirections[1];
 
   if (destinationIndex >= 0 && currentIndex >= 0) {
     if (destinationIndex === currentIndex) {
-      if (destinationIndex === 0) return inwardDirection;
-      if (destinationIndex === stationIds.length - 1) return outwardDirection;
+      return currentIndex === 0 ? inwardDirection : outwardDirection;
     }
     return destinationIndex > currentIndex ? outwardDirection : inwardDirection;
   }
@@ -336,8 +355,17 @@ export function groupRegionalStationArrivals(
 
   for (const arrival of arrivals) {
     const routeCode = arrival.lineNumber.toUpperCase() as RegionalRouteCode;
-    const destination = cleanRegionalDestination(arrival.direction, routeCode);
+    const stationIds = REGIONAL_ROUTE_STATIONS[routeCode] ?? [];
+    const currentIndex = stationIds.indexOf(stationId);
     const directionLabel = regionalTravelDirection(arrival, stationId);
+    const outwardDirection = REGIONAL_OUTWARD_DIRECTIONS[routeCode];
+    const isOutward = directionLabel === outwardDirection;
+    const isTerminating = (currentIndex === 0 && !isOutward)
+      || (currentIndex === stationIds.length - 1 && isOutward);
+    const terminal = isOutward
+      ? (REGIONAL_ROUTE_TERMINALS[routeCode]?.outward ?? "Terminal")
+      : (REGIONAL_ROUTE_TERMINALS[routeCode]?.inward ?? "Union");
+
     const key = `${arrival.lineId}:${directionLabel}`;
     let group = groups.get(key);
     if (!group) {
@@ -347,7 +375,8 @@ export function groupRegionalStationArrivals(
         lineNumber: arrival.lineNumber,
         lineName: arrival.lineName,
         directionLabel,
-        destinationLabel: `To ${destination}`,
+        destinationLabel: `To ${terminal}`,
+        isTerminating,
         platforms: [],
       };
       groups.set(key, group);
@@ -368,18 +397,21 @@ export function groupRegionalStationArrivals(
 
   return [...groups.values()]
     .map((group) => {
-      const destinations = [...new Set(group.platforms
-        .flatMap((platform) => platform.arrivals)
-        .map((arrival) => cleanRegionalDestination(
-          arrival.direction,
-          arrival.lineNumber.toUpperCase() as RegionalRouteCode,
-        ))
-        .filter(Boolean))];
+      const routeCode = group.lineNumber.toUpperCase() as RegionalRouteCode;
+      const stationIds = REGIONAL_ROUTE_STATIONS[routeCode] ?? [];
+      const currentIndex = stationIds.indexOf(stationId);
+      const outwardDirection = REGIONAL_OUTWARD_DIRECTIONS[routeCode];
+      const isOutward = group.directionLabel === outwardDirection;
+      const isTerminating = (currentIndex === 0 && !isOutward)
+        || (currentIndex === stationIds.length - 1 && isOutward);
+      const terminal = isOutward
+        ? (REGIONAL_ROUTE_TERMINALS[routeCode]?.outward ?? "Terminal")
+        : (REGIONAL_ROUTE_TERMINALS[routeCode]?.inward ?? "Union");
+
       return {
         ...group,
-        destinationLabel: destinations.length > 1
-          ? `Destinations: ${destinations.join(" / ")}`
-          : `To ${destinations[0] ?? group.lineName}`,
+        destinationLabel: `To ${terminal}`,
+        isTerminating,
         platforms: group.platforms.map((platform) => ({
           ...platform,
           arrivals: [...platform.arrivals].sort((a, b) => a.minutes - b.minutes),
@@ -391,6 +423,13 @@ export function groupRegionalStationArrivals(
       const lineRankB = regionalLineRank(groupB.lineNumber, groupB.lineId);
       if (lineRankA !== lineRankB) {
         return lineRankA - lineRankB;
+      }
+
+      // Terminating arrivals always appear below departing groups.
+      const terminatingRankA = groupA.isTerminating ? 1 : 0;
+      const terminatingRankB = groupB.isTerminating ? 1 : 0;
+      if (terminatingRankA !== terminatingRankB) {
+        return terminatingRankA - terminatingRankB;
       }
 
       const dirRankA = regionalDirectionRank(groupA.directionLabel);
