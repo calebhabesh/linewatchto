@@ -104,38 +104,38 @@ describe("station detail panel layout", () => {
 
   it("keeps line and platform details in the header and orders sections by rider priority", () => {
     const headerDetailsIndex = panelSource.indexOf('data-station-header-line-details');
+    const servicesAndAmenitiesIndex = panelSource.indexOf('data-station-section="services-and-amenities"');
     const arrivalsIndex = panelSource.indexOf('data-station-section="arrivals"');
     const accessibilityIndex = panelSource.indexOf('data-station-section="accessibility"');
     const impactsIndex = panelSource.indexOf('data-station-section="station-impacts"');
     const titleRowIndex = panelSource.indexOf("<StationDetailHeader");
-    const accessibilityChipsIndex = panelSource.indexOf("isWheelchairAccessible || hasElevator");
 
     assert.notEqual(headerDetailsIndex, -1);
+    assert.notEqual(servicesAndAmenitiesIndex, -1);
     assert.notEqual(arrivalsIndex, -1);
     assert.notEqual(accessibilityIndex, -1);
     assert.notEqual(impactsIndex, -1);
     assert.notEqual(titleRowIndex, -1);
-    assert.notEqual(accessibilityChipsIndex, -1);
     assert.equal(panelSource.indexOf('data-station-section="line-details"'), -1);
-    assert.ok(titleRowIndex < accessibilityChipsIndex);
-    assert.ok(accessibilityChipsIndex < headerDetailsIndex);
-    assert.ok(headerDetailsIndex < arrivalsIndex);
+    assert.ok(titleRowIndex < headerDetailsIndex);
+    assert.ok(headerDetailsIndex < servicesAndAmenitiesIndex);
+    assert.ok(servicesAndAmenitiesIndex < arrivalsIndex);
     assert.ok(arrivalsIndex < impactsIndex);
     assert.ok(impactsIndex < accessibilityIndex);
-    assert.match(panelSource, /data-station-header-line-details[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/);
+    assert.match(panelSource, /data-station-header-line-details[\s\S]*station\.lines\.map/);
+    assert.match(panelSource, /Services and Amenities/);
     assert.match(stationHeaderSource, /className="min-w-0 flex-1"/);
   });
 
   it("surfaces accessibility outage counts near the top of the station panel", () => {
     const outageSummaryIndex = panelSource.indexOf('data-station-access-outage-summary');
-    const accessibilityChipsIndex = panelSource.indexOf("isWheelchairAccessible || hasElevator");
     const headerDetailsIndex = panelSource.indexOf('data-station-header-line-details');
+    const arrivalsIndex = panelSource.indexOf('data-station-section="arrivals"');
 
     assert.notEqual(outageSummaryIndex, -1);
-    assert.notEqual(accessibilityChipsIndex, -1);
     assert.notEqual(headerDetailsIndex, -1);
-    assert.ok(accessibilityChipsIndex < outageSummaryIndex);
-    assert.ok(outageSummaryIndex < headerDetailsIndex);
+    assert.ok(headerDetailsIndex < outageSummaryIndex);
+    assert.ok(outageSummaryIndex < arrivalsIndex);
     assert.match(panelSource, /StationAccessOutageBadge/);
     assert.match(panelSource, /formatStationOutageLabel\("elevator", elevatorOutagesCount\)/);
     assert.match(panelSource, /formatStationOutageLabel\("escalator", escalatorOutagesCount\)/);
@@ -183,7 +183,8 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /Bike Repair/);
     assert.match(panelSource, /Bike Share/);
     assert.match(panelSource, /Passenger Pick-up/);
-    assert.match(panelSource, /width=\{37\}[\s\S]*height=\{37\}[\s\S]*w-\[33px\] h-\[33px\] sm:w-\[37px\] sm:h-\[37px\]/);
+    assert.match(panelSource, /width=\{28\}[\s\S]*height=\{28\}[\s\S]*w-\[24px\] h-\[24px\] sm:w-\[28px\] sm:h-\[28px\]/);
+    assert.match(panelSource, /width=\{25\}[\s\S]*height=\{25\}[\s\S]*w-\[21px\] h-\[21px\] sm:w-\[25px\] sm:h-\[25px\]/);
     assert.equal(
       panelSource.match(/drop-shadow-\[0_0_1\.5px_rgba\(0,130,201,0\.28\)\] dark:drop-shadow-\[0_0_2px_rgba\(0,130,201,0\.38\)\]/g)?.length,
       2,
@@ -192,7 +193,7 @@ describe("station detail panel layout", () => {
       panelSource.match(/drop-shadow-\[0_0_1\.5px_rgba\(0,0,0,0\.28\)\] dark:drop-shadow-\[0_0_2px_rgba\(255,255,255,0\.25\)\]/g)?.length,
       4,
     );
-    assert.match(panelSource, /max-w-\[160px\] sm:max-w-\[185px\]/);
+    assert.match(panelSource, /grid grid-cols-3/);
     assert.match(panelSource, /data-facility-warning/);
     assert.doesNotMatch(panelSource, /opacity-60 grayscale/);
     assert.match(panelSource, /<details[^>]+data-station-section="accessibility"/);

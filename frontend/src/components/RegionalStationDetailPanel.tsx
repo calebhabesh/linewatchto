@@ -460,66 +460,54 @@ export function RegionalStationDetailPanel({
           key={station.id}
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
-          {isWheelchairAccessible && (
-            <div className="mt-2.5 flex flex-wrap gap-1.5 shrink-0">
-              <span className="inline-flex items-center gap-1 shrink-0 text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wider bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                <Check size={11} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                Wheelchair Accessible
-              </span>
+          <div className="mt-2 flex flex-col gap-1.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+            {routes.map((route) => (
+              <div key={route.id} className="flex items-center gap-2 flex-wrap min-w-0">
+                <span
+                  className="regional-route-pill inline-flex min-h-6 sm:min-h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-black/10 px-2.5 py-0.5 text-xs font-black dark:border-white/10 shrink-0"
+                  style={transitLineBadgeColors(route.id)}
+                >
+                  <span>{route.number}</span>
+                  <span className="min-w-0 truncate">{route.name}</span>
+                </span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS]}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {connections.length > 0 && (
+            <div className="mt-2.5 shrink-0">
+              <StationConnectionBadges connections={connections} />
             </div>
           )}
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 pr-4 -mr-4 station-detail-scroll station-detail-section-stack">
-            <StationConnectionBadges connections={connections} />
-            <div className="flex flex-col gap-2" data-station-header-line-details aria-label="Regional rail corridors">
-          {Object.entries(
-            routes.reduce((acc, route) => {
-              const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
-              if (!acc[direction]) acc[direction] = [];
-              acc[direction].push(route);
-              return acc;
-            }, {} as Record<string, typeof routes>)
-          ).map(([direction, directionRoutes]) => (
-            <div
-              key={direction}
-              className="grid min-h-[68px] sm:min-h-[76px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 rounded-md border border-black/10 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap gap-2">
-                  {directionRoutes.map((route) => (
-                    <span
-                      key={route.id}
-                      className="regional-route-pill inline-flex min-h-7 sm:min-h-8 max-w-full min-w-0 items-center gap-1.5 sm:gap-2 rounded-full border border-black/10 px-2.5 sm:px-3 py-1 text-xs font-black dark:border-white/10"
-                      style={transitLineBadgeColors(route.id)}
-                    >
-                      <span>{route.number}</span>
-                      <span className="min-w-0 truncate">{route.name}</span>
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-1.5 sm:mt-2 break-words text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  {direction}
-                </p>
-              </div>
-              {isWheelchairAccessible && (
-                <div className="flex shrink-0 items-center justify-end pl-1 sm:pl-2 pr-0 sm:pr-1">
-                  <span
-                    className="flex items-center justify-center p-0 sm:p-0.5"
-                    title="Wheelchair accessible"
-                  >
+            {isWheelchairAccessible && (
+              <div
+                className="flex flex-col gap-2 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
+                data-station-section="services-and-amenities"
+              >
+                <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Services and Amenities
+                </h4>
+                <div className="grid grid-cols-3 gap-x-2.5 sm:gap-x-3.5 gap-y-3 sm:gap-y-3.5 items-center">
+                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wheelchair accessible">
                     <Image
                       src="/assets/linewatch/wheel-chair-symbol.svg"
                       alt="Wheelchair accessible"
-                      width={34}
-                      height={34}
-                      className="w-[31px] h-[31px] sm:w-[34px] sm:h-[34px] rounded-[4px] sm:rounded-md drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                      width={25}
+                      height={25}
+                      className="w-[21px] h-[21px] sm:w-[25px] sm:h-[25px] rounded-[3px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
                     />
-                  </span>
+                    <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                      Accessible
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
-            </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <section

@@ -417,7 +417,6 @@ describe("network-scoped regional dashboard", () => {
     assert.match(stationDetailHeaderSource, /station-detail-header-actions/);
     assert.match(stationDetailHeaderSource, /station-detail-save-control/);
     assert.match(regionalStationDetailSource, /<TransitLineBadge/);
-    assert.match(regionalStationDetailSource, /transitLineBadgeColors\(route\.id\)/);
     assert.match(regionalStationDetailSource, /<StationConnectionBadges/);
     assert.match(regionalStationDetailSource, /data-station-header-line-details/);
     assert.match(regionalStationDetailSource, /data-station-section="arrivals"/);

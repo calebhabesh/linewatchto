@@ -336,6 +336,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const hasBicycleRepair = station ? (station.hasBicycleRepair ?? isStationBicycleRepairAvailable(station.id)) : false;
   const hasBikeShare = station ? (station.hasBikeShare ?? isStationBikeShareAvailable(station.id)) : false;
   const hasPpudo = station ? (station.hasPpudo ?? isStationPpudoAvailable(station.id)) : false;
+  const hasAnyAmenities = isWheelchairAccessible || hasElevator || hasWashroom || hasParking || hasBicycleLockup || hasBicycleRepair || hasBikeShare || hasPpudo;
   const connections = station ? ttcStationConnections(station.id) : [];
 
   const accessibilityDetailsRef = useRef<HTMLDetailsElement>(null);
@@ -462,56 +463,28 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           key={station?.id ?? "empty"}
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
-          {station && (isWheelchairAccessible || hasElevator || hasWashroom || hasParking || hasBicycleLockup || hasBicycleRepair || hasBikeShare || hasPpudo) && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-1 sm:gap-1.5 shrink-0">
-              {isWheelchairAccessible && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Accessible
-                </span>
-              )}
-              {hasElevator && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Elevator
-                </span>
-              )}
-              {hasWashroom && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Washrooms
-                </span>
-              )}
-              {hasParking && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Parking
-                </span>
-              )}
-              {hasBicycleLockup && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Bike Lock-up
-                </span>
-              )}
-              {hasBicycleRepair && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Bike Repair
-                </span>
-              )}
-              {hasBikeShare && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Bike Share
-                </span>
-              )}
-              {hasPpudo && (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[8.5px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 px-1.5 sm:px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wide bg-slate-100 dark:bg-white/5 whitespace-nowrap">
-                  <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
-                  Passenger Pick-up
-                </span>
-              )}
+          {station && (
+            <div className="mt-2 flex flex-col gap-1.5 shrink-0" data-station-header-line-details>
+              {station.lines.map((line) => (
+                <div key={line.id} className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span
+                    className="inline-flex min-h-6 sm:min-h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-black/10 px-2.5 py-0.5 text-xs font-black dark:border-white/10 shrink-0"
+                    style={{ backgroundColor: line.color, color: lineBadgeTextColor(line.id) }}
+                  >
+                    <span>{line.number}</span>
+                    <span className="min-w-0 truncate">{line.name}</span>
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {line.platformLabel}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {station && connections.length > 0 && (
+            <div className="mt-2.5 shrink-0">
+              <StationConnectionBadges connections={connections} />
             </div>
           )}
 
@@ -545,155 +518,146 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   )}
                 </span>
               </div>
-              <span className="shrink-0 text-[9px] font-black uppercase tracking-wider text-red-600 dark:text-red-400 opacity-80 flex items-center gap-1.5">
-                Press for Details
-                <ArrowRight size={11} strokeWidth={3} className="shrink-0" />
-              </span>
+              <span className="text-xs font-bold text-red-700 dark:text-red-300">Details &rarr;</span>
             </button>
           )}
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 pr-4 -mr-4 station-detail-scroll station-detail-section-stack">
-      {station && <StationConnectionBadges connections={connections} />}
-      {station && (
-        <div className="flex flex-col gap-2" data-station-header-line-details>
-          {station.lines.map((line) => (
-            <div
-              key={line.id}
-              className="grid min-h-[68px] sm:min-h-[76px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 rounded-md border border-black/10 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
-            >
-              <div className="min-w-0">
-                <span
-                  className="inline-flex min-h-7 sm:min-h-8 max-w-full min-w-0 items-center gap-1.5 sm:gap-2 rounded-full border border-black/10 px-2.5 sm:px-3 py-1 text-xs font-black dark:border-white/10"
-                  style={{ backgroundColor: line.color, color: lineBadgeTextColor(line.id) }}
-                  title={line.platformLabel}
-                >
-                  {line.number}
-                  <span className="min-w-0 truncate">{line.name}</span>
-                </span>
-                <p className="mt-1.5 sm:mt-2 break-words text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  {line.platformLabel}
-                </p>
+            {station && hasAnyAmenities && (
+              <div
+                className="flex flex-col gap-2 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
+                data-station-section="services-and-amenities"
+              >
+                <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Services and Amenities
+                </h4>
+                <div className="grid grid-cols-3 gap-x-2.5 sm:gap-x-3.5 gap-y-3 sm:gap-y-3.5 items-center">
+                  {isWheelchairAccessible && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wheelchair accessible">
+                      <Image
+                        src="/assets/linewatch/wheel-chair-symbol.svg"
+                        alt="Wheelchair accessible"
+                        width={25}
+                        height={25}
+                        className="w-[21px] h-[21px] sm:w-[25px] sm:h-[25px] rounded-[3px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Accessible
+                      </span>
+                    </div>
+                  )}
+                  {hasElevator && (
+                    <div
+                      className="flex items-center gap-1.5 sm:gap-2 min-w-0"
+                      data-facility-warning={hasElevatorOutage ? "elevator" : undefined}
+                      title={hasElevatorOutage ? "Elevators available, outage reported" : "Elevators available"}
+                    >
+                      <Image
+                        src="/assets/linewatch/outages/elevator.svg"
+                        alt={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                          Elevators
+                        </span>
+                        {hasElevatorOutage && (
+                          <span className="w-fit rounded bg-amber-500/15 px-1 py-0.2 text-[8.5px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                            Outage
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {hasWashroom && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Washrooms available">
+                      <Image
+                        src="/assets/linewatch/washroom.svg"
+                        alt="Washrooms available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Washrooms
+                      </span>
+                    </div>
+                  )}
+                  {hasParking && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Parking available">
+                      <Image
+                        src="/assets/linewatch/parking.svg"
+                        alt="Parking available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] rounded-full shrink-0 drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Parking
+                      </span>
+                    </div>
+                  )}
+                  {hasBicycleLockup && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Bicycle lock-up available">
+                      <Image
+                        src="/assets/linewatch/bicycle-lockup.svg"
+                        alt="Bicycle lock-up available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Bike Lock-up
+                      </span>
+                    </div>
+                  )}
+                  {hasBicycleRepair && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Bicycle repair stand available">
+                      <Image
+                        src="/assets/linewatch/bicycle-repair.svg"
+                        alt="Bicycle repair stand available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Bike Repair
+                      </span>
+                    </div>
+                  )}
+                  {hasBikeShare && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Bike Share Toronto available">
+                      <Image
+                        src="/assets/linewatch/bike-share-toronto.svg"
+                        alt="Bike Share Toronto available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] rounded-full drop-shadow-[0_0_1.5px_rgba(0,100,75,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,100,75,0.38)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Bike Share
+                      </span>
+                    </div>
+                  )}
+                  {hasPpudo && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Passenger pick-up / drop-off (PPUDO) available">
+                      <Image
+                        src="/assets/linewatch/passenger-pick-up.svg"
+                        alt="Passenger pick-up / drop-off available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Passenger Pick-up
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5 max-w-[160px] sm:max-w-[185px] pl-1 sm:pl-2 pr-0 sm:pr-1">
-                {line.wheelchairAccessible && (
-                  <span
-                    className="flex items-center justify-center p-0 sm:p-0.5"
-                    title="Wheelchair accessible"
-                  >
-                    <Image
-                      src="/assets/linewatch/wheel-chair-symbol.svg"
-                      alt="Wheelchair accessible"
-                      width={34}
-                      height={34}
-                      className="w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] rounded-[4px] sm:rounded-md drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
-                    />
-                  </span>
-                )}
-                {line.hasElevator && (
-                  <span
-                    className="flex items-center justify-center"
-                    data-facility-warning={hasElevatorOutage ? "elevator" : undefined}
-                    title={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
-                  >
-                    <Image
-                      src="/assets/linewatch/outages/elevator.svg"
-                      alt={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
-                      width={37}
-                      height={37}
-                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
-                    />
-                  </span>
-                )}
-                {hasWashroom && (
-                  <span
-                    className="flex items-center justify-center"
-                    title="Washrooms available"
-                  >
-                    <Image
-                      src="/assets/linewatch/washroom.svg"
-                      alt="Washrooms available"
-                      width={37}
-                      height={37}
-                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
-                    />
-                  </span>
-                )}
-                {hasParking && (
-                  <span
-                    className="flex items-center justify-center"
-                    title="Parking available"
-                  >
-                    <Image
-                      src="/assets/linewatch/parking.svg"
-                      alt="Parking available"
-                      width={37}
-                      height={37}
-                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] rounded-full drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
-                    />
-                  </span>
-                )}
-                {hasBicycleLockup && (
-                  <span
-                    className="flex items-center justify-center"
-                    title="Bicycle lock-up available"
-                  >
-                    <Image
-                      src="/assets/linewatch/bicycle-lockup.svg"
-                      alt="Bicycle lock-up available"
-                      width={37}
-                      height={37}
-                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
-                    />
-                  </span>
-                )}
-                {hasBicycleRepair && (
-                  <span
-                    className="flex items-center justify-center"
-                    title="Bicycle repair stand available"
-                  >
-                    <Image
-                      src="/assets/linewatch/bicycle-repair.svg"
-                      alt="Bicycle repair stand available"
-                      width={37}
-                      height={37}
-                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
-                    />
-                  </span>
-                )}
-                {hasBikeShare && (
-                  <span
-                    className="flex items-center justify-center"
-                    title="Bike Share Toronto available"
-                  >
-                    <Image
-                      src="/assets/linewatch/bike-share-toronto.svg"
-                      alt="Bike Share Toronto available"
-                      width={37}
-                      height={37}
-                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] rounded-full drop-shadow-[0_0_1.5px_rgba(0,100,75,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,100,75,0.38)]"
-                    />
-                  </span>
-                )}
-                {hasPpudo && (
-                  <span
-                    className="flex items-center justify-center"
-                    title="Passenger pick-up / drop-off (PPUDO) available"
-                  >
-                    <Image
-                      src="/assets/linewatch/passenger-pick-up.svg"
-                      alt="Passenger pick-up / drop-off available"
-                      width={37}
-                      height={37}
-                      className="w-[33px] h-[33px] sm:w-[37px] sm:h-[37px] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
-                    />
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
 
       {loading && !station && (
         <div className="station-detail-loading rounded-lg border border-black/10 bg-slate-100 p-3 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
