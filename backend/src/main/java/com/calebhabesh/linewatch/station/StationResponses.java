@@ -22,8 +22,25 @@ public final class StationResponses {
         List<String> lineIds,
         boolean hasActiveImpact,
         String accessStatus,
-        StationAccessOutageCountsResponse accessOutageCounts
+        StationAccessOutageCountsResponse accessOutageCounts,
+        boolean wheelchairAccessible,
+        boolean hasElevator,
+        boolean hasWashroom,
+        boolean hasParking
     ) {
+        public StationSummaryResponse(
+            String id,
+            String name,
+            int mapX,
+            int mapY,
+            boolean interchange,
+            List<String> lineIds,
+            boolean hasActiveImpact,
+            String accessStatus,
+            StationAccessOutageCountsResponse accessOutageCounts
+        ) {
+            this(id, name, mapX, mapY, interchange, lineIds, hasActiveImpact, accessStatus, accessOutageCounts, false, false, false, false);
+        }
     }
 
     public record StationAccessOutageCountsResponse(

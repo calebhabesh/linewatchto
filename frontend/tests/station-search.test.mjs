@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import {
   buildNetworkStationLineGroups,
   buildStationLineGroups,
+  countStationAmenities,
+  filterStationSummariesByAmenities,
   normalizeStationQuery,
   searchStationsAcrossNetworks,
   searchStations,
@@ -196,5 +198,57 @@ describe("station search helpers", () => {
     assert.equal(groups.at(-1).networkId, "ttc");
     assert.ok(groups.some((group) => group.networkId === "regional" && group.stations.some((station) => station.id === "union")));
     assert.ok(groups.some((group) => group.networkId === "ttc" && group.stations.some((station) => station.id === "union")));
+  });
+
+  it("filters stations by amenity criteria across TTC and Regional networks", () => {
+    const ttcCounts = countStationAmenities(stations, "ttc");
+    assert.ok(ttcCounts.total > 0);
+    assert.ok(ttcCounts.wheelchair > 0);
+    assert.ok(ttcCounts.elevator > 0);
+    assert.ok(ttcCounts.washroom > 0);
+    assert.ok(ttcCounts.parking > 0);
+
+    const regionalCounts = countStationAmenities(regionalStationSummaries.stations, "regional");
+    assert.ok(regionalCounts.total > 0);
+    assert.ok(regionalCounts.parking > 0);
+    assert.equal(regionalCounts.washroom, regionalCounts.total);
+
+    const parkingTtc = filterStationSummariesByAmenities(stations, "ttc", { parking: true });
+    assert.ok(parkingTtc.every((station) => station.hasParking));
+    assert.ok(parkingTtc.some((station) => station.id === "finch"));
+    assert.ok(!parkingTtc.some((station) => station.id === "union"));
+
+    const accessibleOnly = filterStationSummariesByAmenities(stations, "ttc", { wheelchair: true });
+    assert.ok(accessibleOnly.every((station) => station.wheelchairAccessible));
+
+    const washroomAndParking = filterStationSummariesByAmenities(stations, "ttc", { washroom: true, parking: true });
+    assert.ok(washroomAndParking.every((station) => station.hasWashroom && station.hasParking));
+    assert.ok(washroomAndParking.some((station) => station.id === "finch"));
+
+    const filteredLineGroups = buildNetworkStationLineGroups(
+      {
+        ttc: stations,
+        regional: regionalStationSummaries.stations,
+      },
+      "ttc",
+      { parking: true }
+    );
+    assert.ok(filteredLineGroups.length > 0);
+    for (const group of filteredLineGroups) {
+      assert.ok(group.stations.every((station) => station.hasParking));
+    }
+
+    const searchWithParking = searchStationsAcrossNetworks(
+      {
+        ttc: stations,
+        regional: regionalStationSummaries.stations,
+      },
+      "ttc",
+      "finch",
+      16,
+      { parking: true }
+    );
+    assert.ok(searchWithParking.length > 0);
+    assert.ok(searchWithParking.every((res) => res.station.hasParking));
   });
 });

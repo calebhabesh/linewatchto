@@ -122,8 +122,22 @@ export const REGIONAL_NOT_WHEELCHAIR_ACCESSIBLE = new Set([
   "oriole",
 ]);
 
+export const REGIONAL_NO_PARKING = new Set([
+  "union",
+  "exhibition",
+  "pearson-airport",
+]);
+
 export function isRegionalStationWheelchairAccessible(stationId: string): boolean {
   return !REGIONAL_NOT_WHEELCHAIR_ACCESSIBLE.has(stationId);
+}
+
+export function isRegionalStationParkingAvailable(stationId: string): boolean {
+  return !REGIONAL_NO_PARKING.has(stationId);
+}
+
+export function isRegionalStationWashroomAvailable(stationId: string): boolean {
+  return true;
 }
 
 export const regionalStations: Station[] = allRegionalStationIds.map((id) => ({
@@ -136,17 +150,25 @@ export const regionalStations: Station[] = allRegionalStationIds.map((id) => ({
 
 export const regionalStationSummaries: StationListResponse = {
   generatedAt: "fixture",
-  stations: regionalStations.map((station) => ({
-    id: station.id,
-    name: station.name,
-    mapX: 0,
-    mapY: 0,
-    interchange: station.interchange ?? false,
-    lineIds: regionalRouteIdsByStation[station.id] ?? [],
-    hasActiveImpact: false,
-    accessStatus: "normal",
-    accessOutageCounts: { elevator: 0, escalator: 0 },
-  })),
+  stations: regionalStations.map((station) => {
+    const lineIds = regionalRouteIdsByStation[station.id] ?? [];
+    const wheelchairAccessible = isRegionalStationWheelchairAccessible(station.id);
+    return {
+      id: station.id,
+      name: station.name,
+      mapX: 0,
+      mapY: 0,
+      interchange: station.interchange ?? false,
+      lineIds,
+      hasActiveImpact: false,
+      accessStatus: "normal",
+      accessOutageCounts: { elevator: 0, escalator: 0 },
+      wheelchairAccessible,
+      hasElevator: wheelchairAccessible,
+      hasWashroom: true,
+      hasParking: isRegionalStationParkingAvailable(station.id),
+    };
+  }),
 };
 
 const regionalLineStatuses: LineStatus[] = REGIONAL_ROUTE_DEFINITIONS.map((route) => ({

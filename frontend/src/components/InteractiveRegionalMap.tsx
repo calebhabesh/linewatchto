@@ -2956,6 +2956,7 @@ function InteractiveRegionalMapComponent({
             : selectionArtwork.querySelector<SVGElement>(".regional-station-selected-indicator");
           selectionArtworkIndicator?.classList.remove("map-selection-attention");
           selectionArtworkIndicator?.classList.remove("foreground-flash-active");
+          selectionArtworkIndicator?.classList.remove("regional-station-selected-indicator");
           selectionArtworkIndicator?.classList.add("regional-station-selection-source-artwork");
           selectionArtworkIndicator?.setAttribute("data-regional-station-selected", "true");
           selectionArtworkIndicator?.removeAttribute("data-regional-station-selection-id");

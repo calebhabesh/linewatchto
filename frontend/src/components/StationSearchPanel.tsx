@@ -16,9 +16,13 @@ import {
   buildNetworkStationLineGroups,
   searchStationsAcrossNetworks,
   stationSearchLineById,
+  countStationAmenities,
+  hasActiveAmenityFilters,
   type NetworkStationLineGroup,
   type StationSearchLine,
   type StationSearchCatalogs,
+  type StationAmenityFilter,
+  type StationAmenityFilterKey,
 } from "../app/station-search";
 import {
   type StationSummary,
@@ -210,10 +214,10 @@ function StationButton({
     .map((lineId) => lineById(lineId))
     .filter((line): line is StationSearchLine => Boolean(line));
 
-  const isWheelchair = isStationWheelchairAccessible(station.id, station.lineIds, networkId);
-  const hasElevator = networkId === "ttc" && isStationElevatorAccessible(station.id, station.lineIds);
-  const hasWashroom = networkId === "ttc" && isStationWashroomAvailable(station.id);
-  const hasParking = networkId === "ttc" && isStationParkingAvailable(station.id);
+  const isWheelchair = station.wheelchairAccessible ?? isStationWheelchairAccessible(station.id, station.lineIds, networkId);
+  const hasElevator = station.hasElevator ?? (networkId === "ttc" ? isStationElevatorAccessible(station.id, station.lineIds) : isWheelchair);
+  const hasWashroom = station.hasWashroom ?? isStationWashroomAvailable(station.id, networkId);
+  const hasParking = station.hasParking ?? isStationParkingAvailable(station.id, networkId);
 
   let accessibilityLabel = "";
   if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
@@ -344,10 +348,29 @@ export function StationSearchPanel({
   );
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [amenityFilters, setAmenityFilters] = useState<StationAmenityFilter>({});
+
+  const toggleAmenityFilter = (key: StationAmenityFilterKey) => {
+    setAmenityFilters((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const clearAmenityFilters = () => {
+    setAmenityFilters({});
+  };
+
   const currentStations = stationCatalogs[currentNetwork];
+  const currentAmenityCounts = useMemo(
+    () => countStationAmenities(currentStations, currentNetwork),
+    [currentNetwork, currentStations],
+  );
+  const hasActiveFilters = hasActiveAmenityFilters(amenityFilters);
+
   const stationResults = useMemo(
-    () => searchStationsAcrossNetworks(stationCatalogs, currentNetwork, query),
-    [currentNetwork, query, stationCatalogs],
+    () => searchStationsAcrossNetworks(stationCatalogs, currentNetwork, query, 16, amenityFilters),
+    [amenityFilters, currentNetwork, query, stationCatalogs],
   );
   const savedStationResults = useMemo(
     () => stationResults.filter((result) => savedStationKeys.has(`${result.networkId}:${result.station.id}`)),
@@ -387,8 +410,8 @@ export function StationSearchPanel({
   );
   const matchedCategories = useMemo(() => matchImpactCategories(query), [query]);
   const lineGroups = useMemo(
-    () => buildNetworkStationLineGroups(stationCatalogs, currentNetwork),
-    [currentNetwork, stationCatalogs],
+    () => buildNetworkStationLineGroups(stationCatalogs, currentNetwork, amenityFilters),
+    [amenityFilters, currentNetwork, stationCatalogs],
   );
   const networkResultOrder: NetworkId[] = currentNetwork === "ttc"
     ? ["ttc", "regional"]
@@ -675,6 +698,90 @@ export function StationSearchPanel({
       )}
 
       <div className="station-search-content">
+        <div className="station-search-amenity-toolbar" role="toolbar" aria-label="Filter stations by amenities">
+          <div className="station-search-amenity-chips">
+            <button
+              type="button"
+              className={`station-search-amenity-chip ${amenityFilters.wheelchair ? "active" : ""}`}
+              onClick={() => toggleAmenityFilter("wheelchair")}
+              aria-pressed={Boolean(amenityFilters.wheelchair)}
+              title="Filter wheelchair accessible stations"
+            >
+              <Image
+                src="/assets/linewatch/wheel-chair-symbol.svg"
+                alt=""
+                width={13}
+                height={13}
+                className="h-3.5 w-3.5 rounded-[2px] shrink-0"
+              />
+              <span>Accessible</span>
+              <span className="station-search-amenity-chip-count">{currentAmenityCounts.wheelchair}</span>
+            </button>
+            <button
+              type="button"
+              className={`station-search-amenity-chip ${amenityFilters.elevator ? "active" : ""}`}
+              onClick={() => toggleAmenityFilter("elevator")}
+              aria-pressed={Boolean(amenityFilters.elevator)}
+              title="Filter stations with elevator access"
+            >
+              <Image
+                src="/assets/linewatch/outages/elevator.svg"
+                alt=""
+                width={13}
+                height={13}
+                className="h-3.5 w-3.5 shrink-0"
+              />
+              <span>Elevator</span>
+              <span className="station-search-amenity-chip-count">{currentAmenityCounts.elevator}</span>
+            </button>
+            <button
+              type="button"
+              className={`station-search-amenity-chip ${amenityFilters.washroom ? "active" : ""}`}
+              onClick={() => toggleAmenityFilter("washroom")}
+              aria-pressed={Boolean(amenityFilters.washroom)}
+              title="Filter stations with public washrooms"
+            >
+              <Image
+                src="/assets/linewatch/washroom.svg"
+                alt=""
+                width={13}
+                height={13}
+                className="h-3.5 w-3.5 shrink-0"
+              />
+              <span>Washrooms</span>
+              <span className="station-search-amenity-chip-count">{currentAmenityCounts.washroom}</span>
+            </button>
+            <button
+              type="button"
+              className={`station-search-amenity-chip ${amenityFilters.parking ? "active" : ""}`}
+              onClick={() => toggleAmenityFilter("parking")}
+              aria-pressed={Boolean(amenityFilters.parking)}
+              title="Filter stations with commuter parking"
+            >
+              <Image
+                src="/assets/linewatch/parking.svg"
+                alt=""
+                width={13}
+                height={13}
+                className="h-3.5 w-3.5 rounded-full shrink-0"
+              />
+              <span>Parking</span>
+              <span className="station-search-amenity-chip-count">{currentAmenityCounts.parking}</span>
+            </button>
+          </div>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="station-search-amenity-clear"
+              onClick={clearAmenityFilters}
+              aria-label="Clear amenity filters"
+            >
+              <X size={12} aria-hidden="true" />
+              <span>Clear</span>
+            </button>
+          )}
+        </div>
+
         {query.trim() ? (
           <div className="station-search-results global-search-results" aria-label="Search results">
             {destinationResults.length > 0 || lineResults.length > 0 || stationResults.length > 0 || savedCommuteResults.length > 0 || impactGroups.length > 0 || surfaceNoticeResults.length > 0 || matchedCategories.length > 0 ? (
@@ -942,55 +1049,63 @@ export function StationSearchPanel({
                   ))}
                 </div>
               </div>
-              {lineGroups.map((group, index) => {
-                const expanded = expandedLineId === group.line.id;
-                const previousGroup = lineGroups[index - 1];
-                const startsNetworkSection = !previousGroup || previousGroup.networkId !== group.networkId;
+              {lineGroups.length === 0 ? (
+                <div className="station-search-empty" role="status">
+                  No stations match the selected amenity filters.
+                </div>
+              ) : (
+                lineGroups.map((group, index) => {
+                  const expanded = expandedLineId === group.line.id;
+                  const previousGroup = lineGroups[index - 1];
+                  const startsNetworkSection = !previousGroup || previousGroup.networkId !== group.networkId;
 
-                return (
-                  <div key={`${group.networkId}:${group.line.id}`}>
-                    {startsNetworkSection ? (
-                      <div className={`station-search-network-heading ${group.networkId}`}>
-                        {group.networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
-                        {group.networkId === currentNetwork ? <span>Current map</span> : null}
-                      </div>
-                    ) : null}
-                    <div
-                      className={`station-search-line-group ${expanded ? "expanded" : ""}`}
-                    >
-                      <button
-                        ref={(element) => { lineTriggerRefs.current[index] = element; }}
-                        onKeyDown={(event) => handleLineTriggerKeyDown(index, event)}
-                        type="button"
-                        className={`station-search-line-trigger ${expanded ? "active" : ""}`}
-                        onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
-                        aria-expanded={expanded}
-                        aria-controls="station-search-stations-column"
-                      >
-                        <div className="flex items-center gap-2">
-                          <TransitLineBadge
-                            lineId={group.line.id}
-                            lineNumber={group.line.number}
-                            lineName={group.line.name}
-                            size={30}
-                            decorative
-                          />
-                          <span className="station-search-line-copy">
-                            <span className="station-search-line-title">
-                              {group.line.id.startsWith("regional-") ? group.line.number : `Line ${group.line.number}`}
-                            </span>
-                            <span className="station-search-line-name">{group.line.name}</span>
-                          </span>
+                  return (
+                    <div key={`${group.networkId}:${group.line.id}`}>
+                      {startsNetworkSection ? (
+                        <div className={`station-search-network-heading ${group.networkId}`}>
+                          {group.networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
+                          {group.networkId === currentNetwork ? <span>Current map</span> : null}
                         </div>
-                        <span className="station-search-line-action">
-                          <span className="station-search-line-action-text">List View</span>
-                          <ChevronRight size={17} className="station-search-line-chevron" aria-hidden="true" />
-                        </span>
-                      </button>
+                      ) : null}
+                      <div
+                        className={`station-search-line-group ${expanded ? "expanded" : ""}`}
+                      >
+                        <button
+                          ref={(element) => { lineTriggerRefs.current[index] = element; }}
+                          onKeyDown={(event) => handleLineTriggerKeyDown(index, event)}
+                          type="button"
+                          className={`station-search-line-trigger ${expanded ? "active" : ""}`}
+                          onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
+                          aria-expanded={expanded}
+                          aria-controls="station-search-stations-column"
+                        >
+                          <div className="flex items-center gap-2">
+                            <TransitLineBadge
+                              lineId={group.line.id}
+                              lineNumber={group.line.number}
+                              lineName={group.line.name}
+                              size={30}
+                              decorative
+                            />
+                            <span className="station-search-line-copy">
+                              <span className="station-search-line-title">
+                                {group.line.id.startsWith("regional-") ? group.line.number : `Line ${group.line.number}`}
+                              </span>
+                              <span className="station-search-line-name">{group.line.name}</span>
+                            </span>
+                          </div>
+                          <span className="station-search-line-action">
+                            <span className="station-search-line-action-text">
+                              {hasActiveFilters ? `${group.stations.length} station${group.stations.length === 1 ? "" : "s"}` : "List View"}
+                            </span>
+                            <ChevronRight size={17} className="station-search-line-chevron" aria-hidden="true" />
+                          </span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             <div
@@ -1016,7 +1131,7 @@ export function StationSearchPanel({
                     <div className="station-search-stations-column-heading-content">
                       <TransitLineBadge lineId={activeLineGroup.line.id} lineNumber={activeLineGroup.line.number} lineName={activeLineGroup.line.name} size={24} />
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        {activeLineGroup.line.name} Stations · {activeLineGroup.networkId === "ttc" ? "TTC" : "GO/UP"}
+                        {activeLineGroup.line.name} Stations {hasActiveFilters ? `· ${activeLineGroup.stations.length} matching` : `· ${activeLineGroup.networkId === "ttc" ? "TTC" : "GO/UP"}`}
                       </span>
                     </div>
                   </div>

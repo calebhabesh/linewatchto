@@ -9654,6 +9654,128 @@ img.transit-line-badge {
   min-height: 0;
 }
 
+.station-search-amenity-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px 10px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  flex-shrink: 0;
+}
+
+.dark .station-search-amenity-toolbar {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.station-search-amenity-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.station-search-amenity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.6);
+  color: rgb(71, 85, 105);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: all 140ms ease-out;
+}
+
+.dark .station-search-amenity-chip {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgb(203, 213, 225);
+}
+
+.station-search-amenity-chip:hover {
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(15, 23, 42, 0.2);
+  color: rgb(15, 23, 42);
+}
+
+.dark .station-search-amenity-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgb(248, 250, 252);
+}
+
+.station-search-amenity-chip.active {
+  background: rgb(15, 23, 42);
+  border-color: rgb(15, 23, 42);
+  color: rgb(255, 255, 255);
+}
+
+.dark .station-search-amenity-chip.active {
+  background: rgb(241, 245, 249);
+  border-color: rgb(241, 245, 249);
+  color: rgb(15, 23, 42);
+}
+
+.station-search-amenity-chip:focus-visible {
+  outline: 2px solid rgb(37, 99, 235);
+  outline-offset: 1px;
+}
+
+.station-search-amenity-chip-count {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+}
+
+.dark .station-search-amenity-chip-count {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.station-search-amenity-chip.active .station-search-amenity-chip-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .station-search-amenity-chip.active .station-search-amenity-chip-count {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.station-search-amenity-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: rgb(100, 116, 139);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 120ms ease-out;
+}
+
+.dark .station-search-amenity-clear {
+  color: rgb(148, 163, 184);
+}
+
+.station-search-amenity-clear:hover,
+.station-search-amenity-clear:focus-visible {
+  color: rgb(239, 68, 68);
+  background: rgba(239, 68, 68, 0.08);
+  outline: none;
+}
+
 .station-search-results-list {
   display: flex;
   flex-direction: column;
@@ -23795,6 +23917,10 @@ button:active .account-network-badge,
   .station-search-lines-column,
   .station-search-stations-column {
     padding: 8px;
+  }
+
+  .station-search-amenity-toolbar {
+    padding: 4px 0 8px;
   }
 
   .station-search-line-trigger,

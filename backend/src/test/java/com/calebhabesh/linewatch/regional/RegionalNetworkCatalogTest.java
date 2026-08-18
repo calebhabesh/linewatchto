@@ -13,6 +13,19 @@ class RegionalNetworkCatalogTest {
         assertThat(RegionalNetworkCatalog.station("union")).get().satisfies(station -> {
             assertThat(station.interchange()).isTrue();
             assertThat(station.lineIds()).contains("regional-br", "regional-up");
+            assertThat(station.wheelchairAccessible()).isTrue();
+            assertThat(station.hasElevator()).isTrue();
+            assertThat(station.hasWashroom()).isTrue();
+            assertThat(station.hasParking()).isFalse();
+        });
+        assertThat(RegionalNetworkCatalog.station("oakville")).get().satisfies(station -> {
+            assertThat(station.wheelchairAccessible()).isTrue();
+            assertThat(station.hasParking()).isTrue();
+            assertThat(station.hasWashroom()).isTrue();
+        });
+        assertThat(RegionalNetworkCatalog.station("mimico")).get().satisfies(station -> {
+            assertThat(station.wheelchairAccessible()).isFalse();
+            assertThat(station.hasParking()).isTrue();
         });
         assertThat(RegionalNetworkCatalog.station("finch")).isEmpty();
     }

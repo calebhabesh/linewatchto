@@ -69,9 +69,25 @@ class StationControllerTest {
                     List.of("line-1"),
                     true,
                     "normal",
-                    new StationResponses.StationAccessOutageCountsResponse(0, 0)
+                    new StationResponses.StationAccessOutageCountsResponse(0, 0),
+                    true,
+                    true,
+                    true,
+                    false
                 ))
             );
+        }
+
+        @Override
+        public StationResponses.StationListResponse stationSummaries(
+            Boolean wheelchair,
+            Boolean elevator,
+            Boolean washroom,
+            Boolean parking,
+            String lineId,
+            String query
+        ) {
+            return stationSummaries();
         }
 
         @Override

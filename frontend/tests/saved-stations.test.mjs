@@ -2,27 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
-import { createRequire } from "node:module";
 
-const require = createRequire(import.meta.url);
-const ts = require("typescript");
+import { filterAndSortSavedStations } from "../src/app/saved-stations.ts";
+
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-
-function loadModule(relativePath, extra = {}) {
-  const filename = path.join(root, relativePath);
-  const source = fs.readFileSync(filename, "utf8");
-  const output = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  const loadedModule = { exports: {} };
-  vm.runInNewContext(`(function (require, module, exports) { ${output}\n})`, { console })(
-    (id) => extra[id] ?? require(id), loadedModule, loadedModule.exports,
-  );
-  return loadedModule.exports;
-}
-
-const { filterAndSortSavedStations } = loadModule("src/app/saved-stations.ts");
 
 function saved(id, name, lineIds, options = {}) {
   return {

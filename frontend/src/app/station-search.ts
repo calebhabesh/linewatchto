@@ -2,10 +2,33 @@ import {
   STATION_LINE_DEFINITIONS,
   STATION_LINE_STATION_IDS,
   type StationSummary,
+  isStationWheelchairAccessible,
+  isStationElevatorAccessible,
+  isStationWashroomAvailable,
+  isStationParkingAvailable,
 } from "./station-data.ts";
 import type { NetworkId } from "./regional-data.ts";
 
 type MatchKind = "exact" | "acronym" | "prefix" | "token-prefix" | "substring" | "subsequence";
+
+export type StationAmenityFilterKey = "wheelchair" | "elevator" | "washroom" | "parking";
+
+export type StationAmenityFilter = {
+  wheelchair?: boolean;
+  elevator?: boolean;
+  operationalElevatorOnly?: boolean;
+  washroom?: boolean;
+  parking?: boolean;
+};
+
+export type StationAmenityCounts = {
+  total: number;
+  wheelchair: number;
+  elevator: number;
+  washroom: number;
+  parking: number;
+  elevatorOutages: number;
+};
 
 export type StationSearchLine = {
   id: string;
@@ -168,6 +191,96 @@ function scoreStation(station: StationSummary, query: string): Pick<StationSearc
   return null;
 }
 
+export function stationMatchesAmenityFilter(
+  station: StationSummary,
+  networkId: NetworkId,
+  filter?: StationAmenityFilter | null,
+): boolean {
+  if (!filter) return true;
+  if (filter.wheelchair) {
+    const isWheelchair = station.wheelchairAccessible ?? isStationWheelchairAccessible(station.id, station.lineIds, networkId);
+    if (!isWheelchair) return false;
+  }
+  if (filter.elevator) {
+    const hasElev = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds);
+    if (!hasElev) return false;
+  }
+  if (filter.operationalElevatorOnly) {
+    const hasElev = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds);
+    const hasOutage = (station.accessOutageCounts?.elevator ?? 0) > 0;
+    if (!hasElev || hasOutage) return false;
+  }
+  if (filter.washroom) {
+    const hasWash = station.hasWashroom ?? isStationWashroomAvailable(station.id, networkId);
+    if (!hasWash) return false;
+  }
+  if (filter.parking) {
+    const hasPark = station.hasParking ?? isStationParkingAvailable(station.id, networkId);
+    if (!hasPark) return false;
+  }
+  return true;
+}
+
+export function hasActiveAmenityFilters(filter?: StationAmenityFilter | null): boolean {
+  if (!filter) return false;
+  return Boolean(
+    filter.wheelchair ||
+    filter.elevator ||
+    filter.operationalElevatorOnly ||
+    filter.washroom ||
+    filter.parking
+  );
+}
+
+export function filterStationSummariesByAmenities(
+  stations: StationSummary[],
+  networkId: NetworkId,
+  filter?: StationAmenityFilter | null,
+): StationSummary[] {
+  if (!hasActiveAmenityFilters(filter)) {
+    return stations;
+  }
+  return stations.filter((station) => stationMatchesAmenityFilter(station, networkId, filter));
+}
+
+export function countStationAmenities(
+  stations: StationSummary[],
+  networkId: NetworkId,
+): StationAmenityCounts {
+  let wheelchair = 0;
+  let elevator = 0;
+  let washroom = 0;
+  let parking = 0;
+  let elevatorOutages = 0;
+
+  for (const station of stations) {
+    if (station.wheelchairAccessible ?? isStationWheelchairAccessible(station.id, station.lineIds, networkId)) {
+      wheelchair++;
+    }
+    if (station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds)) {
+      elevator++;
+    }
+    if (station.hasWashroom ?? isStationWashroomAvailable(station.id, networkId)) {
+      washroom++;
+    }
+    if (station.hasParking ?? isStationParkingAvailable(station.id, networkId)) {
+      parking++;
+    }
+    if ((station.accessOutageCounts?.elevator ?? 0) > 0) {
+      elevatorOutages += station.accessOutageCounts?.elevator ?? 0;
+    }
+  }
+
+  return {
+    total: stations.length,
+    wheelchair,
+    elevator,
+    washroom,
+    parking,
+    elevatorOutages,
+  };
+}
+
 export function buildStationLineGroups(stations: StationSummary[]): StationLineGroup[] {
   const stationById = new Map(stations.map((station) => [station.id, station]));
   const visibleLineIds = new Set(stations.flatMap((station) => station.lineIds));
@@ -193,17 +306,20 @@ export function buildStationLineGroups(stations: StationSummary[]): StationLineG
 export function buildNetworkStationLineGroups(
   catalogs: StationSearchCatalogs,
   currentNetwork: NetworkId,
+  amenityFilter?: StationAmenityFilter | null,
 ): NetworkStationLineGroup[] {
   const networkOrder: NetworkId[] = currentNetwork === "ttc"
     ? ["ttc", "regional"]
     : ["regional", "ttc"];
 
-  return networkOrder.flatMap((networkId) =>
-    buildStationLineGroups(catalogs[networkId]).map((group) => ({
+  return networkOrder.flatMap((networkId) => {
+    const networkStations = catalogs[networkId] ?? [];
+    const filteredStations = filterStationSummariesByAmenities(networkStations, networkId, amenityFilter);
+    return buildStationLineGroups(filteredStations).map((group) => ({
       ...group,
       networkId,
-    })),
-  );
+    }));
+  });
 }
 
 export function searchStations(stations: StationSummary[], query: string, limit = 12): StationSearchResult[] {
@@ -237,14 +353,16 @@ export function searchStationsAcrossNetworks(
   currentNetwork: NetworkId,
   query: string,
   limit = 16,
+  amenityFilter?: StationAmenityFilter | null,
 ): NetworkStationSearchResult[] {
   const results = (Object.entries(catalogs) as Array<[NetworkId, StationSummary[]]>)
-    .flatMap(([networkId, stations]) =>
-      searchStations(stations, query, limit).map((result) => ({
+    .flatMap(([networkId, stations]) => {
+      const filteredStations = filterStationSummariesByAmenities(stations, networkId, amenityFilter);
+      return searchStations(filteredStations, query, limit).map((result) => ({
         ...result,
         networkId,
-      })),
-    );
+      }));
+    });
 
   return results
     .sort((a, b) => {

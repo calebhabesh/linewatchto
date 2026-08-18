@@ -48,7 +48,7 @@ class StationServiceTest {
 
     @Test
     void stationSummariesIncludeLineIdsAccessStatusAndActiveImpactFlag() {
-        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false);
         StationLineEntity stationLine = new StationLineEntity(
             1L, "union", "line-1", "Northbound / Southbound", 1, true, true
         );
@@ -86,6 +86,32 @@ class StationServiceTest {
         assertThat(summary.accessOutageCounts().elevator()).isZero();
         assertThat(summary.accessOutageCounts().escalator()).isZero();
         assertThat(summary.hasActiveImpact()).isTrue();
+        assertThat(summary.wheelchairAccessible()).isTrue();
+        assertThat(summary.hasElevator()).isTrue();
+        assertThat(summary.hasWashroom()).isTrue();
+        assertThat(summary.hasParking()).isFalse();
+    }
+
+    @Test
+    void stationSummariesFiltersByAmenitiesAndLine() {
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false);
+        StationEntity finch = new StationEntity("finch", "Finch", 4311, 1000, false, 20, null, true, true);
+        StationLineEntity unionLine = new StationLineEntity(1L, "union", "line-1", "Northbound / Southbound", 1, true, true);
+        StationLineEntity finchLine = new StationLineEntity(2L, "finch", "line-1", "Northbound / Southbound", 2, true, true);
+
+        when(stationRepository.findAllByOrderBySortOrderAscNameAsc()).thenReturn(List.of(union, finch));
+        when(stationLineRepository.findAllByOrderByStationIdAscSortOrderAsc()).thenReturn(List.of(unionLine, finchLine));
+        when(accessStatusRepository.findAll()).thenReturn(List.of());
+        when(impactRepository.findAll()).thenReturn(List.of());
+
+        StationResponses.StationListResponse parkingOnly = stationService.stationSummaries(null, null, null, true, null, null);
+        assertThat(parkingOnly.stations()).extracting(StationResponses.StationSummaryResponse::id).containsExactly("finch");
+
+        StationResponses.StationListResponse washroomOnly = stationService.stationSummaries(null, null, true, null, null, null);
+        assertThat(washroomOnly.stations()).extracting(StationResponses.StationSummaryResponse::id).containsExactly("union", "finch");
+
+        StationResponses.StationListResponse queryMatched = stationService.stationSummaries(null, null, null, null, null, "uni");
+        assertThat(queryMatched.stations()).extracting(StationResponses.StationSummaryResponse::id).containsExactly("union");
     }
 
     @Test

@@ -1,5 +1,9 @@
 import { apiUrl } from "./api-client.ts";
-import { isRegionalStationWheelchairAccessible } from "./regional-data.ts";
+import {
+  isRegionalStationWheelchairAccessible,
+  isRegionalStationParkingAvailable,
+  isRegionalStationWashroomAvailable,
+} from "./regional-data.ts";
 
 export type StationAccessStatus = "normal" | "advisory" | "outage";
 export type StationImpactType = "active-alert" | "planned-closure";
@@ -20,6 +24,10 @@ export type StationSummary = {
   hasActiveImpact: boolean;
   accessStatus: StationAccessStatus;
   accessOutageCounts?: StationAccessOutageCounts;
+  wheelchairAccessible?: boolean;
+  hasElevator?: boolean;
+  hasWashroom?: boolean;
+  hasParking?: boolean;
 };
 
 export type StationListResponse = {
@@ -1611,11 +1619,18 @@ const fallbackLineIdsByStationId = Object.entries(STATION_LINE_STATION_IDS)
 
 export const fallbackStationSummaries: StationListResponse = {
   ...fallbackStationSummarySeed,
-  stations: fallbackStationSummarySeed.stations.map((station) => ({
-    ...station,
-    lineIds: fallbackLineIdsByStationId[station.id] ?? [],
-    accessOutageCounts: station.accessOutageCounts ?? EMPTY_ACCESS_OUTAGE_COUNTS,
-  })),
+  stations: fallbackStationSummarySeed.stations.map((station) => {
+    const lineIds = fallbackLineIdsByStationId[station.id] ?? [];
+    return {
+      ...station,
+      lineIds,
+      accessOutageCounts: station.accessOutageCounts ?? EMPTY_ACCESS_OUTAGE_COUNTS,
+      wheelchairAccessible: isStationWheelchairAccessible(station.id, lineIds, "ttc"),
+      hasElevator: isStationElevatorAccessible(station.id, lineIds),
+      hasWashroom: isStationWashroomAvailable(station.id, "ttc"),
+      hasParking: isStationParkingAvailable(station.id, "ttc"),
+    };
+  }),
 };
 
 function toFallbackStationLine(stationId: string, lineId: string): StationLine {
@@ -1740,11 +1755,17 @@ export function isStationElevatorAccessible(stationId: string, lineIds: string[]
   return lineIds.some((lineId) => !FALLBACK_WITHOUT_ELEVATOR.has(`${stationId}:${lineId}`));
 }
 
-export function isStationWashroomAvailable(stationId: string): boolean {
+export function isStationWashroomAvailable(stationId: string, networkId?: string): boolean {
+  if (networkId === "regional") {
+    return isRegionalStationWashroomAvailable(stationId);
+  }
   return FALLBACK_WITH_WASHROOMS.has(stationId);
 }
 
-export function isStationParkingAvailable(stationId: string): boolean {
+export function isStationParkingAvailable(stationId: string, networkId?: string): boolean {
+  if (networkId === "regional") {
+    return isRegionalStationParkingAvailable(stationId);
+  }
   return FALLBACK_WITH_PARKING.has(stationId);
 }
 

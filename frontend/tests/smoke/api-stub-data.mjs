@@ -515,6 +515,10 @@ export const stationSummariesResponse = {
         elevator: 1,
         escalator: 0,
       },
+      wheelchairAccessible: true,
+      hasElevator: true,
+      hasWashroom: true,
+      hasParking: true,
     },
     {
       id: "stub-union",
@@ -529,6 +533,10 @@ export const stationSummariesResponse = {
         elevator: 0,
         escalator: 0,
       },
+      wheelchairAccessible: true,
+      hasElevator: true,
+      hasWashroom: true,
+      hasParking: false,
     },
   ],
 };

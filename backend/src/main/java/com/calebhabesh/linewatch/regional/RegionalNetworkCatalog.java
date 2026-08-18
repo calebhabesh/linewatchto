@@ -120,6 +120,9 @@ public final class RegionalNetworkCatalog {
         Map.entry("WH", "whitby"), Map.entry("WR", "west-harbour")
     );
 
+    private static final Set<String> REGIONAL_NOT_WHEELCHAIR = Set.of("long-branch", "mimico", "oriole");
+    private static final Set<String> REGIONAL_NO_PARKING = Set.of("union", "exhibition", "pearson-airport");
+
     private static final Map<String, StationResponses.StationSummaryResponse> STATIONS = buildStations();
     private static final List<Segment> SEGMENTS = buildSegments();
 
@@ -354,16 +357,23 @@ public final class RegionalNetworkCatalog {
 
         Map<String, StationResponses.StationSummaryResponse> stations = new LinkedHashMap<>();
         for (Map.Entry<String, List<String>> entry : lineIds.entrySet()) {
-            stations.put(entry.getKey(), new StationResponses.StationSummaryResponse(
-                entry.getKey(),
-                stationName(entry.getKey()),
+            String stationId = entry.getKey();
+            boolean accessible = !REGIONAL_NOT_WHEELCHAIR.contains(stationId);
+            boolean parking = !REGIONAL_NO_PARKING.contains(stationId);
+            stations.put(stationId, new StationResponses.StationSummaryResponse(
+                stationId,
+                stationName(stationId),
                 0,
                 0,
                 entry.getValue().size() > 1,
                 List.copyOf(entry.getValue()),
                 false,
                 "normal",
-                new StationResponses.StationAccessOutageCountsResponse(0, 0)
+                new StationResponses.StationAccessOutageCountsResponse(0, 0),
+                accessible,
+                accessible,
+                true,
+                parking
             ));
         }
         return stations;

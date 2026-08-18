@@ -1,4 +1,8 @@
 import type { AccountSavedStation } from "./saved-station-data.ts";
+import {
+  stationMatchesAmenityFilter,
+  type StationAmenityFilter,
+} from "./station-search.ts";
 
 export type SavedStationSort = "attention" | "name" | "recent" | "oldest" | "line";
 
@@ -29,11 +33,13 @@ export function filterAndSortSavedStations(
   query: string,
   lineId: string,
   sort: SavedStationSort,
+  amenityFilter?: StationAmenityFilter | null,
 ) {
   const needle = normalized(query);
   return stations
     .filter((saved) => !needle || normalized(saved.station.name).includes(needle))
     .filter((saved) => lineId === "all" || saved.station.lineIds.includes(lineId))
+    .filter((saved) => stationMatchesAmenityFilter(saved.station, saved.networkId, amenityFilter))
     .slice()
     .sort((left, right) => {
       const name = left.station.name.localeCompare(right.station.name, "en-CA");

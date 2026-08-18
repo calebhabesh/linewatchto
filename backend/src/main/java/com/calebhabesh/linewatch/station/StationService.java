@@ -63,13 +63,21 @@ public class StationService {
     }
 
     public StationResponses.StationListResponse stationSummaries() {
+        return stationSummaries(null, null, null, null, null, null);
+    }
+
+    public StationResponses.StationListResponse stationSummaries(
+        Boolean wheelchair,
+        Boolean elevator,
+        Boolean washroom,
+        Boolean parking,
+        String lineId,
+        String query
+    ) {
         List<StationEntity> stations = stationRepository.findAllByOrderBySortOrderAscNameAsc();
-        Map<String, List<String>> lineIdsByStation = stationLineRepository.findAllByOrderByStationIdAscSortOrderAsc()
+        Map<String, List<StationLineEntity>> stationLinesByStation = stationLineRepository.findAllByOrderByStationIdAscSortOrderAsc()
             .stream()
-            .collect(Collectors.groupingBy(
-                StationLineEntity::getStationId,
-                Collectors.mapping(StationLineEntity::getLineId, Collectors.toList())
-            ));
+            .collect(Collectors.groupingBy(StationLineEntity::getStationId));
         boolean dashboardFresh = ingestionFreshness.isDashboardFresh();
         Map<String, StationResponses.StationAccessOutageCountsResponse> accessOutageCountsByStation = dashboardFresh
             ? accessOutageCounts(liveReadRepository.findActiveOutageCountsByStationId())
@@ -93,17 +101,39 @@ public class StationService {
                 ));
 
         List<StationResponses.StationSummaryResponse> summaries = stations.stream()
-            .map(station -> new StationResponses.StationSummaryResponse(
-                station.getId(),
-                station.getName(),
-                station.getMapX(),
-                station.getMapY(),
-                station.isInterchange(),
-                lineIdsByStation.getOrDefault(station.getId(), List.of()),
-                activeImpactByStation.getOrDefault(station.getId(), false),
-                accessByStation.getOrDefault(station.getId(), "normal"),
-                accessOutageCountsByStation.getOrDefault(station.getId(), ZERO_ACCESS_OUTAGE_COUNTS)
-            ))
+            .map(station -> {
+                List<StationLineEntity> stationLines = stationLinesByStation.getOrDefault(station.getId(), List.of());
+                List<String> lineIds = stationLines.stream().map(StationLineEntity::getLineId).toList();
+                boolean wheelchairAccessible = stationLines.stream().anyMatch(StationLineEntity::isWheelchairAccessible);
+                boolean hasElevator = stationLines.stream().anyMatch(StationLineEntity::hasElevator);
+                boolean hasWashroom = station.hasWashroom();
+                boolean hasParking = station.hasParking();
+
+                return new StationResponses.StationSummaryResponse(
+                    station.getId(),
+                    station.getName(),
+                    station.getMapX(),
+                    station.getMapY(),
+                    station.isInterchange(),
+                    lineIds,
+                    activeImpactByStation.getOrDefault(station.getId(), false),
+                    accessByStation.getOrDefault(station.getId(), "normal"),
+                    accessOutageCountsByStation.getOrDefault(station.getId(), ZERO_ACCESS_OUTAGE_COUNTS),
+                    wheelchairAccessible,
+                    hasElevator,
+                    hasWashroom,
+                    hasParking
+                );
+            })
+            .filter(summary -> {
+                if (Boolean.TRUE.equals(wheelchair) && !summary.wheelchairAccessible()) return false;
+                if (Boolean.TRUE.equals(elevator) && !summary.hasElevator()) return false;
+                if (Boolean.TRUE.equals(washroom) && !summary.hasWashroom()) return false;
+                if (Boolean.TRUE.equals(parking) && !summary.hasParking()) return false;
+                if (lineId != null && !lineId.isBlank() && !summary.lineIds().contains(lineId)) return false;
+                if (query != null && !query.isBlank() && !summary.name().toLowerCase().contains(query.toLowerCase().trim())) return false;
+                return true;
+            })
             .toList();
 
         return new StationResponses.StationListResponse(DATA_MODE, summaries);

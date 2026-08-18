@@ -36,7 +36,7 @@ describe("unified search alert group headings", () => {
   });
 
   it("keeps both network catalogs searchable and groups network-safe station results", () => {
-    assert.match(searchPanelSource, /searchStationsAcrossNetworks\(stationCatalogs,\s*currentNetwork,\s*query\)/);
+    assert.match(searchPanelSource, /searchStationsAcrossNetworks\(stationCatalogs,\s*currentNetwork,\s*query/);
     assert.doesNotMatch(searchPanelSource, /station-search-network-badge/);
     assert.match(searchPanelSource, /global-search-network-heading \$\{networkId\}/);
     assert.match(searchPanelSource, /station-search-network-heading \$\{group\.networkId\}/);
