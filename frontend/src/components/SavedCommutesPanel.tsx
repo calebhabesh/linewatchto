@@ -1126,10 +1126,9 @@ export function SavedCommutesPanel({
       );
       if (!card) return false;
 
-      const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       card.scrollIntoView({
         block: "center",
-        behavior: prefersReducedMotion ? "auto" : "smooth",
+        behavior: "auto",
       });
       return true;
     };
