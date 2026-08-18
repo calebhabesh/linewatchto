@@ -16,6 +16,7 @@ import {
   Navigation,
   Activity,
   Search,
+  Signpost,
   Smartphone,
   SquarePlus,
   Sun,
@@ -365,7 +366,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
 
             <hr className="site-guide-divider" />
 
-            <GuideSection icon={<MousePointer2 size={15} />} title="How to Use LineWatchTO">
+            <GuideSection icon={<Signpost size={15} />} title="How to Use LineWatchTO">
               <ul className="site-guide-action-list">
                 <GuideActionRow icon={<MousePointer2 size={14} />} label="Drag The Map" text="Pan to navigate the network. Scroll or pinch to zoom." />
                 <GuideActionRow

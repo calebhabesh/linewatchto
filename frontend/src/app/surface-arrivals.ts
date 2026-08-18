@@ -287,6 +287,16 @@ export function buildPinnedSurfaceGroups(
   return [...pinnedActive, ...syntheticGroups];
 }
 
+export function getSurfaceArrivalGroupBayKey(
+  group: Pick<SurfaceArrivalGroup, "bayPlatform">,
+): string {
+  let bayLabel = (group.bayPlatform || "").trim();
+  if (bayLabel && /^\d+$/.test(bayLabel)) {
+    bayLabel = `Bay ${bayLabel}`;
+  }
+  return bayLabel || "unspecified";
+}
+
 export function groupSurfaceArrivalsByBay(
   groups: SurfaceArrivalGroup[],
   pinnedRouteIds: Iterable<string> = [],
@@ -302,7 +312,7 @@ export function groupSurfaceArrivalsByBay(
     if (bayLabel && /^\d+$/.test(bayLabel)) {
       bayLabel = `Bay ${bayLabel}`;
     }
-    const bayKey = bayLabel || "unspecified";
+    const bayKey = getSurfaceArrivalGroupBayKey(group);
 
     const section = bayMap.get(bayKey) ?? {
       bayKey,

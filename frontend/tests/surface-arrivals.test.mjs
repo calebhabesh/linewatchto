@@ -6,6 +6,7 @@ import {
   filterActiveSurfaceArrivals,
   formatSurfaceArrivalClockTime,
   formatSurfaceArrivalTileLabel,
+  getSurfaceArrivalGroupBayKey,
   getSurfaceArrivals,
   groupSurfaceArrivals,
   groupSurfaceArrivalsByBay,
@@ -172,10 +173,17 @@ describe("surface station arrivals", () => {
     const naturalBays = groupSurfaceArrivalsByBay(groups, []);
     assert.equal(naturalBays.length, 4);
     assert.equal(naturalBays[0].bayLabel, "Bay 2");
+    assert.equal(naturalBays[0].bayKey, "Bay 2");
     assert.equal(naturalBays[0].groups.length, 2);
     assert.equal(naturalBays[1].bayLabel, "Bay 3");
     assert.equal(naturalBays[2].bayLabel, "Bay 4");
     assert.equal(naturalBays[3].bayLabel, "Bay 5");
+
+    // getSurfaceArrivalGroupBayKey helper normalizes numbers and unspecified platforms
+    assert.equal(getSurfaceArrivalGroupBayKey({ bayPlatform: "2" }), "Bay 2");
+    assert.equal(getSurfaceArrivalGroupBayKey({ bayPlatform: "Bay 2" }), "Bay 2");
+    assert.equal(getSurfaceArrivalGroupBayKey({ bayPlatform: "Platform" }), "Platform");
+    assert.equal(getSurfaceArrivalGroupBayKey({ bayPlatform: "" }), "unspecified");
 
     // When Route 935 in Bay 4 is starred, Bay 4 floats to the top
     const pinnedBays = groupSurfaceArrivalsByBay(groups, ["surface:935"]);

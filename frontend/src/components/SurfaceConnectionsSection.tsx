@@ -8,6 +8,7 @@ import {
   filterActiveSurfaceArrivals,
   formatSurfaceArrivalClockTime,
   formatSurfaceArrivalTileLabel,
+  getSurfaceArrivalGroupBayKey,
   getSurfaceArrivals,
   groupSurfaceArrivals,
   groupSurfaceArrivalsByBay,
@@ -447,21 +448,29 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
               className="surface-connections-collapsed-pinned mt-2 flex w-full min-w-0 max-w-full flex-col gap-1.5 overflow-hidden"
               onClick={(event) => event.stopPropagation()}
             >
-              {pinnedGroups.map((group, index) => (
-                <Fragment key={group.key}>
-                  {index > 0 && <div className="station-arrival-line-divider my-0.5 opacity-60" aria-hidden="true" />}
-                  <SurfaceCompactRouteRow
-                    group={group}
-                    networkId={networkId}
-                    isPinned={true}
-                    isHoveredPin={hoveredPinRoute === group.route}
-                    onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
-                    onTogglePin={() => togglePin(`surface:${group.route}`)}
-                    stationName={snapshot.stationName || "Station"}
-                    tick={tick}
-                  />
-                </Fragment>
-              ))}
+              {pinnedGroups.map((group, index) => {
+                const showDivider =
+                  index > 0 &&
+                  getSurfaceArrivalGroupBayKey(group) !==
+                    getSurfaceArrivalGroupBayKey(pinnedGroups[index - 1]);
+                return (
+                  <Fragment key={group.key}>
+                    {showDivider && (
+                      <div className="station-arrival-line-divider my-0.5 opacity-60" aria-hidden="true" />
+                    )}
+                    <SurfaceCompactRouteRow
+                      group={group}
+                      networkId={networkId}
+                      isPinned={true}
+                      isHoveredPin={hoveredPinRoute === group.route}
+                      onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
+                      onTogglePin={() => togglePin(`surface:${group.route}`)}
+                      stationName={snapshot.stationName || "Station"}
+                      tick={tick}
+                    />
+                  </Fragment>
+                );
+              })}
             </div>
           )}
         </summary>
@@ -490,25 +499,22 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                     />
                   )}
                   <div className="flex w-full min-w-0 max-w-full flex-col gap-1.5 overflow-hidden" data-surface-bay={baySection.bayKey}>
-                    {baySection.groups.map((group, groupIndex) => {
+                    {baySection.groups.map((group) => {
                       const isPinned = pinnedLineIds.includes(`surface:${group.route}`) || pinnedLineIds.includes(group.route);
                       const isHoveredPin = hoveredPinRoute === group.route;
 
                       return (
-                        <Fragment key={group.key}>
-                          {groupIndex > 0 && <div className="station-arrival-line-divider my-0.5 opacity-60" aria-hidden="true" />}
-                          <SurfaceCompactRouteRow
-                            key={group.key}
-                            group={group}
-                            networkId={networkId}
-                            isPinned={isPinned}
-                            isHoveredPin={isHoveredPin}
-                            onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
-                            onTogglePin={() => togglePin(`surface:${group.route}`)}
-                            stationName={snapshot.stationName || "Station"}
-                            tick={tick}
-                          />
-                        </Fragment>
+                        <SurfaceCompactRouteRow
+                          key={group.key}
+                          group={group}
+                          networkId={networkId}
+                          isPinned={isPinned}
+                          isHoveredPin={isHoveredPin}
+                          onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
+                          onTogglePin={() => togglePin(`surface:${group.route}`)}
+                          stationName={snapshot.stationName || "Station"}
+                          tick={tick}
+                        />
                       );
                     })}
                   </div>
@@ -566,21 +572,27 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
             className="surface-connections-collapsed-pinned mt-2.5 flex flex-col gap-2"
             onClick={(event) => event.stopPropagation()}
           >
-            {pinnedGroups.map((group, index) => (
-              <Fragment key={group.key}>
-                {index > 0 && <div className="station-arrival-line-divider my-1" aria-hidden="true" />}
-                <SurfaceRouteCard
-                  group={group}
-                  networkId={networkId}
-                  isPinned={true}
-                  isHoveredPin={hoveredPinRoute === group.route}
-                  onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
-                  onTogglePin={() => togglePin(`surface:${group.route}`)}
-                  stationName={snapshot.stationName || "Station"}
-                  tick={tick}
-                />
-              </Fragment>
-            ))}
+            {pinnedGroups.map((group, index) => {
+              const showDivider =
+                index > 0 &&
+                getSurfaceArrivalGroupBayKey(group) !==
+                  getSurfaceArrivalGroupBayKey(pinnedGroups[index - 1]);
+              return (
+                <Fragment key={group.key}>
+                  {showDivider && <div className="station-arrival-line-divider my-1" aria-hidden="true" />}
+                  <SurfaceRouteCard
+                    group={group}
+                    networkId={networkId}
+                    isPinned={true}
+                    isHoveredPin={hoveredPinRoute === group.route}
+                    onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
+                    onTogglePin={() => togglePin(`surface:${group.route}`)}
+                    stationName={snapshot.stationName || "Station"}
+                    tick={tick}
+                  />
+                </Fragment>
+              );
+            })}
           </div>
         )}
       </summary>
@@ -611,24 +623,22 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                     />
                   )}
                   <div className="flex flex-col gap-2" data-surface-bay={baySection.bayKey}>
-                    {baySection.groups.map((group, groupIndex) => {
+                    {baySection.groups.map((group) => {
                       const isPinned = pinnedLineIds.includes(`surface:${group.route}`) || pinnedLineIds.includes(group.route);
                       const isHoveredPin = hoveredPinRoute === group.route;
 
                       return (
-                        <Fragment key={group.key}>
-                          {groupIndex > 0 && <div className="station-arrival-line-divider my-1" aria-hidden="true" />}
-                          <SurfaceRouteCard
-                            group={group}
-                            networkId={networkId}
-                            isPinned={isPinned}
-                            isHoveredPin={isHoveredPin}
-                            onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
-                            onTogglePin={() => togglePin(`surface:${group.route}`)}
-                            stationName={snapshot.stationName || "Station"}
-                            tick={tick}
-                          />
-                        </Fragment>
+                        <SurfaceRouteCard
+                          key={group.key}
+                          group={group}
+                          networkId={networkId}
+                          isPinned={isPinned}
+                          isHoveredPin={isHoveredPin}
+                          onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
+                          onTogglePin={() => togglePin(`surface:${group.route}`)}
+                          stationName={snapshot.stationName || "Station"}
+                          tick={tick}
+                        />
                       );
                     })}
                   </div>
