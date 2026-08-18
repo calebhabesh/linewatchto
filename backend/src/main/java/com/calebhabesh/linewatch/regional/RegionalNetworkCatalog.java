@@ -121,7 +121,75 @@ public final class RegionalNetworkCatalog {
     );
 
     private static final Set<String> REGIONAL_NOT_WHEELCHAIR = Set.of("long-branch", "mimico", "oriole");
-    private static final Set<String> REGIONAL_NO_PARKING = Set.of("union", "exhibition", "pearson-airport");
+    private static final Set<String> REGIONAL_ELEVATOR = Set.of(
+        "ajax", "aldershot", "appleby", "bloomington", "bloor", "bramalea",
+        "brampton-innovation-district", "bronte", "burlington", "clarkson",
+        "confederation", "cooksville", "danforth", "downsview-park",
+        "durham-college-oshawa", "eglinton", "erindale", "exhibition",
+        "guildwood", "hamilton", "kennedy", "kipling", "malton", "meadowvale",
+        "mount-dennis", "mount-pleasant", "oakville", "pickering", "port-credit",
+        "rouge-hill", "scarborough", "streetsville", "union", "west-harbour",
+        "weston", "whitby"
+    );
+    private static final Set<String> REGIONAL_WASHROOM = Set.of(
+        "agincourt", "ajax", "aldershot", "appleby", "aurora", "barrie-south",
+        "bloomington", "bramalea", "brampton-innovation-district", "bronte",
+        "burlington", "clarkson", "cooksville", "danforth", "dixie",
+        "durham-college-oshawa", "east-gwillimbury", "eglinton", "erindale",
+        "etobicoke-north", "georgetown", "guildwood", "hamilton", "kennedy",
+        "king-city", "kipling", "kitchener", "langstaff", "lisgar",
+        "long-branch", "malton", "maple", "markham", "meadowvale", "milliken",
+        "milton", "mimico", "mount-dennis", "mount-joy", "mount-pleasant",
+        "niagara-falls", "oakville", "old-cummer", "pickering", "port-credit",
+        "richmond-hill", "rouge-hill", "rutherford", "scarborough",
+        "streetsville", "union", "unionville", "west-harbour", "weston", "whitby"
+    );
+    private static final Set<String> REGIONAL_PARKING = Set.of(
+        "acton", "agincourt", "ajax", "aldershot", "allandale-waterfront",
+        "appleby", "aurora", "barrie-south", "bloomington", "bradford",
+        "bramalea", "brampton-innovation-district", "bronte", "burlington",
+        "centennial", "clarkson", "confederation", "cooksville", "dixie",
+        "durham-college-oshawa", "east-gwillimbury", "eglinton", "erindale",
+        "etobicoke-north", "georgetown", "gormley", "guelph-central",
+        "guildwood", "king-city", "langstaff", "lisgar", "long-branch",
+        "malton", "maple", "markham", "meadowvale", "milliken", "milton",
+        "mimico", "mount-joy", "mount-pleasant", "newmarket", "oakville",
+        "old-cummer", "old-elm", "pickering", "port-credit", "richmond-hill",
+        "rouge-hill", "rutherford", "scarborough", "stouffville", "streetsville",
+        "unionville", "west-harbour", "weston", "whitby"
+    );
+    private static final Set<String> REGIONAL_BICYCLE_LOCKUP = Set.of(
+        "acton", "agincourt", "ajax", "aldershot", "allandale-waterfront",
+        "appleby", "aurora", "barrie-south", "bloomington", "bloor",
+        "bradford", "bramalea", "brampton-innovation-district", "bronte",
+        "burlington", "centennial", "clarkson", "confederation", "cooksville",
+        "danforth", "dixie", "downsview-park", "durham-college-oshawa",
+        "east-gwillimbury", "eglinton", "erindale", "etobicoke-north",
+        "exhibition", "georgetown", "gormley", "guelph-central", "guildwood",
+        "hamilton", "kennedy", "king-city", "kitchener", "langstaff", "lisgar",
+        "long-branch", "malton", "maple", "markham", "meadowvale", "milliken",
+        "milton", "mimico", "mount-dennis", "mount-joy", "mount-pleasant",
+        "newmarket", "niagara-falls", "oakville", "old-cummer", "old-elm",
+        "oriole", "pickering", "port-credit", "richmond-hill", "rouge-hill",
+        "rutherford", "scarborough", "st-catharines", "stouffville",
+        "streetsville", "union", "unionville", "west-harbour", "weston",
+        "whitby"
+    );
+    private static final Set<String> REGIONAL_PPUDO = Set.of(
+        "ajax", "aldershot", "allandale-waterfront", "appleby", "aurora",
+        "barrie-south", "bloomington", "bloor", "bradford", "bramalea",
+        "brampton-innovation-district", "bronte", "burlington", "centennial",
+        "clarkson", "confederation", "cooksville", "dixie", "downsview-park",
+        "durham-college-oshawa", "east-gwillimbury", "eglinton", "erindale",
+        "etobicoke-north", "georgetown", "gormley", "guelph-central",
+        "guildwood", "king-city", "langstaff", "lisgar", "long-branch",
+        "malton", "maple", "markham", "meadowvale", "milliken", "milton",
+        "mimico", "mount-dennis", "mount-joy", "mount-pleasant", "niagara-falls",
+        "oakville", "old-cummer", "old-elm", "pickering", "port-credit",
+        "richmond-hill", "rouge-hill", "rutherford", "scarborough",
+        "stouffville", "streetsville", "unionville", "west-harbour", "weston",
+        "whitby"
+    );
 
     private static final Map<String, StationResponses.StationSummaryResponse> STATIONS = buildStations();
     private static final List<Segment> SEGMENTS = buildSegments();
@@ -359,7 +427,11 @@ public final class RegionalNetworkCatalog {
         for (Map.Entry<String, List<String>> entry : lineIds.entrySet()) {
             String stationId = entry.getKey();
             boolean accessible = !REGIONAL_NOT_WHEELCHAIR.contains(stationId);
-            boolean parking = !REGIONAL_NO_PARKING.contains(stationId);
+            boolean hasElevator = REGIONAL_ELEVATOR.contains(stationId);
+            boolean hasWashroom = REGIONAL_WASHROOM.contains(stationId);
+            boolean hasParking = REGIONAL_PARKING.contains(stationId);
+            boolean hasBicycleLockup = REGIONAL_BICYCLE_LOCKUP.contains(stationId);
+            boolean hasPpudo = REGIONAL_PPUDO.contains(stationId);
             stations.put(stationId, new StationResponses.StationSummaryResponse(
                 stationId,
                 stationName(stationId),
@@ -371,9 +443,13 @@ public final class RegionalNetworkCatalog {
                 "normal",
                 new StationResponses.StationAccessOutageCountsResponse(0, 0),
                 accessible,
-                accessible,
-                true,
-                parking
+                hasElevator,
+                hasWashroom,
+                hasParking,
+                hasBicycleLockup,
+                false,
+                false,
+                hasPpudo
             ));
         }
         return stations;

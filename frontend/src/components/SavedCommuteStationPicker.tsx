@@ -101,7 +101,7 @@ function StationOption({
         {isWheelchair && (
           <span className="inline-flex items-center justify-center shrink-0" title="Wheelchair accessible">
             <Image
-              src="/assets/linewatch/wheel-chair-symbol.svg"
+              src="/assets/linewatch/accessible.svg"
               alt="Wheelchair accessible"
               width={12}
               height={12}

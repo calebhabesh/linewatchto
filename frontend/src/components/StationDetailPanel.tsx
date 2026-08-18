@@ -536,7 +536,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   {isWheelchairAccessible && (
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wheelchair accessible">
                       <Image
-                        src="/assets/linewatch/wheel-chair-symbol.svg"
+                        src="/assets/linewatch/accessible.svg"
                         alt="Wheelchair accessible"
                         width={25}
                         height={25}

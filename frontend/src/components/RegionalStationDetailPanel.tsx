@@ -1,11 +1,21 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, BadgeInfo, CalendarCheck2, ChevronDown, Construction, ExternalLink, FileText, Layers, LoaderCircle, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeInfo, CalendarCheck2, ChevronDown, Construction, ExternalLink, FileText, Layers, LoaderCircle, Train, Wifi } from "lucide-react";
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
-import { isRegionalStationWheelchairAccessible, REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
+import {
+  isRegionalStationWheelchairAccessible,
+  isRegionalStationElevatorAccessible,
+  isRegionalStationParkingAvailable,
+  isRegionalStationWashroomAvailable,
+  isRegionalStationBicycleLockupAvailable,
+  isRegionalStationPpudoAvailable,
+  isRegionalStationWifiAvailable,
+  REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
+  REGIONAL_ROUTE_DEFINITIONS,
+} from "../app/regional-data";
 import {
   emptyRegionalArrivalSnapshot,
   formatRegionalArrivalSourceSummary,
@@ -231,6 +241,7 @@ export function RegionalStationDetailPanel({
   onToggleSaved,
   onRequestSignIn,
   accessibilityOutages,
+  accessibilityFresh,
 }: Props) {
   const { pinnedLineIds, togglePin } = useArrivalLinePins("regional", station.id);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
@@ -326,7 +337,15 @@ export function RegionalStationDetailPanel({
     [arrivalSnapshot.arrivals, pinnedLineIds, station.id],
   );
 
-  const isWheelchairAccessible = isRegionalStationWheelchairAccessible(station.id);
+  const isWheelchairAccessible = station.wheelchairAccessible ?? isRegionalStationWheelchairAccessible(station.id);
+  const hasElevator = station.hasElevator ?? isRegionalStationElevatorAccessible(station.id);
+  const hasWashroom = station.hasWashroom ?? isRegionalStationWashroomAvailable(station.id);
+  const hasParking = station.hasParking ?? isRegionalStationParkingAvailable(station.id);
+  const hasBicycleLockup = station.hasBicycleLockup ?? isRegionalStationBicycleLockupAvailable(station.id);
+  const hasPpudo = station.hasPpudo ?? isRegionalStationPpudoAvailable(station.id);
+  const hasWifi = isRegionalStationWifiAvailable(station.id);
+  const hasElevatorOutage = accessibilityFresh && accessibilityOutages.some((outage) => outage.assetType === "elevator");
+  const hasAnyAmenities = isWheelchairAccessible || hasElevator || hasWashroom || hasParking || hasBicycleLockup || hasPpudo || hasWifi;
   const connections = regionalStationConnections(station.id);
 
   const toggleSaved = () => {
@@ -482,7 +501,7 @@ export function RegionalStationDetailPanel({
               </div>
             </div>
           ) : (
-            <div className="mt-2 flex flex-col gap-1.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+            <div className="mt-2 flex flex-col gap-1.5 shrink-0 pr-4" data-station-header-line-details aria-label="Regional rail corridors">
               {routes.map((route) => {
                 const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
                 return (
@@ -515,7 +534,7 @@ export function RegionalStationDetailPanel({
               <StationConnectionBadges connections={connections} />
             )}
 
-            {isWheelchairAccessible && (
+            {hasAnyAmenities && (
               <div
                 className="flex flex-col gap-2 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
@@ -524,18 +543,111 @@ export function RegionalStationDetailPanel({
                   Services and Amenities
                 </h4>
                 <div className="grid grid-cols-3 gap-x-2.5 sm:gap-x-3.5 gap-y-3 sm:gap-y-3.5 items-center">
-                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wheelchair accessible">
-                    <Image
-                      src="/assets/linewatch/wheel-chair-symbol.svg"
-                      alt="Wheelchair accessible"
-                      width={25}
-                      height={25}
-                      className="w-[21px] h-[21px] sm:w-[25px] sm:h-[25px] rounded-[3px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
-                    />
-                    <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
-                      Accessible
-                    </span>
-                  </div>
+                  {isWheelchairAccessible && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wheelchair accessible">
+                      <Image
+                        src="/assets/linewatch/accessible.svg"
+                        alt="Wheelchair accessible"
+                        width={25}
+                        height={25}
+                        className="w-[21px] h-[21px] sm:w-[25px] sm:h-[25px] rounded-[3px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Accessible
+                      </span>
+                    </div>
+                  )}
+                  {hasElevator && (
+                    <div
+                      className="flex items-center gap-1.5 sm:gap-2 min-w-0"
+                      data-facility-warning={hasElevatorOutage ? "elevator" : undefined}
+                      title={hasElevatorOutage ? "Elevators available, outage reported" : "Elevators available"}
+                    >
+                      <Image
+                        src="/assets/linewatch/outages/elevator.svg"
+                        alt={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                          Elevators
+                        </span>
+                        {hasElevatorOutage && (
+                          <span className="w-fit rounded bg-amber-500/15 px-1 py-0.2 text-[8.5px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                            Outage
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {hasWashroom && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Washrooms available">
+                      <Image
+                        src="/assets/linewatch/washroom.svg"
+                        alt="Washrooms available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Washrooms
+                      </span>
+                    </div>
+                  )}
+                  {hasParking && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Commuter parking available">
+                      <Image
+                        src="/assets/linewatch/parking.svg"
+                        alt="Parking available"
+                        width={30}
+                        height={30}
+                        className="w-[26px] h-[26px] sm:w-[30px] sm:h-[30px] rounded-full shrink-0 drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Parking
+                      </span>
+                    </div>
+                  )}
+                  {hasBicycleLockup && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Bicycle rack available">
+                      <Image
+                        src="/assets/linewatch/bicycle-lockup.svg"
+                        alt="Bicycle rack available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Bike Rack
+                      </span>
+                    </div>
+                  )}
+                  {hasPpudo && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Passenger pick-up / drop-off available">
+                      <Image
+                        src="/assets/linewatch/passenger-pick-up.svg"
+                        alt="Passenger pick-up / drop-off available"
+                        width={28}
+                        height={28}
+                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] shrink-0 drop-shadow-[0_0_1.5px_rgba(0,0,0,0.28)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.25)]"
+                      />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Passenger Pick-up
+                      </span>
+                    </div>
+                  )}
+                  {hasWifi && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wi-Fi available">
+                      <div className="flex w-[26px] h-[26px] sm:w-[30px] sm:h-[30px] items-center justify-center rounded-full bg-black/8 text-slate-700 dark:bg-white/12 dark:text-slate-200 shrink-0 drop-shadow-[0_0_1.5px_rgba(0,0,0,0.18)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.12)]">
+                        <Wifi size={16} className="shrink-0" />
+                      </div>
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        Wi-Fi
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

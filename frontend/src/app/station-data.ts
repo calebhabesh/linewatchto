@@ -3,6 +3,9 @@ import {
   isRegionalStationWheelchairAccessible,
   isRegionalStationParkingAvailable,
   isRegionalStationWashroomAvailable,
+  isRegionalStationElevatorAccessible,
+  isRegionalStationBicycleLockupAvailable,
+  isRegionalStationPpudoAvailable,
 } from "./regional-data.ts";
 
 export type StationAccessStatus = "normal" | "advisory" | "outage";
@@ -1968,7 +1971,10 @@ export function isStationWheelchairAccessible(stationId: string, lineIds: string
   return lineIds.some((lineId) => !FALLBACK_NOT_WHEELCHAIR_ACCESSIBLE.has(`${stationId}:${lineId}`));
 }
 
-export function isStationElevatorAccessible(stationId: string, lineIds: string[]): boolean {
+export function isStationElevatorAccessible(stationId: string, lineIds: string[], networkId?: string): boolean {
+  if (networkId === "regional" || lineIds.some((id) => id.startsWith("regional-"))) {
+    return isRegionalStationElevatorAccessible(stationId);
+  }
   return lineIds.some((lineId) => !FALLBACK_WITHOUT_ELEVATOR.has(`${stationId}:${lineId}`));
 }
 
@@ -1988,7 +1994,7 @@ export function isStationParkingAvailable(stationId: string, networkId?: string)
 
 export function isStationBicycleLockupAvailable(stationId: string, networkId?: string): boolean {
   if (networkId === "regional") {
-    return false;
+    return isRegionalStationBicycleLockupAvailable(stationId);
   }
   return FALLBACK_WITH_BICYCLE_LOCKUP.has(stationId);
 }
@@ -2009,7 +2015,7 @@ export function isStationBikeShareAvailable(stationId: string, networkId?: strin
 
 export function isStationPpudoAvailable(stationId: string, networkId?: string): boolean {
   if (networkId === "regional") {
-    return false;
+    return isRegionalStationPpudoAvailable(stationId);
   }
   return FALLBACK_WITH_PPUDO.has(stationId);
 }

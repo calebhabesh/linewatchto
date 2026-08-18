@@ -166,7 +166,7 @@ describe("station detail panel layout", () => {
   });
 
   it("renders authored accessibility icons with accessible warning state labels", () => {
-    assert.match(panelSource, /wheel-chair-symbol\.svg/);
+    assert.match(panelSource, /accessible\.svg/);
     assert.match(panelSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
     assert.match(panelSource, /\/assets\/linewatch\/washroom\.svg/);
     assert.match(panelSource, /\/assets\/linewatch\/parking\.svg/);

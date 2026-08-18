@@ -447,8 +447,14 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalStationDetailSource, /open=\{accessibilityOutages\.length > 0\}/);
     assert.doesNotMatch(regionalStationDetailSource, /No active elevator or escalator outages/);
     assert.doesNotMatch(regionalStationDetailSource, /Regional accessibility outage data is disabled/);
-    assert.doesNotMatch(regionalStationDetailSource, /Accessibility and platform-condition details are unavailable/);
-    assert.match(regionalStationDetailSource, /wheel-chair-symbol/);
+    assert.match(regionalStationDetailSource, /data-station-section="services-and-amenities"/);
+    assert.match(regionalStationDetailSource, /\/assets\/linewatch\/accessible\.svg/);
+    assert.match(regionalStationDetailSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
+    assert.match(regionalStationDetailSource, /\/assets\/linewatch\/washroom\.svg/);
+    assert.match(regionalStationDetailSource, /\/assets\/linewatch\/parking\.svg/);
+    assert.match(regionalStationDetailSource, /\/assets\/linewatch\/bicycle-lockup\.svg/);
+    assert.match(regionalStationDetailSource, /\/assets\/linewatch\/passenger-pick-up\.svg/);
+    assert.match(regionalStationDetailSource, /Wi-Fi/);
   });
 
   it("uses cardinal directions consistently for every regional rail corridor", () => {

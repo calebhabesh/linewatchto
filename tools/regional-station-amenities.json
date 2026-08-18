@@ -1,0 +1,1855 @@
+{
+  "aurora": {
+    "status": "found",
+    "station_id": "aurora",
+    "stop_code": "AU",
+    "name": "Aurora GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/au/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1382,
+    "parking_lots": [
+      {
+        "type": "Parking Garage",
+        "spots": 847
+      },
+      {
+        "type": "Main Lot",
+        "spots": 242
+      },
+      {
+        "type": "West Lot",
+        "spots": 293
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "agincourt": {
+    "status": "found",
+    "station_id": "agincourt",
+    "stop_code": "AG",
+    "name": "Agincourt GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ag/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 337,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 337
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "barrie-south": {
+    "status": "found",
+    "station_id": "barrie-south",
+    "stop_code": "BA",
+    "name": "Barrie South GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ba/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 615,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 615
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "appleby": {
+    "status": "found",
+    "station_id": "appleby",
+    "stop_code": "AP",
+    "name": "Appleby GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ap/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 2814,
+    "parking_lots": [
+      {
+        "type": "North Lot",
+        "spots": 1742
+      },
+      {
+        "type": "Main Lot",
+        "spots": 1072
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "aldershot": {
+    "status": "found",
+    "station_id": "aldershot",
+    "stop_code": "AL",
+    "name": "Aldershot GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/al/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1639,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 934
+      },
+      {
+        "type": "South Lot",
+        "spots": 705
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "acton": {
+    "status": "found",
+    "station_id": "acton",
+    "stop_code": "AC",
+    "name": "Acton GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ac/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 46,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 46
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": false,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "allandale-waterfront": {
+    "status": "found",
+    "station_id": "allandale-waterfront",
+    "stop_code": "AD",
+    "name": "Allandale Waterfront GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ad/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 160,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 160
+      },
+      {
+        "type": "No Overnight Parking",
+        "spots": 0
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "bloor": {
+    "status": "found",
+    "station_id": "bloor",
+    "stop_code": "BL",
+    "name": "Bloor GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/bl/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": false,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "bloomington": {
+    "status": "found",
+    "station_id": "bloomington",
+    "stop_code": "BM",
+    "name": "Bloomington GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/bm/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 782,
+    "parking_lots": [
+      {
+        "type": "Parking Structure",
+        "spots": 765
+      },
+      {
+        "type": "Accessible Parking Spaces",
+        "spots": 17
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "ajax": {
+    "status": "found",
+    "station_id": "ajax",
+    "stop_code": "AJ",
+    "name": "Ajax GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/aj/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 3050,
+    "parking_lots": [
+      {
+        "type": "South Lot",
+        "spots": 304
+      },
+      {
+        "type": "Main Lot",
+        "spots": 1390
+      },
+      {
+        "type": "Parking Garage",
+        "spots": 1356
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "brampton-innovation-district": {
+    "status": "found",
+    "station_id": "brampton-innovation-district",
+    "stop_code": "BR",
+    "name": "Brampton Innovation District GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/br/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1134,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 702
+      },
+      {
+        "type": "South Lot",
+        "spots": 161
+      },
+      {
+        "type": "Zip Car",
+        "spots": 1
+      },
+      {
+        "type": "South Lot",
+        "spots": 270
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "bramalea": {
+    "status": "found",
+    "station_id": "bramalea",
+    "stop_code": "BE",
+    "name": "Bramalea GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/be/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 2370,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1724
+      },
+      {
+        "type": "South Lot",
+        "spots": 646
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "bronte": {
+    "status": "found",
+    "station_id": "bronte",
+    "stop_code": "BO",
+    "name": "Bronte GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/bo/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 2973,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1824
+      },
+      {
+        "type": "South Lot",
+        "spots": 1149
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "cooksville": {
+    "status": "found",
+    "station_id": "cooksville",
+    "stop_code": "CO",
+    "name": "Cooksville GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/co/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1688,
+    "parking_lots": [
+      {
+        "type": "East Lot",
+        "spots": 119
+      },
+      {
+        "type": "Main Lot",
+        "spots": 1569
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": false
+  },
+  "centennial": {
+    "status": "found",
+    "station_id": "centennial",
+    "stop_code": "CE",
+    "name": "Centennial GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ce/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 451,
+    "parking_lots": [
+      {
+        "type": "Parking Garage",
+        "spots": 451
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": false,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "danforth": {
+    "status": "found",
+    "station_id": "danforth",
+    "stop_code": "DA",
+    "name": "Danforth GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/da/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "clarkson": {
+    "status": "found",
+    "station_id": "clarkson",
+    "stop_code": "CL",
+    "name": "Clarkson GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/cl/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 3475,
+    "parking_lots": [
+      {
+        "type": "North Lot",
+        "spots": 627
+      },
+      {
+        "type": "Parking Garage",
+        "spots": 1573
+      },
+      {
+        "type": "Main Lot",
+        "spots": 1274
+      },
+      {
+        "type": "Zip Car",
+        "spots": 1
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "burlington": {
+    "status": "found",
+    "station_id": "burlington",
+    "stop_code": "BU",
+    "name": "Burlington GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/bu/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 2105,
+    "parking_lots": [
+      {
+        "type": "Parking Garage",
+        "spots": 736
+      },
+      {
+        "type": "West Lot",
+        "spots": 912
+      },
+      {
+        "type": "Main Lot",
+        "spots": 455
+      },
+      {
+        "type": "Zip Car",
+        "spots": 2
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "dixie": {
+    "status": "found",
+    "station_id": "dixie",
+    "stop_code": "DI",
+    "name": "Dixie GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/di/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 991,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 991
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "bradford": {
+    "status": "found",
+    "station_id": "bradford",
+    "stop_code": "BD",
+    "name": "Bradford GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/bd/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 355,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 355
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": false,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "durham-college-oshawa": {
+    "status": "found",
+    "station_id": "durham-college-oshawa",
+    "stop_code": "OS",
+    "name": "Durham College Oshawa GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/os/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 2390,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 2390
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "east-gwillimbury": {
+    "status": "found",
+    "station_id": "east-gwillimbury",
+    "stop_code": "EA",
+    "name": "East Gwillimbury GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ea/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 642,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 642
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "downsview-park": {
+    "status": "found",
+    "station_id": "downsview-park",
+    "stop_code": "DW",
+    "name": "Downsview Park GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/dw/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": false,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "eglinton": {
+    "status": "found",
+    "station_id": "eglinton",
+    "stop_code": "EG",
+    "name": "Eglinton GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/eg/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 839,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 837
+      },
+      {
+        "type": "Zip Car",
+        "spots": 2
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "erindale": {
+    "status": "found",
+    "station_id": "erindale",
+    "stop_code": "ER",
+    "name": "Erindale GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/er/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 2193,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 693
+      },
+      {
+        "type": "Parking Garage",
+        "spots": 1500
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "etobicoke-north": {
+    "status": "found",
+    "station_id": "etobicoke-north",
+    "stop_code": "ET",
+    "name": "Etobicoke North GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/et/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 687,
+    "parking_lots": [
+      {
+        "type": "North Lot",
+        "spots": 277
+      },
+      {
+        "type": "South Lot",
+        "spots": 410
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "georgetown": {
+    "status": "found",
+    "station_id": "georgetown",
+    "stop_code": "GE",
+    "name": "Georgetown GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ge/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 648,
+    "parking_lots": [
+      {
+        "type": "North Lot",
+        "spots": 223
+      },
+      {
+        "type": "Main Lot",
+        "spots": 425
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "confederation": {
+    "status": "found",
+    "station_id": "confederation",
+    "stop_code": "CF",
+    "name": "Confederation GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/cf/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 203,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 203
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": false,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "guelph-central": {
+    "status": "found",
+    "station_id": "guelph-central",
+    "stop_code": "GL",
+    "name": "Guelph Central GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/gl/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 15,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 15
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "guildwood": {
+    "status": "found",
+    "station_id": "guildwood",
+    "stop_code": "GU",
+    "name": "Guildwood GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/gu/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 888,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 656
+      },
+      {
+        "type": "South Lot",
+        "spots": 230
+      },
+      {
+        "type": "Zip Car",
+        "spots": 2
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "exhibition": {
+    "status": "found",
+    "station_id": "exhibition",
+    "stop_code": "EX",
+    "name": "Exhibition GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ex/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": false,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": false,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "hamilton": {
+    "status": "found",
+    "station_id": "hamilton",
+    "stop_code": "HA",
+    "name": "Hamilton GO Centre",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ha/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "kennedy": {
+    "status": "found",
+    "station_id": "kennedy",
+    "stop_code": "KE",
+    "name": "Kennedy GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ke/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "king-city": {
+    "status": "found",
+    "station_id": "king-city",
+    "stop_code": "KC",
+    "name": "King City GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/kc/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 636,
+    "parking_lots": [
+      {
+        "type": "Main Lot (Fully Reserved)",
+        "spots": 240
+      },
+      {
+        "type": "North Lot (Partly Reserved)",
+        "spots": 69
+      },
+      {
+        "type": "South Lot (Fully Reserved)",
+        "spots": 122
+      },
+      {
+        "type": "Station St (West Lot)",
+        "spots": 155
+      },
+      {
+        "type": "King City Church Lot (Open)",
+        "spots": 50
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "kipling": {
+    "status": "found",
+    "station_id": "kipling",
+    "stop_code": "KP",
+    "name": "Kipling GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/kp/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": false,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "langstaff": {
+    "status": "found",
+    "station_id": "langstaff",
+    "stop_code": "LA",
+    "name": "Langstaff GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/la/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1547,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1547
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "lisgar": {
+    "status": "found",
+    "station_id": "lisgar",
+    "stop_code": "LS",
+    "name": "Lisgar GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ls/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 714,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 714
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": false
+  },
+  "kitchener": {
+    "status": "found",
+    "station_id": "kitchener",
+    "stop_code": "KI",
+    "name": "Kitchener GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ki/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": false,
+    "has_waiting_room": false,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "malton": {
+    "status": "found",
+    "station_id": "malton",
+    "stop_code": "MA",
+    "name": "Malton GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ma/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 697,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 697
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "maple": {
+    "status": "found",
+    "station_id": "maple",
+    "stop_code": "MP",
+    "name": "Maple GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/mp/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1344,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1344
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "long-branch": {
+    "status": "found",
+    "station_id": "long-branch",
+    "stop_code": "LO",
+    "name": "Long Branch GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/lo/facilities-services-fare-sales",
+    "has_accessible": false,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 9,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 9
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "markham": {
+    "status": "found",
+    "station_id": "markham",
+    "stop_code": "MR",
+    "name": "Markham GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/mr/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 410,
+    "parking_lots": [
+      {
+        "type": "East Lot",
+        "spots": 159
+      },
+      {
+        "type": "Main Lot",
+        "spots": 84
+      },
+      {
+        "type": "West Lot",
+        "spots": 167
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "gormley": {
+    "status": "found",
+    "station_id": "gormley",
+    "stop_code": "GO",
+    "name": "Gormley GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/go/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 871,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 871
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": false,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "milliken": {
+    "status": "found",
+    "station_id": "milliken",
+    "stop_code": "MK",
+    "name": "Milliken GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/mk/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 661,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 661
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "meadowvale": {
+    "status": "found",
+    "station_id": "meadowvale",
+    "stop_code": "ME",
+    "name": "Meadowvale GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/me/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1652,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1266
+      },
+      {
+        "type": "North Lot",
+        "spots": 386
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "milton": {
+    "status": "found",
+    "station_id": "milton",
+    "stop_code": "ML",
+    "name": "Milton GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ml/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1468,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1468
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "newmarket": {
+    "status": "found",
+    "station_id": "newmarket",
+    "stop_code": "NE",
+    "name": "Newmarket GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ne/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 271,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 271
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "mimico": {
+    "status": "found",
+    "station_id": "mimico",
+    "stop_code": "MI",
+    "name": "Mimico GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/mi/facilities-services-fare-sales",
+    "has_accessible": false,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 221,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 221
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "mount-joy": {
+    "status": "found",
+    "station_id": "mount-joy",
+    "stop_code": "MJ",
+    "name": "Mount Joy GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/mj/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1325,
+    "parking_lots": [
+      {
+        "type": "East Lot",
+        "spots": 354
+      },
+      {
+        "type": "Main Lot",
+        "spots": 971
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "mount-dennis": {
+    "status": "found",
+    "station_id": "mount-dennis",
+    "stop_code": "MD",
+    "name": "Mount Dennis GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/md/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": false,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "mount-pleasant": {
+    "status": "found",
+    "station_id": "mount-pleasant",
+    "stop_code": "MO",
+    "name": "Mount Pleasant GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/mo/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1486,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1486
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "niagara-falls": {
+    "status": "found",
+    "station_id": "niagara-falls",
+    "stop_code": "NI",
+    "name": "Niagara Falls GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ni/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": false
+  },
+  "old-cummer": {
+    "status": "found",
+    "station_id": "old-cummer",
+    "stop_code": "OL",
+    "name": "Old Cummer GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ol/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 462,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 462
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "old-elm": {
+    "status": "found",
+    "station_id": "old-elm",
+    "stop_code": "LI",
+    "name": "Old Elm GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/li/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 673,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 654
+      },
+      {
+        "type": "Accessible Parking Spaces",
+        "spots": 15
+      },
+      {
+        "type": "Scooters and Motorbikes",
+        "spots": 4
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": false,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "oakville": {
+    "status": "found",
+    "station_id": "oakville",
+    "stop_code": "OA",
+    "name": "Oakville GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/oa/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 4401,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 2712
+      },
+      {
+        "type": "Parking Garage",
+        "spots": 1398
+      },
+      {
+        "type": "South Lot",
+        "spots": 291
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "oriole": {
+    "status": "found",
+    "station_id": "oriole",
+    "stop_code": "OR",
+    "name": "Oriole GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/or/facilities-services-fare-sales",
+    "has_accessible": false,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": false,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "pearson-airport": {
+    "status": "found",
+    "station_id": "pearson-airport",
+    "stop_code": "PA",
+    "name": "Pearson Airport Terminal 1",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/pa/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": false,
+    "has_ppudo": false,
+    "has_wifi": false,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "port-credit": {
+    "status": "found",
+    "station_id": "port-credit",
+    "stop_code": "PO",
+    "name": "Port Credit GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/po/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 350,
+    "parking_lots": [
+      {
+        "type": "North Lot",
+        "spots": 350
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "rutherford": {
+    "status": "found",
+    "station_id": "rutherford",
+    "stop_code": "RU",
+    "name": "Rutherford GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ru/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1008,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1008
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "rouge-hill": {
+    "status": "found",
+    "station_id": "rouge-hill",
+    "stop_code": "RO",
+    "name": "Rouge Hill GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ro/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 853,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 319
+      },
+      {
+        "type": "North Lot",
+        "spots": 534
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "scarborough": {
+    "status": "found",
+    "station_id": "scarborough",
+    "stop_code": "SC",
+    "name": "Scarborough GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/sc/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 627,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 625
+      },
+      {
+        "type": "Zip Car",
+        "spots": 2
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "richmond-hill": {
+    "status": "found",
+    "station_id": "richmond-hill",
+    "stop_code": "RI",
+    "name": "Richmond Hill GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ri/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 2004,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 727
+      },
+      {
+        "type": "East Lot",
+        "spots": 1277
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "streetsville": {
+    "status": "found",
+    "station_id": "streetsville",
+    "stop_code": "SR",
+    "name": "Streetsville GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/sr/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1540,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1540
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "stratford": {
+    "status": "found",
+    "station_id": "stratford",
+    "stop_code": "SF",
+    "name": "Stratford GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/sf/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": false,
+    "has_ppudo": false,
+    "has_wifi": false,
+    "has_waiting_room": false,
+    "has_heated_shelter": false,
+    "has_shelter": false
+  },
+  "st-catharines": {
+    "status": "found",
+    "station_id": "st-catharines",
+    "stop_code": "SCTH",
+    "name": "St. Catharines GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/scth/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": false,
+    "has_waiting_room": false,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "stouffville": {
+    "status": "found",
+    "station_id": "stouffville",
+    "stop_code": "ST",
+    "name": "Stouffville GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/st/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": false,
+    "has_parking": true,
+    "parking_spots": 376,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 83
+      },
+      {
+        "type": "West Lot",
+        "spots": 293
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": false,
+    "has_waiting_room": false,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "pickering": {
+    "status": "found",
+    "station_id": "pickering",
+    "stop_code": "PIN",
+    "name": "Pickering GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/pin/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 2758,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 585
+      },
+      {
+        "type": "Parking Structure",
+        "spots": 1673
+      },
+      {
+        "type": "North Lot",
+        "spots": 500
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  },
+  "union": {
+    "status": "found",
+    "station_id": "union",
+    "stop_code": "UN",
+    "name": "Union Station GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/un/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": false,
+    "parking_spots": 0,
+    "parking_lots": [],
+    "has_bicycle_lockup": true,
+    "has_ppudo": false,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": false
+  },
+  "unionville": {
+    "status": "found",
+    "station_id": "unionville",
+    "stop_code": "UI",
+    "name": "Unionville GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/ui/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": false,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 1614,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 1614
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "weston": {
+    "status": "found",
+    "station_id": "weston",
+    "stop_code": "WE",
+    "name": "Weston GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/we/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 259,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 131
+      },
+      {
+        "type": "Main Lot",
+        "spots": 127
+      },
+      {
+        "type": "Main Lot",
+        "spots": 0
+      },
+      {
+        "type": "Zip Car",
+        "spots": 1
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": true
+  },
+  "west-harbour": {
+    "status": "found",
+    "station_id": "west-harbour",
+    "stop_code": "WR",
+    "name": "West Harbour GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/wr/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 46,
+    "parking_lots": [
+      {
+        "type": "Main Lot",
+        "spots": 46
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": true,
+    "has_shelter": false
+  },
+  "whitby": {
+    "status": "found",
+    "station_id": "whitby",
+    "stop_code": "WH",
+    "name": "Whitby GO",
+    "url": "https://www.gotransit.com/en/find-a-station-or-stop/wh/facilities-services-fare-sales",
+    "has_accessible": true,
+    "has_elevator": true,
+    "has_washroom": true,
+    "has_parking": true,
+    "parking_spots": 4230,
+    "parking_lots": [
+      {
+        "type": "East Lot",
+        "spots": 300
+      },
+      {
+        "type": "Main Lot",
+        "spots": 1329
+      },
+      {
+        "type": "South Lot",
+        "spots": 1168
+      },
+      {
+        "type": "Parking Garage",
+        "spots": 1433
+      }
+    ],
+    "has_bicycle_lockup": true,
+    "has_ppudo": true,
+    "has_wifi": true,
+    "has_waiting_room": true,
+    "has_heated_shelter": false,
+    "has_shelter": true
+  }
+}

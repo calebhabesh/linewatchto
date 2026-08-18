@@ -222,11 +222,11 @@ export function stationMatchesAmenityFilter(
     if (!isWheelchair) return false;
   }
   if (filter.elevator) {
-    const hasElev = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds);
+    const hasElev = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds, networkId);
     if (!hasElev) return false;
   }
   if (filter.operationalElevatorOnly) {
-    const hasElev = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds);
+    const hasElev = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds, networkId);
     const hasOutage = (station.accessOutageCounts?.elevator ?? 0) > 0;
     if (!hasElev || hasOutage) return false;
   }
@@ -301,7 +301,7 @@ export function countStationAmenities(
     if (station.wheelchairAccessible ?? isStationWheelchairAccessible(station.id, station.lineIds, networkId)) {
       wheelchair++;
     }
-    if (station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds)) {
+    if (station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds, networkId)) {
       elevator++;
     }
     if (station.hasWashroom ?? isStationWashroomAvailable(station.id, networkId)) {

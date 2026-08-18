@@ -254,7 +254,7 @@ function StationButton({
           {isWheelchair && (
             <span className="inline-flex items-center justify-center shrink-0" title="Wheelchair accessible">
               <Image
-                src="/assets/linewatch/wheel-chair-symbol.svg"
+                src="/assets/linewatch/accessible.svg"
                 alt="Wheelchair accessible"
                 width={14}
                 height={14}
@@ -778,7 +778,7 @@ export function StationSearchPanel({
               title="Filter wheelchair accessible stations"
             >
               <Image
-                src="/assets/linewatch/wheel-chair-symbol.svg"
+                src="/assets/linewatch/accessible.svg"
                 alt=""
                 width={13}
                 height={13}

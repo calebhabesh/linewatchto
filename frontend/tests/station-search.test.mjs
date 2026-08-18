@@ -209,9 +209,35 @@ describe("station search helpers", () => {
     assert.ok(ttcCounts.parking > 0);
 
     const regionalCounts = countStationAmenities(regionalStationSummaries.stations, "regional");
-    assert.ok(regionalCounts.total > 0);
-    assert.ok(regionalCounts.parking > 0);
-    assert.equal(regionalCounts.washroom, regionalCounts.total);
+    assert.equal(regionalCounts.total, 72);
+    assert.equal(regionalCounts.wheelchair, 69);
+    assert.equal(regionalCounts.elevator, 36);
+    assert.equal(regionalCounts.washroom, 55);
+    assert.equal(regionalCounts.parking, 57);
+    assert.equal(regionalCounts.bicycleLockup, 69);
+    assert.equal(regionalCounts.ppudo, 58);
+
+    const parkingRegional = filterStationSummariesByAmenities(regionalStationSummaries.stations, "regional", { parking: true });
+    assert.equal(parkingRegional.length, 57);
+    assert.ok(parkingRegional.every((station) => station.hasParking));
+    assert.ok(parkingRegional.some((station) => station.id === "allandale-waterfront"));
+    assert.ok(!parkingRegional.some((station) => station.id === "union"));
+
+    const lockupRegional = filterStationSummariesByAmenities(regionalStationSummaries.stations, "regional", { bicycleLockup: true });
+    assert.equal(lockupRegional.length, 69);
+    assert.ok(lockupRegional.every((station) => station.hasBicycleLockup));
+    assert.ok(lockupRegional.some((station) => station.id === "allandale-waterfront"));
+
+    const ppudoRegional = filterStationSummariesByAmenities(regionalStationSummaries.stations, "regional", { ppudo: true });
+    assert.equal(ppudoRegional.length, 58);
+    assert.ok(ppudoRegional.every((station) => station.hasPpudo));
+    assert.ok(ppudoRegional.some((station) => station.id === "allandale-waterfront"));
+
+    const washroomRegional = filterStationSummariesByAmenities(regionalStationSummaries.stations, "regional", { washroom: true });
+    assert.equal(washroomRegional.length, 55);
+    assert.ok(washroomRegional.every((station) => station.hasWashroom));
+    assert.ok(washroomRegional.some((station) => station.id === "union"));
+    assert.ok(!washroomRegional.some((station) => station.id === "allandale-waterfront"));
 
     const parkingTtc = filterStationSummariesByAmenities(stations, "ttc", { parking: true });
     assert.ok(parkingTtc.every((station) => station.hasParking));
