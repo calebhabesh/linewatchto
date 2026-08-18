@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, BadgeInfo, CalendarCheck2, Check, ChevronDown, Construction, ExternalLink, FileText, Layers, LoaderCircle, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeInfo, CalendarCheck2, ChevronDown, Construction, ExternalLink, FileText, Layers, LoaderCircle, Train } from "lucide-react";
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
@@ -460,32 +460,55 @@ export function RegionalStationDetailPanel({
           key={station.id}
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
-          <div className="mt-2 flex flex-col gap-1.5 shrink-0 pr-3 sm:pr-3.5" data-station-header-line-details aria-label="Regional rail corridors">
-            {routes.map((route) => {
-              const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
-              return (
-                <div key={route.id} className="flex items-center justify-between gap-2.5 min-w-0">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {routes.length > 2 ? (
+            <div className="mt-2 flex flex-col gap-2 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Regional Corridors · {routes.length} Lines
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap" role="list" aria-label="Regional rail corridors">
+                {routes.map((route) => (
+                  <div key={route.id} role="listitem" className="shrink-0" title={`${route.name} Line`}>
                     <TransitLineBadge
                       lineId={route.id}
                       lineNumber={route.number}
                       lineName={route.name}
-                      size={40}
-                      className="regional-route-pill shrink-0"
+                      size={36}
+                      className="regional-route-pill shadow-xs transition-transform hover:scale-105"
                     />
-                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                      {route.name}
-                    </span>
                   </div>
-                  {direction ? (
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0 text-right">
-                      {direction}
-                    </span>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 flex flex-col gap-1.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+              {routes.map((route) => {
+                const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
+                return (
+                  <div key={route.id} className="flex items-center justify-between gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <TransitLineBadge
+                        lineId={route.id}
+                        lineNumber={route.number}
+                        lineName={route.name}
+                        size={40}
+                        className="regional-route-pill shrink-0"
+                      />
+                      <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                        {route.name}
+                      </span>
+                    </div>
+                    {direction ? (
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0 text-right">
+                        {direction}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {connections.length > 0 && (
             <div className="mt-2.5 shrink-0">

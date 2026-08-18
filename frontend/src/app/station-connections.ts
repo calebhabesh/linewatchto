@@ -132,7 +132,7 @@ export function regionalStationConnections(stationId: string): StationConnection
   for (const line of matchedTtcLines) {
     connections.push({
       kind: "ttc",
-      label: `Line ${line.number}`,
+      label: `TTC · Line ${line.number}`,
       detail: line.name,
       icon: TTC_LINE_LEGENDS[line.id],
     });

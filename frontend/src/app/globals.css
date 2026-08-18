@@ -647,6 +647,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   padding: 7px 10px;
 }
 
+.station-connection-row:last-child:nth-child(odd) {
+  grid-column: span 2 / span 2;
+}
+
 .station-connection-logo-frame {
   display: flex;
   width: 36px;
@@ -673,6 +677,13 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+.station-connection-dot-sep {
+  display: inline-block;
+  margin: 0 6px;
+  font-weight: 700;
+  opacity: 0.65;
 }
 
 .station-connection-copy small {

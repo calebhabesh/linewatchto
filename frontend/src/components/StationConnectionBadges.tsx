@@ -11,6 +11,23 @@ const CONNECTION_ICON: Record<StationConnection["kind"], string> = {
   ttc: "/assets/linewatch/line-1-legend.svg",
 };
 
+function renderConnectionLabel(label: string) {
+  if (!label.includes(" · ")) {
+    return label;
+  }
+  const parts = label.split(" · ");
+  return parts.map((part, index) => (
+    <span key={index}>
+      {index > 0 && (
+        <span className="station-connection-dot-sep" aria-hidden="true">
+          ·
+        </span>
+      )}
+      {part}
+    </span>
+  ));
+}
+
 export function StationConnectionBadges({ connections }: { connections: readonly StationConnection[] }) {
   if (connections.length === 0) return null;
 
@@ -38,7 +55,7 @@ export function StationConnectionBadges({ connections }: { connections: readonly
               />
             </span>
             <span className="station-connection-copy">
-              <strong>{connection.label}</strong>
+              <strong>{renderConnectionLabel(connection.label)}</strong>
               <small>{connection.detail}</small>
             </span>
           </div>

@@ -419,6 +419,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalStationDetailSource, /<TransitLineBadge/);
     assert.match(regionalStationDetailSource, /<StationConnectionBadges/);
     assert.match(regionalStationDetailSource, /data-station-header-line-details/);
+    assert.match(regionalStationDetailSource, /routes\.length > 2/);
+    assert.match(regionalStationDetailSource, /Regional Corridors · \{routes\.length\} Lines/);
     assert.match(regionalStationDetailSource, /data-station-section="arrivals"/);
     assert.match(regionalStationDetailSource, /Checking Metrolinx arrivals/);
     assert.match(regionalStationDetailSource, /Regional arrivals unavailable/);

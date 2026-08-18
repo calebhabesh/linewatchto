@@ -94,7 +94,7 @@ describe("station connection metadata and map labels", () => {
   it("records VIA Rail, airport, and TTC connections for regional station details", () => {
     assert.deepEqual(
       regionalStationConnections("union").map((connection) => connection.label),
-      ["VIA Rail", "Billy Bishop Airport", "Line 1"],
+      ["VIA Rail", "Billy Bishop Airport", "TTC · Line 1"],
     );
     assert.deepEqual(
       regionalStationConnections("pearson-airport").map((connection) => connection.label),
@@ -106,13 +106,13 @@ describe("station connection metadata and map labels", () => {
     );
     assert.deepEqual(
       regionalStationConnections("kipling").map((connection) => ({ label: connection.label, detail: connection.detail })),
-      [{ label: "Line 2", detail: "Bloor-Danforth" }],
+      [{ label: "TTC · Line 2", detail: "Bloor-Danforth" }],
     );
     assert.deepEqual(
       regionalStationConnections("kennedy").map((connection) => ({ label: connection.label, detail: connection.detail })),
       [
-        { label: "Line 2", detail: "Bloor-Danforth" },
-        { label: "Line 5", detail: "Eglinton Crosstown" },
+        { label: "TTC · Line 2", detail: "Bloor-Danforth" },
+        { label: "TTC · Line 5", detail: "Eglinton Crosstown" },
       ],
     );
   });
@@ -141,13 +141,16 @@ describe("station connection metadata and map labels", () => {
     assert.match(css, /\.station-connections-title/);
     assert.match(connectionBadges, /GitMerge/);
     assert.match(connectionBadges, /connections\.length === 1 \? "Connected Network" : "Connected Networks"/);
+    assert.match(connectionBadges, /station-connection-dot-sep/);
     assert.doesNotMatch(css, /\.station-connections-card[^}]*?(?:border|background|padding):/s);
     assert.match(css, /\.dark \.station-connections-title,[\s\S]*?color: #f8fafc/);
     assert.match(css, /\.station-connections-card[^}]*gap: 6px/s);
     assert.match(css, /\.station-connections-title[^}]*margin: 0;/s);
+    assert.match(css, /\.station-connection-dot-sep[^}]*margin: 0 6px;/s);
     assert.match(css, /\.station-connection-list[^}]*display: grid;[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s);
     assert.match(css, /\.station-connection-row[^}]*border: 1px solid/s);
     assert.match(css, /\.station-connection-row[^}]*width: 100%;/s);
+    assert.match(css, /\.station-connection-row:last-child:nth-child\(odd\)[^}]*grid-column: span 2 \/ span 2;/s);
     assert.doesNotMatch(css, /\.station-connection-row:only-child/);
     assert.match(css, /\.dark \.station-connection-row,[\s\S]*?background: rgba\(255, 255, 255, 0\.035\)/);
     assert.doesNotMatch(css, /map-connection-airport[^}]*filter:/s);

@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, CalendarCheck2, Check, ChevronDown, Construction, Layers, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeInfo, CalendarCheck2, ChevronDown, Construction, Layers, Train } from "lucide-react";
 import Image from "next/image";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
@@ -460,7 +460,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
           {station && (
-            <div className="mt-2 flex flex-col gap-1.5 shrink-0 pr-3 sm:pr-3.5" data-station-header-line-details>
+            <div className="mt-2 flex flex-col gap-1.5 shrink-0" data-station-header-line-details>
               {station.lines.map((line) => (
                 <div key={line.id} className="flex items-center justify-between gap-2.5 min-w-0">
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -593,9 +593,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       <Image
                         src="/assets/linewatch/parking.svg"
                         alt="Parking available"
-                        width={28}
-                        height={28}
-                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] rounded-full shrink-0 drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
+                        width={30}
+                        height={30}
+                        className="w-[26px] h-[26px] sm:w-[30px] sm:h-[30px] rounded-full shrink-0 drop-shadow-[0_0_1.5px_rgba(33,178,82,0.28)] dark:drop-shadow-[0_0_2px_rgba(33,178,82,0.38)]"
                       />
                       <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
                         Parking
@@ -635,9 +635,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       <Image
                         src="/assets/linewatch/bike-share-toronto.svg"
                         alt="Bike Share Toronto available"
-                        width={28}
-                        height={28}
-                        className="w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] rounded-full drop-shadow-[0_0_1.5px_rgba(0,100,75,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,100,75,0.38)]"
+                        width={30}
+                        height={30}
+                        className="w-[26px] h-[26px] sm:w-[30px] sm:h-[30px] rounded-full shrink-0 drop-shadow-[0_0_1.5px_rgba(0,100,75,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,100,75,0.38)]"
                       />
                       <span className="text-[13px] sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
                         Bike Share
