@@ -11478,6 +11478,8 @@ img.transit-line-badge {
     will-change: height, max-height;
     transform: translateZ(0);
     contain: paint;
+    isolation: isolate;
+    backface-visibility: hidden;
     overscroll-behavior-y: contain;
   }
 
@@ -11485,6 +11487,12 @@ img.transit-line-badge {
     transition: none !important;
     will-change: height, max-height;
     user-select: none;
+    touch-action: none;
+  }
+
+  .station-detail-panel.station-detail-sheet-dragging * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
   }
 
   .station-sheet-drag-handle-container {

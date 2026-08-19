@@ -16,6 +16,21 @@ export function clampSheetRatio(ratio: number): number {
   return Math.min(MOBILE_SHEET_CEILING_RATIO, Math.max(MOBILE_SHEET_FLOOR_RATIO, Number(ratio.toFixed(3))));
 }
 
+export function computeDampedRatio(rawRatio: number): number {
+  if (Number.isNaN(rawRatio) || !Number.isFinite(rawRatio)) {
+    return MOBILE_SHEET_DEFAULT_RATIO;
+  }
+  if (rawRatio < MOBILE_SHEET_FLOOR_RATIO) {
+    const overflow = MOBILE_SHEET_FLOOR_RATIO - rawRatio;
+    return Number((MOBILE_SHEET_FLOOR_RATIO - overflow * 0.22).toFixed(3));
+  }
+  if (rawRatio > MOBILE_SHEET_CEILING_RATIO) {
+    const overflow = rawRatio - MOBILE_SHEET_CEILING_RATIO;
+    return Number((MOBILE_SHEET_CEILING_RATIO + overflow * 0.22).toFixed(3));
+  }
+  return Number(rawRatio.toFixed(3));
+}
+
 export function readStoredSheetHeightRatio(storage?: Pick<Storage, "getItem"> | null): number {
   if (!storage) return MOBILE_SHEET_DEFAULT_RATIO;
   try {
@@ -41,11 +56,6 @@ export function writeStoredSheetHeightRatio(
   }
 }
 
-type DragHistoryPoint = {
-  y: number;
-  time: number;
-};
-
 export function useMobileDraggableSheet() {
   const sheetRef = useRef<HTMLElement | null>(null);
   const [heightRatio, setHeightRatio] = useState<number>(() => {
@@ -65,7 +75,6 @@ export function useMobileDraggableSheet() {
     viewportHeight: number;
     pointerId: number;
     startTime: number;
-    history: DragHistoryPoint[];
     target: HTMLElement;
   } | null>(null);
 
@@ -132,7 +141,6 @@ export function useMobileDraggableSheet() {
       viewportHeight,
       pointerId: e.pointerId,
       startTime: now,
-      history: [{ y: e.clientY, time: now }],
       target,
     };
 
@@ -149,15 +157,18 @@ export function useMobileDraggableSheet() {
       const session = dragSessionRef.current;
       if (!session || session.pointerId !== moveEvent.pointerId) return;
 
-      const currentTime = performance.now();
-      session.history.push({ y: moveEvent.clientY, time: currentTime });
-      if (session.history.length > 6) {
-        session.history.shift();
+      if (moveEvent.cancelable) {
+        moveEvent.preventDefault();
       }
 
-      const deltaY = session.startY - moveEvent.clientY;
+      const lastEvent = (moveEvent.getCoalescedEvents && moveEvent.getCoalescedEvents().length > 0)
+        ? moveEvent.getCoalescedEvents()[moveEvent.getCoalescedEvents().length - 1]
+        : moveEvent;
+
+      const deltaY = session.startY - lastEvent.clientY;
       const currentHeightPx = session.startHeightPx + deltaY;
-      const nextRatio = clampSheetRatio(currentHeightPx / session.viewportHeight);
+      const rawRatio = currentHeightPx / session.viewportHeight;
+      const nextRatio = computeDampedRatio(rawRatio);
       currentRatioRef.current = nextRatio;
 
       if (rafIdRef.current === null) {
@@ -165,8 +176,7 @@ export function useMobileDraggableSheet() {
           rafIdRef.current = null;
           const el = sheetRef.current;
           if (el && isDraggingRef.current) {
-            const pxValue = `${Math.round(currentRatioRef.current * session.viewportHeight)}px`;
-            el.style.setProperty("--mobile-station-sheet-height", pxValue);
+            const pxValue = `${(currentRatioRef.current * session.viewportHeight).toFixed(1)}px`;
             el.style.height = pxValue;
             el.style.maxHeight = pxValue;
           }
@@ -206,29 +216,8 @@ export function useMobileDraggableSheet() {
         return;
       }
 
-      // Compute release velocity (px per ms, positive means moving upward)
-      let velocity = 0;
-      if (session.history.length >= 2) {
-        const first = session.history[0];
-        const last = session.history[session.history.length - 1];
-        const dt = last.time - first.time;
-        if (dt > 10) {
-          velocity = (first.y - last.y) / dt;
-        }
-      }
-
-      let targetRatio: number;
-      if (velocity > 0.35) {
-        targetRatio = MOBILE_SHEET_EXPANDED_RATIO;
-      } else if (velocity < -0.35) {
-        targetRatio = MOBILE_SHEET_FLOOR_RATIO;
-      } else {
-        targetRatio = currentRatioRef.current >= MOBILE_SHEET_SNAP_THRESHOLD
-          ? MOBILE_SHEET_EXPANDED_RATIO
-          : MOBILE_SHEET_FLOOR_RATIO;
-      }
-
-      snapToRatio(targetRatio);
+      // Settle at the user-decided dragged ratio (clamped within floor and ceiling bounds)
+      snapToRatio(currentRatioRef.current);
     };
 
     cleanupListeners();
@@ -243,10 +232,10 @@ export function useMobileDraggableSheet() {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      snapToRatio(currentRatioRef.current + 0.10);
+      snapToRatio(currentRatioRef.current + 0.05);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      snapToRatio(currentRatioRef.current - 0.10);
+      snapToRatio(currentRatioRef.current - 0.05);
     } else if (e.key === "Home") {
       e.preventDefault();
       snapToRatio(MOBILE_SHEET_FLOOR_RATIO);

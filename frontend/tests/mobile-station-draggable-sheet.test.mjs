@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   clampSheetRatio,
+  computeDampedRatio,
   readStoredSheetHeightRatio,
   writeStoredSheetHeightRatio,
   MOBILE_STATION_SHEET_STORAGE_KEY,
@@ -117,11 +118,51 @@ describe("mobile station draggable sheet UX", () => {
     assert.match(hookSource, /requestAnimationFrame/);
     assert.match(hookSource, /sheetRef/);
     assert.match(hookSource, /MOBILE_SHEET_SNAP_THRESHOLD/);
-    assert.match(hookSource, /velocity/);
+    assert.match(hookSource, /snapToRatio/);
     assert.match(panelSource, /ref=\{sheetRef\}/);
     assert.match(regionalPanelSource, /ref=\{sheetRef\}/);
     assert.match(globalCss, /contain:\s*paint/);
     assert.match(globalCss, /transform:\s*translateZ\(0\)/);
+  });
+
+  it("supports user-decided in-between custom height ratios without forced binary snapping", () => {
+    // Custom ratios in between floor (0.50) and ceiling (0.92) must be preserved
+    assert.equal(clampSheetRatio(0.60), 0.60);
+    assert.equal(clampSheetRatio(0.68), 0.68);
+    assert.equal(clampSheetRatio(0.735), 0.735);
+    assert.equal(clampSheetRatio(0.82), 0.82);
+
+    const memory = new Map();
+    const mockStorage = {
+      getItem: (key) => memory.get(key) ?? null,
+      setItem: (key, value) => memory.set(key, String(value)),
+    };
+
+    // Storing a custom in-between ratio retains the exact ratio
+    writeStoredSheetHeightRatio(mockStorage, 0.68);
+    assert.equal(readStoredSheetHeightRatio(mockStorage), 0.68);
+
+    writeStoredSheetHeightRatio(mockStorage, 0.735);
+    assert.equal(readStoredSheetHeightRatio(mockStorage), 0.735);
+  });
+
+  it("applies elastic rubber-band damping beyond floor and ceiling bounds during active drag", () => {
+    // In-bounds ratios are 1:1 direct tracking
+    assert.equal(computeDampedRatio(0.65), 0.65);
+    assert.equal(computeDampedRatio(0.50), 0.50);
+    assert.equal(computeDampedRatio(0.92), 0.92);
+
+    // Below floor (0.50) applies elastic resistance instead of hard wall
+    const belowFloor = computeDampedRatio(0.40);
+    assert.ok(belowFloor < 0.50, "Allows damped visual pull below floor");
+    assert.ok(belowFloor > 0.40, "Damps the distance pulled below floor");
+    assert.equal(belowFloor, 0.478);
+
+    // Above ceiling (0.92) applies elastic resistance instead of hard wall
+    const aboveCeiling = computeDampedRatio(0.98);
+    assert.ok(aboveCeiling > 0.92, "Allows damped visual pull above ceiling");
+    assert.ok(aboveCeiling < 0.98, "Damps the distance pulled above ceiling");
+    assert.equal(aboveCeiling, 0.933);
   });
 
   it("renders Jump To buttons with words and icons in a space-efficient grid and places Access Outages inside scrollable area below Jump To", () => {
