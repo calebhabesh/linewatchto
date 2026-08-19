@@ -562,7 +562,7 @@ export function RegionalStationDetailPanel({
   navItems.push({
     id: "arrivals",
     label: "Train Arrivals",
-    shortLabel: "Arrivals",
+    shortLabel: "Trains",
     icon: <Train size={13} aria-hidden="true" />,
   });
   navItems.push({

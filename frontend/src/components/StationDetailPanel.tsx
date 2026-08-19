@@ -422,10 +422,19 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
         icon: <ConciergeBell size={13} aria-hidden="true" />,
       });
     }
+    const isLrt = isLrtOnlyStation(station.lines);
+    const isSubwayAndLrt = isSubwayAndLrtStation(station.lines);
+    const arrivalsLabel = isSubwayAndLrt
+      ? "Train & LRT Arrivals"
+      : isLrt
+        ? "LRT Arrivals"
+        : "Train Arrivals";
+    const arrivalsShortLabel = isLrt ? "LRT" : "Trains";
+
     navItems.push({
       id: "arrivals",
-      label: "Train & LRT Arrivals",
-      shortLabel: "Arrivals",
+      label: arrivalsLabel,
+      shortLabel: arrivalsShortLabel,
       icon: <Train size={13} aria-hidden="true" />,
     });
     navItems.push({

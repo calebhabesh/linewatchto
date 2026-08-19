@@ -157,15 +157,7 @@ export function useMobileDraggableSheet() {
       const session = dragSessionRef.current;
       if (!session || session.pointerId !== moveEvent.pointerId) return;
 
-      if (moveEvent.cancelable) {
-        moveEvent.preventDefault();
-      }
-
-      const lastEvent = (moveEvent.getCoalescedEvents && moveEvent.getCoalescedEvents().length > 0)
-        ? moveEvent.getCoalescedEvents()[moveEvent.getCoalescedEvents().length - 1]
-        : moveEvent;
-
-      const deltaY = session.startY - lastEvent.clientY;
+      const deltaY = session.startY - moveEvent.clientY;
       const currentHeightPx = session.startHeightPx + deltaY;
       const rawRatio = currentHeightPx / session.viewportHeight;
       const nextRatio = computeDampedRatio(rawRatio);
@@ -176,7 +168,8 @@ export function useMobileDraggableSheet() {
           rafIdRef.current = null;
           const el = sheetRef.current;
           if (el && isDraggingRef.current) {
-            const pxValue = `${(currentRatioRef.current * session.viewportHeight).toFixed(1)}px`;
+            const pxValue = `${Math.round(currentRatioRef.current * session.viewportHeight)}px`;
+            el.style.setProperty("--mobile-station-sheet-height", pxValue);
             el.style.height = pxValue;
             el.style.maxHeight = pxValue;
           }

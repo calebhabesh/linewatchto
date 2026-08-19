@@ -11487,7 +11487,6 @@ img.transit-line-badge {
     transition: none !important;
     will-change: height, max-height;
     user-select: none;
-    touch-action: none;
   }
 
   .station-detail-panel.station-detail-sheet-dragging * {

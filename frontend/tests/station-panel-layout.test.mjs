@@ -185,6 +185,11 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, /data-station-section="notices"/);
     assert.match(regionalPanelSource, /data-station-section="accessibility"/);
 
+    assert.match(panelSource, /shortLabel:\s*arrivalsShortLabel/);
+    assert.match(panelSource, /shortLabel:\s*"Buses"/);
+    assert.match(regionalPanelSource, /shortLabel:\s*"Trains"/);
+    assert.match(regionalPanelSource, /shortLabel:\s*"Buses"/);
+
     const ttcLineHeaderIdx = panelSource.indexOf("data-station-header-line-details");
     const ttcNavIdx = panelSource.indexOf("<StationSubmenuNavButtons");
     const ttcScrollIdx = panelSource.indexOf("station-detail-scroll");
