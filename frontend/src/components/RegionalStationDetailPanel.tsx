@@ -772,10 +772,10 @@ export function RegionalStationDetailPanel({
 
             {hasAnyAmenities && (
               <div
-                className="flex flex-col gap-3 sm:gap-3.5 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
+                className="flex flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Services and Amenities
