@@ -68,4 +68,29 @@ describe("unified search alert group headings", () => {
       /\.station-search-amenity-toolbar\s*\{[^}]*margin-left:\s*-10px;[^}]*padding:\s*2px 10px 12px 10px;[^}]*border-bottom:\s*1px solid/s,
     );
   });
+
+  it("renders all applicable amenity filter chips and balances mobile back button spacing", () => {
+    assert.match(searchPanelSource, /toggleAmenityFilter\("wheelchair"\)/);
+    assert.match(searchPanelSource, /toggleAmenityFilter\("elevator"\)/);
+    assert.match(searchPanelSource, /toggleAmenityFilter\("washroom"\)/);
+    assert.match(searchPanelSource, /toggleAmenityFilter\("parking"\)/);
+    assert.match(searchPanelSource, /toggleAmenityFilter\("bicycleLockup"\)/);
+    assert.match(searchPanelSource, /toggleAmenityFilter\("bicycleRepair"\)/);
+    assert.match(searchPanelSource, /toggleAmenityFilter\("bikeShare"\)/);
+    assert.match(searchPanelSource, /toggleAmenityFilter\("ppudo"\)/);
+
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/accessible\.svg"/);
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/outages\/elevator\.svg"/);
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/washroom\.svg"/);
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/parking\.svg"/);
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/bicycle-lockup\.svg"/);
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/bicycle-repair\.svg"/);
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/bike-share-toronto\.svg"/);
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/passenger-pick-up\.svg"/);
+
+    assert.match(
+      globalCss,
+      /\.station-search-mobile-back\s*\{[^}]*margin-top:\s*12px\s*!important;[^}]*margin-bottom:\s*12px\s*!important;/s,
+    );
+  });
 });

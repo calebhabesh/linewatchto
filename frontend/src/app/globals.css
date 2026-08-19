@@ -17595,6 +17595,11 @@ img.transit-line-badge {
     min-height: 0;
   }
 
+  .station-search-amenity-toolbar {
+    margin-bottom: 0;
+    padding-bottom: 8px;
+  }
+
   .station-search-browse-container {
     flex-direction: column;
     gap: 10px;
@@ -17605,6 +17610,7 @@ img.transit-line-badge {
     flex: 1 1 auto;
     max-height: none;
     min-height: 0;
+    padding-top: 6px;
     padding-right: 6px;
   }
 
@@ -17635,6 +17641,7 @@ img.transit-line-badge {
     overflow-y: auto;
     padding-left: 2px;
     padding-right: 0;
+    padding-top: 0;
     transform: none;
     width: auto;
   }
@@ -17643,6 +17650,7 @@ img.transit-line-badge {
     border-left: 0;
     padding-left: 2px;
     padding-right: 0;
+    padding-top: 0;
     width: auto;
     animation: mobile-station-search-slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
@@ -17675,7 +17683,8 @@ img.transit-line-badge {
     justify-content: center;
     padding: 8px 10px;
     text-align: center;
-    margin-bottom: 14px !important;
+    margin-top: 12px !important;
+    margin-bottom: 12px !important;
   }
 }
 
@@ -24041,6 +24050,7 @@ button:active .account-network-badge,
     margin-left: -8px;
     margin-right: -8px;
     padding: 2px 8px 8px;
+    margin-bottom: 0;
   }
 
   .station-search-line-trigger,

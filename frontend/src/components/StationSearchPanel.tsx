@@ -219,7 +219,7 @@ function StationButton({
     .filter((line): line is StationSearchLine => Boolean(line));
 
   const isWheelchair = station.wheelchairAccessible ?? isStationWheelchairAccessible(station.id, station.lineIds, networkId);
-  const hasElevator = station.hasElevator ?? (networkId === "ttc" ? isStationElevatorAccessible(station.id, station.lineIds) : isWheelchair);
+  const hasElevator = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds, networkId);
   const hasWashroom = station.hasWashroom ?? isStationWashroomAvailable(station.id, networkId);
   const hasParking = station.hasParking ?? isStationParkingAvailable(station.id, networkId);
   const hasBicycleLockup = station.hasBicycleLockup ?? isStationBicycleLockupAvailable(station.id, networkId);
@@ -770,74 +770,158 @@ export function StationSearchPanel({
             )}
           </div>
           <div className="station-search-amenity-chips">
-            <button
-              type="button"
-              className={`station-search-amenity-chip ${amenityFilters.wheelchair ? "active" : ""}`}
-              onClick={() => toggleAmenityFilter("wheelchair")}
-              aria-pressed={Boolean(amenityFilters.wheelchair)}
-              title="Filter wheelchair accessible stations"
-            >
-              <Image
-                src="/assets/linewatch/accessible.svg"
-                alt=""
-                width={13}
-                height={13}
-                className="h-3.5 w-3.5 rounded-[2px] shrink-0"
-              />
-              <span>Accessible</span>
-              <span className="station-search-amenity-chip-count">{currentAmenityCounts.wheelchair}</span>
-            </button>
-            <button
-              type="button"
-              className={`station-search-amenity-chip ${amenityFilters.elevator ? "active" : ""}`}
-              onClick={() => toggleAmenityFilter("elevator")}
-              aria-pressed={Boolean(amenityFilters.elevator)}
-              title="Filter stations with elevator access"
-            >
-              <Image
-                src="/assets/linewatch/outages/elevator.svg"
-                alt=""
-                width={13}
-                height={13}
-                className="h-3.5 w-3.5 shrink-0"
-              />
-              <span>Elevator</span>
-              <span className="station-search-amenity-chip-count">{currentAmenityCounts.elevator}</span>
-            </button>
-            <button
-              type="button"
-              className={`station-search-amenity-chip ${amenityFilters.washroom ? "active" : ""}`}
-              onClick={() => toggleAmenityFilter("washroom")}
-              aria-pressed={Boolean(amenityFilters.washroom)}
-              title="Filter stations with public washrooms"
-            >
-              <Image
-                src="/assets/linewatch/washroom.svg"
-                alt=""
-                width={13}
-                height={13}
-                className="h-3.5 w-3.5 shrink-0"
-              />
-              <span>Washrooms</span>
-              <span className="station-search-amenity-chip-count">{currentAmenityCounts.washroom}</span>
-            </button>
-            <button
-              type="button"
-              className={`station-search-amenity-chip ${amenityFilters.parking ? "active" : ""}`}
-              onClick={() => toggleAmenityFilter("parking")}
-              aria-pressed={Boolean(amenityFilters.parking)}
-              title="Filter stations with commuter parking"
-            >
-              <Image
-                src="/assets/linewatch/parking.svg"
-                alt=""
-                width={13}
-                height={13}
-                className="h-3.5 w-3.5 rounded-full shrink-0"
-              />
-              <span>Parking</span>
-              <span className="station-search-amenity-chip-count">{currentAmenityCounts.parking}</span>
-            </button>
+            {currentAmenityCounts.wheelchair > 0 && (
+              <button
+                type="button"
+                className={`station-search-amenity-chip ${amenityFilters.wheelchair ? "active" : ""}`}
+                onClick={() => toggleAmenityFilter("wheelchair")}
+                aria-pressed={Boolean(amenityFilters.wheelchair)}
+                title="Filter wheelchair accessible stations"
+              >
+                <Image
+                  src="/assets/linewatch/accessible.svg"
+                  alt=""
+                  width={13}
+                  height={13}
+                  className="h-3.5 w-3.5 rounded-[2px] shrink-0"
+                />
+                <span>Accessible</span>
+                <span className="station-search-amenity-chip-count">{currentAmenityCounts.wheelchair}</span>
+              </button>
+            )}
+            {currentAmenityCounts.elevator > 0 && (
+              <button
+                type="button"
+                className={`station-search-amenity-chip ${amenityFilters.elevator ? "active" : ""}`}
+                onClick={() => toggleAmenityFilter("elevator")}
+                aria-pressed={Boolean(amenityFilters.elevator)}
+                title="Filter stations with elevator access"
+              >
+                <Image
+                  src="/assets/linewatch/outages/elevator.svg"
+                  alt=""
+                  width={13}
+                  height={13}
+                  className="h-3.5 w-3.5 shrink-0"
+                />
+                <span>Elevator</span>
+                <span className="station-search-amenity-chip-count">{currentAmenityCounts.elevator}</span>
+              </button>
+            )}
+            {currentAmenityCounts.washroom > 0 && (
+              <button
+                type="button"
+                className={`station-search-amenity-chip ${amenityFilters.washroom ? "active" : ""}`}
+                onClick={() => toggleAmenityFilter("washroom")}
+                aria-pressed={Boolean(amenityFilters.washroom)}
+                title="Filter stations with public washrooms"
+              >
+                <Image
+                  src="/assets/linewatch/washroom.svg"
+                  alt=""
+                  width={13}
+                  height={13}
+                  className="h-3.5 w-3.5 shrink-0"
+                />
+                <span>Washrooms</span>
+                <span className="station-search-amenity-chip-count">{currentAmenityCounts.washroom}</span>
+              </button>
+            )}
+            {currentAmenityCounts.parking > 0 && (
+              <button
+                type="button"
+                className={`station-search-amenity-chip ${amenityFilters.parking ? "active" : ""}`}
+                onClick={() => toggleAmenityFilter("parking")}
+                aria-pressed={Boolean(amenityFilters.parking)}
+                title="Filter stations with commuter parking"
+              >
+                <Image
+                  src="/assets/linewatch/parking.svg"
+                  alt=""
+                  width={13}
+                  height={13}
+                  className="h-3.5 w-3.5 rounded-full shrink-0"
+                />
+                <span>Parking</span>
+                <span className="station-search-amenity-chip-count">{currentAmenityCounts.parking}</span>
+              </button>
+            )}
+            {currentAmenityCounts.bicycleLockup > 0 && (
+              <button
+                type="button"
+                className={`station-search-amenity-chip ${amenityFilters.bicycleLockup ? "active" : ""}`}
+                onClick={() => toggleAmenityFilter("bicycleLockup")}
+                aria-pressed={Boolean(amenityFilters.bicycleLockup)}
+                title="Filter stations with bicycle lock-up"
+              >
+                <Image
+                  src="/assets/linewatch/bicycle-lockup.svg"
+                  alt=""
+                  width={13}
+                  height={13}
+                  className="h-3.5 w-3.5 shrink-0"
+                />
+                <span>Bike Lock-up</span>
+                <span className="station-search-amenity-chip-count">{currentAmenityCounts.bicycleLockup}</span>
+              </button>
+            )}
+            {currentAmenityCounts.bicycleRepair > 0 && (
+              <button
+                type="button"
+                className={`station-search-amenity-chip ${amenityFilters.bicycleRepair ? "active" : ""}`}
+                onClick={() => toggleAmenityFilter("bicycleRepair")}
+                aria-pressed={Boolean(amenityFilters.bicycleRepair)}
+                title="Filter stations with bicycle repair stand"
+              >
+                <Image
+                  src="/assets/linewatch/bicycle-repair.svg"
+                  alt=""
+                  width={13}
+                  height={13}
+                  className="h-3.5 w-3.5 shrink-0"
+                />
+                <span>Bike Repair</span>
+                <span className="station-search-amenity-chip-count">{currentAmenityCounts.bicycleRepair}</span>
+              </button>
+            )}
+            {currentAmenityCounts.bikeShare > 0 && (
+              <button
+                type="button"
+                className={`station-search-amenity-chip ${amenityFilters.bikeShare ? "active" : ""}`}
+                onClick={() => toggleAmenityFilter("bikeShare")}
+                aria-pressed={Boolean(amenityFilters.bikeShare)}
+                title="Filter stations with Bike Share Toronto"
+              >
+                <Image
+                  src="/assets/linewatch/bike-share-toronto.svg"
+                  alt=""
+                  width={13}
+                  height={13}
+                  className="h-3.5 w-3.5 rounded-full shrink-0"
+                />
+                <span>Bike Share</span>
+                <span className="station-search-amenity-chip-count">{currentAmenityCounts.bikeShare}</span>
+              </button>
+            )}
+            {currentAmenityCounts.ppudo > 0 && (
+              <button
+                type="button"
+                className={`station-search-amenity-chip ${amenityFilters.ppudo ? "active" : ""}`}
+                onClick={() => toggleAmenityFilter("ppudo")}
+                aria-pressed={Boolean(amenityFilters.ppudo)}
+                title="Filter stations with passenger pick-up / drop-off"
+              >
+                <Image
+                  src="/assets/linewatch/passenger-pick-up.svg"
+                  alt=""
+                  width={13}
+                  height={13}
+                  className="h-3.5 w-3.5 shrink-0"
+                />
+                <span>Passenger Pick-up</span>
+                <span className="station-search-amenity-chip-count">{currentAmenityCounts.ppudo}</span>
+              </button>
+            )}
           </div>
         </div>
 
