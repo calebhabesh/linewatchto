@@ -290,7 +290,7 @@ export function RegionalStationDetailPanel({
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
-  const { isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
+  const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const [arrivalState, setArrivalState] = useState<{
     stationId: string;
@@ -547,31 +547,36 @@ export function RegionalStationDetailPanel({
     navItems.push({
       id: "connected-network",
       label: connections.length === 1 ? "Connected Network" : "Connected Networks",
-      icon: <GitMerge size={14} aria-hidden="true" />,
+      shortLabel: "Network",
+      icon: <GitMerge size={13} aria-hidden="true" />,
     });
   }
   if (hasAnyAmenities) {
     navItems.push({
       id: "services-and-amenities",
       label: "Services & Amenities",
-      icon: <ConciergeBell size={14} aria-hidden="true" />,
+      shortLabel: "Amenities",
+      icon: <ConciergeBell size={13} aria-hidden="true" />,
     });
   }
   navItems.push({
     id: "arrivals",
     label: "Train Arrivals",
-    icon: <Train size={14} aria-hidden="true" />,
+    shortLabel: "Arrivals",
+    icon: <Train size={13} aria-hidden="true" />,
   });
   navItems.push({
     id: "surface-connections",
     label: "Surface Connections",
-    icon: <Bus size={14} aria-hidden="true" />,
+    shortLabel: "Buses",
+    icon: <Bus size={13} aria-hidden="true" />,
   });
   if (impacts.length > 0) {
     navItems.push({
       id: "station-impacts",
       label: "Station Impacts",
-      icon: <AlertCircle size={14} aria-hidden="true" />,
+      shortLabel: "Impacts",
+      icon: <AlertCircle size={13} aria-hidden="true" />,
       count: impacts.length,
     });
   }
@@ -579,26 +584,29 @@ export function RegionalStationDetailPanel({
     navItems.push({
       id: "trip-changes",
       label: "Upcoming Trip Changes",
-      icon: <AlertTriangle size={14} className="text-amber-500" aria-hidden="true" />,
+      shortLabel: "Changes",
+      icon: <AlertTriangle size={13} className="text-amber-500" aria-hidden="true" />,
       count: tripChanges.changes.length > 0 ? tripChanges.changes.length : undefined,
     });
   }
   navItems.push({
     id: "notices",
     label: "Notices",
-    icon: <FileText size={14} aria-hidden="true" />,
+    shortLabel: "Notices",
+    icon: <FileText size={13} aria-hidden="true" />,
     count: linkedNotices.length > 0 ? linkedNotices.length : undefined,
   });
   if (accessibilityOutages.length > 0) {
     navItems.push({
       id: "accessibility",
       label: "Accessibility Outages",
+      shortLabel: "Outages",
       icon: (
         <Image
           src="/assets/linewatch/accessibility-alert.svg"
           alt=""
-          width={14}
-          height={14}
+          width={13}
+          height={13}
           aria-hidden="true"
           className="shrink-0"
         />
@@ -626,11 +634,13 @@ export function RegionalStationDetailPanel({
     closeTimeoutRef.current = window.setTimeout(() => {
       closeTimeoutRef.current = null;
       onClose();
+      setIsClosing(false);
     }, 380);
   };
 
   return (
     <aside
+      ref={sheetRef}
       style={sheetStyle}
       className={`regional-station-detail station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
       aria-live="polite"
@@ -706,46 +716,46 @@ export function RegionalStationDetailPanel({
             </div>
           )}
 
-          {hasAccessibilityOutages && (
-            <button
-              type="button"
-              onClick={handleJumpToAccessibility}
-              className="mt-2.5 flex w-full items-center justify-between gap-3 shrink-0 rounded-md border border-red-500/15 bg-red-500/5 px-2.5 py-1.5 text-left dark:border-red-500/20 dark:bg-red-500/10 transition-colors hover:bg-red-500/10 dark:hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
-              data-station-access-outage-summary
-              aria-label="Active accessibility outages. Press for details."
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-red-700 dark:text-red-200">
-                  Access Outages
-                </span>
-                <div className="h-4 w-[1px] bg-red-500/20" aria-hidden="true" />
-                <span className="flex items-center gap-2">
-                  {elevatorOutagesCount > 0 && (
-                    <StationAccessOutageBadge
-                      assetType="elevator"
-                      count={elevatorOutagesCount}
-                      label={formatStationOutageLabel("elevator", elevatorOutagesCount)}
-                    />
-                  )}
-                  {escalatorOutagesCount > 0 && (
-                    <StationAccessOutageBadge
-                      assetType="escalator"
-                      count={escalatorOutagesCount}
-                      label={formatStationOutageLabel("escalator", escalatorOutagesCount)}
-                    />
-                  )}
-                </span>
-              </div>
-              <span className="text-xs font-bold text-red-700 dark:text-red-300">Details &rarr;</span>
-            </button>
-          )}
-
           <StationSubmenuNavButtons
             items={navItems}
             onJumpToSection={handleJumpToSection}
           />
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 pr-4 -mr-4 station-detail-scroll station-detail-section-stack">
+            {hasAccessibilityOutages && (
+              <button
+                type="button"
+                onClick={handleJumpToAccessibility}
+                className="flex w-full items-center justify-between gap-3 shrink-0 rounded-md border border-red-500/15 bg-red-500/5 px-2.5 py-1.5 text-left dark:border-red-500/20 dark:bg-red-500/10 transition-colors hover:bg-red-500/10 dark:hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+                data-station-access-outage-summary
+                aria-label="Active accessibility outages. Press for details."
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-red-700 dark:text-red-200">
+                    Access Outages
+                  </span>
+                  <div className="h-4 w-[1px] bg-red-500/20" aria-hidden="true" />
+                  <span className="flex items-center gap-2">
+                    {elevatorOutagesCount > 0 && (
+                      <StationAccessOutageBadge
+                        assetType="elevator"
+                        count={elevatorOutagesCount}
+                        label={formatStationOutageLabel("elevator", elevatorOutagesCount)}
+                      />
+                    )}
+                    {escalatorOutagesCount > 0 && (
+                      <StationAccessOutageBadge
+                        assetType="escalator"
+                        count={escalatorOutagesCount}
+                        label={formatStationOutageLabel("escalator", escalatorOutagesCount)}
+                      />
+                    )}
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-red-700 dark:text-red-300">Details &rarr;</span>
+              </button>
+            )}
+
             {connections.length > 0 && (
               <div data-station-section="connected-network">
                 <StationConnectionBadges connections={connections} />

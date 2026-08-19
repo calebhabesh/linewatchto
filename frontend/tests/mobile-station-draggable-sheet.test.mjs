@@ -112,4 +112,34 @@ describe("mobile station draggable sheet UX", () => {
     assert.match(globalCss, /@media\s*\(min-width:\s*768px\)[\s\S]*?\.station-sheet-drag-handle-container\s*\{[^}]*display:\s*none\s*!important/);
     assert.match(globalCss, /@media\s*\(min-width:\s*768px\)[\s\S]*?\.station-detail-panel\s*\{[^}]*height:\s*auto\s*!important/);
   });
+
+  it("uses requestAnimationFrame and direct DOM updates in useMobileDraggableSheet for lag-free dragging", () => {
+    assert.match(hookSource, /requestAnimationFrame/);
+    assert.match(hookSource, /sheetRef/);
+    assert.match(panelSource, /ref=\{sheetRef\}/);
+    assert.match(regionalPanelSource, /ref=\{sheetRef\}/);
+  });
+
+  it("renders Jump To buttons with words and icons in a space-efficient grid and places Access Outages inside scrollable area below Jump To", () => {
+    const navButtonsSource = readFileSync(new URL("../src/components/StationSubmenuNavButtons.tsx", import.meta.url), "utf8");
+    assert.match(navButtonsSource, /grid\s+grid-cols-3/);
+    assert.match(navButtonsSource, /\{item\.shortLabel\s*\?\?\s*item\.label\}/);
+    assert.match(navButtonsSource, /\{item\.icon\}/);
+
+    // Verify StationDetailPanel layout order: Jump To is outside scroll area, Access Outages is inside scroll area
+    const navIndex = panelSource.indexOf("<StationSubmenuNavButtons");
+    const scrollIndex = panelSource.indexOf("station-detail-scroll");
+    const outageIndex = panelSource.indexOf("data-station-access-outage-summary");
+    assert.ok(navIndex > 0);
+    assert.ok(scrollIndex > navIndex, "Scrollable section must begin after StationSubmenuNavButtons");
+    assert.ok(outageIndex > scrollIndex, "Access Outages must be inside the scrollable container below Jump To");
+
+    // Verify RegionalStationDetailPanel layout order as well
+    const regNavIndex = regionalPanelSource.indexOf("<StationSubmenuNavButtons");
+    const regScrollIndex = regionalPanelSource.indexOf("station-detail-scroll");
+    const regOutageIndex = regionalPanelSource.indexOf("data-station-access-outage-summary");
+    assert.ok(regNavIndex > 0);
+    assert.ok(regScrollIndex > regNavIndex, "Regional scrollable section must begin after StationSubmenuNavButtons");
+    assert.ok(regOutageIndex > regScrollIndex, "Regional Access Outages must be inside the scrollable container below Jump To");
+  });
 });

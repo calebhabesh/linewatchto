@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export const MOBILE_STATION_SHEET_STORAGE_KEY = "linewatch-mobile-station-sheet-height-v1";
 export const MOBILE_SHEET_FLOOR_RATIO = 0.50;
@@ -41,11 +41,16 @@ export function writeStoredSheetHeightRatio(
 }
 
 export function useMobileDraggableSheet() {
+  const sheetRef = useRef<HTMLElement | null>(null);
   const [heightRatio, setHeightRatio] = useState<number>(() => {
     if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
     return readStoredSheetHeightRatio(window.localStorage);
   });
   const [isDragging, setIsDragging] = useState(false);
+
+  const currentRatioRef = useRef(heightRatio);
+  const rafIdRef = useRef<number | null>(null);
+  const isDraggingRef = useRef(false);
 
   const dragStartRef = useRef<{
     startY: number;
@@ -53,25 +58,34 @@ export function useMobileDraggableSheet() {
     viewportHeight: number;
     pointerId: number;
     hasMoved: boolean;
+    target: HTMLElement;
   } | null>(null);
+
+  useEffect(() => {
+    currentRatioRef.current = heightRatio;
+  }, [heightRatio]);
 
   const updateAndPersistRatio = useCallback((nextRatio: number) => {
     const clamped = clampSheetRatio(nextRatio);
+    currentRatioRef.current = clamped;
     setHeightRatio(clamped);
+    const el = sheetRef.current;
+    if (el) {
+      el.style.transition = "";
+      el.style.setProperty("--mobile-station-sheet-height", `${Math.round(clamped * 100)}dvh`);
+      el.style.height = "";
+      el.style.maxHeight = "";
+    }
     if (typeof window !== "undefined") {
       writeStoredSheetHeightRatio(window.localStorage, clamped);
     }
   }, []);
 
   const handleToggleExpand = useCallback(() => {
-    setHeightRatio((current) => {
-      const next = current <= 0.65 ? MOBILE_SHEET_EXPANDED_RATIO : MOBILE_SHEET_FLOOR_RATIO;
-      if (typeof window !== "undefined") {
-        writeStoredSheetHeightRatio(window.localStorage, next);
-      }
-      return next;
-    });
-  }, []);
+    const current = currentRatioRef.current;
+    const next = current <= 0.65 ? MOBILE_SHEET_EXPANDED_RATIO : MOBILE_SHEET_FLOOR_RATIO;
+    updateAndPersistRatio(next);
+  }, [updateAndPersistRatio]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -83,21 +97,30 @@ export function useMobileDraggableSheet() {
     }
 
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight ?? 800;
+    const startRatio = currentRatioRef.current;
     dragStartRef.current = {
       startY: e.clientY,
-      startRatio: heightRatio,
+      startRatio,
       viewportHeight,
       pointerId: e.pointerId,
       hasMoved: false,
+      target,
     };
+    isDraggingRef.current = true;
     setIsDragging(true);
-  }, [heightRatio]);
+
+    const sheetEl = sheetRef.current;
+    if (sheetEl) {
+      sheetEl.style.transition = "none";
+      sheetEl.classList.add("station-detail-sheet-dragging");
+    }
+  }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragStartRef.current || dragStartRef.current.pointerId !== e.pointerId) return;
 
     const { startY, startRatio, viewportHeight } = dragStartRef.current;
-    const deltaY = startY - e.clientY; // upward drag increases sheet height
+    const deltaY = startY - e.clientY;
 
     if (Math.abs(deltaY) > 3) {
       dragStartRef.current.hasMoved = true;
@@ -105,57 +128,108 @@ export function useMobileDraggableSheet() {
 
     const deltaRatio = deltaY / viewportHeight;
     const newRatio = clampSheetRatio(startRatio + deltaRatio);
-    setHeightRatio(newRatio);
+    currentRatioRef.current = newRatio;
+
+    // Direct DOM mutation in RAF (zero React re-renders while moving finger)
+    if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        const el = sheetRef.current;
+        if (el && isDraggingRef.current) {
+          const pxValue = `${Math.round(currentRatioRef.current * viewportHeight)}px`;
+          el.style.setProperty("--mobile-station-sheet-height", pxValue);
+          el.style.height = pxValue;
+          el.style.maxHeight = pxValue;
+        }
+      });
+    }
   }, []);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragStartRef.current || dragStartRef.current.pointerId !== e.pointerId) return;
 
-    const target = e.currentTarget as HTMLElement;
+    const { hasMoved, target, pointerId } = dragStartRef.current;
+    dragStartRef.current = null;
+    isDraggingRef.current = false;
+    setIsDragging(false);
+
     try {
-      target.releasePointerCapture(e.pointerId);
+      target.releasePointerCapture(pointerId);
     } catch {
       // Ignore
     }
 
-    const hadMoved = dragStartRef.current.hasMoved;
-    dragStartRef.current = null;
-    setIsDragging(false);
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
 
-    if (!hadMoved) {
+    const sheetEl = sheetRef.current;
+    if (sheetEl) {
+      sheetEl.style.transition = "";
+      sheetEl.classList.remove("station-detail-sheet-dragging");
+      sheetEl.style.height = "";
+      sheetEl.style.maxHeight = "";
+    }
+
+    if (!hasMoved) {
       handleToggleExpand();
     } else {
+      const finalRatio = currentRatioRef.current;
+      setHeightRatio(finalRatio);
+      if (sheetEl) {
+        sheetEl.style.setProperty("--mobile-station-sheet-height", `${Math.round(finalRatio * 100)}dvh`);
+      }
       if (typeof window !== "undefined") {
-        writeStoredSheetHeightRatio(window.localStorage, heightRatio);
+        writeStoredSheetHeightRatio(window.localStorage, finalRatio);
       }
     }
-  }, [handleToggleExpand, heightRatio]);
+  }, [handleToggleExpand]);
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
     if (!dragStartRef.current || dragStartRef.current.pointerId !== e.pointerId) return;
 
-    const target = e.currentTarget as HTMLElement;
+    const { target, pointerId } = dragStartRef.current;
+    dragStartRef.current = null;
+    isDraggingRef.current = false;
+    setIsDragging(false);
+
     try {
-      target.releasePointerCapture(e.pointerId);
+      target.releasePointerCapture(pointerId);
     } catch {
       // Ignore
     }
 
-    dragStartRef.current = null;
-    setIsDragging(false);
-
-    if (typeof window !== "undefined") {
-      writeStoredSheetHeightRatio(window.localStorage, heightRatio);
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
     }
-  }, [heightRatio]);
+
+    const sheetEl = sheetRef.current;
+    if (sheetEl) {
+      sheetEl.style.transition = "";
+      sheetEl.classList.remove("station-detail-sheet-dragging");
+      sheetEl.style.height = "";
+      sheetEl.style.maxHeight = "";
+    }
+
+    const finalRatio = currentRatioRef.current;
+    setHeightRatio(finalRatio);
+    if (sheetEl) {
+      sheetEl.style.setProperty("--mobile-station-sheet-height", `${Math.round(finalRatio * 100)}dvh`);
+    }
+    if (typeof window !== "undefined") {
+      writeStoredSheetHeightRatio(window.localStorage, finalRatio);
+    }
+  }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      updateAndPersistRatio(heightRatio + 0.10);
+      updateAndPersistRatio(currentRatioRef.current + 0.10);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      updateAndPersistRatio(heightRatio - 0.10);
+      updateAndPersistRatio(currentRatioRef.current - 0.10);
     } else if (e.key === "Home") {
       e.preventDefault();
       updateAndPersistRatio(MOBILE_SHEET_FLOOR_RATIO);
@@ -166,9 +240,11 @@ export function useMobileDraggableSheet() {
       e.preventDefault();
       handleToggleExpand();
     }
-  }, [handleToggleExpand, heightRatio, updateAndPersistRatio]);
+  }, [handleToggleExpand, updateAndPersistRatio]);
+
 
   return {
+    sheetRef,
     heightRatio,
     isDragging,
     isExpanded: heightRatio > 0.65,
