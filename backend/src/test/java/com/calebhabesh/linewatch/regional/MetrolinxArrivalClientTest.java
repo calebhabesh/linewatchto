@@ -7,6 +7,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.time.OffsetDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -139,6 +140,52 @@ class MetrolinxArrivalClientTest {
         assertThat(feed.arrivals()).singleElement().satisfies(arrival ->
             assertThat(arrival.direction()).isEqualTo("Union Station")
         );
+        server.verify();
+    }
+
+    @Test
+    void handlesNoContentForTrainNextServiceGracefully() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Stop/NextService/AD?key=" + KEY))
+            .andRespond(withSuccess("""
+                {"Metadata":{"TimeStamp":"2026-08-18 19:46:51","ErrorCode":"204","ErrorMessage":"No Content"},
+                 "NextService":null}
+                """, MediaType.APPLICATION_JSON));
+
+        RegionalArrivalFeed feed = client.fetchGoNextService("AD");
+
+        assertThat(feed.sourceUpdatedAt()).isEqualTo(OffsetDateTime.parse("2026-08-18T19:46:51-04:00"));
+        assertThat(feed.arrivals()).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void resolvesMultipleStationBusStopCodesAndToleratesNoContent() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Stop/NextService/08049?key=" + KEY))
+            .andRespond(withSuccess("""
+                {"Metadata":{"TimeStamp":"2026-08-18 19:47:04","ErrorCode":"200","ErrorMessage":"OK"},
+                 "NextService":{"Lines":[
+                   {"StopCode":"08049","LineCode":"68","LineName":"Barrie / Newmarket","ServiceType":"B",
+                    "DirectionName":"68F - Hwy. 407 Bus Term","ScheduledDepartureTime":"2026-08-18 20:55:00",
+                    "ComputedDepartureTime":"2026-08-18 20:55:00","ScheduledPlatform":"7","ActualPlatform":"",
+                    "TripNumber":"68852"}
+                 ]}}
+                """, MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Stop/NextService/AD?key=" + KEY))
+            .andRespond(withSuccess("""
+                {"Metadata":{"TimeStamp":"2026-08-18 19:46:51","ErrorCode":"204","ErrorMessage":"No Content"},
+                 "NextService":null}
+                """, MediaType.APPLICATION_JSON));
+
+        var feed = client.fetchGoBusNextService("allandale-waterfront", List.of("08049", "AD"));
+
+        assertThat(feed.sourceUpdatedAt()).isEqualTo(OffsetDateTime.parse("2026-08-18T19:47:04-04:00"));
+        assertThat(feed.arrivals()).singleElement().satisfies(arrival -> {
+            assertThat(arrival.stationId()).isEqualTo("allandale-waterfront");
+            assertThat(arrival.route()).isEqualTo("68");
+            assertThat(arrival.destination()).isEqualTo("Hwy. 407 Bus Term");
+            assertThat(arrival.bayPlatform()).isEqualTo("7");
+            assertThat(arrival.status()).isEqualTo("live");
+        });
         server.verify();
     }
 }

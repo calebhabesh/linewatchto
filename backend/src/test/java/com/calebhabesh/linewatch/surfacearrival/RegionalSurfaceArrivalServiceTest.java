@@ -1,6 +1,8 @@
 package com.calebhabesh.linewatch.surfacearrival;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -19,7 +21,7 @@ class RegionalSurfaceArrivalServiceTest {
         MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
         SurfaceArrivalProperties properties = new SurfaceArrivalProperties();
         properties.setRegionalEnabled(true);
-        when(client.fetchGoBusNextService("bramalea", "BE")).thenReturn(new RegionalSurfaceArrivalFeed(
+        when(client.fetchGoBusNextService(eq("bramalea"), anyList())).thenReturn(new RegionalSurfaceArrivalFeed(
             now.minusSeconds(10),
             List.of(new SurfaceArrivalRecord(
                 "bramalea", "GO Transit", "bus", "31", "Georgetown", "Guelph",

@@ -10,6 +10,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,7 +58,14 @@ public class MetrolinxArrivalClient {
 
     public RegionalArrivalFeed fetchGoNextService(String stopCode) {
         JsonNode root = fetch(GO_NEXT_SERVICE_PATH + stopCode, "GO station arrivals");
-        if (!"200".equals(root.path("Metadata").path("ErrorCode").asText(""))) {
+        String errorCode = root.path("Metadata").path("ErrorCode").asText("");
+        if ("204".equals(errorCode)) {
+            return new RegionalArrivalFeed(
+                parseTimestamp(root.path("Metadata").path("TimeStamp").asText("")),
+                List.of()
+            );
+        }
+        if (!"200".equals(errorCode)) {
             throw new MetrolinxClientException("Metrolinx GO station-arrival response was unsuccessful");
         }
         List<RegionalArrivalRecord> arrivals = new ArrayList<>();
@@ -88,38 +97,84 @@ public class MetrolinxArrivalClient {
     }
 
     public RegionalSurfaceArrivalFeed fetchGoBusNextService(String stationId, String stopCode) {
-        JsonNode root = fetch(GO_NEXT_SERVICE_PATH + stopCode, "GO Bus station connections");
-        if (!"200".equals(root.path("Metadata").path("ErrorCode").asText(""))) {
-            throw new MetrolinxClientException("Metrolinx GO Bus station-arrival response was unsuccessful");
+        return fetchGoBusNextService(stationId, List.of(stopCode));
+    }
+
+    public RegionalSurfaceArrivalFeed fetchGoBusNextService(String stationId, List<String> stopCodes) {
+        if (stopCodes == null || stopCodes.isEmpty()) {
+            return new RegionalSurfaceArrivalFeed(null, List.of());
         }
         List<SurfaceArrivalRecord> arrivals = new ArrayList<>();
-        for (JsonNode row : array(root.path("NextService").path("Lines"))) {
-            if (!"B".equalsIgnoreCase(row.path("ServiceType").asText(""))) continue;
-            OffsetDateTime scheduledAt = parseTimestamp(row.path("ScheduledDepartureTime").asText(""));
-            OffsetDateTime computedAt = parseTimestamp(row.path("ComputedDepartureTime").asText(""));
-            OffsetDateTime predictedAt = computedAt == null ? scheduledAt : computedAt;
-            String route = row.path("LineCode").asText("").trim();
-            if (route.isEmpty() || predictedAt == null) continue;
-            arrivals.add(new SurfaceArrivalRecord(
-                stationId,
-                "GO Transit",
-                "bus",
-                route,
-                row.path("LineName").asText("").trim(),
-                destination(row.path("DirectionName").asText("")),
-                scheduledAt,
-                predictedAt,
-                preferred(row.path("ActualPlatform").asText(""), row.path("ScheduledPlatform").asText("")),
-                row.path("StopCode").asText(stopCode).trim(),
-                row.path("TripNumber").asText("").trim(),
-                "Metrolinx GO Next Service",
-                computedAt == null ? "scheduled" : "live"
-            ));
+        OffsetDateTime latestTimestamp = null;
+        int successfulResponses = 0;
+        int failedResponses = 0;
+
+        for (String stopCode : stopCodes) {
+            try {
+                JsonNode root = fetch(GO_NEXT_SERVICE_PATH + stopCode, "GO Bus station connections");
+                String errorCode = root.path("Metadata").path("ErrorCode").asText("");
+                if ("204".equals(errorCode)) {
+                    successfulResponses++;
+                    OffsetDateTime ts = parseTimestamp(root.path("Metadata").path("TimeStamp").asText(""));
+                    if (ts != null && (latestTimestamp == null || ts.isAfter(latestTimestamp))) {
+                        latestTimestamp = ts;
+                    }
+                    continue;
+                }
+                if (!"200".equals(errorCode)) {
+                    failedResponses++;
+                    continue;
+                }
+                successfulResponses++;
+                OffsetDateTime ts = parseTimestamp(root.path("Metadata").path("TimeStamp").asText(""));
+                if (ts != null && (latestTimestamp == null || ts.isAfter(latestTimestamp))) {
+                    latestTimestamp = ts;
+                }
+                for (JsonNode row : array(root.path("NextService").path("Lines"))) {
+                    if (!"B".equalsIgnoreCase(row.path("ServiceType").asText(""))) continue;
+                    OffsetDateTime scheduledAt = parseTimestamp(row.path("ScheduledDepartureTime").asText(""));
+                    OffsetDateTime computedAt = parseTimestamp(row.path("ComputedDepartureTime").asText(""));
+                    OffsetDateTime predictedAt = computedAt == null ? scheduledAt : computedAt;
+                    String route = row.path("LineCode").asText("").trim();
+                    if (route.isEmpty() || predictedAt == null) continue;
+                    arrivals.add(new SurfaceArrivalRecord(
+                        stationId,
+                        "GO Transit",
+                        "bus",
+                        route,
+                        row.path("LineName").asText("").trim(),
+                        destination(row.path("DirectionName").asText("")),
+                        scheduledAt,
+                        predictedAt,
+                        preferred(row.path("ActualPlatform").asText(""), row.path("ScheduledPlatform").asText("")),
+                        row.path("StopCode").asText(stopCode).trim(),
+                        row.path("TripNumber").asText("").trim(),
+                        "Metrolinx GO Next Service",
+                        computedAt == null ? "scheduled" : "live"
+                    ));
+                }
+            } catch (MetrolinxClientException exception) {
+                failedResponses++;
+            }
         }
-        return new RegionalSurfaceArrivalFeed(
-            parseTimestamp(root.path("Metadata").path("TimeStamp").asText("")),
-            List.copyOf(arrivals)
-        );
+
+        if (successfulResponses == 0 && failedResponses > 0) {
+            throw new MetrolinxClientException("Metrolinx GO Bus station-arrival response was unsuccessful");
+        }
+
+        Map<String, SurfaceArrivalRecord> deduplicated = new LinkedHashMap<>();
+        for (SurfaceArrivalRecord arrival : arrivals) {
+            String key = (!arrival.tripId().isEmpty())
+                ? arrival.tripId() + ":" + arrival.route()
+                : arrival.route() + ":" + arrival.destination() + ":" + arrival.predictedAt();
+            deduplicated.putIfAbsent(key, arrival);
+        }
+
+        List<SurfaceArrivalRecord> sorted = deduplicated.values().stream()
+            .sorted(Comparator.comparing(SurfaceArrivalRecord::predictedAt))
+            .toList();
+
+        return new RegionalSurfaceArrivalFeed(latestTimestamp, sorted);
     }
 
     public RegionalArrivalFeed fetchUpTripUpdates(String stopCode) {

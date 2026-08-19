@@ -120,6 +120,62 @@ public final class RegionalNetworkCatalog {
         Map.entry("WH", "whitby"), Map.entry("WR", "west-harbour")
     );
 
+    // Reviewed against the official Metrolinx Stop/All bus-stop and terminal catalog.
+    private static final Map<String, List<String>> STATION_BUS_STOP_CODES = Map.ofEntries(
+        Map.entry("acton", List.of("00864", "00868")),
+        Map.entry("ajax", List.of("00161")),
+        Map.entry("aldershot", List.of("00180")),
+        Map.entry("allandale-waterfront", List.of("08049")),
+        Map.entry("appleby", List.of("00263")),
+        Map.entry("aurora", List.of("00081")),
+        Map.entry("barrie-south", List.of("00345")),
+        Map.entry("bloomington", List.of("02767")),
+        Map.entry("bradford", List.of("02160")),
+        Map.entry("bramalea", List.of("02728", "08041", "08042", "08044", "00225")),
+        Map.entry("brampton-innovation-district", List.of("01305", "02886")),
+        Map.entry("bronte", List.of("00264")),
+        Map.entry("burlington", List.of("00177")),
+        Map.entry("centennial", List.of("00124", "00125")),
+        Map.entry("clarkson", List.of("00181")),
+        Map.entry("confederation", List.of("02730")),
+        Map.entry("cooksville", List.of("02751", "02752")),
+        Map.entry("durham-college-oshawa", List.of("00159")),
+        Map.entry("east-gwillimbury", List.of("00276")),
+        Map.entry("erindale", List.of("00189")),
+        Map.entry("georgetown", List.of("02413")),
+        Map.entry("gormley", List.of("02629")),
+        Map.entry("guelph-central", List.of("02518", "02519")),
+        Map.entry("hamilton", List.of("00141")),
+        Map.entry("king-city", List.of("00027", "00030")),
+        Map.entry("kipling", List.of("02778")),
+        Map.entry("kitchener", List.of("02186")),
+        Map.entry("langstaff", List.of("02856")),
+        Map.entry("lisgar", List.of("00341")),
+        Map.entry("malton", List.of("00228")),
+        Map.entry("maple", List.of("02157")),
+        Map.entry("markham", List.of("00122", "00123")),
+        Map.entry("meadowvale", List.of("00129")),
+        Map.entry("milton", List.of("00194")),
+        Map.entry("mount-joy", List.of("00121")),
+        Map.entry("mount-pleasant", List.of("00296")),
+        Map.entry("newmarket", List.of("02634", "02637")),
+        Map.entry("niagara-falls", List.of("02408")),
+        Map.entry("oakville", List.of("00137")),
+        Map.entry("old-elm", List.of("02830", "08045")),
+        Map.entry("pickering", List.of("00147")),
+        Map.entry("port-credit", List.of("02775")),
+        Map.entry("richmond-hill", List.of("00062")),
+        Map.entry("rutherford", List.of("00028")),
+        Map.entry("st-catharines", List.of("02402", "08048")),
+        Map.entry("stouffville", List.of("00117", "00118")),
+        Map.entry("stratford", List.of("02822")),
+        Map.entry("streetsville", List.of("00148", "01436")),
+        Map.entry("union", List.of("02300")),
+        Map.entry("unionville", List.of("00128", "02896")),
+        Map.entry("west-harbour", List.of("02652")),
+        Map.entry("whitby", List.of("00031"))
+    );
+
     private static final Set<String> REGIONAL_NOT_WHEELCHAIR = Set.of("long-branch", "mimico", "oriole");
     private static final Set<String> REGIONAL_ELEVATOR = Set.of(
         "ajax", "aldershot", "appleby", "bloomington", "bloor", "bramalea",
@@ -296,7 +352,15 @@ public final class RegionalNetworkCatalog {
         if (stopCode == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(STOP_CODE_TO_STATION_ID.get(stopCode.trim().toUpperCase(Locale.CANADA)));
+        String normalized = stopCode.trim().toUpperCase(Locale.CANADA);
+        String direct = STOP_CODE_TO_STATION_ID.get(normalized);
+        if (direct != null) {
+            return Optional.of(direct);
+        }
+        return STATION_BUS_STOP_CODES.entrySet().stream()
+            .filter(entry -> entry.getValue().contains(normalized))
+            .map(Map.Entry::getKey)
+            .findFirst();
     }
 
     public static Optional<String> stopCodeForStationId(String stationId) {
@@ -308,6 +372,23 @@ public final class RegionalNetworkCatalog {
             .filter(entry -> entry.getValue().equals(normalized))
             .map(Map.Entry::getKey)
             .findFirst();
+    }
+
+    public static List<String> busStopCodesForStationId(String stationId) {
+        if (stationId == null) {
+            return List.of();
+        }
+        String normalized = stationId.trim().toLowerCase(Locale.CANADA);
+        List<String> busCodes = STATION_BUS_STOP_CODES.getOrDefault(normalized, List.of());
+        Optional<String> primaryCode = stopCodeForStationId(normalized);
+        if (primaryCode.isEmpty()) {
+            return busCodes;
+        }
+        List<String> combined = new ArrayList<>(busCodes);
+        if (!combined.contains(primaryCode.get())) {
+            combined.add(primaryCode.get());
+        }
+        return List.copyOf(combined);
     }
 
     public static List<Segment> segments() {

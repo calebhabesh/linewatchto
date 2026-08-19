@@ -49,9 +49,9 @@ public class RegionalSurfaceArrivalService {
 
         SurfaceArrivalResponses.SnapshotResponse response;
         try {
-            String stopCode = RegionalNetworkCatalog.stopCodeForStationId(stationId).orElseThrow();
-            RegionalSurfaceArrivalFeed feed = client.fetchGoBusNextService(stationId, stopCode);
-            if (!fresh(feed.sourceUpdatedAt(), now)) {
+            List<String> stopCodes = RegionalNetworkCatalog.busStopCodesForStationId(stationId);
+            RegionalSurfaceArrivalFeed feed = client.fetchGoBusNextService(stationId, stopCodes);
+            if (feed.sourceUpdatedAt() != null && !fresh(feed.sourceUpdatedAt(), now)) {
                 response = snapshot(station, "unavailable", now, feed.sourceUpdatedAt(),
                     "Metrolinx GO Next Service", "The latest GO Bus station-connection data is stale.", List.of());
             } else {
@@ -61,11 +61,12 @@ public class RegionalSurfaceArrivalService {
                     .sorted(Comparator.comparing(SurfaceArrivalRecord::predictedAt))
                     .toList();
                 List<SurfaceArrivalRecord> bounded = bound(visible);
+                OffsetDateTime sourceUpdatedAt = feed.sourceUpdatedAt() != null ? feed.sourceUpdatedAt() : now;
                 response = snapshot(
                     station,
                     bounded.isEmpty() ? "no-service" : "available",
                     now,
-                    feed.sourceUpdatedAt(),
+                    sourceUpdatedAt,
                     "Metrolinx GO Next Service",
                     bounded.isEmpty()
                         ? "No GO Bus departures are listed for this station in the current horizon."
