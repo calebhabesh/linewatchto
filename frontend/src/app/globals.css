@@ -2303,13 +2303,15 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   background: transparent !important;
   border: none;
   border-radius: 4px;
+  box-sizing: content-box;
   color: rgb(245, 158, 11);
   display: inline-flex;
   flex: 0 0 auto;
   height: 28px;
   justify-content: center;
-  margin-left: 2px;
-  padding: 0;
+  margin: -8px -8px -8px -6px;
+  padding: 8px;
+  touch-action: manipulation;
   transition: color 150ms ease, transform 150ms ease;
   width: 28px;
 }
@@ -2373,7 +2375,8 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 .arrival-line-pin.is-compact {
   height: 24px;
-  margin-left: 0;
+  margin: -10px -10px -10px 0;
+  padding: 10px;
   width: 24px;
 }
 
