@@ -25,7 +25,7 @@ export function ArrivalLinePinButton({
   const isFilled = pinned || hovered;
   const starFill = isFilled
     ? "currentColor"
-    : "rgba(251, 191, 36, 0.35)";
+    : "rgba(251, 191, 36, 0.15)";
 
   return (
     <button
@@ -41,8 +41,8 @@ export function ArrivalLinePinButton({
           event.stopPropagation();
         }
       }}
-      onMouseEnter={() => onHoverChange?.(true)}
-      onMouseLeave={() => onHoverChange?.(false)}
+      onPointerEnter={(event) => { if (event.pointerType === "mouse") onHoverChange?.(true); }}
+      onPointerLeave={(event) => { if (event.pointerType === "mouse") onHoverChange?.(false); }}
       onFocus={() => onHoverChange?.(true)}
       onBlur={() => onHoverChange?.(false)}
       aria-pressed={pinned}

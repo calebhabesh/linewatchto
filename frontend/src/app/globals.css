@@ -2321,7 +2321,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .arrival-line-pin svg,
 .arrival-line-pin svg polygon,
 .arrival-line-pin svg path {
-  fill: rgba(245, 158, 11, 0.3) !important;
+  fill: rgba(245, 158, 11, 0.15) !important;
   stroke: rgb(245, 158, 11) !important;
 }
 
@@ -2384,7 +2384,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .dark .arrival-line-pin svg,
 .dark .arrival-line-pin svg polygon,
 .dark .arrival-line-pin svg path {
-  fill: rgba(251, 191, 36, 0.35) !important;
+  fill: rgba(251, 191, 36, 0.15) !important;
   stroke: rgb(251, 191, 36) !important;
 }
 
