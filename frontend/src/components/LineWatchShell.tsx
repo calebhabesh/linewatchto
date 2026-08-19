@@ -87,6 +87,10 @@ import { OpeningDisclaimer } from "./OpeningDisclaimer";
 import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import {
+  MOBILE_SHEET_DEFAULT_RATIO,
+  readStoredSheetHeightRatio,
+} from "../hooks/useMobileDraggableSheet";
+import {
   AccountRequestError,
   confirmPasswordReset,
   commutePathPreviewFromCommute,
@@ -811,6 +815,10 @@ export function LineWatchShell({
   );
   const stationSummaries = stationCatalogs[selectedNetwork];
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+  const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
+    if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
+    return readStoredSheetHeightRatio(window.localStorage);
+  });
   const [stationPanelActivationKey, setStationPanelActivationKey] = useState(0);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
@@ -2272,6 +2280,7 @@ export function LineWatchShell({
     selectedStationIdRef.current = id;
     stationDrilldownOriginRef.current = null;
     if (id) {
+      setStationSheetRatio(readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null));
       setStationPanelActivationKey((current) => current + 1);
     }
     setSelectedStationId(id);
@@ -3023,6 +3032,9 @@ export function LineWatchShell({
     ...(rotatedMapViewportFrame ? {
       "--rotated-map-viewport-width": `${rotatedMapViewportFrame.width}px`,
       "--rotated-map-viewport-height": `${rotatedMapViewportFrame.height}px`,
+    } : {}),
+    ...(isMobile && selectedStationId ? {
+      "--mobile-station-sheet-height": `${Math.round(stationSheetRatio * 100)}dvh`,
     } : {}),
   } as CSSProperties;
 

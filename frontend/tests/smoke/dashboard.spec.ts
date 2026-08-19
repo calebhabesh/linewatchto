@@ -1808,6 +1808,7 @@ test("mobile closing station details preserves the focused map camera", async ({
   await expect
     .poll(async () => mapLayer.evaluate((element) => element.style.transform))
     .not.toBe(defaultTransform);
+  await page.waitForTimeout(500);
 
   const focusedTransform = await mapLayer.evaluate((element) => element.style.transform);
 

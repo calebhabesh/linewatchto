@@ -25,6 +25,7 @@ const hookSource = readFileSync(new URL("../src/hooks/useMobileDraggableSheet.ts
 const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 
 describe("mobile station draggable sheet UX", () => {
   it("defines bounded floor and ceiling constants for vertical sheet drag", () => {
@@ -201,18 +202,12 @@ describe("mobile station draggable sheet UX", () => {
     assert.match(hookSource, /window\.dispatchEvent\(new CustomEvent\(MOBILE_STATION_SHEET_RESIZE_EVENT,\s*\{\s*detail:\s*\{\s*ratio:\s*clamped\s*\}\s*\}\)\)/);
   });
 
-  it("subscribes TTC and Regional interactive maps to mobile station sheet height changes", () => {
-    // TTC Map
-    assert.match(ttcMapSource, /import\s*\{[^}]*MOBILE_STATION_SHEET_RESIZE_EVENT[^}]*\}\s*from\s*"\.\.\/hooks\/useMobileDraggableSheet"/);
-    assert.match(ttcMapSource, /import\s*\{[^}]*readStoredSheetHeightRatio[^}]*\}\s*from\s*"\.\.\/hooks\/useMobileDraggableSheet"/);
-    assert.match(ttcMapSource, /window\.addEventListener\(MOBILE_STATION_SHEET_RESIZE_EVENT,\s*handleSheetResize\)/);
-    assert.match(ttcMapSource, /selectedStationId\s*\?\s*stationSheetRatio\s*:\s*0/);
-
-    // Regional Map
-    assert.match(regionalMapSource, /import\s*\{[^}]*MOBILE_STATION_SHEET_RESIZE_EVENT[^}]*\}\s*from\s*"\.\.\/hooks\/useMobileDraggableSheet"/);
-    assert.match(regionalMapSource, /import\s*\{[^}]*readStoredSheetHeightRatio[^}]*\}\s*from\s*"\.\.\/hooks\/useMobileDraggableSheet"/);
-    assert.match(regionalMapSource, /window\.addEventListener\(MOBILE_STATION_SHEET_RESIZE_EVENT,\s*handleSheetResize\)/);
-    assert.match(regionalMapSource, /selectedStationId\s*\?\s*stationSheetRatio\s*:\s*0/);
+  it("applies the stored sheet height when opening station submenus without live map layout churn during active drag", () => {
+    assert.match(shellSource, /readStoredSheetHeightRatio\(window\.localStorage\)/);
+    assert.match(shellSource, /"--mobile-station-sheet-height":\s*`\$\{Math\.round\(stationSheetRatio\s*\*\s*100\)\}dvh`/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-station > main,\s*\.linewatch-shell\.mobile-map-inspector-station\[data-network="regional"\] > main\s*\{[^}]*bottom:\s*0\s*!important;/s);
+    assert.match(ttcMapSource, /\(logicalHeight\s*\*\s*\(1\s*-\s*storedRatio\)\)\s*\/\s*2/);
+    assert.match(regionalMapSource, /\(logicalHeight\s*\*\s*\(1\s*-\s*storedRatio\)\)\s*\/\s*2/);
   });
 
   it("dynamically adjusts the map viewport focus and bounding box to the remaining area above the sheet", () => {

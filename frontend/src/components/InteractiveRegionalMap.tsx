@@ -15,11 +15,8 @@ import {
 } from "../app/train-markers";
 import { useDashboardData } from "../app/DataContext";
 import { lineWatchBuildLabel } from "../app/app-build";
-import {
-  MOBILE_SHEET_DEFAULT_RATIO,
-  MOBILE_STATION_SHEET_RESIZE_EVENT,
-  readStoredSheetHeightRatio,
-} from "../hooks/useMobileDraggableSheet";
+import { readStoredSheetHeightRatio } from "../hooks/useMobileDraggableSheet";
+
 import {
   MapOverlapIndicator,
   mapOverlapIndicatorSize,
@@ -2403,25 +2400,6 @@ function InteractiveRegionalMapComponent({
   const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
-  const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
-    if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
-    return readStoredSheetHeightRatio(window.localStorage);
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleSheetResize = (event: Event) => {
-      const customEvent = event as CustomEvent<{ ratio?: number }>;
-      const nextRatio = customEvent.detail?.ratio ?? readStoredSheetHeightRatio(window.localStorage);
-      setStationSheetRatio(nextRatio);
-    };
-    window.addEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
-    window.addEventListener("storage", handleSheetResize);
-    return () => {
-      window.removeEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
-      window.removeEventListener("storage", handleSheetResize);
-    };
-  }, []);
   const [hoveredStationLabel, setHoveredStationLabel] = useState<{
     stationId: string;
     bounds: RegionalCollisionBox;
@@ -3683,7 +3661,7 @@ function InteractiveRegionalMapComponent({
     const currentFitted = fittedCamera();
     const effectiveFitScale = currentFitted?.scale ?? fitScale ?? 0.35;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
-    let focusPadding = isMobile ? 24 : 40;
+    const focusPadding = isMobile ? 24 : 40;
     const focusInsets = {
       left: focusPadding,
       right: focusPadding,
@@ -3691,24 +3669,7 @@ function InteractiveRegionalMapComponent({
       bottom: Math.max(desktopMapBottomInset, focusPadding),
     };
 
-    if (isMobile && viewportOrientation !== "rotated-landscape" && selectedStationId) {
-      const shell = viewport.closest<HTMLElement>(".linewatch-shell");
-      const stationPanel = shell?.querySelector<HTMLElement>(".station-detail-panel");
-      const panelRect = stationPanel?.getBoundingClientRect();
-      const measuredPanelHeight = (panelRect && panelRect.height > 0)
-        ? Math.max(panelRect.height, viewportRect.bottom - panelRect.top)
-        : 0;
-      const expectedRatio = stationSheetRatio || readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null);
-      const stationSheetHeight = measuredPanelHeight > 0
-        ? measuredPanelHeight
-        : Math.round(logicalHeight * expectedRatio);
-      const remainingViewportHeight = Math.max(logicalHeight - stationSheetHeight, 0);
-      focusPadding = Math.min(24, Math.max(8, Math.round(remainingViewportHeight * 0.08)));
-      focusInsets.top = focusPadding;
-      focusInsets.bottom = stationSheetHeight + focusPadding;
-      focusInsets.left = focusPadding;
-      focusInsets.right = focusPadding;
-    } else if (!isMobile) {
+    if (!isMobile) {
       const shell = viewport.closest<HTMLElement>(".linewatch-shell");
       const overlayRightEdges = [
         desktopMenuPinned
@@ -3728,6 +3689,23 @@ function InteractiveRegionalMapComponent({
         );
         focusInsets.left = Math.max(focusInsets.left, insetLeft);
       }
+    }
+
+    if (selectedStationId) {
+      const targetScale = preferredTargetScale;
+      const storedRatio = readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null);
+      const focusX = logicalWidth / 2;
+      const focusY =
+        isMobile && viewportOrientation !== "rotated-landscape"
+          ? (logicalHeight * (1 - storedRatio)) / 2
+          : (viewportOrientation === "rotated-landscape" ? logicalHeight * 0.34 : logicalHeight / 2);
+
+      animateCameraTo(snapCameraToDevicePixels({
+        x: focusX - mapX * targetScale,
+        y: focusY - mapY * targetScale,
+        scale: targetScale,
+      }), effectiveFitScale);
+      return true;
     }
 
     const mapBounds = {
@@ -3773,13 +3751,12 @@ function InteractiveRegionalMapComponent({
     logicalViewportSize,
     selectedMapElements,
     selectedStationId,
-    stationSheetRatio,
     viewportOrientation,
   ]);
 
   useEffect(() => {
     if (!cameraInitializedRef.current || !svgMarkup) return;
-    const layoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}:${selectedStationId ? stationSheetRatio : 0}:${viewportOrientation}`;
+    const layoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}:${viewportOrientation}`;
 
     if (!focusTargetKey) {
       if (lastFocusedTargetKeyRef.current !== null) {
@@ -3826,7 +3803,6 @@ function InteractiveRegionalMapComponent({
     layoutResetSignal,
     preserveCameraOnSelectionClear,
     selectedStationId,
-    stationSheetRatio,
     svgMarkup,
     viewportOrientation,
   ]);
