@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowDownToLine, BadgeInfo, Bus, CalendarCheck2, ChevronDown, ConciergeBell, Construction, GitMerge, Layers, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowDownToLine, ArrowRight, BadgeInfo, Bus, CalendarCheck2, ChevronDown, ConciergeBell, Construction, GitMerge, Layers, Train } from "lucide-react";
 import Image from "next/image";
 import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
@@ -626,7 +626,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     )}
                   </span>
                 </div>
-                <span className="text-xs font-bold text-red-700 dark:text-red-300">Details &rarr;</span>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 dark:text-red-300">Details <ArrowRight size={13} strokeWidth={1.5} aria-hidden="true" className="relative -top-px" /></span>
               </button>
             )}
 
@@ -1118,11 +1118,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	              <span>Station Impacts</span>
 	            </h3>
 	            {distinctImpacts.length === 0 ? (
-	              <div className="mt-2 rounded-md border border-black/10 bg-white/60 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
-	                <p className="text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-	                  No active impacts for this station.
-	                </p>
-	              </div>
+	              <p className="my-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+	                No active impacts for this station.
+	              </p>
 	            ) : (
 	              <div className="mt-2 flex flex-col gap-2">
 	                {distinctImpacts.map((impact) => {

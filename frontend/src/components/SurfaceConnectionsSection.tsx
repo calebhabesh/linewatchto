@@ -522,11 +522,9 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
               ))}
             </div>
           ) : (
-            <div className="rounded-md border border-black/10 bg-white/60 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
-              <p className="text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-                {snapshot.message}
-              </p>
-            </div>
+            <p className="my-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {snapshot.message}
+            </p>
           )}
           {!loading && !isClosed && snapshot.availability === "available" ? (
             <p className="mt-2 text-[10px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
@@ -647,11 +645,9 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
             })}
           </div>
         ) : (
-          <div className="rounded-md border border-black/10 bg-white/60 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
-            <p className="text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-              {snapshot.message}
-            </p>
-          </div>
+          <p className="my-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+            {snapshot.message}
+          </p>
         )}
         {!loading && !isClosed && snapshot.availability === "available" ? (
           <p className="mt-2 text-[10px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
