@@ -47,7 +47,7 @@ describe("surface notice route grouping", () => {
     );
   });
 
-  it("keeps multi-route service changes under a combined route header", () => {
+  it("keeps multi-route service changes under a combined route header with comma-separated route names", () => {
     const groups = groupSurfaceNoticesByRoute([
       {
         ...baseNotice,
@@ -64,6 +64,104 @@ describe("surface notice route grouping", () => {
     assert.equal(groups.length, 1);
     assert.equal(groups[0].routeIdsLabel, "71 / 79");
     assert.equal(groups[0].category, "service-change");
+    assert.equal(groups[0].routeName, "Runnymede, Scarlett Rd");
+  });
+
+  it("lists multiple routes in a comma-separated list when extracted from description or catalog", () => {
+    const groups = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-multi-20-113",
+        category: "service-change",
+        routeType: "Bus",
+        routeIds: ["20", "113"],
+        title: "20 - 113 - Road work",
+        description: "road work 20 Cliffside and 113 Danforth eastbound buses will divert south on Main Street, east on Gerrard Street East, north on Victoria Park Avenue, and east on Danforth Avenue, to regular route.",
+        location: "",
+        stopIds: [],
+      },
+    ]);
+
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].routeIdsLabel, "20 / 113");
+    assert.equal(groups[0].routeName, "Cliffside, Danforth");
+  });
+
+  it("deduplicates identical route names across multiple route IDs and strips redundant streetcar/bus suffixes", () => {
+    const groupsSpadina = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-multi-510-310",
+        category: "service-change",
+        routeType: "Streetcar",
+        routeIds: ["510", "310"],
+        title: "510 Spadina streetcars Canadian National Exhibition Daily, August 21 to September 7, 2026, 9:30 a.",
+        description: "",
+        location: "",
+        stopIds: [],
+      },
+    ]);
+
+    assert.equal(groupsSpadina.length, 1);
+    assert.equal(groupsSpadina[0].routeIdsLabel, "510 / 310");
+    assert.equal(groupsSpadina[0].routeName, "Spadina");
+
+    const groupsBathurst = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-multi-511-307",
+        category: "service-change",
+        routeType: "Surface",
+        routeIds: ["511", "307"],
+        title: "511 Bathurst streetcar service change",
+        description: "end of FIFA World Cup 2026™ Temporary service on 311 Bathurst will be removed with the end of FIFA World Cup 2026™.",
+        location: "",
+        stopIds: [],
+      },
+    ]);
+
+    assert.equal(groupsBathurst.length, 1);
+    assert.equal(groupsBathurst[0].routeIdsLabel, "511 / 307");
+    assert.equal(groupsBathurst[0].routeName, "Bathurst");
+  });
+
+  it("cleans trailing restoration and verb phrases so route is Spadina instead of Spadina will be restored", () => {
+    const groups = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-spadina-restored",
+        category: "service-change",
+        routeType: "Streetcar",
+        routeIds: ["510A"],
+        title: "510 Spadina – Service change, due to end of FIFA World Cup 2026™",
+        description: "Service on the 510 Spadina streetcar will be adjusted in all time periods on weekdays and weekends with the end of FIFA World Cup 2026™. Regular service to Union Station on 510A Spadina will be restored.",
+        location: "",
+        stopIds: [],
+      },
+    ]);
+
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].routeIdsLabel, "510A");
+    assert.equal(groups[0].routeName, "Spadina");
+  });
+
+  it("never returns a standalone dash or hyphen as the route name", () => {
+    const groups = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-dash-only",
+        category: "service-change",
+        routeType: "Bus",
+        routeIds: ["9999"],
+        title: "- - -",
+        description: "-",
+        location: "",
+        stopIds: [],
+      },
+    ]);
+
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].routeName, null);
   });
 
   it("keeps route branch labels in route chips and derives concise route-specific info", () => {

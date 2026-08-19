@@ -32,15 +32,19 @@ export function groupSurfaceNoticesByRoute(
     const routeIds = notice.routeIds?.length ? notice.routeIds : ["Route"];
     const routeIdsLabel = routeIds.join(" / ");
     const key = `${notice.category}:${routeIdsLabel}`;
+    const derivedName = deriveRouteName(notice);
     const group = groups.get(key) ?? {
       key,
       category: notice.category,
       routeType: notice.routeType,
       routeIds,
       routeIdsLabel,
-      routeName: deriveRouteName(notice),
+      routeName: derivedName,
       notices: [],
     };
+    if (!group.routeName && derivedName) {
+      group.routeName = derivedName;
+    }
 
     const displayStops = deriveDisplayStops(notice);
     group.notices.push({
@@ -150,24 +154,255 @@ export function deriveSurfaceNoticeDirection(notice: SurfaceNoticeDetail): strin
   return null;
 }
 
-function deriveRouteName(notice: SurfaceNoticeDetail): string | null {
+export const TTC_SURFACE_ROUTE_NAMES: Record<string, string> = {
+  "5": "Eglinton Line",
+  "6": "Finch West Line",
+  "7": "Bathurst",
+  "8": "Broadview",
+  "9": "Bellamy",
+  "10": "Van Horne",
+  "11": "Bayview",
+  "12": "Kingston Rd",
+  "13": "Avenue Rd",
+  "14": "Glencairn",
+  "15": "Evans",
+  "16": "McCowan",
+  "17": "Birchmount",
+  "18": "Caledonia",
+  "19": "Bay",
+  "20": "Cliffside",
+  "21": "Brimley",
+  "22": "Coxwell",
+  "23": "Dawes",
+  "24": "Victoria Park",
+  "25": "Don Mills",
+  "26": "Dupont",
+  "27": "Jane South",
+  "28": "Bayview South",
+  "29": "Dufferin",
+  "30": "High Park North",
+  "31": "Greenwood",
+  "32": "Eglinton West",
+  "33": "Forest Hill",
+  "34": "Eglinton",
+  "35": "Jane",
+  "36": "Finch West",
+  "37": "Islington",
+  "38": "Highland Creek",
+  "39": "Finch East",
+  "40": "Junction-Dundas West",
+  "41": "Keele",
+  "42": "Cummer",
+  "43": "Kennedy",
+  "44": "Kipling South",
+  "45": "Kipling",
+  "46": "Martin Grove",
+  "47": "Lansdowne",
+  "48": "Rathburn",
+  "49": "Bloor West",
+  "50": "Burnhamthorpe",
+  "51": "Leslie",
+  "52": "Lawrence West",
+  "53": "Steeles East",
+  "54": "Lawrence East",
+  "55": "Warren Park",
+  "57": "Midland",
+  "59": "Maple Leaf",
+  "60": "Steeles West",
+  "61": "Avenue Rd North",
+  "62": "Mortimer",
+  "63": "Ossington",
+  "64": "Main",
+  "65": "Parliament",
+  "66": "Prince Edward",
+  "67": "Pharmacy",
+  "68": "Warden",
+  "69": "Warden South",
+  "70": "O'Connor",
+  "71": "Runnymede",
+  "72": "Pape",
+  "73": "Royal York",
+  "74": "Mount Pleasant",
+  "75": "Sherbourne",
+  "76": "Royal York South",
+  "77": "Swansea",
+  "78": "St Andrews",
+  "79": "Scarlett Rd",
+  "80": "Queensway",
+  "82": "Rosedale",
+  "83": "Jones",
+  "84": "Sheppard West",
+  "85": "Sheppard East",
+  "86": "Scarborough",
+  "87": "Cosburn",
+  "88": "South Leaside",
+  "89": "Weston",
+  "90": "Vaughan",
+  "91": "Woodbine",
+  "92": "Woodbine South",
+  "93": "Parkview Hills",
+  "94": "Wellesley",
+  "95": "York Mills",
+  "96": "Wilson",
+  "97": "Yonge",
+  "98": "Willowdale-Senlac",
+  "100": "Flemingdon Park",
+  "101": "Downsview Park",
+  "102": "Markham Rd",
+  "103": "Mount Pleasant North",
+  "104": "Faywood",
+  "105": "Dufferin North",
+  "106": "Sentinel",
+  "107": "Alness-Chesswood",
+  "108": "Driftwood",
+  "109": "Ranee",
+  "110": "Islington South",
+  "111": "East Mall",
+  "112": "West Mall",
+  "113": "Danforth",
+  "114": "Queens Quay East",
+  "115": "Silver Hills",
+  "116": "Morningside",
+  "117": "Birchmount South",
+  "118": "Thistle Down",
+  "119": "Torbarrie",
+  "120": "Calvington",
+  "121": "Esplanade-River",
+  "122": "Graydon Hall",
+  "123": "Sherway",
+  "124": "Sunnybrook",
+  "125": "Drewry",
+  "126": "Christie",
+  "127": "Davenport",
+  "129": "McCowan North",
+  "131": "Nugget",
+  "133": "Neilson",
+  "135": "Gerrard",
+  "149": "Etobicoke-Bloor",
+  "151": "Leslie North",
+  "154": "Curran Hall",
+  "158": "Trethewey",
+  "160": "Bathurst North",
+  "161": "Rogers Rd",
+  "162": "Lawrence-Donway",
+  "164": "Castlefield",
+  "165": "Weston Rd North",
+  "166": "Toryork",
+  "167": "Pharmacy North",
+  "168": "Symington",
+  "169": "Huntingwood",
+  "171": "Mount Dennis",
+  "184": "Ancaster Park",
+  "185": "Sheppard Central",
+  "189": "Stockyards",
+  "191": "Underhill",
+  "201": "Bluffer's Park",
+  "202": "Cherry Beach",
+  "203": "High Park",
+  "300": "Bloor-Danforth",
+  "301": "Queen",
+  "302": "Kingston Rd-McCowan",
+  "304": "King",
+  "305": "Dundas",
+  "306": "Carlton",
+  "307": "Bathurst",
+  "310": "Spadina",
+  "312": "St Clair",
+  "315": "Evans-Brown's Line",
+  "320": "Yonge",
+  "324": "Victoria Park",
+  "325": "Don Mills",
+  "329": "Dufferin",
+  "334": "Eglinton",
+  "335": "Jane",
+  "336": "Finch West",
+  "339": "Finch East",
+  "340": "Junction",
+  "341": "Keele",
+  "343": "Kennedy",
+  "352": "Lawrence West",
+  "353": "Steeles",
+  "354": "Lawrence East",
+  "363": "Ossington",
+  "384": "Sheppard West",
+  "385": "Sheppard East",
+  "386": "Scarborough",
+  "396": "Wilson",
+  "400": "Lawrence Manor",
+  "402": "Parkdale",
+  "404": "East York",
+  "501": "Queen",
+  "503": "Kingston Rd",
+  "504": "King",
+  "505": "Dundas",
+  "506": "Carlton",
+  "507": "Long Branch",
+  "508": "Lake Shore",
+  "509": "Harbourfront",
+  "510": "Spadina",
+  "511": "Bathurst",
+  "512": "St Clair",
+  "900": "Airport Express",
+  "902": "Markham Rd Express",
+  "903": "Kennedy Stn-Scarborough Express",
+  "904": "Sheppard-Kennedy Express",
+  "905": "Eglinton East Express",
+  "924": "Victoria Park Express",
+  "925": "Don Mills Express",
+  "927": "Highway 27 Express",
+  "929": "Dufferin Express",
+  "935": "Jane Express",
+  "937": "Islington Express",
+  "939": "Finch Express",
+  "952": "Lawrence West Express",
+  "953": "Steeles East Express",
+  "954": "Lawrence East Express",
+  "960": "Steeles West Express",
+  "984": "Sheppard West Express",
+  "985": "Sheppard East Express",
+  "986": "Scarborough Express",
+  "989": "Weston Express",
+  "995": "York Mills Express",
+  "996": "Wilson Express",
+};
+
+export function deriveRouteName(notice: SurfaceNoticeDetail): string | null {
+  const routeIds = notice.routeIds?.filter(Boolean) ?? [];
   const textParts = [notice.title, notice.description].filter(Boolean);
   const text = textParts.join(" ");
-  for (const routeId of notice.routeIds ?? []) {
-    const escapedRoute = routeId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const routeNameMatch = text.match(new RegExp(`(?:^|[^A-Za-z0-9])${escapedRoute}(?![A-Za-z0-9])\\s+([^:;.!?\\n]+)`, "i"));
-    const candidate = cleanRouteDescriptor(routeNameMatch?.[1], notice);
+
+  // 1. Check for specific branch destination prefix, e.g. "To Leslie Station Via Laird Station"
+  for (const part of textParts) {
+    const toMatch = part.match(/^\s*(to\s+.+?)(?:\s+[-\u2010-\u2015\u2212]\s+|,?\s+(?:temporary route change|route change|service change|detour|no service|due to)\b|$)/i);
+    const candidate = cleanRouteDescriptor(toMatch?.[1], notice);
     if (candidate) {
       return candidate;
     }
   }
 
-  for (const part of textParts) {
-    const toMatch = part.match(/^\s*(to\s+.+?)(?:\s+[-\u2013]\s+|,?\s+(?:temporary route change|route change|service change|detour|no service|due to)\b|$)/i);
-    const candidate = cleanRouteDescriptor(toMatch?.[1], notice);
-    if (candidate) {
-      return candidate;
+  // 2. Check for explicit unified descriptor in title (e.g. "Long Branch Loop")
+  const titleDescriptor = cleanRouteDescriptor(notice.title, notice);
+  if (titleDescriptor && !isSimpleRouteName(titleDescriptor)) {
+    return titleDescriptor;
+  }
+
+  // 3. If notice has route IDs, resolve name for each route ID and comma-separate them
+  if (routeIds.length > 0) {
+    const names: string[] = [];
+    for (const routeId of routeIds) {
+      const name = deriveSingleRouteName(routeId, text, notice);
+      if (name && !names.includes(name)) {
+        names.push(name);
+      }
     }
+    if (names.length > 0) {
+      return names.join(", ");
+    }
+  }
+
+  // 4. Fallback: try title descriptor or other text parts
+  if (titleDescriptor) {
+    return titleDescriptor;
   }
 
   for (const part of textParts) {
@@ -180,6 +415,50 @@ function deriveRouteName(notice: SurfaceNoticeDetail): string | null {
   return null;
 }
 
+function isSimpleRouteName(candidate: string): boolean {
+  const lower = candidate.trim().toLowerCase();
+  for (const name of Object.values(TTC_SURFACE_ROUTE_NAMES)) {
+    if (name.toLowerCase() === lower) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function deriveSingleRouteName(
+  routeId: string,
+  text: string,
+  notice: SurfaceNoticeDetail,
+): string | null {
+  const trimmedRoute = routeId.trim();
+  const baseRoute = trimmedRoute.replace(/[^\d]/g, "") || trimmedRoute;
+  const escapedRoute = trimmedRoute.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedBaseRoute = baseRoute.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  if (text) {
+    const routeNameMatch = text.match(
+      new RegExp(`(?:^|[^A-Za-z0-9])(?:${escapedRoute}|${escapedBaseRoute})(?![A-Za-z0-9])\\s+([^:;.!?\\n]+)`, "i")
+    );
+    const candidate = cleanRouteDescriptor(routeNameMatch?.[1], notice);
+    if (candidate) {
+      const canonicalMatch = findCanonicalRouteName(candidate);
+      return canonicalMatch || candidate;
+    }
+  }
+
+  return TTC_SURFACE_ROUTE_NAMES[baseRoute] || TTC_SURFACE_ROUTE_NAMES[trimmedRoute] || null;
+}
+
+function findCanonicalRouteName(candidate: string): string | null {
+  const clean = candidate.trim().replace(/\s+\b(?:streetcars?|buses?|bus|streetcar|routes?|services?)\b.*$/i, "").trim().toLowerCase();
+  for (const name of Object.values(TTC_SURFACE_ROUTE_NAMES)) {
+    if (name.toLowerCase() === clean || name.toLowerCase() === candidate.trim().toLowerCase()) {
+      return name;
+    }
+  }
+  return null;
+}
+
 function cleanRouteDescriptor(
   value: string | null | undefined,
   notice: SurfaceNoticeDetail,
@@ -189,19 +468,48 @@ function cleanRouteDescriptor(
   }
 
   let candidate = value.trim().replace(/\s+/g, " ");
-  candidate = candidate.replace(/^(?:\d{2,6}[A-Z]?\s+)+/i, "");
-  candidate = candidate.replace(/\s+[-\u2013]\s+.*$/i, "");
-  candidate = candidate.replace(/\s+\b(?:streetcars?|buses?)\s+(?:track|road|lane|route|service)\b.*$/i, "");
+
+  // Remove unicode dashes and normalize hyphens
+  candidate = candidate.replace(/[\u2010-\u2015\u2212]/g, "-");
+
+  // Strip leading route numbers and separators, e.g. "508 ", "507 508 ", "510 - "
+  candidate = candidate.replace(/^(?:\d{1,6}[A-Za-z]?[\s:,-]*)+/i, "");
+
+  // Strip everything after a standalone dash separator (e.g. " - Service change...")
+  candidate = candidate.replace(/\s+-\s+.*$/i, "");
+
+  // Strip 'and <route-number>' continuations (e.g. "Cliffside and 113 Danforth..." -> "Cliffside")
+  candidate = candidate.replace(/\s+\band\s+\d{1,4}[A-Za-z]?\b.*$/i, "");
+
+  // Strip verb phrases and sentence continuations (e.g. "Spadina will be restored" -> "Spadina")
+  candidate = candidate.replace(/\s+\b(?:will be|will|is|are|was|were|has been|have been)\b.*$/i, "");
+  candidate = candidate.replace(/\s+\b(?:diverts?|diverting|diverted)\b.*$/i, "");
+  candidate = candidate.replace(/\s+\b(?:adjusts?|adjusting|adjusted)\b.*$/i, "");
+  candidate = candidate.replace(/\s+\b(?:restores?|restoring|restored)\b.*$/i, "");
+  candidate = candidate.replace(/\s+\b(?:operates?|operating|operated)\b.*$/i, "");
+  candidate = candidate.replace(/\s+\b(?:terminates?|terminating|terminated)\b.*$/i, "");
+
+  // Strip vehicle/mode continuations and standalone vehicle words (e.g. "Bathurst streetcar", "Spadina streetcars", "Danforth eastbound buses will divert...")
+  candidate = candidate.replace(/\s+\b(?:streetcars?|buses?|bus|streetcar)\b.*$/i, "");
+  candidate = candidate.replace(/\s+\b(?:eastbound|westbound|northbound|southbound)\s+(?:buses?|streetcars?|service|routes?|will|are)\b.*$/i, "");
+  candidate = candidate.replace(/\s+\b(?:eastbound|westbound|northbound|southbound)\b.*$/i, "");
+
+  // Strip standard disruption phrases
   candidate = candidate.replace(/\b(?:temporary route change|route change|service change|track renewal work|renewal work|bridge work|due to|while)\b.*$/i, "");
+
+  // Strip leading and trailing punctuation, spaces, dashes
   candidate = candidate.replace(/^[\s:,-]+|[\s:,-]+$/g, "").trim();
 
-  if (!candidate) {
+  if (!candidate || candidate === "-" || candidate === "–" || candidate === "—" || /^[\d\s:,-]+$/.test(candidate)) {
     return null;
   }
   if (notice.routeType && candidate.toLowerCase() === notice.routeType.toLowerCase()) {
     return null;
   }
   if (candidate.match(/^(temporary|route|service|streetcars?|buses?|no service|detour|diversion|modified)\b/i)) {
+    return null;
+  }
+  if (candidate.match(/^(road work|construction|security incident|police activity|track work)\b/i)) {
     return null;
   }
   if (candidate.length > 60) {

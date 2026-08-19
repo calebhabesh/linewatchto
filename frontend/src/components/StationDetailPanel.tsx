@@ -58,6 +58,7 @@ import { ttcStationConnections } from "../app/station-connections";
 import { StationConnectionBadges } from "./StationConnectionBadges";
 import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
+import { StationLineDirectionIndicator } from "./StationLineDirectionIndicator";
 
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
@@ -575,9 +576,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     </span>
                   </div>
                   {line.platformLabel ? (
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0 text-right">
-                      {line.platformLabel}
-                    </span>
+                    <StationLineDirectionIndicator
+                      lineId={line.id}
+                      platformLabel={line.platformLabel}
+                    />
                   ) : null}
                 </div>
               ))}
@@ -1089,12 +1091,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               <SurfaceConnectionsSection networkId="ttc" stationId={station.id} />
 
 	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-	            <h3 className="flex items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
-	              <div className="flex min-w-0 items-center gap-2.5">
-	                <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-	                <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
-	                <span className="truncate">Station Impacts</span>
-	              </div>
+	            <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+	              <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+	              <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
+	              <span className="truncate">Station Impacts</span>
 	              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
 	                {distinctImpacts.length}
 	              </span>
@@ -1177,17 +1177,15 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   className="shrink-0"
                 />
                 <span className="min-w-0 truncate">Accessibility Outages</span>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
                   {station.access.outages.length}
                 </span>
-                <ChevronDown
-                  size={18}
-                  aria-hidden="true"
-                  className="station-accessibility-chevron shrink-0 text-slate-500 dark:text-slate-300"
-                />
               </div>
+              <ChevronDown
+                size={18}
+                aria-hidden="true"
+                className="station-accessibility-chevron shrink-0 text-slate-500 dark:text-slate-300"
+              />
             </summary>
             <div className="station-accessibility-content-wrapper">
               <div className="station-accessibility-content pt-3 flex flex-col gap-3">

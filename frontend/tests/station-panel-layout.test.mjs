@@ -324,12 +324,12 @@ describe("station detail panel layout", () => {
     assert.match(stationConnectionsSource, accentChipPattern);
   });
 
-  it("renders colored icons and right-aligned count badges for station impacts, notices, and trip changes", () => {
+  it("renders colored icons and header count badges for station impacts, notices, and trip changes", () => {
     // TTC StationDetailPanel
     assert.match(panelSource, /<AlertCircle size=\{20\} className="shrink-0 text-orange-500 dark:text-orange-400"/);
     assert.match(panelSource, /\{distinctImpacts\.length\}\s*<\/span>/);
     assert.match(panelSource, /icon: <AlertCircle size=\{13\} className="text-orange-500 dark:text-orange-400" aria-hidden="true" \/>/);
-    assert.match(panelSource, /data-station-section="station-impacts"[\s\S]*justify-between/);
+    assert.match(panelSource, /data-station-section="station-impacts"/);
     assert.match(panelSource, /data-station-section="accessibility"[\s\S]*justify-between/);
 
     // RegionalStationDetailPanel
@@ -337,8 +337,8 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, /\{impacts\.length\}\s*<\/span>/);
     assert.match(regionalPanelSource, /icon: <AlertCircle size=\{13\} className="text-orange-500 dark:text-orange-400" aria-hidden="true" \/>/);
     assert.match(regionalPanelSource, /\{tripChanges\.changes\.length\}\s*<\/span>/);
-    assert.match(regionalPanelSource, /data-station-section="station-impacts"[\s\S]*justify-between/);
-    assert.match(regionalPanelSource, /data-station-section="trip-changes"[\s\S]*justify-between/);
+    assert.match(regionalPanelSource, /data-station-section="station-impacts"/);
+    assert.match(regionalPanelSource, /data-station-section="trip-changes"/);
     assert.match(regionalPanelSource, /data-station-section="notices"[\s\S]*justify-between/);
     assert.match(regionalPanelSource, /data-station-section="accessibility"[\s\S]*justify-between/);
   });

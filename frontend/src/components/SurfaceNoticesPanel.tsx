@@ -494,7 +494,7 @@ export function SurfaceNoticesPanel({
                           </span>
                         </div>
                       )}
-                      {!regional && group.routeName ? (
+                      {!regional && group.routeName && group.routeName.trim() !== "-" && group.routeName.trim() !== "–" && group.routeName.trim() !== "—" ? (
                         <p className="truncate text-xs font-semibold text-slate-600 dark:text-slate-300">
                           {group.routeName}
                         </p>
