@@ -96,7 +96,7 @@ export const REGIONAL_STATION_SEARCH_LINES: StationSearchLine[] = [
   { id: "regional-mi", number: "MI", name: "Milton", color: "#f47216", icon: "/assets/linewatch/go-mi-legend.svg?v=2" },
   { id: "regional-rh", number: "RH", name: "Richmond Hill", color: "#27adea", icon: "/assets/linewatch/go-rh-legend.svg?v=2" },
   { id: "regional-st", number: "ST", name: "Stouffville", color: "#774111", icon: "/assets/linewatch/go-st-legend.svg?v=2" },
-  { id: "regional-up", number: "UP", name: "Union Pearson Express", color: "#4084cd", icon: "/assets/linewatch/up-express-legend.svg?v=2" },
+  { id: "regional-up", number: "UP", name: "UP Express", color: "#4084cd", icon: "/assets/linewatch/up-express-legend.svg?v=2" },
 ];
 
 export const ALL_STATION_SEARCH_LINES = [...STATION_SEARCH_LINES, ...REGIONAL_STATION_SEARCH_LINES];

@@ -17557,6 +17557,7 @@ img.transit-line-badge {
     --compact-network-glider-height: 32px;
     align-items: stretch;
     background: var(--mobile-chrome-background);
+    border: 2px solid rgba(15, 23, 42, 0.28) !important;
     border-radius: clamp(8px, 3vw, 12px);
     box-shadow: var(--mobile-chrome-shadow);
     display: flex;
@@ -17564,6 +17565,18 @@ img.transit-line-badge {
     gap: 4px;
     padding: 4px;
     width: var(--mobile-top-action-button-size);
+  }
+
+  .dark .network-selector--compact-vertical {
+    border-color: rgba(255, 255, 255, 0.32) !important;
+  }
+
+  .network-selector--compact-vertical[data-network="ttc"] {
+    border-color: rgba(239, 68, 68, 0.65) !important;
+  }
+
+  .network-selector--compact-vertical[data-network="regional"] {
+    border-color: rgba(16, 185, 129, 0.65) !important;
   }
 
   .network-selector--compact-vertical .network-selector-glider {
@@ -17633,11 +17646,16 @@ img.transit-line-badge {
   }
 
   .rotate-map-btn {
+    border: 2px solid rgba(15, 23, 42, 0.25) !important;
     border-radius: clamp(8px, 3vw, 12px) !important;
     gap: clamp(3px, 1.2vw, 5px) !important;
     height: var(--mobile-top-action-button-size) !important;
     padding: 0 clamp(4px, 1.7vw, 7px) !important;
     width: var(--mobile-rotate-action-width) !important;
+  }
+
+  .dark .rotate-map-btn {
+    border-color: rgba(255, 255, 255, 0.3) !important;
   }
 
   .rotate-map-btn svg {

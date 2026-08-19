@@ -57,7 +57,7 @@ public final class RegionalNetworkCatalog {
         route("regional-st", "ST", "Stouffville", "#774111", 1,
             "union", "kennedy", "agincourt", "milliken", "unionville", "centennial", "markham",
             "mount-joy", "stouffville", "old-elm"),
-        route("regional-up", "UP", "Union Pearson Express", "#4084cd", 1,
+        route("regional-up", "UP", "UP Express", "#4084cd", 1,
             "union", "bloor", "mount-dennis", "weston", "pearson-airport")
     );
 

@@ -7,12 +7,12 @@ const stationDetailSource = readFileSync(new URL("../src/components/StationDetai
 const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 
 describe("StationLineDirectionIndicator", () => {
-  it("defines line-colored glass capsule tag styling with enhanced vibrancy, 1.5px border, and glow", () => {
+  it("defines line-colored lightly tinted capsule tag styling with subtle 1px border and no glow", () => {
     assert.match(indicatorSource, /transitLineBadgeColors/);
-    assert.match(indicatorSource, /backgroundColor:\s*`color-mix\(in srgb,\s*\$\{lineColor\}\s*20%,\s*transparent\)`/);
-    assert.match(indicatorSource, /borderColor:\s*`color-mix\(in srgb,\s*\$\{lineColor\}\s*75%,\s*transparent\)`/);
-    assert.match(indicatorSource, /borderWidth:\s*"1\.5px"/);
-    assert.match(indicatorSource, /boxShadow/);
+    assert.match(indicatorSource, /backgroundColor:\s*`color-mix\(in srgb,\s*\$\{lineColor\}\s*18%,\s*transparent\)`/);
+    assert.match(indicatorSource, /borderColor:\s*`color-mix\(in srgb,\s*\$\{lineColor\}\s*45%,\s*transparent\)`/);
+    assert.match(indicatorSource, /borderWidth:\s*"1px"/);
+    assert.doesNotMatch(indicatorSource, /boxShadow/);
     assert.match(indicatorSource, /rounded-full/);
     assert.match(indicatorSource, /text-xs/);
   });

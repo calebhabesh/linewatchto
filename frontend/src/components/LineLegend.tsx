@@ -21,7 +21,7 @@ const REGIONAL_LINES = [
   { id: "go-mi", number: "MI", name: "Milton Line" },
   { id: "go-rh", number: "RH", name: "Richmond Hill Line" },
   { id: "go-st", number: "ST", name: "Stouffville Line" },
-  { id: "up-express", number: "UP", name: "Union Pearson Express" },
+  { id: "up-express", number: "UP", name: "UP Express" },
 ];
 
 const LINE_COLORS: Record<string, string> = {

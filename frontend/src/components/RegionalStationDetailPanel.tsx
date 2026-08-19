@@ -772,7 +772,7 @@ export function RegionalStationDetailPanel({
 
             {hasAnyAmenities && (
               <div
-                className="flex flex-col gap-2 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
+                className="flex flex-col gap-3 sm:gap-3.5 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
               >
                 <div className="flex items-center gap-2">
@@ -781,7 +781,7 @@ export function RegionalStationDetailPanel({
                     Services and Amenities
                   </h4>
                 </div>
-                <div className="grid grid-cols-3 gap-x-2.5 sm:gap-x-3.5 gap-y-3 sm:gap-y-3.5 items-center">
+                <div className="grid grid-cols-3 gap-x-2.5 sm:gap-x-3.5 gap-y-3 sm:gap-y-3.5 items-center pt-0.5 sm:pt-1">
                   {isWheelchairAccessible && (
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wheelchair accessible">
                       <Image

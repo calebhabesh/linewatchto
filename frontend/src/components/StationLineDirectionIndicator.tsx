@@ -29,11 +29,10 @@ export function StationLineDirectionIndicator({
     <div
       className={`station-line-directions inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide text-slate-900 dark:text-white shrink-0 text-right backdrop-blur-xs transition-all ${className}`.trim()}
       style={{
-        backgroundColor: `color-mix(in srgb, ${lineColor} 20%, transparent)`,
-        borderColor: `color-mix(in srgb, ${lineColor} 75%, transparent)`,
-        borderWidth: "1.5px",
+        backgroundColor: `color-mix(in srgb, ${lineColor} 18%, transparent)`,
+        borderColor: `color-mix(in srgb, ${lineColor} 45%, transparent)`,
+        borderWidth: "1px",
         borderStyle: "solid",
-        boxShadow: `0 0 10px -2px color-mix(in srgb, ${lineColor} 40%, transparent), inset 0 0 8px -2px color-mix(in srgb, ${lineColor} 20%, transparent)`,
       }}
       aria-label={platformLabel}
     >

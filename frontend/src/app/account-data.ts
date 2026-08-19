@@ -439,7 +439,7 @@ export const defaultPushNotificationPreferences: PushNotificationPreferences = {
       { lineId: "regional-mi", lineNumber: "MI", label: "Milton", subscribed: false },
       { lineId: "regional-rh", lineNumber: "RH", label: "Richmond Hill", subscribed: false },
       { lineId: "regional-st", lineNumber: "ST", label: "Stouffville", subscribed: false },
-      { lineId: "regional-up", lineNumber: "UP", label: "Union Pearson Express", subscribed: false },
+      { lineId: "regional-up", lineNumber: "UP", label: "UP Express", subscribed: false },
     ],
     eventTypes: {
       suspensions: true,

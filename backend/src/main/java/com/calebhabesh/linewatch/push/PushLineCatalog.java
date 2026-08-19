@@ -16,7 +16,7 @@ public final class PushLineCatalog {
         new LineMetadata("regional-mi", "MI", "Milton", "regional"),
         new LineMetadata("regional-rh", "RH", "Richmond Hill", "regional"),
         new LineMetadata("regional-st", "ST", "Stouffville", "regional"),
-        new LineMetadata("regional-up", "UP", "Union Pearson Express", "regional")
+        new LineMetadata("regional-up", "UP", "UP Express", "regional")
     );
 
     private PushLineCatalog() {}

@@ -14,7 +14,7 @@ const LINE_NAMES: Record<string, string> = {
   "go-mi": "Milton",
   "go-rh": "Richmond Hill",
   "go-st": "Stouffville",
-  "up-express": "Union Pearson Express",
+  "up-express": "UP Express",
 };
 
 const FALLBACK_COLORS: Record<string, { backgroundColor: string; color: string }> = {
@@ -78,9 +78,13 @@ export function TransitLineBadge({
   const label = lineName
     ? lineId.startsWith("line-")
       ? `Line ${lineNumber} ${lineName}`
+      : lineName.endsWith("Express")
+      ? lineName
       : `${lineName} Line`
     : resolvedLineName
-      ? `${resolvedLineName} Line`
+      ? resolvedLineName.endsWith("Express")
+        ? resolvedLineName
+        : `${resolvedLineName} Line`
       : `Line ${lineNumber}`;
   const src = transitLineBadgeSrc(lineId);
 

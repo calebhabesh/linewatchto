@@ -22,7 +22,7 @@ export const REGIONAL_ROUTE_DEFINITIONS = [
   { id: "regional-mi", number: "MI", name: "Milton", color: "#f47216" },
   { id: "regional-rh", number: "RH", name: "Richmond Hill", color: "#27adea" },
   { id: "regional-st", number: "ST", name: "Stouffville", color: "#774111" },
-  { id: "regional-up", number: "UP", name: "Union Pearson Express", color: "#4084cd" },
+  { id: "regional-up", number: "UP", name: "UP Express", color: "#4084cd" },
 ] as const;
 
 export type RegionalRouteCode = typeof REGIONAL_ROUTE_DEFINITIONS[number]["number"];

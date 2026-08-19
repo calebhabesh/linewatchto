@@ -94,7 +94,7 @@ export function searchTransitLines(
     .filter((line) => visible.has(line.id))
     .map((line) => {
       const lineLabel = line.id.startsWith("regional-")
-        ? `${line.number} ${line.name} ${line.name === "Union Pearson Express" ? "UP Express" : ""}`
+        ? `${line.number} ${line.name} ${line.name === "UP Express" || line.name === "Union Pearson Express" ? "Union Pearson Express UP Express" : ""}`
         : `Line ${line.number} ${line.name}`;
       const score = scoreText(lineLabel, query);
       return score === null ? null : { line, score };
