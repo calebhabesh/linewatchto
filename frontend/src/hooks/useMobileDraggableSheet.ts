@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const MOBILE_STATION_SHEET_STORAGE_KEY = "linewatch-mobile-station-sheet-height-v1";
+export const MOBILE_STATION_SHEET_RESIZE_EVENT = "linewatch:station-sheet-resize";
 export const MOBILE_SHEET_FLOOR_RATIO = 0.50;
 export const MOBILE_SHEET_DEFAULT_RATIO = 0.50;
 export const MOBILE_SHEET_EXPANDED_RATIO = 0.90;
@@ -96,6 +97,7 @@ export function useMobileDraggableSheet() {
     }
     if (typeof window !== "undefined") {
       writeStoredSheetHeightRatio(window.localStorage, clamped);
+      window.dispatchEvent(new CustomEvent(MOBILE_STATION_SHEET_RESIZE_EVENT, { detail: { ratio: clamped } }));
     }
   }, []);
 

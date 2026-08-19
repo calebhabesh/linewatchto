@@ -130,8 +130,9 @@ describe("stable raster map renderer", () => {
     assert.match(ttc, /href=\{`#station-label-\$\{hoveredStationLabelId\}`\}/);
     assert.match(
       await readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8"),
-      /<feMorphology in="SourceAlpha" operator="dilate" radius="3" result="expandedAlpha" \/>/,
+      /<feMorphology[\s\S]*?result="expandedAlpha"/,
     );
+    assert.match(ttc, /<feMorphology in="SourceAlpha" operator="dilate" radius="16" result="expandedTargetAlpha" \/>/);
     assert.match(generator, /labelsRenderedSize: \{ width: 17036\.959, height: 9031\.6719 \}/);
     assert.match(regional, /rasterMapSource\("regional", "labels", rasterTheme, rasterDensity\)/);
     assert.match(regional, /mask="url\(#regional-hovered-station-label-mask\)"/);
@@ -145,7 +146,7 @@ describe("stable raster map renderer", () => {
     assert.match(regional, /cutoutSource\.id = `regional-station-label-cutout-source-\$\{stationId\}`/);
     assert.match(regional, /id="regional-hovered-station-target-mask"/);
     assert.match(regional, /mask="url\(#regional-hovered-station-target-mask\)"/);
-    assert.match(regional, /<feMorphology in="SourceAlpha" operator="dilate" radius="12" result="expandedTargetAlpha" \/>/);
+    assert.match(regional, /<feMorphology in="SourceAlpha" operator="dilate" radius="24" result="expandedTargetAlpha" \/>/);
     assert.doesNotMatch(regional, /cutoutMarkup: `<rect x=/);
     assert.match(
       regional,

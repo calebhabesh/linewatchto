@@ -562,7 +562,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   const rasterLabelHover = ttcStage.locator(".raster-station-label-text-hover");
   await expect(rasterLabelHover).toHaveCount(1);
   await expect(rasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
-  await expect(rasterLabelHover.locator("image")).toHaveAttribute("mask", "url(#ttc-hovered-station-label-mask)");
+  await expect(rasterLabelHover.locator(":scope > image")).toHaveAttribute("mask", "url(#ttc-hovered-station-label-mask)");
   await expect(ttcStage.locator(".raster-map-plane--labels > image")).toHaveAttribute("mask", "url(#ttc-labels-raster-mask)");
   await expect(ttcStage.locator('[data-station-label-for="kipling"]')).toHaveCSS("visibility", "hidden");
   const ttcRasterSources = await ttcStage.locator(".raster-map-plane").evaluateAll((images) =>

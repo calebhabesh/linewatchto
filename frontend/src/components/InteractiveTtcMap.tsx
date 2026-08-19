@@ -30,6 +30,11 @@ import {
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
 import { lineWatchBuildLabel } from "../app/app-build";
+import {
+  MOBILE_SHEET_DEFAULT_RATIO,
+  MOBILE_STATION_SHEET_RESIZE_EVENT,
+  readStoredSheetHeightRatio,
+} from "../hooks/useMobileDraggableSheet";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import type {
@@ -415,6 +420,25 @@ function InteractiveTtcMapComponent({
   const mapRootRef = useRef<HTMLDivElement>(null);
   const mapControlRailRef = useRef<HTMLDivElement>(null);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
+  const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
+    if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
+    return readStoredSheetHeightRatio(window.localStorage);
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleSheetResize = (event: Event) => {
+      const customEvent = event as CustomEvent<{ ratio?: number }>;
+      const nextRatio = customEvent.detail?.ratio ?? readStoredSheetHeightRatio(window.localStorage);
+      setStationSheetRatio(nextRatio);
+    };
+    window.addEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
+    window.addEventListener("storage", handleSheetResize);
+    return () => {
+      window.removeEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
+      window.removeEventListener("storage", handleSheetResize);
+    };
+  }, []);
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
   const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
   const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
@@ -886,7 +910,7 @@ function InteractiveTtcMapComponent({
     const current = currentRenderedTransform() ?? { x: 0, y: 0, scale: effectiveFitScale };
     const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
-    const focusPadding = isMobile ? 24 : 40;
+    let focusPadding = isMobile ? 24 : 40;
     const selectionFocusInsets = {
       left: focusPadding,
       right: focusPadding,
@@ -894,7 +918,24 @@ function InteractiveTtcMapComponent({
       bottom: focusPadding,
     };
 
-    if (!isMobile && typeof window !== "undefined") {
+    if (isMobile && viewportOrientation !== "rotated-landscape" && selectedStationId) {
+      const shell = viewport.closest<HTMLElement>(".linewatch-shell");
+      const stationPanel = shell?.querySelector<HTMLElement>(".station-detail-panel");
+      const panelRect = stationPanel?.getBoundingClientRect();
+      const measuredPanelHeight = (panelRect && panelRect.height > 0)
+        ? Math.max(panelRect.height, viewportRect.bottom - panelRect.top)
+        : 0;
+      const expectedRatio = stationSheetRatio || readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null);
+      const stationSheetHeight = measuredPanelHeight > 0
+        ? measuredPanelHeight
+        : Math.round(logicalHeight * expectedRatio);
+      const remainingViewportHeight = Math.max(logicalHeight - stationSheetHeight, 0);
+      focusPadding = Math.min(24, Math.max(8, Math.round(remainingViewportHeight * 0.08)));
+      selectionFocusInsets.top = focusPadding;
+      selectionFocusInsets.bottom = stationSheetHeight + focusPadding;
+      selectionFocusInsets.left = focusPadding;
+      selectionFocusInsets.right = focusPadding;
+    } else if (!isMobile && typeof window !== "undefined") {
       const shell = viewport.closest<HTMLElement>(".linewatch-shell");
       const overlayRightEdges = [
         desktopMenuPinned ? shell?.querySelector<HTMLElement>("#linewatch-main-menu") : null,
@@ -1061,6 +1102,7 @@ function InteractiveTtcMapComponent({
     selection,
     stationNodeImpacts,
     stationPointFor,
+    stationSheetRatio,
     stations,
     viewportOrientation,
     zoomToBounds,
@@ -1069,7 +1111,7 @@ function InteractiveTtcMapComponent({
   useEffect(() => {
     if (loadState !== "ready") return;
 
-    const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${viewportOrientation}`;
+    const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${selectedStationId ? stationSheetRatio : 0}:${viewportOrientation}`;
 
     if (isGestureActive()) return;
 
@@ -1119,6 +1161,8 @@ function InteractiveTtcMapComponent({
     loadState,
     preserveCameraOnSelectionClear,
     recenter,
+    selectedStationId,
+    stationSheetRatio,
     viewportOrientation,
   ]);
 
@@ -2215,25 +2259,62 @@ function InteractiveTtcMapComponent({
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
-              {hoveredLabelPolygonPoints && hoveredLabelCenter ? (
+              {hoveredStationLabelId && hoveredLabelPolygonPoints && hoveredLabelCenter ? (
                 <g
                   aria-hidden="true"
                   className="raster-station-label-text-hover"
                   transform={`translate(${hoveredLabelCenter.x} ${hoveredLabelCenter.y}) scale(1.045) translate(${-hoveredLabelCenter.x} ${-hoveredLabelCenter.y})`}
                 >
                   <defs>
+                    <clipPath id="ttc-hovered-station-label-clip" clipPathUnits="userSpaceOnUse">
+                      <polygon points={hoveredLabelPolygonPoints} />
+                    </clipPath>
                     <filter id="ttc-hovered-label-white-alpha" colorInterpolationFilters="sRGB">
                       <feColorMatrix
                         type="matrix"
                         values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
                       />
                     </filter>
-                    <mask id="ttc-hovered-station-label-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="8250" height="4000">
+                    <filter id="ttc-hovered-label-target-alpha" colorInterpolationFilters="sRGB">
+                      <feMorphology in="SourceAlpha" operator="dilate" radius="16" result="expandedTargetAlpha" />
+                      <feColorMatrix
+                        in="expandedTargetAlpha"
+                        type="matrix"
+                        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
+                      />
+                    </filter>
+                    <mask
+                      id="ttc-hovered-station-target-mask"
+                      maskUnits="userSpaceOnUse"
+                      x="0"
+                      y="0"
+                      width="8250"
+                      height="4000"
+                    >
                       <use
                         href={`#station-label-${hoveredStationLabelId}`}
-                        filter="url(#ttc-hovered-label-white-alpha)"
+                        filter="url(#ttc-hovered-label-target-alpha)"
                         visibility="visible"
                       />
+                    </mask>
+                    <mask
+                      id="ttc-hovered-station-label-mask"
+                      maskUnits="userSpaceOnUse"
+                      x="0"
+                      y="0"
+                      width="8250"
+                      height="4000"
+                    >
+                      <g mask="url(#ttc-hovered-station-target-mask)">
+                        <image
+                          href={rasterMapSource("ttc", "labels", rasterTheme, rasterDensity)}
+                          width="8250"
+                          height="4000"
+                          preserveAspectRatio="xMidYMid meet"
+                          clipPath="url(#ttc-hovered-station-label-clip)"
+                          filter="url(#ttc-hovered-label-white-alpha)"
+                        />
+                      </g>
                     </mask>
                   </defs>
                   <image
@@ -2317,19 +2398,9 @@ function InteractiveTtcMapComponent({
                         if (event.pointerType !== "mouse") return;
                         setHoveredStationId(station.id);
                       }}
-                      onPointerOver={(event) => {
-                        if (event.pointerType !== "mouse") return;
-                        const labelTarget = (event.target as Element).closest?.(".station-label-hit-target");
-                        setHoveredStationLabelId(
-                          labelTarget?.getAttribute("data-station-label-id") === station.id
-                            ? station.id
-                            : null,
-                        );
-                      }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "mouse") return;
                         setHoveredStationId((current) => current === station.id ? null : current);
-                        setHoveredStationLabelId((current) => current === station.id ? null : current);
                       }}
                       onFocus={() => {
                         setHoveredStationId(station.id);
@@ -2561,6 +2632,11 @@ function InteractiveTtcMapComponent({
                         if (event.pointerType !== "mouse") return;
                         setHoveredStationId(station.id);
                         setHoveredStationLabelId(station.id);
+                      }}
+                      onPointerOver={(event) => {
+                        if (event.pointerType !== "mouse") return;
+                        setHoveredStationId((current) => current === station.id ? current : station.id);
+                        setHoveredStationLabelId((current) => current === station.id ? current : station.id);
                       }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "mouse") return;

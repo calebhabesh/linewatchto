@@ -16,6 +16,11 @@ import {
 import { useDashboardData } from "../app/DataContext";
 import { lineWatchBuildLabel } from "../app/app-build";
 import {
+  MOBILE_SHEET_DEFAULT_RATIO,
+  MOBILE_STATION_SHEET_RESIZE_EVENT,
+  readStoredSheetHeightRatio,
+} from "../hooks/useMobileDraggableSheet";
+import {
   MapOverlapIndicator,
   mapOverlapIndicatorSize,
   type MapOverlapIndicatorSize,
@@ -261,7 +266,7 @@ function regionalStationLabelHover(
   if (!label || !svg || !cutoutSource) return null;
   const bounds = regionalCollisionBoxForElement(svg, label);
   if (!bounds) return null;
-  const cropBounds = expandedRegionalCollisionBox(bounds, 8);
+  const cropBounds = expandedRegionalCollisionBox(bounds, 24);
   const isolatedCutoutSource = cutoutSource.cloneNode(true) as SVGGraphicsElement;
   removeDescendantIds(isolatedCutoutSource);
   return {
@@ -2398,6 +2403,25 @@ function InteractiveRegionalMapComponent({
   const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
+  const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
+    if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
+    return readStoredSheetHeightRatio(window.localStorage);
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleSheetResize = (event: Event) => {
+      const customEvent = event as CustomEvent<{ ratio?: number }>;
+      const nextRatio = customEvent.detail?.ratio ?? readStoredSheetHeightRatio(window.localStorage);
+      setStationSheetRatio(nextRatio);
+    };
+    window.addEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
+    window.addEventListener("storage", handleSheetResize);
+    return () => {
+      window.removeEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
+      window.removeEventListener("storage", handleSheetResize);
+    };
+  }, []);
   const [hoveredStationLabel, setHoveredStationLabel] = useState<{
     stationId: string;
     bounds: RegionalCollisionBox;
@@ -3659,7 +3683,7 @@ function InteractiveRegionalMapComponent({
     const currentFitted = fittedCamera();
     const effectiveFitScale = currentFitted?.scale ?? fitScale ?? 0.35;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
-    const focusPadding = isMobile ? 24 : 40;
+    let focusPadding = isMobile ? 24 : 40;
     const focusInsets = {
       left: focusPadding,
       right: focusPadding,
@@ -3667,7 +3691,24 @@ function InteractiveRegionalMapComponent({
       bottom: Math.max(desktopMapBottomInset, focusPadding),
     };
 
-    if (!isMobile) {
+    if (isMobile && viewportOrientation !== "rotated-landscape" && selectedStationId) {
+      const shell = viewport.closest<HTMLElement>(".linewatch-shell");
+      const stationPanel = shell?.querySelector<HTMLElement>(".station-detail-panel");
+      const panelRect = stationPanel?.getBoundingClientRect();
+      const measuredPanelHeight = (panelRect && panelRect.height > 0)
+        ? Math.max(panelRect.height, viewportRect.bottom - panelRect.top)
+        : 0;
+      const expectedRatio = stationSheetRatio || readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null);
+      const stationSheetHeight = measuredPanelHeight > 0
+        ? measuredPanelHeight
+        : Math.round(logicalHeight * expectedRatio);
+      const remainingViewportHeight = Math.max(logicalHeight - stationSheetHeight, 0);
+      focusPadding = Math.min(24, Math.max(8, Math.round(remainingViewportHeight * 0.08)));
+      focusInsets.top = focusPadding;
+      focusInsets.bottom = stationSheetHeight + focusPadding;
+      focusInsets.left = focusPadding;
+      focusInsets.right = focusPadding;
+    } else if (!isMobile) {
       const shell = viewport.closest<HTMLElement>(".linewatch-shell");
       const overlayRightEdges = [
         desktopMenuPinned
@@ -3731,12 +3772,14 @@ function InteractiveRegionalMapComponent({
     fittedCamera,
     logicalViewportSize,
     selectedMapElements,
+    selectedStationId,
+    stationSheetRatio,
     viewportOrientation,
   ]);
 
   useEffect(() => {
     if (!cameraInitializedRef.current || !svgMarkup) return;
-    const layoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}:${viewportOrientation}`;
+    const layoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}:${selectedStationId ? stationSheetRatio : 0}:${viewportOrientation}`;
 
     if (!focusTargetKey) {
       if (lastFocusedTargetKeyRef.current !== null) {
@@ -3782,6 +3825,8 @@ function InteractiveRegionalMapComponent({
     focusTargetKey,
     layoutResetSignal,
     preserveCameraOnSelectionClear,
+    selectedStationId,
+    stationSheetRatio,
     svgMarkup,
     viewportOrientation,
   ]);
@@ -4139,11 +4184,14 @@ function InteractiveRegionalMapComponent({
         return;
       }
       const station = target.closest<SVGElement>("[data-regional-station-id]");
-      setHoveredStationLabel(regionalStationLabelHover(root, station?.dataset.regionalStationId ?? null));
-      setHoveredMapImpact(
-        regionalStationImpactAtClientPoint(root, event.clientX, event.clientY)
-          ?? regionalSegmentImpactAtClientPoint(root, event.clientX, event.clientY),
-      );
+      const nextStationId = station?.dataset.regionalStationId ?? null;
+      setHoveredStationLabel((current) => {
+        if (current?.stationId === nextStationId) return current;
+        return regionalStationLabelHover(root, nextStationId);
+      });
+      const nextImpact = regionalStationImpactAtClientPoint(root, event.clientX, event.clientY)
+        ?? regionalSegmentImpactAtClientPoint(root, event.clientX, event.clientY);
+      setHoveredMapImpact(nextImpact);
     };
     const handleFocusIn = (event: FocusEvent) => {
       setLinkedImpactHover(event.target, true);
@@ -4422,7 +4470,7 @@ function InteractiveRegionalMapComponent({
                     />
                   </filter>
                   <filter id="regional-hovered-label-target-alpha" colorInterpolationFilters="sRGB">
-                    <feMorphology in="SourceAlpha" operator="dilate" radius="12" result="expandedTargetAlpha" />
+                    <feMorphology in="SourceAlpha" operator="dilate" radius="24" result="expandedTargetAlpha" />
                     <feColorMatrix
                       in="expandedTargetAlpha"
                       type="matrix"

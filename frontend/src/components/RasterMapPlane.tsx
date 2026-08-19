@@ -110,7 +110,12 @@ export function RasterMapPlane({
       >
         <defs>
           <filter id={`${maskId}-black-alpha`} colorInterpolationFilters="sRGB">
-            <feMorphology in="SourceAlpha" operator="dilate" radius="3" result="expandedAlpha" />
+            <feMorphology
+              in="SourceAlpha"
+              operator="dilate"
+              radius={network === "regional" ? "24" : "16"}
+              result="expandedAlpha"
+            />
             <feColorMatrix
               in="expandedAlpha"
               type="matrix"

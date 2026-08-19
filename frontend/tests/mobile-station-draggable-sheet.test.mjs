@@ -7,16 +7,23 @@ import {
   readStoredSheetHeightRatio,
   writeStoredSheetHeightRatio,
   MOBILE_STATION_SHEET_STORAGE_KEY,
+  MOBILE_STATION_SHEET_RESIZE_EVENT,
   MOBILE_SHEET_FLOOR_RATIO,
   MOBILE_SHEET_DEFAULT_RATIO,
   MOBILE_SHEET_EXPANDED_RATIO,
   MOBILE_SHEET_CEILING_RATIO,
 } from "../src/hooks/useMobileDraggableSheet.ts";
+import {
+  computeBoundedMapFrame,
+  computeInsetViewportFocus,
+} from "../src/hooks/panZoomMath.ts";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const handleSource = readFileSync(new URL("../src/components/MobileSheetDragHandle.tsx", import.meta.url), "utf8");
 const hookSource = readFileSync(new URL("../src/hooks/useMobileDraggableSheet.ts", import.meta.url), "utf8");
+const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("mobile station draggable sheet UX", () => {
@@ -186,5 +193,127 @@ describe("mobile station draggable sheet UX", () => {
     assert.ok(regNavIndex > 0);
     assert.ok(regScrollIndex > regNavIndex, "Regional scrollable section must begin after StationSubmenuNavButtons");
     assert.ok(regOutageIndex > regScrollIndex, "Regional Access Outages must be inside the scrollable container below Jump To");
+  });
+
+  it("exports MOBILE_STATION_SHEET_RESIZE_EVENT and dispatches it upon settling at custom ratio", () => {
+    assert.equal(MOBILE_STATION_SHEET_RESIZE_EVENT, "linewatch:station-sheet-resize");
+    assert.match(hookSource, /MOBILE_STATION_SHEET_RESIZE_EVENT/);
+    assert.match(hookSource, /window\.dispatchEvent\(new CustomEvent\(MOBILE_STATION_SHEET_RESIZE_EVENT,\s*\{\s*detail:\s*\{\s*ratio:\s*clamped\s*\}\s*\}\)\)/);
+  });
+
+  it("subscribes TTC and Regional interactive maps to mobile station sheet height changes", () => {
+    // TTC Map
+    assert.match(ttcMapSource, /import\s*\{[^}]*MOBILE_STATION_SHEET_RESIZE_EVENT[^}]*\}\s*from\s*"\.\.\/hooks\/useMobileDraggableSheet"/);
+    assert.match(ttcMapSource, /import\s*\{[^}]*readStoredSheetHeightRatio[^}]*\}\s*from\s*"\.\.\/hooks\/useMobileDraggableSheet"/);
+    assert.match(ttcMapSource, /window\.addEventListener\(MOBILE_STATION_SHEET_RESIZE_EVENT,\s*handleSheetResize\)/);
+    assert.match(ttcMapSource, /selectedStationId\s*\?\s*stationSheetRatio\s*:\s*0/);
+
+    // Regional Map
+    assert.match(regionalMapSource, /import\s*\{[^}]*MOBILE_STATION_SHEET_RESIZE_EVENT[^}]*\}\s*from\s*"\.\.\/hooks\/useMobileDraggableSheet"/);
+    assert.match(regionalMapSource, /import\s*\{[^}]*readStoredSheetHeightRatio[^}]*\}\s*from\s*"\.\.\/hooks\/useMobileDraggableSheet"/);
+    assert.match(regionalMapSource, /window\.addEventListener\(MOBILE_STATION_SHEET_RESIZE_EVENT,\s*handleSheetResize\)/);
+    assert.match(regionalMapSource, /selectedStationId\s*\?\s*stationSheetRatio\s*:\s*0/);
+  });
+
+  it("dynamically adjusts the map viewport focus and bounding box to the remaining area above the sheet", () => {
+    const viewportWidth = 400;
+    const viewportHeight = 800;
+    const stationBounds = { x: 100, y: 100, width: 64, height: 64 };
+
+    // 1. Default 50/50 split (50% sheet, 50% remaining map view):
+    const ratio50 = 0.50;
+    const sheetHeight50 = viewportHeight * ratio50; // 400px
+    const remaining50 = viewportHeight - sheetHeight50; // 400px
+    const padding50 = Math.min(24, Math.max(8, Math.round(remaining50 * 0.08))); // 24px
+    const insets50 = {
+      left: padding50,
+      right: padding50,
+      top: padding50,
+      bottom: sheetHeight50 + padding50,
+    };
+    const focus50 = computeInsetViewportFocus(viewportWidth, viewportHeight, insets50);
+    // Focus Y must be at the exact vertical center of the top 400px remaining space (200px)
+    assert.equal(focus50.focusY, 200);
+    const frame50 = computeBoundedMapFrame(viewportWidth, viewportHeight, stationBounds, insets50);
+    assert.ok(frame50.scale > 0);
+
+    // 2. User increases menu size to 70% (30% remaining map view):
+    const ratio70 = 0.70;
+    const sheetHeight70 = viewportHeight * ratio70; // 560px
+    const remaining70 = viewportHeight - sheetHeight70; // 240px
+    const padding70 = Math.min(24, Math.max(8, Math.round(remaining70 * 0.08))); // 19px
+    const insets70 = {
+      left: padding70,
+      right: padding70,
+      top: padding70,
+      bottom: sheetHeight70 + padding70,
+    };
+    const focus70 = computeInsetViewportFocus(viewportWidth, viewportHeight, insets70);
+    // Focus Y must be at the exact vertical center of the top 240px remaining space (120px)
+    assert.equal(focus70.focusY, 120);
+    const frame70 = computeBoundedMapFrame(viewportWidth, viewportHeight, stationBounds, insets70);
+    assert.ok(frame70.scale > 0);
+
+    // 3. User increases menu size to 80% (20% remaining map view):
+    const ratio80 = 0.80;
+    const sheetHeight80 = viewportHeight * ratio80; // 640px
+    const remaining80 = viewportHeight - sheetHeight80; // 160px
+    const padding80 = Math.min(24, Math.max(8, Math.round(remaining80 * 0.08))); // 13px
+    const insets80 = {
+      left: padding80,
+      right: padding80,
+      top: padding80,
+      bottom: sheetHeight80 + padding80,
+    };
+    const focus80 = computeInsetViewportFocus(viewportWidth, viewportHeight, insets80);
+    // Focus Y must be at the exact vertical center of the top 160px remaining space (80px)
+    assert.equal(focus80.focusY, 80);
+    const frame80 = computeBoundedMapFrame(viewportWidth, viewportHeight, stationBounds, insets80);
+    assert.ok(frame80.scale > 0);
+
+    // 4. User increases menu size to 90% (10% remaining map view):
+    const ratio90 = 0.90;
+    const sheetHeight90 = viewportHeight * ratio90; // 720px
+    const remaining90 = viewportHeight - sheetHeight90; // 80px
+    const padding90 = Math.min(24, Math.max(8, Math.round(remaining90 * 0.08))); // 8px
+    const insets90 = {
+      left: padding90,
+      right: padding90,
+      top: padding90,
+      bottom: sheetHeight90 + padding90,
+    };
+    const focus90 = computeInsetViewportFocus(viewportWidth, viewportHeight, insets90);
+    // Focus Y must be at the exact vertical center of the top 80px remaining space (40px)
+    assert.equal(focus90.focusY, 40);
+    const frame90 = computeBoundedMapFrame(viewportWidth, viewportHeight, stationBounds, insets90);
+    assert.ok(frame90.scale > 0);
+  });
+
+  it("preserves stored sheet height and frames the focused station in the remaining area when reopened", () => {
+    const memory = new Map();
+    const mockStorage = {
+      getItem: (key) => memory.get(key) ?? null,
+      setItem: (key, value) => memory.set(key, String(value)),
+    };
+
+    // User resized to 70% and closed the sheet
+    writeStoredSheetHeightRatio(mockStorage, 0.70);
+
+    // Next time the station submenu is opened, read stored ratio
+    const restoredRatio = readStoredSheetHeightRatio(mockStorage);
+    assert.equal(restoredRatio, 0.70);
+
+    const viewportHeight = 844; // Standard iPhone 12/13/14 height
+    const sheetHeight = Math.round(viewportHeight * restoredRatio); // 591px
+    const remainingHeight = viewportHeight - sheetHeight; // 253px
+    const padding = Math.min(24, Math.max(8, Math.round(remainingHeight * 0.08)));
+    const insets = {
+      left: padding,
+      right: padding,
+      top: padding,
+      bottom: sheetHeight + padding,
+    };
+    const focus = computeInsetViewportFocus(390, viewportHeight, insets);
+    assert.equal(focus.focusY, remainingHeight / 2);
   });
 });
