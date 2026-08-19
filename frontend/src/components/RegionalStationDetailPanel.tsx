@@ -576,7 +576,7 @@ export function RegionalStationDetailPanel({
       id: "station-impacts",
       label: "Station Impacts",
       shortLabel: "Impacts",
-      icon: <AlertCircle size={13} aria-hidden="true" />,
+      icon: <AlertCircle size={13} className="text-orange-500 dark:text-orange-400" aria-hidden="true" />,
       count: impacts.length,
     });
   }
@@ -661,13 +661,13 @@ export function RegionalStationDetailPanel({
         onClose={handleClose}
       />
 
-      <div className="station-detail-body-wrapper flex-1 min-h-0 flex flex-col">
+      <div className="station-detail-body-wrapper w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col">
         <div
           key={station.id}
-          className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
+          className="station-detail-content-swap w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col"
         >
           {routes.length > 2 ? (
-            <div className="mt-2 flex flex-col gap-2 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+            <div className="mt-2 flex w-full min-w-0 max-w-full flex-col gap-2 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Regional Corridors · {routes.length} Lines
@@ -688,7 +688,7 @@ export function RegionalStationDetailPanel({
               </div>
             </div>
           ) : (
-            <div className="mt-2 flex flex-col gap-1.5 shrink-0 pr-4" data-station-header-line-details aria-label="Regional rail corridors">
+            <div className="mt-2 flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
               {routes.map((route) => {
                 const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
                 return (
@@ -721,7 +721,7 @@ export function RegionalStationDetailPanel({
             onJumpToSection={handleJumpToSection}
           />
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 pr-4 -mr-4 station-detail-scroll station-detail-section-stack">
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 station-detail-scroll station-detail-section-stack">
             {hasAccessibilityOutages && (
               <button
                 type="button"
@@ -767,9 +767,12 @@ export function RegionalStationDetailPanel({
                 className="flex flex-col gap-2 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
               >
-                <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Services and Amenities
-                </h4>
+                <div className="flex items-center gap-2">
+                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+                  <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Services and Amenities
+                  </h4>
+                </div>
                 <div className="grid grid-cols-3 gap-x-2.5 sm:gap-x-3.5 gap-y-3 sm:gap-y-3.5 items-center">
                   {isWheelchairAccessible && (
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wheelchair accessible">
@@ -886,6 +889,7 @@ export function RegionalStationDetailPanel({
                 data-station-section="arrivals"
               >
                 <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <Train size={20} className="shrink-0" />
                   <span>Train Arrivals</span>
                 </h3>
@@ -1202,8 +1206,12 @@ export function RegionalStationDetailPanel({
                 aria-label="Station service impacts"
               >
                 <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                  <AlertCircle size={20} className="shrink-0" />
+                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+                  <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
                   <span>Station Impacts</span>
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                    {impacts.length}
+                  </span>
                 </h3>
                 {impacts.length > 0 ? (
                   <div className="mt-2 flex flex-col gap-2">
@@ -1252,13 +1260,14 @@ export function RegionalStationDetailPanel({
                 aria-label="Upcoming GO train changes"
               >
                 <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <AlertTriangle size={20} className="shrink-0 text-amber-500" />
                   <span>Upcoming Trip Changes</span>
-                  {!tripChangesLoading && tripChanges.changes.length > 0 ? (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-xs font-black text-amber-800 dark:text-amber-200">
+                  {!tripChangesLoading && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
                       {tripChanges.changes.length}
                     </span>
-                  ) : null}
+                  )}
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   GO operational feeds · published schedule matched
@@ -1284,6 +1293,7 @@ export function RegionalStationDetailPanel({
                   className="station-notices-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black"
                 >
                   <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <FileText size={20} className="shrink-0 text-slate-700 dark:text-slate-300" />
                     <span className="min-w-0 truncate">Notices</span>
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
@@ -1397,6 +1407,7 @@ export function RegionalStationDetailPanel({
               >
                 <summary className="station-accessibility-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black">
                   <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <Image
                       src="/assets/linewatch/accessibility-alert.svg"
                       alt=""

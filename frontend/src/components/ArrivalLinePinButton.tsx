@@ -22,11 +22,10 @@ export function ArrivalLinePinButton({
   onHoverChange,
 }: Props) {
   const action = pinned ? "Unpin" : "Pin";
-  const starFill = pinned
+  const isFilled = pinned || hovered;
+  const starFill = isFilled
     ? "currentColor"
-    : hovered
-      ? "rgba(251, 191, 36, 0.35)"
-      : "none";
+    : "rgba(251, 191, 36, 0.35)";
 
   return (
     <button
@@ -50,7 +49,7 @@ export function ArrivalLinePinButton({
       aria-label={`${action} ${lineLabel} arrivals at ${stationName}`}
       title={`${action} ${lineLabel} arrivals`}
     >
-      <Star size={compact ? 20 : 27} fill={starFill} aria-hidden="true" strokeWidth={pinned ? 0 : 1.85} />
+      <Star size={compact ? 20 : 27} fill={starFill} aria-hidden="true" strokeWidth={isFilled ? 0 : 1.85} />
     </button>
   );
 }

@@ -545,6 +545,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
       <summary className="surface-connections-summary block cursor-pointer list-none">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
             <Bus size={20} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
             <span className="text-lg font-black text-slate-900 dark:text-white truncate">Surface Connections</span>
           </div>

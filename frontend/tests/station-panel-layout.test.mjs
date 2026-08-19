@@ -4,6 +4,9 @@ import { describe, it } from "node:test";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
+const surfaceConnectionsSource = readFileSync(new URL("../src/components/SurfaceConnectionsSection.tsx", import.meta.url), "utf8");
+const stationConnectionsSource = readFileSync(new URL("../src/components/StationConnectionBadges.tsx", import.meta.url), "utf8");
+const arrivalPinSource = readFileSync(new URL("../src/components/ArrivalLinePinButton.tsx", import.meta.url), "utf8");
 const navButtonsSource = readFileSync(new URL("../src/components/StationSubmenuNavButtons.tsx", import.meta.url), "utf8");
 const stationHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
@@ -312,5 +315,44 @@ describe("station detail panel layout", () => {
     assert.doesNotMatch(globalCss, /filter:\s*blur\(1px\)/);
     assert.doesNotMatch(globalCss, /opacity:\s*0\.35/);
     assert.match(globalCss, /@keyframes station-detail-content-in/);
+  });
+
+  it("renders accent chips on section headers across station detail panels", () => {
+    const accentChipPattern = /<span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-\[0_0_4px_rgba\(129,201,255,0\.35\)\]" aria-hidden="true" \/>/;
+
+    // TTC StationDetailPanel
+    assert.match(panelSource, accentChipPattern);
+    // RegionalStationDetailPanel
+    assert.match(regionalPanelSource, accentChipPattern);
+    // SurfaceConnectionsSection
+    assert.match(surfaceConnectionsSource, accentChipPattern);
+    // StationConnectionBadges
+    assert.match(stationConnectionsSource, accentChipPattern);
+  });
+
+  it("renders colored icons and count badges for station impacts and trip changes", () => {
+    // TTC StationDetailPanel
+    assert.match(panelSource, /<AlertCircle size=\{20\} className="shrink-0 text-orange-500 dark:text-orange-400"/);
+    assert.match(panelSource, /\{distinctImpacts\.length\}\s*<\/span>/);
+    assert.match(panelSource, /icon: <AlertCircle size=\{13\} className="text-orange-500 dark:text-orange-400" aria-hidden="true" \/>/);
+
+    // RegionalStationDetailPanel
+    assert.match(regionalPanelSource, /<AlertCircle size=\{20\} className="shrink-0 text-orange-500 dark:text-orange-400"/);
+    assert.match(regionalPanelSource, /\{impacts\.length\}\s*<\/span>/);
+    assert.match(regionalPanelSource, /icon: <AlertCircle size=\{13\} className="text-orange-500 dark:text-orange-400" aria-hidden="true" \/>/);
+    assert.match(regionalPanelSource, /\{tripChanges\.changes\.length\}\s*<\/span>/);
+  });
+
+  it("styles arrival line pin idle state with yellow outline and tinted fill, and hover/active states with solid yellow fill", () => {
+    assert.match(arrivalPinSource, /isFilled\s*\?\s*"currentColor"\s*:\s*"rgba\(251, 191, 36, 0\.35\)"/);
+    assert.match(globalCss, /\.arrival-line-pin\s*\{[^}]*color:\s*rgb\(245,\s*158,\s*11\);/s);
+    assert.match(globalCss, /\.arrival-line-pin svg,\s*\.arrival-line-pin svg polygon,\s*\.arrival-line-pin svg path\s*\{[^}]*fill:\s*rgba\(245,\s*158,\s*11,\s*0\.3\)\s*!important;/s);
+    assert.match(globalCss, /\.arrival-line-pin\.is-hovered svg,[^}]*fill:\s*currentColor\s*!important;/s);
+    assert.match(globalCss, /\.dark \.arrival-line-pin\s*\{[^}]*color:\s*rgb\(251,\s*191,\s*36\);/s);
+  });
+
+  it("renders a space-efficient 3-column grid for search amenity chips", () => {
+    assert.match(globalCss, /\.station-search-amenity-chips\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);[^}]*gap:\s*5px;/s);
+    assert.match(globalCss, /\.station-search-amenity-chip span:not\(\.station-search-amenity-chip-count\)\s*\{[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s);
   });
 });

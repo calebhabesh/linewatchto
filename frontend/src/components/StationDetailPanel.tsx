@@ -448,7 +448,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
         id: "station-impacts",
         label: "Station Impacts",
         shortLabel: "Impacts",
-        icon: <AlertCircle size={13} aria-hidden="true" />,
+        icon: <AlertCircle size={13} className="text-orange-500 dark:text-orange-400" aria-hidden="true" />,
         count: distinctImpacts.length,
       });
     }
@@ -557,13 +557,13 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
         onClose={handleCloseClick}
       />
 
-      <div className={`station-detail-body-wrapper flex-1 min-h-0 flex flex-col transition-all duration-200 ${updating ? "station-detail-body-updating" : ""}`}>
+      <div className={`station-detail-body-wrapper w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col transition-all duration-200 ${updating ? "station-detail-body-updating" : ""}`}>
         <div
           key={station?.id ?? "empty"}
-          className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
+          className="station-detail-content-swap w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col"
         >
           {station && (
-            <div className="mt-2 flex flex-col gap-1.5 shrink-0" data-station-header-line-details>
+            <div className="mt-2 flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0" data-station-header-line-details>
               {station.lines.map((line) => (
                 <div key={line.id} className="flex items-center justify-between gap-2.5 min-w-0">
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -595,7 +595,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             />
           )}
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 pr-4 -mr-4 station-detail-scroll station-detail-section-stack">
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 station-detail-scroll station-detail-section-stack">
             {station && hasAccessibilityOutages && (
               <button
                 type="button"
@@ -641,9 +641,12 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 className="flex flex-col gap-2 rounded-md border border-black/10 bg-slate-50 px-3.5 py-3 sm:px-4 sm:py-3.5 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
               >
-                <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Services and Amenities
-                </h4>
+                <div className="flex items-center gap-2">
+                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+                  <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Services and Amenities
+                  </h4>
+                </div>
                 <div className="grid grid-cols-3 gap-x-2.5 sm:gap-x-3.5 gap-y-3 sm:gap-y-3.5 items-center">
                   {isWheelchairAccessible && (
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0" title="Wheelchair accessible">
@@ -810,6 +813,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   data-station-section="arrivals"
                 >
                   <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <Train size={20} className="shrink-0" />
                     <span>{arrivalHeading}</span>
                   </h3>
@@ -846,6 +850,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               >
                 {/* Schedule May Be Disrupted */}
                 <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <Train size={20} className="shrink-0" />
                   <span>{arrivalHeading}</span>
                 </h3>
@@ -1114,8 +1119,12 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
 	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
 	            <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-	              <AlertCircle size={20} className="shrink-0" />
+	              <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+	              <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
 	              <span>Station Impacts</span>
+	              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+	                {distinctImpacts.length}
+	              </span>
 	            </h3>
 	            {distinctImpacts.length === 0 ? (
 	              <p className="my-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -1185,6 +1194,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               className="station-accessibility-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black"
             >
               <span className="flex min-w-0 items-center gap-2.5">
+                <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                 <Image
                   src="/assets/linewatch/accessibility-alert.svg"
                   alt=""

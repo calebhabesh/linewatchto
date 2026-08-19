@@ -2303,7 +2303,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   background: transparent !important;
   border: none;
   border-radius: 4px;
-  color: rgb(148, 163, 184);
+  color: rgb(245, 158, 11);
   display: inline-flex;
   flex: 0 0 auto;
   height: 28px;
@@ -2318,8 +2318,16 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   transition: fill 150ms ease, stroke 150ms ease, transform 150ms ease;
 }
 
+.arrival-line-pin svg,
+.arrival-line-pin svg polygon,
+.arrival-line-pin svg path {
+  fill: rgba(245, 158, 11, 0.3) !important;
+  stroke: rgb(245, 158, 11) !important;
+}
+
 .arrival-line-pin.is-hovered,
-.arrival-line-pin:hover {
+.arrival-line-pin:hover,
+.arrival-line-pin:active {
   background: transparent !important;
   color: rgb(245, 158, 11);
 }
@@ -2329,9 +2337,12 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .arrival-line-pin.is-hovered svg path,
 .arrival-line-pin:hover svg,
 .arrival-line-pin:hover svg polygon,
-.arrival-line-pin:hover svg path {
-  fill: rgba(245, 158, 11, 0.3) !important;
-  stroke: rgb(245, 158, 11) !important;
+.arrival-line-pin:hover svg path,
+.arrival-line-pin:active svg,
+.arrival-line-pin:active svg polygon,
+.arrival-line-pin:active svg path {
+  fill: currentColor !important;
+  stroke: currentColor !important;
 }
 
 .arrival-line-pin:active {
@@ -2367,11 +2378,19 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .dark .arrival-line-pin {
-  color: rgb(148, 163, 184);
+  color: rgb(251, 191, 36);
+}
+
+.dark .arrival-line-pin svg,
+.dark .arrival-line-pin svg polygon,
+.dark .arrival-line-pin svg path {
+  fill: rgba(251, 191, 36, 0.35) !important;
+  stroke: rgb(251, 191, 36) !important;
 }
 
 .dark .arrival-line-pin.is-hovered,
-.dark .arrival-line-pin:hover {
+.dark .arrival-line-pin:hover,
+.dark .arrival-line-pin:active {
   background: transparent !important;
   color: rgb(251, 191, 36);
 }
@@ -2381,9 +2400,12 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .dark .arrival-line-pin.is-hovered svg path,
 .dark .arrival-line-pin:hover svg,
 .dark .arrival-line-pin:hover svg polygon,
-.dark .arrival-line-pin:hover svg path {
-  fill: rgba(251, 191, 36, 0.35) !important;
-  stroke: rgb(251, 191, 36) !important;
+.dark .arrival-line-pin:hover svg path,
+.dark .arrival-line-pin:active svg,
+.dark .arrival-line-pin:active svg polygon,
+.dark .arrival-line-pin:active svg path {
+  fill: currentColor !important;
+  stroke: currentColor !important;
 }
 
 .dark .arrival-line-pin.is-pinned {
@@ -9740,26 +9762,35 @@ img.transit-line-badge {
 }
 
 .station-search-amenity-chips {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
 }
 
 .station-search-amenity-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  gap: 4px;
+  padding: 3px 6px;
+  min-height: 26px;
   border-radius: 6px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: rgba(255, 255, 255, 0.6);
   color: rgb(71, 85, 105);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   cursor: pointer;
   user-select: none;
+  min-width: 0;
   transition: all 140ms ease-out;
+}
+
+.station-search-amenity-chip span:not(.station-search-amenity-chip-count) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .dark .station-search-amenity-chip {
@@ -9798,12 +9829,14 @@ img.transit-line-badge {
 }
 
 .station-search-amenity-chip-count {
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 1px 4px;
+  padding: 1px 3.5px;
   border-radius: 4px;
   background: rgba(15, 23, 42, 0.08);
   color: inherit;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .dark .station-search-amenity-chip-count {
@@ -11752,6 +11785,15 @@ img.transit-line-badge {
 
 .station-detail-scroll {
   scroll-behavior: smooth;
+  margin-right: -10px;
+  padding-right: 6px;
+}
+
+@media (min-width: 768px) {
+  .station-detail-scroll {
+    margin-right: -11px;
+    padding-right: 5px;
+  }
 }
 
 .motion-paused .station-detail-scroll {
@@ -20663,7 +20705,6 @@ img.transit-line-badge {
   .station-search-stations-column::-webkit-scrollbar,
   .station-search-results::-webkit-scrollbar,
   .station-search-lines-column::-webkit-scrollbar,
-  .station-detail-scroll::-webkit-scrollbar,
   .surface-notices-scroll::-webkit-scrollbar,
   .release-notes-content::-webkit-scrollbar,
   .privacy-acknowledgements-scroll::-webkit-scrollbar,
@@ -20671,6 +20712,12 @@ img.transit-line-badge {
     display: block !important;
     width: 8px !important;
     height: 8px !important;
+  }
+
+  .station-detail-scroll::-webkit-scrollbar {
+    display: block !important;
+    width: 6px !important;
+    height: 6px !important;
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-track,
