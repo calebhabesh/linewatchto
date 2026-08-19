@@ -208,7 +208,10 @@ public class RegionalGtfsScheduleRepository {
             from regional_gtfs_departures departure
             join regional_gtfs_schedule_imports import
               on import.id = departure.import_id and import.active = true and import.source_system = 'go'
-            where (departure.trip_id = :identity or departure.trip_short_name = :identity)
+            where (departure.trip_id = :identity
+                   or departure.trip_short_name = :identity
+                   or departure.trip_id like '%-' || :identity
+                   or departure.trip_id like '%_' || :identity)
               and exists (
                   select 1 from active_services active_service
                   where active_service.import_id = departure.import_id

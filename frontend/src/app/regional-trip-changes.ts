@@ -1,4 +1,5 @@
 import { apiUrl } from "./api-client.ts";
+import { regionalStations } from "./regional-data.ts";
 
 export type RegionalTripChangeKind = "cancellation" | "skipped-stop" | "added-stop";
 
@@ -116,9 +117,27 @@ export function cleanRegionalTripNumber(raw: string | null | undefined): string 
   return trimmed;
 }
 
+function normalizeRegionalStationName(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/\b(go|station|centre|terminal)\b/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 export function cleanRegionalDestinationText(destination: string | null | undefined): string {
   if (!destination) return "";
-  return destination.replace(/^[A-Za-z]{1,4}\s*-\s*/, "").trim();
+  const cleaned = destination.replace(/^[A-Za-z]{1,4}\s*-\s*/, "").trim();
+  const normalized = normalizeRegionalStationName(cleaned);
+  const matchedStation = regionalStations.find(
+    (candidate) => normalizeRegionalStationName(candidate.name) === normalized,
+  );
+  if (matchedStation) {
+    return matchedStation.name;
+  }
+  return cleaned
+    .replace(/\s+(GO(\s+Station|\s+Centre)?|Station)$/i, "")
+    .trim();
 }
 
 export function formatRegionalTripDisplayName(change: {
@@ -146,7 +165,8 @@ export function formatRegionalTripSubtitle(change: {
     : "";
 
   const destination = cleanRegionalDestinationText(change.destination);
-  const firstStop = change.affectedStops?.[0]?.stationName?.trim() || "";
+  const rawFirstStop = change.affectedStops?.[0]?.stationName?.trim() || "";
+  const firstStop = cleanRegionalDestinationText(rawFirstStop);
 
   let routeText = "";
   if (firstStop && destination && firstStop.toLowerCase() !== destination.toLowerCase()) {

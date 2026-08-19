@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
+const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
+const navButtonsSource = readFileSync(new URL("../src/components/StationSubmenuNavButtons.tsx", import.meta.url), "utf8");
 const stationHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -143,6 +145,66 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /station-access-outage-count/);
     assert.match(globalCss, /\.station-access-outage-badge\s*\{[^}]*width:\s*30px;[^}]*height:\s*30px;[^}]*flex:\s*0 0 30px;/s);
     assert.match(globalCss, /\.station-access-outage-count\s*\{[^}]*min-width:\s*16px;[^}]*height:\s*16px;[^}]*font-size:\s*8px;/s);
+  });
+
+  it("surfaces accessibility outage counts near the top of the regional station panel", () => {
+    const outageSummaryIndex = regionalPanelSource.indexOf('data-station-access-outage-summary');
+    const headerDetailsIndex = regionalPanelSource.indexOf('data-station-header-line-details');
+    const arrivalsIndex = regionalPanelSource.indexOf('data-station-section="arrivals"');
+
+    assert.notEqual(outageSummaryIndex, -1);
+    assert.notEqual(headerDetailsIndex, -1);
+    assert.ok(headerDetailsIndex < outageSummaryIndex);
+    assert.ok(outageSummaryIndex < arrivalsIndex);
+    assert.match(regionalPanelSource, /StationAccessOutageBadge/);
+    assert.match(regionalPanelSource, /formatStationOutageLabel\("elevator", elevatorOutagesCount\)/);
+    assert.match(regionalPanelSource, /formatStationOutageLabel\("escalator", escalatorOutagesCount\)/);
+    assert.match(regionalPanelSource, /station-access-outage-badge/);
+    assert.match(regionalPanelSource, /handleJumpToAccessibility/);
+    assert.match(regionalPanelSource, /ref=\{accessibilityDetailsRef\}/);
+  });
+
+  it("provides quick jump icon navigation for subsections in both TTC and Regional station panels", () => {
+    assert.match(navButtonsSource, /Jump To/);
+    assert.match(panelSource, /ConciergeBell/);
+    assert.match(regionalPanelSource, /ConciergeBell/);
+
+    assert.match(panelSource, /StationSubmenuNavButtons/);
+    assert.match(panelSource, /data-station-section="connected-network"/);
+    assert.match(panelSource, /data-station-section="services-and-amenities"/);
+    assert.match(panelSource, /data-station-section="arrivals"/);
+    assert.match(panelSource, /data-station-section="station-impacts"/);
+    assert.match(panelSource, /data-station-section="accessibility"/);
+
+    assert.match(regionalPanelSource, /StationSubmenuNavButtons/);
+    assert.match(regionalPanelSource, /data-station-section="connected-network"/);
+    assert.match(regionalPanelSource, /data-station-section="services-and-amenities"/);
+    assert.match(regionalPanelSource, /data-station-section="arrivals"/);
+    assert.match(regionalPanelSource, /data-station-section="station-impacts"/);
+    assert.match(regionalPanelSource, /data-station-section="trip-changes"/);
+    assert.match(regionalPanelSource, /data-station-section="notices"/);
+    assert.match(regionalPanelSource, /data-station-section="accessibility"/);
+
+    const ttcLineHeaderIdx = panelSource.indexOf("data-station-header-line-details");
+    const ttcNavIdx = panelSource.indexOf("<StationSubmenuNavButtons");
+    const ttcScrollIdx = panelSource.indexOf("station-detail-scroll");
+    assert.ok(ttcLineHeaderIdx !== -1 && ttcNavIdx !== -1 && ttcScrollIdx !== -1);
+    assert.ok(ttcLineHeaderIdx < ttcNavIdx, "TTC nav buttons must be below line badges");
+    assert.ok(ttcNavIdx < ttcScrollIdx, "TTC nav buttons must be above scrollable content stack");
+
+    const regionalLineHeaderIdx = regionalPanelSource.indexOf("data-station-header-line-details");
+    const regionalNavIdx = regionalPanelSource.indexOf("<StationSubmenuNavButtons");
+    const regionalScrollIdx = regionalPanelSource.indexOf("station-detail-scroll");
+    assert.ok(regionalLineHeaderIdx !== -1 && regionalNavIdx !== -1 && regionalScrollIdx !== -1);
+    assert.ok(regionalLineHeaderIdx < regionalNavIdx, "Regional nav buttons must be below line badges");
+    assert.ok(regionalNavIdx < regionalScrollIdx, "Regional nav buttons must be above scrollable content stack");
+  });
+
+  it("reopens the station submenu when pressing back from an impact details view", () => {
+    assert.match(shellSource, /stationDrilldownOriginRef/);
+    assert.match(shellSource, /handleStationSelectImpact/);
+    assert.match(shellSource, /onSelectImpact=\{handleStationSelectImpact\}/);
+    assert.match(shellSource, /if \(stationDrilldownOriginRef\.current\) \{/);
   });
 
   it("defines station marker and reduced motion styles", () => {

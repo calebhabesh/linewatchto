@@ -2,8 +2,9 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowDownToLine, BadgeInfo, CalendarCheck2, ChevronDown, Construction, Layers, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowDownToLine, BadgeInfo, Bus, CalendarCheck2, ChevronDown, ConciergeBell, Construction, GitMerge, Layers, Train } from "lucide-react";
 import Image from "next/image";
+import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
 import {
@@ -49,6 +50,8 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { LiveSignalIcon } from "./LiveSignalIcon";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { StationDetailHeader } from "./StationDetailHeader";
+import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
+import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ttcStationConnections } from "../app/station-connections";
@@ -379,6 +382,81 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
     }
   };
 
+  const handleJumpToSection = (sectionId: string) => {
+    if (sectionId === "accessibility") {
+      handleJumpToAccessibility();
+      return;
+    }
+    const target = document.querySelector(`[data-station-section="${sectionId}"]`);
+    if (!target) return;
+
+    if (target instanceof HTMLDetailsElement && !target.open) {
+      target.open = true;
+    }
+    const parentDetails = target.closest("details");
+    if (parentDetails && !parentDetails.open) {
+      parentDetails.open = true;
+    }
+
+    target.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  };
+
+  const navItems: StationSubmenuNavItem[] = [];
+  if (station) {
+    if (connections.length > 0) {
+      navItems.push({
+        id: "connected-network",
+        label: connections.length === 1 ? "Connected Network" : "Connected Networks",
+        icon: <GitMerge size={14} aria-hidden="true" />,
+      });
+    }
+    if (hasAnyAmenities) {
+      navItems.push({
+        id: "services-and-amenities",
+        label: "Services & Amenities",
+        icon: <ConciergeBell size={14} aria-hidden="true" />,
+      });
+    }
+    navItems.push({
+      id: "arrivals",
+      label: "Train & LRT Arrivals",
+      icon: <Train size={14} aria-hidden="true" />,
+    });
+    navItems.push({
+      id: "surface-connections",
+      label: "Surface Connections",
+      icon: <Bus size={14} aria-hidden="true" />,
+    });
+    if (distinctImpacts.length > 0) {
+      navItems.push({
+        id: "station-impacts",
+        label: "Station Impacts",
+        icon: <AlertCircle size={14} aria-hidden="true" />,
+        count: distinctImpacts.length,
+      });
+    }
+    if (sortedOutages.length > 0) {
+      navItems.push({
+        id: "accessibility",
+        label: "Accessibility Outages",
+        icon: (
+          <Image
+            src="/assets/linewatch/accessibility-alert.svg"
+            alt=""
+            width={14}
+            height={14}
+            aria-hidden="true"
+            className="shrink-0"
+          />
+        ),
+        count: sortedOutages.length,
+      });
+    }
+  }
+
   const handleJumpToStationImpact = (impactId: string, e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
@@ -416,6 +494,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
+  const { isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
 
   useEffect(() => () => {
     if (closeTimeoutRef.current !== null) {
@@ -434,10 +513,18 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   return (
     <aside
-      className={`station-detail-panel ${isClosing ? "station-detail-closing" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
+      style={sheetStyle}
+      className={`station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
+      data-sheet-expanded={isExpanded ? "true" : undefined}
     >
+      <MobileSheetDragHandle
+        dragHandleProps={dragHandleProps}
+        isDragging={isDragging}
+        isExpanded={isExpanded}
+      />
+
       <StationDetailHeader
         stationName={station?.name ?? selectedStationName ?? "Station details"}
         updating={updating}
@@ -519,9 +606,18 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             </button>
           )}
 
+          {station && (
+            <StationSubmenuNavButtons
+              items={navItems}
+              onJumpToSection={handleJumpToSection}
+            />
+          )}
+
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 pr-4 -mr-4 station-detail-scroll station-detail-section-stack">
             {station && connections.length > 0 && (
-              <StationConnectionBadges connections={connections} />
+              <div data-station-section="connected-network">
+                <StationConnectionBadges connections={connections} />
+              </div>
             )}
 
             {station && hasAnyAmenities && (

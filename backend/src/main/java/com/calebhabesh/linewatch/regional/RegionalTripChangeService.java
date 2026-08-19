@@ -7,6 +7,7 @@ import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses.AffectedSt
 import com.calebhabesh.linewatch.regional.RegionalTripChangeResponses.TripChange;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.calebhabesh.linewatch.station.StationResponses;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -112,9 +113,13 @@ public class RegionalTripChangeService {
             List<MatchedDeparture> schedule = confidentSchedule(identity, serviceDate);
             if (!schedule.isEmpty() && classification.lineIds().contains(schedule.getFirst().lineId())) {
                 MatchedDeparture first = schedule.getFirst();
+                MatchedDeparture last = schedule.getLast();
+                String destination = RegionalNetworkCatalog.station(last.stationId())
+                    .map(StationResponses.StationSummaryResponse::name)
+                    .orElseGet(() -> cleanDestination(first.direction()));
                 candidates.add(new Candidate(
                     "cancellation", first.tripId(), firstNonBlank(first.tripShortName(), identity),
-                    first.lineId(), first.direction(), first.serviceDate(), scheduledAt(first), stored.lastSeenAt(),
+                    first.lineId(), destination, first.serviceDate(), scheduledAt(first), stored.lastSeenAt(),
                     true, classification.title(), classification.description(), classification.cause(),
                     classification.sources().stream().map(RegionalAlertClassification.SourceReference::sourceSystem)
                         .distinct().toList(),
@@ -229,9 +234,13 @@ public class RegionalTripChangeService {
         List<AffectedStop> affectedStops
     ) {
         MatchedDeparture first = schedule.getFirst();
+        MatchedDeparture last = schedule.getLast();
+        String destination = RegionalNetworkCatalog.station(last.stationId())
+            .map(StationResponses.StationSummaryResponse::name)
+            .orElseGet(() -> cleanDestination(first.direction()));
         return new Candidate(
             kind, first.tripId(), firstNonBlank(first.tripShortName(), first.tripId()), first.lineId(),
-            first.direction(), first.serviceDate(), scheduledAt(schedule.getFirst()), record.lastSeenAt(),
+            destination, first.serviceDate(), scheduledAt(schedule.getFirst()), record.lastSeenAt(),
             true, "", "", "", List.of(record.sourceSystem()), affectedStops
         );
     }
@@ -244,7 +253,7 @@ public class RegionalTripChangeService {
             .distinct()
             .map(stationId -> new AffectedStop(
                 stationId,
-                RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId),
+                RegionalNetworkCatalog.station(stationId).map(StationResponses.StationSummaryResponse::name).orElse(stationId),
                 "cancellation",
                 null,
                 ""
@@ -254,7 +263,7 @@ public class RegionalTripChangeService {
 
     private String sourceDestination(RegionalAlertClassification classification, String lineId) {
         List<AffectedStop> stops = sourceStops(classification, lineId);
-        return stops.isEmpty() ? "" : stops.getLast().stationName();
+        return stops.isEmpty() ? "" : cleanDestination(stops.getLast().stationName());
     }
 
     private List<AffectedStop> scheduleStops(List<MatchedDeparture> schedule, String kind) {
@@ -401,6 +410,21 @@ public class RegionalTripChangeService {
 
     private String normalize(String value) {
         return value == null ? "" : value.toLowerCase(Locale.CANADA).trim();
+    }
+
+    private String cleanDestination(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String cleaned = raw.replaceAll("(?i)^[A-Za-z]{1,4}\\s*-\\s*", "").trim();
+        for (StationResponses.StationSummaryResponse station : RegionalNetworkCatalog.stations()) {
+            if (station.name().equalsIgnoreCase(cleaned)
+                || cleaned.equalsIgnoreCase(station.name() + " GO")
+                || cleaned.equalsIgnoreCase(station.name() + " Station")
+                || cleaned.equalsIgnoreCase(station.name() + " Station GO")
+                || cleaned.equalsIgnoreCase(station.name() + " GO Station")) {
+                return station.name();
+            }
+        }
+        return cleaned.replaceAll("(?i)\\s+(GO(\\s+Station|\\s+Centre)?|Station)$", "").trim();
     }
 
     private record Candidate(

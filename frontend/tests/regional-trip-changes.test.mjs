@@ -103,10 +103,10 @@ describe("regional trip changes adapter", () => {
     assert.equal(cleanRegionalTripNumber(""), "");
     assert.equal(cleanRegionalTripNumber(null), "");
 
-    assert.equal(cleanRegionalDestinationText("LE - Whitby GO"), "Whitby GO");
-    assert.equal(cleanRegionalDestinationText("ST - Union Station GO"), "Union Station GO");
-    assert.equal(cleanRegionalDestinationText("ST - Mount Joy GO"), "Mount Joy GO");
-    assert.equal(cleanRegionalDestinationText("Union Station"), "Union Station");
+    assert.equal(cleanRegionalDestinationText("LE - Whitby GO"), "Whitby");
+    assert.equal(cleanRegionalDestinationText("ST - Union Station GO"), "Union");
+    assert.equal(cleanRegionalDestinationText("ST - Mount Joy GO"), "Mount Joy");
+    assert.equal(cleanRegionalDestinationText("Union Station"), "Union");
     assert.equal(cleanRegionalDestinationText(""), "");
 
     assert.equal(formatRegionalTripDisplayName({ tripNumber: "20260818-LE-9626" }), "Train 9626");
@@ -121,7 +121,7 @@ describe("regional trip changes adapter", () => {
         destination: "ST - Mount Joy GO",
         affectedStops: [{ stationName: "Union" }, { stationName: "Kennedy" }, { stationName: "Mount Joy" }],
       }),
-      "Stouffville Line · Union to Mount Joy GO",
+      "Stouffville Line · Union to Mount Joy",
     );
 
     assert.equal(
@@ -131,7 +131,7 @@ describe("regional trip changes adapter", () => {
         destination: "Whitby GO",
         affectedStops: [{ stationName: "Union" }, { stationName: "Whitby" }],
       }),
-      "Lakeshore East Line · Union to Whitby GO",
+      "Lakeshore East Line · Union to Whitby",
     );
 
     assert.equal(
@@ -149,7 +149,7 @@ describe("regional trip changes adapter", () => {
         lineName: "Kitchener",
         destination: "Mount Pleasant GO",
       }),
-      "Kitchener Line · To Mount Pleasant GO",
+      "Kitchener Line · To Mount Pleasant",
     );
   });
 });
