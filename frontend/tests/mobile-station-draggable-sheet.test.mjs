@@ -154,23 +154,19 @@ describe("mobile station draggable sheet UX", () => {
     assert.equal(readStoredSheetHeightRatio(mockStorage), 0.735);
   });
 
-  it("applies elastic rubber-band damping beyond floor and ceiling bounds during active drag", () => {
+  it("clamps firmly at floor and ceiling bounds without rubber-band rebound", () => {
     // In-bounds ratios are 1:1 direct tracking
     assert.equal(computeDampedRatio(0.65), 0.65);
     assert.equal(computeDampedRatio(0.50), 0.50);
     assert.equal(computeDampedRatio(0.92), 0.92);
 
-    // Below floor (0.50) applies elastic resistance instead of hard wall
-    const belowFloor = computeDampedRatio(0.40);
-    assert.ok(belowFloor < 0.50, "Allows damped visual pull below floor");
-    assert.ok(belowFloor > 0.40, "Damps the distance pulled below floor");
-    assert.equal(belowFloor, 0.478);
+    // Below floor (0.50) firmly clamps to floor without rubber-band rebound
+    assert.equal(computeDampedRatio(0.40), 0.50);
+    assert.equal(computeDampedRatio(0.20), 0.50);
 
-    // Above ceiling (0.92) applies elastic resistance instead of hard wall
-    const aboveCeiling = computeDampedRatio(0.98);
-    assert.ok(aboveCeiling > 0.92, "Allows damped visual pull above ceiling");
-    assert.ok(aboveCeiling < 0.98, "Damps the distance pulled above ceiling");
-    assert.equal(aboveCeiling, 0.933);
+    // Above ceiling (0.92) firmly clamps to ceiling without rubber-band rebound
+    assert.equal(computeDampedRatio(0.98), 0.92);
+    assert.equal(computeDampedRatio(1.20), 0.92);
   });
 
   it("renders Jump To buttons with words and icons in a space-efficient grid and places Access Outages inside scrollable area below Jump To", () => {

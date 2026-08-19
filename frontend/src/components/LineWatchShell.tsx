@@ -88,6 +88,7 @@ import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import {
   MOBILE_SHEET_DEFAULT_RATIO,
+  MOBILE_STATION_SHEET_RESIZE_EVENT,
   readStoredSheetHeightRatio,
 } from "../hooks/useMobileDraggableSheet";
 import {
@@ -819,6 +820,17 @@ export function LineWatchShell({
     if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
     return readStoredSheetHeightRatio(window.localStorage);
   });
+
+  useEffect(() => {
+    const handleSheetResize = (e: Event) => {
+      const customEvent = e as CustomEvent<{ ratio: number }>;
+      if (customEvent.detail && typeof customEvent.detail.ratio === "number") {
+        setStationSheetRatio(customEvent.detail.ratio);
+      }
+    };
+    window.addEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
+    return () => window.removeEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
+  }, []);
   const [stationPanelActivationKey, setStationPanelActivationKey] = useState(0);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);

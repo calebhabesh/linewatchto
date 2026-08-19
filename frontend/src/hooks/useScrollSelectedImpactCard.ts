@@ -35,7 +35,13 @@ export function useScrollSelectedImpactCard(
       const card = selectedCard();
       if (!card) return;
 
-      card.scrollIntoView({ block: "center", behavior: "smooth" });
+      const isMobile = window.matchMedia("(max-width: 767px)").matches ||
+        Boolean(card.closest(".mobile-view-content-wrapper"));
+
+      card.scrollIntoView({
+        block: isMobile ? "start" : "center",
+        behavior: "smooth",
+      });
     };
 
     highlightCard();

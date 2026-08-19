@@ -21,15 +21,7 @@ export function computeDampedRatio(rawRatio: number): number {
   if (Number.isNaN(rawRatio) || !Number.isFinite(rawRatio)) {
     return MOBILE_SHEET_DEFAULT_RATIO;
   }
-  if (rawRatio < MOBILE_SHEET_FLOOR_RATIO) {
-    const overflow = MOBILE_SHEET_FLOOR_RATIO - rawRatio;
-    return Number((MOBILE_SHEET_FLOOR_RATIO - overflow * 0.22).toFixed(3));
-  }
-  if (rawRatio > MOBILE_SHEET_CEILING_RATIO) {
-    const overflow = rawRatio - MOBILE_SHEET_CEILING_RATIO;
-    return Number((MOBILE_SHEET_CEILING_RATIO + overflow * 0.22).toFixed(3));
-  }
-  return Number(rawRatio.toFixed(3));
+  return clampSheetRatio(rawRatio);
 }
 
 export function readStoredSheetHeightRatio(storage?: Pick<Storage, "getItem"> | null): number {
@@ -71,7 +63,6 @@ export function useMobileDraggableSheet() {
 
   const dragSessionRef = useRef<{
     startY: number;
-    startRatio: number;
     startHeightPx: number;
     viewportHeight: number;
     pointerId: number;
@@ -83,17 +74,30 @@ export function useMobileDraggableSheet() {
     currentRatioRef.current = heightRatio;
   }, [heightRatio]);
 
-  const snapToRatio = useCallback((nextRatio: number) => {
+  const snapToRatio = useCallback((nextRatio: number, animate = true) => {
     const clamped = clampSheetRatio(nextRatio);
     currentRatioRef.current = clamped;
     setHeightRatio(clamped);
     const el = sheetRef.current;
     if (el) {
-      el.style.transition = "";
-      el.classList.remove("station-detail-sheet-dragging");
-      el.style.setProperty("--mobile-station-sheet-height", `${Math.round(clamped * 100)}dvh`);
+      if (!animate) {
+        el.style.transition = "none";
+      } else {
+        el.style.transition = "";
+      }
+      el.style.transform = "";
+      el.style.willChange = "";
       el.style.height = "";
       el.style.maxHeight = "";
+      el.classList.remove("station-detail-sheet-dragging");
+      const translateYPercent = ((MOBILE_SHEET_CEILING_RATIO - clamped) * 100).toFixed(2);
+      el.style.setProperty("--mobile-station-sheet-translate-y", `${translateYPercent}dvh`);
+      el.style.setProperty("--mobile-station-sheet-height", `${Math.round(clamped * 100)}dvh`);
+      if (!animate) {
+        requestAnimationFrame(() => {
+          if (el) el.style.transition = "";
+        });
+      }
     }
     if (typeof window !== "undefined") {
       writeStoredSheetHeightRatio(window.localStorage, clamped);
@@ -104,7 +108,7 @@ export function useMobileDraggableSheet() {
   const handleToggleExpand = useCallback(() => {
     const current = currentRatioRef.current;
     const next = current <= MOBILE_SHEET_SNAP_THRESHOLD ? MOBILE_SHEET_EXPANDED_RATIO : MOBILE_SHEET_FLOOR_RATIO;
-    snapToRatio(next);
+    snapToRatio(next, true);
   }, [snapToRatio]);
 
   const moveListenerRef = useRef<((e: PointerEvent) => void) | null>(null);
@@ -134,12 +138,12 @@ export function useMobileDraggableSheet() {
 
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight ?? 800;
     const startRatio = currentRatioRef.current;
+    const startHeightPx = startRatio * viewportHeight;
     const now = performance.now();
 
     dragSessionRef.current = {
       startY: e.clientY,
-      startRatio,
-      startHeightPx: startRatio * viewportHeight,
+      startHeightPx,
       viewportHeight,
       pointerId: e.pointerId,
       startTime: now,
@@ -152,28 +156,35 @@ export function useMobileDraggableSheet() {
     const sheetEl = sheetRef.current;
     if (sheetEl) {
       sheetEl.style.transition = "none";
+      sheetEl.style.transform = "";
       sheetEl.classList.add("station-detail-sheet-dragging");
+      const px = startHeightPx.toFixed(1);
+      sheetEl.style.setProperty("--mobile-station-sheet-height", `${px}px`);
+      sheetEl.style.height = `${px}px`;
+      sheetEl.style.maxHeight = `${px}px`;
     }
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const session = dragSessionRef.current;
       if (!session || session.pointerId !== moveEvent.pointerId) return;
 
-      const deltaY = session.startY - moveEvent.clientY;
-      const currentHeightPx = session.startHeightPx + deltaY;
-      const rawRatio = currentHeightPx / session.viewportHeight;
-      const nextRatio = computeDampedRatio(rawRatio);
-      currentRatioRef.current = nextRatio;
+      const deltaY = session.startY - moveEvent.clientY; // positive = dragging UP
+      const rawHeight = session.startHeightPx + deltaY;
+      const minHeight = MOBILE_SHEET_FLOOR_RATIO * session.viewportHeight;
+      const maxHeight = MOBILE_SHEET_CEILING_RATIO * session.viewportHeight;
+      const clampedHeight = Math.max(minHeight, Math.min(maxHeight, rawHeight));
+      const currentRatio = clampSheetRatio(clampedHeight / session.viewportHeight);
+      currentRatioRef.current = currentRatio;
 
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(() => {
           rafIdRef.current = null;
           const el = sheetRef.current;
           if (el && isDraggingRef.current) {
-            const pxValue = `${Math.round(currentRatioRef.current * session.viewportHeight)}px`;
-            el.style.setProperty("--mobile-station-sheet-height", pxValue);
-            el.style.height = pxValue;
-            el.style.maxHeight = pxValue;
+            const px = (currentRatioRef.current * session.viewportHeight).toFixed(1);
+            el.style.setProperty("--mobile-station-sheet-height", `${px}px`);
+            el.style.height = `${px}px`;
+            el.style.maxHeight = `${px}px`;
           }
         });
       }
@@ -207,12 +218,20 @@ export function useMobileDraggableSheet() {
       dragSessionRef.current = null;
 
       if (isTap) {
+        const el = sheetRef.current;
+        if (el) {
+          el.style.transform = "";
+          el.style.willChange = "";
+          el.style.height = "";
+          el.style.maxHeight = "";
+          el.classList.remove("station-detail-sheet-dragging");
+        }
         handleToggleExpand();
         return;
       }
 
-      // Settle at the user-decided dragged ratio (clamped within floor and ceiling bounds)
-      snapToRatio(currentRatioRef.current);
+      // Settle firmly at the exact ratio where the user let go (firmly clamped, no rebound, no jump)
+      snapToRatio(currentRatioRef.current, false);
     };
 
     cleanupListeners();
@@ -253,6 +272,8 @@ export function useMobileDraggableSheet() {
     };
   }, [cleanupListeners]);
 
+  const translateYPercent = ((MOBILE_SHEET_CEILING_RATIO - heightRatio) * 100).toFixed(2);
+
   return {
     sheetRef,
     heightRatio,
@@ -272,6 +293,7 @@ export function useMobileDraggableSheet() {
     },
     sheetStyle: {
       "--mobile-station-sheet-height": `${Math.round(heightRatio * 100)}dvh`,
+      "--mobile-station-sheet-translate-y": `${translateYPercent}dvh`,
     } as React.CSSProperties,
   };
 }

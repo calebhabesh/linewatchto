@@ -52,6 +52,8 @@ describe("floating menu layout", () => {
     assert.match(selectedImpactScrollSource, /addEventListener\("animationend", handleWrapperAnimationEnd\)/);
     assert.match(selectedImpactScrollSource, /event\.animationName !== expectedAnimationName/);
     assert.match(selectedImpactScrollSource, /highlightCard\(\);[\s\S]*const wrapper = /);
+    assert.match(selectedImpactScrollSource, /block:\s*isMobile\s*\?\s*"start"\s*:\s*"center"/);
+    assert.match(globalCss, /\.alert-card\s*\{[^}]*scroll-margin-top:\s*10px/s);
     assert.match(globalCss, /\.highlight-active-card\s*\{[^}]*var\(--selection-fast-cycle-duration\)/s);
   });
 
