@@ -5,6 +5,7 @@ import {
   emptyRegionalArrivalSnapshot,
   formatRegionalArrivalSourceSummary,
   formatRegionalArrivalClockTime,
+  formatRegionalDestinationName,
   getRegionalArrivalMinutes,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
@@ -347,8 +348,8 @@ describe("regional station arrivals adapter", () => {
     assert.ok(northboundGroup, "Northbound group must exist for terminating outward train");
     assert.ok(southboundGroup, "Southbound group must exist for Union-bound trains");
 
-    // Canonical outward terminus for Stouffville line is Old Elm
-    assert.equal(northboundGroup.destinationLabel, "To Old Elm");
+    // Outward arrivals heading to Mount Joy resolve dynamically to To Mount Joy
+    assert.equal(northboundGroup.destinationLabel, "To Mount Joy");
     // Mount Joy is not the last station on ST, so this is NOT a terminal stop — it's an early-terminating trip
     assert.equal(northboundGroup.isTerminating, false);
     assert.equal(northboundGroup.platforms[0].arrivals.length, 1);
@@ -407,6 +408,62 @@ describe("regional station arrivals adapter", () => {
     // Eastbound departures must appear first; Westbound terminating arrivals must appear last
     assert.equal(pearsonGroups[0].directionLabel, "Eastbound", "Departing group sorts before terminating group at Pearson Airport");
     assert.equal(pearsonGroups[1].directionLabel, "Westbound", "Terminating group sorts after departing group at Pearson Airport");
+
+    // At Stratford (last index of KI line): Westbound outward arrivals terminate at Stratford
+    const stratfordGroups = groupRegionalStationArrivals([
+      {
+        lineId: "regional-ki",
+        lineNumber: "KI",
+        lineName: "Kitchener",
+        direction: "KI - Stratford GO",
+        tripNumber: "7401",
+        minutes: 15,
+        predictedAt: "2026-08-18T19:28:00-04:00",
+        scheduledAt: "2026-08-18T19:28:00-04:00",
+        delayMinutes: 0,
+        platform: "",
+        source: "Metrolinx published schedule",
+        status: "scheduled",
+      },
+      {
+        lineId: "regional-ki",
+        lineNumber: "KI",
+        lineName: "Kitchener",
+        direction: "KI - Union Station GO",
+        tripNumber: "7402",
+        minutes: 60,
+        predictedAt: "2026-08-18T20:13:00-04:00",
+        scheduledAt: "2026-08-18T20:13:00-04:00",
+        delayMinutes: 0,
+        platform: "",
+        source: "Metrolinx published schedule",
+        status: "scheduled",
+      },
+    ], "stratford");
+
+    const stratfordWestbound = stratfordGroups.find((g) => g.directionLabel === "Westbound");
+    const stratfordEastbound = stratfordGroups.find((g) => g.directionLabel === "Eastbound");
+
+    assert.ok(stratfordWestbound, "Westbound group must exist at Stratford");
+    assert.ok(stratfordEastbound, "Eastbound group must exist at Stratford");
+    assert.equal(stratfordWestbound.destinationLabel, "To Stratford", "Westbound header at Stratford must say To Stratford");
+    assert.equal(stratfordWestbound.isTerminating, true, "Westbound arrivals at Stratford are terminating");
+    assert.equal(stratfordEastbound.destinationLabel, "To Union", "Eastbound departures from Stratford head To Union");
+    assert.equal(stratfordEastbound.isTerminating, false, "Eastbound departures from Stratford are not terminating");
+  });
+
+  it("formats clean regional destination names across corridors", () => {
+    assert.equal(formatRegionalDestinationName("KI - Kitchener GO", "KI"), "Kitchener");
+    assert.equal(formatRegionalDestinationName("KI - Mount Pleasant GO", "KI"), "Mount Pleasant");
+    assert.equal(formatRegionalDestinationName("KI - Bramalea GO", "KI"), "Bramalea");
+    assert.equal(formatRegionalDestinationName("KI - Stratford GO", "KI"), "Stratford");
+    assert.equal(formatRegionalDestinationName("LW - Aldershot GO", "LW"), "Aldershot");
+    assert.equal(formatRegionalDestinationName("LW - Niagara Falls GO", "LW"), "Niagara Falls");
+    assert.equal(formatRegionalDestinationName("UP - Pearson Airport", "UP"), "Pearson Airport");
+    assert.equal(formatRegionalDestinationName("UP - Union Station", "UP"), "Union");
+    assert.equal(formatRegionalDestinationName("ST - Old Elm GO", "ST"), "Old Elm");
+    assert.equal(formatRegionalDestinationName("BR - Allandale Waterfront GO", "BR"), "Allandale Waterfront");
+    assert.equal(formatRegionalDestinationName("LE - Durham College Oshawa GO", "LE"), "Durham College Oshawa");
   });
 
   it("formats regional prediction clock times in Toronto time", () => {

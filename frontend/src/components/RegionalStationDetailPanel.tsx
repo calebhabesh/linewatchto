@@ -15,11 +15,13 @@ import {
   isRegionalStationWifiAvailable,
   REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
   REGIONAL_ROUTE_DEFINITIONS,
+  type RegionalRouteCode,
 } from "../app/regional-data";
 import {
   emptyRegionalArrivalSnapshot,
   formatRegionalArrivalClockTime,
   formatRegionalArrivalSourceSummary,
+  formatRegionalDestinationName,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
@@ -838,13 +840,23 @@ export function RegionalStationDetailPanel({
                                                   arrivalTick,
                                                 );
                                                 const isCountdown = detailedCountdown && !due && !tripChange;
+                                                const destinationName = formatRegionalDestinationName(
+                                                  arrival.direction,
+                                                  section.lineNumber as RegionalRouteCode,
+                                                );
+                                                const showTileDestination = Boolean(
+                                                  destinationName
+                                                  && !group.isTerminating
+                                                  && `To ${destinationName}`.toLowerCase() !== group.destinationLabel.trim().toLowerCase(),
+                                                );
                                                 return (
                                                   <div
                                                     key={`${arrival.tripNumber}:${arrival.predictedAt}`}
                                                     data-arrival-due={due ? "true" : "false"}
                                                     data-regional-arrival-due={due ? "true" : "false"}
                                                     className={[
-                                                      "relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
+                                                      "relative flex flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 text-center transition-colors",
+                                                      showTileDestination ? "min-h-[78px] sm:min-h-[82px] pb-2" : "min-h-[74px] sm:min-h-[78px] pb-1.5",
                                                       tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"
                                                         ? "border-red-500/70 bg-red-500/15 text-red-900 shadow-[0_0_0_1px_rgba(239,68,68,0.16)] dark:text-red-50"
                                                         : tripChange?.kind === "added-stop"
@@ -890,6 +902,20 @@ export function RegionalStationDetailPanel({
                                                             Scheduled {scheduledClockTime || timeDisplay.secondary}
                                                           </>
                                                         )}
+                                                      </span>
+                                                    ) : null}
+                                                    {showTileDestination ? (
+                                                      <span
+                                                        className={
+                                                          due
+                                                            ? "mt-1 max-w-full truncate px-1 text-[10px] font-bold tracking-tight text-red-100/90"
+                                                            : soon
+                                                              ? "mt-1 max-w-full truncate px-1 text-[10px] font-bold tracking-tight text-emerald-800 dark:text-emerald-200"
+                                                              : "mt-1 max-w-full truncate px-1 text-[10px] font-bold tracking-tight text-slate-600 dark:text-slate-300"
+                                                        }
+                                                        title={`To ${destinationName}`}
+                                                      >
+                                                        To {destinationName}
                                                       </span>
                                                     ) : null}
                                                   </div>

@@ -4,6 +4,7 @@ import {
   REGIONAL_ROUTE_DEFINITIONS,
   REGIONAL_ROUTE_STATIONS,
   regionalStations,
+  stationName,
   type RegionalRouteCode,
 } from "./regional-data.ts";
 
@@ -280,6 +281,30 @@ function normalizeStationName(value: string) {
     .trim();
 }
 
+export function formatRegionalDestinationName(
+  rawDirection: string | null | undefined,
+  routeCode?: RegionalRouteCode,
+): string {
+  if (!rawDirection) return "";
+  let cleaned = rawDirection.trim();
+  if (routeCode) {
+    const routePrefix = new RegExp(`^\\s*${routeCode}\\s*-\\s*`, "i");
+    cleaned = cleaned.replace(routePrefix, "").trim();
+  } else {
+    cleaned = cleaned.replace(/^[A-Za-z]{1,4}\s*-\\s*/, "").trim();
+  }
+  const normalized = normalizeStationName(cleaned);
+  const matchedStation = regionalStations.find(
+    (candidate) => normalizeStationName(candidate.name) === normalized,
+  );
+  if (matchedStation) {
+    return matchedStation.name;
+  }
+  return cleaned
+    .replace(/\s+(GO(\s+Station|\s+Centre)?|Station)$/i, "")
+    .trim();
+}
+
 function cleanRegionalDestination(value: string, routeCode: RegionalRouteCode) {
   const routePrefix = new RegExp(`^\\s*${routeCode}\\s*-\\s*`, "i");
   return value.replace(routePrefix, "").trim();
@@ -408,9 +433,27 @@ export function groupRegionalStationArrivals(
         ? (REGIONAL_ROUTE_TERMINALS[routeCode]?.outward ?? "Terminal")
         : (REGIONAL_ROUTE_TERMINALS[routeCode]?.inward ?? "Union");
 
+      const allGroupArrivals = group.platforms.flatMap((platform) => platform.arrivals);
+      const uniqueDestinations = [
+        ...new Set(
+          allGroupArrivals
+            .map((arrival) => formatRegionalDestinationName(arrival.direction, routeCode))
+            .filter(Boolean),
+        ),
+      ];
+
+      let destinationLabel: string;
+      if (uniqueDestinations.length === 1) {
+        destinationLabel = `To ${uniqueDestinations[0]}`;
+      } else if (isTerminating) {
+        destinationLabel = `To ${stationName(stationId) || terminal}`;
+      } else {
+        destinationLabel = `To ${terminal}`;
+      }
+
       return {
         ...group,
-        destinationLabel: `To ${terminal}`,
+        destinationLabel,
         isTerminating,
         platforms: group.platforms.map((platform) => ({
           ...platform,

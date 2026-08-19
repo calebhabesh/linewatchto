@@ -20,8 +20,9 @@ import {
 import { getStationDetail, isLrtOnlyStation, isSubwayAndLrtStation, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
 import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelectionsByStation } from "../app/station-impact-types";
 import { DataProvider, useDashboardData, type DashboardData } from "../app/DataContext";
-import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId } from "../app/regional-data";
+import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId, type RegionalRouteCode } from "../app/regional-data";
 import {
+  formatRegionalDestinationName,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
@@ -613,8 +614,18 @@ function SavedStationRow({
                                   const detailed = index === 0
                                     && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
                                   const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown: detailed });
+                                  const destinationName = formatRegionalDestinationName(
+                                    arrival.direction,
+                                    group.lineNumber as RegionalRouteCode,
+                                  );
+                                  const showTileDestination = Boolean(
+                                    destinationName
+                                    && !group.isTerminating
+                                    && `To ${destinationName}`.toLowerCase() !== group.destinationLabel.trim().toLowerCase(),
+                                  );
                                   const arrivalTileClassName = [
-                                    "relative flex min-h-[64px] sm:min-h-[68px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-2 text-center transition-colors",
+                                    "relative flex flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 text-center transition-colors",
+                                    showTileDestination ? "min-h-[66px] sm:min-h-[72px] pb-2" : "min-h-[64px] sm:min-h-[68px] pb-2",
                                     due
                                       ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                       : soon
@@ -647,6 +658,20 @@ function SavedStationRow({
                                       >
                                         {timeDisplay.secondary}
                                       </span>
+                                      {showTileDestination ? (
+                                        <span
+                                          className={
+                                            due
+                                              ? "mt-0.5 max-w-full truncate px-0.5 text-[9px] sm:text-[10px] font-bold tracking-tight text-red-100/90"
+                                              : soon
+                                                ? "mt-0.5 max-w-full truncate px-0.5 text-[9px] sm:text-[10px] font-bold tracking-tight text-emerald-800 dark:text-emerald-200"
+                                                : "mt-0.5 max-w-full truncate px-0.5 text-[9px] sm:text-[10px] font-bold tracking-tight text-slate-600 dark:text-slate-300"
+                                          }
+                                          title={`To ${destinationName}`}
+                                        >
+                                          To {destinationName}
+                                        </span>
+                                      ) : null}
                                     </div>
                                   );
                                 })}
