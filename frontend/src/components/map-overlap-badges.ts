@@ -502,7 +502,7 @@ export function organizeOverlapBadgeClusters({
             y: center.y + position.y,
           }));
           const boxes = positions.map((position, index) => (
-            expandedChooserBounds(chooserBounds(position, cluster[index].size), 10)
+            expandedChooserBounds(chooserBounds(position, cluster[index].size), 4)
           ));
           const staysInsideMap = boxes.every((box) => (
             box.x >= mapBounds.x

@@ -320,8 +320,8 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, accentChipPattern);
     // SurfaceConnectionsSection
     assert.match(surfaceConnectionsSource, accentChipPattern);
-    // StationConnectionBadges
-    assert.match(stationConnectionsSource, accentChipPattern);
+    // StationConnectionBadges (does not use accent chip to maintain clean horizontal alignment)
+    assert.doesNotMatch(stationConnectionsSource, accentChipPattern);
   });
 
   it("renders colored icons and header count badges for station impacts, notices, and trip changes", () => {

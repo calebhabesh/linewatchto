@@ -36,7 +36,6 @@ export function StationConnectionBadges({ connections }: { connections: readonly
   return (
     <section className="station-connections-card" aria-labelledby="station-connections-title">
       <h3 id="station-connections-title" className="station-connections-title">
-        <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
         <GitMerge size={14} aria-hidden="true" />
         <span>{heading}</span>
       </h3>

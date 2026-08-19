@@ -2935,9 +2935,9 @@ const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;
 const BASE_ROUTE_COLLISION_RADIUS = 78;
 const OVERLAP_BADGE_EDGE_GAP = 8;
-// Matches the 10-unit candidate and 12-unit occupied-box padding below, so an
-// aligned pair can touch those collision envelopes without visually drifting.
-// We add an extra 14 units because 22 was too close visually.
+// The 4-unit candidate padding and 12-unit occupied-box padding below form
+// the minimum collision envelope. The remaining 20 units of visual headroom
+// keep aligned badge pairs from crowding each other.
 const OVERLAP_BADGE_SIBLING_CLEARANCE = 36;
 const OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE = 260;
 const OVERLAP_BADGE_MAP_COMPONENT_PADDING = 18;
@@ -3671,7 +3671,7 @@ function scoreBadgeCandidate(
   size: OverlapBadgeSize,
   blockedBoxes: SvgBounds[],
 ): number {
-  const candidateBox = expandBox(boundsForBadgePosition(position, size), 10);
+  const candidateBox = expandBox(boundsForBadgePosition(position, size), 4);
   const overlapArea = blockedBoxes.reduce(
     (sum, blockedBox) => sum + boxIntersectionArea(candidateBox, blockedBox),
     0,
@@ -3725,7 +3725,7 @@ function chooseNonIntersectingBadgePosition(
       candidate.position,
       size,
     );
-    const candidateBox = expandBox(boundsForBadgePosition(position, size), 10);
+    const candidateBox = expandBox(boundsForBadgePosition(position, size), 4);
     const collisionAvoided = !blockedBoxes.some((blockedBox) => boxesIntersect(candidateBox, blockedBox));
     scoredPositions.push({
       position,
