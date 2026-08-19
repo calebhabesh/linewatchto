@@ -9763,16 +9763,20 @@ img.transit-line-badge {
 
 .station-search-amenity-chips {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.station-search-panel[data-expanded="true"] .station-search-amenity-chips {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .station-search-amenity-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 6px;
-  min-height: 26px;
+  gap: 5px;
+  padding: 4px 8px;
+  min-height: 28px;
   border-radius: 6px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: rgba(255, 255, 255, 0.6);
@@ -9786,9 +9790,9 @@ img.transit-line-badge {
 }
 
 .station-search-amenity-chip span:not(.station-search-amenity-chip-count) {
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
   min-width: 0;
   flex: 1 1 auto;
 }

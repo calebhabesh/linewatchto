@@ -42,4 +42,59 @@ class TtcSurfaceArrivalIndexerTest {
             assertThat(arrival.scheduledAt()).isEqualTo(predicted.minusMinutes(1));
         });
     }
+
+    @Test
+    void indexesNightStreetcarArrivalsForKingStationOnStreetStops() {
+        TtcSurfaceScheduleCatalog repository = mock(TtcSurfaceScheduleCatalog.class);
+        when(repository.active()).thenReturn(new TtcSurfaceScheduleCatalog.Catalog(
+            42,
+            Map.of("304", new TtcSurfaceScheduleCatalog.Route("304", "304", "King", "streetcar")),
+            Map.of("11177", new TtcSurfaceScheduleCatalog.Stop("11177", "king", "King St West at Yonge St East Side - King Station", "")),
+            Map.of("trip-night-1", new TtcSurfaceScheduleCatalog.Trip("trip-night-1", "304", "East - 304 King towards Broadview Station")),
+            Map.of(),
+            Set.of("king")
+        ));
+        TtcSurfaceArrivalIndexer indexer = new TtcSurfaceArrivalIndexer(repository);
+        OffsetDateTime predicted = OffsetDateTime.parse("2026-08-19T04:05:00Z");
+
+        TtcSurfaceArrivalSnapshot snapshot = indexer.index("streetcar", new TtcSurfaceTripUpdateParser.Feed(
+            OffsetDateTime.parse("2026-08-19T04:00:00Z"),
+            List.of(new TtcSurfaceTripUpdateParser.TripUpdate(
+                "trip-night-1", "304", List.of(new TtcSurfaceTripUpdateParser.StopUpdate(
+                    "11177", new TtcSurfaceTripUpdateParser.Event(predicted, 0)
+                ))
+            ))
+        ), OffsetDateTime.parse("2026-08-19T04:00:01Z"));
+
+        assertThat(snapshot.arrivals()).singleElement().satisfies(arrival -> {
+            assertThat(arrival.stationId()).isEqualTo("king");
+            assertThat(arrival.route()).isEqualTo("304");
+            assertThat(arrival.destination()).isEqualTo("East - 304 King towards Broadview Station");
+            assertThat(arrival.stopName()).isEqualTo("King St West at Yonge St East Side - King Station");
+            assertThat(arrival.predictedAt()).isEqualTo(predicted);
+        });
+    }
+
+    @Test
+    void indexesArrivalsUsingDefaultConnectionsCatalog() {
+        TtcSurfaceScheduleCatalog repository = mock(TtcSurfaceScheduleCatalog.class);
+        when(repository.active()).thenReturn(TtcSurfaceScheduleCatalog.Catalog.defaults());
+        TtcSurfaceArrivalIndexer indexer = new TtcSurfaceArrivalIndexer(repository);
+        OffsetDateTime predicted = OffsetDateTime.parse("2026-08-19T04:08:00Z");
+
+        TtcSurfaceArrivalSnapshot snapshot = indexer.index("streetcar", new TtcSurfaceTripUpdateParser.Feed(
+            OffsetDateTime.parse("2026-08-19T04:00:00Z"),
+            List.of(new TtcSurfaceTripUpdateParser.TripUpdate(
+                "trip-night-2", "304", List.of(new TtcSurfaceTripUpdateParser.StopUpdate(
+                    "11177", new TtcSurfaceTripUpdateParser.Event(predicted, 120)
+                ))
+            ))
+        ), OffsetDateTime.parse("2026-08-19T04:00:01Z"));
+
+        assertThat(snapshot.arrivals()).singleElement().satisfies(arrival -> {
+            assertThat(arrival.stationId()).isEqualTo("king");
+            assertThat(arrival.route()).isEqualTo("304");
+            assertThat(arrival.stopName()).isEqualTo("King St West at Yonge St East Side - King Station");
+        });
+    }
 }

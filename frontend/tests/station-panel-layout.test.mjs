@@ -324,17 +324,23 @@ describe("station detail panel layout", () => {
     assert.match(stationConnectionsSource, accentChipPattern);
   });
 
-  it("renders colored icons and count badges for station impacts and trip changes", () => {
+  it("renders colored icons and right-aligned count badges for station impacts, notices, and trip changes", () => {
     // TTC StationDetailPanel
     assert.match(panelSource, /<AlertCircle size=\{20\} className="shrink-0 text-orange-500 dark:text-orange-400"/);
     assert.match(panelSource, /\{distinctImpacts\.length\}\s*<\/span>/);
     assert.match(panelSource, /icon: <AlertCircle size=\{13\} className="text-orange-500 dark:text-orange-400" aria-hidden="true" \/>/);
+    assert.match(panelSource, /data-station-section="station-impacts"[\s\S]*justify-between/);
+    assert.match(panelSource, /data-station-section="accessibility"[\s\S]*justify-between/);
 
     // RegionalStationDetailPanel
     assert.match(regionalPanelSource, /<AlertCircle size=\{20\} className="shrink-0 text-orange-500 dark:text-orange-400"/);
     assert.match(regionalPanelSource, /\{impacts\.length\}\s*<\/span>/);
     assert.match(regionalPanelSource, /icon: <AlertCircle size=\{13\} className="text-orange-500 dark:text-orange-400" aria-hidden="true" \/>/);
     assert.match(regionalPanelSource, /\{tripChanges\.changes\.length\}\s*<\/span>/);
+    assert.match(regionalPanelSource, /data-station-section="station-impacts"[\s\S]*justify-between/);
+    assert.match(regionalPanelSource, /data-station-section="trip-changes"[\s\S]*justify-between/);
+    assert.match(regionalPanelSource, /data-station-section="notices"[\s\S]*justify-between/);
+    assert.match(regionalPanelSource, /data-station-section="accessibility"[\s\S]*justify-between/);
   });
 
   it("styles arrival line pin idle state with yellow outline and tinted fill, and hover/active states with solid yellow fill", () => {
@@ -345,8 +351,8 @@ describe("station detail panel layout", () => {
     assert.match(globalCss, /\.dark \.arrival-line-pin\s*\{[^}]*color:\s*rgb\(251,\s*191,\s*36\);/s);
   });
 
-  it("renders a space-efficient 3-column grid for search amenity chips", () => {
-    assert.match(globalCss, /\.station-search-amenity-chips\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);[^}]*gap:\s*5px;/s);
-    assert.match(globalCss, /\.station-search-amenity-chip span:not\(\.station-search-amenity-chip-count\)\s*\{[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s);
+  it("renders a space-efficient 2-column grid that displays full readable badge text for search amenity chips", () => {
+    assert.match(globalCss, /\.station-search-amenity-chips\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);[^}]*gap:\s*6px;/s);
+    assert.match(globalCss, /\.station-search-amenity-chip span:not\(\.station-search-amenity-chip-count\)\s*\{[^}]*white-space:\s*nowrap;/s);
   });
 });

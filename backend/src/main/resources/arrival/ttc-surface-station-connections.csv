@@ -1,315 +1,1162 @@
 station_id,stop_id,route_id,mode,route_short_name,route_long_name,destination,bay_platform,stop_name
-keele,11220,41,bus,41,Keele,To Pioneer Village Station,Bay 1,Keele Station at Bus Bay 1
-keele,14705,41,bus,41,Keele,To Pioneer Village Station,Bay 1,Keele Station
-keele,5753,41,bus,41,Keele,To Pioneer Village Station,Bay 1,Keele Station
-keele,11220,941,bus,941,Keele Express,To Finch West Station,Bay 1,Keele Station at Bus Bay 1
-keele,11220,341,bus,341,Keele Night,To Steeles Ave,Bay 1,Keele Station at Bus Bay 1
-keele,14705,341,bus,341,Keele Night,To Steeles Ave,Bay 1,Keele Station
-keele,14706,341,bus,341,Keele Night,To Keele Station,Bay 1,Keele Station
-keele,5753,341,bus,341,Keele Night,To Steeles Ave,Bay 1,Keele Station
-keele,5754,341,bus,341,Keele Night,To Keele Station,Bay 1,Keele Station
-keele,3797,89,bus,89,Weston,To Albion Rd & Steeles,Bay 2,Keele Station at Bus Bay 2
-keele,3797,989,bus,989,Weston Express,To Steeles Ave,Bay 2,Keele Station at Bus Bay 2
-keele,3797,389,bus,389,Weston Night,To Steeles Ave,Bay 2,Keele Station at Bus Bay 2
-keele,14705,389,bus,389,Weston Night,To Steeles Ave,Bay 2,Keele Station
-keele,14706,389,bus,389,Weston Night,To Keele Station,Bay 2,Keele Station
-keele,5753,389,bus,389,Weston Night,To Steeles Ave,Bay 2,Keele Station
-keele,5754,389,bus,389,Weston Night,To Keele Station,Bay 2,Keele Station
-keele,3798,30,bus,30,High Park,To High Park Station,Bay 4,Keele Station at Bus Bay 4
-keele,3799,203,bus,203,High Park,To High Park,Bay 5,Keele Station at Bus Bay 5
-broadview,3737,504,streetcar,504,King,To Dundas West Station,Bay 7,Broadview Station at Bay 7
-broadview,3737,505,streetcar,505,Dundas,To Dundas West Station,Bay 6,Broadview Station at Bay 6
-broadview,3737,8,bus,8,Broadview,To Warden Station,Bay 1,Broadview Station at Bay 1
-broadview,3737,62,bus,62,Mortimer,To Main Street Station,Bay 2,Broadview Station at Bay 2
-broadview,3737,87,bus,87,Cosburn,To Main Street Station,Bay 3,Broadview Station at Bay 3
-broadview,3737,100,bus,100,Flemingdon Park,To Don Mills Station,Bay 4,Broadview Station at Bay 4
-bathurst,3730,511,streetcar,511,Bathurst,To Exhibition Loop,Streetcar Platform,Bathurst Station Streetcar Loop
-bathurst,3730,7,bus,7,Bathurst,To Steeles Ave,Bay 1,Bathurst Station Bus Bay 1
-dundas-west,3740,504,streetcar,504,King,To Broadview Station,Streetcar Platform,Dundas West Station Streetcar Loop
-dundas-west,3740,505,streetcar,505,Dundas,To Broadview Station,Streetcar Platform,Dundas West Station Streetcar Loop
-dundas-west,3740,40,bus,40,Junction-Dundas West,To Kipling Station,Bay 1,Dundas West Station Bus Bay 1
-dundas-west,3740,168,bus,168,Symington,To Old Weston Rd,Bay 2,Dundas West Station Bus Bay 2
-cedarvale,3750,32,bus,32,Eglinton West,To Renforth Station,Bay 1,Cedarvale Station Bus Bay 1
-cedarvale,3750,33,bus,33,Forest Hill,To St Clair West Station,Bay 2,Cedarvale Station Bus Bay 2
-eglinton,3760,32,bus,32,Eglinton West,To Renforth Station,Bay 1,Eglinton Station Bus Bay 1
-eglinton,3760,34,bus,34,Eglinton East,To Kennedy Station,Bay 2,Eglinton Station Bus Bay 2
-eglinton,3760,51,bus,51,Leslie,To Steeles Ave,Bay 3,Eglinton Station Bus Bay 3
-eglinton,3760,54,bus,54,Lawrence East,To Starspray Blvd,Bay 4,Eglinton Station Bus Bay 4
-eglinton,3760,56,bus,56,Leaside,To Donlands Station,Bay 5,Eglinton Station Bus Bay 5
-eglinton,3760,61,bus,61,Avenue Rd North,To Highway 401,Bay 6,Eglinton Station Bus Bay 6
-eglinton,3760,97,bus,97,Yonge,To Steeles Ave,Bay 7,Eglinton Station Bus Bay 7
-finch,3770,36,bus,36,Finch West,To Humberwood,Bay 1,Finch Station Bus Bay 1
-finch,3770,39,bus,39,Finch East,To Neilson Rd,Bay 2,Finch Station Bus Bay 2
-finch,3770,42,bus,42,Cummer,To Victoria Park,Bay 3,Finch Station Bus Bay 3
-finch,3770,53,bus,53,Steeles East,To Staines Rd,Bay 4,Finch Station Bus Bay 4
-finch,3770,60,bus,60,Steeles West,To Pioneer Village Station,Bay 5,Finch Station Bus Bay 5
-finch,3770,97,bus,97,Yonge,To Queens Quay,Bay 6,Finch Station Bus Bay 6
-finch,3770,939,bus,939,Finch Express,To Scarborough Centre,Bay 7,Finch Station Bus Bay 7
-finch,3770,953,bus,953,Steeles East Express,To Staines Rd,Bay 8,Finch Station Bus Bay 8
-finch,3770,960,bus,960,Steeles West Express,To Pioneer Village Station,Bay 9,Finch Station Bus Bay 9
-kennedy,3780,12,bus,12,Kingston Rd,To Victoria Park Station,Bay 1,Kennedy Station Bus Bay 1
-kennedy,3780,20,bus,20,Cliffside,To Main Street Station,Bay 2,Kennedy Station Bus Bay 2
-kennedy,3780,34,bus,34,Eglinton East,To Eglinton Station,Bay 3,Kennedy Station Bus Bay 3
-kennedy,3780,43,bus,43,Kennedy,To Steeles Ave,Bay 4,Kennedy Station Bus Bay 4
-kennedy,3780,57,bus,57,Midland,To Steeles Ave,Bay 5,Kennedy Station Bus Bay 5
-kennedy,3780,86,bus,86,Scarborough,To Toronto Zoo,Bay 6,Kennedy Station Bus Bay 6
-kennedy,3780,113,bus,113,Danforth,To Main Street Station,Bay 7,Kennedy Station Bus Bay 7
-kennedy,3780,116,bus,116,Morningside,To Conlins Rd,Bay 8,Kennedy Station Bus Bay 8
-kennedy,3780,905,bus,905,Eglinton East Express,To U of T Scarborough,Bay 9,Kennedy Station Bus Bay 9
-kennedy,3780,986,bus,986,Scarborough Express,To Sheppard Ave,Bay 10,Kennedy Station Bus Bay 10
-kipling,3790,44,bus,44,Kipling South,To Lake Shore,Bay 1,Kipling Station Bus Bay 1
-kipling,3790,46,bus,46,Martin Grove,To Steeles Ave,Bay 2,Kipling Station Bus Bay 2
-kipling,3790,49,bus,49,Bloor West,To Markland Wood,Bay 3,Kipling Station Bus Bay 3
-kipling,3790,111,bus,111,East Mall,To Eglinton Ave,Bay 4,Kipling Station Bus Bay 4
-kipling,3790,112,bus,112,West Mall,To Carlingview Dr,Bay 5,Kipling Station Bus Bay 5
-kipling,3790,123,bus,123,Sherway,To Sherway Gardens,Bay 6,Kipling Station Bus Bay 6
-kipling,3790,900,bus,900,Airport Express,To Pearson Airport,Bay 7,Kipling Station Bus Bay 7
-kipling,3790,927,bus,927,Highway 27 Express,To Humber College,Bay 8,Kipling Station Bus Bay 8
-kipling,3790,944,bus,944,Kipling Express,To Lake Shore,Bay 9,Kipling Station Bus Bay 9
-spadina,3800,510,streetcar,510,Spadina,To Union Station,Streetcar Platform,Spadina Station Streetcar Tunnel
-spadina,3800,127,bus,127,Davenport,To Old Weston Rd,Bay 1,Spadina Station Bus Bay 1
-union,3810,509,streetcar,509,Harbourfront,To Exhibition Loop,Streetcar Platform,Union Station Streetcar Loop
-union,3810,510,streetcar,510,Spadina,To Spadina Station,Streetcar Platform,Union Station Streetcar Loop
-union,3810,19,bus,19,Bay,To Dupont St,Bay 1,Union Station Bay St Stop
-union,3810,121,bus,121,Esplanade-River,To Bridgepoint Hospital,Bay 2,Union Station Front St Stop
-st-clair,3820,512,streetcar,512,St. Clair,To Gunns Loop,Streetcar Platform,St. Clair Station Streetcar Loop
-st-clair,3820,74,bus,74,Mt Pleasant,To Doncliffe Dr,Bay 1,St. Clair Station Bus Bay 1
-st-clair,3820,88,bus,88,South Leaside,To Thorncliffe Park,Bay 2,St. Clair Station Bus Bay 2
-st-clair,3820,97,bus,97,Yonge,To Steeles Ave,Bay 3,St. Clair Station Bus Bay 3
-st-clair-west,3830,512,streetcar,512,St. Clair,To Gunns Loop,Streetcar Platform,St. Clair West Station Streetcar Loop
-st-clair-west,3830,33,bus,33,Forest Hill,To Cedarvale Station,Bay 1,St. Clair West Station Bus Bay 1
-st-clair-west,3830,126,bus,126,Christie,To Christie Station,Bay 2,St. Clair West Station Bus Bay 2
-main-street,3840,506,streetcar,506,Carlton,To High Park Loop,Streetcar Platform,Main Street Station Streetcar Loop
-main-street,3840,20,bus,20,Cliffside,To Kennedy Station,Bay 1,Main Street Station Bus Bay 1
-main-street,3840,23,bus,23,Dawes,To Victoria Park Ave,Bay 2,Main Street Station Bus Bay 2
-main-street,3840,62,bus,62,Mortimer,To Broadview Station,Bay 3,Main Street Station Bus Bay 3
-main-street,3840,64,bus,64,Main,To Queen St East,Bay 4,Main Street Station Bus Bay 4
-main-street,3840,87,bus,87,Cosburn,To Broadview Station,Bay 5,Main Street Station Bus Bay 5
-main-street,3840,113,bus,113,Danforth,To Kennedy Station,Bay 6,Main Street Station Bus Bay 6
-victoria-park,3850,12,bus,12,Kingston Rd,To Kennedy Station,Bay 1,Victoria Park Station Bus Bay 1
-victoria-park,3850,24,bus,24,Victoria Park,To Steeles Ave,Bay 2,Victoria Park Station Bus Bay 2
-victoria-park,3850,67,bus,67,Pharmacy,To Ellesmere Rd,Bay 3,Victoria Park Station Bus Bay 3
-warden,3860,9,bus,9,Bellamy,To Scarborough Centre,Bay 1,Warden Station Bus Bay 1
-warden,3860,16,bus,16,McCowan,To Scarborough Centre,Bay 2,Warden Station Bus Bay 2
-warden,3860,17,bus,17,Birchmount,To Steeles Ave,Bay 3,Warden Station Bus Bay 3
-warden,3860,68,bus,68,Warden,To Steeles & Major Mackenzie,Bay 4,Warden Station Bus Bay 4
-warden,3860,69,bus,69,Warden South,To Kingston Rd,Bay 5,Warden Station Bus Bay 5
-warden,3860,70,bus,70,O'Connor,To Coxwell Station,Bay 6,Warden Station Bus Bay 6
-warden,3860,102,bus,102,Markham Rd,To Steeles & Major Mackenzie,Bay 7,Warden Station Bus Bay 7
-warden,3860,135,bus,135,Gerrard,To Main Street Station,Bay 8,Warden Station Bus Bay 8
-warden,3860,902,bus,902,Markham Rd Express,To Sheppard Ave,Bay 9,Warden Station Bus Bay 9
-warden,3860,968,bus,968,Warden Express,To Steeles Ave,Bay 10,Warden Station Bus Bay 10
-high-park,3870,30,bus,30,High Park,To Keele Station,Bay 1,High Park Station Bus Bay 1
-high-park,3870,203,bus,203,High Park,To High Park,Bay 2,High Park Station Bus Bay 2
-jane,3880,26,bus,26,Dupont,To St George Station,Bay 1,Jane Station Bus Bay 1
-jane,3880,35,bus,35,Jane,To Pioneer Village Station,Bay 2,Jane Station Bus Bay 2
-jane,3880,55,bus,55,Warren Park,To Warren Park,Bay 3,Jane Station Bus Bay 3
-jane,3880,935,bus,935,Jane Express,To Pioneer Village Station,Bay 4,Jane Station Bus Bay 4
-runnymede,3890,71,bus,71,Runnymede,To Mount Dennis Station,Bay 1,Runnymede Station Bus Bay 1
-runnymede,3890,77,bus,77,Swansea,To Swansea,Bay 2,Runnymede Station Bus Bay 2
-runnymede,3890,79,bus,79,Scarlett Rd,To Lawrence Ave West,Bay 3,Runnymede Station Bus Bay 3
-royal-york,3900,15,bus,15,Evans,To Sherway Gardens,Bay 1,Royal York Station Bus Bay 1
-royal-york,3900,73,bus,73,Royal York,To Albion Rd,Bay 2,Royal York Station Bus Bay 2
-royal-york,3900,76,bus,76,Royal York South,To Lake Shore,Bay 3,Royal York Station Bus Bay 3
-islington,3910,37,bus,37,Islington,To Steeles & Humberwood,Bay 1,Islington Station Bus Bay 1
-islington,3910,50,bus,50,Burnhamthorpe,To Mill Rd,Bay 2,Islington Station Bus Bay 2
-islington,3910,110,bus,110,Islington South,To Long Branch Loop,Bay 3,Islington Station Bus Bay 3
-islington,3910,937,bus,937,Islington Express,To Steeles Ave,Bay 4,Islington Station Bus Bay 4
-old-mill,3920,66,bus,66,Prince Edward,To Humber Loop,Bay 1,Old Mill Station Bus Bay 1
-ossington,3930,63,bus,63,Ossington,To Liberty Village,Bay 1,Ossington Station Bus Bay 1
-ossington,3930,94,bus,94,Wellesley,To Castle Frank Station,Bay 2,Ossington Station Bus Bay 2
-ossington,3930,161,bus,161,Rogers Rd,To Jane St,Bay 3,Ossington Station Bus Bay 3
-castle-frank,3940,65,bus,65,Parliament,To Esplanade,Bay 1,Castle Frank Station Bus Bay 1
-castle-frank,3940,94,bus,94,Wellesley,To Ossington Station,Bay 2,Castle Frank Station Bus Bay 2
-pape,3950,25,bus,25,Don Mills,To Steeles Ave,Bay 1,Pape Station Bus Bay 1
-pape,3950,72,bus,72,Pape,To Eastern Ave,Bay 2,Pape Station Bus Bay 2
-pape,3950,81,bus,81,Thorncliffe Park,To Overlea Blvd,Bay 3,Pape Station Bus Bay 3
-pape,3950,925,bus,925,Don Mills Express,To Steeles Ave,Bay 4,Pape Station Bus Bay 4
-donlands,3960,56,bus,56,Leaside,To Eglinton Station,Bay 1,Donlands Station Bus Bay 1
-donlands,3960,83,bus,83,Jones,To Commissioners St,Bay 2,Donlands Station Bus Bay 2
-greenwoood,3970,31,bus,31,Greenwood,To Queen St East,Bay 1,Greenwood Station Bus Bay 1
-coxwell,3980,22,bus,22,Coxwell,To Lake Shore,Bay 1,Coxwell Station Bus Bay 1
-coxwell,3980,70,bus,70,O'Connor,To Warden Station,Bay 2,Coxwell Station Bus Bay 2
-woodbine,3990,91,bus,91,Woodbine,To York Mills Rd,Bay 1,Woodbine Station Bus Bay 1
-woodbine,3990,92,bus,92,Woodbine South,To Lake Shore,Bay 2,Woodbine Station Bus Bay 2
-woodbine,3990,93,bus,93,Parkview Hills,To Parkview Hills,Bay 3,Woodbine Station Bus Bay 3
-sheppard-yonge,4000,84,bus,84,Sheppard West,To Weston Rd,Bay 1,Sheppard-Yonge Station Bus Bay 1
-sheppard-yonge,4000,85,bus,85,Sheppard East,To Toronto Zoo,Bay 2,Sheppard-Yonge Station Bus Bay 2
-sheppard-yonge,4000,97,bus,97,Yonge,To Queens Quay,Bay 3,Sheppard-Yonge Station Bus Bay 3
-sheppard-yonge,4000,98,bus,98,Willowdale-Senlac,To Peckham Ave,Bay 4,Sheppard-Yonge Station Bus Bay 4
-sheppard-yonge,4000,984,bus,984,Sheppard West Express,To Weston Rd,Bay 5,Sheppard-Yonge Station Bus Bay 5
-sheppard-yonge,4000,985,bus,985,Sheppard East Express,To Meadowvale Rd,Bay 6,Sheppard-Yonge Station Bus Bay 6
-don-mills,4010,10,bus,10,Van Horne,To Victoria Park,Bay 1,Don Mills Station Bus Bay 1
-don-mills,4010,24,bus,24,Victoria Park,To Steeles Ave,Bay 2,Don Mills Station Bus Bay 2
-don-mills,4010,25,bus,25,Don Mills,To Steeles Ave / Pape Station,Bay 3,Don Mills Station Bus Bay 3
-don-mills,4010,85,bus,85,Sheppard East,To Toronto Zoo,Bay 4,Don Mills Station Bus Bay 4
-don-mills,4010,169,bus,169,Huntingwood,To Scarborough Centre,Bay 5,Don Mills Station Bus Bay 5
-don-mills,4010,925,bus,925,Don Mills Express,To Steeles Ave,Bay 6,Don Mills Station Bus Bay 6
-don-mills,4010,985,bus,985,Sheppard East Express,To Scarborough Centre,Bay 7,Don Mills Station Bus Bay 7
-leslie,4020,51,bus,51,Leslie,To Steeles Ave / Eglinton Station,Bay 1,Leslie Station Bus Bay 1
-york-mills,4030,78,bus,78,St. Andrews,To Bayview Ave,Bay 1,York Mills Station Bus Bay 1
-york-mills,4030,95,bus,95,York Mills,To U of T Scarborough,Bay 2,York Mills Station Bus Bay 2
-york-mills,4030,96,bus,96,Wilson,To Carrier Dr,Bay 3,York Mills Station Bus Bay 3
-york-mills,4030,115,bus,115,Silver Hills,To Leslie St,Bay 4,York Mills Station Bus Bay 4
-york-mills,4030,122,bus,122,Graydon Hall,To Roywood Dr,Bay 5,York Mills Station Bus Bay 5
-york-mills,4030,165,bus,165,Weston Rd North,To Steeles Ave,Bay 6,York Mills Station Bus Bay 6
-york-mills,4030,995,bus,995,York Mills Express,To U of T Scarborough,Bay 7,York Mills Station Bus Bay 7
-york-mills,4030,996,bus,996,Wilson Express,To Humber College,Bay 8,York Mills Station Bus Bay 8
-wilson,4040,29,bus,29,Dufferin,To Exhibition Loop,Bay 1,Wilson Station Bus Bay 1
-wilson,4040,104,bus,104,Faywood,To Sheppard West Station,Bay 2,Wilson Station Bus Bay 2
-wilson,4040,118,bus,118,Thistle Down,To Thistle Down Blvd,Bay 3,Wilson Station Bus Bay 3
-wilson,4040,119,bus,119,Torbarrie,To Clayson Rd,Bay 4,Wilson Station Bus Bay 4
-wilson,4040,120,bus,120,Calvington,To Jane St,Bay 5,Wilson Station Bus Bay 5
-wilson,4040,128,bus,128,Stanley Greene,To Stanley Greene Blvd,Bay 6,Wilson Station Bus Bay 6
-wilson,4040,160,bus,160,Bathurst North,To Centre St,Bay 7,Wilson Station Bus Bay 7
-wilson,4040,165,bus,165,Weston Rd North,To Steeles Ave,Bay 8,Wilson Station Bus Bay 8
-wilson,4040,929,bus,929,Dufferin Express,To Exhibition Loop,Bay 9,Wilson Station Bus Bay 9
-sheppard-west,4050,84,bus,84,Sheppard West,To Weston Rd,Bay 1,Sheppard West Station Bus Bay 1
-sheppard-west,4050,101,bus,101,Downsview Park,To Downsview Park,Bay 2,Sheppard West Station Bus Bay 2
-sheppard-west,4050,104,bus,104,Faywood,To Wilson Station,Bay 3,Sheppard West Station Bus Bay 3
-sheppard-west,4050,105,bus,105,Dufferin North,To Steeles Ave,Bay 4,Sheppard West Station Bus Bay 4
-sheppard-west,4050,106,bus,106,Sentinel,To Pioneer Village Station,Bay 5,Sheppard West Station Bus Bay 5
-sheppard-west,4050,107,bus,107,York University Heights,To Pioneer Village Station,Bay 6,Sheppard West Station Bus Bay 6
-sheppard-west,4050,108,bus,108,Driftwood,To Pioneer Village Station,Bay 7,Sheppard West Station Bus Bay 7
-sheppard-west,4050,984,bus,984,Sheppard West Express,To Weston Rd,Bay 8,Sheppard West Station Bus Bay 8
-pioneer-village,4060,35,bus,35,Jane,To Jane Station,Bay 1,Pioneer Village Station Bus Bay 1
-pioneer-village,4060,41,bus,41,Keele,To Keele Station,Bay 2,Pioneer Village Station Bus Bay 2
-pioneer-village,4060,60,bus,60,Steeles West,To Finch Station,Bay 3,Pioneer Village Station Bus Bay 3
-pioneer-village,4060,84,bus,84,Sheppard West,To Sheppard-Yonge Station,Bay 4,Pioneer Village Station Bus Bay 4
-pioneer-village,4060,106,bus,106,Sentinel,To Sheppard West Station,Bay 5,Pioneer Village Station Bus Bay 5
-pioneer-village,4060,107,bus,107,York University Heights,To Sheppard West Station,Bay 6,Pioneer Village Station Bus Bay 6
-pioneer-village,4060,108,bus,108,Driftwood,To Sheppard West Station,Bay 7,Pioneer Village Station Bus Bay 7
-pioneer-village,4060,935,bus,935,Jane Express,To Jane Station,Bay 8,Pioneer Village Station Bus Bay 8
-pioneer-village,4060,960,bus,960,Steeles West Express,To Finch Station,Bay 9,Pioneer Village Station Bus Bay 9
-finch-west,4070,36,bus,36,Finch West,To Finch Station / Humberwood,Bay 1,Finch West Station Bus Bay 1
-finch-west,4070,41,bus,41,Keele,To Keele Station,Bay 2,Finch West Station Bus Bay 2
-finch-west,4070,936,bus,936,Finch West Express,To Humber College,Bay 3,Finch West Station Bus Bay 3
-finch-west,4070,941,bus,941,Keele Express,To Keele Station,Bay 4,Finch West Station Bus Bay 4
-mount-dennis,4080,32,bus,32,Eglinton West,To Renforth Station,Bay 1,Mount Dennis Station Bus Bay 1
-mount-dennis,4080,35,bus,35,Jane,To Jane Station,Bay 2,Mount Dennis Station Bus Bay 2
-mount-dennis,4080,71,bus,71,Runnymede,To Runnymede Station,Bay 3,Mount Dennis Station Bus Bay 3
-mount-dennis,4080,89,bus,89,Weston,To Albion Rd,Bay 4,Mount Dennis Station Bus Bay 4
-mount-dennis,4080,161,bus,161,Rogers Rd,To Ossington Station,Bay 5,Mount Dennis Station Bus Bay 5
-mount-dennis,4080,171,bus,171,Mount Dennis,To Industry St,Bay 6,Mount Dennis Station Bus Bay 6
-mount-dennis,4080,935,bus,935,Jane Express,To Jane Station,Bay 7,Mount Dennis Station Bus Bay 7
-mount-dennis,4080,989,bus,989,Weston Express,To Steeles Ave,Bay 8,Mount Dennis Station Bus Bay 8
-keelesdale,4090,41,bus,41,Keele,To Keele Station,Bay 1,Keelesdale Station Bus Bay 1
-keelesdale,4090,941,bus,941,Keele Express,To Keele Station,Bay 2,Keelesdale Station Bus Bay 2
-caledonia,4100,47,bus,47,Lansdowne,To Queen St West,Bay 1,Caledonia Station Bus Bay 1
-lawrence-west,4110,52,bus,52,Lawrence West,To Pearson Airport,Bay 1,Lawrence West Station Bus Bay 1
-lawrence-west,4110,59,bus,59,Maple Leaf,To Weston Rd,Bay 2,Lawrence West Station Bus Bay 2
-lawrence-west,4110,400,bus,400,Lawrence Manor,To Lawrence Manor,Bay 3,Lawrence West Station Bus Bay 3
-lawrence-west,4110,952,bus,952,Lawrence West Express,To Pearson Airport,Bay 4,Lawrence West Station Bus Bay 4
-lawrence,4120,52,bus,52,Lawrence West,To Pearson Airport,Bay 1,Lawrence Station Bus Bay 1
-lawrence,4120,124,bus,124,Sunnybrook,To Sunnybrook Hospital,Bay 2,Lawrence Station Bus Bay 2
-lawrence,4120,162,bus,162,Lawrence-Donway,To Don Mills Rd,Bay 3,Lawrence Station Bus Bay 3
-lawrence,4120,952,bus,952,Lawrence West Express,To Pearson Airport,Bay 4,Lawrence Station Bus Bay 4
-davisville,4130,11,bus,11,Bayview,To Steeles Ave,Bay 1,Davisville Station Bus Bay 1
-davisville,4130,14,bus,14,Glencairn,To Caledonia Rd,Bay 2,Davisville Station Bus Bay 2
-davisville,4130,28,bus,28,Bayview South,To Evergreen Brick Works,Bay 3,Davisville Station Bus Bay 3
-rosedale,4140,82,bus,82,Rosedale,To Summerhill Ave,Bay 1,Rosedale Station Bus Bay 1
-wellesley,4150,94,bus,94,Wellesley,To Castle Frank Station,Bay 1,Wellesley Station Bus Bay 1
-bloor-yonge,4160,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Bloor-Yonge Station
-bloor-yonge,4160,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Bloor-Yonge Station
-st-george,4170,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,St George Station
-bay,4180,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Bay Station
-sherbourne,4190,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Sherbourne Station
-castle-frank,4200,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Castle Frank Station
-castle-frank,4200,365,bus,365,Parliament Night,To Gerrard St,Bay 1,Castle Frank Station
-broadview,4210,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Broadview Station
-broadview,4210,304,streetcar,304,King Night,To Dundas West Station,Streetcar Platform,Broadview Station
-broadview,4210,322,bus,322,Coxwell Night,To Bingham Loop,Bay 1,Broadview Station
-chester,4220,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Chester Station
-pape,4230,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Pape Station
-pape,4230,325,bus,325,Don Mills Night,To Steeles Ave,Bay 1,Pape Station
-donlands,4240,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Donlands Station
-greenwoood,4250,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Greenwood Station
-coxwell,4260,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Coxwell Station
-coxwell,4260,322,bus,322,Coxwell Night,To Broadview Station,Bay 1,Coxwell Station
-woodbine,4270,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Woodbine Station
-main-street,4280,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Main Street Station
-main-street,4280,306,streetcar,306,Carlton Night,To Dundas West Station,Streetcar Platform,Main Street Station
-victoria-park,4290,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Victoria Park Station
-victoria-park,4290,324,bus,324,Victoria Park Night,To Steeles & Warden,Bay 1,Victoria Park Station
-warden,4300,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Warden Station
-warden,4300,324,bus,324,Victoria Park Night,To Bingham Loop,Bay 1,Warden Station
-kennedy,4310,300,bus,300,Bloor-Danforth Night,To West Mall,Night Stop,Kennedy Station
-kennedy,4310,334,bus,334,Eglinton East Night,To Finch & Neilson,Bay 1,Kennedy Station
-kennedy,4310,343,bus,343,Kennedy Night,To Steeles Ave,Bay 2,Kennedy Station
-spadina,4320,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Spadina Station
-spadina,4320,310,streetcar,310,Spadina Night,To Union Station,Streetcar Platform,Spadina Station
-bathurst,4330,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Bathurst Station
-bathurst,4330,307,bus,307,Bathurst Night,To Steeles Ave,Bay 1,Bathurst Station
-christie,4340,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Christie Station
-ossington,4350,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Ossington Station
-ossington,4350,363,bus,363,Ossington Night,To Liberty Village,Bay 1,Ossington Station
-dufferin,4360,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Dufferin Station
-dufferin,4360,329,bus,329,Dufferin Night,To Steeles Ave,Night Stop,Dufferin Station
-lansdowne,4370,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Lansdowne Station
-dundas-west,4380,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Dundas West Station
-dundas-west,4380,304,streetcar,304,King Night,To Broadview Station,Streetcar Platform,Dundas West Station
-dundas-west,4380,306,streetcar,306,Carlton Night,To Main Street Station,Streetcar Platform,Dundas West Station
-dundas-west,4380,312,bus,312,St Clair-Junction Night,To St Clair Station,Bay 1,Dundas West Station
-high-park,4390,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,High Park Station
-runnymede,4400,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Runnymede Station
-runnymede,4400,312,bus,312,St Clair-Junction Night,To St Clair Station,Bay 1,Runnymede Station
-jane,4410,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Jane Station
-jane,4410,335,bus,335,Jane Night,To Pioneer Village Station,Bay 1,Jane Station
-old-mill,4420,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Old Mill Station
-royal-york,4430,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Royal York Station
-royal-york,4430,315,bus,315,Evans-Brown's Line Night,To Long Branch,Bay 1,Royal York Station
-islington,4440,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Islington Station
-islington,4440,337,bus,337,Islington Night,To Steeles Ave,Bay 1,Islington Station
-kipling,4450,300,bus,300,Bloor-Danforth Night,To Kennedy Station / West Mall,Night Stop,Kipling Station
-kipling,4450,300,bus,300,Bloor-Danforth Night,To Pearson Airport,Night Stop,Kipling Station
-union,4460,320,bus,320,Yonge Night,To Steeles Ave,Night Stop,Union Station
-union,4460,310,streetcar,310,Spadina Night,To Spadina Station,Streetcar Platform,Union Station
-king,4470,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,King Station
-king,4470,304,streetcar,304,King Night,To Broadview / Dundas West Station,Streetcar Stop,King Station
-st-andrew,4480,304,streetcar,304,King Night,To Broadview / Dundas West Station,Streetcar Stop,St Andrew Station
-queen,4490,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Queen Station
-queen,4490,301,streetcar,301,Queen Night,To Neville Park / Long Branch,Streetcar Stop,Queen Station
-osgoode,4500,301,streetcar,301,Queen Night,To Neville Park / Long Branch,Streetcar Stop,Osgoode Station
-tmu,4510,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,TMU Station
-college,4520,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,College Station
-college,4520,306,streetcar,306,Carlton Night,To Main Street / Dundas West,Streetcar Stop,College Station
-queens-park,4530,306,streetcar,306,Carlton Night,To Main Street / Dundas West,Streetcar Stop,Queen's Park Station
-wellesley,4540,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Wellesley Station
-rosedale,4550,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Rosedale Station
-summerhill,4560,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Summerhill Station
-st-clair,4570,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,St. Clair Station
-st-clair,4570,312,bus,312,St Clair-Junction Night,To Dundas West Station,Bay 1,St. Clair Station
-st-clair-west,4580,312,bus,312,St Clair-Junction Night,To Dundas West Station,Bay 1,St. Clair West Station
-davisville,4590,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Davisville Station
-eglinton,4600,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Eglinton Station
-eglinton,4600,332,bus,332,Eglinton West Night,To Pearson Airport,Bay 1,Eglinton Station
-eglinton,4600,334,bus,334,Eglinton East Night,To Finch & Neilson,Bay 2,Eglinton Station
-eglinton,4600,354,bus,354,Lawrence East Night,To Starspray Blvd,Bay 3,Eglinton Station
-cedarvale,4610,332,bus,332,Eglinton West Night,To Pearson Airport,Bay 1,Cedarvale Station
-cedarvale,4610,352,bus,352,Lawrence West Night,To Pearson Airport,Bay 2,Cedarvale Station
-mount-dennis,4620,332,bus,332,Eglinton West Night,To Pearson Airport,Bay 1,Mount Dennis Station
-lawrence,4630,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Lawrence Station
-lawrence,4630,354,bus,354,Lawrence East Night,To Starspray Blvd,Bay 1,Lawrence Station
-lawrence-west,4640,352,bus,352,Lawrence West Night,To Pearson Airport / Sunnybrook,Bay 1,Lawrence West Station
-york-mills,4650,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,York Mills Station
-york-mills,4650,353,bus,353,Steeles Night,To York University,Bay 1,York Mills Station
-york-mills,4650,395,bus,395,York Mills Night,To Meadowvale Rd,Bay 2,York Mills Station
-york-mills,4650,396,bus,396,Wilson Night,To Martin Grove,Bay 3,York Mills Station
-wilson,4660,396,bus,396,Wilson Night,To Martin Grove / York Mills,Bay 1,Wilson Station
-sheppard-west,4670,384,bus,384,Sheppard West Night,To Weston Rd,Bay 1,Sheppard West Station
-sheppard-yonge,4680,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,Sheppard-Yonge Station
-sheppard-yonge,4680,384,bus,384,Sheppard West Night,To Weston Rd,Bay 1,Sheppard-Yonge Station
-sheppard-yonge,4680,385,bus,385,Sheppard East Night,To Meadowvale Rd,Bay 2,Sheppard-Yonge Station
-don-mills,4690,325,bus,325,Don Mills Night,To Steeles Ave / Pape Station,Bay 1,Don Mills Station
-don-mills,4690,385,bus,385,Sheppard East Night,To Meadowvale Rd,Bay 2,Don Mills Station
-north-york-centre,4700,320,bus,320,Yonge Night,To Steeles Ave / Queens Quay,Night Stop,North York Centre Station
-finch,4710,320,bus,320,Yonge Night,To Queens Quay,Night Stop,Finch Station
-finch,4710,336,bus,336,Finch West Night,To Woodbine Racetrack,Bay 1,Finch Station
-finch,4710,339,bus,339,Finch East Night,To Finch & Neilson,Bay 2,Finch Station
-finch,4710,353,bus,353,Steeles Night,To York University / Staines,Bay 3,Finch Station
-finch-west,4720,336,bus,336,Finch West Night,To Finch Station / Humberwood,Bay 1,Finch West Station
-pioneer-village,4730,335,bus,335,Jane Night,To Jane Station,Bay 1,Pioneer Village Station
-pioneer-village,4730,336,bus,336,Finch West Night,To Finch Station,Bay 2,Pioneer Village Station
-pioneer-village,4730,341,bus,341,Keele Night,To Keele Station,Bay 3,Pioneer Village Station
-pioneer-village,4730,353,bus,353,Steeles Night,To York Mills Station,Bay 4,Pioneer Village Station
-york-university,4740,341,bus,341,Keele Night,To Keele Station,Bay 1,York University Station
+albion,16295,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Albion Station - Eastbound Platform
+albion,16296,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Albion Station - Westbound Platform
+avenue,16071,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Avenue Station - Eastbound Platform
+avenue,16072,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Avenue Station - Westbound Platform
+bathurst,3718,7,bus,7,Bathurst,North - 7 Bathurst towards Steeles,Bay 3,Bathurst Station at Bus Bay 3
+bathurst,3718,7,bus,7,Bathurst,South - 7 Bathurst towards Bathurst Station,Bay 3,Bathurst Station at Bus Bay 3
+bathurst,3718,307,bus,307,Bathurst,North - 307 Bathurst towards Steeles,Bay 3,Bathurst Station at Bus Bay 3
+bathurst,3719,511,streetcar,511,Bathurst,North - 511 Bathurst towards Bathurst Station,Bay 6,Bathurst Station at Bay 6
+bathurst,3719,511,streetcar,511,Bathurst,South - 511 Bathurst Short Turn towards King,Bay 6,Bathurst Station at Bay 6
+bathurst,3719,511,streetcar,511,Bathurst,South - 511 Bathurst towards Exhibition,Bay 6,Bathurst Station at Bay 6
+bay,10134,19,bus,19,Bay,North - 19 Bay towards Dupont,Bay St,Bay St at Cumberland St - Bay Station
+bay,9370,19,bus,19,Bay,South - 19 Bay towards Union Station,Bay St,Bay St at Bloor St West - Bay Station
+bayview,8999,11,bus,11,Bayview,South - 11 Bayview towards Davisville Station via Sunnybrook,,Bayview Ave at Sheppard Ave East - Bayview Station
+bayview,5334,185,bus,185,Sheppard Central,East - 185 Sheppard Central towards Don Mills Station,,Sheppard Ave East at Bayview Ave East Side - Bayview Station
+bayview,1248,185,bus,185,Sheppard Central,West - 185 Sheppard Central towards Sheppard-Yonge Station,,Sheppard Ave East at Bayview Ave - Bayview Station
+bayview,5334,385,bus,385,Sheppard East,East - 385 Sheppard East towards Rouge Hill GO Stn,,Sheppard Ave East at Bayview Ave East Side - Bayview Station
+bayview,5334,385,bus,385,Sheppard East,East - 385S Sheppard East Short Turn towards Meadowvale,,Sheppard Ave East at Bayview Ave East Side - Bayview Station
+bayview,1248,385,bus,385,Sheppard East,West - 385 Sheppard East towards Sheppard-Yonge Station,,Sheppard Ave East at Bayview Ave - Bayview Station
+bessarion,1894,185,bus,185,Sheppard Central,West - 185 Sheppard Central towards Sheppard-Yonge Station,,Sheppard Ave East at Burbank Dr - Bessarion Station
+bessarion,1894,385,bus,385,Sheppard East,West - 385 Sheppard East towards Sheppard-Yonge Station,,Sheppard Ave East at Burbank Dr - Bessarion Station
+birchmount,16228,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Birchmount Station - Eastbound Platform
+birchmount,16229,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Birchmount Station - Westbound Platform
+bloor-yonge,10438,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,,Yonge St at Bloor St East North Side - Bloor Station
+bloor-yonge,160,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at Bloor St West - Bloor Station
+bloor-yonge,10438,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Bloor St East North Side - Bloor Station
+bloor-yonge,10438,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Bloor St East North Side - Bloor Station
+bloor-yonge,10438,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Bloor St East North Side - Bloor Station
+bloor-yonge,10438,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Bloor St East North Side - Bloor Station
+bloor-yonge,160,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Bloor St West - Bloor Station
+broadview,3734,25,bus,25,Don Mills,North - 25A Don Mills towards Steeles via Don Valley Station and Don Mills Station,Bay 4,Broadview Station at Bus Bay 4
+broadview,3734,25,bus,25,Don Mills,North - 25B Don Mills towards Don Mills Station via Don Valley Station,Bay 4,Broadview Station at Bus Bay 4
+broadview,3734,25,bus,25,Don Mills,South - 25A Don Mills towards Broadview Station via Don Mills Station and Don Valley Station,Bay 4,Broadview Station at Bus Bay 4
+broadview,3734,25,bus,25,Don Mills,South - 25B Don Mills towards Broadview Station via Don Valley Station,Bay 4,Broadview Station at Bus Bay 4
+broadview,3735,87,bus,87,Cosburn,East - 87A Cosburn towards Main Street Station via East York Acres,Bay 5,Broadview Station at Bus Bay 5
+broadview,3735,87,bus,87,Cosburn,East - 87C Cosburn towards Main Street Station,Bay 5,Broadview Station at Bus Bay 5
+broadview,3735,87,bus,87,Cosburn,West - 87A Cosburn towards Broadview Station via East York Acres,Bay 5,Broadview Station at Bus Bay 5
+broadview,3735,87,bus,87,Cosburn,West - 87C Cosburn towards Broadview Station,Bay 5,Broadview Station at Bus Bay 5
+broadview,42362,100,bus,100,Flemingdon Park,North - 100A Flemingdon Park towards Don Valley Station,Bay 2,Broadview Station at Bus Bay 2
+broadview,42362,100,bus,100,Flemingdon Park,North - 100B Flemingdon Park towards Don Valley Station via Linkwood,Bay 2,Broadview Station at Bus Bay 2
+broadview,42362,100,bus,100,Flemingdon Park,South - 100A Flemingdon Park towards Broadview Station,Bay 2,Broadview Station at Bus Bay 2
+broadview,42362,100,bus,100,Flemingdon Park,South - 100B Flemingdon Park towards Broadview Station via Linkwood,Bay 2,Broadview Station at Bus Bay 2
+broadview,3736,305,streetcar,305,Dundas,East - 305 Dundas towards Broadview Station,Bay 6,Broadview Station at Bay 6
+broadview,3736,305,streetcar,305,Dundas,West - 305 Dundas towards Dundas West Station,Bay 6,Broadview Station at Bay 6
+broadview,3737,504,streetcar,504,King,East - 504B King towards Broadview Station,Bay 7,Broadview Station at Bay 7
+broadview,3737,504,streetcar,504,King,West - 504 King Short Turn towards Broadview and Queen,Bay 7,Broadview Station at Bay 7
+broadview,3737,504,streetcar,504,King,West - 504B King towards Dufferin Gate,Bay 7,Broadview Station at Bay 7
+broadview,3736,505,streetcar,505,Dundas,East - 505 Dundas towards Broadview Station,Bay 6,Broadview Station at Bay 6
+broadview,3736,505,streetcar,505,Dundas,West - 505 Dundas Short Turn towards Broadview Ave,Bay 6,Broadview Station at Bay 6
+broadview,3736,505,streetcar,505,Dundas,West - 505 Dundas towards Dundas West Station,Bay 6,Broadview Station at Bay 6
+broadview,3733,925,bus,925,Don Mills Express,North - 925 Don Mills Express towards Steeles via Don Valley Station and Don Mills Station,Bay 3,Broadview Station at Bus Bay 3
+broadview,3733,925,bus,925,Don Mills Express,South - 925 Don Mills Express towards Broadview Station via Don Mills Station and Don Valley Station,Bay 3,Broadview Station at Bus Bay 3
+caledonia,16083,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Caledonia Station - Eastbound Platform
+caledonia,16084,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Caledonia Station - Westbound Platform
+caledonia,43096,18,bus,18,Caledonia,North - 18A Caledonia towards Yorkdale Station via Bridgeland,Bay 1,Caledonia Station at Bus Bay 1
+caledonia,43096,18,bus,18,Caledonia,North - 18B Caledonia towards Yorkdale Station via Orfus,Bay 1,Caledonia Station at Bus Bay 1
+caledonia,43096,18,bus,18,Caledonia,South - 18A Caledonia towards Caledonia Station via Bridgeland,Bay 1,Caledonia Station at Bus Bay 1
+caledonia,43096,18,bus,18,Caledonia,South - 18B Caledonia towards Caledonia Station via Orfus,Bay 1,Caledonia Station at Bus Bay 1
+caledonia,43097,47,bus,47,Lansdowne,North - 47 Lansdowne towards Caledonia Station,Bay 3,Caledonia Station at Bus Bay 3
+caledonia,43097,47,bus,47,Lansdowne,South - 47 Lansdowne towards Queen,Bay 3,Caledonia Station at Bus Bay 3
+castle-frank,3738,65,bus,65,Parliament,North - 65 Parliament towards Castle Frank Station,Bay 1,Castle Frank Station at Bus Bay 1
+castle-frank,3738,65,bus,65,Parliament,South - 65 Parliament towards Queens Quay and Sherbourne,Bay 1,Castle Frank Station at Bus Bay 1
+castle-frank,3739,94,bus,94,Wellesley,East - 94 Wellesley towards Castle Frank Station,Bay 2,Castle Frank Station at Bus Bay 2
+castle-frank,3739,94,bus,94,Wellesley,West - 94A Wellesley towards Ossington Station,Bay 2,Castle Frank Station at Bus Bay 2
+castle-frank,3739,94,bus,94,Wellesley,West - 94B Wellesley towards Wellesley Station,Bay 2,Castle Frank Station at Bus Bay 2
+castle-frank,36783,300,bus,300,Bloor-Danforth,West - 300S Bloor-Danforth Short Turn towards Castle Frank Stn,Bay 1,Castle Frank Station at Bus Bay 1
+cedarvale,38645,34,bus,34,Eglinton,East - 34 Eglinton towards Kennedy Station,Bay 4,Cedarvale Station at Bus Bay 4
+cedarvale,3774,34,bus,34,Eglinton,West - 34 Eglinton towards Mount Dennis Station,Bay 6,Cedarvale Station at Bus Bay 6
+cedarvale,3775,63,bus,63,Ossington,North - 63A Ossington towards Cedarvale Station,Bay 7,Cedarvale Station at Bus Bay 7
+cedarvale,3775,63,bus,63,Ossington,South - 63 Ossington towards Liberty Village,Bay 7,Cedarvale Station at Bus Bay 7
+cedarvale,3773,90,bus,90,Vaughan,North - 90 Vaughan towards Cedarvale Station,Bay 5,Cedarvale Station at Bus Bay 5
+cedarvale,3773,90,bus,90,Vaughan,South - 90 Vaughan towards St Clair West Station,Bay 5,Cedarvale Station at Bus Bay 5
+cedarvale,3776,109,bus,109,Ranee,North - 109B Ranee towards Neptune via Flemington,Bay 8,Cedarvale Station at Bus Bay 8
+cedarvale,3776,109,bus,109,Ranee,North - 109C Ranee towards Neptune via Varna,Bay 8,Cedarvale Station at Bus Bay 8
+cedarvale,3776,109,bus,109,Ranee,South - 109B Ranee towards Cedarvale Station via Flemington,Bay 8,Cedarvale Station at Bus Bay 8
+cedarvale,3776,109,bus,109,Ranee,South - 109C Ranee towards Cedarvale Station via Varna,Bay 8,Cedarvale Station at Bus Bay 8
+cedarvale,3776,164,bus,164,Castlefield,East - 164 Castlefield towards Cedarvale Station,Bay 8,Cedarvale Station at Bus Bay 8
+cedarvale,3776,164,bus,164,Castlefield,West - 164 Castlefield towards Mount Dennis Station,Bay 8,Cedarvale Station at Bus Bay 8
+cedarvale,38645,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station via Mount Dennis Station,Bay 4,Cedarvale Station at Bus Bay 4
+cedarvale,38645,334,bus,334,Eglinton,East - 334B Eglinton towards Finch & Neilson via Morningside,Bay 4,Cedarvale Station at Bus Bay 4
+cedarvale,38645,334,bus,334,Eglinton,East - 334S Eglinton Short Turn towards Cedarvale Station,Bay 4,Cedarvale Station at Bus Bay 4
+cedarvale,38645,334,bus,334,Eglinton,East - 334S Eglinton Short Turn towards Eglinton Station,Bay 4,Cedarvale Station at Bus Bay 4
+cedarvale,3774,334,bus,334,Eglinton,West - 334A Eglinton towards Pearson Airport via Mount Dennis Station,Bay 6,Cedarvale Station at Bus Bay 6
+cedarvale,3774,334,bus,334,Eglinton,West - 334S Eglinton Short Turn towards Renforth Station via Mount Dennis Station,Bay 6,Cedarvale Station at Bus Bay 6
+cedarvale,3771,363,bus,363,Ossington,North - 363 Ossington towards Cedarvale Station,Bay 2,Cedarvale Station at Bus Bay 2
+cedarvale,3771,363,bus,363,Ossington,South - 363 Ossington towards Exhibition,Bay 2,Cedarvale Station at Bus Bay 2
+chaplin,16210,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Chaplin Station - Eastbound Platform
+chaplin,16211,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Chaplin Station - Westbound Platform
+college,28637,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,,Yonge St at Carlton St North Side - College Station
+college,9336,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at College St - College Station
+college,8396,306,streetcar,306,Carlton,East - 306B Carlton Replacement Bus towards Broadview & Gerrard,,College St at Yonge St - College Station
+college,28637,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Carlton St North Side - College Station
+college,28637,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Carlton St North Side - College Station
+college,28637,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Carlton St North Side - College Station
+college,28637,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Carlton St North Side - College Station
+college,9336,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at College St - College Station
+college,8396,506,streetcar,506,Carlton,East - 506B Carlton Replacement Bus towards Broadview & Gerrard,,College St at Yonge St - College Station
+coxwell,3741,22,bus,22,Coxwell,North - 22 Coxwell towards Coxwell Station,Bay 4,Coxwell Station at Bus Bay 4
+coxwell,3741,22,bus,22,Coxwell,South - 22 Coxwell towards Queen,Bay 4,Coxwell Station at Bus Bay 4
+coxwell,3740,70,bus,70,O'Connor,East - 70 O'Connor towards Eglinton,Bay 1,Coxwell Station at Bus Bay 1
+coxwell,3740,70,bus,70,O'Connor,West - 70 O'Connor towards Coxwell Station,Bay 1,Coxwell Station at Bus Bay 1
+coxwell,14859,404,bus,404,East York,East - 404 East York Community Bus towards Kingston Rd,,Coxwell Station
+coxwell,14859,404,bus,404,East York,West - 404 East York Community Bus towards Coxwell Station,,Coxwell Station
+davisville,3745,11,bus,11,Bayview,North - 11A Bayview towards Steeles via Sunnybrook,Bay 5,Davisville Station at Bus Bay 5
+davisville,3745,11,bus,11,Bayview,North - 11C Bayview towards Sunnybrook,Bay 5,Davisville Station at Bus Bay 5
+davisville,3745,11,bus,11,Bayview,South - 11 Bayview towards Davisville Station,Bay 5,Davisville Station at Bus Bay 5
+davisville,3745,11,bus,11,Bayview,South - 11 Bayview towards Davisville Station via Sunnybrook,Bay 5,Davisville Station at Bus Bay 5
+davisville,3745,14,bus,14,Glencairn,East - 14 Glencairn towards Davisville Station,Bay 5,Davisville Station at Bus Bay 5
+davisville,3743,14,bus,14,Glencairn,West - 14 Glencairn Towards Caledonia,Bay 3,Davisville Station at Bus Bay 3
+davisville,3745,28,bus,28,Bayview South,East - 28 Bayview South towards Brick Works,Bay 5,Davisville Station at Bus Bay 5
+davisville,3743,28,bus,28,Bayview South,West - 28 Bayview South towards Davisville Station,Bay 3,Davisville Station at Bus Bay 3
+don-mills,42433,10,bus,10,Van Horne,East - 10 Van Horne towards Victoria Park,Bay 13,Don Mills Station at Bus Bay 13
+don-mills,42433,10,bus,10,Van Horne,West - 10 Van Horne towards Don Mills Station,Bay 13,Don Mills Station at Bus Bay 13
+don-mills,3726,24,bus,24,Victoria Park,North - 24B Victoria Park towards Don Mills Station via Consumers Rd,Bay 8,Don Mills Station at Bus Bay 8
+don-mills,3726,24,bus,24,Victoria Park,South - 24B Victoria Park towards Victoria Park Station via Consumers Rd,Bay 8,Don Mills Station at Bus Bay 8
+don-mills,3724,25,bus,25,Don Mills,North - 25A Don Mills towards Steeles via Don Valley Station and Don Mills Station,Bay 4,Don Mills Station at Bus Bay 4
+don-mills,3722,25,bus,25,Don Mills,North - 25B Don Mills towards Don Mills Station via Don Valley Station,Bay 2,Don Mills Station at Bus Bay 2
+don-mills,3724,25,bus,25,Don Mills,North - 25C Don Mills towards Steeles,Bay 4,Don Mills Station at Bus Bay 4
+don-mills,3722,25,bus,25,Don Mills,South - 25A Don Mills towards Broadview Station via Don Mills Station and Don Valley Station,Bay 2,Don Mills Station at Bus Bay 2
+don-mills,3722,25,bus,25,Don Mills,South - 25B Don Mills towards Broadview Station via Don Valley Station,Bay 2,Don Mills Station at Bus Bay 2
+don-mills,3724,25,bus,25,Don Mills,South - 25C Don Mills towards Don Mills Station,Bay 4,Don Mills Station at Bus Bay 4
+don-mills,3722,25,bus,25,Don Mills,South - 25S Don Mills Short Turn towards Don Valley Station,Bay 2,Don Mills Station at Bus Bay 2
+don-mills,3729,85,bus,85,Sheppard East,East - 85A Sheppard East towards Rouge Hill GO Station,Bay 11,Don Mills Station at Bus Bay 11
+don-mills,3729,85,bus,85,Sheppard East,East - 85B Sheppard East towards Meadowvale,Bay 11,Don Mills Station at Bus Bay 11
+don-mills,3729,85,bus,85,Sheppard East,East - 85C Sheppard East towards Toronto Zoo via Meadowvale,Bay 11,Don Mills Station at Bus Bay 11
+don-mills,3729,85,bus,85,Sheppard East,West - 85 Sheppard East towards Don Mills Station,Bay 11,Don Mills Station at Bus Bay 11
+don-mills,3727,167,bus,167,Pharmacy North,North - 167A Pharmacy North towards Steeles via Consumers Rd,Bay 9,Don Mills Station at Bus Bay 9
+don-mills,3727,167,bus,167,Pharmacy North,North - 167B Pharmacy North towards Steeles,Bay 9,Don Mills Station at Bus Bay 9
+don-mills,3727,167,bus,167,Pharmacy North,South - 167A Pharmacy North towards Don Mills Station via Consumers Rd,Bay 9,Don Mills Station at Bus Bay 9
+don-mills,3727,167,bus,167,Pharmacy North,South - 167B Pharmacy North towards Don Mills Station,Bay 9,Don Mills Station at Bus Bay 9
+don-mills,3730,169,bus,169,Huntingwood,East - 169A Huntingwood towards Scarborough Centre Stn via Van Horne,Bay 14,Don Mills Station at Bus Bay 14
+don-mills,3730,169,bus,169,Huntingwood,East - 169B Huntingwood towards Scarborough Centre Stn,Bay 14,Don Mills Station at Bus Bay 14
+don-mills,3730,169,bus,169,Huntingwood,West - 169A Huntingwood towards Don Mills Station via Van Horne,Bay 14,Don Mills Station at Bus Bay 14
+don-mills,3730,169,bus,169,Huntingwood,West - 169B Huntingwood towards Don Mills Station,Bay 14,Don Mills Station at Bus Bay 14
+don-mills,3731,185,bus,185,Sheppard Central,East - 185 Sheppard Central towards Don Mills Station,Bay 15,Don Mills Station at Bus Bay 15
+don-mills,3731,185,bus,185,Sheppard Central,West - 185 Sheppard Central towards Sheppard-Yonge Station,Bay 15,Don Mills Station at Bus Bay 15
+don-mills,3724,325,bus,325,Don Mills,North - 325S Don Mills Short Turn towards Don Mills Station,Bay 4,Don Mills Station at Bus Bay 4
+don-mills,3722,325,bus,325,Don Mills,South - 325 Don Mills towards Commissioners,Bay 2,Don Mills Station at Bus Bay 2
+don-mills,3722,325,bus,325,Don Mills,South - 325S Don Mills Short Turn towards Eglinton,Bay 2,Don Mills Station at Bus Bay 2
+don-mills,3728,904,bus,904,Sheppard-Kennedy Express,North - 904 Sheppard-Kennedy Express towards Don Mills Station via Scarborough Centre Stn,Bay 10,Don Mills Station at Bus Bay 10
+don-mills,3728,904,bus,904,Sheppard-Kennedy Express,South - 904 Sheppard-Kennedy Express towards Kennedy Stn via Scarborough Centre Stn,Bay 10,Don Mills Station at Bus Bay 10
+don-mills,3725,925,bus,925,Don Mills Express,North - 925 Don Mills Express towards Steeles via Don Valley Station and Don Mills Station,Bay 5,Don Mills Station at Bus Bay 5
+don-mills,3723,925,bus,925,Don Mills Express,South - 925 Don Mills Express towards Broadview Station via Don Mills Station and Don Valley Station,Bay 3,Don Mills Station at Bus Bay 3
+don-mills,3728,985,bus,985,Sheppard East Express,East - 985B Sheppard East Express towards Meadowvale,Bay 10,Don Mills Station at Bus Bay 10
+don-mills,3728,985,bus,985,Sheppard East Express,West - 985 Sheppard East Express towards Don Mills Station,Bay 10,Don Mills Station at Bus Bay 10
+don-valley,16077,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Don Valley Station - Eastbound Platform
+don-valley,16078,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Don Valley Station - Westbound Platform
+don-valley,43099,54,bus,54,Lawrence East,East - 54A Lawrence East towards Starspray,Bay 3,Don Valley Station at Bus Bay 3
+don-valley,43099,54,bus,54,Lawrence East,East - 54B Lawrence East towards Morningside,Bay 3,Don Valley Station at Bus Bay 3
+don-valley,43099,54,bus,54,Lawrence East,West - 54 Lawrence East towards Don Valley Station,Bay 3,Don Valley Station at Bus Bay 3
+don-valley,43100,72,bus,72,Pape,North - 72 Pape towards Don Valley Station via Pape Station,Bay 4,Don Valley Station at Bus Bay 4
+don-valley,43100,72,bus,72,Pape,South - 72C Pape towards Commissioners via Pape Stn,Bay 4,Don Valley Station at Bus Bay 4
+don-valley,43098,100,bus,100,Flemingdon Park,North - 100A Flemingdon Park towards Don Valley Station,Bay 2,Don Valley Station at Bus Bay 2
+don-valley,43098,100,bus,100,Flemingdon Park,North - 100B Flemingdon Park towards Don Valley Station via Linkwood,Bay 2,Don Valley Station at Bus Bay 2
+don-valley,43098,100,bus,100,Flemingdon Park,South - 100A Flemingdon Park towards Broadview Station,Bay 2,Don Valley Station at Bus Bay 2
+don-valley,43098,100,bus,100,Flemingdon Park,South - 100B Flemingdon Park towards Broadview Station via Linkwood,Bay 2,Don Valley Station at Bus Bay 2
+don-valley,43104,162,bus,162,Lawrence-Donway,East - 162 Lawrence-Donway towards Don Valley Station,Bay 5,Don Valley Station at Temporary Bus Bay 5
+don-valley,43104,162,bus,162,Lawrence-Donway,West - 162 Lawrence-Donway towards Lawrence Station,Bay 5,Don Valley Station at Temporary Bus Bay 5
+don-valley,43104,191,bus,191,Underhill,North - 191 Underhill towards York Mills,Bay 5,Don Valley Station at Temporary Bus Bay 5
+don-valley,43104,191,bus,191,Underhill,South - 191 Underhill towards Don Valley Station,Bay 5,Don Valley Station at Temporary Bus Bay 5
+don-valley,43099,354,bus,354,Lawrence East,East - 354 Lawrence East towards Starspray,Bay 3,Don Valley Station at Bus Bay 3
+don-valley,43099,954,bus,954,Lawrence East Express,East - 954 Lawrence East Express towards Starspray,Bay 3,Don Valley Station at Bus Bay 3
+don-valley,43099,954,bus,954,Lawrence East Express,West - 954 Lawrence East Express towards Don Valley Station,Bay 3,Don Valley Station at Bus Bay 3
+donlands,3746,51,bus,51,Leslie,North - 51A Leslie towards Leslie Station via Laird Station,Bay 1,Donlands Station at Bus Bay 1
+donlands,3746,51,bus,51,Leslie,North - 51B Leslie towards Don Mills via Laird Station,Bay 1,Donlands Station at Bus Bay 1
+donlands,3746,51,bus,51,Leslie,South - 51 Leslie towards Donlands Station via Laird Station,Bay 1,Donlands Station at Bus Bay 1
+donlands,3747,83,bus,83,Jones,North - 83 Jones towards Donlands Station,Bay 3,Donlands Station at Bus Bay 3
+donlands,3747,83,bus,83,Jones,South - 83 Jones towards Commissioners,Bay 3,Donlands Station at Bus Bay 3
+downsview-park,11210,84,bus,84,Sheppard West,East - 84 Sheppard West towards Sheppard-Yonge Station via Sheppard West Station,,Sheppard Ave West at Vitti St - Downsview Park Station
+downsview-park,36126,101,bus,101,Downsview Park,North - 101 Downsview Park towards Finch West Station via Downsview Park Station,,Downsview Park Trail at Downsview Park Station
+downsview-park,36126,101,bus,101,Downsview Park,North - 101S Downsview Park Short Turn towards Downsview Park Station,,Downsview Park Trail at Downsview Park Station
+downsview-park,11210,101,bus,101,Downsview Park,South - 101A Downsview Park towards Stanley Greene via Downsview Park Station,,Sheppard Ave West at Vitti St - Downsview Park Station
+downsview-park,36126,101,bus,101,Downsview Park,South - 101A Downsview Park towards Stanley Greene via Downsview Park Station,,Downsview Park Trail at Downsview Park Station
+downsview-park,11210,101,bus,101,Downsview Park,South - 101B Downsview Park towards Wilson Station via Stanley Greene and Downsview Park Station,,Sheppard Ave West at Vitti St - Downsview Park Station
+downsview-park,36126,101,bus,101,Downsview Park,South - 101B Downsview Park towards Wilson Station via Stanley Greene and Downsview Park Station,,Downsview Park Trail at Downsview Park Station
+downsview-park,11210,106,bus,106,Sentinel,East - 106 Sentinel towards Sheppard West Station,,Sheppard Ave West at Vitti St - Downsview Park Station
+downsview-park,11210,108,bus,108,Driftwood,East - 108A Driftwood towards Sheppard West Station via Grandravine,,Sheppard Ave West at Vitti St - Downsview Park Station
+downsview-park,11210,108,bus,108,Driftwood,East - 108B Driftwood towards Sheppard West Station via Arleta,,Sheppard Ave West at Vitti St - Downsview Park Station
+downsview-park,11210,384,bus,384,Sheppard West,East - 384 Sheppard West towards Sheppard-Yonge Station,,Sheppard Ave West at Vitti St - Downsview Park Station
+downsview-park,11210,384,bus,384,Sheppard West,East - 384 Sheppard West towards Yonge,,Sheppard Ave West at Vitti St - Downsview Park Station
+downsview-park,11210,984,bus,984,Sheppard West Express,East - 984 Sheppard West Express towards Sheppard-Yonge Station via Sheppard West Station,,Sheppard Ave West at Vitti St - Downsview Park Station
+driftwood,16317,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Driftwood Station - Eastbound Platform
+driftwood,16318,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Driftwood Station - Westbound Platform
+dufferin,7059,29,bus,29,Dufferin,North - 29 Dufferin towards Wilson Station,,Dufferin St at Bloor St West - Dufferin Station
+dufferin,7761,29,bus,29,Dufferin,South - 29A Dufferin towards Exhibition (Dufferin Gate),,Dufferin St at Bloor St West - Dufferin Station
+dufferin,7059,329,bus,329,Dufferin,North - 329 Dufferin towards Steeles via Liberty Village,,Dufferin St at Bloor St West - Dufferin Station
+dufferin,7059,329,bus,329,Dufferin,North - 329S Dufferin Short Turn towards Sheppard West Stn via Liberty Village,,Dufferin St at Bloor St West - Dufferin Station
+dufferin,7059,329,bus,329,Dufferin,North - 329S Dufferin Short Turn towards Wilson Station via Liberty Village,,Dufferin St at Bloor St West - Dufferin Station
+dufferin,7761,329,bus,329,Dufferin,South - 329 Dufferin towards Exhibition via Liberty Village,,Dufferin St at Bloor St West - Dufferin Station
+dufferin,7059,929,bus,929,Dufferin Express,North - 929 Dufferin Express towards Wilson Station,,Dufferin St at Bloor St West - Dufferin Station
+dufferin,7761,929,bus,929,Dufferin Express,South - 929 Dufferin Express towards Exhibition (Dufferin Gate),,Dufferin St at Bloor St West - Dufferin Station
+duncanwoods,16305,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Duncanwoods Station - Eastbound Platform
+duncanwoods,16306,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Duncanwoods Station - Westbound Platform
+dundas-west,3759,40,bus,40,Junction-Dundas West,East - 40 Junction-Dundas West towards Dundas West Station,Bay 2,Dundas West Station at Bus Bay 2
+dundas-west,3759,40,bus,40,Junction-Dundas West,West - 40A Junction-Dundas West towards Kipling Station,Bay 2,Dundas West Station at Bus Bay 2
+dundas-west,3759,40,bus,40,Junction-Dundas West,West - 40B Junction-Dundas West towards Jane and St Clair,Bay 2,Dundas West Station at Bus Bay 2
+dundas-west,3758,168,bus,168,Symington,North - 168 Symington towards Mount Dennis Station,Bay 1,Dundas West Station at Bus Bay 1
+dundas-west,3758,168,bus,168,Symington,South - 168 Symington towards Dundas West Station,Bay 1,Dundas West Station at Bus Bay 1
+dundas-west,3761,305,streetcar,305,Dundas,East - 305 Dundas towards Broadview Station,Bay 5,Dundas West Station at Bay 5
+dundas-west,3761,305,streetcar,305,Dundas,West - 305 Dundas towards Dundas West Station,Bay 5,Dundas West Station at Bay 5
+dundas-west,3759,340,bus,340,Junction,East - 340 Junction towards Dundas West Stn,Bay 2,Dundas West Station at Bus Bay 2
+dundas-west,3759,340,bus,340,Junction,West - 340 Junction towards St Clair and Gunns,Bay 2,Dundas West Station at Bus Bay 2
+dundas-west,3759,402,bus,402,Parkdale,North - 402 Parkdale Community Bus towards Dufferin Mall,Bay 2,Dundas West Station at Bus Bay 2
+dundas-west,3759,402,bus,402,Parkdale,South - 402 Parkdale Community Bus towards Queen Elizabeth Hospital,Bay 2,Dundas West Station at Bus Bay 2
+dundas-west,3760,504,streetcar,504,King,East - 504 King Short Turn towards Broadview and Queen,Bay 4,Dundas West Station at Bay 4
+dundas-west,3760,504,streetcar,504,King,East - 504A King towards Distillery,Bay 4,Dundas West Station at Bay 4
+dundas-west,3760,504,streetcar,504,King,West - 504A King towards Dundas West Station,Bay 4,Dundas West Station at Bay 4
+dundas-west,3761,505,streetcar,505,Dundas,East - 505 Dundas Short Turn towards Broadview Ave,Bay 5,Dundas West Station at Bay 5
+dundas-west,3761,505,streetcar,505,Dundas,East - 505 Dundas towards Broadview Station,Bay 5,Dundas West Station at Bay 5
+dundas-west,3761,505,streetcar,505,Dundas,West - 505 Dundas towards Dundas West Station,Bay 5,Dundas West Station at Bay 5
+dupont,7580,26,bus,26,Dupont,East - 26 Dupont towards St George Station,,Dupont St at Spadina Rd East Side - Dupont Station
+dupont,5342,26,bus,26,Dupont,West - 26 Dupont towards Jane Station,,Dupont St at Spadina Rd West Side - Dupont Station
+dupont,4972,127,bus,127,Davenport,East - 127 Davenport towards Spadina Station,,Spadina Rd at Dupont St - Dupont Station
+dupont,5147,127,bus,127,Davenport,West - 127 Davenport towards St Clair & Old Weston Rd,,Spadina Rd at Dupont St - Dupont Station
+eglinton,16073,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Eglinton Station - Eastbound Platform
+eglinton,16074,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Eglinton Station - Westbound Platform
+eglinton,3765,13,bus,13,Avenue Rd,North - 13 Avenue Rd towards Eglinton Station,Bay 3,Eglinton Station at Bus Bay 3
+eglinton,3765,13,bus,13,Avenue Rd,South - 13A Avenue Rd towards Queen's Park,Bay 3,Eglinton Station at Bus Bay 3
+eglinton,3765,13,bus,13,Avenue Rd,South - 13B Avenue Rd towards Gerrard,Bay 3,Eglinton Station at Bus Bay 3
+eglinton,3768,34,bus,34,Eglinton,East - 34 Eglinton towards Kennedy Station,Bay 7,Eglinton Station at Bus Bay 7
+eglinton,3767,34,bus,34,Eglinton,West - 34 Eglinton towards Mount Dennis Station,Bay 6,Eglinton Station at Bus Bay 6
+eglinton,4009,61,bus,61,Avenue Rd North,North - 61 Avenue Rd North towards Highway 401,Bay 4,Eglinton Station at Bus Bay 4
+eglinton,4009,61,bus,61,Avenue Rd North,South - 61 Avenue Rd North towards Eglinton Station,Bay 4,Eglinton Station at Bus Bay 4
+eglinton,3770,74,bus,74,Mount Pleasant,North - 74 Mount Pleasant towards Eglinton Station,Bay 9,Eglinton Station at Bus Bay 9
+eglinton,3770,74,bus,74,Mount Pleasant,South - 74 Mount Pleasant towards St Clair Station,Bay 9,Eglinton Station at Bus Bay 9
+eglinton,7552,97,bus,97,Yonge,North - 97A Yonge towards Steeles,,Yonge St at Eglinton Ave East North Side - Eglinton Station
+eglinton,7552,97,bus,97,Yonge,North - 97B Yonge towards Steeles via Yonge Blvd,,Yonge St at Eglinton Ave East North Side - Eglinton Station
+eglinton,3764,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,Bay 2,Eglinton Station at Bus Bay 2
+eglinton,3764,97,bus,97,Yonge,South - 97C Yonge towards Union Station,Bay 2,Eglinton Station at Bus Bay 2
+eglinton,3769,103,bus,103,Mount Pleasant North,North - 103 Mount Pleasant North towards Doncliffe,Bay 8,Eglinton Station at Bus Bay 8
+eglinton,3769,103,bus,103,Mount Pleasant North,South - 103 Mount Pleasant North towards Eglinton Station,Bay 8,Eglinton Station at Bus Bay 8
+eglinton,7552,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Eglinton Ave East North Side - Eglinton Station
+eglinton,7552,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Eglinton Ave East North Side - Eglinton Station
+eglinton,7552,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Eglinton Ave East North Side - Eglinton Station
+eglinton,3769,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,Bay 8,Eglinton Station at Bus Bay 8
+eglinton,7552,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Eglinton Ave East North Side - Eglinton Station
+eglinton,3768,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station,Bay 7,Eglinton Station at Bus Bay 7
+eglinton,3768,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station via Mount Dennis Station,Bay 7,Eglinton Station at Bus Bay 7
+eglinton,3768,334,bus,334,Eglinton,East - 334B Eglinton towards Finch & Neilson via Morningside,Bay 7,Eglinton Station at Bus Bay 7
+eglinton,3768,334,bus,334,Eglinton,East - 334S Eglinton Short Turn towards Eglinton Station,Bay 7,Eglinton Station at Bus Bay 7
+eglinton,3767,334,bus,334,Eglinton,West - 334A Eglinton towards Pearson Airport via Mount Dennis Station,Bay 6,Eglinton Station at Bus Bay 6
+eglinton,3767,334,bus,334,Eglinton,West - 334B Eglinton towards Black Creek,Bay 6,Eglinton Station at Bus Bay 6
+eglinton,3767,334,bus,334,Eglinton,West - 334S Eglinton Short Turn towards Renforth Station via Mount Dennis Station,Bay 6,Eglinton Station at Bus Bay 6
+eglinton,3768,354,bus,354,Lawrence East,East - 354 Lawrence East towards Starspray,Bay 7,Eglinton Station at Bus Bay 7
+eglinton,3768,354,bus,354,Lawrence East,West - 354 Lawrence East towards Eglinton Station,Bay 7,Eglinton Station at Bus Bay 7
+emery,16309,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Emery Station - Eastbound Platform
+emery,16310,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Emery Station - Westbound Platform
+fairbank,16204,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Fairbank Station - Eastbound Platform
+fairbank,16205,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Fairbank Station - Westbound Platform
+finch,3780,36,bus,36,Finch West,East - 36 Finch West towards Finch Station,Bay 13,Finch Station at Bus Bay 13
+finch,5048,36,bus,36,Finch West,East - 36 Finch West towards Finch Station,,Finch Ave West at Yonge St - Finch Station
+finch,3780,36,bus,36,Finch West,West - 36 Finch West towards Finch West Station,Bay 13,Finch Station at Bus Bay 13
+finch,3784,39,bus,39,Finch East,East - 39A Finch East towards Neilson,Bay 5,Finch Station at Bus Bay 5
+finch,3784,39,bus,39,Finch East,East - 39B Finch East towards Old Finch and Morningview,Bay 5,Finch Station at Bus Bay 5
+finch,3784,39,bus,39,Finch East,East - 39C Finch East towards Victoria Park and Gordon Baker,Bay 5,Finch Station at Bus Bay 5
+finch,3784,39,bus,39,Finch East,East - 39S Finch East Short Turn towards Kennedy,Bay 5,Finch Station at Bus Bay 5
+finch,3784,39,bus,39,Finch East,West - 39 Finch East towards Finch Station,Bay 5,Finch Station at Bus Bay 5
+finch,908,39,bus,39,Finch East,West - 39 Finch East towards Finch Station,,Finch Ave East at Yonge St - Finch Station
+finch,908,39,bus,39,Finch East,West - 39 Finch East towards Yonge St,,Finch Ave East at Yonge St - Finch Station
+finch,4010,42,bus,42,Cummer,East - 42 Cummer towards Middlefield (Dynamic),Bay 1,Finch Station at Bus Bay 1
+finch,5668,42,bus,42,Cummer,East - 42 Cummer towards Middlefield (Dynamic),,Yonge St at Bishop Ave North Side - Finch Station
+finch,4010,42,bus,42,Cummer,West - 42 Cummer towards Finch Station,Bay 1,Finch Station at Bus Bay 1
+finch,3778,53,bus,53,Steeles East,East - 53A Steeles East towards Staines,Bay 11,Finch Station at Bus Bay 11
+finch,3778,53,bus,53,Steeles East,East - 53B Steeles East towards Morningside,Bay 11,Finch Station at Bus Bay 11
+finch,3778,53,bus,53,Steeles East,East - 53S Steeles East Short Turn towards Kennedy,Bay 11,Finch Station at Bus Bay 11
+finch,3778,53,bus,53,Steeles East,West - 53 Steeles East towards Finch Station,Bay 11,Finch Station at Bus Bay 11
+finch,3781,60,bus,60,Steeles West,East - 60 Steeles West towards Finch Station,Bay 2,Finch Station at Bus Bay 2
+finch,3781,60,bus,60,Steeles West,East - 60 Steeles West towards Finch Station via Pioneer Village Station,Bay 2,Finch Station at Bus Bay 2
+finch,3781,60,bus,60,Steeles West,West - 60A Steeles West towards Pioneer Village Station,Bay 2,Finch Station at Bus Bay 2
+finch,3781,60,bus,60,Steeles West,West - 60B Steeles West towards Martin Grove via Pioneer Village Station,Bay 2,Finch Station at Bus Bay 2
+finch,3781,60,bus,60,Steeles West,West - 60D Steeles West towards Highway 27 via Pioneer Village Station,Bay 2,Finch Station at Bus Bay 2
+finch,3783,97,bus,97,Yonge,North - 97A Yonge towards Steeles,Bay 4,Finch Station at Bus Bay 4
+finch,3783,97,bus,97,Yonge,North - 97B Yonge towards Steeles via Yonge Blvd,Bay 4,Finch Station at Bus Bay 4
+finch,5549,97,bus,97,Yonge,South - 97A Yonge towards St Clair Station,,Yonge St at Finch Ave West - Finch Station
+finch,5549,97,bus,97,Yonge,South - 97B Yonge towards St Clair Station via Yonge Blvd,,Yonge St at Finch Ave West - Finch Station
+finch,3783,125,bus,125,Drewry,East - 125 Drewry towards Finch Station,Bay 4,Finch Station at Bus Bay 4
+finch,3783,125,bus,125,Drewry,West - 125 Drewry towards Bathurst (Torresdale),Bay 4,Finch Station at Bus Bay 4
+finch,5668,125,bus,125,Drewry,West - 125 Drewry towards Bathurst (Torresdale),,Yonge St at Bishop Ave North Side - Finch Station
+finch,4010,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,Bay 1,Finch Station at Bus Bay 1
+finch,4011,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,Bay 8,Finch Station at Bus Bay 8
+finch,5549,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Finch Ave West - Finch Station
+finch,3780,336,bus,336,Finch West,East - 336 Finch West towards Finch Station,Bay 13,Finch Station at Bus Bay 13
+finch,5048,336,bus,336,Finch West,East - 336 Finch West towards Finch Station,,Finch Ave West at Yonge St - Finch Station
+finch,5048,336,bus,336,Finch West,East - 336 Finch West towards Yonge,,Finch Ave West at Yonge St - Finch Station
+finch,5048,336,bus,336,Finch West,East - 336 Finch West towards Yonge Street via Finch West Station,,Finch Ave West at Yonge St - Finch Station
+finch,3780,336,bus,336,Finch West,West - 336 Finch West towards Woodbine Race Track,Bay 13,Finch Station at Bus Bay 13
+finch,908,339,bus,339,Finch East,West - 339 Finch East towards Finch Station,,Finch Ave East at Yonge St - Finch Station
+finch,3786,939,bus,939,Finch Express,East - 939A Finch Express towards Kennedy Stn via Scarborough Centre Stn,Bay 7,Finch Station at Bus Bay 7
+finch,3786,939,bus,939,Finch Express,East - 939B Finch Express towards Kennedy Stn via Finch Stn and Scarborough Centre Stn,Bay 7,Finch Station at Bus Bay 7
+finch,3786,939,bus,939,Finch Express,East - 939C Finch Express towards Morningside Heights,Bay 7,Finch Station at Bus Bay 7
+finch,3786,939,bus,939,Finch Express,East - 939S Finch Express Short Turn towards Finch Stn,Bay 7,Finch Station at Bus Bay 7
+finch,3786,939,bus,939,Finch Express,West - 939A Finch Express towards Finch Stn,Bay 7,Finch Station at Bus Bay 7
+finch,3786,939,bus,939,Finch Express,West - 939A Finch Express towards Finch Stn via Scarborough Centre Stn,Bay 7,Finch Station at Bus Bay 7
+finch,3779,939,bus,939,Finch Express,West - 939B Finch Express towards Finch West Stn via Scarborough Centre Stn and Finch Stn,Bay 12,Finch Station at Bus Bay 12
+finch,3786,939,bus,939,Finch Express,West - 939C Finch Express towards Finch Stn,Bay 7,Finch Station at Bus Bay 7
+finch,3777,953,bus,953,Steeles East Express,East - 953A Steeles East Express towards Staines Rd,Bay 10,Finch Station at Bus Bay 10
+finch,3777,953,bus,953,Steeles East Express,West - 953 Steeles East Express towards Finch Station,Bay 10,Finch Station at Bus Bay 10
+finch,3781,960,bus,960,Steeles West Express,East - 960B Steeles West Express towards Finch Station via Pioneer Village Station,Bay 2,Finch Station at Bus Bay 2
+finch,3781,960,bus,960,Steeles West Express,West - 960B Steeles West Express towards Martin Grove via Pioneer Village Station,Bay 2,Finch Station at Bus Bay 2
+finch,3781,960,bus,960,Steeles West Express,West - 960D Steeles West Express towards Highway 27 via Pioneer Village Station,Bay 2,Finch Station at Bus Bay 2
+finch-west,16323,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Finch West Station - Subway Platform
+finch-west,16324,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Finch West Station - Westbound Platform
+finch-west,11206,36,bus,36,Finch West,East - 36 Finch West towards Finch Station,Bay 3,Finch West Station Bus Bay 3
+finch-west,11206,36,bus,36,Finch West,West - 36 Finch West towards Finch West Station,Bay 3,Finch West Station Bus Bay 3
+finch-west,11209,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station,,Keele St at Four Winds Dr - Finch West Station
+finch-west,11253,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station,,Keele St at Finch Ave West North Side - Finch West Station
+finch-west,11209,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station via Keelesdale Station,,Keele St at Four Winds Dr - Finch West Station
+finch-west,11253,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station via Keelesdale Station,,Keele St at Finch Ave West North Side - Finch West Station
+finch-west,11213,41,bus,41,Keele,South - 41 Keele towards Keele Station via Keelesdale Station,,Keele St at Finch Ave West - Finch West Station
+finch-west,11205,101,bus,101,Downsview Park,North - 101 Downsview Park towards Finch West Station via Downsview Park Station,Bay 2,Finch West Station Bus Bay 2
+finch-west,11209,101,bus,101,Downsview Park,North - 101 Downsview Park towards Finch West Station via Downsview Park Station,,Keele St at Four Winds Dr - Finch West Station
+finch-west,11253,101,bus,101,Downsview Park,North - 101 Downsview Park towards Finch West Station via Downsview Park Station,,Keele St at Finch Ave West North Side - Finch West Station
+finch-west,11205,101,bus,101,Downsview Park,South - 101A Downsview Park towards Stanley Greene via Downsview Park Station,Bay 2,Finch West Station Bus Bay 2
+finch-west,11213,101,bus,101,Downsview Park,South - 101A Downsview Park towards Stanley Greene via Downsview Park Station,,Keele St at Finch Ave West - Finch West Station
+finch-west,11205,101,bus,101,Downsview Park,South - 101B Downsview Park towards Wilson Station via Stanley Greene and Downsview Park Station,Bay 2,Finch West Station Bus Bay 2
+finch-west,11213,101,bus,101,Downsview Park,South - 101B Downsview Park towards Wilson Station via Stanley Greene and Downsview Park Station,,Keele St at Finch Ave West - Finch West Station
+finch-west,11208,107,bus,107,Alness-Chesswood,North - 107 Alness-Chesswood towards Finch West Station,Bay 5,Finch West Station Bus Bay 5
+finch-west,11208,107,bus,107,Alness-Chesswood,South - 107 Alness-Chesswood towards Sheppard West Station,Bay 5,Finch West Station Bus Bay 5
+finch-west,11253,107,bus,107,Alness-Chesswood,South - 107 Alness-Chesswood towards Sheppard West Station,,Keele St at Finch Ave West North Side - Finch West Station
+finch-west,11206,336,bus,336,Finch West,East - 336 Finch West towards Yonge Street via Finch West Station,Bay 3,Finch West Station Bus Bay 3
+finch-west,11206,336,bus,336,Finch West,East - 336S Finch West Short Turn towards Finch West Station,Bay 3,Finch West Station Bus Bay 3
+finch-west,11205,336,bus,336,Finch West,West - 336 Finch West towards Woodbine Race Track,Bay 2,Finch West Station Bus Bay 2
+finch-west,11213,336,bus,336,Finch West,West - 336 Finch West towards Woodbine Race Track,,Keele St at Finch Ave West - Finch West Station
+finch-west,11205,336,bus,336,Finch West,West - 336S Finch West Short Turn towards Emery Station,Bay 2,Finch West Station Bus Bay 2
+finch-west,11213,336,bus,336,Finch West,West - 336S Finch West Short Turn towards Emery Station,,Keele St at Finch Ave West - Finch West Station
+finch-west,11205,336,bus,336,Finch West,West - 336S Finch West Short Turn towards Humber College,Bay 2,Finch West Station Bus Bay 2
+finch-west,11213,336,bus,336,Finch West,West - 336S Finch West Short Turn towards Humber College,,Keele St at Finch Ave West - Finch West Station
+finch-west,11209,341,bus,341,Keele,North - 341 Keele towards York University,,Keele St at Four Winds Dr - Finch West Station
+finch-west,11253,341,bus,341,Keele,North - 341 Keele towards York University,,Keele St at Finch Ave West North Side - Finch West Station
+finch-west,11213,341,bus,341,Keele,South - 341 Keele towards Keele Station,,Keele St at Finch Ave West - Finch West Station
+finch-west,11207,939,bus,939,Finch Express,East - 939B Finch Express towards Kennedy Stn via Finch Stn and Scarborough Centre Stn,Bay 4,Finch West Station Bus Bay 4
+finch-west,11207,939,bus,939,Finch Express,East - 939S Finch Express Short Turn towards Finch Stn,Bay 4,Finch West Station Bus Bay 4
+finch-west,11207,939,bus,939,Finch Express,West - 939B Finch Express towards Finch West Stn via Scarborough Centre Stn and Finch Stn,Bay 4,Finch West Station Bus Bay 4
+forest-hill,16208,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Forest Hill Station - Eastbound Platform
+forest-hill,16209,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Forest Hill Station - Westbound Platform
+glencairn,6147,14,bus,14,Glencairn,East - 14 Glencairn towards Davisville Station,,Glencairn Station
+glencairn,6541,14,bus,14,Glencairn,West - 14 Glencairn Towards Caledonia,,Glencairn Station
+golden-mile,16085,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Golden Mile Station - Eastbound Platform
+golden-mile,16086,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Golden Mile Station - Westbound Platform
+greenwoood,3787,31,bus,31,Greenwood,North - 31 Greenwood towards Greenwood Station,Bay 2,Greenwood Station at Bus Bay 2
+greenwoood,3787,31,bus,31,Greenwood,South - 31 Greenwood towards Queen & Eastern,Bay 2,Greenwood Station at Bus Bay 2
+hakimi-lebovic,16226,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Hakimi Lebovic Station - Eastbound Platform
+hakimi-lebovic,16227,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Hakimi Lebovic Station - Westbound Platform
+high-park,3788,30,bus,30,High Park North,North - 30 High Park North towards Runnymede,Bay 1,High Park Station at Bus Bay 1
+high-park,3788,30,bus,30,High Park North,South - 30 High Park North towards High Park Station,Bay 1,High Park Station at Bus Bay 1
+high-park,3789,189,bus,189,Stockyards,East - 189 Stockyards towards High Park Station via Keele Station,Bay 2,High Park Station at Bus Bay 2
+high-park,3789,189,bus,189,Stockyards,West - 189 Stockyards towards Scarlett Rd,Bay 2,High Park Station at Bus Bay 2
+high-park,18790,203,bus,203,High Park,North - 203 High Park towards High Park Stn via Colborne Lodge Dr,,High Park Station at High Park Ave
+high-park,18790,203,bus,203,High Park,South - 203 High Park towards High Park via West Rd,,High Park Station at High Park Ave
+humber-college,16289,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Humber College Station - Eastbound Platform
+humber-college,16290,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Humber College Station - Subway Platform
+ionview,16230,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Ionview Station - Eastbound Platform
+ionview,16231,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Ionview Station - Westbound Platform
+islington,23772,37,bus,37,Islington,North - 37A Islington towards Humber College via Rexdale Blvd and Woodbine Racetrack,Bay 13,Islington Station at Bus Bay 13
+islington,23772,37,bus,37,Islington,North - 37B Islington towards Steeles,Bay 13,Islington Station at Bus Bay 13
+islington,23772,37,bus,37,Islington,South - 37 Islington towards Islington Station,Bay 13,Islington Station at Bus Bay 13
+islington,23772,37,bus,37,Islington,South - 37 Islington towards Islington Station via Woodbine Racetrack and Rexdale,Bay 13,Islington Station at Bus Bay 13
+islington,23771,50,bus,50,Burnhamthorpe,East - 50 Burnhamthorpe towards Islington Station,Bay 12,Islington Station at Bus Bay 12
+islington,23771,50,bus,50,Burnhamthorpe,West - 50 Burnhamthorpe towards Mill Road,Bay 12,Islington Station at Bus Bay 12
+islington,23770,110,bus,110,Islington South,North - 110A Islington South towards Islington Station via Browns Line and Horner,Bay 11,Islington Station at Bus Bay 11
+islington,23770,110,bus,110,Islington South,North - 110B Islington South towards Islington Station via 30th Street and Horner,Bay 11,Islington Station at Bus Bay 11
+islington,23770,110,bus,110,Islington South,North - 110C Islington South towards Islington Station,Bay 11,Islington Station at Bus Bay 11
+islington,23770,110,bus,110,Islington South,South - 110A Islington South towards Long Branch via Horner and Browns Line,Bay 11,Islington Station at Bus Bay 11
+islington,23770,110,bus,110,Islington South,South - 110B Islington South towards Long Branch via Horner and 30th Street,Bay 11,Islington Station at Bus Bay 11
+islington,23770,110,bus,110,Islington South,South - 110C Islington South towards Kipling and Lake Shore,Bay 11,Islington Station at Bus Bay 11
+islington,23771,937,bus,937,Islington Express,North - 937 Islington Express towards Steeles,Bay 12,Islington Station at Bus Bay 12
+islington,23771,937,bus,937,Islington Express,South - 937 Islington Express towards Islington Station,Bay 12,Islington Station at Bus Bay 12
+jane,3794,26,bus,26,Dupont,East - 26 Dupont towards St George Station,Bay 3,Jane Station at Bus Bay 3
+jane,3794,26,bus,26,Dupont,West - 26 Dupont towards Jane Station,Bay 3,Jane Station at Bus Bay 3
+jane,3796,27,bus,27,Jane South,North - 27 Jane South towards Mount Dennis Station,Bay 5,Jane Station at Bus Bay 5
+jane,3796,27,bus,27,Jane South,North - 27S Jane South Short Turn towards Eglinton,Bay 5,Jane Station at Bus Bay 5
+jane,3796,27,bus,27,Jane South,South - 27 Jane South towards Jane Station,Bay 5,Jane Station at Bus Bay 5
+jane,3793,55,bus,55,Warren Park,North - 55 Warren Park towards Warren Park,Bay 2,Jane Station at Bus Bay 2
+jane,3793,55,bus,55,Warren Park,South - 55 Warren Park towards Jane Station,Bay 2,Jane Station at Bus Bay 2
+jane,3793,149,bus,149,Etobicoke-Bloor,East - 149 Etobicoke-Bloor towards Jane Station,Bay 2,Jane Station at Bus Bay 2
+jane,3793,149,bus,149,Etobicoke-Bloor,West - 149 Etobicoke-Bloor towards Kipling Station,Bay 2,Jane Station at Bus Bay 2
+jane,3796,335,bus,335,Jane,North - 335 Jane towards York University,Bay 5,Jane Station at Bus Bay 5
+jane,3796,335,bus,335,Jane,North - 335S Jane Short Turn towards Pioneer Village Station,Bay 5,Jane Station at Bus Bay 5
+jane,3796,335,bus,335,Jane,South - 335 Jane towards Jane Station,Bay 5,Jane Station at Bus Bay 5
+jane,3795,935,bus,935,Jane Express,North - 935 Jane Express towards Pioneer Village Station,Bay 4,Jane Station at Bus Bay 4
+jane,3795,935,bus,935,Jane Express,South - 935 Jane Express towards Jane Station,Bay 4,Jane Station at Bus Bay 4
+jane-and-finch,16315,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Jane and Finch Station - Eastbound Platform
+jane-and-finch,16316,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Jane and Finch Station - Westbound Platform
+keele,3798,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station via Keelesdale Station,Bay 4,Keele Station at Bus Bay 4
+keele,4213,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station via Keelesdale Station,,Keele St at Bloor St West - Keele Station
+keele,3798,41,bus,41,Keele,South - 41 Keele towards Keele Station,Bay 4,Keele Station at Bus Bay 4
+keele,3798,41,bus,41,Keele,South - 41 Keele towards Keele Station via Keelesdale Station,Bay 4,Keele Station at Bus Bay 4
+keele,3797,80,bus,80,Queensway,East - 80A Queensway towards Keele Station,Bay 2,Keele Station at Bus Bay 2
+keele,3797,80,bus,80,Queensway,West - 80 Queensway towards Sherway Gardens,Bay 2,Keele Station at Bus Bay 2
+keele,4213,89,bus,89,Weston,North - 89 Weston towards Albion Rd,,Keele St at Bloor St West - Keele Station
+keele,3799,89,bus,89,Weston,North - 89 Weston towards Albion Rd via Mount Dennis Station,Bay 5,Keele Station at Bus Bay 5
+keele,4213,89,bus,89,Weston,North - 89 Weston towards Albion Rd via Mount Dennis Station,,Keele St at Bloor St West - Keele Station
+keele,3799,89,bus,89,Weston,South - 89 Weston towards Keele Station,Bay 5,Keele Station at Bus Bay 5
+keele,3799,89,bus,89,Weston,South - 89 Weston towards Keele Station via Mount Dennis Station,Bay 5,Keele Station at Bus Bay 5
+keele,18740,189,bus,189,Stockyards,East - 189 Stockyards towards High Park Station via Keele Station,,Keele St at Bloor St West - Keele Station
+keele,4213,189,bus,189,Stockyards,West - 189 Stockyards towards Scarlett Rd,,Keele St at Bloor St West - Keele Station
+keele,11220,300,bus,300,Bloor-Danforth,West - 300S Bloor-Danforth Short Turn towards Keele Stn,Bay 1,Keele Station at Bus Bay 1
+keele,3798,341,bus,341,Keele,North - 341 Keele towards York University,Bay 4,Keele Station at Bus Bay 4
+keele,4213,341,bus,341,Keele,North - 341 Keele towards York University,,Keele St at Bloor St West - Keele Station
+keele,3799,989,bus,989,Weston Express,North - 989 Weston Express towards Steeles via Mount Dennis Station,Bay 5,Keele Station at Bus Bay 5
+keele,3799,989,bus,989,Weston Express,South - 989 Weston Express towards Keele Station via Mount Dennis Station,Bay 5,Keele Station at Bus Bay 5
+keelesdale,16202,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Keelesdale Station - Eastbound Platform
+keelesdale,16203,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Keelesdale Station - Westbound Platform
+keelesdale,42907,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station,Bay 2,Keelesdale Station at Bus Bay 2
+keelesdale,42907,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station via Keelesdale Station,Bay 2,Keelesdale Station at Bus Bay 2
+keelesdale,43090,158,bus,158,Trethewey,East - 158 Trethewey towards Keelesdale Station,Bay 4,Keelesdale Station at Bus Bay 4
+keelesdale,43090,158,bus,158,Trethewey,West - 158 Trethewey towards Weston Rd and Oak,Bay 4,Keelesdale Station at Bus Bay 4
+keelesdale,42908,164,bus,164,Castlefield,East - 164 Castlefield towards Cedarvale Station,Bay 1,Keelesdale Station at Bus Bay 1
+kennedy,16082,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Kennedy Station - Westbound Platform
+kennedy,16082,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Kennedy Station - Westbound Platform
+kennedy,3802,12,bus,12,Kingston Rd,East - 12A Kingston Rd towards Kennedy Station via Variety Village and Brimley,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,3802,12,bus,12,Kingston Rd,East - 12B Kingston Rd towards Kennedy Station via Brimley,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,3802,12,bus,12,Kingston Rd,West - 12A Kingston Rd towards Victoria Park Station via Brimley and Variety Village,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,3802,12,bus,12,Kingston Rd,West - 12B Kingston Rd towards Victoria Park Station via Brimley,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,3802,12,bus,12,Kingston Rd,West - 12S Kingston Rd Short Turn towards Bingham Loop,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,41048,20,bus,20,Cliffside,East - 20 Cliffside towards Kennedy Station,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,42330,20,bus,20,Cliffside,East - 20 Cliffside towards Kennedy Station,,Kennedy Station Drop-off Platform
+kennedy,41048,20,bus,20,Cliffside,West - 20 Cliffside towards Main Street Station,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41049,21,bus,21,Brimley,North - 21C Brimley towards Steeles via Scarborough Centre Stn,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,41049,21,bus,21,Brimley,South - 21C Brimley towards Kennedy Station via Scarborough Centre Stn,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,42330,21,bus,21,Brimley,South - 21C Brimley towards Kennedy Station via Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,3801,34,bus,34,Eglinton,East - 34 Eglinton towards Kennedy Station,Bay 2,Kennedy Station at Bus Bay 2
+kennedy,4396,34,bus,34,Eglinton,East - 34 Eglinton towards Kennedy Station,,Eglinton Ave East at Kennedy Station
+kennedy,3801,34,bus,34,Eglinton,West - 34 Eglinton towards Mount Dennis Station,Bay 2,Kennedy Station at Bus Bay 2
+kennedy,41047,38,bus,38,Highland Creek,East - 38A Highland Creek towards Rouge Hill GO Stn via Scarborough Centre Stn,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,41047,38,bus,38,Highland Creek,West - 38 Highland Creek towards Kennedy Station via Scarborough Centre Stn,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,42330,38,bus,38,Highland Creek,West - 38 Highland Creek towards Kennedy Station via Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,42320,43,bus,43,Kennedy,North - 43A Kennedy towards Steeles,Bay 16,Kennedy Station at Bus Bay 16 (Platform B)
+kennedy,42320,43,bus,43,Kennedy,North - 43B Kennedy towards Scarborough Centre Stn via Progress,Bay 16,Kennedy Station at Bus Bay 16 (Platform B)
+kennedy,42320,43,bus,43,Kennedy,North - 43C Kennedy towards Village Green Square,Bay 16,Kennedy Station at Bus Bay 16 (Platform B)
+kennedy,42320,43,bus,43,Kennedy,South - 43 Kennedy towards Kennedy Station,Bay 16,Kennedy Station at Bus Bay 16 (Platform B)
+kennedy,42330,43,bus,43,Kennedy,South - 43 Kennedy towards Kennedy Station,,Kennedy Station Drop-off Platform
+kennedy,4396,43,bus,43,Kennedy,South - 43 Kennedy towards Kennedy Station,,Eglinton Ave East at Kennedy Station
+kennedy,41049,57,bus,57,Midland,North - 57 Midland towards Steeles,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,41049,57,bus,57,Midland,South - 57 Midland towards Kennedy Station,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,42330,57,bus,57,Midland,South - 57 Midland towards Kennedy Station,,Kennedy Station Drop-off Platform
+kennedy,3803,86,bus,86,Scarborough,East - 86A Scarborough towards Toronto Zoo,Bay 4,Kennedy Station at Bus Bay 4
+kennedy,3803,86,bus,86,Scarborough,East - 86B Scarborough towards Highland Creek,Bay 4,Kennedy Station at Bus Bay 4
+kennedy,3803,86,bus,86,Scarborough,East - 86C Scarborough towards Sheppard,Bay 4,Kennedy Station at Bus Bay 4
+kennedy,3803,86,bus,86,Scarborough,East - 86D Scarborough towards Beechgrove via Lawrence,Bay 4,Kennedy Station at Bus Bay 4
+kennedy,3803,86,bus,86,Scarborough,West - 86 Scarborough towards Kennedy Station,Bay 4,Kennedy Station at Bus Bay 4
+kennedy,41048,113,bus,113,Danforth,East - 113 Danforth towards Kennedy Station,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,42330,113,bus,113,Danforth,East - 113 Danforth towards Kennedy Station,,Kennedy Station Drop-off Platform
+kennedy,41048,113,bus,113,Danforth,West - 113 Danforth towards Main Street Station,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41048,113,bus,113,Danforth,West - 113S Danforth Short Turn towards Birchmount,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,3802,116,bus,116,Morningside,East - 116 Morningside towards Finch and Morningside,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,3802,116,bus,116,Morningside,West - 116 Morningside towards Kennedy Station,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,42319,129,bus,129,McCowan North,North - 129A McCowan North towards Major Mackenzie via Scarborough Centre Stn,Bay 15,Kennedy Station at Bus Bay 15 (Platform B)
+kennedy,42319,129,bus,129,McCowan North,North - 129B McCowan North towards Steeles via Scarborough Centre Stn,Bay 15,Kennedy Station at Bus Bay 15 (Platform B)
+kennedy,42319,129,bus,129,McCowan North,South - 129 McCowan North towards Kennedy Stn via Scarborough Centre Stn,Bay 15,Kennedy Station at Bus Bay 15 (Platform B)
+kennedy,42330,129,bus,129,McCowan North,South - 129 McCowan North towards Kennedy Stn via Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,41048,131,bus,131,Nugget,East - 131 Nugget towards Old Finch/Morningview via Scarborough Centre Stn,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41048,131,bus,131,Nugget,West - 131 Nugget towards Kennedy Stn via Scarborough Centre Stn,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,42330,131,bus,131,Nugget,West - 131 Nugget towards Kennedy Stn via Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,41047,133,bus,133,Neilson,North - 133 Neilson towards Morningside Heights via Centenary Hospital,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,41047,133,bus,133,Neilson,North - 133 Neilson towards Morningside Heights via Scarborough Centre Stn,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,41047,133,bus,133,Neilson,North - 133 Neilson towards Morningside Heights via Scarborough Centre Stn and Centenary Hospital,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,41047,133,bus,133,Neilson,South - 133 Neilson towards Kennedy Stn via Centenary Hospital and Scarborough Centre Stn,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,42330,133,bus,133,Neilson,South - 133 Neilson towards Kennedy Stn via Centenary Hospital and Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,41047,133,bus,133,Neilson,South - 133 Neilson towards Kennedy Stn via Scarborough Centre Stn,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,42330,133,bus,133,Neilson,South - 133 Neilson towards Kennedy Stn via Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,3803,154,bus,154,Curran Hall,East - 154 Curran Hall towards Conlins,Bay 4,Kennedy Station at Bus Bay 4
+kennedy,3803,154,bus,154,Curran Hall,West - 154 Curran Hall towards Kennedy Station,Bay 4,Kennedy Station at Bus Bay 4
+kennedy,42330,154,bus,154,Curran Hall,West - 154 Curran Hall towards Kennedy Station,,Kennedy Station Drop-off Platform
+kennedy,3802,201,bus,201,Bluffer's Park,North - 201 Bluffer's Park towards Kennedy Station,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,3802,201,bus,201,Bluffer's Park,South - 201 Bluffer's Park towards Bluffer's Park,Bay 3,Kennedy Station at Bus Bay 3
+kennedy,41048,300,bus,300,Bloor-Danforth,East - 300B Bloor-Danforth towards Kennedy Station,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41048,300,bus,300,Bloor-Danforth,East - 300B Bloor-Danforth towards Kennedy Station via Kipling Stn,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41048,300,bus,300,Bloor-Danforth,West - 300A Bloor-Danforth towards Pearson Airport,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41048,300,bus,300,Bloor-Danforth,West - 300B Bloor-Danforth towards West Mall,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41048,300,bus,300,Bloor-Danforth,West - 300S Bloor-Danforth Short Turn towards Castle Frank Stn,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41048,300,bus,300,Bloor-Danforth,West - 300S Bloor-Danforth Short Turn towards Keele Stn,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41048,300,bus,300,Bloor-Danforth,West - 300S Bloor-Danforth Short Turn towards Kipling Station,Bay 13,Kennedy Station at Bus Bay 13 (Platform B)
+kennedy,41047,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,4396,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station,,Eglinton Ave East at Kennedy Station
+kennedy,41047,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station via Mount Dennis Station,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,4396,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station via Mount Dennis Station,,Eglinton Ave East at Kennedy Station
+kennedy,41047,334,bus,334,Eglinton,East - 334B Eglinton towards Finch & Neilson via Morningside,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,4396,334,bus,334,Eglinton,East - 334B Eglinton towards Finch & Neilson via Morningside,,Eglinton Ave East at Kennedy Station
+kennedy,41049,334,bus,334,Eglinton,West - 334A Eglinton towards Pearson Airport,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,41049,334,bus,334,Eglinton,West - 334A Eglinton towards Pearson Airport via Mount Dennis Station,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,41049,334,bus,334,Eglinton,West - 334B Eglinton towards Black Creek,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,41049,334,bus,334,Eglinton,West - 334B Eglinton towards Mount Dennis Station,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,41049,334,bus,334,Eglinton,West - 334S Eglinton Short Turn towards Renforth Station,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,41049,334,bus,334,Eglinton,West - 334S Eglinton Short Turn towards Renforth Station via Mount Dennis Station,Bay 14,Kennedy Station at Bus Bay 14 (Platform B)
+kennedy,42320,343,bus,343,Kennedy,North - 343 Kennedy towards Steeles,Bay 16,Kennedy Station at Bus Bay 16 (Platform B)
+kennedy,42320,343,bus,343,Kennedy,South - 343 Kennedy towards Kennedy Station,Bay 16,Kennedy Station at Bus Bay 16 (Platform B)
+kennedy,4396,343,bus,343,Kennedy,South - 343 Kennedy towards Kennedy Station,,Eglinton Ave East at Kennedy Station
+kennedy,41047,386,bus,386,Scarborough,East - 386 Scarborough towards Sheppard,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,41047,386,bus,386,Scarborough,West - 386 Scarborough towards Kennedy Station,Bay 12,Kennedy Station at Bus Bay 12 (Platform B)
+kennedy,40036,903,bus,903,Kennedy Stn-Scarborough Express,North - 903A Kennedy Stn-Scarborough Express towards Centennial College via Scarborough Centre Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,40036,903,bus,903,Kennedy Stn-Scarborough Express,North - 903B Kennedy Stn-Scarborough Express towards Scarborough Centre Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,40036,903,bus,903,Kennedy Stn-Scarborough Express,South - 903A Kennedy Stn-Scarborough Express towards Kennedy Stn via Scarborough Centre Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,42330,903,bus,903,Kennedy Stn-Scarborough Express,South - 903A Kennedy Stn-Scarborough Express towards Kennedy Stn via Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,40036,903,bus,903,Kennedy Stn-Scarborough Express,South - 903B Kennedy Stn-Scarborough Express towards Kennedy Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,42330,903,bus,903,Kennedy Stn-Scarborough Express,South - 903B Kennedy Stn-Scarborough Express towards Kennedy Stn,,Kennedy Station Drop-off Platform
+kennedy,40036,904,bus,904,Sheppard-Kennedy Express,North - 904 Sheppard-Kennedy Express towards Don Mills Station via Scarborough Centre Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,40036,904,bus,904,Sheppard-Kennedy Express,South - 904 Sheppard-Kennedy Express towards Kennedy Stn via Scarborough Centre Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,42330,904,bus,904,Sheppard-Kennedy Express,South - 904 Sheppard-Kennedy Express towards Kennedy Stn via Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,11038,905,bus,905,Eglinton East Express,East - 905B Eglinton East Express towards U of T Scarborough,Bay 5,Kennedy Station at Bus Bay 5
+kennedy,11038,905,bus,905,Eglinton East Express,West - 905B Eglinton East Express towards Kennedy Station,Bay 5,Kennedy Station at Bus Bay 5
+kennedy,40036,939,bus,939,Finch Express,East - 939A Finch Express towards Kennedy Stn via Scarborough Centre Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,42330,939,bus,939,Finch Express,East - 939A Finch Express towards Kennedy Stn via Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,40036,939,bus,939,Finch Express,East - 939B Finch Express towards Kennedy Stn via Finch Stn and Scarborough Centre Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,42330,939,bus,939,Finch Express,East - 939B Finch Express towards Kennedy Stn via Finch Stn and Scarborough Centre Stn,,Kennedy Station Drop-off Platform
+kennedy,40036,939,bus,939,Finch Express,West - 939A Finch Express towards Finch Stn via Scarborough Centre Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,40036,939,bus,939,Finch Express,West - 939B Finch Express towards Finch West Stn via Scarborough Centre Stn and Finch Stn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,40036,939,bus,939,Finch Express,West - 939S Finch Express Short Turn,Bay 11,Kennedy Station at Bus Bay 11
+kennedy,11038,986,bus,986,Scarborough Express,East - 986 Scarborough Express towards Sheppard,Bay 5,Kennedy Station at Bus Bay 5
+kennedy,11038,986,bus,986,Scarborough Express,West - 986 Scarborough Express towards Kennedy Station,Bay 5,Kennedy Station at Bus Bay 5
+king,957,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at King St West - King Station
+king,11177,304,streetcar,304,King,East - 304 King Short Turn towards Broadview and Queen,,King St West at Yonge St East Side - King Station
+king,11177,304,streetcar,304,King,East - 304 King towards Broadview Station,,King St West at Yonge St East Side - King Station
+king,11177,304,streetcar,304,King,East - 304A King towards Distillery,,King St West at Yonge St East Side - King Station
+king,11176,304,streetcar,304,King,West - 304 King towards Dundas West Station,,King St West at Yonge St West Side - King Station
+king,11176,304,streetcar,304,King,West - 304B King towards Dufferin Gate,,King St West at Yonge St West Side - King Station
+king,6229,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at King St East - King Station
+king,6229,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at King St East - King Station
+king,6229,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at King St East - King Station
+king,6229,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at King St East - King Station
+king,957,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at King St West - King Station
+king,11177,503,streetcar,503,Kingston Rd,East - 503 Kingston Rd Replacement Bus towards Victoria Park,,King St West at Yonge St East Side - King Station
+king,11176,503,streetcar,503,Kingston Rd,West - 503 Kingston Rd Replacement Bus towards York via King,,King St West at Yonge St West Side - King Station
+king,11177,504,streetcar,504,King,East - 504 King Short Turn towards Broadview and Queen,,King St West at Yonge St East Side - King Station
+king,11177,504,streetcar,504,King,East - 504A King towards Distillery,,King St West at Yonge St East Side - King Station
+king,11177,504,streetcar,504,King,East - 504B King towards Broadview Station,,King St West at Yonge St East Side - King Station
+king,11176,504,streetcar,504,King,West - 504A King towards Dundas West Station,,King St West at Yonge St West Side - King Station
+king,11176,504,streetcar,504,King,West - 504B King towards Dufferin Gate,,King St West at Yonge St West Side - King Station
+kipling,3811,40,bus,40,Junction-Dundas West,East - 40 Junction-Dundas West towards Dundas West Station,Bay 5,Kipling Station at Bus Bay 5
+kipling,3811,40,bus,40,Junction-Dundas West,West - 40A Junction-Dundas West towards Kipling Station,Bay 5,Kipling Station at Bus Bay 5
+kipling,3812,44,bus,44,Kipling South,North - 44 Kipling South towards Kipling Station,Bay 6,Kipling Station at Bus Bay 6
+kipling,3812,44,bus,44,Kipling South,South - 44 Kipling South towards Lake Shore,Bay 6,Kipling Station at Bus Bay 6
+kipling,3815,45,bus,45,Kipling,North - 45A Kipling towards Steeles,Bay 9,Kipling Station at Bus Bay 9
+kipling,3815,45,bus,45,Kipling,North - 45B Kipling towards Carlingview via Belfield,Bay 9,Kipling Station at Bus Bay 9
+kipling,3815,45,bus,45,Kipling,South - 45 Kipling towards Kipling Station,Bay 9,Kipling Station at Bus Bay 9
+kipling,3814,46,bus,46,Martin Grove,North - 46 Martin Grove towards Steeles,Bay 8,Kipling Station at Bus Bay 8
+kipling,3814,46,bus,46,Martin Grove,South - 46 Martin Grove towards Kipling Station,Bay 8,Kipling Station at Bus Bay 8
+kipling,3811,49,bus,49,Bloor West,East - 49 Bloor West towards Kipling Station,Bay 5,Kipling Station at Bus Bay 5
+kipling,3811,49,bus,49,Bloor West,West - 49 Bloor West towards Markland Wood,Bay 5,Kipling Station at Bus Bay 5
+kipling,3807,111,bus,111,East Mall,North - 111 East Mall towards Eglinton,Bay 1,Kipling Station at Bus Bay 1
+kipling,3807,111,bus,111,East Mall,South - 111 East Mall towards Kipling Station,Bay 1,Kipling Station at Bus Bay 1
+kipling,3808,112,bus,112,West Mall,North - 112B West Mall towards Renforth Station,Bay 2,Kipling Station at Bus Bay 2
+kipling,3808,112,bus,112,West Mall,North - 112C West Mall towards Disco Rd via Renforth Station,Bay 2,Kipling Station at Bus Bay 2
+kipling,3808,112,bus,112,West Mall,South - 112 West Mall towards Kipling Station,Bay 2,Kipling Station at Bus Bay 2
+kipling,3808,112,bus,112,West Mall,South - 112 West Mall towards Kipling Station via Renforth Station,Bay 2,Kipling Station at Bus Bay 2
+kipling,3809,123,bus,123,Sherway,North - 123B Sherway towards Kipling Station via East Mall and Shorncliffe,Bay 3,Kipling Station at Bus Bay 3
+kipling,3809,123,bus,123,Sherway,North - 123C Sherway towards Kipling Station via North Queen and Shorncliffe,Bay 3,Kipling Station at Bus Bay 3
+kipling,3809,123,bus,123,Sherway,North - 123D Sherway towards Kipling Station via East Mall and Shorncliffe,Bay 3,Kipling Station at Bus Bay 3
+kipling,3809,123,bus,123,Sherway,North - 123F Sherway towards Kipling Station via West Mall,Bay 3,Kipling Station at Bus Bay 3
+kipling,3809,123,bus,123,Sherway,South - 123B Sherway towards Long Branch via Shorncliffe and East Mall,Bay 3,Kipling Station at Bus Bay 3
+kipling,3809,123,bus,123,Sherway,South - 123C Sherway towards Long Branch via Shorncliffe and North Queen,Bay 3,Kipling Station at Bus Bay 3
+kipling,3809,123,bus,123,Sherway,South - 123D Sherway towards Sherway Gardens via Shorncliffe and East Mall,Bay 3,Kipling Station at Bus Bay 3
+kipling,3809,123,bus,123,Sherway,South - 123F Sherway towards Sherway Gardens via West Mall,Bay 3,Kipling Station at Bus Bay 3
+kipling,3810,149,bus,149,Etobicoke-Bloor,East - 149 Etobicoke-Bloor towards Jane Station,Bay 4,Kipling Station at Bus Bay 4
+kipling,3810,149,bus,149,Etobicoke-Bloor,West - 149 Etobicoke-Bloor towards Kipling Station,Bay 4,Kipling Station at Bus Bay 4
+kipling,3814,300,bus,300,Bloor-Danforth,East - 300A Bloor-Danforth towards Warden,Bay 8,Kipling Station at Bus Bay 8
+kipling,3814,300,bus,300,Bloor-Danforth,East - 300A Bloor-Danforth towards Warden via Kipling Stn,Bay 8,Kipling Station at Bus Bay 8
+kipling,3814,300,bus,300,Bloor-Danforth,East - 300B Bloor-Danforth towards Kennedy Station,Bay 8,Kipling Station at Bus Bay 8
+kipling,3814,300,bus,300,Bloor-Danforth,East - 300B Bloor-Danforth towards Kennedy Station via Kipling Stn,Bay 8,Kipling Station at Bus Bay 8
+kipling,3810,300,bus,300,Bloor-Danforth,West - 300A Bloor-Danforth towards Pearson Airport via Kipling Stn,Bay 4,Kipling Station at Bus Bay 4
+kipling,3810,300,bus,300,Bloor-Danforth,West - 300S Bloor-Danforth Short Turn towards Kipling Station,Bay 4,Kipling Station at Bus Bay 4
+kipling,3810,900,bus,900,Airport Express,North - 900 Airport Express towards Pearson Airport,Bay 4,Kipling Station at Bus Bay 4
+kipling,3810,900,bus,900,Airport Express,South - 900 Airport Express towards Kipling Station,Bay 4,Kipling Station at Bus Bay 4
+kipling,3813,927,bus,927,Highway 27 Express,North - 927A Highway 27 Express towards Humber College Station,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,North - 927B Highway 27 Express towards Steeles via Humber College Station,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,North - 927C Highway 27 Express towards Humber College Station via Attwell,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,North - 927D Highway 27 Express towards Steeles and Signal Hill via Humber College Station,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,North - 927D Highway 27 Express towards Steeles and Signal Hill via Royalcrest and Humber College Station,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,South - 927 Highway 27 Express towards Kipling Station,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,South - 927B Highway 27 Express towards Kipling Station via Humber College Station,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,South - 927C Highway 27 Express towards Kipling Station via Attwell,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,South - 927D Highway 27 Express towards Kipling Station via Humber College Station,Bay 7,Kipling Station at Bus Bay 7
+kipling,3813,927,bus,927,Highway 27 Express,South - 927D Highway 27 Express towards Kipling Station via Royalcrest and Humber College Station,Bay 7,Kipling Station at Bus Bay 7
+laird,16075,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Laird Station - Eastbound Platform
+laird,16076,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Laird Station - Westbound Platform
+lansdowne,7623,47,bus,47,Lansdowne,North - 47 Lansdowne towards Caledonia Station,,Lansdowne Ave at Wade Ave - Lansdowne Station
+lansdowne,8607,47,bus,47,Lansdowne,South - 47 Lansdowne towards Queen,,Lansdowne Ave at Wade Ave - Lansdowne Station
+lawrence,3816,52,bus,52,Lawrence West,East - 52 Lawrence West towards Lawrence Station,Bay 2,Lawrence Station at Bus Bay 2
+lawrence,4117,52,bus,52,Lawrence West,East - 52 Lawrence West towards Lawrence Station,Bay 1,Lawrence Station at Bus Bay 1
+lawrence,3816,52,bus,52,Lawrence West,West - 52A Lawrence West towards Pearson Airport via Dixon Rd,Bay 2,Lawrence Station at Bus Bay 2
+lawrence,3816,52,bus,52,Lawrence West,West - 52B Lawrence West towards Westwood via Dixon Rd,Bay 2,Lawrence Station at Bus Bay 2
+lawrence,3816,52,bus,52,Lawrence West,West - 52D Lawrence West towards McNaughton via Dixon Rd,Bay 2,Lawrence Station at Bus Bay 2
+lawrence,4117,52,bus,52,Lawrence West,West - 52F Lawrence West towards Royal York,Bay 1,Lawrence Station at Bus Bay 1
+lawrence,4117,52,bus,52,Lawrence West,West - 52G Lawrence West towards Martin Grove via The Westway,Bay 1,Lawrence Station at Bus Bay 1
+lawrence,10302,97,bus,97,Yonge,North - 97A Yonge towards Steeles,,Yonge St at Lawrence Ave East North Side - Lawrence Station
+lawrence,10302,97,bus,97,Yonge,North - 97B Yonge towards Steeles via Yonge Blvd,,Yonge St at Lawrence Ave East North Side - Lawrence Station
+lawrence,2199,97,bus,97,Yonge,South - 97A Yonge towards St Clair Station,,Yonge St at Lawrence Ave West - Lawrence Station
+lawrence,2199,97,bus,97,Yonge,South - 97B Yonge towards St Clair Station via Yonge Blvd,,Yonge St at Lawrence Ave West - Lawrence Station
+lawrence,3817,124,bus,124,Sunnybrook,East - 124 Sunnybrook towards Sunnybrook Hospital,Bay 4,Lawrence Station at Bus Bay 4
+lawrence,3817,124,bus,124,Sunnybrook,West - 124 Sunnybrook towards Lawrence Station,Bay 4,Lawrence Station at Bus Bay 4
+lawrence,9270,124,bus,124,Sunnybrook,West - 124 Sunnybrook towards Lawrence Station,,Lawrence Ave at Yonge St - Lawrence Station
+lawrence,3818,162,bus,162,Lawrence-Donway,East - 162 Lawrence-Donway towards Don Valley Station,Bay 5,Lawrence Station at Bus Bay 5
+lawrence,3818,162,bus,162,Lawrence-Donway,West - 162 Lawrence-Donway towards Lawrence Station,Bay 5,Lawrence Station at Bus Bay 5
+lawrence,9270,162,bus,162,Lawrence-Donway,West - 162 Lawrence-Donway towards Lawrence Station,,Lawrence Ave at Yonge St - Lawrence Station
+lawrence,10302,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Lawrence Ave East North Side - Lawrence Station
+lawrence,10302,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Lawrence Ave East North Side - Lawrence Station
+lawrence,10302,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Lawrence Ave East North Side - Lawrence Station
+lawrence,10302,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Lawrence Ave East North Side - Lawrence Station
+lawrence,2199,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Lawrence Ave West - Lawrence Station
+lawrence,9270,352,bus,352,Lawrence West,West - 352 Lawrence West towards Pearson Airport,,Lawrence Ave at Yonge St - Lawrence Station
+lawrence,4117,952,bus,952,Lawrence West Express,East - 952 Lawrence West Express towards Lawrence Station,Bay 1,Lawrence Station at Bus Bay 1
+lawrence,4117,952,bus,952,Lawrence West Express,West - 952 Lawrence West Express towards Pearson Airport,Bay 1,Lawrence Station at Bus Bay 1
+lawrence-west,10111,52,bus,52,Lawrence West,East - 52 Lawrence West towards Lawrence Station,,Lawrence West Station
+lawrence-west,10111,52,bus,52,Lawrence West,East - 52G Lawrence West towards Lawrence West Station,,Lawrence West Station
+lawrence-west,3825,52,bus,52,Lawrence West,West - 52A Lawrence West towards Pearson Airport via Dixon Rd,Bay 4,Lawrence West Station at Bus Bay 4
+lawrence-west,4906,52,bus,52,Lawrence West,West - 52A Lawrence West towards Pearson Airport via Dixon Rd,,Lawrence West Station
+lawrence-west,3825,52,bus,52,Lawrence West,West - 52B Lawrence West towards Westwood via Dixon Rd,Bay 4,Lawrence West Station at Bus Bay 4
+lawrence-west,4906,52,bus,52,Lawrence West,West - 52B Lawrence West towards Westwood via Dixon Rd,,Lawrence West Station
+lawrence-west,3825,52,bus,52,Lawrence West,West - 52D Lawrence West towards McNaughton via Dixon Rd,Bay 4,Lawrence West Station at Bus Bay 4
+lawrence-west,4906,52,bus,52,Lawrence West,West - 52D Lawrence West towards McNaughton via Dixon Rd,,Lawrence West Station
+lawrence-west,3824,52,bus,52,Lawrence West,West - 52F Lawrence West towards Royal York,Bay 3,Lawrence West Station at Bus Bay 3
+lawrence-west,3826,52,bus,52,Lawrence West,West - 52G Lawrence West towards Martin Grove via The Westway,Bay 5,Lawrence West Station at Bus Bay 5
+lawrence-west,4906,52,bus,52,Lawrence West,West - 52G Lawrence West towards Martin Grove via The Westway,,Lawrence West Station
+lawrence-west,3823,59,bus,59,Maple Leaf,East - 59 Maple Leaf towards Lawrence West Station via Culford and Benton,Bay 2,Lawrence West Station at Bus Bay 2
+lawrence-west,3823,59,bus,59,Maple Leaf,West - 59A Maple Leaf towards Weston Rd via Culford and Benton and Gary Dr,Bay 2,Lawrence West Station at Bus Bay 2
+lawrence-west,3823,59,bus,59,Maple Leaf,West - 59B Maple Leaf towards Weston Rd via Culford and Benton and Church,Bay 2,Lawrence West Station at Bus Bay 2
+lawrence-west,3822,109,bus,109,Ranee,North - 109B Ranee towards Neptune via Flemington,Bay 1,Lawrence West Station at Bus Bay 1
+lawrence-west,3822,109,bus,109,Ranee,North - 109C Ranee towards Neptune via Varna,Bay 1,Lawrence West Station at Bus Bay 1
+lawrence-west,3822,109,bus,109,Ranee,North - 109S Ranee Short Turn,Bay 1,Lawrence West Station at Bus Bay 1
+lawrence-west,3823,109,bus,109,Ranee,South - 109B Ranee towards Cedarvale Station via Flemington,Bay 2,Lawrence West Station at Bus Bay 2
+lawrence-west,3823,109,bus,109,Ranee,South - 109C Ranee towards Cedarvale Station via Varna,Bay 2,Lawrence West Station at Bus Bay 2
+lawrence-west,3822,109,bus,109,Ranee,South - 109S Ranee Short Turn towards Lawrence West Station,Bay 1,Lawrence West Station at Bus Bay 1
+lawrence-west,10111,352,bus,352,Lawrence West,East - 352 Lawrence West towards Sunnybrook Hospital,,Lawrence West Station
+lawrence-west,4906,352,bus,352,Lawrence West,West - 352 Lawrence West towards Pearson Airport,,Lawrence West Station
+lawrence-west,3822,400,bus,400,Lawrence Manor,East - 400 Lawrence Manor Community Bus  towards No Frills,Bay 1,Lawrence West Station at Bus Bay 1
+lawrence-west,3822,400,bus,400,Lawrence Manor,West - 400 Lawrence Manor Community Bus  towards Caboto Terrace,Bay 1,Lawrence West Station at Bus Bay 1
+lawrence-west,3822,400,bus,400,Lawrence Manor,West - 400 Lawrence Manor Community Bus  towards Humber River Hospital,Bay 1,Lawrence West Station at Bus Bay 1
+lawrence-west,10111,952,bus,952,Lawrence West Express,East - 952 Lawrence West Express towards Lawrence Station,,Lawrence West Station
+lawrence-west,3824,952,bus,952,Lawrence West Express,West - 952 Lawrence West Express towards Pearson Airport,Bay 3,Lawrence West Station at Bus Bay 3
+leaside,16214,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Leaside Station - Eastbound Platform
+leaside,16215,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Leaside Station - Westbound Platform
+leslie,3720,51,bus,51,Leslie,North - 51A Leslie towards Leslie Station via Laird Station,Bay 2,Leslie Station at Bus Bay 2
+leslie,3720,51,bus,51,Leslie,South - 51 Leslie towards Donlands Station via Laird Station,Bay 2,Leslie Station at Bus Bay 2
+leslie,3720,51,bus,51,Leslie,South - 51S Leslie Short Turn towards Eglinton & Leslie,Bay 2,Leslie Station at Bus Bay 2
+leslie,3721,151,bus,151,Leslie North,North - 151 Leslie North towards Steeles,Bay 3,Leslie Station at Bus Bay 3
+leslie,3721,151,bus,151,Leslie North,South - 151 Leslie North towards Leslie Station,Bay 3,Leslie Station at Bus Bay 3
+leslie,5680,185,bus,185,Sheppard Central,East - 185 Sheppard Central towards Don Mills Station,,Sheppard Ave East at Old Leslie St - Leslie Station
+leslie,8243,185,bus,185,Sheppard Central,West - 185 Sheppard Central towards Sheppard-Yonge Station,,Sheppard Ave East at Leslie St - Leslie Station
+leslie,5680,385,bus,385,Sheppard East,East - 385 Sheppard East towards Rouge Hill GO Stn,,Sheppard Ave East at Old Leslie St - Leslie Station
+leslie,5680,385,bus,385,Sheppard East,East - 385S Sheppard East Short Turn towards Meadowvale,,Sheppard Ave East at Old Leslie St - Leslie Station
+leslie,8243,385,bus,385,Sheppard East,West - 385 Sheppard East towards Sheppard-Yonge Station,,Sheppard Ave East at Leslie St - Leslie Station
+main-street,3828,20,bus,20,Cliffside,East - 20 Cliffside towards Kennedy Station,Bay 2,Main Street Station at Bus Bay 2
+main-street,3828,20,bus,20,Cliffside,West - 20 Cliffside towards Main Street Station,Bay 2,Main Street Station at Bus Bay 2
+main-street,3827,23,bus,23,Dawes,North - 23 Dawes towards St Clair,Bay 1,Main Street Station at Bus Bay 1
+main-street,3827,23,bus,23,Dawes,South - 23 Dawes towards Main Street Station,Bay 1,Main Street Station at Bus Bay 1
+main-street,3830,62,bus,62,Mortimer,East - 62 Mortimer towards Main Street Station via Broadview Station,Bay 4,Main Street Station at Bus Bay 4
+main-street,3830,62,bus,62,Mortimer,West - 62 Mortimer towards Hennick Bridgepoint Hospital via Broadview Station,Bay 4,Main Street Station at Bus Bay 4
+main-street,3831,64,bus,64,Main,North - 64 Main towards Main Street Station,Bay 5,Main Street Station at Bus Bay 5
+main-street,3831,64,bus,64,Main,South - 64 Main towards Queen,Bay 5,Main Street Station at Bus Bay 5
+main-street,3829,87,bus,87,Cosburn,East - 87A Cosburn towards Main Street Station via East York Acres,Bay 3,Main Street Station at Bus Bay 3
+main-street,3829,87,bus,87,Cosburn,East - 87C Cosburn towards Main Street Station,Bay 3,Main Street Station at Bus Bay 3
+main-street,3829,87,bus,87,Cosburn,West - 87A Cosburn towards Broadview Station via East York Acres,Bay 3,Main Street Station at Bus Bay 3
+main-street,3829,87,bus,87,Cosburn,West - 87C Cosburn towards Broadview Station,Bay 3,Main Street Station at Bus Bay 3
+main-street,3828,113,bus,113,Danforth,East - 113 Danforth towards Kennedy Station,Bay 2,Main Street Station at Bus Bay 2
+main-street,3828,113,bus,113,Danforth,West - 113 Danforth towards Main Street Station,Bay 2,Main Street Station at Bus Bay 2
+main-street,3830,135,bus,135,Gerrard,East - 135 Gerrard towards Warden Station,Bay 4,Main Street Station at Bus Bay 4
+main-street,3830,135,bus,135,Gerrard,West - 135 Gerrard towards Main Street Station,Bay 4,Main Street Station at Bus Bay 4
+main-street,3832,306,streetcar,306,Carlton,East - 306 Carlton towards Main Street Station,Bay 7,Main Street Station at Bay 7
+main-street,3832,306,streetcar,306,Carlton,West - 306 Carlton towards High Park,Bay 7,Main Street Station at Bay 7
+main-street,3832,506,streetcar,506,Carlton,East - 506 Carlton towards Main Street Station,Bay 7,Main Street Station at Bay 7
+main-street,3832,506,streetcar,506,Carlton,West - 506 Carlton Short Turn towards Coxwell and Queen,Bay 7,Main Street Station at Bay 7
+main-street,3832,506,streetcar,506,Carlton,West - 506 Carlton towards High Park,Bay 7,Main Street Station at Bay 7
+martin-grove,16293,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Martin Grove Station - Eastbound Platform
+martin-grove,16294,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Martin Grove Station - Westbound Platform
+milvan-rumike,16307,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Milvan Rumike Station - Eastbound Platform
+milvan-rumike,16308,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Milvan Rumike Station - Westbound Platform
+mount-dennis,16067,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Mount Dennis Station - Eastbound Platform
+mount-dennis,16068,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Mount Dennis Station - Subway Platform
+mount-dennis,16067,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Mount Dennis Station - Eastbound Platform
+mount-dennis,16068,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Mount Dennis Station - Subway Platform
+mount-dennis,43091,27,bus,27,Jane South,North - 27 Jane South towards Mount Dennis Station,Bay 2,Mount Dennis Station at Bus Bay 2
+mount-dennis,43091,27,bus,27,Jane South,South - 27 Jane South towards Jane Station,Bay 2,Mount Dennis Station at Bus Bay 2
+mount-dennis,42998,32,bus,32,Eglinton West,East - 32 Eglinton West towards Mount Dennis Station,Bay 13,Mount Dennis Station at Bus Bay 13
+mount-dennis,42998,32,bus,32,Eglinton West,West - 32 Eglinton West towards Renforth Station,Bay 13,Mount Dennis Station at Bus Bay 13
+mount-dennis,42995,34,bus,34,Eglinton,East - 34 Eglinton towards Kennedy Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42995,34,bus,34,Eglinton,West - 34 Eglinton towards Mount Dennis Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,43095,35,bus,35,Jane,North - 35A Jane towards Pioneer Village Station,Bay 15,Mount Dennis Station at Bus Bay 15
+mount-dennis,43095,35,bus,35,Jane,North - 35A Jane towards Steeles,Bay 15,Mount Dennis Station at Bus Bay 15
+mount-dennis,43095,35,bus,35,Jane,North - 35B Jane towards Pioneer Village Station via Hullmar,Bay 15,Mount Dennis Station at Bus Bay 15
+mount-dennis,43095,35,bus,35,Jane,South - 35A Jane towards Mount Dennis Station,Bay 15,Mount Dennis Station at Bus Bay 15
+mount-dennis,43095,35,bus,35,Jane,South - 35B Jane towards Mount Dennis Station via Hullmar,Bay 15,Mount Dennis Station at Bus Bay 15
+mount-dennis,42996,71,bus,71,Runnymede,North - 71 Runnymede towards Industry St via Mount Dennis Station,Bay 9,Mount Dennis Station at Bus Bay 9
+mount-dennis,42993,71,bus,71,Runnymede,South - 71 Runnymede towards Runnymede Station via Mount Dennis Station,Bay 6,Mount Dennis Station at Bus Bay 6
+mount-dennis,42993,71,bus,71,Runnymede,South - 71S Runnymede Short Turn towards Mount Dennis Station,Bay 6,Mount Dennis Station at Bus Bay 6
+mount-dennis,42994,73,bus,73,Royal York,North - 73B Royal York towards Mount Dennis Station,Bay 7,Mount Dennis Station at Bus Bay 7
+mount-dennis,42994,73,bus,73,Royal York,South - 73 Royal York towards Royal York Station,Bay 7,Mount Dennis Station at Bus Bay 7
+mount-dennis,43093,89,bus,89,Weston,North - 89 Weston towards Albion Rd via Mount Dennis Station,Bay 11,Mount Dennis Station at Bus Bay 11
+mount-dennis,42991,89,bus,89,Weston,South - 89 Weston towards Bloor via Mount Dennis Station,Bay 3,Mount Dennis Station at Bus Bay 3
+mount-dennis,42991,89,bus,89,Weston,South - 89 Weston towards Keele Station via Mount Dennis Station,Bay 3,Mount Dennis Station at Bus Bay 3
+mount-dennis,42997,161,bus,161,Rogers Rd,East - 161 Rogers Rd towards Ossington Station,Bay 10,Mount Dennis Station at Bus Bay 10
+mount-dennis,42997,161,bus,161,Rogers Rd,West - 161 Rogers Rd towards Mount Dennis Station,Bay 10,Mount Dennis Station at Bus Bay 10
+mount-dennis,42995,164,bus,164,Castlefield,East - 164 Castlefield towards Cedarvale Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42995,164,bus,164,Castlefield,West - 164 Castlefield towards Mount Dennis Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42992,168,bus,168,Symington,North - 168 Symington towards Mount Dennis Station,Bay 5,Mount Dennis Station at Bus Bay 5
+mount-dennis,42992,168,bus,168,Symington,South - 168 Symington towards Dundas West Station,Bay 5,Mount Dennis Station at Bus Bay 5
+mount-dennis,42996,171,bus,171,Mount Dennis,North - 171 Mount Dennis towards Industry Street,Bay 9,Mount Dennis Station at Bus Bay 9
+mount-dennis,42996,171,bus,171,Mount Dennis,North - 171A Mount Dennis towards Industry Street via Mount Dennis Station,Bay 9,Mount Dennis Station at Bus Bay 9
+mount-dennis,42993,171,bus,171,Mount Dennis,South - 171A Mount Dennis towards Jane via Mount Dennis Station,Bay 6,Mount Dennis Station at Bus Bay 6
+mount-dennis,42996,171,bus,171,Mount Dennis,South - 171B Mount Dennis towards Mount Dennis Station,Bay 9,Mount Dennis Station at Bus Bay 9
+mount-dennis,42995,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42995,334,bus,334,Eglinton,East - 334A Eglinton towards Kennedy Station via Mount Dennis Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42995,334,bus,334,Eglinton,East - 334B Eglinton towards Finch & Neilson via Morningside,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42995,334,bus,334,Eglinton,East - 334S Eglinton Short Turn towards Cedarvale Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42995,334,bus,334,Eglinton,East - 334S Eglinton Short Turn towards Eglinton Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42995,334,bus,334,Eglinton,East - 334S Eglinton Short Turn towards Mount Dennis Station,Bay 8,Mount Dennis Station at Bus Bay 8
+mount-dennis,42998,334,bus,334,Eglinton,West - 334A Eglinton towards Pearson Airport,Bay 13,Mount Dennis Station at Bus Bay 13
+mount-dennis,42998,334,bus,334,Eglinton,West - 334A Eglinton towards Pearson Airport via Mount Dennis Station,Bay 13,Mount Dennis Station at Bus Bay 13
+mount-dennis,42998,334,bus,334,Eglinton,West - 334B Eglinton towards Mount Dennis Station,Bay 13,Mount Dennis Station at Bus Bay 13
+mount-dennis,42998,334,bus,334,Eglinton,West - 334S Eglinton Short Turn towards Renforth Station via Mount Dennis Station,Bay 13,Mount Dennis Station at Bus Bay 13
+mount-dennis,43094,989,bus,989,Weston Express,North - 989 Weston Express towards Steeles via Mount Dennis Station,Bay 12,Mount Dennis Station at Bus Bay 12
+mount-dennis,43092,989,bus,989,Weston Express,South - 989 Weston Express towards Keele Station via Mount Dennis Station,Bay 4,Mount Dennis Station at Bus Bay 4
+mount-olive,16299,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Mount Olive Station - Eastbound Platform
+mount-olive,16300,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Mount Olive Station - Westbound Platform
+mount-pleasant,16212,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Mount Pleasant Station - Eastbound Platform
+mount-pleasant,16213,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Mount Pleasant Station - Westbound Platform
+museum,7503,13,bus,13,Avenue Rd,North - 13 Avenue Rd towards Eglinton Station,,Queen's Park at Charles St West North Side - Museum Station
+museum,7503,13,bus,13,Avenue Rd,North - 13S Avenue Rd Short Turn towards Museum Station,,Queen's Park at Charles St West North Side - Museum Station
+museum,875,13,bus,13,Avenue Rd,South - 13A Avenue Rd towards Queen's Park,,Queen's Park at Charles St West - Museum Station
+museum,875,13,bus,13,Avenue Rd,South - 13B Avenue Rd towards Gerrard,,Queen's Park at Charles St West - Museum Station
+norfinch-oakdale,16313,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Norfinch Oakdale Station - Eastbound Platform
+norfinch-oakdale,16314,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Norfinch Oakdale Station - Westbound Platform
+north-york-centre,1050,97,bus,97,Yonge,North - 97A Yonge towards Steeles,,Yonge St at Empress Ave - North York Centre Station
+north-york-centre,1050,97,bus,97,Yonge,North - 97B Yonge towards Steeles via Yonge Blvd,,Yonge St at Empress Ave - North York Centre Station
+north-york-centre,1050,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Empress Ave - North York Centre Station
+north-york-centre,1050,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Empress Ave - North York Centre Station
+o_connor,16222,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,O'Connor Station - Eastbound Platform
+o_connor,16223,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,O'Connor Station - Westbound Platform
+oakwood,16206,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Oakwood Station - Eastbound Platform
+oakwood,16207,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Oakwood Station - Westbound Platform
+old-mill,18540,66,bus,66,Prince Edward,North - 66 Prince Edward towards Old Mill Station,Bay 3,Old Mill Station at Bus Bay 3
+old-mill,3833,66,bus,66,Prince Edward,North - 66 Prince Edward towards Old Mill Station,Bay 2,Old Mill Station at Bus Bay 2
+old-mill,18540,66,bus,66,Prince Edward,South - 66A Prince Edward towards Humber Loop,Bay 3,Old Mill Station at Bus Bay 3
+old-mill,3833,66,bus,66,Prince Edward,South - 66B Prince Edward towards Lake Shore,Bay 2,Old Mill Station at Bus Bay 2
+osgoode,10594,301,streetcar,301,Queen,East - 301 Queen towards Neville Park,,Queen St West at University Ave - Osgoode Station
+osgoode,5919,301,streetcar,301,Queen,West - 301 Queen Short Turn towards Roncesvalles,,Queen St West at University Ave - Osgoode Station
+osgoode,5919,301,streetcar,301,Queen,West - 301 Queen towards Humber,,Queen St West at University Ave - Osgoode Station
+osgoode,10594,501,streetcar,501,Queen,East - 501 Queen towards Neville Park,,Queen St West at University Ave - Osgoode Station
+osgoode,5919,501,streetcar,501,Queen,West - 501 Queen Short Turn towards Roncesvalles,,Queen St West at University Ave - Osgoode Station
+osgoode,5919,501,streetcar,501,Queen,West - 501 Queen towards Humber,,Queen St West at University Ave - Osgoode Station
+ossington,3834,63,bus,63,Ossington,North - 63A Ossington towards Cedarvale Station,Bay 2,Ossington Station at Bus Bay 2
+ossington,3834,63,bus,63,Ossington,North - 63B Ossington towards St Clair,Bay 2,Ossington Station at Bus Bay 2
+ossington,18245,63,bus,63,Ossington,South - 63 Ossington towards Liberty Village,Bay 6,Ossington Station at Bus Bay 6
+ossington,3836,94,bus,94,Wellesley,East - 94 Wellesley towards Castle Frank Station,Bay 4,Ossington Station at Bus Bay 4
+ossington,3836,94,bus,94,Wellesley,West - 94A Wellesley towards Ossington Station,Bay 4,Ossington Station at Bus Bay 4
+ossington,3835,161,bus,161,Rogers Rd,East - 161 Rogers Rd towards Ossington Station,Bay 3,Ossington Station at Bus Bay 3
+ossington,3835,161,bus,161,Rogers Rd,West - 161 Rogers Rd towards Mount Dennis Station,Bay 3,Ossington Station at Bus Bay 3
+pearldale,16303,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Pearldale Station - Eastbound Platform
+pearldale,16304,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Pearldale Station - Westbound Platform
+pharmacy,16224,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Pharmacy Station - Eastbound Platform
+pharmacy,16225,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Pharmacy Station - Westbound Platform
+pioneer-village,11233,35,bus,35,Jane,North - 35A Jane towards Pioneer Village Station,Bay 8,Pioneer Village Station Bus Bay 8
+pioneer-village,11233,35,bus,35,Jane,North - 35B Jane towards Pioneer Village Station via Hullmar,Bay 8,Pioneer Village Station Bus Bay 8
+pioneer-village,11233,35,bus,35,Jane,South - 35A Jane towards Mount Dennis Station,Bay 8,Pioneer Village Station Bus Bay 8
+pioneer-village,11233,35,bus,35,Jane,South - 35B Jane towards Mount Dennis Station via Hullmar,Bay 8,Pioneer Village Station Bus Bay 8
+pioneer-village,11233,35,bus,35,Jane,South - 35S Jane Short Turn towards Eglinton,Bay 8,Pioneer Village Station Bus Bay 8
+pioneer-village,11267,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station,Bay 11,Pioneer Village Station Bus Bay 11
+pioneer-village,11267,41,bus,41,Keele,North - 41 Keele towards Pioneer Village Station via Keelesdale Station,Bay 11,Pioneer Village Station Bus Bay 11
+pioneer-village,11267,41,bus,41,Keele,South - 41 Keele towards Keele Station via Keelesdale Station,Bay 11,Pioneer Village Station Bus Bay 11
+pioneer-village,11230,60,bus,60,Steeles West,East - 60 Steeles West towards Finch Station via Pioneer Village Station,Bay 4,Pioneer Village Station Bus Bay 4
+pioneer-village,11230,60,bus,60,Steeles West,West - 60A Steeles West towards Pioneer Village Station,Bay 4,Pioneer Village Station Bus Bay 4
+pioneer-village,11266,60,bus,60,Steeles West,West - 60B Steeles West towards Martin Grove via Pioneer Village Station,Bay 10,Pioneer Village Station Bus Bay 10
+pioneer-village,11266,60,bus,60,Steeles West,West - 60D Steeles West towards Highway 27 via Pioneer Village Station,Bay 10,Pioneer Village Station Bus Bay 10
+pioneer-village,11229,84,bus,84,Sheppard West,East - 84 Sheppard West towards Sheppard-Yonge Station via Sheppard West Station,Bay 3,Pioneer Village Station Bus Bay 3
+pioneer-village,11229,84,bus,84,Sheppard West,West - 84D Sheppard West towards Pioneer Village Station via Oakdale,Bay 3,Pioneer Village Station Bus Bay 3
+pioneer-village,11264,106,bus,106,Sentinel,East - 106 Sentinel towards Sheppard West Station,Bay 2,Pioneer Village Station Bus Bay 2
+pioneer-village,11264,106,bus,106,Sentinel,West - 106 Sentinel towards  Pioneer Village Station,Bay 2,Pioneer Village Station Bus Bay 2
+pioneer-village,11232,108,bus,108,Driftwood,East - 108A Driftwood towards Sheppard West Station via Grandravine,Bay 6,Pioneer Village Station Bus Bay 6
+pioneer-village,11232,108,bus,108,Driftwood,East - 108B Driftwood towards Sheppard West Station via Arleta,Bay 6,Pioneer Village Station Bus Bay 6
+pioneer-village,11232,108,bus,108,Driftwood,East - 108S Driftwood Short Turn,Bay 6,Pioneer Village Station Bus Bay 6
+pioneer-village,11232,108,bus,108,Driftwood,West - 108A Driftwood towards Pioneer Village Station via Grandravine,Bay 6,Pioneer Village Station Bus Bay 6
+pioneer-village,11232,108,bus,108,Driftwood,West - 108B Driftwood towards Pioneer Village Station via Arleta,Bay 6,Pioneer Village Station Bus Bay 6
+pioneer-village,11268,166,bus,166,Toryork,East - 166 Toryork towards Pioneer Village Station,Bay 12,Pioneer Village Station Bus Bay 12
+pioneer-village,11268,166,bus,166,Toryork,West - 166 Toryork towards Milvan,Bay 12,Pioneer Village Station Bus Bay 12
+pioneer-village,11268,166,bus,166,Toryork,West - 166S Toryork Short Turn towards Emery Station,Bay 12,Pioneer Village Station Bus Bay 12
+pioneer-village,11233,335,bus,335,Jane,North - 335S Jane Short Turn towards Pioneer Village Station,Bay 8,Pioneer Village Station Bus Bay 8
+pioneer-village,11233,335,bus,335,Jane,South - 335 Jane towards Jane Station,Bay 8,Pioneer Village Station Bus Bay 8
+pioneer-village,11233,335,bus,335,Jane,South - 335S Jane Short Turn towards Pioneer Village Station,Bay 8,Pioneer Village Station Bus Bay 8
+pioneer-village,11230,353,bus,353,Steeles,East - 353 Steeles East towards Staines,Bay 4,Pioneer Village Station Bus Bay 4
+pioneer-village,11265,935,bus,935,Jane Express,North - 935 Jane Express towards Pioneer Village Station,Bay 9,Pioneer Village Station Bus Bay 9
+pioneer-village,11265,935,bus,935,Jane Express,South - 935 Jane Express towards Jane Station,Bay 9,Pioneer Village Station Bus Bay 9
+pioneer-village,11231,960,bus,960,Steeles West Express,East - 960B Steeles West Express towards Finch Station via Pioneer Village Station,Bay 5,Pioneer Village Station Bus Bay 5
+pioneer-village,11266,960,bus,960,Steeles West Express,West - 960B Steeles West Express towards Martin Grove via Pioneer Village Station,Bay 10,Pioneer Village Station Bus Bay 10
+pioneer-village,11266,960,bus,960,Steeles West Express,West - 960D Steeles West Express towards Highway 27 via Pioneer Village Station,Bay 10,Pioneer Village Station Bus Bay 10
+queen,1019,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,,Yonge St at Queen St East - Queen Station
+queen,1162,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at Queen St West - Queen Station
+queen,1019,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Queen St East - Queen Station
+queen,1019,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Queen St East - Queen Station
+queen,1019,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Queen St East - Queen Station
+queen,1019,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Queen St East - Queen Station
+queen,1162,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Queen St West - Queen Station
+queens-park,674,13,bus,13,Avenue Rd,North - 13 Avenue Rd towards Eglinton Station,,University Ave at College St - Queen's Park Station
+queens-park,18827,13,bus,13,Avenue Rd,South - 13B Avenue Rd towards Gerrard,,University Ave at College St - Queen's Park Station
+rosedale,3839,82,bus,82,Rosedale,East - 82 Rosedale towards Summerhill,Bay 2,Rosedale Station at Bus Bay 2
+rosedale,3839,82,bus,82,Rosedale,West - 82 Rosedale towards Rosedale Station,Bay 2,Rosedale Station at Bus Bay 2
+rosedale,1440,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,,Yonge St at Crescent Rd - Rosedale Station
+rosedale,5514,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at Crescent Rd South Side - Rosedale Station
+rosedale,1440,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Crescent Rd - Rosedale Station
+rosedale,1440,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Crescent Rd - Rosedale Station
+rosedale,1440,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Crescent Rd - Rosedale Station
+rosedale,1440,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Crescent Rd - Rosedale Station
+rosedale,5514,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Crescent Rd South Side - Rosedale Station
+rowntree-mills,16301,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Rowntree Mills Station - Eastbound Platform
+rowntree-mills,16302,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Rowntree Mills Station - Westbound Platform
+royal-york,18594,15,bus,15,Evans,East - 15 Evans towards Royal York Station,Bay 3,Royal York Station at Bus Bay 3
+royal-york,18594,15,bus,15,Evans,West - 15 Evans towards Sherway Gardens,Bay 3,Royal York Station at Bus Bay 3
+royal-york,18593,48,bus,48,Rathburn,East - 48 Rathburn towards Royal York Station,Bay 2,Royal York Station at Bus Bay 2
+royal-york,18593,48,bus,48,Rathburn,West - 48 Rathburn towards Mill Rd,Bay 2,Royal York Station at Bus Bay 2
+royal-york,18592,73,bus,73,Royal York,North - 73B Royal York towards Mount Dennis Station,Bay 1,Royal York Station at Bus Bay 1
+royal-york,18592,73,bus,73,Royal York,North - 73C Royal York towards Claireport via Albion Rd,Bay 1,Royal York Station at Bus Bay 1
+royal-york,18592,73,bus,73,Royal York,North - 73D Royal York towards Albion Rd,Bay 1,Royal York Station at Bus Bay 1
+royal-york,18592,73,bus,73,Royal York,South - 73 Royal York towards Royal York Station,Bay 1,Royal York Station at Bus Bay 1
+royal-york,18594,76,bus,76,Royal York South,North - 76 Royal York South towards Royal York Station,Bay 3,Royal York Station at Bus Bay 3
+royal-york,18594,76,bus,76,Royal York South,South - 76A Royal York South towards Lake Shore,Bay 3,Royal York Station at Bus Bay 3
+royal-york,18594,76,bus,76,Royal York South,South - 76B Royal York South towards Queensway and Grand Avenue,Bay 3,Royal York Station at Bus Bay 3
+royal-york,18594,315,bus,315,Evans-Brown's Line,East - 315 Evans-Brown's Line towards Royal York Station,Bay 3,Royal York Station at Bus Bay 3
+royal-york,18594,315,bus,315,Evans-Brown's Line,West - 315 Evans-Brown's Line towards Long Branch via Sherway,Bay 3,Royal York Station at Bus Bay 3
+runnymede,3840,71,bus,71,Runnymede,North - 71 Runnymede towards Industry St via Mount Dennis Station,Bay 2,Runnymede Station at Bus Bay 2
+runnymede,3840,71,bus,71,Runnymede,South - 71 Runnymede towards Runnymede Station,Bay 2,Runnymede Station at Bus Bay 2
+runnymede,3840,71,bus,71,Runnymede,South - 71 Runnymede towards Runnymede Station via Mount Dennis Station,Bay 2,Runnymede Station at Bus Bay 2
+runnymede,4090,77,bus,77,Swansea,North - 77 Swansea towards Runnymede Station,Bay 4,Runnymede Station at Bus Bay 4
+runnymede,4090,77,bus,77,Swansea,South - 77 Swansea towards Queensway,Bay 4,Runnymede Station at Bus Bay 4
+runnymede,3841,79,bus,79,Scarlett Rd,North - 79A Scarlett Rd towards Lawrence & Jane via Pritchard/Foxwell,Bay 3,Runnymede Station at Bus Bay 3
+runnymede,3841,79,bus,79,Scarlett Rd,North - 79B Scarlett Rd towards Lawrence & Jane via St Clair,Bay 3,Runnymede Station at Bus Bay 3
+runnymede,3841,79,bus,79,Scarlett Rd,South - 79A Scarlett Rd towards Runnymede Station via Foxwell/Pritchard,Bay 3,Runnymede Station at Bus Bay 3
+runnymede,3841,79,bus,79,Scarlett Rd,South - 79B Scarlett Rd towards Runnymede Station via St Clair,Bay 3,Runnymede Station at Bus Bay 3
+sentinel,16321,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Sentinel Station - Eastbound Platform
+sentinel,16322,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Sentinel Station - Westbound Platform
+sheppard-west,3748,84,bus,84,Sheppard West,East - 84 Sheppard West towards Sheppard-Yonge Station via Sheppard West Station,Bay 1,Sheppard West Station at Bus Bay 1
+sheppard-west,3755,84,bus,84,Sheppard West,West - 84A Sheppard West towards Weston Rd,Bay 7,Sheppard West Station at Bus Bay 7
+sheppard-west,6160,84,bus,84,Sheppard West,West - 84A Sheppard West towards Weston Rd,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,3755,84,bus,84,Sheppard West,West - 84C Sheppard West towards Steeles via Arrow Rd,Bay 7,Sheppard West Station at Bus Bay 7
+sheppard-west,6160,84,bus,84,Sheppard West,West - 84C Sheppard West towards Steeles via Arrow Rd,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,3755,84,bus,84,Sheppard West,West - 84D Sheppard West towards Pioneer Village Station via Oakdale,Bay 7,Sheppard West Station at Bus Bay 7
+sheppard-west,6160,84,bus,84,Sheppard West,West - 84D Sheppard West towards Pioneer Village Station via Oakdale,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,3975,104,bus,104,Faywood,North - 104 Faywood towards Sheppard West Station,Bay 11,Sheppard West Station at Bus Bay 11
+sheppard-west,3975,104,bus,104,Faywood,South - 104 Faywood towards Wilson Station,Bay 11,Sheppard West Station at Bus Bay 11
+sheppard-west,3749,105,bus,105,Dufferin North,North - 105 Dufferin North towards Steeles,Bay 10,Sheppard West Station at Bus Bay 10
+sheppard-west,3749,105,bus,105,Dufferin North,South - 105 Dufferin North towards Sheppard West Station,Bay 10,Sheppard West Station at Bus Bay 10
+sheppard-west,3751,106,bus,106,Sentinel,East - 106 Sentinel towards Sheppard West Station,Bay 3,Sheppard West Station at Bus Bay 3
+sheppard-west,3751,106,bus,106,Sentinel,West - 106 Sentinel towards  Pioneer Village Station,Bay 3,Sheppard West Station at Bus Bay 3
+sheppard-west,6160,106,bus,106,Sentinel,West - 106 Sentinel towards  Pioneer Village Station,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,3753,107,bus,107,Alness-Chesswood,North - 107 Alness-Chesswood towards Finch West Station,Bay 5,Sheppard West Station at Bus Bay 5
+sheppard-west,6160,107,bus,107,Alness-Chesswood,North - 107 Alness-Chesswood towards Finch West Station,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,3753,107,bus,107,Alness-Chesswood,South - 107 Alness-Chesswood towards Sheppard West Station,Bay 5,Sheppard West Station at Bus Bay 5
+sheppard-west,3756,108,bus,108,Driftwood,East - 108A Driftwood towards Sheppard West Station via Grandravine,Bay 8,Sheppard West Station at Bus Bay 8
+sheppard-west,3756,108,bus,108,Driftwood,East - 108B Driftwood towards Sheppard West Station via Arleta,Bay 8,Sheppard West Station at Bus Bay 8
+sheppard-west,3756,108,bus,108,Driftwood,West - 108A Driftwood towards Pioneer Village Station via Grandravine,Bay 8,Sheppard West Station at Bus Bay 8
+sheppard-west,6160,108,bus,108,Driftwood,West - 108A Driftwood towards Pioneer Village Station via Grandravine,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,3756,108,bus,108,Driftwood,West - 108B Driftwood towards Pioneer Village Station via Arleta,Bay 8,Sheppard West Station at Bus Bay 8
+sheppard-west,6160,108,bus,108,Driftwood,West - 108B Driftwood towards Pioneer Village Station via Arleta,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,3749,329,bus,329,Dufferin,North - 329S Dufferin Short Turn towards Sheppard West Stn via Liberty Village,Bay 10,Sheppard West Station at Bus Bay 10
+sheppard-west,3752,329,bus,329,Dufferin,South - 329S Dufferin Short Turn towards Wilson Station,Bay 4,Sheppard West Station at Bus Bay 4
+sheppard-west,3752,329,bus,329,Dufferin,South - 329S Dufferin Short Turn towards Wilson Station via Liberty Village,Bay 4,Sheppard West Station at Bus Bay 4
+sheppard-west,18788,384,bus,384,Sheppard West,East - 384 Sheppard West towards Sheppard-Yonge Station,,Opposite 1042 Sheppard Ave West- Sheppard West Station
+sheppard-west,18788,384,bus,384,Sheppard West,East - 384 Sheppard West towards Yonge,,Opposite 1042 Sheppard Ave West- Sheppard West Station
+sheppard-west,6160,384,bus,384,Sheppard West,West - 384 Sheppard West towards Steeles and Islington via Weston,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,6160,384,bus,384,Sheppard West,West - 384S Sheppard West Short Turn towards Weston Rd,,Sheppard Ave West at Dufferin St - Sheppard West Station
+sheppard-west,3750,984,bus,984,Sheppard West Express,East - 984 Sheppard West Express towards Sheppard-Yonge Station via Sheppard West Station,Bay 2,Sheppard West Station at Bus Bay 2
+sheppard-west,3754,984,bus,984,Sheppard West Express,West - 984A Sheppard West Express towards Weston Rd,Bay 6,Sheppard West Station at Bus Bay 6
+sheppard-yonge,3857,84,bus,84,Sheppard West,East - 84 Sheppard West towards Sheppard-Yonge Station via Sheppard West Station,Bay 5,Sheppard-Yonge Station at Bus Bay 5/5A
+sheppard-yonge,3857,84,bus,84,Sheppard West,West - 84A Sheppard West towards Weston Rd,Bay 5,Sheppard-Yonge Station at Bus Bay 5/5A
+sheppard-yonge,3857,84,bus,84,Sheppard West,West - 84C Sheppard West towards Steeles via Arrow Rd,Bay 5,Sheppard-Yonge Station at Bus Bay 5/5A
+sheppard-yonge,3857,84,bus,84,Sheppard West,West - 84D Sheppard West towards Pioneer Village Station via Oakdale,Bay 5,Sheppard-Yonge Station at Bus Bay 5/5A
+sheppard-yonge,3854,98,bus,98,Willowdale-Senlac,East - 98 Willowdale-Senlac towards Steeles via Sheppard-Yonge Station,Bay 2A,Sheppard-Yonge Station at Bus Bay 2A
+sheppard-yonge,3856,98,bus,98,Willowdale-Senlac,West - 98 Willowdale-Senlac towards Peckham via Sheppard-Yonge Station,Bay 4A,Sheppard-Yonge Station at Bus Bay 4A
+sheppard-yonge,3855,185,bus,185,Sheppard Central,East - 185 Sheppard Central towards Don Mills Station,Bay 3,Sheppard-Yonge Station at Bus Bay 3/3A
+sheppard-yonge,3855,185,bus,185,Sheppard Central,West - 185 Sheppard Central towards Sheppard-Yonge Station,Bay 3,Sheppard-Yonge Station at Bus Bay 3/3A
+sheppard-yonge,3857,384,bus,384,Sheppard West,East - 384 Sheppard West towards Sheppard-Yonge Station,Bay 5,Sheppard-Yonge Station at Bus Bay 5/5A
+sheppard-yonge,3857,384,bus,384,Sheppard West,West - 384 Sheppard West towards Steeles and Islington via Weston,Bay 5,Sheppard-Yonge Station at Bus Bay 5/5A
+sheppard-yonge,3855,385,bus,385,Sheppard East,East - 385 Sheppard East towards Rouge Hill GO Stn,Bay 3,Sheppard-Yonge Station at Bus Bay 3/3A
+sheppard-yonge,3855,385,bus,385,Sheppard East,West - 385 Sheppard East towards Sheppard-Yonge Station,Bay 3,Sheppard-Yonge Station at Bus Bay 3/3A
+sheppard-yonge,3858,984,bus,984,Sheppard West Express,East - 984 Sheppard West Express towards Sheppard-Yonge Station via Sheppard West Station,Bay 6,Sheppard-Yonge Station at Bus Bay 6/6A
+sheppard-yonge,3858,984,bus,984,Sheppard West Express,West - 984A Sheppard West Express towards Weston Rd,Bay 6,Sheppard-Yonge Station at Bus Bay 6/6A
+sherbourne,1658,75,bus,75,Sherbourne,North - 75 Sherbourne towards Sherbourne Station,,Sherbourne St at Bloor St East - Sherbourne Station
+sherbourne,1658,75,bus,75,Sherbourne,South - 75 Sherbourne towards Queens Quay via South Drive,,Sherbourne St at Bloor St East - Sherbourne Station
+signet-arrow,16311,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Signet Arrow Station - Eastbound Platform
+signet-arrow,16312,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Signet Arrow Station - Westbound Platform
+sloane,16079,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Sloane Station - Eastbound Platform
+sloane,16080,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Sloane Station - Westbound Platform
+spadina,3859,127,bus,127,Davenport,East - 127 Davenport towards Spadina Station,Bay 4,Spadina Station at Bus Bay 4
+spadina,3859,127,bus,127,Davenport,West - 127 Davenport towards St Clair & Old Weston Rd,Bay 4,Spadina Station at Bus Bay 4
+spadina,18807,306,streetcar,306,Carlton,East - 306B Carlton Replacement Bus towards Broadview & Gerrard,Bay 2,Spadina Station at Bus Bay 2
+spadina,18807,306,streetcar,306,Carlton,West - 306B Carlton Replacement Bus towards Spadina Station,Bay 2,Spadina Station at Bus Bay 2
+spadina,3895,310,streetcar,310,Spadina,North - 310 Spadina towards Spadina Station,Streetcar Platform,Spadina Station Streetcar Platform
+spadina,3895,310,streetcar,310,Spadina,South - 310 Spadina towards King,Streetcar Platform,Spadina Station Streetcar Platform
+spadina,3895,310,streetcar,310,Spadina,South - 310 Spadina towards Union Station,Streetcar Platform,Spadina Station Streetcar Platform
+spadina,18807,506,streetcar,506,Carlton,East - 506B Carlton Replacement Bus towards Broadview & Gerrard,Bay 2,Spadina Station at Bus Bay 2
+spadina,18807,506,streetcar,506,Carlton,West - 506B Carlton Replacement Bus towards Spadina Station,Bay 2,Spadina Station at Bus Bay 2
+spadina,3895,510,streetcar,510,Spadina,North - 510 Spadina towards Spadina Station,Streetcar Platform,Spadina Station Streetcar Platform
+spadina,3895,510,streetcar,510,Spadina,South - 510 Spadina towards King,Streetcar Platform,Spadina Station Streetcar Platform
+spadina,3895,510,streetcar,510,Spadina,South - 510 Spadina towards Queens Quay,Streetcar Platform,Spadina Station Streetcar Platform
+spadina,3895,510,streetcar,510,Spadina,South - 510 Spadina towards Union Station,Streetcar Platform,Spadina Station Streetcar Platform
+st-andrew,11181,304,streetcar,304,King,East - 304 King Short Turn towards Broadview and Queen,,King St West at University Ave East Side - St Andrew Station
+st-andrew,11181,304,streetcar,304,King,East - 304 King towards Broadview Station,,King St West at University Ave East Side - St Andrew Station
+st-andrew,11181,304,streetcar,304,King,East - 304A King towards Distillery,,King St West at University Ave East Side - St Andrew Station
+st-andrew,11180,304,streetcar,304,King,West - 304 King towards Dundas West Station,,King St West at Simcoe St - St. Andrew Station
+st-andrew,11180,304,streetcar,304,King,West - 304B King towards Dufferin Gate,,King St West at Simcoe St - St. Andrew Station
+st-andrew,11181,503,streetcar,503,Kingston Rd,East - 503 Kingston Rd Replacement Bus towards Victoria Park,,King St West at University Ave East Side - St Andrew Station
+st-andrew,11181,504,streetcar,504,King,East - 504 King Short Turn towards Broadview and Queen,,King St West at University Ave East Side - St Andrew Station
+st-andrew,11181,504,streetcar,504,King,East - 504A King towards Distillery,,King St West at University Ave East Side - St Andrew Station
+st-andrew,11181,504,streetcar,504,King,East - 504B King towards Broadview Station,,King St West at University Ave East Side - St Andrew Station
+st-andrew,11180,504,streetcar,504,King,West - 504A King towards Dundas West Station,,King St West at Simcoe St - St. Andrew Station
+st-andrew,11180,504,streetcar,504,King,West - 504B King towards Dufferin Gate,,King St West at Simcoe St - St. Andrew Station
+st-clair,1402,74,bus,74,Mount Pleasant,North - 74 Mount Pleasant towards Eglinton Station,,Yonge St at St Clair Ave West - St Clair Station
+st-clair,40032,74,bus,74,Mount Pleasant,North - 74 Mount Pleasant towards Eglinton Station,Platform Bus,St Clair Station at Lower Platform Bus Bay 4
+st-clair,40032,74,bus,74,Mount Pleasant,South - 74 Mount Pleasant towards St Clair Station,Platform Bus,St Clair Station at Lower Platform Bus Bay 4
+st-clair,3923,88,bus,88,South Leaside,East - 88A South Leaside towards Thorncliffe Park,Platform Bus,St Clair Station at Lower Platform Bus Bay 3
+st-clair,1402,88,bus,88,South Leaside,East - 88B South Leaside towards Wicksteed via Laird Station,,Yonge St at St Clair Ave West - St Clair Station
+st-clair,3923,88,bus,88,South Leaside,East - 88B South Leaside towards Wicksteed via Laird Station,Platform Bus,St Clair Station at Lower Platform Bus Bay 3
+st-clair,3923,88,bus,88,South Leaside,West - 88 South Leaside towards St Clair Station,Platform Bus,St Clair Station at Lower Platform Bus Bay 3
+st-clair,3976,97,bus,97,Yonge,North - 97A Yonge towards Steeles,Platform Bus,St Clair Station at Lower Platform Bus Bay 2
+st-clair,5294,97,bus,97,Yonge,North - 97A Yonge towards Steeles,,Yonge St at St Clair Ave East - St. Clair Station
+st-clair,3976,97,bus,97,Yonge,North - 97B Yonge towards Steeles via Yonge Blvd,Platform Bus,St Clair Station at Lower Platform Bus Bay 2
+st-clair,5294,97,bus,97,Yonge,North - 97B Yonge towards Steeles via Yonge Blvd,,Yonge St at St Clair Ave East - St. Clair Station
+st-clair,5294,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,,Yonge St at St Clair Ave East - St. Clair Station
+st-clair,1402,97,bus,97,Yonge,South - 97A Yonge towards St Clair Station,,Yonge St at St Clair Ave West - St Clair Station
+st-clair,3976,97,bus,97,Yonge,South - 97A Yonge towards St Clair Station,Platform Bus,St Clair Station at Lower Platform Bus Bay 2
+st-clair,1402,97,bus,97,Yonge,South - 97B Yonge towards St Clair Station via Yonge Blvd,,Yonge St at St Clair Ave West - St Clair Station
+st-clair,3976,97,bus,97,Yonge,South - 97B Yonge towards St Clair Station via Yonge Blvd,Platform Bus,St Clair Station at Lower Platform Bus Bay 2
+st-clair,1402,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at St Clair Ave West - St Clair Station
+st-clair,42464,312,streetcar,312,St Clair,East - 312 St Clair towards St Clair Station,Bay 1,St Clair Station at Bay 1
+st-clair,42464,312,streetcar,312,St Clair,West - 312 St Clair towards Keele,Bay 1,St Clair Station at Bay 1
+st-clair,5294,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at St Clair Ave East - St. Clair Station
+st-clair,5294,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at St Clair Ave East - St. Clair Station
+st-clair,5294,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at St Clair Ave East - St. Clair Station
+st-clair,5294,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at St Clair Ave East - St. Clair Station
+st-clair,1402,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at St Clair Ave West - St Clair Station
+st-clair,3860,512,streetcar,512,St Clair,East - 512 St Clair towards St Clair Station,Bay 2,St Clair Station at Bay 2
+st-clair,3860,512,streetcar,512,St Clair,West - 512 St Clair Short Turn,Bay 2,St Clair Station at Bay 2
+st-clair,3860,512,streetcar,512,St Clair,West - 512 St Clair towards Keele,Bay 2,St Clair Station at Bay 2
+st-clair-west,3865,33,bus,33,Forest Hill,North - 33 Forest Hill towards Forest Hill Station,Bay 6,St Clair West Station at Bay 6
+st-clair-west,3865,33,bus,33,Forest Hill,South - 33 Forest Hill towards St Clair West Station,Bay 6,St Clair West Station at Bay 6
+st-clair-west,3861,90,bus,90,Vaughan,North - 90 Vaughan towards Cedarvale Station,Bay 7,St Clair West Station at Bus Bay 7
+st-clair-west,3861,90,bus,90,Vaughan,South - 90 Vaughan towards St Clair West Station,Bay 7,St Clair West Station at Bus Bay 7
+st-clair-west,3865,126,bus,126,Christie,North - 126 Christie towards St Clair West Station,Bay 6,St Clair West Station at Bay 6
+st-clair-west,3865,126,bus,126,Christie,South - 126 Christie towards Christie Station,Bay 6,St Clair West Station at Bay 6
+st-clair-west,11162,512,streetcar,512,St Clair,East - 512 St Clair towards St Clair Station,Bay 3,St Clair West Station at Bay 3
+st-clair-west,3862,512,streetcar,512,St Clair,West - 512 St Clair Short Turn,Bay 4,St Clair West Station at Bay 4
+st-clair-west,3862,512,streetcar,512,St Clair,West - 512 St Clair towards Keele,Bay 4,St Clair West Station at Bay 4
+st-george,3866,26,bus,26,Dupont,East - 26 Dupont towards St George Station,Bay 2,St George Station at Bus Bay 2
+st-george,3866,26,bus,26,Dupont,West - 26 Dupont towards Jane Station,Bay 2,St George Station at Bus Bay 2
+st-patrick,10586,305,streetcar,305,Dundas,East - 305 Dundas Short Turn towards Broadview,,Dundas St West at University Ave - St Patrick Station
+st-patrick,10586,305,streetcar,305,Dundas,East - 305 Dundas towards Broadview Station,,Dundas St West at University Ave - St Patrick Station
+st-patrick,2185,305,streetcar,305,Dundas,West - 305 Dundas towards Dundas West Station,,Dundas St West at University Ave - St Patrick Station
+st-patrick,10586,505,streetcar,505,Dundas,East - 505 Dundas Short Turn towards Broadview Ave,,Dundas St West at University Ave - St Patrick Station
+st-patrick,10586,505,streetcar,505,Dundas,East - 505 Dundas towards Broadview Station,,Dundas St West at University Ave - St Patrick Station
+st-patrick,2185,505,streetcar,505,Dundas,West - 505 Dundas towards Dundas West Station,,Dundas St West at University Ave - St Patrick Station
+stevenson,16297,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Stevenson Station - Eastbound Platform
+stevenson,16298,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Stevenson Station - Westbound Platform
+summerhill,6649,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,,Yonge St at Shaftesbury Ave North Side - Summerhill Station
+summerhill,1684,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at Alcorn Ave - Summerhill Station
+summerhill,6649,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Shaftesbury Ave North Side - Summerhill Station
+summerhill,6649,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Shaftesbury Ave North Side - Summerhill Station
+summerhill,6649,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Shaftesbury Ave North Side - Summerhill Station
+summerhill,6649,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Shaftesbury Ave North Side - Summerhill Station
+summerhill,1684,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Alcorn Ave - Summerhill Station
+sunnybrook-park,16216,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Sunnybrook Park Station - Eastbound Platform
+sunnybrook-park,16217,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Sunnybrook Park Station - Westbound Platform
+tmu,6897,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,,Yonge St at Dundas St East - Dundas Station
+tmu,9969,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at Dundas St West - Dundas Station
+tmu,11127,305,streetcar,305,Dundas,East - 305 Dundas Short Turn towards Broadview,,Dundas St West at Yonge St - Dundas Station
+tmu,11127,305,streetcar,305,Dundas,East - 305 Dundas towards Broadview Station,,Dundas St West at Yonge St - Dundas Station
+tmu,11128,305,streetcar,305,Dundas,West - 305 Dundas towards Dundas West Station,,Dundas St East at Yonge St - Dundas Station
+tmu,11127,306,streetcar,306,Carlton,East - 306 Carlton Short Turn towards Coxwell and Queen,,Dundas St West at Yonge St - Dundas Station
+tmu,11127,306,streetcar,306,Carlton,East - 306 Carlton towards Main Street Station,,Dundas St West at Yonge St - Dundas Station
+tmu,11128,306,streetcar,306,Carlton,West - 306 Carlton towards High Park,,Dundas St East at Yonge St - Dundas Station
+tmu,6897,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Dundas St East - Dundas Station
+tmu,6897,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Dundas St East - Dundas Station
+tmu,6897,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Dundas St East - Dundas Station
+tmu,6897,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Dundas St East - Dundas Station
+tmu,9969,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Dundas St West - Dundas Station
+tmu,11127,505,streetcar,505,Dundas,East - 505 Dundas Short Turn towards Broadview Ave,,Dundas St West at Yonge St - Dundas Station
+tmu,11127,505,streetcar,505,Dundas,East - 505 Dundas towards Broadview Station,,Dundas St West at Yonge St - Dundas Station
+tmu,11128,505,streetcar,505,Dundas,West - 505 Dundas towards Dundas West Station,,Dundas St East at Yonge St - Dundas Station
+tmu,11127,506,streetcar,506,Carlton,East - 506 Carlton Short Turn,,Dundas St West at Yonge St - Dundas Station
+tmu,11127,506,streetcar,506,Carlton,East - 506 Carlton towards Main Street Station,,Dundas St West at Yonge St - Dundas Station
+tmu,11128,506,streetcar,506,Carlton,West - 506 Carlton towards High Park,,Dundas St East at Yonge St - Dundas Station
+tobermory,16319,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Tobermory Station - Eastbound Platform
+tobermory,16320,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Tobermory Station - Westbound Platform
+union,18789,114,bus,114,Queens Quay East,East - 114 Queens Quay East towards Carlaw via Ookwemin Minising,Bay St,Bay St at Front St West South Side - Union Station
+union,42922,114,bus,114,Queens Quay East,East - 114 Queens Quay East towards Carlaw via Ookwemin Minising,,1 Front St West - Union Station
+union,10465,114,bus,114,Queens Quay East,West - 114 Queens Quay East towards Union Station,Bay St,Bay St at Front St West - Union Station
+union,42922,114,bus,114,Queens Quay East,West - 114 Queens Quay East towards Union Station,,1 Front St West - Union Station
+union,42922,121,bus,121,Esplanade-River,East - 121 Esplanade-River Towards Hennick Bridgepoint Hospital,,1 Front St West - Union Station
+union,18789,121,bus,121,Esplanade-River,West - 121 Esplanade-River Towards Union Station,Bay St,Bay St at Front St West South Side - Union Station
+union,42922,121,bus,121,Esplanade-River,West - 121 Esplanade-River Towards Union Station,,1 Front St West - Union Station
+union,18789,202,bus,202,Cherry Beach,East - 202 Cherry Beach towards Cherry Beach via Distillery and Ookwemin Minising,Bay St,Bay St at Front St West South Side - Union Station
+union,42922,202,bus,202,Cherry Beach,East - 202 Cherry Beach towards Cherry Beach via Distillery and Ookwemin Minising,,1 Front St West - Union Station
+union,10465,202,bus,202,Cherry Beach,West - 202 Cherry Beach towards Union Station via Distillery,Bay St,Bay St at Front St West - Union Station
+union,42922,202,bus,202,Cherry Beach,West - 202 Cherry Beach towards Union Station via Distillery,,1 Front St West - Union Station
+union,1656,310,streetcar,310,Spadina,North - 310 Spadina towards King,Streetcar Platform,Union Station Streetcar Platform
+union,1656,310,streetcar,310,Spadina,North - 310 Spadina towards Spadina Station,Streetcar Platform,Union Station Streetcar Platform
+union,1656,310,streetcar,310,Spadina,South - 310 Spadina towards Union Station,Streetcar Platform,Union Station Streetcar Platform
+union,18789,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,Bay St,Bay St at Front St West South Side - Union Station
+union,1656,509,streetcar,509,Harbourfront,East - 509 Harbourfront towards Union Station,Streetcar Platform,Union Station Streetcar Platform
+union,1656,509,streetcar,509,Harbourfront,West - 509 Harbourfront towards Exhibition,Streetcar Platform,Union Station Streetcar Platform
+union,1656,510,streetcar,510,Spadina,North - 510 Spadina towards Spadina Station,Streetcar Platform,Union Station Streetcar Platform
+union,1656,510,streetcar,510,Spadina,South - 510 Spadina towards Union Station,Streetcar Platform,Union Station Streetcar Platform
+victoria-park,3869,12,bus,12,Kingston Rd,East - 12A Kingston Rd towards Kennedy Station via Variety Village and Brimley,Bay 4,Victoria Park Station at Bus Bay 4
+victoria-park,3869,12,bus,12,Kingston Rd,East - 12B Kingston Rd towards Kennedy Station via Brimley,Bay 4,Victoria Park Station at Bus Bay 4
+victoria-park,3869,12,bus,12,Kingston Rd,East - 12D Kingston Rd towards U of T Scarborough,Bay 4,Victoria Park Station at Bus Bay 4
+victoria-park,3869,12,bus,12,Kingston Rd,West - 12A Kingston Rd towards Victoria Park Station via Brimley and Variety Village,Bay 4,Victoria Park Station at Bus Bay 4
+victoria-park,3869,12,bus,12,Kingston Rd,West - 12B Kingston Rd towards Victoria Park Station via Brimley,Bay 4,Victoria Park Station at Bus Bay 4
+victoria-park,3869,12,bus,12,Kingston Rd,West - 12D Kingston Rd towards Victoria Park Station,Bay 4,Victoria Park Station at Bus Bay 4
+victoria-park,4043,24,bus,24,Victoria Park,North - 24A Victoria Park towards Steeles,Bay 6,Victoria Park Station at Bus Bay 6
+victoria-park,7889,24,bus,24,Victoria Park,North - 24A Victoria Park towards Steeles,,Victoria Park Ave at Victoria Park Station
+victoria-park,4042,24,bus,24,Victoria Park,North - 24B Victoria Park towards Don Mills Station via Consumers Rd,Bay 5,Victoria Park Station at Bus Bay 5
+victoria-park,4023,24,bus,24,Victoria Park,South - 24 Victoria Park towards Danforth,,Victoria Park Ave at Victoria Park Station
+victoria-park,4043,24,bus,24,Victoria Park,South - 24 Victoria Park towards Victoria Park Station,Bay 6,Victoria Park Station at Bus Bay 6
+victoria-park,4042,24,bus,24,Victoria Park,South - 24B Victoria Park towards Victoria Park Station via Consumers Rd,Bay 5,Victoria Park Station at Bus Bay 5
+victoria-park,11336,67,bus,67,Pharmacy,North - 67A Pharmacy towards Ellesmere,Bay 2,Victoria Park Station at Bus Bay 2
+victoria-park,11336,67,bus,67,Pharmacy,North - 67B Pharmacy towards Eglinton,Bay 2,Victoria Park Station at Bus Bay 2
+victoria-park,11336,67,bus,67,Pharmacy,South - 67 Pharmacy towards Victoria Park Station,Bay 2,Victoria Park Station at Bus Bay 2
+victoria-park,3868,117,bus,117,Birchmount South,North - 117 Birchmount South towards Warden Station,Bay 3,Victoria Park Station at Bus Bay 3
+victoria-park,3868,117,bus,117,Birchmount South,South - 117 Birchmount South towards Victoria Park Station,Bay 3,Victoria Park Station at Bus Bay 3
+victoria-park,11336,300,bus,300,Bloor-Danforth,East - 300S Bloor-Danforth Short Turn towards Victoria Park Stn,Bay 2,Victoria Park Station at Bus Bay 2
+victoria-park,11336,300,bus,300,Bloor-Danforth,West - 300A Bloor-Danforth towards Pearson Airport,Bay 2,Victoria Park Station at Bus Bay 2
+victoria-park,11336,300,bus,300,Bloor-Danforth,West - 300B Bloor-Danforth towards West Mall,Bay 2,Victoria Park Station at Bus Bay 2
+victoria-park,7889,324,bus,324,Victoria Park,North - 324 Victoria Park towards Steeles via Sheppard and Warden,,Victoria Park Ave at Victoria Park Station
+victoria-park,4023,324,bus,324,Victoria Park,South - 324 Victoria Park towards Kingston Rd,,Victoria Park Ave at Victoria Park Station
+victoria-park,3868,404,bus,404,East York,East - 404 East York Community Bus towards Kingston Rd,Bay 3,Victoria Park Station at Bus Bay 3
+victoria-park,3868,404,bus,404,East York,West - 404 East York Community Bus towards Coxwell Station,Bay 3,Victoria Park Station at Bus Bay 3
+victoria-park,4043,924,bus,924,Victoria Park Express,North - 924 Victoria Park Express towards Steeles,Bay 6,Victoria Park Station at Bus Bay 6
+victoria-park,4043,924,bus,924,Victoria Park Express,South - 924 Victoria Park Express towards Victoria Park Station,Bay 6,Victoria Park Station at Bus Bay 6
+warden,42526,8,bus,8,Broadview,North - 8 Broadview towards Warden Station via Broadview Station and O'Connor,Bay 3,Warden Station at Temporary Bus Bay 3
+warden,42526,8,bus,8,Broadview,South - 8 Broadview towards Hennick Bridgepoint Hospital via O'Connor and Broadview Station,Bay 3,Warden Station at Temporary Bus Bay 3
+warden,42505,9,bus,9,Bellamy,North - 9 Bellamy towards Scarborough Centre Stn,Bay 5,Warden Station at Temporary Bus Bay 5
+warden,42505,9,bus,9,Bellamy,South - 9 Bellamy towards Warden Station,Bay 5,Warden Station at Temporary Bus Bay 5
+warden,42505,16,bus,16,McCowan,North - 16 McCowan towards Scarborough Centre Stn,Bay 5,Warden Station at Temporary Bus Bay 5
+warden,42505,16,bus,16,McCowan,South - 16 McCowan towards Warden Station,Bay 5,Warden Station at Temporary Bus Bay 5
+warden,42526,17,bus,17,Birchmount,North - 17A Birchmount towards Highway 7,Bay 3,Warden Station at Temporary Bus Bay 3
+warden,42526,17,bus,17,Birchmount,North - 17B Birchmount towards Steeles via Wintermute,Bay 3,Warden Station at Temporary Bus Bay 3
+warden,42526,17,bus,17,Birchmount,North - 17C Birchmount towards Steeles and Warden,Bay 3,Warden Station at Temporary Bus Bay 3
+warden,42526,17,bus,17,Birchmount,North - 17S Birchmount Short Turn towards Finch,Bay 3,Warden Station at Temporary Bus Bay 3
+warden,42526,17,bus,17,Birchmount,South - 17 Birchmount towards Warden Station,Bay 3,Warden Station at Temporary Bus Bay 3
+warden,42508,68,bus,68,Warden,North - 68A Warden towards Steeles,Bay 8,Warden Station at Temporary Bus Bay 8
+warden,42508,68,bus,68,Warden,North - 68B Warden towards Major Mackenzie,Bay 8,Warden Station at Temporary Bus Bay 8
+warden,42508,68,bus,68,Warden,South - 68 Warden towards Warden Station,Bay 8,Warden Station at Temporary Bus Bay 8
+warden,42502,69,bus,69,Warden South,North - 69 Warden South towards Warden Station,Bay 1,Warden Station at Temporary Bus Bay 1
+warden,42504,69,bus,69,Warden South,South - 69 Warden South towards St Clair (Barkdene Hills),Bay 4,Warden Station at Temporary Bus Bay 4
+warden,42507,102,bus,102,Markham Rd,North - 102A Markham Rd towards Progress / Centennial College,Bay 7,Warden Station at Temporary Bus Bay 7
+warden,42507,102,bus,102,Markham Rd,North - 102B Markham Rd towards Steeles,Bay 7,Warden Station at Temporary Bus Bay 7
+warden,42507,102,bus,102,Markham Rd,North - 102C Markham Rd towards Steeles via Dynamic Dr,Bay 7,Warden Station at Temporary Bus Bay 7
+warden,42507,102,bus,102,Markham Rd,North - 102D Markham Rd towards Major Mackenzie,Bay 7,Warden Station at Temporary Bus Bay 7
+warden,42507,102,bus,102,Markham Rd,North - 102S Markham Rd Short Turn towards Sheppard,Bay 7,Warden Station at Temporary Bus Bay 7
+warden,42507,102,bus,102,Markham Rd,South - 102 Markham Rd towards Warden Station,Bay 7,Warden Station at Temporary Bus Bay 7
+warden,42507,102,bus,102,Markham Rd,South - 102C Markham Rd towards Warden Station via Dynamic Dr,Bay 7,Warden Station at Temporary Bus Bay 7
+warden,42504,117,bus,117,Birchmount South,North - 117 Birchmount South towards Warden Station,Bay 4,Warden Station at Temporary Bus Bay 4
+warden,42504,117,bus,117,Birchmount South,North - 117S Birchmount South Short Turn towards Danforth,Bay 4,Warden Station at Temporary Bus Bay 4
+warden,42502,117,bus,117,Birchmount South,South - 117 Birchmount South towards Victoria Park Station,Bay 1,Warden Station at Temporary Bus Bay 1
+warden,42504,135,bus,135,Gerrard,East - 135 Gerrard towards Warden Station,Bay 4,Warden Station at Temporary Bus Bay 4
+warden,42504,135,bus,135,Gerrard,West - 135 Gerrard towards Main Street Station,Bay 4,Warden Station at Temporary Bus Bay 4
+warden,42507,902,bus,902,Markham Rd Express,North - 902 Markham Rd Express towards Steeles Ave East via Centennial College,Bay 7,Warden Station at Temporary Bus Bay 7
+warden,42507,902,bus,902,Markham Rd Express,South - 902 Markham Rd Express towards Warden Station via Centennial College,Bay 7,Warden Station at Temporary Bus Bay 7
+wellesley,3879,94,bus,94,Wellesley,East - 94 Wellesley towards Castle Frank Station,Bay 2,Wellesley Station at Bus Bay 2
+wellesley,3878,94,bus,94,Wellesley,West - 94A Wellesley towards Ossington Station,Bay 1,Wellesley Station at Bus Bay 1
+wellesley,3879,94,bus,94,Wellesley,West - 94B Wellesley towards Wellesley Station,Bay 2,Wellesley Station at Bus Bay 2
+wellesley,518,97,bus,97,Yonge,North - 97C Yonge towards Eglinton Station,,Yonge St at Wellesley St East - Wellesley Station
+wellesley,208,97,bus,97,Yonge,South - 97C Yonge towards Union Station,,Yonge St at Wellesley St West - Wellesley Station
+wellesley,518,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at Wellesley St East - Wellesley Station
+wellesley,518,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,,Yonge St at Wellesley St East - Wellesley Station
+wellesley,518,320,bus,320,Yonge,North - 320B Yonge towards York Mills/Wilson,,Yonge St at Wellesley St East - Wellesley Station
+wellesley,518,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at Wellesley St East - Wellesley Station
+wellesley,208,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Wellesley St West - Wellesley Station
+westmore,16291,6,streetcar,6,Finch West Line,Finch West Line towards Finch West Station,,Westmore Station - Eastbound Platform
+westmore,16292,6,streetcar,6,Finch West Line,Finch West Line towards Humber College,,Westmore Station - Westbound Platform
+wilson,3880,29,bus,29,Dufferin,North - 29 Dufferin towards Wilson Station,Bay 1A,Wilson Station at Bus Bay 1A
+wilson,3880,29,bus,29,Dufferin,South - 29A Dufferin towards Exhibition (Dufferin Gate),Bay 1A,Wilson Station at Bus Bay 1A
+wilson,4078,96,bus,96,Wilson,East - 96A Wilson towards York Mills Station via John Garland and Kipling,Platform Bus,Wilson Station at Lower Platform Bus Bay 7
+wilson,4078,96,bus,96,Wilson,East - 96B Wilson towards York Mills Station via Martin Grove and Westhumber,Platform Bus,Wilson Station at Lower Platform Bus Bay 7
+wilson,4078,96,bus,96,Wilson,East - 96D Wilson towards York Mills Station via John Garland and Kipling,Platform Bus,Wilson Station at Lower Platform Bus Bay 7
+wilson,4078,96,bus,96,Wilson,East - 96S Wilson Short Turn towards Wilson Station via John Garland and Kipling,Platform Bus,Wilson Station at Lower Platform Bus Bay 7
+wilson,3881,96,bus,96,Wilson,West - 96A Wilson towards Carrier Dr via Kipling and John Garland,Bay 2,Wilson Station at Bus Bay 2
+wilson,3881,96,bus,96,Wilson,West - 96B Wilson towards Humberline and Albion via Westhumber and Martin Grove,Bay 2,Wilson Station at Bus Bay 2
+wilson,3881,96,bus,96,Wilson,West - 96D Wilson towards Carrier Dr via John Garland and Westmore Dr,Bay 2,Wilson Station at Bus Bay 2
+wilson,3881,96,bus,96,Wilson,West - 96S Wilson Short Turn towards Humber College Station via Kipling and John Garland,Bay 2,Wilson Station at Bus Bay 2
+wilson,3881,96,bus,96,Wilson,West - 96S Wilson Short Turn towards Humber College Station via Westhumber and Martin Grove,Bay 2,Wilson Station at Bus Bay 2
+wilson,26126,101,bus,101,Downsview Park,North - 101 Downsview Park towards Finch West Station via Downsview Park Station,Bay 7,Wilson Station at Bus Bay 7
+wilson,26126,101,bus,101,Downsview Park,North - 101S Downsview Park Short Turn towards Downsview Park Station,Bay 7,Wilson Station at Bus Bay 7
+wilson,26126,101,bus,101,Downsview Park,South - 101B Downsview Park towards Wilson Station via Stanley Greene and Downsview Park Station,Bay 7,Wilson Station at Bus Bay 7
+wilson,4234,104,bus,104,Faywood,North - 104 Faywood towards Sheppard West Station,Bay 2,Wilson Station at Lower Bus Bay 2
+wilson,4234,104,bus,104,Faywood,South - 104 Faywood towards Wilson Station,Bay 2,Wilson Station at Lower Bus Bay 2
+wilson,3883,118,bus,118,Thistle Down,East - 118 Thistle Down towards Wilson Station,Bay 6,Wilson Station at Bus Bay 6
+wilson,3883,118,bus,118,Thistle Down,East - 118 Thistle Down towards Wilson Station via Tandridge,Bay 6,Wilson Station at Bus Bay 6
+wilson,3883,118,bus,118,Thistle Down,West - 118 Thistle Down towards Thistle Down,Bay 6,Wilson Station at Bus Bay 6
+wilson,3883,118,bus,118,Thistle Down,West - 118 Thistle Down towards Thistle Down via Tandridge,Bay 6,Wilson Station at Bus Bay 6
+wilson,3882,119,bus,119,Torbarrie,East - 119A Torbarrie towards Wilson Station via Clayson,Bay 5,Wilson Station at Bus Bay 5
+wilson,3882,119,bus,119,Torbarrie,East - 119A Torbarrie towards Wilson Station via Torbarrie,Bay 5,Wilson Station at Bus Bay 5
+wilson,3882,119,bus,119,Torbarrie,East - 119B Torbarrie towards Wilson Station via Clayson,Bay 5,Wilson Station at Bus Bay 5
+wilson,3882,119,bus,119,Torbarrie,East - 119B Torbarrie towards Wilson Station via Torbarrie,Bay 5,Wilson Station at Bus Bay 5
+wilson,3882,119,bus,119,Torbarrie,West - 119A Torbarrie towards Arrow Rd via Clayson,Bay 5,Wilson Station at Bus Bay 5
+wilson,3882,119,bus,119,Torbarrie,West - 119A Torbarrie towards Arrow Rd via Torbarrie,Bay 5,Wilson Station at Bus Bay 5
+wilson,3882,119,bus,119,Torbarrie,West - 119B Torbarrie towards Milvan via Clayson and Fenmar,Bay 5,Wilson Station at Bus Bay 5
+wilson,3882,119,bus,119,Torbarrie,West - 119B Torbarrie towards Milvan via Torbarrie and Fenmar,Bay 5,Wilson Station at Bus Bay 5
+wilson,26149,120,bus,120,Calvington,East - 120 Calvington towards Wilson Station,Bay 8,Wilson Station at Bus Bay 8
+wilson,26149,120,bus,120,Calvington,West - 120 Calvington towards Sheppard/Jane,Bay 8,Wilson Station at Bus Bay 8
+wilson,11047,160,bus,160,Bathurst North,North - 160 Bathurst North towards Centre Street,Bay 4,Wilson Station at Lower Bus Bay 4
+wilson,11047,160,bus,160,Bathurst North,South - 160 Bathurst North towards Wilson Station,Bay 4,Wilson Station at Lower Bus Bay 4
+wilson,3924,165,bus,165,Weston Rd North,East - 165 Weston Rd North towards York Mills Station,Platform Bus,Wilson Station at Lower Platform Bus Bay 6
+wilson,36072,165,bus,165,Weston Rd North,West - 165 Weston Rd North towards Steeles,Bay 4,Wilson Station at Bus Bay 4
+wilson,3925,184,bus,184,Ancaster Park,East - 184 Ancaster Park towards Wilson Station,Bay 8,Wilson Station at Lower Bus Bay 8
+wilson,3925,184,bus,184,Ancaster Park,West - 184 Ancaster Park towards De Havilland,Bay 8,Wilson Station at Lower Bus Bay 8
+wilson,11046,329,bus,329,Dufferin,North - 329S Dufferin Short Turn towards Sheppard West Stn via Liberty Village,Bay 1,Wilson Station at Lower Bus Bay 1
+wilson,11046,329,bus,329,Dufferin,North - 329S Dufferin Short Turn towards Wilson Station via Liberty Village,Bay 1,Wilson Station at Lower Bus Bay 1
+wilson,3880,329,bus,329,Dufferin,South - 329 Dufferin towards Exhibition via Liberty Village,Bay 1A,Wilson Station at Bus Bay 1A
+wilson,3880,329,bus,329,Dufferin,South - 329S Dufferin Short Turn towards Wilson Station,Bay 1A,Wilson Station at Bus Bay 1A
+wilson,3880,329,bus,329,Dufferin,South - 329S Dufferin Short Turn towards Wilson Station via Liberty Village,Bay 1A,Wilson Station at Bus Bay 1A
+wilson,3880,929,bus,929,Dufferin Express,North - 929 Dufferin Express towards Wilson Station,Bay 1A,Wilson Station at Bus Bay 1A
+wilson,3880,929,bus,929,Dufferin Express,South - 929 Dufferin Express towards Exhibition (Dufferin Gate),Bay 1A,Wilson Station at Bus Bay 1A
+wilson,3925,996,bus,996,Wilson Express,East - 996 Wilson Express towards Scarborough Centre Station,Bay 8,Wilson Station at Lower Bus Bay 8
+wilson,3925,996,bus,996,Wilson Express,East - 996S Wilson Express Short Turn  towards York Mills Station,Bay 8,Wilson Station at Lower Bus Bay 8
+wilson,4155,996,bus,996,Wilson Express,West - 996 Wilson Express towards Humberwood,Bay 3,Wilson Station at Bus Bay 3
+wilson,4155,996,bus,996,Wilson Express,West - 996S Wilson Express Short Turn towards Wilson Station,Bay 3,Wilson Station at Bus Bay 3
+woodbine,3884,91,bus,91,Woodbine,North - 91 Woodbine towards Lawrence,Bay 2,Woodbine Station at Bus Bay 2
+woodbine,3884,91,bus,91,Woodbine,South - 91 Woodbine towards Woodbine Station,Bay 2,Woodbine Station at Bus Bay 2
+woodbine,3885,92,bus,92,Woodbine South,North - 92 Woodbine South towards Woodbine Station,Bay 3,Woodbine Station at Bus Bay 3
+woodbine,3885,92,bus,92,Woodbine South,South - 92 Woodbine South towards Lake Shore,Bay 3,Woodbine Station at Bus Bay 3
+woodbine,3884,93,bus,93,Parkview Hills,North - 93 Parkview Hills towards Parkview Hills,Bay 2,Woodbine Station at Bus Bay 2
+woodbine,3884,93,bus,93,Parkview Hills,South - 93 Parkview Hills towards Woodbine Station,Bay 2,Woodbine Station at Bus Bay 2
+wynford,16220,5,streetcar,5,Eglinton Line,Eglinton Line towards Kennedy Station,,Wynford Station - Eastbound Platform
+wynford,16221,5,streetcar,5,Eglinton Line,Eglinton Line towards Mount Dennis Station,,Wynford Station - Westbound Platform
+york-mills,3889,78,bus,78,St Andrews,East - 78 St Andrews towards Bayview,Bay 5,York Mills Station at Bus Bay 5
+york-mills,3889,78,bus,78,St Andrews,West - 78 St Andrews towards York Mills Station,Bay 5,York Mills Station at Bus Bay 5
+york-mills,3891,95,bus,95,York Mills,East - 95A York Mills towards Port Union Rd,Bay 7,York Mills Station at Bus Bay 7
+york-mills,3891,95,bus,95,York Mills,East - 95B York Mills towards U of T Scarborough,Bay 7,York Mills Station at Bus Bay 7
+york-mills,3891,95,bus,95,York Mills,West - 95 York Mills towards York Mills Station,Bay 7,York Mills Station at Bus Bay 7
+york-mills,3887,96,bus,96,Wilson,East - 96A Wilson towards York Mills Station via John Garland and Kipling,Bay 2,York Mills Station at Bus Bay 2
+york-mills,3887,96,bus,96,Wilson,East - 96B Wilson towards York Mills Station via Martin Grove and Westhumber,Bay 2,York Mills Station at Bus Bay 2
+york-mills,3887,96,bus,96,Wilson,East - 96D Wilson towards York Mills Station via John Garland and Kipling,Bay 2,York Mills Station at Bus Bay 2
+york-mills,3887,96,bus,96,Wilson,West - 96A Wilson towards Carrier Dr via Kipling and John Garland,Bay 2,York Mills Station at Bus Bay 2
+york-mills,3887,96,bus,96,Wilson,West - 96B Wilson towards Humberline and Albion via Westhumber and Martin Grove,Bay 2,York Mills Station at Bus Bay 2
+york-mills,3887,96,bus,96,Wilson,West - 96D Wilson towards Carrier Dr via John Garland and Westmore Dr,Bay 2,York Mills Station at Bus Bay 2
+york-mills,3887,96,bus,96,Wilson,West - 96S Wilson Short Turn towards Humber College Station via Kipling and John Garland,Bay 2,York Mills Station at Bus Bay 2
+york-mills,3887,96,bus,96,Wilson,West - 96S Wilson Short Turn towards Humber College Station via Westhumber and Martin Grove,Bay 2,York Mills Station at Bus Bay 2
+york-mills,5872,97,bus,97,Yonge,North - 97A Yonge towards Steeles,,Yonge St at York Mills Rd North Side - York Mills Station
+york-mills,5872,97,bus,97,Yonge,North - 97B Yonge towards Steeles via Yonge Blvd,,Yonge St at York Mills Rd North Side - York Mills Station
+york-mills,2126,97,bus,97,Yonge,South - 97A Yonge towards St Clair Station,,Yonge St at Wilson Ave - York Mills Station
+york-mills,3889,115,bus,115,Silver Hills,East - 115 Silver Hills towards Leslie,Bay 5,York Mills Station at Bus Bay 5
+york-mills,3889,115,bus,115,Silver Hills,West - 115 Silver Hills towards York Mills Station,Bay 5,York Mills Station at Bus Bay 5
+york-mills,3890,122,bus,122,Graydon Hall,East - 122 Graydon Hall towards Roywood via Lesmill,Bay 6,York Mills Station at Bus Bay 6
+york-mills,3890,122,bus,122,Graydon Hall,West - 122 Graydon Hall towards York Mills Station,Bay 6,York Mills Station at Bus Bay 6
+york-mills,3888,165,bus,165,Weston Rd North,East - 165 Weston Rd North towards York Mills Station,Bay 3,York Mills Station at Bus Bay 3
+york-mills,3888,165,bus,165,Weston Rd North,West - 165 Weston Rd North towards Steeles,Bay 3,York Mills Station at Bus Bay 3
+york-mills,5872,320,bus,320,Yonge,North - 320A Yonge towards Steeles,,Yonge St at York Mills Rd North Side - York Mills Station
+york-mills,42522,320,bus,320,Yonge,North - 320B Yonge towards York Mills Station,Bay 4,York Mills Station at Bus Bay 4
+york-mills,5872,320,bus,320,Yonge,North - 320S Yonge Short Turn towards Eglinton Station,,Yonge St at York Mills Rd North Side - York Mills Station
+york-mills,2126,320,bus,320,Yonge,South - 320 Yonge towards Queens Quay,,Yonge St at Wilson Ave - York Mills Station
+york-mills,3887,396,bus,396,Wilson,West - 396 Wilson towards Martin Grove and Steeles,Bay 2,York Mills Station at Bus Bay 2
+york-mills,3892,995,bus,995,York Mills Express,East - 995 York Mills Express towards U of T Scarborough,Bay 8,York Mills Station at Bus Bay 8
+york-mills,3892,995,bus,995,York Mills Express,West - 995 York Mills Express towards York Mills Station,Bay 8,York Mills Station at Bus Bay 8
+york-mills,3893,996,bus,996,Wilson Express,East - 996 Wilson Express towards Scarborough Centre Station,Bay 9,York Mills Station at Bus Bay 9
+york-mills,3893,996,bus,996,Wilson Express,East - 996S Wilson Express Short Turn  towards York Mills Station,Bay 9,York Mills Station at Bus Bay 9
+york-mills,3886,996,bus,996,Wilson Express,West - 996 Wilson Express towards Humberwood,Bay 1,York Mills Station at Bus Bay 1
+york-mills,3886,996,bus,996,Wilson Express,West - 996S Wilson Express Short Turn towards Wilson Station,Bay 1,York Mills Station at Bus Bay 1
+yorkdale,7721,18,bus,18,Caledonia,North - 18A Caledonia towards Yorkdale Station via Bridgeland,,Yorkdale Rd at GO Terminal - Yorkdale Station
+yorkdale,7721,18,bus,18,Caledonia,North - 18B Caledonia towards Yorkdale Station via Orfus,,Yorkdale Rd at GO Terminal - Yorkdale Station
+yorkdale,7721,18,bus,18,Caledonia,South - 18A Caledonia towards Caledonia Station via Bridgeland,,Yorkdale Rd at GO Terminal - Yorkdale Station
+yorkdale,7721,18,bus,18,Caledonia,South - 18B Caledonia towards Caledonia Station via Orfus,,Yorkdale Rd at GO Terminal - Yorkdale Station
+yorkdale,4681,109,bus,109,Ranee,North - 109B Ranee towards Neptune via Flemington,,Ranee Ave at Varna Dr - Yorkdale Station
+yorkdale,7929,109,bus,109,Ranee,North - 109S Ranee Short Turn,,Ranee Ave at Flemington Rd - Yorkdale Station
+yorkdale,7929,109,bus,109,Ranee,South - 109B Ranee towards Cedarvale Station via Flemington,,Ranee Ave at Flemington Rd - Yorkdale Station
+yorkdale,7929,109,bus,109,Ranee,South - 109S Ranee Short Turn towards Lawrence West Station,,Ranee Ave at Flemington Rd - Yorkdale Station

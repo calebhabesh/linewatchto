@@ -27,6 +27,15 @@ public class GtfsScheduleImportService {
     private static final Pattern BAY_PLATFORM = Pattern.compile(
         "(?i)\\b(Bay\\s+[A-Za-z0-9-]+(?:\\s*,\\s*Platform\\s+[A-Za-z0-9-]+)?|Streetcar\\s+Platform|Platform\\s+[A-Za-z0-9-]+)\\b"
     );
+    private static final Pattern STATION_SUFFIX_PATTERN = Pattern.compile(
+        "[-–—]\\s*([^–—-]+?Station)\\b", Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern STATION_AT_PREFIX_PATTERN = Pattern.compile(
+        "\\b([^,]+?Station)\\s+at\\b", Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern AT_STATION_SUFFIX_PATTERN = Pattern.compile(
+        "\\bat\\s+([^,]+?Station)\\b", Pattern.CASE_INSENSITIVE
+    );
     private final GtfsScheduleImportWriter writer;
 
     public GtfsScheduleImportService(GtfsScheduleImportWriter writer) {
@@ -165,17 +174,12 @@ public class GtfsScheduleImportService {
 
             Set<String> mappedSurfaceStopIds = new HashSet<>();
             for (GtfsImportModels.StopRow stop : allStopsById.values()) {
-                if (stop.parentStation().isEmpty()) continue;
-                GtfsImportModels.StopRow parent = allStopsById.get(stop.parentStation());
-                if (parent == null) continue;
-                Set<String> stationIds = normalizedAliasToStations.getOrDefault(
-                    GtfsCsvReader.normalizeStationName(parent.stopName()), Set.of()
-                );
-                if (stationIds.size() != 1) continue;
+                String stationId = resolveSurfaceStationId(stop, allStopsById, normalizedAliasToStations);
+                if (stationId == null) continue;
                 mappedSurfaceStopIds.add(stop.stopId());
                 surfaceStationStops.add(new GtfsImportModels.SurfaceStationStopRow(
                     stop.stopId(),
-                    stationIds.iterator().next(),
+                    stationId,
                     stop.stopName(),
                     stop.parentStation(),
                     bayPlatform(stop.stopName())
@@ -361,6 +365,76 @@ public class GtfsScheduleImportService {
         if (stopName == null) return "";
         Matcher matcher = BAY_PLATFORM.matcher(stopName);
         return matcher.find() ? matcher.group(1).replaceAll("\\s+", " ").trim() : "";
+    }
+
+    static String resolveSurfaceStationId(
+        GtfsImportModels.StopRow stop,
+        Map<String, GtfsImportModels.StopRow> allStopsById,
+        Map<String, Set<String>> normalizedAliasToStations
+    ) {
+        if (stop == null) return null;
+
+        // 1. Parent station
+        if (!stop.parentStation().isEmpty()) {
+            GtfsImportModels.StopRow parent = allStopsById.get(stop.parentStation());
+            if (parent != null) {
+                Set<String> matches = normalizedAliasToStations.getOrDefault(
+                    GtfsCsvReader.normalizeStationName(parent.stopName()), Set.of()
+                );
+                if (matches.size() == 1) {
+                    return matches.iterator().next();
+                }
+            }
+        }
+
+        String stopName = stop.stopName();
+        if (stopName == null || stopName.isBlank()) return null;
+
+        // 2. Check suffix: ' - <Station> Station'
+        Matcher suffixMatcher = STATION_SUFFIX_PATTERN.matcher(stopName);
+        if (suffixMatcher.find()) {
+            String candidate = suffixMatcher.group(1).trim();
+            Set<String> matches = normalizedAliasToStations.getOrDefault(
+                GtfsCsvReader.normalizeStationName(candidate), Set.of()
+            );
+            if (matches.size() == 1) {
+                return matches.iterator().next();
+            }
+        }
+
+        // 3. Check '<Station> Station at ...'
+        Matcher stationAtMatcher = STATION_AT_PREFIX_PATTERN.matcher(stopName);
+        if (stationAtMatcher.find()) {
+            String candidate = stationAtMatcher.group(1).trim();
+            Set<String> matches = normalizedAliasToStations.getOrDefault(
+                GtfsCsvReader.normalizeStationName(candidate), Set.of()
+            );
+            if (matches.size() == 1) {
+                return matches.iterator().next();
+            }
+        }
+
+        // 4. Check '... at <Station> Station'
+        Matcher atStationMatcher = AT_STATION_SUFFIX_PATTERN.matcher(stopName);
+        if (atStationMatcher.find()) {
+            String candidate = atStationMatcher.group(1).trim();
+            Set<String> matches = normalizedAliasToStations.getOrDefault(
+                GtfsCsvReader.normalizeStationName(candidate), Set.of()
+            );
+            if (matches.size() == 1) {
+                return matches.iterator().next();
+            }
+        }
+
+        // 5. Direct normalized stop name match
+        Set<String> directMatches = normalizedAliasToStations.getOrDefault(
+            GtfsCsvReader.normalizeStationName(stopName), Set.of()
+        );
+        if (directMatches.size() == 1) {
+            return directMatches.iterator().next();
+        }
+
+        return null;
     }
 
     private void forEachRow(

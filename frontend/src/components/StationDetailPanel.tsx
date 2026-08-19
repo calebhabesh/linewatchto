@@ -443,33 +443,29 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       shortLabel: "Buses",
       icon: <Bus size={13} aria-hidden="true" />,
     });
-    if (distinctImpacts.length > 0) {
-      navItems.push({
-        id: "station-impacts",
-        label: "Station Impacts",
-        shortLabel: "Impacts",
-        icon: <AlertCircle size={13} className="text-orange-500 dark:text-orange-400" aria-hidden="true" />,
-        count: distinctImpacts.length,
-      });
-    }
-    if (sortedOutages.length > 0) {
-      navItems.push({
-        id: "accessibility",
-        label: "Accessibility Outages",
-        shortLabel: "Outages",
-        icon: (
-          <Image
-            src="/assets/linewatch/accessibility-alert.svg"
-            alt=""
-            width={13}
-            height={13}
-            aria-hidden="true"
-            className="shrink-0"
-          />
-        ),
-        count: sortedOutages.length,
-      });
-    }
+    navItems.push({
+      id: "station-impacts",
+      label: "Station Impacts",
+      shortLabel: "Impacts",
+      icon: <AlertCircle size={13} className="text-orange-500 dark:text-orange-400" aria-hidden="true" />,
+      count: distinctImpacts.length > 0 ? distinctImpacts.length : undefined,
+    });
+    navItems.push({
+      id: "accessibility",
+      label: "Accessibility Outages",
+      shortLabel: "Outages",
+      icon: (
+        <Image
+          src="/assets/linewatch/accessibility-alert.svg"
+          alt=""
+          width={13}
+          height={13}
+          aria-hidden="true"
+          className="shrink-0"
+        />
+      ),
+      count: sortedOutages.length > 0 ? sortedOutages.length : undefined,
+    });
   }
 
   const handleJumpToStationImpact = (impactId: string, e?: React.MouseEvent) => {
@@ -1093,11 +1089,13 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               <SurfaceConnectionsSection networkId="ttc" stationId={station.id} />
 
 	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-	            <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-	              <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-	              <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
-	              <span>Station Impacts</span>
-	              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+	            <h3 className="flex items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
+	              <div className="flex min-w-0 items-center gap-2.5">
+	                <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+	                <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
+	                <span className="truncate">Station Impacts</span>
+	              </div>
+	              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
 	                {distinctImpacts.length}
 	              </span>
 	            </h3>
@@ -1166,9 +1164,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	          <details ref={accessibilityDetailsRef} data-station-section="accessibility" className="station-accessibility-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
             <summary
               onClick={handleSummaryClick}
-              className="station-accessibility-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black"
+              className="station-accessibility-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white"
             >
-              <span className="flex min-w-0 items-center gap-2.5">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                 <Image
                   src="/assets/linewatch/accessibility-alert.svg"
@@ -1179,15 +1177,17 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   className="shrink-0"
                 />
                 <span className="min-w-0 truncate">Accessibility Outages</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
                   {station.access.outages.length}
                 </span>
-              </span>
-              <ChevronDown
-                size={18}
-                aria-hidden="true"
-                className="station-accessibility-chevron ml-auto shrink-0 text-slate-500 dark:text-slate-300"
-              />
+                <ChevronDown
+                  size={18}
+                  aria-hidden="true"
+                  className="station-accessibility-chevron shrink-0 text-slate-500 dark:text-slate-300"
+                />
+              </div>
             </summary>
             <div className="station-accessibility-content-wrapper">
               <div className="station-accessibility-content pt-3 flex flex-col gap-3">

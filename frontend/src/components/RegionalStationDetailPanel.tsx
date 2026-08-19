@@ -571,15 +571,13 @@ export function RegionalStationDetailPanel({
     shortLabel: "Buses",
     icon: <Bus size={13} aria-hidden="true" />,
   });
-  if (impacts.length > 0) {
-    navItems.push({
-      id: "station-impacts",
-      label: "Station Impacts",
-      shortLabel: "Impacts",
-      icon: <AlertCircle size={13} className="text-orange-500 dark:text-orange-400" aria-hidden="true" />,
-      count: impacts.length,
-    });
-  }
+  navItems.push({
+    id: "station-impacts",
+    label: "Station Impacts",
+    shortLabel: "Impacts",
+    icon: <AlertCircle size={13} className="text-orange-500 dark:text-orange-400" aria-hidden="true" />,
+    count: impacts.length > 0 ? impacts.length : undefined,
+  });
   if (isGoRailStation) {
     navItems.push({
       id: "trip-changes",
@@ -596,24 +594,22 @@ export function RegionalStationDetailPanel({
     icon: <FileText size={13} aria-hidden="true" />,
     count: linkedNotices.length > 0 ? linkedNotices.length : undefined,
   });
-  if (accessibilityOutages.length > 0) {
-    navItems.push({
-      id: "accessibility",
-      label: "Accessibility Outages",
-      shortLabel: "Outages",
-      icon: (
-        <Image
-          src="/assets/linewatch/accessibility-alert.svg"
-          alt=""
-          width={13}
-          height={13}
-          aria-hidden="true"
-          className="shrink-0"
-        />
-      ),
-      count: accessibilityOutages.length,
-    });
-  }
+  navItems.push({
+    id: "accessibility",
+    label: "Accessibility Outages",
+    shortLabel: "Outages",
+    icon: (
+      <Image
+        src="/assets/linewatch/accessibility-alert.svg"
+        alt=""
+        width={13}
+        height={13}
+        aria-hidden="true"
+        className="shrink-0"
+      />
+    ),
+    count: accessibilityOutages.length > 0 ? accessibilityOutages.length : undefined,
+  });
 
   const handleNoticesSummaryClick = (e: React.MouseEvent<HTMLElement>) => {
     const detailsElement = noticesDetailsRef.current;
@@ -1205,11 +1201,13 @@ export function RegionalStationDetailPanel({
                 data-station-section="station-impacts"
                 aria-label="Station service impacts"
               >
-                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-                  <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
-                  <span>Station Impacts</span>
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                <h3 className="flex items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+                    <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
+                    <span className="truncate">Station Impacts</span>
+                  </div>
+                  <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
                     {impacts.length}
                   </span>
                 </h3>
@@ -1259,12 +1257,14 @@ export function RegionalStationDetailPanel({
                 data-station-section="trip-changes"
                 aria-label="Upcoming GO train changes"
               >
-                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-                  <AlertTriangle size={20} className="shrink-0 text-amber-500" />
-                  <span>Upcoming Trip Changes</span>
+                <h3 className="flex items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+                    <AlertTriangle size={20} className="shrink-0 text-amber-500" />
+                    <span className="truncate">Upcoming Trip Changes</span>
+                  </div>
                   {!tripChangesLoading && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
                       {tripChanges.changes.length}
                     </span>
                   )}
@@ -1290,21 +1290,23 @@ export function RegionalStationDetailPanel({
               >
                 <summary
                   onClick={handleNoticesSummaryClick}
-                  className="station-notices-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black"
+                  className="station-notices-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white"
                 >
-                  <span className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <FileText size={20} className="shrink-0 text-slate-700 dark:text-slate-300" />
                     <span className="min-w-0 truncate">Notices</span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
                       {linkedNotices.length}
                     </span>
-                  </span>
-                  <ChevronDown
-                    size={18}
-                    aria-hidden="true"
-                    className="station-notices-chevron ml-auto shrink-0 text-slate-500 dark:text-slate-300"
-                  />
+                    <ChevronDown
+                      size={18}
+                      aria-hidden="true"
+                      className="station-notices-chevron shrink-0 text-slate-500 dark:text-slate-300"
+                    />
+                  </div>
                 </summary>
                 <div className="station-notices-content-wrapper">
                   <div className="station-notices-content pt-3 flex flex-col gap-3">
@@ -1405,8 +1407,8 @@ export function RegionalStationDetailPanel({
                 data-station-section="accessibility"
                 aria-label="Regional accessibility outages"
               >
-                <summary className="station-accessibility-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black">
-                  <span className="flex min-w-0 items-center gap-2.5">
+                <summary className="station-accessibility-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <Image
                       src="/assets/linewatch/accessibility-alert.svg"
@@ -1417,15 +1419,17 @@ export function RegionalStationDetailPanel({
                       className="shrink-0"
                     />
                     <span className="min-w-0 truncate">Accessibility Outages</span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
                       {accessibilityOutages.length}
                     </span>
-                  </span>
-                  <ChevronDown
-                    size={18}
-                    aria-hidden="true"
-                    className="station-accessibility-chevron ml-auto shrink-0 text-slate-500 dark:text-slate-300"
-                  />
+                    <ChevronDown
+                      size={18}
+                      aria-hidden="true"
+                      className="station-accessibility-chevron shrink-0 text-slate-500 dark:text-slate-300"
+                    />
+                  </div>
                 </summary>
                 <div className="station-accessibility-content-wrapper">
                   <div className="station-accessibility-content pt-3 flex flex-col gap-3">

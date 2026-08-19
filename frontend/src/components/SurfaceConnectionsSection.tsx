@@ -408,13 +408,15 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
               <span className="flex items-center gap-1.5 min-w-0 max-w-full text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
                 <Bus size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Surface Connections</strong>
-                {!loading && allGroups.length > 0 && (
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {!loading && (
                   <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-200 px-1 text-[10px] font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
                     {allGroups.length}
                   </span>
                 )}
-              </span>
-              <ChevronDown size={14} className="surface-connections-chevron shrink-0 text-slate-500" aria-hidden="true" />
+                <ChevronDown size={14} className="surface-connections-chevron shrink-0 text-slate-500" aria-hidden="true" />
+              </div>
             </div>
             <p className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate w-full min-w-0 max-w-full">
               {loading
@@ -522,7 +524,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
             <span className="text-lg font-black text-slate-900 dark:text-white truncate">Surface Connections</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {!loading && allGroups.length > 0 && (
+            {!loading && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 text-xs font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
                 {allGroups.length}
               </span>
