@@ -752,7 +752,7 @@ export function RegionalStationDetailPanel({
                     )}
                   </span>
                 </div>
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 dark:text-red-300">Details <ArrowRight size={13} strokeWidth={1.5} aria-hidden="true" className="relative -top-px" /></span>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 dark:text-red-300">Details <ArrowRight size={13} strokeWidth={1.5} aria-hidden="true" /></span>
               </button>
             )}
 
