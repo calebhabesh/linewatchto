@@ -53,7 +53,7 @@ public class TtcSurfaceArrivalPollingJob {
         try {
             TtcSurfaceArrivalSnapshot snapshot = indexer.index(mode, feed, indexedAt);
             cache.replace(snapshot);
-            log.debug("Indexed {} TTC {} station-connection arrivals", snapshot.arrivals().size(), mode);
+            log.info("Indexed {} TTC {} station-connection arrivals", snapshot.arrivals().size(), mode);
         } catch (Exception exception) {
             // Keep the last-good snapshot for this mode. Freshness gating happens on read.
             log.warn("Failed to index TTC {} trip updates", mode, exception);

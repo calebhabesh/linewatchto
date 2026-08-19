@@ -46,7 +46,7 @@ class GtfsRtSubwayArrivalProviderTest {
         properties = new ArrivalProperties();
         clock = Clock.fixed(Instant.parse("2026-07-02T10:25:46Z"), ZoneId.of("UTC"));
         cache = new GtfsRtSubwayArrivalCache(properties, clock);
-        provider = new GtfsRtSubwayArrivalProvider(cache, scheduledArrivalProvider, properties, clock);
+        provider = new GtfsRtSubwayArrivalProvider(cache, scheduledArrivalProvider, properties, clock, new SubwayOperatingWindow(clock));
     }
 
     @Test
@@ -245,13 +245,47 @@ class GtfsRtSubwayArrivalProviderTest {
             expiredCache,
             scheduledArrivalProvider,
             properties,
-            afterDeparture
+            afterDeparture,
+            new SubwayOperatingWindow(afterDeparture)
         );
 
         List<ArrivalPrediction> expiredPredictions = expiredProvider.arrivalsFor("finch-west", List.of(line1));
 
         assertThat(expiredPredictions).hasSize(1);
         assertThat(expiredPredictions.getFirst().status()).isEqualTo("scheduled");
+    }
+
+    @Test
+    void returnsScheduledDeparturesWhenSubwayIsClosedEvenIfCacheHasLiveArrivals() {
+        // 07:15 UTC is 03:15 Toronto time (subway closed)
+        Clock overnightClock = Clock.fixed(Instant.parse("2026-07-02T07:15:00Z"), ZoneId.of("UTC"));
+        OffsetDateTime now = OffsetDateTime.now(overnightClock);
+        GtfsRtSubwayArrivalCache overnightCache = new GtfsRtSubwayArrivalCache(properties, overnightClock);
+        overnightCache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(20), now.minusSeconds(18), List.of(
+            new GtfsRtSubwayStationArrival(
+                "cedarvale",
+                "line-1",
+                "Northbound",
+                now.plusMinutes(3),
+                "123",
+                "126607",
+                "13791"
+            )
+        )));
+        GtfsRtSubwayArrivalProvider overnightProvider = new GtfsRtSubwayArrivalProvider(
+            overnightCache,
+            scheduledArrivalProvider,
+            properties,
+            overnightClock,
+            new SubwayOperatingWindow(overnightClock)
+        );
+        when(scheduledArrivalProvider.arrivalsFor("cedarvale", List.of(line1))).thenReturn(List.of(
+            ArrivalPrediction.scheduled("line-1", "Northbound", 165, now.plusMinutes(165), "TTC scheduled service")
+        ));
+        List<ArrivalPrediction> predictions = overnightProvider.arrivalsFor("cedarvale", List.of(line1));
+
+        assertThat(predictions).hasSize(1);
+        assertThat(predictions.getFirst().status()).isEqualTo("scheduled");
     }
 
     @Test

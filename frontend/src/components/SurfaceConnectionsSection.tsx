@@ -20,9 +20,6 @@ import {
   type SurfaceArrivalGroup,
   type SurfaceArrivalSnapshot,
 } from "../app/surface-arrivals";
-import { isLrtOnlyStationId, isSubwayAndLrtStationId } from "../app/station-data";
-import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
-import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperatingState";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { LiveSignalIcon } from "./LiveSignalIcon";
@@ -132,9 +129,9 @@ function SurfaceRouteCard({
         </div>
       </div>
 
-      <div className="mt-2.5 grid grid-cols-3 gap-2">
-        {hasArrivals ? (
-          group.arrivals.map((arrival, index) => {
+      {hasArrivals ? (
+        <div className="mt-2.5 grid grid-cols-3 gap-2">
+          {group.arrivals.map((arrival, index) => {
             const detailedCountdown = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
             const due = isSurfaceArrivalDue(arrival, tick);
             const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
@@ -174,13 +171,15 @@ function SurfaceRouteCard({
                 )}
               </div>
             );
-          })
-        ) : (
-          <div className="col-span-3 flex min-h-[52px] items-center justify-center rounded-md border border-dashed border-black/10 bg-slate-950/[0.02] text-xs font-semibold text-slate-500 dark:border-white/10 dark:bg-[#0f1117]/50 dark:text-slate-400">
+          })}
+        </div>
+      ) : (
+        <div className="py-2.5 flex items-center justify-center text-center">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
             No active arrivals
-          </div>
-        )}
-      </div>
+          </p>
+        </div>
+      )}
     </article>
   );
 }
@@ -280,9 +279,9 @@ function SurfaceCompactRouteRow({
         </div>
       </div>
 
-      <div className="saved-station-arrival-times mt-1.5 sm:mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
-        {hasArrivals ? (
-          group.arrivals.slice(0, 3).map((arrival, index) => {
+      {hasArrivals ? (
+        <div className="saved-station-arrival-times mt-1.5 sm:mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+          {group.arrivals.slice(0, 3).map((arrival, index) => {
             const detailed = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
             const due = isSurfaceArrivalDue(arrival, tick);
             const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
@@ -322,36 +321,23 @@ function SurfaceCompactRouteRow({
                 )}
               </div>
             );
-          })
-        ) : (
-          <div className="col-span-3 flex min-h-[56px] items-center justify-center rounded-md border border-dashed border-black/10 bg-slate-950/[0.02] text-xs font-semibold text-slate-500 dark:border-white/10 dark:bg-[#0f1117]/50 dark:text-slate-400">
-            <em>—</em>
-          </div>
-        )}
-      </div>
+          })}
+        </div>
+      ) : (
+        <div className="py-2 flex items-center justify-center text-center">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            No active arrivals
+          </p>
+        </div>
+      )}
     </article>
   );
 }
 
 export function SurfaceConnectionsSection({ networkId, stationId, className, variant = "station-detail" }: Props) {
   const isSavedStationVariant = variant === "saved-station";
-  const subwayOperatingState = useSubwayOperatingState();
-  const regionalRailOperatingState = useRegionalRailOperatingState();
   const { pinnedLineIds, togglePin } = useArrivalLinePins(networkId, stationId);
   const [hoveredPinRoute, setHoveredPinRoute] = useState<string | null>(null);
-
-  const isLrt = networkId === "ttc" && isLrtOnlyStationId(stationId);
-  const isSubwayAndLrt = networkId === "ttc" && isSubwayAndLrtStationId(stationId);
-  const closedTitle = networkId === "regional"
-    ? "GO & UP Rail Closed"
-    : isSubwayAndLrt
-      ? "Subway & LRT Closed"
-      : isLrt
-        ? "LRT Closed"
-        : "Subway Closed";
-  const isClosed = networkId === "regional"
-    ? regionalRailOperatingState.status === "closed"
-    : subwayOperatingState.status === "closed";
 
   const [snapshot, setSnapshot] = useState<SurfaceArrivalSnapshot>(() =>
     emptySurfaceArrivalSnapshot(networkId, stationId),
@@ -361,9 +347,6 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
 
   useEffect(() => {
     let mounted = true;
-    if (isClosed) {
-      return;
-    }
 
     async function load() {
       try {
@@ -386,7 +369,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
       mounted = false;
       window.clearInterval(interval);
     };
-  }, [networkId, stationId, isClosed]);
+  }, [networkId, stationId]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setTick(Date.now()), SURFACE_ARRIVAL_COUNTDOWN_TICK_MS);
@@ -399,8 +382,8 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
   );
 
   const allGroups = useMemo(
-    () => groupSurfaceArrivals(activeArrivals),
-    [activeArrivals],
+    () => groupSurfaceArrivals(snapshot.arrivals, activeArrivals),
+    [snapshot.arrivals, activeArrivals],
   );
 
   const baySections = useMemo(
@@ -418,7 +401,6 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
       <details
         className={`surface-connections-details is-saved-station saved-station-arrivals w-full min-w-0 max-w-full overflow-hidden${className ? ` ${className}` : ""}`}
         data-station-section="surface-connections"
-        data-surface-connections-closed={isClosed ? "true" : undefined}
       >
         <summary className="surface-connections-summary block w-full min-w-0 max-w-full cursor-pointer list-none overflow-hidden">
           <div className="saved-station-arrivals-heading flex w-full min-w-0 max-w-full flex-col items-start text-left gap-0.5 overflow-hidden">
@@ -426,7 +408,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
               <span className="flex items-center gap-1.5 min-w-0 max-w-full text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
                 <Bus size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Surface Connections</strong>
-                {!loading && !isClosed && allGroups.length > 0 && (
+                {!loading && allGroups.length > 0 && (
                   <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-200 px-1 text-[10px] font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
                     {allGroups.length}
                   </span>
@@ -435,15 +417,13 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
               <ChevronDown size={14} className="surface-connections-chevron shrink-0 text-slate-500" aria-hidden="true" />
             </div>
             <p className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate w-full min-w-0 max-w-full">
-              {isClosed
-                ? networkId === "regional" ? "GO Bus connections" : "TTC bus & streetcar connections"
-                : loading
-                  ? "Checking connections"
-                  : surfaceSourceSummary(snapshot)}
+              {loading
+                ? "Checking connections"
+                : surfaceSourceSummary(snapshot)}
             </p>
           </div>
 
-          {!loading && !isClosed && pinnedGroups.length > 0 && (
+          {!loading && pinnedGroups.length > 0 && (
             <div
               className="surface-connections-collapsed-pinned mt-2 flex w-full min-w-0 max-w-full flex-col gap-1.5 overflow-hidden"
               onClick={(event) => event.stopPropagation()}
@@ -476,18 +456,11 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
         </summary>
 
         <div className="surface-connections-content w-full min-w-0 max-w-full overflow-hidden pt-2">
-          {isClosed ? (
-            <div className="rounded-md border border-black/10 bg-white/60 px-3 py-3 text-center dark:border-white/10 dark:bg-black/10">
-              <p className="text-xs font-semibold leading-snug text-slate-500 dark:text-slate-400">
-                <span className="block">{closedTitle}</span>
-                <span className="block">Arrivals Not Available</span>
-              </p>
-            </div>
-          ) : loading ? (
+          {loading ? (
             <div className="flex min-h-12 items-center justify-center rounded-md border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/10">
               <LoaderCircle size={15} className="animate-spin text-slate-500" aria-label="Loading surface connections" />
             </div>
-          ) : snapshot.availability === "available" && baySections.length > 0 ? (
+          ) : baySections.length > 0 ? (
             <div className="flex w-full min-w-0 max-w-full flex-col gap-2 overflow-hidden" aria-label="Upcoming surface connection arrivals">
               {baySections.map((baySection, bayIndex) => (
                 <Fragment key={baySection.bayKey}>
@@ -526,7 +499,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
               {snapshot.message}
             </p>
           )}
-          {!loading && !isClosed && snapshot.availability === "available" ? (
+          {!loading && (snapshot.availability === "available" || baySections.length > 0) ? (
             <p className="mt-2 text-[10px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
               Surface routes stay off the schematic map. Bay and platform labels are source-published and are never inferred by proximity.
             </p>
@@ -540,7 +513,6 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
     <details
       className={`surface-connections-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5${className ? ` ${className}` : ""}`}
       data-station-section="surface-connections"
-      data-surface-connections-closed={isClosed ? "true" : undefined}
     >
       <summary className="surface-connections-summary block cursor-pointer list-none">
         <div className="flex items-center justify-between gap-2">
@@ -550,7 +522,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
             <span className="text-lg font-black text-slate-900 dark:text-white truncate">Surface Connections</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {!loading && !isClosed && allGroups.length > 0 && (
+            {!loading && allGroups.length > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 text-xs font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
                 {allGroups.length}
               </span>
@@ -559,14 +531,12 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
           </div>
         </div>
         <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          {isClosed
-            ? networkId === "regional" ? "GO Bus connections" : "TTC bus and streetcar connections"
-            : loading
-              ? "Checking station connections"
-              : surfaceSourceSummary(snapshot)}
+          {loading
+            ? "Checking station connections"
+            : surfaceSourceSummary(snapshot)}
         </p>
 
-        {!loading && !isClosed && pinnedGroups.length > 0 && (
+        {!loading && pinnedGroups.length > 0 && (
           <div
             className="surface-connections-collapsed-pinned mt-2.5 flex flex-col gap-2"
             onClick={(event) => event.stopPropagation()}
@@ -597,18 +567,11 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
       </summary>
 
       <div className="surface-connections-content pt-3">
-        {isClosed ? (
-          <div className="rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
-            <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
-              <span className="block">{closedTitle}</span>
-              <span className="block">Arrivals Not Available</span>
-            </p>
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="flex min-h-16 items-center justify-center rounded-md border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/10">
             <LoaderCircle size={19} className="animate-spin text-slate-500" aria-label="Loading surface connections" />
           </div>
-        ) : snapshot.availability === "available" && baySections.length > 0 ? (
+        ) : baySections.length > 0 ? (
           <div className="flex flex-col gap-3" aria-label="Upcoming surface connection arrivals">
             {baySections.map((baySection, bayIndex) => {
               const showDivider = bayIndex > 0;
@@ -650,7 +613,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
             {snapshot.message}
           </p>
         )}
-        {!loading && !isClosed && snapshot.availability === "available" ? (
+        {!loading && (snapshot.availability === "available" || baySections.length > 0) ? (
           <p className="mt-2 text-[10px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
             Surface routes stay off the schematic map. Bay and platform labels are source-published and are never inferred by proximity.
           </p>

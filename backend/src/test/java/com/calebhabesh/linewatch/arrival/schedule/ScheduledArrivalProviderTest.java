@@ -48,7 +48,7 @@ class ScheduledArrivalProviderTest {
             List.of("line-1"),
             List.of("WKD"),
             32400,
-            37800,
+            172799,
             properties.getMaxArrivalsPerLine()
         )).thenReturn(List.of(
             new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 32700, LocalDate.parse("2026-06-04"))
@@ -77,7 +77,7 @@ class ScheduledArrivalProviderTest {
             List.of("line-1"),
             List.of("WKD"),
             32400,
-            37800,
+            172799,
             properties.getMaxArrivalsPerLine()
         )).thenReturn(List.of(
             new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 32700, LocalDate.parse("2026-06-04")),
@@ -144,6 +144,39 @@ class ScheduledArrivalProviderTest {
     }
 
     @Test
+    void returnsMorningScheduledDeparturesWhenSubwayIsClosedOvernight() {
+        provider = new ScheduledArrivalProvider(
+            repository,
+            properties,
+            Clock.fixed(Instant.parse("2026-06-04T07:15:00Z"), ZoneId.of("America/Toronto")) // 03:15 AM EDT
+        );
+
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-04"))).thenReturn(Optional.of(7L));
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-03"))).thenReturn(Optional.empty());
+        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-04"))).thenReturn(List.of("WKD"));
+        when(repository.findUpcomingDepartures(
+            7L,
+            "union",
+            List.of("line-1"),
+            List.of("WKD"),
+            11700, // 03:15 AM
+            172799,
+            properties.getMaxArrivalsPerLine()
+        )).thenReturn(List.of(
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 21600, LocalDate.parse("2026-06-04")),
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Southbound to Vaughan Metropolitan Centre", 21720, LocalDate.parse("2026-06-04"))
+        ));
+
+        List<ArrivalPrediction> arrivals = provider.arrivalsFor("union", List.of(line1));
+
+        assertThat(arrivals).hasSize(2);
+        assertThat(arrivals.getFirst().lineId()).isEqualTo("line-1");
+        assertThat(arrivals.getFirst().direction()).isEqualTo("Northbound to Finch");
+        assertThat(arrivals.getFirst().predictedAt()).isEqualTo(OffsetDateTime.parse("2026-06-04T06:00:00-04:00"));
+        assertThat(arrivals.getFirst().minutes()).isEqualTo(165);
+    }
+
+    @Test
     void usesSeparateImportsForTodayAndYesterdayAcrossScheduleBoundary() {
         provider = new ScheduledArrivalProvider(
             repository,
@@ -161,7 +194,7 @@ class ScheduledArrivalProviderTest {
             eq(List.of("line-1")),
             eq(List.of("SUN")),
             eq(1800),
-            eq(7200),
+            eq(172799),
             eq(properties.getMaxArrivalsPerLine())
         )).thenReturn(List.of(
             new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 2100, null)
@@ -172,7 +205,7 @@ class ScheduledArrivalProviderTest {
             eq(List.of("line-1")),
             eq(List.of("SAT")),
             eq(88200),
-            eq(93600),
+            eq(172799),
             eq(properties.getMaxArrivalsPerLine())
         )).thenReturn(List.of(
             new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Southbound to Vaughan Metropolitan Centre", 88260, null)

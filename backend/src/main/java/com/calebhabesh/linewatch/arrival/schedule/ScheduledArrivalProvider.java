@@ -72,7 +72,7 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
                 lineIds,
                 activeServiceIdsToday,
                 nowSeconds,
-                nowSeconds + (int) horizonSeconds,
+                172799,
                 properties.getMaxArrivalsPerLine()
             ))
             .orElseGet(List::of);
@@ -87,7 +87,7 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
                 lineIds,
                 activeServiceIdsYesterday,
                 nowSeconds + 86400,
-                nowSeconds + 86400 + (int) horizonSeconds,
+                172799,
                 properties.getMaxArrivalsPerLine()
             ))
             .orElseGet(List::of);

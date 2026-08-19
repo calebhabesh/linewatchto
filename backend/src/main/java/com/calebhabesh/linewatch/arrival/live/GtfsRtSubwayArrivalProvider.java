@@ -24,21 +24,27 @@ public class GtfsRtSubwayArrivalProvider implements ArrivalProvider {
     private final ScheduledArrivalProvider scheduledArrivalProvider;
     private final ArrivalProperties properties;
     private final Clock clock;
+    private final SubwayOperatingWindow operatingWindow;
 
     public GtfsRtSubwayArrivalProvider(
         GtfsRtSubwayArrivalCache cache,
         ScheduledArrivalProvider scheduledArrivalProvider,
         ArrivalProperties properties,
-        Clock clock
+        Clock clock,
+        SubwayOperatingWindow operatingWindow
     ) {
         this.cache = cache;
         this.scheduledArrivalProvider = scheduledArrivalProvider;
         this.properties = properties;
         this.clock = clock;
+        this.operatingWindow = operatingWindow;
     }
 
     @Override
     public List<ArrivalPrediction> arrivalsFor(String stationId, List<StationResponses.StationLineResponse> lines) {
+        if (!operatingWindow.isOpen()) {
+            return scheduledArrivalProvider.arrivalsFor(stationId, lines);
+        }
         List<String> lineIds = lines.stream().map(StationResponses.StationLineResponse::id).toList();
         List<ArrivalPrediction> livePredictions = limitPerDirection(
             cache.arrivalsFor(stationId, lineIds)

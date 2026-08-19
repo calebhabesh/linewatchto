@@ -36,7 +36,6 @@ import {
   type AccessibilityOutageDetail,
   type AccessibilityOutageResponse,
 } from "../app/accessibility-outage-data";
-import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -266,7 +265,6 @@ function SavedStationRow({
   regionalArrivalResult,
   regionalAccessibilityOutages,
   regionalDataLoaded,
-  subwayClosed,
   arrivalTick,
   pending,
   onOpen,
@@ -282,7 +280,6 @@ function SavedStationRow({
   regionalArrivalResult?: RegionalArrivalDataResult;
   regionalAccessibilityOutages: AccessibilityOutageDetail[];
   regionalDataLoaded: boolean;
-  subwayClosed: boolean;
   arrivalTick: number;
   pending: boolean;
   onOpen: () => void;
@@ -331,7 +328,6 @@ function SavedStationRow({
   const linesForClassification = detail?.lines ?? saved.station.lineIds;
   const isLrt = isLrtOnlyStation(linesForClassification);
   const isSubwayAndLrt = isSubwayAndLrtStation(linesForClassification);
-  const closedTitle = isSubwayAndLrt ? "Subway & LRT Closed" : isLrt ? "LRT Closed" : "Subway Closed";
   const arrivalHeading = isSubwayAndLrt ? "Train & LRT Arrivals" : isLrt ? "LRT Arrivals" : "Train Arrivals";
   const hasUnavailableArrivals = detail?.arrivals.some((arrival) => arrival.status === "unavailable") ?? false;
   const hasLiveArrivals = detail?.arrivals.some((arrival) => arrival.status === "live") ?? false;
@@ -786,9 +782,7 @@ function SavedStationRow({
                   {formatArrivalSourceSummary(detail.arrivals, detail.arrivalsSource)}
                 </p>
               </div>
-              {subwayClosed ? (
-                <p className="saved-station-arrivals-empty">{closedTitle} · Arrivals Not Available</p>
-              ) : hasUnavailableArrivals ? (
+              {hasUnavailableArrivals ? (
                 <p className="saved-station-arrivals-empty">Arrival Data Unavailable</p>
               ) : arrivalGroups.length === 0 ? (
                 <p className="saved-station-arrivals-empty">No Arrivals Available</p>
@@ -972,7 +966,6 @@ export function MyStationsPanel({
   const [regionalArrivalDetails, setRegionalArrivalDetails] = useState<Record<string, RegionalArrivalDataResult>>({});
   const [regionalAccessibility, setRegionalAccessibility] = useState<AccessibilityOutageResponse | null>(null);
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
-  const subwayOperatingState = useSubwayOperatingState();
   const modeButtonRef = useRef<HTMLButtonElement>(null);
   const savedIds = useMemo(
     () => new Set(savedStations.map((saved) => `${saved.networkId}:${saved.station.id}`)),
@@ -1404,7 +1397,6 @@ export function MyStationsPanel({
                     regionalArrivalResult={regionalArrivalDetails[saved.station.id]}
                     regionalAccessibilityOutages={regionalAccessibilityByStation.get(saved.station.id) ?? []}
                     regionalDataLoaded={saved.networkId !== "regional" || regionalAccessibility !== null}
-                    subwayClosed={saved.networkId === "ttc" && subwayOperatingState.status === "closed"}
                     routeImpactSelections={stationImpactSelections[saved.networkId].get(saved.station.id) ?? []}
                     arrivalTick={arrivalTick}
                     pending={pendingStationIds.has(saved.station.id)}

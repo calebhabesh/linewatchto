@@ -52,6 +52,7 @@ public class GtfsScheduleImportWriter {
         repository.insertSurfaceRoutes(importId, prepared.surfaceRoutes());
         repository.insertSurfaceStationStops(importId, prepared.surfaceStationStops());
         repository.insertSurfaceTrips(importId, prepared.surfaceTrips());
+        repository.insertSurfaceStationConnections(importId, prepared.surfaceStationConnections());
 
         StopTimeBatcher batcher = new StopTimeBatcher(
             repository,

@@ -376,15 +376,13 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await expect(closedArrivalsSection).toBeVisible();
   await expect(closedArrivalsSection.getByRole("heading", { name: "Train Arrivals" })).toBeVisible();
   await expect(closedArrivalsSection.getByText(/TTC scheduled service/i)).toBeVisible();
-  await expect(closedArrivalsSection.getByText("Subway Closed")).toBeVisible();
-  await expect(closedArrivalsSection.getByText("Arrivals Not Available")).toBeVisible();
+  await expect(closedArrivalsSection.getByText("Arrivals Not Available")).toHaveCount(0);
   await expect(closedArrivalsSection.getByText("Schedule May Be Disrupted")).toHaveCount(0);
 
   const surfaceSection = page.locator('[data-station-section="surface-connections"]');
   await expect(surfaceSection).toBeVisible();
   await surfaceSection.getByText("Surface Connections").click();
-  await expect(surfaceSection.getByText("Subway Closed")).toBeVisible();
-  await expect(surfaceSection.getByText("Arrivals Not Available")).toBeVisible();
+  await expect(surfaceSection.getByText("Arrivals Not Available")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Closed Screen" }).click();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();

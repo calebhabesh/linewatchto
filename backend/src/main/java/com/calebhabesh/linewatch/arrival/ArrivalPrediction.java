@@ -11,6 +11,14 @@ public record ArrivalPrediction(
     String status,
     String label
 ) {
+    public static String formatMinutes(int minutes) {
+        if (minutes <= 0) return "Due";
+        if (minutes < 60) return minutes + " min";
+        int hours = minutes / 60;
+        int remaining = minutes % 60;
+        return remaining == 0 ? hours + " hr" : hours + " hr " + remaining + " min";
+    }
+
     public static ArrivalPrediction scheduled(
         String lineId,
         String direction,
@@ -18,7 +26,7 @@ public record ArrivalPrediction(
         OffsetDateTime predictedAt,
         String source
     ) {
-        String label = minutes == null ? "No scheduled service" : minutes <= 0 ? "Due" : minutes + " min";
+        String label = minutes == null ? "No scheduled service" : formatMinutes(minutes);
         return new ArrivalPrediction(lineId, direction, minutes, predictedAt, source, "scheduled", label);
     }
 
@@ -29,7 +37,7 @@ public record ArrivalPrediction(
         OffsetDateTime predictedAt,
         String source
     ) {
-        String label = minutes == null ? "Unavailable" : minutes <= 0 ? "Due" : minutes + " min";
+        String label = minutes == null ? "Unavailable" : formatMinutes(minutes);
         return new ArrivalPrediction(lineId, direction, minutes, predictedAt, source, "live", label);
     }
 
@@ -38,6 +46,6 @@ public record ArrivalPrediction(
     }
 
     public static ArrivalPrediction demo(String lineId, String direction, int minutes, OffsetDateTime predictedAt) {
-        return new ArrivalPrediction(lineId, direction, minutes, predictedAt, "Demo estimates", "demo", minutes + " min");
+        return new ArrivalPrediction(lineId, direction, minutes, predictedAt, "Demo estimates", "demo", formatMinutes(minutes));
     }
 }

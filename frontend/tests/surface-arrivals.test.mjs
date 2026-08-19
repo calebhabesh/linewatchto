@@ -45,14 +45,6 @@ describe("surface station arrivals", () => {
     assert.match(regional, /SurfaceConnectionsSection networkId="regional"/);
     assert.match(section, /data-station-section="surface-connections"/);
     assert.match(section, /Bay and platform labels are source-published and are never inferred by proximity/);
-    assert.match(section, /useSubwayOperatingState/);
-    assert.match(section, /useRegionalRailOperatingState/);
-    assert.match(section, /Subway Closed/);
-    assert.match(section, /LRT Closed/);
-    assert.match(section, /Subway & LRT Closed/);
-    assert.match(section, /GO & UP Rail Closed/);
-    assert.match(section, /Arrivals Not Available/);
-    assert.match(section, /data-surface-connections-closed/);
     assert.match(section, /<Bus size=\{20\}[\s\S]*?<span[^>]*>Surface Connections<\/span>/);
     assert.match(section, /<Bus size=\{15\}[\s\S]*?<strong[^>]*>[\s\S]*?Surface Connections/);
     assert.match(section, /ArrivalLinePinButton/);
@@ -76,15 +68,23 @@ describe("surface station arrivals", () => {
     ]);
   });
 
-  it("groups only identical route, destination, and published bay rows", () => {
-    const groups = groupSurfaceArrivals([
-      row(),
-      row({ tripId: "trip-2", predictedAt: "2026-08-14T12:10:00Z" }),
-      row({ tripId: "trip-3", bayPlatform: "", stopName: "Broadview Station" }),
-    ]);
+  it("preserves all station surface connections even when arrivals expire or are outside window", () => {
+    const all = [
+      row({ route: "504", destination: "Dundas West Station", bayPlatform: "Bay 7", tripId: "t-1" }),
+      row({ route: "32", destination: "Eglinton Station", bayPlatform: "Bay 2", tripId: "t-2" }),
+    ];
+    const active = [
+      row({ route: "504", destination: "Dundas West Station", bayPlatform: "Bay 7", tripId: "t-1" }),
+    ]; // 32 has no active arrivals right now
+
+    const groups = groupSurfaceArrivals(all, active);
     assert.equal(groups.length, 2);
-    assert.equal(groups.find((group) => group.bayPlatform === "Bay 7").arrivals.length, 2);
+    assert.equal(groups[0].route, "504");
+    assert.equal(groups[0].arrivals.length, 1);
+    assert.equal(groups[1].route, "32");
+    assert.equal(groups[1].arrivals.length, 0);
   });
+
 
   it("cleans redundant route numbers and prefixes, formatting condensed route name and standalone destination", () => {
     const r1 = parseSurfaceRouteDetails({

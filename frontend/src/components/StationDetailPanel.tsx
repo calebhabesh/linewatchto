@@ -803,32 +803,6 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             const arrivalHeading = isDemo
               ? (isSubwayAndLrt ? "Demo Train & LRT Arrivals" : isLrt ? "Demo LRT Arrivals" : "Demo Train Arrivals")
               : (isSubwayAndLrt ? "Train & LRT Arrivals" : isLrt ? "LRT Arrivals" : "Train Arrivals");
-            const closedTitle = isSubwayAndLrt ? "Subway & LRT Closed" : isLrt ? "LRT Closed" : "Subway Closed";
-
-            if (subwayClosed) {
-              return (
-                <section
-                  className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
-                  data-arrivals-subway-closed="true"
-                  data-station-section="arrivals"
-                >
-                  <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-                    <Train size={20} className="shrink-0" />
-                    <span>{arrivalHeading}</span>
-                  </h3>
-                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                    {formatArrivalSourceSummary(station.arrivals, station.arrivalsSource)}
-                  </p>
-                  <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
-                    <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
-                      <span className="block">{closedTitle}</span>
-                      <span className="block">Arrivals Not Available</span>
-                    </p>
-                  </div>
-                </section>
-              );
-            }
 
             const arrivalsDisrupted = station.arrivalContext ? station.arrivalContext.scheduleMayBeDisrupted : false;
             const hasUnavailableArrivals = station.arrivals.some((arrival) => arrival.status === "unavailable");
@@ -846,6 +820,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               <section
                 className={arrivalSectionClassName}
                 data-arrivals-disrupted={arrivalsDisrupted}
+                data-arrivals-subway-closed={subwayClosed ? "true" : undefined}
                 data-station-section="arrivals"
               >
                 {/* Schedule May Be Disrupted */}

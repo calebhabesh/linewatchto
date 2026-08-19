@@ -11,23 +11,27 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TtcSurfaceArrivalService {
     private final StationRepository stations;
     private final TtcSurfaceArrivalCache cache;
+    private final TtcSurfaceScheduleCatalog catalogRepository;
     private final SurfaceArrivalProperties properties;
     private final Clock clock;
 
     public TtcSurfaceArrivalService(
         StationRepository stations,
         TtcSurfaceArrivalCache cache,
+        TtcSurfaceScheduleCatalog catalogRepository,
         SurfaceArrivalProperties properties,
         Clock clock
     ) {
         this.stations = stations;
         this.cache = cache;
+        this.catalogRepository = catalogRepository;
         this.properties = properties;
         this.clock = clock;
     }
@@ -41,12 +45,26 @@ public class TtcSurfaceArrivalService {
                 "TTC surface connections are disabled.", List.of());
         }
 
+        TtcSurfaceScheduleCatalog.Catalog catalog = catalogRepository.active();
         List<TtcSurfaceArrivalSnapshot> available = List.of("bus", "streetcar").stream()
             .map(cache::get).flatMap(java.util.Optional::stream).toList();
         List<TtcSurfaceArrivalSnapshot> fresh = available.stream()
             .filter(item -> fresh(item.sourceUpdatedAt(), now, properties.getTtcMaxSourceAge()))
             .toList();
         if (fresh.isEmpty()) {
+            if (catalog.available() && !catalog.connectionsFor(stationId).isEmpty()) {
+                List<SurfaceArrivalRecord> scheduledOnly = catalog.connectionsFor(stationId).stream()
+                    .map(conn -> new SurfaceArrivalRecord(
+                        stationId, "TTC", conn.mode(), conn.routeShortName(), conn.routeLongName(),
+                        conn.destination(), null, null, conn.bayPlatform(), conn.stopName(),
+                        "", TtcSurfaceArrivalIndexer.SOURCE, "scheduled"
+                    ))
+                    .toList();
+                return snapshot(station, "available", now, null,
+                    TtcSurfaceArrivalIndexer.SOURCE,
+                    "Published TTC surface connections for this station.",
+                    bound(scheduledOnly));
+            }
             String message = available.isEmpty()
                 ? "TTC bus and streetcar predictions have not been received yet."
                 : available.stream().anyMatch(TtcSurfaceArrivalSnapshot::catalogAvailable)
@@ -55,7 +73,8 @@ public class TtcSurfaceArrivalService {
             return snapshot(station, "unavailable", now, null, "TTC GTFS-RT", message, List.of());
         }
 
-        boolean mapped = fresh.stream().anyMatch(item -> item.mappedStationIds().contains(stationId));
+        boolean mapped = fresh.stream().anyMatch(item -> item.mappedStationIds().contains(stationId))
+            || catalog.mappedStationIds().contains(stationId);
         List<SurfaceArrivalRecord> visible = fresh.stream()
             .flatMap(item -> item.arrivals().stream())
             .filter(item -> stationId.equals(item.stationId()))
@@ -63,19 +82,35 @@ public class TtcSurfaceArrivalService {
             .filter(item -> !item.predictedAt().isAfter(now.plus(properties.getHorizon())))
             .sorted(Comparator.comparing(SurfaceArrivalRecord::predictedAt))
             .toList();
-        List<SurfaceArrivalRecord> bounded = bound(visible);
+
+        List<SurfaceArrivalRecord> merged = new ArrayList<>(visible);
+        java.util.Set<String> seenRoutes = visible.stream()
+            .map(r -> r.mode() + ":" + r.route())
+            .collect(Collectors.toSet());
+
+        for (TtcSurfaceScheduleCatalog.Connection conn : catalog.connectionsFor(stationId)) {
+            String routeKey = conn.mode() + ":" + conn.routeShortName();
+            if (!seenRoutes.contains(routeKey)) {
+                merged.add(new SurfaceArrivalRecord(
+                    stationId, "TTC", conn.mode(), conn.routeShortName(), conn.routeLongName(),
+                    conn.destination(), null, null, conn.bayPlatform(), conn.stopName(),
+                    "", TtcSurfaceArrivalIndexer.SOURCE, "scheduled"
+                ));
+                seenRoutes.add(routeKey);
+            }
+        }
+
+        List<SurfaceArrivalRecord> bounded = bound(merged);
         OffsetDateTime updatedAt = fresh.stream().map(TtcSurfaceArrivalSnapshot::sourceUpdatedAt)
             .max(OffsetDateTime::compareTo).orElse(null);
         if (bounded.isEmpty()) {
-            String message = mapped
-                ? "No TTC bus or streetcar predictions are available at this station right now."
-                : "No surface connections originating at this station.";
+            String message = "No surface connections originating at this station.";
             return snapshot(station, "no-service", now, updatedAt,
                 TtcSurfaceArrivalIndexer.SOURCE, message, List.of());
         }
         return snapshot(station, "available", now, updatedAt,
             TtcSurfaceArrivalIndexer.SOURCE,
-            "Fresh TTC estimates for parent-linked station stops. Bay or platform is shown only when TTC publishes it.",
+            "TTC bus and streetcar connections for this station. Bay or platform is shown only when TTC publishes it.",
             bounded);
     }
 
@@ -112,7 +147,9 @@ public class TtcSurfaceArrivalService {
             "ttc", station.getId(), station.getName(), availability, now, updatedAt, source, message,
             rows.stream().map(row -> new SurfaceArrivalResponses.ArrivalResponse(
                 row.agency(), row.mode(), row.route(), row.routeName(), row.destination(),
-                Math.max(0, (int) Math.ceil(Duration.between(now, row.predictedAt()).toSeconds() / 60.0)),
+                row.predictedAt() != null
+                    ? Math.max(0, (int) Math.ceil(Duration.between(now, row.predictedAt()).toSeconds() / 60.0))
+                    : null,
                 row.predictedAt(), row.scheduledAt(), row.bayPlatform(), row.stopName(), row.tripId(),
                 row.source(), row.status()
             )).toList()

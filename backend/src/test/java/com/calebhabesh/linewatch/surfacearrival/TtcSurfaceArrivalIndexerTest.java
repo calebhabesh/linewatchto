@@ -19,6 +19,7 @@ class TtcSurfaceArrivalIndexerTest {
             Map.of("504", new TtcSurfaceScheduleCatalog.Route("504", "504", "King", "streetcar")),
             Map.of("3737", new TtcSurfaceScheduleCatalog.Stop("3737", "broadview", "Broadview Station at Bay 7", "Bay 7")),
             Map.of("trip-1", new TtcSurfaceScheduleCatalog.Trip("trip-1", "504", "To Dundas West Station")),
+            Map.of(),
             Set.of("broadview")
         ));
         TtcSurfaceArrivalIndexer indexer = new TtcSurfaceArrivalIndexer(repository);

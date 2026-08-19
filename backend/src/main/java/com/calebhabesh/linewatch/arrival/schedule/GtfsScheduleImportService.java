@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class GtfsScheduleImportService {
         List<GtfsImportModels.SurfaceRouteRow> surfaceRoutes = new ArrayList<>();
         List<GtfsImportModels.SurfaceStationStopRow> surfaceStationStops = new ArrayList<>();
         List<GtfsImportModels.SurfaceTripRow> surfaceTrips = new ArrayList<>();
+        List<GtfsImportModels.SurfaceStationConnectionRow> surfaceStationConnections = new ArrayList<>();
 
         Set<String> rapidTransitRouteIds = new HashSet<>();
         Map<String, String> routeIdToLineId = new HashMap<>();
@@ -213,6 +215,40 @@ public class GtfsScheduleImportService {
                 .stream()
                 .noneMatch(validSurfaceTripIds::contains));
 
+            surfaceStationConnections.clear();
+            Map<String, GtfsImportModels.SurfaceRouteRow> routesById = surfaceRoutes.stream()
+                .collect(Collectors.toMap(GtfsImportModels.SurfaceRouteRow::routeId, java.util.function.Function.identity(), (a, b) -> a));
+            Map<String, GtfsImportModels.SurfaceTripRow> tripsById = surfaceTrips.stream()
+                .collect(Collectors.toMap(GtfsImportModels.SurfaceTripRow::tripId, java.util.function.Function.identity(), (a, b) -> a));
+
+            Set<String> uniqueConnections = new HashSet<>();
+            for (GtfsImportModels.SurfaceStationStopRow stop : surfaceStationStops) {
+                Set<String> tripIds = surfaceTripsByStop.getOrDefault(stop.stopId(), Set.of());
+                for (String tripId : tripIds) {
+                    GtfsImportModels.SurfaceTripRow trip = tripsById.get(tripId);
+                    if (trip == null) continue;
+                    GtfsImportModels.SurfaceRouteRow route = routesById.get(trip.routeId());
+                    if (route == null) continue;
+                    String destination = trip.tripHeadsign() != null && !trip.tripHeadsign().isBlank()
+                        ? trip.tripHeadsign()
+                        : route.longName();
+                    String key = stop.stationId() + ":" + stop.stopId() + ":" + route.routeId() + ":" + destination;
+                    if (uniqueConnections.add(key)) {
+                        surfaceStationConnections.add(new GtfsImportModels.SurfaceStationConnectionRow(
+                            stop.stationId(),
+                            stop.stopId(),
+                            route.routeId(),
+                            route.mode(),
+                            route.shortName(),
+                            route.longName(),
+                            destination,
+                            stop.bayPlatform(),
+                            stop.stopName()
+                        ));
+                    }
+                }
+            }
+
             // Filter rapid-transit stops and parent stations for the schedule tables.
             Set<String> stopsToKeep = new HashSet<>(rapidTransitStopIds);
             for (String stopId : rapidTransitStopIds) {
@@ -312,6 +348,7 @@ public class GtfsScheduleImportService {
             surfaceRoutes,
             surfaceStationStops,
             surfaceTrips,
+            surfaceStationConnections,
             rapidTransitTripIds,
             dateRange[0],
             dateRange[1]

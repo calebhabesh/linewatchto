@@ -29,6 +29,13 @@ public class TtcSurfaceArrivalIndexer {
                 TtcSurfaceScheduleCatalog.Trip trip = catalog.trips().get(update.tripId());
                 String routeId = update.routeId() != null ? update.routeId() : trip == null ? null : trip.routeId();
                 TtcSurfaceScheduleCatalog.Route route = catalog.routes().get(routeId);
+                if (route == null && routeId != null) {
+                    String cleanRoute = routeId.replaceAll("^[0-9]+-", "").replaceAll("_.*", "");
+                    route = catalog.routes().get(cleanRoute);
+                    if (route == null) {
+                        route = new TtcSurfaceScheduleCatalog.Route(routeId, routeId, routeId, mode);
+                    }
+                }
                 if (route == null || !mode.equals(route.mode())) continue;
                 for (TtcSurfaceTripUpdateParser.StopUpdate stopUpdate : update.stops()) {
                     TtcSurfaceScheduleCatalog.Stop stop = catalog.stops().get(stopUpdate.stopId());

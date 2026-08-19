@@ -261,6 +261,36 @@ public class GtfsScheduleImportRepository {
         }
     }
 
+    public void insertSurfaceStationConnections(long importId, List<GtfsImportModels.SurfaceStationConnectionRow> rows) {
+        if (rows.isEmpty()) return;
+        String sql = """
+            insert into ttc_surface_station_connections (
+                import_id, station_id, stop_id, route_id, mode,
+                route_short_name, route_long_name, destination, bay_platform, stop_name
+            ) values (
+                :importId, :stationId, :stopId, :routeId, :mode,
+                :routeShortName, :routeLongName, :destination, :bayPlatform, :stopName
+            ) on conflict do nothing
+            """;
+        for (int start = 0; start < rows.size(); start += 1000) {
+            int end = Math.min(start + 1000, rows.size());
+            SqlParameterSource[] batch = rows.subList(start, end).stream()
+                .map(row -> new MapSqlParameterSource()
+                    .addValue("importId", importId)
+                    .addValue("stationId", row.stationId())
+                    .addValue("stopId", row.stopId())
+                    .addValue("routeId", row.routeId())
+                    .addValue("mode", row.mode())
+                    .addValue("routeShortName", row.routeShortName())
+                    .addValue("routeLongName", row.routeLongName())
+                    .addValue("destination", row.destination())
+                    .addValue("bayPlatform", row.bayPlatform().isBlank() ? null : row.bayPlatform())
+                    .addValue("stopName", row.stopName()))
+                .toArray(SqlParameterSource[]::new);
+            jdbc.batchUpdate(sql, batch);
+        }
+    }
+
     public void activateImport(long importId) {
         jdbc.update(
             "update gtfs_schedule_imports set active = false where active = true",

@@ -26,7 +26,7 @@ public final class SurfaceArrivalResponses {
         String route,
         String routeName,
         String destination,
-        int minutes,
+        Integer minutes,
         OffsetDateTime predictedAt,
         OffsetDateTime scheduledAt,
         String bayPlatform,

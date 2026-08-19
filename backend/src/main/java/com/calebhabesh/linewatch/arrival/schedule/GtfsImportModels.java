@@ -69,4 +69,17 @@ public final class GtfsImportModels {
 
     public record SurfaceTripRow(String tripId, String routeId, String tripHeadsign) {
     }
+
+    public record SurfaceStationConnectionRow(
+        String stationId,
+        String stopId,
+        String routeId,
+        String mode,
+        String routeShortName,
+        String routeLongName,
+        String destination,
+        String bayPlatform,
+        String stopName
+    ) {
+    }
 }

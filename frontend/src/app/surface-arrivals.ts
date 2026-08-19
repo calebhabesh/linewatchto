@@ -103,7 +103,26 @@ export async function getSurfaceArrivals(
   }
 }
 
-export function groupSurfaceArrivals(arrivals: SurfaceArrival[]): SurfaceArrivalGroup[] {
+export function hasValidSurfaceArrival(
+  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt" | "scheduledAt">,
+): boolean {
+  if (arrival.predictedAt && !Number.isNaN(Date.parse(arrival.predictedAt))) {
+    return true;
+  }
+  if (arrival.scheduledAt && !Number.isNaN(Date.parse(arrival.scheduledAt))) {
+    return true;
+  }
+  return arrival.minutes != null && Number.isFinite(arrival.minutes);
+}
+
+export function groupSurfaceArrivals(
+  arrivals: SurfaceArrival[],
+  activeArrivals?: SurfaceArrival[],
+): SurfaceArrivalGroup[] {
+  const activeSet = activeArrivals ? new Set(activeArrivals) : null;
+  const activeTripIds = activeArrivals
+    ? new Set(activeArrivals.map((a) => a.tripId || `${a.mode}:${a.route}:${a.destination}:${a.predictedAt}`))
+    : null;
   const groups = new Map<string, SurfaceArrivalGroup>();
   for (const arrival of arrivals) {
     const key = [arrival.mode, arrival.route, arrival.destination, arrival.bayPlatform, arrival.stopName].join(":");
@@ -117,7 +136,15 @@ export function groupSurfaceArrivals(arrivals: SurfaceArrival[]): SurfaceArrival
       stopName: arrival.stopName,
       arrivals: [],
     };
-    group.arrivals.push(arrival);
+    const hasValidTime = hasValidSurfaceArrival(arrival);
+    const isArrivalActive =
+      hasValidTime &&
+      (!activeSet ||
+        activeSet.has(arrival) ||
+        (activeTripIds?.has(arrival.tripId || `${arrival.mode}:${arrival.route}:${arrival.destination}:${arrival.predictedAt}`) ?? false));
+    if (isArrivalActive) {
+      group.arrivals.push(arrival);
+    }
     groups.set(key, group);
   }
   return [...groups.values()]
@@ -126,10 +153,16 @@ export function groupSurfaceArrivals(arrivals: SurfaceArrival[]): SurfaceArrival
       arrivals: group.arrivals.toSorted((a, b) => Date.parse(a.predictedAt) - Date.parse(b.predictedAt)),
     }))
     .toSorted((a, b) => {
-      const time = Date.parse(a.arrivals[0]?.predictedAt ?? "") - Date.parse(b.arrivals[0]?.predictedAt ?? "");
-      return Number.isNaN(time) || time === 0
-        ? a.route.localeCompare(b.route, undefined, { numeric: true })
-        : time;
+      const hasA = a.arrivals.length > 0;
+      const hasB = b.arrivals.length > 0;
+      if (hasA && !hasB) return -1;
+      if (!hasA && hasB) return 1;
+      const timeA = Date.parse(a.arrivals[0]?.predictedAt ?? "");
+      const timeB = Date.parse(b.arrivals[0]?.predictedAt ?? "");
+      if (!Number.isNaN(timeA) && !Number.isNaN(timeB) && timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return a.route.localeCompare(b.route, undefined, { numeric: true });
     });
 }
 
@@ -366,7 +399,7 @@ export function isSurfaceArrivalDue(
   if (!Number.isNaN(predictedAt)) {
     return predictedAt <= nowMs;
   }
-  return arrival.minutes <= 0;
+  return arrival.minutes != null && arrival.minutes <= 0;
 }
 
 export function isSurfaceArrivalExpired(
@@ -405,6 +438,14 @@ export function formatSurfaceCountdownDuration(totalSeconds: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+export function formatSurfaceArrivalMinutesDuration(minutes: number): string {
+  if (minutes <= 0) return "Due";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
+}
+
 export function formatSurfaceArrivalTileLabel(
   arrival: Pick<SurfaceArrival, "minutes" | "predictedAt">,
   options: { detailedCountdown?: boolean; now?: number | Date } = {},
@@ -424,13 +465,16 @@ export function formatSurfaceArrivalTileLabel(
     if (millisUntilArrival <= 0) {
       return "Due";
     }
-    return `${Math.ceil(millisUntilArrival / 60_000)}m`;
+    return formatSurfaceArrivalMinutesDuration(Math.ceil(millisUntilArrival / 60_000));
   }
 
+  if (arrival.minutes == null) {
+    return "—";
+  }
   if (arrival.minutes <= 0) {
     return "Due";
   }
-  return `${arrival.minutes}m`;
+  return formatSurfaceArrivalMinutesDuration(arrival.minutes);
 }
 
 export function formatSurfaceArrivalClockTime(
@@ -464,7 +508,11 @@ export function surfaceArrivalLabel(
   now?: number | Date,
 ): string {
   const minutes = surfaceArrivalMinutes(arrival, now);
-  return minutes <= 0 ? "Due" : `${minutes} min`;
+  if (minutes <= 0) return "Due";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes === 0 ? `${hours} hr` : `${hours} hr ${remainingMinutes} min`;
 }
 
 export function surfaceSourceSummary(snapshot: SurfaceArrivalSnapshot): string {

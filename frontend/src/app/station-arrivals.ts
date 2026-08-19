@@ -361,6 +361,14 @@ export function formatArrivalClockTime(
   return `${day}, ${time}`;
 }
 
+export function formatArrivalMinutesDuration(minutes: number): string {
+  if (minutes <= 0) return "Due";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
+}
+
 export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options: ArrivalTileLabelOptions = {}): string {
   if (options.detailedCountdown && shouldUseDetailedArrivalCountdown(arrival, options.now)) {
     const predictedAt = Date.parse(arrival.predictedAt ?? "");
@@ -374,7 +382,7 @@ export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options:
       if (millisUntilArrival <= 0) {
         return "Due";
       }
-      return `${Math.ceil(millisUntilArrival / 60_000)}m`;
+      return formatArrivalMinutesDuration(Math.ceil(millisUntilArrival / 60_000));
     }
   }
   if (arrival.label.toLowerCase() === "due") {
@@ -386,7 +394,7 @@ export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options:
   if (arrival.minutes <= 0) {
     return "Due";
   }
-  return `${arrival.minutes}m`;
+  return formatArrivalMinutesDuration(arrival.minutes);
 }
 
 export function shouldUseDetailedArrivalCountdown(arrival: ArrivalTileLabelFields, now?: Date | number | string): boolean {
