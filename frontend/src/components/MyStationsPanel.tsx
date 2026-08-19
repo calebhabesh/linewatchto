@@ -294,6 +294,14 @@ function SavedStationRow({
   const regional = saved.networkId === "regional";
   const { pinnedLineIds, togglePin } = useArrivalLinePins(saved.networkId, saved.station.id);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
+  // Capture the pin order at mount time (or when station changes) so toggling a pin doesn't
+  // reorder the arrival rows mid-session — that jumping behaviour looked like a broken button on mobile.
+  const stableSortPinsRef = useRef(pinnedLineIds);
+  const prevStationIdRef = useRef(saved.station.id);
+  if (prevStationIdRef.current !== saved.station.id) {
+    prevStationIdRef.current = saved.station.id;
+    stableSortPinsRef.current = pinnedLineIds;
+  }
   const detail = detailResult?.data ?? null;
   const directlyLinkedImpacts = detail?.impacts.filter((impact) =>
     impact.type === "active-alert" || impact.type === "planned-closure"
@@ -337,11 +345,11 @@ function SavedStationRow({
         maxArrivalsPerDirection: 3,
         includeEmptyDirections: hasLiveArrivals,
       })
-    : [], pinnedLineIds);
+    : [], stableSortPinsRef.current);
   const regionalArrivalSnapshot = regionalArrivalResult?.data;
   const regionalArrivalGroups = sortArrivalGroupsByPinnedLine(regionalArrivalSnapshot
     ? groupRegionalStationArrivals(regionalArrivalSnapshot.arrivals, saved.station.id)
-    : [], pinnedLineIds);
+    : [], stableSortPinsRef.current);
   const regionalInformationReady = regionalDataLoaded && Boolean(regionalArrivalSnapshot);
 
   const arrivalLineSections: {
