@@ -793,6 +793,14 @@ export function LineWatchShell({
     navigateForward("menu");
     openImpactCategory(view, lineId);
   }, [navigateForward, openImpactCategory]);
+  const legendProps = useMemo(() => ({
+    expanded: legendExpanded,
+    onToggleExpanded: () => setLegendExpanded((prev) => !prev),
+    onAlertClick: (lineId: string) => openLegendImpactCategory("alerts", lineId),
+    onDelayClick: (lineId: string) => openLegendImpactCategory("delays", lineId),
+    onReducedSpeedZoneClick: (lineId: string) => openLegendImpactCategory("reduced-speed-zones", lineId),
+    onClosureClick: (lineId: string) => openLegendImpactCategory("closures", lineId),
+  }), [legendExpanded, openLegendImpactCategory]);
   const [ttcStationSummaries, setTtcStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
   const stationCatalogs = useMemo(
     () => ({
@@ -3969,14 +3977,7 @@ export function LineWatchShell({
               || (subwayOperatingState.status === "closed" && closedMapPeek)
             : regionalRailOperatingState.closingSoon
               || (regionalRailOperatingState.status === "closed" && closedMapPeek)}
-          legendProps={{
-            expanded: legendExpanded,
-            onToggleExpanded: () => setLegendExpanded(!legendExpanded),
-            onAlertClick: (lineId) => openLegendImpactCategory("alerts", lineId),
-            onDelayClick: (lineId) => openLegendImpactCategory("delays", lineId),
-            onReducedSpeedZoneClick: (lineId) => openLegendImpactCategory("reduced-speed-zones", lineId),
-            onClosureClick: (lineId) => openLegendImpactCategory("closures", lineId),
-          }}
+          legendProps={legendProps}
           selection={selection}
           selectedStationId={selectedStationId}
           stations={stationSummaries}
