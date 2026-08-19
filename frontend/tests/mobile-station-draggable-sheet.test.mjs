@@ -116,8 +116,12 @@ describe("mobile station draggable sheet UX", () => {
   it("uses requestAnimationFrame and direct DOM updates in useMobileDraggableSheet for lag-free dragging", () => {
     assert.match(hookSource, /requestAnimationFrame/);
     assert.match(hookSource, /sheetRef/);
+    assert.match(hookSource, /MOBILE_SHEET_SNAP_THRESHOLD/);
+    assert.match(hookSource, /velocity/);
     assert.match(panelSource, /ref=\{sheetRef\}/);
     assert.match(regionalPanelSource, /ref=\{sheetRef\}/);
+    assert.match(globalCss, /contain:\s*paint/);
+    assert.match(globalCss, /transform:\s*translateZ\(0\)/);
   });
 
   it("renders Jump To buttons with words and icons in a space-efficient grid and places Access Outages inside scrollable area below Jump To", () => {
