@@ -22,7 +22,7 @@ export function ArrivalLinePinButton({
   onHoverChange,
 }: Props) {
   const action = pinned ? "Unpin" : "Pin";
-  const isFilled = pinned || hovered;
+  const isFilled = pinned;
   const starFill = isFilled
     ? "currentColor"
     : "rgba(251, 191, 36, 0.15)";
@@ -43,8 +43,6 @@ export function ArrivalLinePinButton({
       }}
       onPointerEnter={(event) => { if (event.pointerType === "mouse") onHoverChange?.(true); }}
       onPointerLeave={(event) => { if (event.pointerType === "mouse") onHoverChange?.(false); }}
-      onFocus={() => onHoverChange?.(true)}
-      onBlur={() => onHoverChange?.(false)}
       aria-pressed={pinned}
       aria-label={`${action} ${lineLabel} arrivals at ${stationName}`}
       title={`${action} ${lineLabel} arrivals`}

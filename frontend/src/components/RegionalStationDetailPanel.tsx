@@ -289,6 +289,19 @@ export function RegionalStationDetailPanel({
 }: Props) {
   const { pinnedLineIds, togglePin } = useArrivalLinePins("regional", station.id);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
+  // Capture the pin order at mount time (or when station changes) so toggling a pin doesn't
+  // reorder arrival sections mid-session — that DOM jump looks like a broken button on mobile.
+  const [pinsSnapshot, setPinsSnapshot] = useState<{ stationId: string; pins: string[] }>({
+    stationId: station.id,
+    pins: pinnedLineIds,
+  });
+  if (pinsSnapshot.stationId !== station.id) {
+    setPinsSnapshot({
+      stationId: station.id,
+      pins: pinnedLineIds,
+    });
+  }
+  const stableSortPins = pinsSnapshot.stationId === station.id ? pinsSnapshot.pins : pinnedLineIds;
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
@@ -374,12 +387,9 @@ export function RegionalStationDetailPanel({
     }
     return [...related.values()];
   }, [dashboard, station.id]);
-  const arrivalGroups = useMemo(
-    () => sortArrivalGroupsByPinnedLine(
-      groupRegionalStationArrivals(arrivalSnapshot.arrivals, station.id),
-      pinnedLineIds,
-    ),
-    [arrivalSnapshot.arrivals, pinnedLineIds, station.id],
+  const arrivalGroups = sortArrivalGroupsByPinnedLine(
+    groupRegionalStationArrivals(arrivalSnapshot.arrivals, station.id),
+    stableSortPins,
   );
 
   const isWheelchairAccessible = station.wheelchairAccessible ?? isRegionalStationWheelchairAccessible(station.id);
@@ -986,9 +996,11 @@ export function RegionalStationDetailPanel({
                                       data-regional-arrival-direction={group.directionLabel}
                                       data-pinned-line={isPinned ? "true" : "false"}
                                       className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
-                                        isPinned || isHoveredPin
+                                        isPinned
                                           ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
-                                          : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+                                          : isHoveredPin
+                                            ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]"
+                                            : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
                                       }`}
                                     >
                                       <div className="flex min-w-0 items-center gap-3">

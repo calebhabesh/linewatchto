@@ -296,12 +296,17 @@ function SavedStationRow({
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
   // Capture the pin order at mount time (or when station changes) so toggling a pin doesn't
   // reorder the arrival rows mid-session — that jumping behaviour looked like a broken button on mobile.
-  const stableSortPinsRef = useRef(pinnedLineIds);
-  const prevStationIdRef = useRef(saved.station.id);
-  if (prevStationIdRef.current !== saved.station.id) {
-    prevStationIdRef.current = saved.station.id;
-    stableSortPinsRef.current = pinnedLineIds;
+  const [pinsSnapshot, setPinsSnapshot] = useState<{ stationId: string; pins: string[] }>({
+    stationId: saved.station.id,
+    pins: pinnedLineIds,
+  });
+  if (pinsSnapshot.stationId !== saved.station.id) {
+    setPinsSnapshot({
+      stationId: saved.station.id,
+      pins: pinnedLineIds,
+    });
   }
+  const stableSortPins = pinsSnapshot.stationId === saved.station.id ? pinsSnapshot.pins : pinnedLineIds;
   const detail = detailResult?.data ?? null;
   const directlyLinkedImpacts = detail?.impacts.filter((impact) =>
     impact.type === "active-alert" || impact.type === "planned-closure"
@@ -345,11 +350,11 @@ function SavedStationRow({
         maxArrivalsPerDirection: 3,
         includeEmptyDirections: hasLiveArrivals,
       })
-    : [], stableSortPinsRef.current);
+    : [], stableSortPins);
   const regionalArrivalSnapshot = regionalArrivalResult?.data;
   const regionalArrivalGroups = sortArrivalGroupsByPinnedLine(regionalArrivalSnapshot
     ? groupRegionalStationArrivals(regionalArrivalSnapshot.arrivals, saved.station.id)
-    : [], stableSortPinsRef.current);
+    : [], stableSortPins);
   const regionalInformationReady = regionalDataLoaded && Boolean(regionalArrivalSnapshot);
 
   const arrivalLineSections: {
@@ -570,7 +575,7 @@ function SavedStationRow({
                           const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
 
                           return (
-                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
+                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : isHoveredPin ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
                               <div className="flex w-full min-w-0 max-w-full items-center gap-2">
                                 <TransitLineBadge
                                   lineId={group.lineId}
@@ -838,7 +843,7 @@ function SavedStationRow({
                           const direction = formatCondensedArrivalDirection(group.directionLabel);
 
                           return (
-                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned || isHoveredPin ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
+                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : isHoveredPin ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
                               <div className="flex w-full min-w-0 max-w-full items-center gap-2">
                                 <TransitLineBadge
                                   lineId={group.lineId}

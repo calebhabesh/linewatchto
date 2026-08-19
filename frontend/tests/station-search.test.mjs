@@ -211,16 +211,17 @@ describe("station search helpers", () => {
     const regionalCounts = countStationAmenities(regionalStationSummaries.stations, "regional");
     assert.equal(regionalCounts.total, 72);
     assert.equal(regionalCounts.wheelchair, 69);
-    assert.equal(regionalCounts.elevator, 36);
-    assert.equal(regionalCounts.washroom, 55);
-    assert.equal(regionalCounts.parking, 57);
+    assert.equal(regionalCounts.elevator, 37);
+    assert.equal(regionalCounts.washroom, 57);
+    assert.equal(regionalCounts.parking, 58);
     assert.equal(regionalCounts.bicycleLockup, 69);
-    assert.equal(regionalCounts.ppudo, 58);
+    assert.equal(regionalCounts.ppudo, 60);
 
     const parkingRegional = filterStationSummariesByAmenities(regionalStationSummaries.stations, "regional", { parking: true });
-    assert.equal(parkingRegional.length, 57);
+    assert.equal(parkingRegional.length, 58);
     assert.ok(parkingRegional.every((station) => station.hasParking));
     assert.ok(parkingRegional.some((station) => station.id === "allandale-waterfront"));
+    assert.ok(parkingRegional.some((station) => station.id === "pearson-airport"));
     assert.ok(!parkingRegional.some((station) => station.id === "union"));
 
     const lockupRegional = filterStationSummariesByAmenities(regionalStationSummaries.stations, "regional", { bicycleLockup: true });
@@ -229,14 +230,18 @@ describe("station search helpers", () => {
     assert.ok(lockupRegional.some((station) => station.id === "allandale-waterfront"));
 
     const ppudoRegional = filterStationSummariesByAmenities(regionalStationSummaries.stations, "regional", { ppudo: true });
-    assert.equal(ppudoRegional.length, 58);
+    assert.equal(ppudoRegional.length, 60);
     assert.ok(ppudoRegional.every((station) => station.hasPpudo));
     assert.ok(ppudoRegional.some((station) => station.id === "allandale-waterfront"));
+    assert.ok(ppudoRegional.some((station) => station.id === "pearson-airport"));
+    assert.ok(ppudoRegional.some((station) => station.id === "union"));
 
     const washroomRegional = filterStationSummariesByAmenities(regionalStationSummaries.stations, "regional", { washroom: true });
-    assert.equal(washroomRegional.length, 55);
+    assert.equal(washroomRegional.length, 57);
     assert.ok(washroomRegional.every((station) => station.hasWashroom));
     assert.ok(washroomRegional.some((station) => station.id === "union"));
+    assert.ok(washroomRegional.some((station) => station.id === "bloor"));
+    assert.ok(washroomRegional.some((station) => station.id === "pearson-airport"));
     assert.ok(!washroomRegional.some((station) => station.id === "allandale-waterfront"));
 
     const parkingTtc = filterStationSummariesByAmenities(stations, "ttc", { parking: true });

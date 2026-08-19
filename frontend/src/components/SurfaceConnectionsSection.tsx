@@ -66,9 +66,11 @@ function SurfaceRouteCard({
   return (
     <article
       className={`rounded-md border p-2.5 shadow-sm transition-colors duration-150 ${
-        isPinned || isHoveredPin
+        isPinned
           ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
-          : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+          : isHoveredPin
+            ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]"
+            : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
       }`}
       data-surface-route={group.route}
       data-surface-mode={group.mode}
@@ -338,6 +340,19 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
   const isSavedStationVariant = variant === "saved-station";
   const { pinnedLineIds, togglePin } = useArrivalLinePins(networkId, stationId);
   const [hoveredPinRoute, setHoveredPinRoute] = useState<string | null>(null);
+  // Capture the pin order at mount time (or when stationId changes) so toggling a pin doesn't
+  // reorder route rows mid-session — that DOM jump looks like a broken button on mobile.
+  const [pinsSnapshot, setPinsSnapshot] = useState<{ stationId: string; pins: string[] }>({
+    stationId,
+    pins: pinnedLineIds,
+  });
+  if (pinsSnapshot.stationId !== stationId) {
+    setPinsSnapshot({
+      stationId,
+      pins: pinnedLineIds,
+    });
+  }
+  const stableSortPins = pinsSnapshot.stationId === stationId ? pinsSnapshot.pins : pinnedLineIds;
 
   const [snapshot, setSnapshot] = useState<SurfaceArrivalSnapshot>(() =>
     emptySurfaceArrivalSnapshot(networkId, stationId),
@@ -387,13 +402,13 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
   );
 
   const baySections = useMemo(
-    () => groupSurfaceArrivalsByBay(allGroups, pinnedLineIds),
-    [allGroups, pinnedLineIds],
+    () => groupSurfaceArrivalsByBay(allGroups, stableSortPins),
+    [allGroups, stableSortPins],
   );
 
   const pinnedGroups = useMemo(
-    () => buildPinnedSurfaceGroups(allGroups, snapshot.arrivals, pinnedLineIds, networkId),
-    [allGroups, snapshot.arrivals, pinnedLineIds, networkId],
+    () => buildPinnedSurfaceGroups(allGroups, snapshot.arrivals, stableSortPins, networkId),
+    [allGroups, snapshot.arrivals, stableSortPins, networkId],
   );
 
   if (isSavedStationVariant) {

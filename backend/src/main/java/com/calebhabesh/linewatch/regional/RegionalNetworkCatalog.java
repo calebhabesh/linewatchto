@@ -183,21 +183,21 @@ public final class RegionalNetworkCatalog {
         "confederation", "cooksville", "danforth", "downsview-park",
         "durham-college-oshawa", "eglinton", "erindale", "exhibition",
         "guildwood", "hamilton", "kennedy", "kipling", "malton", "meadowvale",
-        "mount-dennis", "mount-pleasant", "oakville", "pickering", "port-credit",
-        "rouge-hill", "scarborough", "streetsville", "union", "west-harbour",
-        "weston", "whitby"
+        "mount-dennis", "mount-pleasant", "oakville", "pearson-airport", "pickering",
+        "port-credit", "rouge-hill", "scarborough", "streetsville", "union",
+        "west-harbour", "weston", "whitby"
     );
     private static final Set<String> REGIONAL_WASHROOM = Set.of(
         "agincourt", "ajax", "aldershot", "appleby", "aurora", "barrie-south",
-        "bloomington", "bramalea", "brampton-innovation-district", "bronte",
+        "bloomington", "bloor", "bramalea", "brampton-innovation-district", "bronte",
         "burlington", "clarkson", "cooksville", "danforth", "dixie",
         "durham-college-oshawa", "east-gwillimbury", "eglinton", "erindale",
         "etobicoke-north", "georgetown", "guildwood", "hamilton", "kennedy",
         "king-city", "kipling", "kitchener", "langstaff", "lisgar",
         "long-branch", "malton", "maple", "markham", "meadowvale", "milliken",
         "milton", "mimico", "mount-dennis", "mount-joy", "mount-pleasant",
-        "niagara-falls", "oakville", "old-cummer", "pickering", "port-credit",
-        "richmond-hill", "rouge-hill", "rutherford", "scarborough",
+        "niagara-falls", "oakville", "old-cummer", "pearson-airport", "pickering",
+        "port-credit", "richmond-hill", "rouge-hill", "rutherford", "scarborough",
         "streetsville", "union", "unionville", "west-harbour", "weston", "whitby"
     );
     private static final Set<String> REGIONAL_PARKING = Set.of(
@@ -210,9 +210,9 @@ public final class RegionalNetworkCatalog {
         "guildwood", "king-city", "langstaff", "lisgar", "long-branch",
         "malton", "maple", "markham", "meadowvale", "milliken", "milton",
         "mimico", "mount-joy", "mount-pleasant", "newmarket", "oakville",
-        "old-cummer", "old-elm", "pickering", "port-credit", "richmond-hill",
-        "rouge-hill", "rutherford", "scarborough", "stouffville", "streetsville",
-        "unionville", "west-harbour", "weston", "whitby"
+        "old-cummer", "old-elm", "pearson-airport", "pickering", "port-credit",
+        "richmond-hill", "rouge-hill", "rutherford", "scarborough", "stouffville",
+        "streetsville", "unionville", "west-harbour", "weston", "whitby"
     );
     private static final Set<String> REGIONAL_BICYCLE_LOCKUP = Set.of(
         "acton", "agincourt", "ajax", "aldershot", "allandale-waterfront",
@@ -241,10 +241,10 @@ public final class RegionalNetworkCatalog {
         "guildwood", "king-city", "langstaff", "lisgar", "long-branch",
         "malton", "maple", "markham", "meadowvale", "milliken", "milton",
         "mimico", "mount-dennis", "mount-joy", "mount-pleasant", "niagara-falls",
-        "oakville", "old-cummer", "old-elm", "pickering", "port-credit",
-        "richmond-hill", "rouge-hill", "rutherford", "scarborough",
-        "stouffville", "streetsville", "unionville", "west-harbour", "weston",
-        "whitby"
+        "oakville", "old-cummer", "old-elm", "pearson-airport", "pickering",
+        "port-credit", "richmond-hill", "rouge-hill", "rutherford", "scarborough",
+        "stouffville", "streetsville", "union", "unionville", "west-harbour",
+        "weston", "whitby"
     );
 
     private static final Map<String, StationResponses.StationSummaryResponse> STATIONS = buildStations();

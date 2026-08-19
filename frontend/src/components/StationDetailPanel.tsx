@@ -303,6 +303,19 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const station = stationResult?.data ?? null;
   const { pinnedLineIds, togglePin } = useArrivalLinePins("ttc", station?.id ?? null);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
+  // Capture the pin order at mount time (or when station changes) so toggling a pin doesn't
+  // reorder arrival sections mid-session — that DOM jump looks like a broken button on mobile.
+  const [pinsSnapshot, setPinsSnapshot] = useState<{ stationId: string | null; pins: string[] }>({
+    stationId: station?.id ?? null,
+    pins: pinnedLineIds,
+  });
+  if (pinsSnapshot.stationId !== (station?.id ?? null)) {
+    setPinsSnapshot({
+      stationId: station?.id ?? null,
+      pins: pinnedLineIds,
+    });
+  }
+  const stableSortPins = pinsSnapshot.stationId === (station?.id ?? null) ? pinsSnapshot.pins : pinnedLineIds;
   const source = stationResult?.source;
   const distinctImpacts = station
     ? distinctStationImpacts(station.impacts, { activeAlerts, delays, reducedSpeedZones, plannedClosures })
@@ -810,7 +823,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               : groupStationArrivals(station.arrivals, station.lines, {
                 stationId: station.id,
                 includeEmptyDirections: hasLiveArrivals,
-              }), pinnedLineIds);
+              }), stableSortPins);
             const arrivalDisclaimer = formatArrivalDisclaimer(station.arrivals, station.disclaimer);
             const arrivalSectionClassName = "rounded-lg border border-black/10 bg-slate-50 p-3 transition-colors dark:border-white/10 dark:bg-white/5";
 
@@ -957,9 +970,11 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                     data-arrival-group={group.key}
                                     data-pinned-line={isPinned ? "true" : "false"}
                                     className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
-                                      isPinned || isHoveredPin
+                                      isPinned
                                         ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
-                                        : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+                                        : isHoveredPin
+                                          ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]"
+                                          : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
                                     }`}
                                   >
                                     <div className="flex min-w-0 items-center gap-3">

@@ -23,6 +23,22 @@ class RegionalNetworkCatalogTest {
             assertThat(station.hasParking()).isTrue();
             assertThat(station.hasWashroom()).isTrue();
         });
+        assertThat(RegionalNetworkCatalog.station("pearson-airport")).get().satisfies(station -> {
+            assertThat(station.wheelchairAccessible()).isTrue();
+            assertThat(station.hasElevator()).isTrue();
+            assertThat(station.hasWashroom()).isTrue();
+            assertThat(station.hasParking()).isTrue();
+            assertThat(station.hasPpudo()).isTrue();
+            assertThat(station.hasBicycleLockup()).isFalse();
+        });
+        assertThat(RegionalNetworkCatalog.station("bloor")).get().satisfies(station -> {
+            assertThat(station.wheelchairAccessible()).isTrue();
+            assertThat(station.hasElevator()).isTrue();
+            assertThat(station.hasWashroom()).isTrue();
+            assertThat(station.hasParking()).isFalse();
+            assertThat(station.hasPpudo()).isTrue();
+            assertThat(station.hasBicycleLockup()).isTrue();
+        });
         assertThat(RegionalNetworkCatalog.station("mimico")).get().satisfies(station -> {
             assertThat(station.wheelchairAccessible()).isFalse();
             assertThat(station.hasParking()).isTrue();

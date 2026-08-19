@@ -343,11 +343,11 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, /data-station-section="accessibility"[\s\S]*justify-between/);
   });
 
-  it("styles arrival line pin idle state with yellow outline and tinted fill, and hover/active states with solid yellow fill", () => {
-    assert.match(arrivalPinSource, /isFilled\s*\?\s*"currentColor"\s*:\s*"rgba\(251, 191, 36, 0\.35\)"/);
+  it("styles arrival line pin idle state with yellow outline and tinted fill, and pinned state with solid yellow fill", () => {
+    assert.match(arrivalPinSource, /isFilled\s*\?\s*"currentColor"\s*:\s*"rgba\(251, 191, 36, 0\.15\)"/);
     assert.match(globalCss, /\.arrival-line-pin\s*\{[^}]*color:\s*rgb\(245,\s*158,\s*11\);/s);
-    assert.match(globalCss, /\.arrival-line-pin svg,\s*\.arrival-line-pin svg polygon,\s*\.arrival-line-pin svg path\s*\{[^}]*fill:\s*rgba\(245,\s*158,\s*11,\s*0\.3\)\s*!important;/s);
-    assert.match(globalCss, /\.arrival-line-pin\.is-hovered svg,[^}]*fill:\s*currentColor\s*!important;/s);
+    assert.match(globalCss, /\.arrival-line-pin svg,\s*\.arrival-line-pin svg polygon,\s*\.arrival-line-pin svg path\s*\{[^}]*fill:\s*rgba\(245,\s*158,\s*11,\s*0\.15\)\s*!important;/s);
+    assert.match(globalCss, /\.arrival-line-pin\.is-pinned svg,[^}]*fill:\s*currentColor\s*!important;/s);
     assert.match(globalCss, /\.dark \.arrival-line-pin\s*\{[^}]*color:\s*rgb\(251,\s*191,\s*36\);/s);
   });
 

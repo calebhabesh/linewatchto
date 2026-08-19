@@ -2515,9 +2515,14 @@ test("station detail shows accessibility facilities and active outage warning", 
   const lineOnePinButtons = arrivalsSection.getByRole("button", { name: "Pin Line 1 arrivals at Stub Station" });
   await expect(lineOnePinButtons).toHaveCount(1);
   await lineOnePinButtons.first().click();
-  await expect(arrivalsSection.getByRole("button", { name: "Unpin Line 1 arrivals at Stub Station" })).toHaveCount(1);
+  const unpinButton = arrivalsSection.getByRole("button", { name: "Unpin Line 1 arrivals at Stub Station" });
+  await expect(unpinButton).toHaveCount(1);
   await expect.poll(() => page.evaluate(() => window.localStorage.getItem("linewatch-arrival-line-pins-v1")))
     .toContain('"lineId":"line-1"');
+  await unpinButton.click();
+  await expect(arrivalsSection.getByRole("button", { name: "Pin Line 1 arrivals at Stub Station" })).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("linewatch-arrival-line-pins-v1")))
+    .not.toContain('"lineId":"line-1"');
 
   const activeClosureImpact = stationPanel.locator("#station-impact-stub-closure-line-1");
   await expect(activeClosureImpact.getByText("Active Closure", { exact: true })).toBeVisible();

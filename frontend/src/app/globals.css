@@ -2334,21 +2334,23 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   color: rgb(245, 158, 11);
 }
 
-.arrival-line-pin.is-hovered svg,
-.arrival-line-pin.is-hovered svg polygon,
-.arrival-line-pin.is-hovered svg path,
-.arrival-line-pin:hover svg,
-.arrival-line-pin:hover svg polygon,
-.arrival-line-pin:hover svg path,
-.arrival-line-pin:active svg,
-.arrival-line-pin:active svg polygon,
-.arrival-line-pin:active svg path {
-  fill: currentColor !important;
-  stroke: currentColor !important;
+@media (hover: hover) and (pointer: fine) {
+  .arrival-line-pin:not(.is-pinned):hover svg,
+  .arrival-line-pin:not(.is-pinned):hover svg polygon,
+  .arrival-line-pin:not(.is-pinned):hover svg path,
+  .arrival-line-pin:not(.is-pinned).is-hovered svg,
+  .arrival-line-pin:not(.is-pinned).is-hovered svg polygon,
+  .arrival-line-pin:not(.is-pinned).is-hovered svg path {
+    fill: rgba(245, 158, 11, 0.3) !important;
+  }
 }
 
-.arrival-line-pin:active {
-  transform: scale(0.92);
+/* On touch (coarse pointer), the scale shifts the element's hit area and causes touchend
+   re-hit-tests to miss — so we only apply the press-shrink on mouse (fine pointer). */
+@media (pointer: fine) {
+  .arrival-line-pin:active {
+    transform: scale(0.92);
+  }
 }
 
 .arrival-line-pin:focus-visible {
@@ -2368,9 +2370,11 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke: currentColor !important;
 }
 
-.arrival-line-pin.is-pinned:hover {
-  background: transparent !important;
-  color: rgb(217, 119, 6);
+@media (hover: hover) and (pointer: fine) {
+  .arrival-line-pin.is-pinned:hover {
+    background: transparent !important;
+    color: rgb(217, 119, 6);
+  }
 }
 
 .arrival-line-pin.is-compact {
@@ -2398,17 +2402,15 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   color: rgb(251, 191, 36);
 }
 
-.dark .arrival-line-pin.is-hovered svg,
-.dark .arrival-line-pin.is-hovered svg polygon,
-.dark .arrival-line-pin.is-hovered svg path,
-.dark .arrival-line-pin:hover svg,
-.dark .arrival-line-pin:hover svg polygon,
-.dark .arrival-line-pin:hover svg path,
-.dark .arrival-line-pin:active svg,
-.dark .arrival-line-pin:active svg polygon,
-.dark .arrival-line-pin:active svg path {
-  fill: currentColor !important;
-  stroke: currentColor !important;
+@media (hover: hover) and (pointer: fine) {
+  .dark .arrival-line-pin:not(.is-pinned):hover svg,
+  .dark .arrival-line-pin:not(.is-pinned):hover svg polygon,
+  .dark .arrival-line-pin:not(.is-pinned):hover svg path,
+  .dark .arrival-line-pin:not(.is-pinned).is-hovered svg,
+  .dark .arrival-line-pin:not(.is-pinned).is-hovered svg polygon,
+  .dark .arrival-line-pin:not(.is-pinned).is-hovered svg path {
+    fill: rgba(251, 191, 36, 0.35) !important;
+  }
 }
 
 .dark .arrival-line-pin.is-pinned {
@@ -2423,9 +2425,11 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke: currentColor !important;
 }
 
-.dark .arrival-line-pin.is-pinned:hover {
-  background: transparent !important;
-  color: rgb(253, 224, 71);
+@media (hover: hover) and (pointer: fine) {
+  .dark .arrival-line-pin.is-pinned:hover {
+    background: transparent !important;
+    color: rgb(253, 224, 71);
+  }
 }
 
 .saved-station-arrival-line-badge {
