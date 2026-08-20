@@ -13,6 +13,9 @@ describe("first-visit welcome experience", () => {
     assert.match(onboardingSource, /linewatch-welcome-seen-v1/);
     assert.match(onboardingSource, /linewatch-unofficial-notice-ack-v1/);
     assert.match(onboardingSource, /aria-label="Welcome to LineWatchTO"/);
+    assert.match(onboardingSource, /opening-welcome-version">v 1\.0\.0<\/span>/);
+    assert.match(globalCss, /\.opening-welcome-version\s*\{[^}]*color:\s*#8f979b;/s);
+    assert.match(globalCss, /@media \(max-width: 767px\)[\s\S]*?\.opening-welcome-version\s*\{[^}]*font-size:\s*0\.54em;/);
     assert.match(onboardingSource, /aria-modal="true"/);
     assert.match(onboardingSource, /Unofficial Personal Project/);
     assert.match(onboardingSource, /TTC or Metrolinx/);

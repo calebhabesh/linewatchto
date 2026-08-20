@@ -415,7 +415,13 @@ export function OpeningDisclaimer({
                   height={88}
                   priority
                 />
-                <h1><span>Welcome to</span> <strong>LineWatchTO</strong></h1>
+                <h1>
+                  <span>Welcome to</span>{" "}
+                  <span className="opening-welcome-product-name">
+                    <strong>LineWatchTO</strong>
+                    <span className="opening-welcome-version">v 1.0.0</span>
+                  </span>
+                </h1>
                 <p>Toronto &amp; GTA rapid transit service information, all in one place.</p>
               </header>
 

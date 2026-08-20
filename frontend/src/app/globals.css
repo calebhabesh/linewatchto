@@ -4689,6 +4689,19 @@ button {
   font-weight: 850;
 }
 
+.opening-welcome-product-name {
+  white-space: nowrap;
+}
+
+.opening-welcome-version {
+  color: #8f979b;
+  font-size: 0.4em;
+  font-weight: 500;
+  letter-spacing: 0;
+  margin-left: 0.45em;
+  vertical-align: baseline;
+}
+
 .opening-disclaimer-welcome p {
   font-size: 0.92rem;
   margin: 7px 0 0;
@@ -5166,6 +5179,10 @@ button {
   .opening-disclaimer-welcome h1 {
     font-size: 1.2rem;
     line-height: 1.12;
+  }
+
+  .opening-welcome-version {
+    font-size: 0.54em;
   }
 
   .opening-disclaimer-welcome p {
@@ -17027,7 +17044,17 @@ img.transit-line-badge {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    overflow: hidden;
     padding: 12px;
+  }
+
+  .mobile-more-accent-strip {
+    flex-shrink: 0;
+    margin: -12px -12px -12px;
+  }
+
+  .mobile-more-sheet .mobile-sheet-heading {
+    margin: 0 -12px;
   }
 
   .mobile-more-brand {
@@ -23976,6 +24003,14 @@ button:active .account-network-badge,
   .mobile-more-sheet {
     gap: 9px;
     padding: 9px;
+  }
+
+  .mobile-more-accent-strip {
+    margin: -9px -9px -9px;
+  }
+
+  .mobile-more-sheet .mobile-sheet-heading {
+    margin: 0 -9px;
   }
 
   .mobile-sheet-heading {
