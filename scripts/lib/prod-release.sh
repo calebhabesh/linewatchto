@@ -149,7 +149,7 @@ linewatch_compose() {
   local prod_env
   local release_env
   local compose_file
-  local compose_project="${LINEWATCH_PROD_COMPOSE_PROJECT:-linewatch-to}"
+  local compose_project="${LINEWATCH_PROD_COMPOSE_PROJECT:-linewatchto}"
   local docker_bin="${DOCKER_BIN:-docker}"
 
   if [[ -z "$root_dir" ]]; then
