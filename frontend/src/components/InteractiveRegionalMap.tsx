@@ -251,7 +251,7 @@ function normalizedRegionalStationLabel(value: string) {
 function regionalStationLabelHover(
   root: ParentNode,
   stationId: string | null,
-): { stationId: string; bounds: RegionalCollisionBox; center: SvgPoint; cutoutMarkup: string } | null {
+): { stationId: string; polygonPoints: string; center: SvgPoint; cutoutMarkup: string } | null {
   if (!stationId) return null;
   const label = root.querySelector<SVGGraphicsElement>(
     `#regional-station-labels-layer [data-regional-station-label-for="${CSS.escape(stationId)}"]`,
@@ -261,18 +261,42 @@ function regionalStationLabelHover(
     `#regional-station-label-cutout-source-${CSS.escape(stationId)}`,
   );
   if (!label || !svg || !cutoutSource) return null;
-  const bounds = regionalCollisionBoxForElement(svg, label);
-  if (!bounds) return null;
-  const cropBounds = expandedRegionalCollisionBox(bounds, { leading: 0, trailing: 88, y: 12 });
+  const elementScreenMatrix = label.getScreenCTM();
+  const rootScreenMatrix = svg.getScreenCTM();
+  if (!elementScreenMatrix || !rootScreenMatrix) return null;
+  const relativeMatrix = rootScreenMatrix.inverse().multiply(elementScreenMatrix);
+  const localBox = label.getBBox();
+  const padLeading = 0;
+  const padTrailing = 80;
+  const padY = 12;
+  const localBounds = {
+    x: localBox.x - padLeading,
+    y: localBox.y - padY,
+    width: localBox.width + padLeading + padTrailing,
+    height: localBox.height + padY * 2,
+  };
+  const corners = [
+    new DOMPoint(localBounds.x, localBounds.y),
+    new DOMPoint(localBounds.x + localBounds.width, localBounds.y),
+    new DOMPoint(localBounds.x + localBounds.width, localBounds.y + localBounds.height),
+    new DOMPoint(localBounds.x, localBounds.y + localBounds.height),
+  ].map((p) => p.matrixTransform(relativeMatrix));
+  const polygonPoints = corners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+
+  const centerPoint = new DOMPoint(
+    localBox.x + localBox.width / 2,
+    localBox.y + localBox.height / 2,
+  ).matrixTransform(relativeMatrix);
+
   const isolatedCutoutSource = cutoutSource.cloneNode(true) as SVGGraphicsElement;
   removeDescendantIds(isolatedCutoutSource);
   return {
     stationId,
-    bounds: cropBounds,
+    polygonPoints,
     cutoutMarkup: isolatedCutoutSource.outerHTML,
     center: {
-      x: bounds.x + bounds.width / 2,
-      y: bounds.y + bounds.height / 2,
+      x: centerPoint.x,
+      y: centerPoint.y,
     },
   };
 }
@@ -2406,7 +2430,7 @@ function InteractiveRegionalMapComponent({
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const [hoveredStationLabel, setHoveredStationLabel] = useState<{
     stationId: string;
-    bounds: RegionalCollisionBox;
+    polygonPoints: string;
     center: SvgPoint;
     cutoutMarkup: string;
   } | null>(null);
@@ -4436,12 +4460,7 @@ function InteractiveRegionalMapComponent({
               >
                 <defs>
                   <clipPath id="regional-hovered-station-label-clip" clipPathUnits="userSpaceOnUse">
-                    <rect
-                      x={hoveredStationLabel.bounds.x}
-                      y={hoveredStationLabel.bounds.y}
-                      width={hoveredStationLabel.bounds.width}
-                      height={hoveredStationLabel.bounds.height}
-                    />
+                    <polygon points={hoveredStationLabel.polygonPoints} />
                   </clipPath>
                   <filter id="regional-hovered-label-white-alpha" colorInterpolationFilters="sRGB">
                     <feColorMatrix
