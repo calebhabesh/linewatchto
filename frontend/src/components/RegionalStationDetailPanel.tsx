@@ -289,19 +289,7 @@ export function RegionalStationDetailPanel({
 }: Props) {
   const { pinnedLineIds, togglePin } = useArrivalLinePins("regional", station.id);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
-  // Capture the pin order at mount time (or when station changes) so toggling a pin doesn't
-  // reorder arrival sections mid-session — that DOM jump looks like a broken button on mobile.
-  const [pinsSnapshot, setPinsSnapshot] = useState<{ stationId: string; pins: string[] }>({
-    stationId: station.id,
-    pins: pinnedLineIds,
-  });
-  if (pinsSnapshot.stationId !== station.id) {
-    setPinsSnapshot({
-      stationId: station.id,
-      pins: pinnedLineIds,
-    });
-  }
-  const stableSortPins = pinsSnapshot.stationId === station.id ? pinsSnapshot.pins : pinnedLineIds;
+
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
@@ -389,7 +377,7 @@ export function RegionalStationDetailPanel({
   }, [dashboard, station.id]);
   const arrivalGroups = sortArrivalGroupsByPinnedLine(
     groupRegionalStationArrivals(arrivalSnapshot.arrivals, station.id),
-    stableSortPins,
+    pinnedLineIds,
   );
 
   const isWheelchairAccessible = station.wheelchairAccessible ?? isRegionalStationWheelchairAccessible(station.id);
@@ -957,7 +945,7 @@ export function RegionalStationDetailPanel({
                               data-pinned-line={isPinned ? "true" : "false"}
                               className="flex flex-col gap-2"
                             >
-                              <div className="flex items-center justify-between px-1 py-1">
+                              <div className="flex items-center justify-between px-1">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                   <TransitLineBadge
                                     lineId={section.lineId}

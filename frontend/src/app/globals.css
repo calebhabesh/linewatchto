@@ -2185,9 +2185,26 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .saved-station-surface-divider,
 .saved-station-line-divider,
 .saved-station-rich-content .saved-station-surface-divider,
-.station-arrival-line-divider.saved-station-surface-divider {
+.station-arrival-line-divider.saved-station-surface-divider,
+.station-arrival-line-divider.saved-station-section-divider,
+.station-arrival-line-divider.saved-station-line-divider {
   height: 3px;
+}
+
+.saved-station-section-divider,
+.station-arrival-line-divider.saved-station-section-divider {
   margin: 6px 0;
+}
+
+.saved-station-line-divider,
+.station-arrival-line-divider.saved-station-line-divider {
+  margin: 0 0 6px;
+}
+
+.saved-station-surface-divider,
+.saved-station-rich-content .saved-station-surface-divider,
+.station-arrival-line-divider.saved-station-surface-divider {
+  margin: 8px 0 6px;
 }
 
 .saved-station-arrivals-heading {
@@ -11660,7 +11677,7 @@ img.transit-line-badge {
 
 .station-arrival-line-divider {
   height: 3px;
-  margin: 7px 2px;
+  margin: 0 2px;
   border-radius: 999px;
   background: linear-gradient(
     90deg,

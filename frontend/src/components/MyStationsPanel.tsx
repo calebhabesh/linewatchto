@@ -294,19 +294,7 @@ function SavedStationRow({
   const regional = saved.networkId === "regional";
   const { pinnedLineIds, togglePin } = useArrivalLinePins(saved.networkId, saved.station.id);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
-  // Capture the pin order at mount time (or when station changes) so toggling a pin doesn't
-  // reorder the arrival rows mid-session — that jumping behaviour looked like a broken button on mobile.
-  const [pinsSnapshot, setPinsSnapshot] = useState<{ stationId: string; pins: string[] }>({
-    stationId: saved.station.id,
-    pins: pinnedLineIds,
-  });
-  if (pinsSnapshot.stationId !== saved.station.id) {
-    setPinsSnapshot({
-      stationId: saved.station.id,
-      pins: pinnedLineIds,
-    });
-  }
-  const stableSortPins = pinsSnapshot.stationId === saved.station.id ? pinsSnapshot.pins : pinnedLineIds;
+
   const detail = detailResult?.data ?? null;
   const directlyLinkedImpacts = detail?.impacts.filter((impact) =>
     impact.type === "active-alert" || impact.type === "planned-closure"
@@ -350,11 +338,11 @@ function SavedStationRow({
         maxArrivalsPerDirection: 3,
         includeEmptyDirections: hasLiveArrivals,
       })
-    : [], stableSortPins);
+    : [], pinnedLineIds);
   const regionalArrivalSnapshot = regionalArrivalResult?.data;
   const regionalArrivalGroups = sortArrivalGroupsByPinnedLine(regionalArrivalSnapshot
     ? groupRegionalStationArrivals(regionalArrivalSnapshot.arrivals, saved.station.id)
-    : [], stableSortPins);
+    : [], pinnedLineIds);
   const regionalInformationReady = regionalDataLoaded && Boolean(regionalArrivalSnapshot);
 
   const arrivalLineSections: {
@@ -541,7 +529,7 @@ function SavedStationRow({
                       {showLineDivider && (
                         <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                       )}
-                      <div className="saved-station-arrival-line-header flex items-center justify-between py-1">
+                      <div className="saved-station-arrival-line-header flex items-center justify-between">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <TransitLineBadge
                             lineId={section.lineId}
@@ -811,7 +799,7 @@ function SavedStationRow({
                       {showLineDivider && (
                         <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                       )}
-                      <div className="saved-station-arrival-line-header flex items-center justify-between py-1">
+                      <div className="saved-station-arrival-line-header flex items-center justify-between">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <TransitLineBadge
                             lineId={section.lineId}

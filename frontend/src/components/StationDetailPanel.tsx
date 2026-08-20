@@ -303,19 +303,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const station = stationResult?.data ?? null;
   const { pinnedLineIds, togglePin } = useArrivalLinePins("ttc", station?.id ?? null);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
-  // Capture the pin order at mount time (or when station changes) so toggling a pin doesn't
-  // reorder arrival sections mid-session — that DOM jump looks like a broken button on mobile.
-  const [pinsSnapshot, setPinsSnapshot] = useState<{ stationId: string | null; pins: string[] }>({
-    stationId: station?.id ?? null,
-    pins: pinnedLineIds,
-  });
-  if (pinsSnapshot.stationId !== (station?.id ?? null)) {
-    setPinsSnapshot({
-      stationId: station?.id ?? null,
-      pins: pinnedLineIds,
-    });
-  }
-  const stableSortPins = pinsSnapshot.stationId === (station?.id ?? null) ? pinsSnapshot.pins : pinnedLineIds;
+
   const source = stationResult?.source;
   const distinctImpacts = station
     ? distinctStationImpacts(station.impacts, { activeAlerts, delays, reducedSpeedZones, plannedClosures })
@@ -824,7 +812,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               : groupStationArrivals(station.arrivals, station.lines, {
                 stationId: station.id,
                 includeEmptyDirections: hasLiveArrivals,
-              }), stableSortPins);
+              }), pinnedLineIds);
             const arrivalDisclaimer = formatArrivalDisclaimer(station.arrivals, station.disclaimer);
             const arrivalSectionClassName = "rounded-lg border border-black/10 bg-slate-50 p-3 transition-colors dark:border-white/10 dark:bg-white/5";
 
@@ -932,7 +920,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                             data-pinned-line={isPinned ? "true" : "false"}
                             className="flex flex-col gap-2"
                           >
-                            <div className="flex items-center justify-between px-1 py-1">
+                            <div className="flex items-center justify-between px-1">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <TransitLineBadge
                                   lineId={section.lineId}

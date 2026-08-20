@@ -340,19 +340,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
   const isSavedStationVariant = variant === "saved-station";
   const { pinnedLineIds, togglePin } = useArrivalLinePins(networkId, stationId);
   const [hoveredPinRoute, setHoveredPinRoute] = useState<string | null>(null);
-  // Capture the pin order at mount time (or when stationId changes) so toggling a pin doesn't
-  // reorder route rows mid-session — that DOM jump looks like a broken button on mobile.
-  const [pinsSnapshot, setPinsSnapshot] = useState<{ stationId: string; pins: string[] }>({
-    stationId,
-    pins: pinnedLineIds,
-  });
-  if (pinsSnapshot.stationId !== stationId) {
-    setPinsSnapshot({
-      stationId,
-      pins: pinnedLineIds,
-    });
-  }
-  const stableSortPins = pinsSnapshot.stationId === stationId ? pinsSnapshot.pins : pinnedLineIds;
+
 
   const [snapshot, setSnapshot] = useState<SurfaceArrivalSnapshot>(() =>
     emptySurfaceArrivalSnapshot(networkId, stationId),
@@ -402,13 +390,13 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
   );
 
   const baySections = useMemo(
-    () => groupSurfaceArrivalsByBay(allGroups, stableSortPins),
-    [allGroups, stableSortPins],
+    () => groupSurfaceArrivalsByBay(allGroups, pinnedLineIds),
+    [allGroups, pinnedLineIds],
   );
 
   const pinnedGroups = useMemo(
-    () => buildPinnedSurfaceGroups(allGroups, snapshot.arrivals, stableSortPins, networkId),
-    [allGroups, snapshot.arrivals, stableSortPins, networkId],
+    () => buildPinnedSurfaceGroups(allGroups, snapshot.arrivals, pinnedLineIds, networkId),
+    [allGroups, snapshot.arrivals, pinnedLineIds, networkId],
   );
 
   if (isSavedStationVariant) {
@@ -601,7 +589,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                   {showDivider && (
                     <div
                       aria-hidden="true"
-                      className="station-arrival-line-divider my-1"
+                      className="station-arrival-line-divider"
                       data-arrival-line-divider
                     />
                   )}
