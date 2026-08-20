@@ -149,6 +149,7 @@ linewatch_compose() {
   local prod_env
   local release_env
   local compose_file
+  # Keep production resources aligned with the canonical repository and VPS directory name.
   local compose_project="${LINEWATCH_PROD_COMPOSE_PROJECT:-linewatchto}"
   local docker_bin="${DOCKER_BIN:-docker}"
 
