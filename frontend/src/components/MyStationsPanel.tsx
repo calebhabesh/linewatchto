@@ -541,7 +541,7 @@ function SavedStationRow({
                       {showLineDivider && (
                         <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                       )}
-                      <div className="saved-station-arrival-line-header flex items-center justify-between px-1 py-1">
+                      <div className="saved-station-arrival-line-header flex items-center justify-between py-1">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <TransitLineBadge
                             lineId={section.lineId}
@@ -811,7 +811,7 @@ function SavedStationRow({
                       {showLineDivider && (
                         <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                       )}
-                      <div className="saved-station-arrival-line-header flex items-center justify-between px-1 py-1">
+                      <div className="saved-station-arrival-line-header flex items-center justify-between py-1">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <TransitLineBadge
                             lineId={section.lineId}

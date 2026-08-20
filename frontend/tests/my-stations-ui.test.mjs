@@ -173,10 +173,10 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-arrival-groups/);
     assert.match(panel, /station-arrival-line-divider saved-station-section-divider/);
     assert.match(styles, /\.station-arrival-line-divider\s*\{[^}]*linear-gradient/s);
-    assert.match(styles, /\.saved-station-section-divider[\s\S]*?margin:\s*7px 2px;/s);
-    assert.match(styles, /\.saved-station-surface-divider[\s\S]*?margin:\s*7px 2px;/s);
+    assert.match(styles, /\.saved-station-section-divider[\s\S]*?margin:\s*6px 0;/s);
+    assert.match(styles, /\.saved-station-surface-divider[\s\S]*?margin:\s*6px 0;/s);
     assert.match(styles, /\.saved-station-arrivals\s*\{[^}]*background:\s*transparent;[^}]*border-radius:\s*0;[^}]*box-shadow:\s*none;/s);
-    assert.match(styles, /\.saved-station-disruption-summary\s*\{[^}]*padding:\s*14px 8px;/s);
+    assert.match(styles, /\.saved-station-disruption-summary[\s\S]*?padding:\s*6px 0 2px;/s);
     assert.match(styles, /\.saved-station-arrival-source::after\s*\{[^}]*height:\s*18px/s);
     assert.match(styles, /\.saved-station-arrival-times strong\.is-due/);
     assert.match(styles, /\.saved-station-arrival-times strong\.is-soon/);
