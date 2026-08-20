@@ -318,7 +318,7 @@ describe("station detail panel layout", () => {
 
     // TTC StationDetailPanel
     assert.match(panelSource, accentChipPattern);
-    assert.match(panelSource, /data-station-section="services-and-amenities"[\s\S]*?<ConciergeBell size=\{20\}/);
+    assert.match(panelSource, /data-station-section="services-and-amenities"[\s\S]*?<ConciergeBell size=\{14\}/);
     assert.match(panelSource, /data-station-section="services-and-amenities"[\s\S]*?items-center gap-2\.5/);
     assert.match(panelSource, /data-station-section="arrivals"[\s\S]*?<Train size=\{20\}/);
     assert.match(panelSource, /data-station-section="arrivals"[\s\S]*?items-center gap-2\.5/);
@@ -329,7 +329,7 @@ describe("station detail panel layout", () => {
 
     // RegionalStationDetailPanel
     assert.match(regionalPanelSource, accentChipPattern);
-    assert.match(regionalPanelSource, /data-station-section="services-and-amenities"[\s\S]*?<ConciergeBell size=\{20\}/);
+    assert.match(regionalPanelSource, /data-station-section="services-and-amenities"[\s\S]*?<ConciergeBell size=\{14\}/);
     assert.match(regionalPanelSource, /data-station-section="services-and-amenities"[\s\S]*?items-center gap-2\.5/);
     assert.match(regionalPanelSource, /data-station-section="arrivals"[\s\S]*?<Train size=\{20\}/);
     assert.match(regionalPanelSource, /data-station-section="arrivals"[\s\S]*?items-center gap-2\.5/);
@@ -349,7 +349,7 @@ describe("station detail panel layout", () => {
 
     // StationConnectionBadges
     assert.match(stationConnectionsSource, accentChipPattern);
-    assert.match(stationConnectionsSource, /<GitMerge size=\{20\}/);
+    assert.match(stationConnectionsSource, /<GitMerge size=\{14\}/);
     assert.match(stationConnectionsSource, /station-connections-title flex items-center gap-2\.5/);
     assert.match(globalCss, /\.station-connections-title\s*\{[^}]*gap:\s*10px;/s);
   });

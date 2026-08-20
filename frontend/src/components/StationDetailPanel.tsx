@@ -654,7 +654,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               >
                 <div className="flex items-center gap-2.5">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-                  <ConciergeBell size={20} className="shrink-0 text-slate-700 dark:text-white" aria-hidden="true" />
+                  <ConciergeBell size={14} className="shrink-0 text-slate-700 dark:text-white" aria-hidden="true" />
                   <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-900 dark:text-white">
                     Services and Amenities
                   </h4>

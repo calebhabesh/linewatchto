@@ -40,7 +40,7 @@ export function StationConnectionBadges({ connections }: { connections: readonly
     >
       <h3 id="station-connections-title" className="station-connections-title flex items-center gap-2.5">
         <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-        <GitMerge size={20} className="shrink-0 text-slate-700 dark:text-white" aria-hidden="true" />
+        <GitMerge size={14} className="shrink-0 text-slate-700 dark:text-white" aria-hidden="true" />
         <span>{heading}</span>
       </h3>
       <div className="station-connection-list">
