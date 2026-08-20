@@ -424,7 +424,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       navItems.push({
         id: "connected-network",
         label: connections.length === 1 ? "Connected Network" : "Connected Networks",
-        shortLabel: "Network",
+        shortLabel: "Networks",
         icon: <GitMerge size={13} aria-hidden="true" />,
       });
     }
@@ -654,7 +654,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               >
                 <div className="flex items-center gap-2.5">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-                  <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <ConciergeBell size={20} className="shrink-0 text-slate-700 dark:text-white" aria-hidden="true" />
+                  <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-900 dark:text-white">
                     Services and Amenities
                   </h4>
                 </div>
@@ -1186,10 +1187,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 <Image
                   src="/assets/linewatch/accessibility-alert.svg"
                   alt=""
-                  width={24}
-                  height={24}
+                  width={20}
+                  height={20}
                   aria-hidden="true"
-                  className="shrink-0"
+                  className="w-5 h-5 shrink-0"
                 />
                 <span className="min-w-0 truncate">Accessibility Outages</span>
                 <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">

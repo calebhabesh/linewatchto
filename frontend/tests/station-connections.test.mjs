@@ -142,6 +142,10 @@ describe("station connection metadata and map labels", () => {
     assert.match(connectionBadges, /GitMerge/);
     assert.match(connectionBadges, /connections\.length === 1 \? "Connected Network" : "Connected Networks"/);
     assert.match(connectionBadges, /station-connection-dot-sep/);
+    assert.match(
+      connectionBadges,
+      /className="[^"]*station-connections-card[^"]*rounded-lg border border-black\/10 bg-slate-50 p-3 dark:border-white\/10 dark:bg-white\/5/,
+    );
     assert.doesNotMatch(css, /\.station-connections-card[^}]*?(?:border|background|padding):/s);
     assert.match(css, /\.dark \.station-connections-title,[\s\S]*?color: #f8fafc/);
     assert.match(css, /\.station-connections-card[^}]*gap: 6px/s);

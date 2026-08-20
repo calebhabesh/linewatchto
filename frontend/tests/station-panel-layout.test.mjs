@@ -182,8 +182,10 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, /data-station-section="notices"/);
     assert.match(regionalPanelSource, /data-station-section="accessibility"/);
 
+    assert.match(panelSource, /shortLabel:\s*"Networks"/);
     assert.match(panelSource, /shortLabel:\s*arrivalsShortLabel/);
     assert.match(panelSource, /shortLabel:\s*"Buses"/);
+    assert.match(regionalPanelSource, /shortLabel:\s*"Networks"/);
     assert.match(regionalPanelSource, /shortLabel:\s*"Trains"/);
     assert.match(regionalPanelSource, /shortLabel:\s*"Buses"/);
 
@@ -311,17 +313,45 @@ describe("station detail panel layout", () => {
     assert.match(globalCss, /@keyframes station-detail-content-in/);
   });
 
-  it("renders accent chips on section headers across station detail panels", () => {
+  it("renders accent chips on section headers across station detail panels with uniform spacing", () => {
     const accentChipPattern = /<span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-\[0_0_4px_rgba\(129,201,255,0\.35\)\]" aria-hidden="true" \/>/;
 
     // TTC StationDetailPanel
     assert.match(panelSource, accentChipPattern);
+    assert.match(panelSource, /data-station-section="services-and-amenities"[\s\S]*?<ConciergeBell size=\{20\}/);
+    assert.match(panelSource, /data-station-section="services-and-amenities"[\s\S]*?items-center gap-2\.5/);
+    assert.match(panelSource, /data-station-section="arrivals"[\s\S]*?<Train size=\{20\}/);
+    assert.match(panelSource, /data-station-section="arrivals"[\s\S]*?items-center gap-2\.5/);
+    assert.match(panelSource, /data-station-section="station-impacts"[\s\S]*?<AlertCircle size=\{20\}/);
+    assert.match(panelSource, /data-station-section="station-impacts"[\s\S]*?items-center gap-2\.5/);
+    assert.match(panelSource, /data-station-section="accessibility"[\s\S]*?accessibility-alert\.svg[\s\S]*?width=\{20\}/);
+    assert.match(panelSource, /data-station-section="accessibility"[\s\S]*?items-center gap-2\.5/);
+
     // RegionalStationDetailPanel
     assert.match(regionalPanelSource, accentChipPattern);
+    assert.match(regionalPanelSource, /data-station-section="services-and-amenities"[\s\S]*?<ConciergeBell size=\{20\}/);
+    assert.match(regionalPanelSource, /data-station-section="services-and-amenities"[\s\S]*?items-center gap-2\.5/);
+    assert.match(regionalPanelSource, /data-station-section="arrivals"[\s\S]*?<Train size=\{20\}/);
+    assert.match(regionalPanelSource, /data-station-section="arrivals"[\s\S]*?items-center gap-2\.5/);
+    assert.match(regionalPanelSource, /data-station-section="station-impacts"[\s\S]*?<AlertCircle size=\{20\}/);
+    assert.match(regionalPanelSource, /data-station-section="station-impacts"[\s\S]*?items-center gap-2\.5/);
+    assert.match(regionalPanelSource, /data-station-section="trip-changes"[\s\S]*?<AlertTriangle size=\{20\}/);
+    assert.match(regionalPanelSource, /data-station-section="trip-changes"[\s\S]*?items-center gap-2\.5/);
+    assert.match(regionalPanelSource, /data-station-section="notices"[\s\S]*?<FileText size=\{20\}/);
+    assert.match(regionalPanelSource, /data-station-section="notices"[\s\S]*?items-center gap-2\.5/);
+    assert.match(regionalPanelSource, /data-station-section="accessibility"[\s\S]*?accessibility-alert\.svg[\s\S]*?width=\{20\}/);
+    assert.match(regionalPanelSource, /data-station-section="accessibility"[\s\S]*?items-center gap-2\.5/);
+
     // SurfaceConnectionsSection
     assert.match(surfaceConnectionsSource, accentChipPattern);
+    assert.match(surfaceConnectionsSource, /data-station-section="surface-connections"[\s\S]*?<Bus size=\{20\}/);
+    assert.match(surfaceConnectionsSource, /data-station-section="surface-connections"[\s\S]*?items-center gap-2\.5/);
+
     // StationConnectionBadges
     assert.match(stationConnectionsSource, accentChipPattern);
+    assert.match(stationConnectionsSource, /<GitMerge size=\{20\}/);
+    assert.match(stationConnectionsSource, /station-connections-title flex items-center gap-2\.5/);
+    assert.match(globalCss, /\.station-connections-title\s*\{[^}]*gap:\s*10px;/s);
   });
 
   it("renders colored icons and header count badges for station impacts, notices, and trip changes", () => {
