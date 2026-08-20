@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Image from "next/image";
 import { useDashboardData } from "../app/DataContext";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -216,12 +217,15 @@ function getImpactKindCanonicalLabel(kind: string, rawLabel?: string): string {
       return "Reduced Speed Zones";
     case "planned-closure":
     case "closure":
-      return "Planned Closures (Active Window Only)";
+      return "Planned Closures";
     case "suspension":
       return "Active Alerts";
     case "cancellation":
       return "Train Cancellations";
     default:
+      if (rawLabel === "Planned Closures (Active Window Only)") {
+        return "Planned Closures";
+      }
       return rawLabel || "Service Notices";
   }
 }
@@ -237,127 +241,106 @@ function AlertTypeBreakdownChart({
 
   const totalMinutes = breakdown.reduce((sum, item) => sum + item.observedDisruptionMinutes, 0);
   const totalIncidents = breakdown.reduce((sum, item) => sum + item.incidents, 0);
-  const radius = 48;
-  const circumference = 2 * Math.PI * radius;
 
-  let cumulative = 0;
   const slices = breakdown.map((item) => {
-    const pct = item.percentage;
-    const strokeDasharray = `${(pct / 100) * circumference} ${circumference}`;
-    const strokeDashoffset = -((cumulative / 100) * circumference);
-    cumulative += pct;
     const color = getImpactKindColor(item.impactKind);
     const label = getImpactKindCanonicalLabel(item.impactKind, item.label);
     return {
       ...item,
       label,
       color,
-      strokeDasharray,
-      strokeDashoffset,
     };
   });
 
   return (
-    <div className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2.5 mt-1">
-      <div className="flex items-center justify-between gap-2">
-        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5 min-w-0">
+    <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2.5 mt-1 overflow-hidden">
+      {/* Header */}
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
+        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 min-w-0 shrink-0">
           <PieChart className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-          <span className="truncate">
-            Share by Alert Type <span className="text-slate-400 dark:text-slate-600 font-normal">·</span>{" "}
-            <span className="text-purple-600 dark:text-purple-400">
-              {networkId === "regional" ? "During Operating Hours" : "During Subway Operating Hours"}
-            </span>
-          </span>
+          <span>Share of Observed Disruption Time</span>
         </h4>
-        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 shrink-0 font-mono tabular-nums">
-          {totalIncidents} total {totalIncidents === 1 ? "incident" : "incidents"}
+        <span className="hidden sm:inline text-slate-400 dark:text-slate-600 font-normal text-xs" aria-hidden="true">
+          ·
         </span>
+        <p className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider pl-5 sm:pl-0">
+          {networkId === "regional" ? "During Operating Hours" : "During Subway Operating Hours"}
+        </p>
       </div>
 
-      <div className="flex flex-row items-center gap-3.5">
-        {/* SVG Donut with straight edges and comfortable inner breathing room */}
-        <div className="relative shrink-0 w-28 h-28 flex items-center justify-center">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120" aria-label="Alert type disruption share chart">
-            <circle
-              cx="60"
-              cy="60"
-              r={radius}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="11"
-              strokeLinecap="butt"
-              className="text-black/5 dark:text-white/10"
-            />
-            {slices.map((slice) => (
-              <circle
+      {/* Bar section with linked metrics on top */}
+      <div className="flex flex-col gap-1.5 min-w-0 w-full mt-1">
+        <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[10.5px] font-mono tabular-nums text-slate-500 dark:text-slate-400 w-full min-w-0 whitespace-nowrap">
+          <span className="shrink-0 font-normal">
+            {totalIncidents} total {totalIncidents === 1 ? "incident" : "incidents"}
+          </span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300 text-right shrink-0">
+            {formatDisruptionDuration(totalMinutes, { showMultiResolution: true })} Total
+          </span>
+        </div>
+
+        {/* 100% Stacked Horizontal Spectrum Bar */}
+        <div
+          className="w-full h-3.5 sm:h-4 flex rounded-md overflow-hidden gap-[1px] bg-black/10 dark:bg-white/10 p-[1px]"
+          aria-label="100% stacked bar showing proportion of disruption time by alert category"
+        >
+          {slices.map((slice) => {
+            if (slice.percentage <= 0 && slice.observedDisruptionMinutes <= 0) return null;
+            return (
+              <div
                 key={slice.impactKind}
-                cx="60"
-                cy="60"
-                r={radius}
-                fill="none"
-                stroke={slice.color.stroke}
-                strokeWidth="11"
-                strokeDasharray={slice.strokeDasharray}
-                strokeDashoffset={slice.strokeDashoffset}
-                strokeLinecap="butt"
-                className="transition-all duration-500"
+                className="h-full first:rounded-l-[3px] last:rounded-r-[3px] transition-all duration-300 relative group cursor-default min-w-[3px]"
+                style={{
+                  width: `${Math.max(1, slice.percentage)}%`,
+                  backgroundColor: slice.color.stroke,
+                }}
+                title={`${slice.label}: ${slice.percentage.toFixed(1)}% · ${formatDisruptionDuration(slice.observedDisruptionMinutes, { showMultiResolution: true })} (${slice.incidents} ${slice.incidents === 1 ? "incident" : "incidents"})`}
               />
-            ))}
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
-            <span className="text-xs font-black text-slate-900 dark:text-white leading-tight font-mono tabular-nums">
-              {formatDisruptionDuration(totalMinutes)}
-            </span>
-            <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-              Total Impact
-            </span>
-          </div>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Legend / Breakdown list */}
-        <div className="flex-1 w-full flex flex-col gap-2 min-w-0">
-          {slices.map((slice) => (
-            <div key={slice.impactKind} className="flex flex-col gap-0.5 min-w-0">
-              <div className="flex items-center justify-between text-xs gap-1.5">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span
-                    className="w-2 h-2 rounded-sm shrink-0"
-                    style={{ backgroundColor: slice.color.stroke }}
-                    aria-hidden="true"
-                  />
-                  <strong className="font-bold text-slate-800 dark:text-white truncate text-[11px]">
-                    {slice.label}
-                  </strong>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0 text-[11px]">
-                  <span className="text-slate-500 dark:text-slate-400 font-mono tabular-nums">
-                    {slice.incidents} {slice.incidents === 1 ? "incident" : "incidents"}
-                  </span>
-                  <span className="font-black text-slate-800 dark:text-white min-w-[36px] text-right font-mono tabular-nums">
-                    {slice.percentage.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="relative w-full h-1 bg-black/10 dark:bg-white/10 overflow-hidden">
-                <div
-                  className="h-full transition-all duration-500"
-                  style={{
-                    width: `${Math.max(0, Math.min(100, slice.percentage))}%`,
-                    backgroundColor: slice.color.stroke,
-                  }}
+      {/* Compact Ranked Breakdown List - 2-line per item with equivalent divider padding */}
+      <div className="w-full flex flex-col min-w-0 pt-0.5">
+        {slices.map((slice) => (
+          <div
+            key={slice.impactKind}
+            className="flex flex-col gap-0.5 min-w-0 py-2 border-b border-black/[0.05] dark:border-white/[0.05] first:pt-1 last:pb-0.5 last:border-b-0"
+          >
+            {/* Top line: Label + Percentage */}
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <span
+                  className="w-2.5 h-2.5 rounded-[2px] shrink-0"
+                  style={{ backgroundColor: slice.color.stroke }}
+                  aria-hidden="true"
                 />
+                <strong className="font-bold text-slate-800 dark:text-white text-xs leading-tight whitespace-nowrap">
+                  {slice.label}
+                </strong>
+                {slice.impactKind.toLowerCase().includes("closure") && (
+                  <span className="text-[10px] font-normal text-slate-400 dark:text-slate-300/80 whitespace-nowrap tracking-tight">
+                    (Active Window Only)
+                  </span>
+                )}
               </div>
-
-              <p className="text-[10px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {formatDisruptionDuration(slice.observedDisruptionMinutes, { showMultiResolution: true })}
-                </span>
-                <span> observed disruption</span>
-              </p>
+              <span className="font-black text-slate-900 dark:text-white font-mono tabular-nums text-xs shrink-0 text-right">
+                {slice.percentage.toFixed(1)}%
+              </span>
             </div>
-          ))}
-        </div>
+
+            {/* Bottom line: Duration + Incidents */}
+            <div className="flex items-center justify-between gap-2 min-w-0 text-[11px] font-mono tabular-nums pl-4">
+              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                {formatDisruptionDuration(slice.observedDisruptionMinutes, { showMultiResolution: true })}
+              </span>
+              <span className="text-slate-500 dark:text-slate-400 shrink-0 text-right">
+                {slice.incidents} {slice.incidents === 1 ? "incident" : "incidents"}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -373,19 +356,19 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
   const renderMetric = (item: typeof metrics[0]) => {
     const details = getMetricDetails(item.id, item.label);
     return (
-      <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3">
+      <div key={item.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3 overflow-hidden">
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-2.5 flex-1">
             {details.icon}
-            <div className="reliability-copy min-w-0">
+            <div className="reliability-copy min-w-0 flex-1">
               <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{details.label}</strong>
             </div>
           </div>
-          <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap font-mono tabular-nums">{item.valueLabel}</strong>
+          <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap font-mono tabular-nums shrink-0">{item.valueLabel}</strong>
         </div>
         {item.percentage !== null ? (
-          <div className="flex flex-col gap-1.5">
-            <div className="score-track relative bg-black/10 dark:bg-white/10 rounded-full h-2 mx-4">
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <div className="score-track relative bg-black/10 dark:border-white/10 rounded-full h-2 mx-4">
               <div className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.percentage))}%` }} />
               {item.target != null && (
                 <div 
@@ -412,9 +395,9 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
   };
 
   return (
-    <section className="analytics-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
+    <section className="analytics-panel min-w-0 max-w-full w-full border border-black/10 dark:border-white/10 rounded-lg shadow-xl" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
       <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
-        <div className="flex items-center gap-1 min-w-0">
+        <div className="flex items-center gap-1 min-w-0 flex-1">
           {onBack && (
             <button
               onClick={onBack}
@@ -424,12 +407,12 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
               <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
             </button>
           )}
-          <div className="min-w-0">
-            <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 truncate">
               <BarChart3 className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-purple-500 shrink-0" />
               <span>Reliability Analytics</span>
             </h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
               {reliability.coverageLabel} · {reliability.confidence} confidence
             </p>
           </div>
@@ -444,68 +427,68 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
           </button>
         )}
       </div>
-      <div className="reliability-list min-w-0 p-3 flex flex-col gap-2">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-[15px] font-black text-slate-900 dark:text-white">
-                Observed Disruptions · Rolling 30 Days
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Source: {reliability.source}
-              </p>
-            </div>
+      <div className="reliability-list min-w-0 max-w-full w-full p-3 flex flex-col gap-2 overflow-x-hidden">
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-black text-slate-900 dark:text-white break-words">
+              Observed Disruptions · Rolling 30 Day Basis
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
+              Source: {reliability.source.replace(/alert history/gi, "Alert History")}
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{reliability.message}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 break-words leading-relaxed">{reliability.message}</p>
           {reliability.metrics.length === 0 ? (
-            <div className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
+            <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
               <strong className="text-sm font-bold text-slate-800 dark:text-white">History is accumulating</strong>
               <p className="text-xs text-slate-500 dark:text-slate-400">{reliability.coverageLabel}</p>
             </div>
           ) : reliability.metrics.map((item) => {
             const details = getMetricDetails(item.id, item.label);
             return (
-              <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between gap-3 min-w-0">
-                  <div className="flex min-w-0 items-center gap-2.5">
+              <div key={item.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col !gap-0 overflow-hidden">
+                {/* Line Header */}
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-1 sm:gap-2 min-w-0 pb-2">
+                  <div className="flex min-w-0 items-center gap-2 flex-1 basis-full sm:basis-auto">
                     {details.icon}
-                    <strong className="text-sm font-bold text-slate-800 dark:text-white">
+                    <strong className="text-sm font-bold text-slate-900 dark:text-white truncate">
                       {networkId === "regional" && item.number ? `${item.number} · ` : ""}{details.label}
                     </strong>
                   </div>
-                  <strong className="whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 font-mono tabular-nums shrink-0">
-                    {item.incidents} {item.incidents === 1 ? "incident" : "incidents"}
-                  </strong>
-                </div>
-                <p
-                  className="text-xs sm:text-[13px] font-mono tabular-nums leading-relaxed flex flex-wrap items-center gap-x-1.5 gap-y-0.5"
-                  title={`${item.observedDisruptionMinutes.toLocaleString()} total observed disruption minutes`}
-                >
-                  {item.medianDurationMinutes == null ? (
-                    <span className="text-slate-500 dark:text-slate-400 font-normal">No completed incident duration yet</span>
-                  ) : (
+                  <div className="flex items-center gap-1.5 shrink-0 text-xs sm:text-[12.5px] font-mono tabular-nums text-slate-600 dark:text-slate-300">
                     <span>
-                      <span className="text-slate-500 dark:text-slate-400 font-normal">Median </span>
-                      <span className="font-bold text-slate-900 dark:text-white">{formatDisruptionDuration(item.medianDurationMinutes, { showMultiResolution: true })}</span>
+                      {item.incidents} {item.incidents === 1 ? "incident" : "incidents"}
                     </span>
-                  )}
-
-                  <span className="text-slate-400 dark:text-slate-600 font-normal" aria-hidden="true">·</span>
-
-                  <span>
-                    <span className="font-bold text-slate-900 dark:text-white">{formatDisruptionDuration(item.observedDisruptionMinutes, { showMultiResolution: true })}</span>
-                    <span className="text-slate-500 dark:text-slate-400 font-normal"> observed disruption</span>
-                  </span>
-
-                  {item.activeIncidents > 0 && (
-                    <>
-                      <span className="text-slate-400 dark:text-slate-600 font-normal" aria-hidden="true">·</span>
-                      <span className="font-bold text-amber-600 dark:text-amber-400">
+                    {item.activeIncidents > 0 && (
+                      <span className="px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
                         {item.activeIncidents} active
                       </span>
-                    </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Metric Rows */}
+                <div className="flex flex-col gap-1 text-xs sm:text-[12.5px] font-mono tabular-nums text-slate-600 dark:text-slate-300 border-t border-black/[0.05] dark:border-white/[0.05] pt-2">
+                  <div className="flex items-baseline justify-between gap-2 min-w-0">
+                    <span className="text-slate-500 dark:text-slate-400 font-normal shrink-0">
+                      Total Disruption
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white text-right truncate">
+                      {formatDisruptionDuration(item.observedDisruptionMinutes, { showMultiResolution: true })}
+                    </span>
+                  </div>
+
+                  {item.medianDurationMinutes != null && (
+                    <div className="flex items-baseline justify-between gap-2 min-w-0">
+                      <span className="text-slate-500 dark:text-slate-400 font-normal shrink-0">
+                        Median Delay
+                      </span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
+                        {formatDisruptionDuration(item.medianDurationMinutes, { showMultiResolution: true })}
+                      </span>
+                    </div>
                   )}
-                </p>
+                </div>
               </div>
             );
           })}

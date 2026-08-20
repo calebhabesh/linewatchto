@@ -482,7 +482,7 @@ export const reliabilitySnapshot: ReliabilitySnapshot = {
   period: "30d",
   since: "2026-06-28T12:00:00Z",
   until: "2026-07-28T12:00:00Z",
-  source: "LineWatch fixture alert history",
+  source: "LineWatch fixture Alert History",
   observedDays: 30,
   confidence: "high",
   coverageLabel: "30 of 30 days observed",

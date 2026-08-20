@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const inspectorSource = readFileSync(new URL("../src/components/MobileImpactInspector.tsx", import.meta.url), "utf8");
 const overlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
+const selectedCardScrollSource = readFileSync(new URL("../src/hooks/useScrollSelectedImpactCard.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
@@ -70,6 +71,17 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /cause=\{details\.cause\}/);
     assert.match(inspectorSource, /resolution=\{details\.resolution\}/);
     assert.match(inspectorSource, /targetRemoval=\{details\.targetRemoval\}/);
+  });
+
+  it("reuses the directional resolution breakdown for grouped reduced speed zones", () => {
+    assert.match(inspectorSource, /ReducedSpeedZoneResolutionBreakdown/);
+    assert.match(inspectorSource, /isGroupedZone \? null : zone\.resolution/);
+  });
+
+  it("scrolls the selected card within its list without moving the mobile sheet header", () => {
+    assert.match(selectedCardScrollSource, /closest<HTMLElement>\("\.alert-stack, \.closure-stack"\)/);
+    assert.match(selectedCardScrollSource, /list\.scrollTo\(/);
+    assert.doesNotMatch(selectedCardScrollSource, /scrollIntoView\(/);
   });
 
   it("sizes the map-focused inspector to its rendered content", () => {
@@ -148,4 +160,3 @@ describe("mobile Show on Map inspector", () => {
     assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mobile-impact-inspector/);
   });
 });
-

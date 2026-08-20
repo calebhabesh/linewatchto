@@ -7743,21 +7743,31 @@ img.transit-line-badge {
 
 .analytics-panel {
   grid-column: 1 / 2;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 .health-panel {
   grid-column: 2 / 3;
   grid-row: 3;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 .reliability-row {
   align-items: stretch;
   background: var(--panel-soft);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-width: 100%;
   min-width: 0;
+  overflow-x: hidden;
   padding: 10px;
+  width: 100%;
 }
 
 .reliability-copy strong,
@@ -8552,7 +8562,10 @@ img.transit-line-badge {
 }
 
 .rsz-resolution-breakdown {
-  display: inline;
+  align-items: flex-start;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .rsz-resolution-row {
@@ -8560,11 +8573,6 @@ img.transit-line-badge {
   display: inline-flex;
   gap: 3px;
   white-space: nowrap;
-}
-
-.rsz-resolution-row + .rsz-resolution-row::before {
-  content: ", ";
-  white-space: pre;
 }
 
 .impact-metadata-grid dd {

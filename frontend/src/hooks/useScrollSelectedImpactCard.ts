@@ -37,9 +37,19 @@ export function useScrollSelectedImpactCard(
 
       const isMobile = window.matchMedia("(max-width: 767px)").matches ||
         Boolean(card.closest(".mobile-view-content-wrapper"));
+      const list = card.closest<HTMLElement>(".alert-stack, .closure-stack");
+      if (!list) return;
 
-      card.scrollIntoView({
-        block: isMobile ? "start" : "center",
+      const cardRect = card.getBoundingClientRect();
+      const listRect = list.getBoundingClientRect();
+      const scrollMarginTop = Number.parseFloat(window.getComputedStyle(card).scrollMarginTop) || 0;
+      const alignmentOffset = isMobile
+        ? scrollMarginTop
+        : Math.max(0, (list.clientHeight - cardRect.height) / 2);
+      const targetTop = list.scrollTop + cardRect.top - listRect.top - alignmentOffset;
+
+      list.scrollTo({
+        top: Math.max(0, targetTop),
         behavior: "smooth",
       });
     };

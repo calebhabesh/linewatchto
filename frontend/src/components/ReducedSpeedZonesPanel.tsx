@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
-import { DirectionalZoneCount, ReducedSpeedZoneDirectionTextArrow } from "./DirectionalZoneCount";
+import { DirectionalZoneCount } from "./DirectionalZoneCount";
 import { Construction, ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
@@ -12,10 +12,11 @@ import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlap
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
-import { countReducedSpeedZones, normalizeReducedSpeedZoneDirection } from "../app/reduced-speed-zone-count";
+import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
 import { useImpactListView } from "../hooks/useImpactListView";
 import { reducedSpeedZoneResolutionEntries, reducedSpeedZoneResolutionText } from "../app/reduced-speed-zone-resolution";
+import { ReducedSpeedZoneResolutionBreakdown } from "./ReducedSpeedZoneResolutionBreakdown";
 
 const formatSpeed = (val: string | null | undefined): string | null => {
   if (!val) return null;
@@ -137,6 +138,7 @@ export function ReducedSpeedZonesPanel({
           visibleZones.map((zone) => {
             const zonesAtLocation = countReducedSpeedZones([zone]);
             const resolutionEntries = reducedSpeedZoneResolutionEntries(zone);
+            const isGroupedZone = zonesAtLocation > 1;
             const showResolutionBreakdown = zonesAtLocation > 1 && resolutionEntries.length > 0;
             const isActive = selection?.kind === "reduced-speed-zone" && selection.id === zone.id;
             const overlappingImpacts = getOverlappingImpactRefs(
@@ -199,31 +201,14 @@ export function ReducedSpeedZonesPanel({
                     <MetadataGrid 
                       className="no-border"
                       cause={zone.cause}
-                      resolution={showResolutionBreakdown ? null : zone.resolution}
+                      resolution={isGroupedZone ? null : zone.resolution}
                       reason={zone.reason} 
-                      targetRemoval={zone.targetRemoval} 
+                      targetRemoval={isGroupedZone ? null : zone.targetRemoval}
                       startedAt={zone.startedAt}
                       updatedAt={zone.updatedAt}
                       updatedAgo={zone.updatedAgo} 
                       extraRows={[
-                        ...(showResolutionBreakdown ? [{
-                          label: "Est. Resolution",
-                          value: (
-                            <span className="rsz-resolution-breakdown">
-                              {resolutionEntries.map(({ direction, resolution, count }) => (
-                                <span key={`${direction}-${resolution}`} className="rsz-resolution-row">
-                                  <span className="sr-only">{direction}: </span>
-                                  <ReducedSpeedZoneDirectionTextArrow
-                                    direction={normalizeReducedSpeedZoneDirection(direction)}
-                                    lineId={zone.lineId}
-                                  />
-                                  <span>{resolution}</span>{" "}
-                                  <strong style={{ color: "#B8A66F" }}>({count})</strong>
-                                </span>
-                              ))}
-                            </span>
-                          ),
-                        }] : []),
+                        { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
                         {
                           label: "Zone Count",
                           labelSuffix: (
@@ -234,9 +219,16 @@ export function ReducedSpeedZonesPanel({
                           ),
                           value: zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null,
                         },
-                        { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
-                        { label: "Typical Speed", value: formatSpeed(zone.averageSpeed) },
+                        ...(isGroupedZone ? [{
+                          label: "Est. Resolution",
+                          value: showResolutionBreakdown
+                            ? <ReducedSpeedZoneResolutionBreakdown zone={zone} />
+                            : reducedSpeedZoneResolutionText(zone),
+                        }] : [{ label: "Typical Speed", value: formatSpeed(zone.averageSpeed) }]),
                       ]}
+                      trailingRows={isGroupedZone
+                        ? [{ label: "Typical Speed", value: formatSpeed(zone.averageSpeed) }]
+                        : undefined}
                     />
                   </div>
                   <button

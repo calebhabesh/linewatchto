@@ -604,7 +604,7 @@ export const regionalDashboardData: DashboardData = {
     period: "30d",
     since: "",
     until: "",
-    source: "Metrolinx alert history",
+    source: "Metrolinx Alert History",
     observedDays: 0,
     confidence: "low",
     coverageLabel: "No observed history",

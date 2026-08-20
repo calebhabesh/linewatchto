@@ -8,13 +8,13 @@ describe("official TTC performance panel source", () => {
   it("renders coverage-labeled observed disruption history without an invented score", () => {
     assert.match(source, /reliability\.coverageLabel/);
     assert.match(source, /reliability\.confidence/);
-    assert.match(source, /Observed Disruptions · Rolling 30 Days/);
+    assert.match(source, /Observed Disruptions · Rolling 30 Day Basis/);
     assert.match(source, /formatDisruptionDuration/);
-    assert.match(source, /Share by Alert Type/);
+    assert.match(source, /Share of Observed Disruption Time/);
     assert.match(source, /During Subway Operating Hours/);
-    assert.match(source, /Planned Closures \(Active Window Only\)/);
+    assert.match(source, /Planned Closures/);
     assert.match(source, /#FEEC41/);
-    assert.match(source, /strokeLinecap="butt"/);
+    assert.match(source, /aria-label="100% stacked bar/);
     assert.match(source, /dark:text-white/);
     assert.match(source, /AlertTypeBreakdownChart/);
     assert.doesNotMatch(source, /Reliability score/);

@@ -66,7 +66,7 @@ public class ReliabilityService {
                 + "Counts reflect source-published incidents, not all causes of service variance.";
         return new ReliabilityResponse(
             networkId, "30d", since, until,
-            "regional".equals(networkId) ? "Metrolinx alert history" : "LineWatch TTC alert history",
+            "regional".equals(networkId) ? "Metrolinx Alert History" : "LineWatch TTC Alert History",
             observedDays, confidence, coverage, message, metrics, breakdown
         );
     }

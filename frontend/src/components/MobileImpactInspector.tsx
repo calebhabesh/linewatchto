@@ -12,6 +12,8 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton, CommutePathPreviewCardBanner } from "./ImpactCardFields";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { DirectionalZoneCount } from "./DirectionalZoneCount";
+import { reducedSpeedZoneResolutionEntries } from "../app/reduced-speed-zone-resolution";
+import { ReducedSpeedZoneResolutionBreakdown } from "./ReducedSpeedZoneResolutionBreakdown";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 
 export type MobileInspectorDetent = "map-focus" | "details-focus";
@@ -161,6 +163,9 @@ export function getSelectedImpactDetails(
     const zone = data.reducedSpeedZones.find((item) => item.id === selection.id);
     if (!zone) return null;
     const zonesAtLocation = countReducedSpeedZones([zone]);
+    const isGroupedZone = zonesAtLocation > 1;
+    const showResolutionBreakdown = zonesAtLocation > 1
+      && reducedSpeedZoneResolutionEntries(zone).length > 0;
     return {
       id: zone.id,
       kind: "reduced-speed-zone",
@@ -178,10 +183,11 @@ export function getSelectedImpactDetails(
       updatedAt: zone.updatedAt,
       updatedAgo: zone.updatedAgo,
       cause: zone.cause,
-      resolution: zone.resolution,
+      resolution: isGroupedZone ? null : zone.resolution,
       reason: zone.reason,
-      targetRemoval: zone.targetRemoval,
+      targetRemoval: isGroupedZone ? null : zone.targetRemoval,
       extraRows: [
+        { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
         {
           label: "Zone Count",
           labelSuffix: (
@@ -192,9 +198,16 @@ export function getSelectedImpactDetails(
           ),
           value: zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null,
         },
-        { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
-        { label: "Typical Speed", value: formatSpeed(zone.averageSpeed) },
+        ...(isGroupedZone ? [{
+          label: "Est. Resolution",
+          value: showResolutionBreakdown
+            ? <ReducedSpeedZoneResolutionBreakdown zone={zone} />
+            : zone.resolution || zone.targetRemoval || "TBD",
+        }] : [{ label: "Typical Speed", value: formatSpeed(zone.averageSpeed) }]),
       ],
+      trailingRows: isGroupedZone
+        ? [{ label: "Typical Speed", value: formatSpeed(zone.averageSpeed) }]
+        : undefined,
       segmentIds: zone.affectedSegmentIds ?? [],
     };
   }
