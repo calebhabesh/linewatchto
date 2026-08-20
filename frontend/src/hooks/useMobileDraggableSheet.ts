@@ -138,12 +138,15 @@ export function useMobileDraggableSheet() {
 
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight ?? 800;
     const startRatio = currentRatioRef.current;
-    const startHeightPx = startRatio * viewportHeight;
+    const startTranslateYPx = Math.max(
+      0,
+      (MOBILE_SHEET_CEILING_RATIO - startRatio) * viewportHeight,
+    );
     const now = performance.now();
 
     dragSessionRef.current = {
       startY: e.clientY,
-      startHeightPx,
+      startHeightPx: startRatio * viewportHeight,
       viewportHeight,
       pointerId: e.pointerId,
       startTime: now,
@@ -156,24 +159,22 @@ export function useMobileDraggableSheet() {
     const sheetEl = sheetRef.current;
     if (sheetEl) {
       sheetEl.style.transition = "none";
-      sheetEl.style.transform = "";
+      sheetEl.style.willChange = "transform";
       sheetEl.classList.add("station-detail-sheet-dragging");
-      const px = startHeightPx.toFixed(1);
-      sheetEl.style.setProperty("--mobile-station-sheet-height", `${px}px`);
-      sheetEl.style.height = `${px}px`;
-      sheetEl.style.maxHeight = `${px}px`;
+      sheetEl.style.transform = `translate3d(0, ${startTranslateYPx.toFixed(1)}px, 0)`;
     }
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const session = dragSessionRef.current;
       if (!session || session.pointerId !== moveEvent.pointerId) return;
 
-      const deltaY = session.startY - moveEvent.clientY; // positive = dragging UP
-      const rawHeight = session.startHeightPx + deltaY;
-      const minHeight = MOBILE_SHEET_FLOOR_RATIO * session.viewportHeight;
-      const maxHeight = MOBILE_SHEET_CEILING_RATIO * session.viewportHeight;
-      const clampedHeight = Math.max(minHeight, Math.min(maxHeight, rawHeight));
-      const currentRatio = clampSheetRatio(clampedHeight / session.viewportHeight);
+      const deltaY = moveEvent.clientY - session.startY; // positive = dragging DOWN
+      const rawTranslateY = (MOBILE_SHEET_CEILING_RATIO - (session.startHeightPx / session.viewportHeight)) * session.viewportHeight + deltaY;
+      const minTranslateY = 0;
+      const maxTranslateY = (MOBILE_SHEET_CEILING_RATIO - MOBILE_SHEET_FLOOR_RATIO) * session.viewportHeight;
+      const clampedTranslateY = Math.max(minTranslateY, Math.min(maxTranslateY, rawTranslateY));
+      const calculatedRatio = MOBILE_SHEET_CEILING_RATIO - (clampedTranslateY / session.viewportHeight);
+      const currentRatio = clampSheetRatio(calculatedRatio);
       currentRatioRef.current = currentRatio;
 
       if (rafIdRef.current === null) {
@@ -181,10 +182,7 @@ export function useMobileDraggableSheet() {
           rafIdRef.current = null;
           const el = sheetRef.current;
           if (el && isDraggingRef.current) {
-            const px = (currentRatioRef.current * session.viewportHeight).toFixed(1);
-            el.style.setProperty("--mobile-station-sheet-height", `${px}px`);
-            el.style.height = `${px}px`;
-            el.style.maxHeight = `${px}px`;
+            el.style.transform = `translate3d(0, ${clampedTranslateY.toFixed(1)}px, 0)`;
           }
         });
       }

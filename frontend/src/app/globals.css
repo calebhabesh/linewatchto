@@ -11504,11 +11504,11 @@ img.transit-line-badge {
 @keyframes station-detail-enter {
   from {
     opacity: 0;
-    transform: translateY(18px) scale(0.985);
+    transform: translate3d(0, calc(var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)) + 18px), 0) scale(0.985);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)), 0) scale(1);
   }
 }
 
@@ -11527,11 +11527,11 @@ img.transit-line-badge {
 
 @media (max-width: 767px) {
   .station-detail-panel {
-    height: var(--mobile-station-sheet-height, calc(var(--visual-viewport-height, 100dvh) * 0.50)) !important;
-    max-height: var(--mobile-station-sheet-height, calc(var(--visual-viewport-height, 100dvh) * 0.50)) !important;
-    transition: height 240ms cubic-bezier(0.16, 1, 0.3, 1), max-height 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    height: calc(var(--visual-viewport-height, 100dvh) * 0.92) !important;
+    max-height: calc(var(--visual-viewport-height, 100dvh) * 0.92) !important;
+    transform: translate3d(0, var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)), 0);
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 45;
-    transform: translateZ(0);
     contain: paint;
     isolation: isolate;
     backface-visibility: hidden;
@@ -11542,7 +11542,7 @@ img.transit-line-badge {
     contain: layout paint;
     transition: none !important;
     user-select: none;
-    will-change: height, max-height;
+    will-change: transform;
   }
 
   .station-detail-panel.station-detail-sheet-dragging * {
@@ -11553,6 +11553,10 @@ img.transit-line-badge {
 
   .station-detail-panel.station-detail-sheet-dragging .station-detail-scroll {
     overflow: hidden !important;
+  }
+
+  .station-detail-panel .station-detail-scroll {
+    padding-bottom: calc(var(--mobile-station-sheet-translate-y, 42dvh) + 16px + var(--mobile-safe-bottom, 0px)) !important;
   }
 
   .station-sheet-drag-handle-container {
@@ -11586,6 +11590,12 @@ img.transit-line-badge {
   .station-detail-panel {
     height: auto !important;
     max-height: calc(var(--visual-viewport-height, 100dvh) - 128px) !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .station-detail-panel .station-detail-scroll {
+    padding-bottom: 0 !important;
   }
 }
 
@@ -23239,9 +23249,13 @@ img.transit-line-badge {
   .floating-panel-shell[data-closing="true"],
   .mobile-view-content-wrapper[data-closing="true"],
   .panel-container-exit,
-  .mobile-impact-inspector.mobile-impact-inspector-closing,
-  .station-detail-panel.station-detail-closing {
+  .mobile-impact-inspector.mobile-impact-inspector-closing {
     animation: mobile-sheet-slide-down-exit 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    will-change: transform, opacity;
+  }
+
+  .station-detail-panel.station-detail-closing {
+    animation: station-detail-exit-mobile 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
     will-change: transform, opacity;
   }
 
@@ -23253,6 +23267,17 @@ img.transit-line-badge {
     100% {
       opacity: 0;
       transform: translateY(100%);
+    }
+  }
+
+  @keyframes station-detail-exit-mobile {
+    0% {
+      opacity: 1;
+      transform: translate3d(0, var(--mobile-station-sheet-translate-y, 0), 0);
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(0, 100%, 0);
     }
   }
 }

@@ -127,10 +127,13 @@ describe("mobile station draggable sheet UX", () => {
     assert.match(hookSource, /sheetRef/);
     assert.match(hookSource, /MOBILE_SHEET_SNAP_THRESHOLD/);
     assert.match(hookSource, /snapToRatio/);
+    assert.match(hookSource, /translate3d/);
+    assert.match(hookSource, /willChange\s*=\s*"transform"/);
     assert.match(panelSource, /ref=\{sheetRef\}/);
     assert.match(regionalPanelSource, /ref=\{sheetRef\}/);
     assert.match(globalCss, /contain:\s*paint/);
-    assert.match(globalCss, /transform:\s*translateZ\(0\)/);
+    assert.match(globalCss, /transform:\s*translate3d/);
+    assert.match(globalCss, /will-change:\s*transform/);
   });
 
   it("supports user-decided in-between custom height ratios without forced binary snapping", () => {
