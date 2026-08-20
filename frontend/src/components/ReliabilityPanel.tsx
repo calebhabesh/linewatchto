@@ -2,14 +2,17 @@
 
 import Image from "next/image";
 import { useDashboardData } from "../app/DataContext";
+import { TransitLineBadge } from "./TransitLineBadge";
 import { 
   BarChart3, 
   ShieldCheck, 
   ChevronLeft, 
   X, 
   Bus, 
-  Accessibility 
+  Accessibility,
+  PieChart 
 } from "lucide-react";
+import type { AlertTypeBreakdownItem } from "../app/linewatch-data";
 
 interface ReliabilityProps {
   onBack?: () => void;
@@ -141,11 +144,223 @@ function getMetricDetails(id: string, originalLabel: string) {
         ),
       };
     default:
+      if (id.startsWith("regional-") || id.startsWith("go-") || id === "up-express") {
+        return {
+          label: originalLabel,
+          icon: (
+            <TransitLineBadge
+              lineId={id}
+              size={24}
+              className="shrink-0"
+              decorative
+            />
+          ),
+        };
+      }
       return {
         label: originalLabel,
         icon: <BarChart3 className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />,
       };
   }
+}
+
+function formatDisruptionDuration(
+  minutes: number | null | undefined,
+  options?: { showMultiResolution?: boolean },
+): string {
+  if (minutes == null || isNaN(minutes) || minutes <= 0) return "0 min";
+  if (minutes < 60) return `${Math.round(minutes)} min`;
+  if (minutes < 1440) {
+    const hours = Math.floor(minutes / 60);
+    const remMinutes = Math.round(minutes % 60);
+    const primary = remMinutes === 0 ? `${hours} hr` : `${hours} hr ${remMinutes} min`;
+    return options?.showMultiResolution ? `${primary} (${Math.round(minutes)} min)` : primary;
+  }
+  const totalHours = Math.round(minutes / 60);
+  const days = Math.floor(minutes / 1440);
+  const remHours = Math.round((minutes % 1440) / 60);
+  if (options?.showMultiResolution) {
+    const dayLabel = days === 1 ? "day" : "days";
+    const hrLabel = remHours === 1 ? "hr" : "hrs";
+    const dayPart = remHours > 0 ? `${days.toLocaleString()} ${dayLabel} ${remHours} ${hrLabel}` : `${days.toLocaleString()} ${dayLabel}`;
+    return `${totalHours.toLocaleString()} hrs (${dayPart})`;
+  }
+  return `${totalHours.toLocaleString()} hrs`;
+}
+
+function getImpactKindColor(kind: string): { stroke: string; bg: string; text: string } {
+  switch (kind.toLowerCase().replace(/_/g, "-")) {
+    case "delay":
+      return { stroke: "#FEEC41", bg: "bg-[#FEEC41]", text: "text-yellow-600 dark:text-yellow-300" };
+    case "reduced-speed-zone":
+    case "rsz":
+      return { stroke: "#F59E0B", bg: "bg-amber-500", text: "text-amber-700 dark:text-amber-400" };
+    case "planned-closure":
+    case "closure":
+      return { stroke: "#3b82f6", bg: "bg-blue-500", text: "text-blue-700 dark:text-blue-400" };
+    case "suspension":
+      return { stroke: "#ef4444", bg: "bg-red-500", text: "text-red-700 dark:text-red-400" };
+    case "cancellation":
+      return { stroke: "#f43f5e", bg: "bg-rose-500", text: "text-rose-700 dark:text-rose-400" };
+    default:
+      return { stroke: "#8b5cf6", bg: "bg-purple-500", text: "text-purple-700 dark:text-purple-400" };
+  }
+}
+
+function getImpactKindCanonicalLabel(kind: string, rawLabel?: string): string {
+  switch (kind.toLowerCase().replace(/_/g, "-")) {
+    case "delay":
+      return "Delays";
+    case "reduced-speed-zone":
+    case "rsz":
+      return "Reduced Speed Zones";
+    case "planned-closure":
+    case "closure":
+      return "Planned Closures (Active Window Only)";
+    case "suspension":
+      return "Active Alerts";
+    case "cancellation":
+      return "Train Cancellations";
+    default:
+      return rawLabel || "Service Notices";
+  }
+}
+
+function AlertTypeBreakdownChart({
+  breakdown,
+  networkId = "ttc",
+}: {
+  breakdown?: AlertTypeBreakdownItem[];
+  networkId?: "ttc" | "regional";
+}) {
+  if (!breakdown || breakdown.length === 0) return null;
+
+  const totalMinutes = breakdown.reduce((sum, item) => sum + item.observedDisruptionMinutes, 0);
+  const totalIncidents = breakdown.reduce((sum, item) => sum + item.incidents, 0);
+  const radius = 48;
+  const circumference = 2 * Math.PI * radius;
+
+  let cumulative = 0;
+  const slices = breakdown.map((item) => {
+    const pct = item.percentage;
+    const strokeDasharray = `${(pct / 100) * circumference} ${circumference}`;
+    const strokeDashoffset = -((cumulative / 100) * circumference);
+    cumulative += pct;
+    const color = getImpactKindColor(item.impactKind);
+    const label = getImpactKindCanonicalLabel(item.impactKind, item.label);
+    return {
+      ...item,
+      label,
+      color,
+      strokeDasharray,
+      strokeDashoffset,
+    };
+  });
+
+  return (
+    <div className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2.5 mt-1">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5 min-w-0">
+          <PieChart className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+          <span className="truncate">
+            Share by Alert Type <span className="text-slate-400 dark:text-slate-600 font-normal">·</span>{" "}
+            <span className="text-purple-600 dark:text-purple-400">
+              {networkId === "regional" ? "During Operating Hours" : "During Subway Operating Hours"}
+            </span>
+          </span>
+        </h4>
+        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 shrink-0 font-mono tabular-nums">
+          {totalIncidents} total {totalIncidents === 1 ? "incident" : "incidents"}
+        </span>
+      </div>
+
+      <div className="flex flex-row items-center gap-3.5">
+        {/* SVG Donut with straight edges and comfortable inner breathing room */}
+        <div className="relative shrink-0 w-28 h-28 flex items-center justify-center">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120" aria-label="Alert type disruption share chart">
+            <circle
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="11"
+              strokeLinecap="butt"
+              className="text-black/5 dark:text-white/10"
+            />
+            {slices.map((slice) => (
+              <circle
+                key={slice.impactKind}
+                cx="60"
+                cy="60"
+                r={radius}
+                fill="none"
+                stroke={slice.color.stroke}
+                strokeWidth="11"
+                strokeDasharray={slice.strokeDasharray}
+                strokeDashoffset={slice.strokeDashoffset}
+                strokeLinecap="butt"
+                className="transition-all duration-500"
+              />
+            ))}
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
+            <span className="text-xs font-black text-slate-900 dark:text-white leading-tight font-mono tabular-nums">
+              {formatDisruptionDuration(totalMinutes)}
+            </span>
+            <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+              Total Impact
+            </span>
+          </div>
+        </div>
+
+        {/* Legend / Breakdown list */}
+        <div className="flex-1 w-full flex flex-col gap-2 min-w-0">
+          {slices.map((slice) => (
+            <div key={slice.impactKind} className="flex flex-col gap-0.5 min-w-0">
+              <div className="flex items-center justify-between text-xs gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span
+                    className="w-2 h-2 rounded-sm shrink-0"
+                    style={{ backgroundColor: slice.color.stroke }}
+                    aria-hidden="true"
+                  />
+                  <strong className="font-bold text-slate-800 dark:text-white truncate text-[11px]">
+                    {slice.label}
+                  </strong>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 text-[11px]">
+                  <span className="text-slate-500 dark:text-slate-400 font-mono tabular-nums">
+                    {slice.incidents} {slice.incidents === 1 ? "incident" : "incidents"}
+                  </span>
+                  <span className="font-black text-slate-800 dark:text-white min-w-[36px] text-right font-mono tabular-nums">
+                    {slice.percentage.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="relative w-full h-1 bg-black/10 dark:bg-white/10 overflow-hidden">
+                <div
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${Math.max(0, Math.min(100, slice.percentage))}%`,
+                    backgroundColor: slice.color.stroke,
+                  }}
+                />
+              </div>
+
+              <p className="text-[10px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {formatDisruptionDuration(slice.observedDisruptionMinutes, { showMultiResolution: true })}
+                </span>
+                <span> observed disruption</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
@@ -166,7 +381,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
               <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{details.label}</strong>
             </div>
           </div>
-          <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">{item.valueLabel}</strong>
+          <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap font-mono tabular-nums">{item.valueLabel}</strong>
         </div>
         {item.percentage !== null ? (
           <div className="flex flex-col gap-1.5">
@@ -183,7 +398,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
             {item.target != null && (
               <div className="relative h-3 mx-4">
                 <span 
-                  className="absolute text-[9px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap"
+                  className="absolute text-[9px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono tabular-nums"
                   style={{ left: `${item.target}%`, transform: 'translateX(-50%)' }}
                 >
                   Target: {item.target}%
@@ -234,15 +449,12 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-[15px] font-black text-slate-900 dark:text-white">
-                Observed disruptions · 30 days
+                Observed Disruptions · Rolling 30 Days
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Source: {reliability.source}
               </p>
             </div>
-            <span className="rounded-md border border-black/10 dark:border-white/10 px-2 py-1 text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300">
-              {reliability.confidence}
-            </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">{reliability.message}</p>
           {reliability.metrics.length === 0 ? (
@@ -253,28 +465,52 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
           ) : reliability.metrics.map((item) => {
             const details = getMetricDetails(item.id, item.label);
             return (
-              <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
-                <div className="flex items-center justify-between gap-3">
+              <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-3 min-w-0">
                   <div className="flex min-w-0 items-center gap-2.5">
                     {details.icon}
                     <strong className="text-sm font-bold text-slate-800 dark:text-white">
                       {networkId === "regional" && item.number ? `${item.number} · ` : ""}{details.label}
                     </strong>
                   </div>
-                  <strong className="whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+                  <strong className="whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 font-mono tabular-nums shrink-0">
                     {item.incidents} {item.incidents === 1 ? "incident" : "incidents"}
                   </strong>
                 </div>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  {item.medianDurationMinutes == null
-                    ? "No completed incident duration yet"
-                    : `Median ${item.medianDurationMinutes} min`}
-                  {" · "}{item.observedDisruptionMinutes} observed disruption min
-                  {item.activeIncidents > 0 ? ` · ${item.activeIncidents} active` : ""}
+                <p
+                  className="text-xs sm:text-[13px] font-mono tabular-nums leading-relaxed flex flex-wrap items-center gap-x-1.5 gap-y-0.5"
+                  title={`${item.observedDisruptionMinutes.toLocaleString()} total observed disruption minutes`}
+                >
+                  {item.medianDurationMinutes == null ? (
+                    <span className="text-slate-500 dark:text-slate-400 font-normal">No completed incident duration yet</span>
+                  ) : (
+                    <span>
+                      <span className="text-slate-500 dark:text-slate-400 font-normal">Median </span>
+                      <span className="font-bold text-slate-900 dark:text-white">{formatDisruptionDuration(item.medianDurationMinutes, { showMultiResolution: true })}</span>
+                    </span>
+                  )}
+
+                  <span className="text-slate-400 dark:text-slate-600 font-normal" aria-hidden="true">·</span>
+
+                  <span>
+                    <span className="font-bold text-slate-900 dark:text-white">{formatDisruptionDuration(item.observedDisruptionMinutes, { showMultiResolution: true })}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-normal"> observed disruption</span>
+                  </span>
+
+                  {item.activeIncidents > 0 && (
+                    <>
+                      <span className="text-slate-400 dark:text-slate-600 font-normal" aria-hidden="true">·</span>
+                      <span className="font-bold text-amber-600 dark:text-amber-400">
+                        {item.activeIncidents} active
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
             );
           })}
+
+          <AlertTypeBreakdownChart breakdown={reliability.breakdown} networkId={networkId} />
         </div>
 
         {networkId === "ttc" && <hr className="border-black/10 dark:border-white/10 my-2" />}

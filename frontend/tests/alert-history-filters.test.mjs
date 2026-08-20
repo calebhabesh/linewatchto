@@ -2,8 +2,24 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   ALL_LINES_VALUE,
+  ALL_TYPES_VALUE,
+  SORT_ACTIVE_FIRST,
+  SORT_ALERT_TYPE,
+  SORT_CAUSE_AZ,
+  SORT_CLEARED_FIRST,
+  SORT_LEAST_UPDATES,
+  SORT_LINE,
+  SORT_LOCATION_AZ,
+  SORT_LOCATION_ZA,
+  SORT_LONGEST_DURATION,
+  SORT_MOST_RECENT,
+  SORT_MOST_UPDATES,
+  SORT_OLDEST,
+  SORT_SHORTEST_DURATION,
   buildAlertHistoryLineOptions,
+  buildAlertHistorySortGroups,
   buildAlertHistorySortOptions,
+  buildAlertHistoryTypeOptions,
   filterAndSortAlertHistory,
   formatAlertTypeName,
   selectDisplayEvent,
@@ -79,11 +95,13 @@ const activeLine5Incident = incident({
   lineId: "line-5",
   lineNumber: "5",
   lineName: "Eglinton",
+  eventType: "reduced-speed-zone",
   title: "Line 5 reduced speed zone",
   location: "Avenue to Mount Pleasant",
   displayDirection: "Eastbound",
   cause: "Track Work",
   status: "active",
+  firstSeenAt: "2026-06-23T12:25:00-04:00",
   events: [
     event({
       id: 3,
@@ -95,6 +113,67 @@ const activeLine5Incident = incident({
       location: "Avenue to Mount Pleasant",
       displayDirection: "Eastbound",
       cause: "Track Work",
+    }),
+  ],
+});
+
+const activeLine1Suspension = incident({
+  alertId: "ttc-route-1-bloor-suspension",
+  lineId: "line-1",
+  lineNumber: "1",
+  lineName: "Yonge-University",
+  eventType: "suspension",
+  title: "Line 1 major suspension",
+  location: "Bloor-Yonge to St Clair",
+  displayDirection: "Both",
+  cause: "Signal Problem",
+  status: "active",
+  firstSeenAt: "2026-06-23T11:00:00-04:00",
+  events: [
+    event({
+      id: 5,
+      state: "opened",
+      label: "Alert opened",
+      happenedAt: "2026-06-23T11:00:00-04:00",
+      title: "Line 1 suspension",
+      location: "Bloor-Yonge to St Clair",
+      cause: "Signal Problem",
+    }),
+    event({
+      id: 6,
+      state: "updated",
+      label: "Alert updated",
+      happenedAt: "2026-06-23T11:30:00-04:00",
+    }),
+    event({
+      id: 7,
+      state: "updated",
+      label: "Alert updated",
+      happenedAt: "2026-06-23T12:00:00-04:00",
+    }),
+  ],
+});
+
+const clearedLine4Incident = incident({
+  alertId: "ttc-route-4-bayview",
+  lineId: "line-4",
+  lineNumber: "4",
+  lineName: "Sheppard",
+  eventType: "delay",
+  title: "Line 4 delay at Bayview",
+  location: "Bayview",
+  displayDirection: "Eastbound",
+  cause: "Door Issue",
+  status: "cleared",
+  firstSeenAt: "2026-06-23T10:00:00-04:00",
+  clearedAt: "2026-06-23T10:05:00-04:00",
+  durationMinutes: 5,
+  events: [
+    event({
+      id: 8,
+      state: "cleared",
+      label: "Service restored",
+      happenedAt: "2026-06-23T10:05:00-04:00",
     }),
   ],
 });
@@ -165,6 +244,21 @@ describe("alert history filtering", () => {
     );
   });
 
+  it("filters by selected alert type", () => {
+    const visible = filterAndSortAlertHistory(
+      [activeLine5Incident, clearedLine2Incident, activeLine1Suspension],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        typeId: "reduced-speed-zone",
+        searchQuery: "",
+      },
+    );
+
+    assert.equal(visible.length, 1);
+    assert.equal(visible[0].incident.alertId, "ttc-route-5-avenue");
+  });
+
   it("builds line selector options in TTC line order with unknown lines last", () => {
     const options = buildAlertHistoryLineOptions([
       activeLine5Incident,
@@ -178,7 +272,33 @@ describe("alert history filtering", () => {
     );
   });
 
-  it("builds sort options starting with Most Recent followed by canonical alert type names", () => {
+  it("builds type selector options starting with All Types and canonical types", () => {
+    const options = buildAlertHistoryTypeOptions([
+      activeLine5Incident,
+      clearedLine2Incident,
+    ]);
+
+    assert.equal(options[0].value, ALL_TYPES_VALUE);
+    assert.equal(options[0].label, "All Types");
+    assert.ok(options.some((o) => o.value === "suspension" && o.label === "Active Alert"));
+    assert.ok(options.some((o) => o.value === "delay" && o.label === "Delay"));
+    assert.ok(options.some((o) => o.value === "reduced-speed-zone" && o.label === "Reduced Speed Zone"));
+    assert.ok(options.some((o) => o.value === "planned-closure" && o.label === "Planned Closure"));
+  });
+
+  it("builds categorized sort groups for logical organization", () => {
+    const groups = buildAlertHistorySortGroups();
+    assert.deepEqual(
+      groups.map((g) => g.id),
+      ["timing", "duration", "status", "attributes"],
+    );
+    assert.equal(groups[0].label, "Timing");
+    assert.equal(groups[1].label, "Duration");
+    assert.equal(groups[2].label, "Status & Updates");
+    assert.equal(groups[3].label, "Line & Location");
+  });
+
+  it("builds sort options with rich metrics", () => {
     const options = buildAlertHistorySortOptions([
       activeLine5Incident,
       clearedLine2Incident,
@@ -186,10 +306,18 @@ describe("alert history filtering", () => {
 
     assert.equal(options[0].value, "most-recent");
     assert.equal(options[0].label, "Most Recent");
-    assert.ok(options.some((o) => o.value === "suspension" && o.label === "Active Alert"));
-    assert.ok(options.some((o) => o.value === "delay" && o.label === "Delay"));
-    assert.ok(options.some((o) => o.value === "reduced-speed-zone" && o.label === "Reduced Speed Zone"));
-    assert.ok(options.some((o) => o.value === "planned-closure" && o.label === "Planned Closure"));
+    assert.ok(options.some((o) => o.value === SORT_OLDEST && o.label === "Oldest"));
+    assert.ok(options.some((o) => o.value === SORT_LONGEST_DURATION && o.label === "Longest Duration"));
+    assert.ok(options.some((o) => o.value === SORT_SHORTEST_DURATION && o.label === "Shortest Duration"));
+    assert.ok(options.some((o) => o.value === SORT_ALERT_TYPE && o.label === "Alert Type"));
+    assert.ok(options.some((o) => o.value === SORT_LINE && o.label === "Transit Line"));
+    assert.ok(options.some((o) => o.value === SORT_LOCATION_AZ && o.label === "Location (A → Z)"));
+    assert.ok(options.some((o) => o.value === SORT_LOCATION_ZA && o.label === "Location (Z → A)"));
+    assert.ok(options.some((o) => o.value === SORT_CAUSE_AZ && o.label === "Cause (A → Z)"));
+    assert.ok(options.some((o) => o.value === SORT_MOST_UPDATES && o.label === "Most Updates"));
+    assert.ok(options.some((o) => o.value === SORT_LEAST_UPDATES && o.label === "Least Updates"));
+    assert.ok(options.some((o) => o.value === SORT_ACTIVE_FIRST && o.label === "Active First"));
+    assert.ok(options.some((o) => o.value === SORT_CLEARED_FIRST && o.label === "Cleared First"));
   });
 
   it("formats canonical alert type names consistently", () => {
@@ -200,7 +328,159 @@ describe("alert history filtering", () => {
     assert.equal(formatAlertTypeName("planned-closure"), "Planned Closure");
   });
 
-  it("sorts incidents matching selected alert type to top", () => {
+  it("sorts by longest duration descending", () => {
+    const visible = filterAndSortAlertHistory(
+      [clearedLine4Incident, clearedLine2Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_LONGEST_DURATION,
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-2-warden"); // 15 mins
+    assert.equal(visible[1].incident.alertId, "ttc-route-4-bayview"); // 5 mins
+  });
+
+  it("sorts by shortest duration ascending", () => {
+    const visible = filterAndSortAlertHistory(
+      [clearedLine2Incident, clearedLine4Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_SHORTEST_DURATION,
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-4-bayview"); // 5 mins
+    assert.equal(visible[1].incident.alertId, "ttc-route-2-warden"); // 15 mins
+  });
+
+  it("sorts by oldest first ascending", () => {
+    const visible = filterAndSortAlertHistory(
+      [activeLine5Incident, clearedLine4Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_OLDEST,
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-4-bayview"); // 10:05
+    assert.equal(visible[1].incident.alertId, "ttc-route-5-avenue"); // 12:25
+  });
+
+  it("sorts by alert type rank (suspension -> delay -> rsz)", () => {
+    const visible = filterAndSortAlertHistory(
+      [activeLine5Incident, clearedLine2Incident, activeLine1Suspension],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_ALERT_TYPE,
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-1-bloor-suspension"); // suspension
+    assert.equal(visible[1].incident.alertId, "ttc-route-2-warden"); // delay
+    assert.equal(visible[2].incident.alertId, "ttc-route-5-avenue"); // rsz
+  });
+
+  it("sorts by transit line order (Line 1 -> Line 2 -> Line 4 -> Line 5)", () => {
+    const visible = filterAndSortAlertHistory(
+      [activeLine5Incident, clearedLine4Incident, clearedLine2Incident, activeLine1Suspension],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_LINE,
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-1-bloor-suspension"); // Line 1
+    assert.equal(visible[1].incident.alertId, "ttc-route-2-warden"); // Line 2
+    assert.equal(visible[2].incident.alertId, "ttc-route-4-bayview"); // Line 4
+    assert.equal(visible[3].incident.alertId, "ttc-route-5-avenue"); // Line 5
+  });
+
+  it("sorts by location A-Z", () => {
+    const visible = filterAndSortAlertHistory(
+      [clearedLine2Incident, activeLine5Incident, clearedLine4Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_LOCATION_AZ,
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-5-avenue"); // Avenue to Mount Pleasant
+    assert.equal(visible[1].incident.alertId, "ttc-route-4-bayview"); // Bayview
+    assert.equal(visible[2].incident.alertId, "ttc-route-2-warden"); // Warden
+  });
+
+  it("sorts by cause A-Z", () => {
+    const visible = filterAndSortAlertHistory(
+      [activeLine1Suspension, clearedLine4Incident, clearedLine2Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_CAUSE_AZ,
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-4-bayview"); // Door Issue
+    assert.equal(visible[1].incident.alertId, "ttc-route-2-warden"); // Mechanical Problem
+    assert.equal(visible[2].incident.alertId, "ttc-route-1-bloor-suspension"); // Signal Problem
+  });
+
+  it("sorts by most updates descending", () => {
+    const visible = filterAndSortAlertHistory(
+      [clearedLine4Incident, activeLine1Suspension, clearedLine2Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_MOST_UPDATES,
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-1-bloor-suspension"); // 3 events
+    assert.equal(visible[1].incident.alertId, "ttc-route-2-warden"); // 2 events
+    assert.equal(visible[2].incident.alertId, "ttc-route-4-bayview"); // 1 event
+  });
+
+  it("sorts by active first and cleared first", () => {
+    const activeFirst = filterAndSortAlertHistory(
+      [clearedLine2Incident, activeLine5Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_ACTIVE_FIRST,
+      },
+    );
+    assert.equal(activeFirst[0].incident.alertId, "ttc-route-5-avenue");
+    assert.equal(activeFirst[1].incident.alertId, "ttc-route-2-warden");
+
+    const clearedFirst = filterAndSortAlertHistory(
+      [activeLine5Incident, clearedLine2Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: SORT_CLEARED_FIRST,
+      },
+    );
+    assert.equal(clearedFirst[0].incident.alertId, "ttc-route-2-warden");
+    assert.equal(clearedFirst[1].incident.alertId, "ttc-route-5-avenue");
+  });
+
+  it("sorts incidents matching selected alert type to top for legacy type sorts", () => {
     const visible = filterAndSortAlertHistory(
       [clearedLine2Incident, activeLine5Incident],
       {

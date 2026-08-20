@@ -16,7 +16,8 @@ public final class ReliabilityResponses {
         String confidence,
         String coverageLabel,
         String message,
-        List<ReliabilityMetric> metrics
+        List<ReliabilityMetric> metrics,
+        List<AlertTypeBreakdown> breakdown
     ) {}
 
     public record ReliabilityMetric(
@@ -28,5 +29,13 @@ public final class ReliabilityResponses {
         Long medianDurationMinutes,
         long observedDisruptionMinutes,
         String confidence
+    ) {}
+
+    public record AlertTypeBreakdown(
+        String impactKind,
+        String label,
+        long incidents,
+        long observedDisruptionMinutes,
+        double percentage
     ) {}
 }

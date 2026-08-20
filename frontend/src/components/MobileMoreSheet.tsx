@@ -339,10 +339,10 @@ export function MobileMoreSheet({
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Operations</h3>
           </div>
-          {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
+          <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
             Reliability Analytics
-          </button> : null}
+          </button>
           <div className="mobile-more-health-grid" aria-label="Source Health">
             {ingestionHealth.map((health, index) => (
               <div key={`${health.label}-${index}`}>

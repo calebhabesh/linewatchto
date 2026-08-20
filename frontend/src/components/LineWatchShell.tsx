@@ -3594,7 +3594,7 @@ export function LineWatchShell({
                </div>
 
                {/* Operations */}
-               {selectedNetwork === "ttc" ? <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Operations</span>
@@ -3608,7 +3608,7 @@ export function LineWatchShell({
                  >
                    <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" /> Reliability Analytics
                  </button>
-               </div> : null}
+                </div>
 
                {/* Display */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">

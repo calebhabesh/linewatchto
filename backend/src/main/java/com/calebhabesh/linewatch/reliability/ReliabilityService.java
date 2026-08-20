@@ -56,6 +56,7 @@ public class ReliabilityService {
         List<ReliabilityMetric> metrics = rows.stream()
             .map(row -> metric(networkId, row, confidence))
             .toList();
+        List<ReliabilityResponses.AlertTypeBreakdown> breakdown = breakdown(networkId, since, until);
         String scope = stationId == null ? "line and corridor" : "station";
         String coverage = observedDays == 0 ? "No observed history"
             : observedDays + " of " + PERIOD_DAYS + " days observed";
@@ -66,8 +67,42 @@ public class ReliabilityService {
         return new ReliabilityResponse(
             networkId, "30d", since, until,
             "regional".equals(networkId) ? "Metrolinx alert history" : "LineWatch TTC alert history",
-            observedDays, confidence, coverage, message, metrics
+            observedDays, confidence, coverage, message, metrics, breakdown
         );
+    }
+
+    private List<ReliabilityResponses.AlertTypeBreakdown> breakdown(
+        String networkId, OffsetDateTime since, OffsetDateTime until
+    ) {
+        List<ReliabilityRepository.BreakdownRow> rows = repository.aggregateBreakdown(networkId, since, until);
+        long totalDisruptionMinutes = rows.stream().mapToLong(ReliabilityRepository.BreakdownRow::disruptionMinutes).sum();
+        long totalIncidents = rows.stream().mapToLong(ReliabilityRepository.BreakdownRow::incidents).sum();
+        return rows.stream()
+            .map(row -> {
+                double pct = totalDisruptionMinutes > 0
+                    ? Math.round((row.disruptionMinutes() * 1000.0) / totalDisruptionMinutes) / 10.0
+                    : (totalIncidents > 0 ? Math.round((row.incidents() * 1000.0) / totalIncidents) / 10.0 : 0.0);
+                return new ReliabilityResponses.AlertTypeBreakdown(
+                    row.impactKind(),
+                    formatImpactKindLabel(row.impactKind()),
+                    row.incidents(),
+                    row.disruptionMinutes(),
+                    pct
+                );
+            })
+            .toList();
+    }
+
+    private String formatImpactKindLabel(String impactKind) {
+        if (impactKind == null) return "Service Notices";
+        return switch (impactKind.toLowerCase().replace('_', '-')) {
+            case "delay" -> "Delays";
+            case "reduced-speed-zone", "rsz" -> "Reduced Speed Zones";
+            case "planned-closure", "closure" -> "Planned Closures (Active Window Only)";
+            case "suspension" -> "Active Alerts";
+            case "cancellation" -> "Train Cancellations";
+            default -> "Service Notices";
+        };
     }
 
     private ReliabilityMetric metric(

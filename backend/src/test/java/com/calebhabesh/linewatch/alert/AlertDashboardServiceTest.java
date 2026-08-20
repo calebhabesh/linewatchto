@@ -424,6 +424,7 @@ class AlertDashboardServiceTest {
         ReflectionTestUtils.setField(southbound, "direction", "southbound");
         ReflectionTestUtils.setField(southbound, "impactKind", "reduced-speed-zone");
         ReflectionTestUtils.setField(southbound, "activePeriodStart", OffsetDateTime.parse("2026-06-01T11:40:00Z"));
+        ReflectionTestUtils.setField(southbound, "targetRemoval", "Late June");
         when(alertRepository.findByActiveTrueAndType("active-alert"))
             .thenReturn(List.of(northbound, southbound));
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
@@ -438,8 +439,11 @@ class AlertDashboardServiceTest {
             assertThat(zone.sourceAlertIds())
                 .containsExactlyInAnyOrder("ttc-route-north", "ttc-route-south");
             assertThat(zone.directionalDetails()).hasSize(2);
+            assertThat(zone.directionalDetails())
+                .extracting(AlertDashboardService.DirectionalDetailDto::resolution)
+                .containsExactlyInAnyOrder("Mid-June", "Late June");
             assertThat(zone.cause()).isEqualTo("Track issue");
-            assertThat(zone.resolution()).isEqualTo("Mid-June");
+            assertThat(zone.resolution()).isEqualTo("Multiple Dates");
             assertThat(zone.rszLength()).isEqualTo("300 metres");
             assertThat(zone.averageSpeed()).isEqualTo("35 km/h");
         });

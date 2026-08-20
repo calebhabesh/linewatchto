@@ -609,7 +609,16 @@ export const regionalDashboardData: DashboardData = {
     confidence: "low",
     coverageLabel: "No observed history",
     message: "Regional reliability history will appear after alert lifecycle observations accumulate.",
-    metrics: [],
+    metrics: REGIONAL_ROUTE_DEFINITIONS.map((route) => ({
+      id: route.id,
+      number: route.number,
+      label: route.name,
+      incidents: 0,
+      activeIncidents: 0,
+      medianDurationMinutes: null,
+      observedDisruptionMinutes: 0,
+      confidence: "low" as const,
+    })),
   },
   ttcPerformance: {
     status: "disabled",

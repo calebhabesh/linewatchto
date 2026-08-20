@@ -1,7 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, Clock3, Construction, Loader2, Search } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  Check,
+  ChevronDown,
+  Clock3,
+  Construction,
+  History,
+  Layers,
+  Loader2,
+  MapPin,
+  Search,
+  Train,
+  Wrench,
+} from "lucide-react";
 import {
   getAlertHistory,
   type AlertHistoryIncident,
@@ -16,12 +32,28 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import {
   ALL_LINES_VALUE,
+  ALL_TYPES_VALUE,
+  MOST_RECENT_SORT_VALUE,
+  SORT_ACTIVE_FIRST,
+  SORT_ALERT_TYPE,
+  SORT_CAUSE_AZ,
+  SORT_CLEARED_FIRST,
+  SORT_LEAST_UPDATES,
+  SORT_LINE,
+  SORT_LOCATION_AZ,
+  SORT_LOCATION_ZA,
+  SORT_LONGEST_DURATION,
+  SORT_MOST_RECENT,
+  SORT_MOST_UPDATES,
+  SORT_OLDEST,
+  SORT_SHORTEST_DURATION,
   buildAlertHistoryLineOptions,
+  buildAlertHistorySortGroups,
   buildAlertHistorySortOptions,
+  buildAlertHistoryTypeOptions,
   filterAndSortAlertHistory,
   formatAlertTypeName,
   normalizeEventTypeKey,
-  MOST_RECENT_SORT_VALUE,
   type AlertHistoryLifecycleFilter,
   type AlertHistoryViewItem,
 } from "./alert-history-filters";
@@ -38,24 +70,75 @@ const FILTERS: Array<{ value: AlertHistoryLifecycleFilter; label: string }> = [
   { value: "clearances", label: "Clearances" },
 ];
 
-function renderSortOptionIcon(value: string) {
-  if (value === MOST_RECENT_SORT_VALUE) {
-    return <Clock3 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />;
+function renderTypeOptionIcon(value: string) {
+  if (value === ALL_TYPES_VALUE) {
+    return <Layers size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
   }
   const key = normalizeEventTypeKey(value);
   if (key === "suspension") {
-    return <AlertTriangle size={14} className="text-red-500 shrink-0" aria-hidden="true" />;
+    return <AlertTriangle size={13} className="text-red-500 shrink-0" aria-hidden="true" />;
   }
   if (key === "delay") {
-    return <DelayIcon size={14} className="text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true" />;
+    return <DelayIcon size={13} className="text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true" />;
   }
   if (key === "reduced-speed-zone") {
-    return <Construction size={14} className="rsz-tone shrink-0" aria-hidden="true" />;
+    return <Construction size={13} className="rsz-tone shrink-0" aria-hidden="true" />;
   }
   if (key === "planned-closure") {
-    return <PlannedClosureIcon size={14} className="text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />;
+    return <PlannedClosureIcon size={13} className="text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />;
   }
-  return <AlertTriangle size={14} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  return <AlertTriangle size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+}
+
+function renderSortOptionIcon(value: string) {
+  if (value === SORT_MOST_RECENT || value === MOST_RECENT_SORT_VALUE) {
+    return <Clock3 size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_OLDEST) {
+    return <History size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_LONGEST_DURATION) {
+    return <ArrowDownWideNarrow size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_SHORTEST_DURATION) {
+    return <ArrowUpNarrowWide size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_ALERT_TYPE) {
+    return <AlertTriangle size={13} className="text-amber-500 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_LINE) {
+    return <Train size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_LOCATION_AZ || value === SORT_LOCATION_ZA) {
+    return <MapPin size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_CAUSE_AZ) {
+    return <Wrench size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_MOST_UPDATES || value === SORT_LEAST_UPDATES) {
+    return <Activity size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_ACTIVE_FIRST) {
+    return <AlertTriangle size={13} className="text-red-500 shrink-0" aria-hidden="true" />;
+  }
+  if (value === SORT_CLEARED_FIRST) {
+    return <Check size={13} className="text-emerald-500 shrink-0" aria-hidden="true" />;
+  }
+
+  const key = normalizeEventTypeKey(value);
+  if (key === "suspension") {
+    return <AlertTriangle size={13} className="text-red-500 shrink-0" aria-hidden="true" />;
+  }
+  if (key === "delay") {
+    return <DelayIcon size={13} className="text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true" />;
+  }
+  if (key === "reduced-speed-zone") {
+    return <Construction size={13} className="rsz-tone shrink-0" aria-hidden="true" />;
+  }
+  if (key === "planned-closure") {
+    return <PlannedClosureIcon size={13} className="text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />;
+  }
+  return <AlertTriangle size={13} className="text-slate-400 shrink-0" aria-hidden="true" />;
 }
 
 export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
@@ -63,12 +146,15 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   const [filter, setFilter] = useState<AlertHistoryLifecycleFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLineId, setSelectedLineId] = useState(ALL_LINES_VALUE);
+  const [selectedTypeId, setSelectedTypeId] = useState(ALL_TYPES_VALUE);
   const [selectedSortBy, setSelectedSortBy] = useState(MOST_RECENT_SORT_VALUE);
   const [isLineDropdownOpen, setIsLineDropdownOpen] = useState(false);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [history, setHistory] = useState<AlertHistoryIncident[]>([]);
   const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
   const lineDropdownRef = useRef<HTMLDivElement>(null);
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on click outside
@@ -77,6 +163,9 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
       const target = event.target as Node;
       if (lineDropdownRef.current && !lineDropdownRef.current.contains(target)) {
         setIsLineDropdownOpen(false);
+      }
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(target)) {
+        setIsTypeDropdownOpen(false);
       }
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(target)) {
         setIsSortDropdownOpen(false);
@@ -110,22 +199,33 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
       ? { ...option, label: "All Corridors" }
       : option
   )), [history, network]);
+  const typeOptions = useMemo(() => buildAlertHistoryTypeOptions(history), [history]);
+  const sortGroups = useMemo(() => buildAlertHistorySortGroups(history), [history]);
   const sortOptions = useMemo(() => buildAlertHistorySortOptions(history), [history]);
 
   if (selectedLineId !== ALL_LINES_VALUE && !lineOptions.some((option) => option.value === selectedLineId)) {
     setSelectedLineId(ALL_LINES_VALUE);
   }
 
+  if (selectedTypeId !== ALL_TYPES_VALUE && !typeOptions.some((option) => option.value === selectedTypeId)) {
+    setSelectedTypeId(ALL_TYPES_VALUE);
+  }
+
   const visibleItems = useMemo(() => filterAndSortAlertHistory(history, {
     lifecycleFilter: filter,
     lineId: selectedLineId,
+    typeId: selectedTypeId,
     searchQuery,
     sortBy: selectedSortBy,
-  }), [filter, history, searchQuery, selectedLineId, selectedSortBy]);
+  }), [filter, history, searchQuery, selectedLineId, selectedTypeId, selectedSortBy]);
 
   const selectedLineOption = useMemo(() => {
     return lineOptions.find((o) => o.value === selectedLineId);
   }, [lineOptions, selectedLineId]);
+
+  const selectedTypeOption = useMemo(() => {
+    return typeOptions.find((o) => o.value === selectedTypeId) ?? typeOptions[0];
+  }, [typeOptions, selectedTypeId]);
 
   const selectedSortOption = useMemo(() => {
     return sortOptions.find((o) => o.value === selectedSortBy) ?? sortOptions[0];
@@ -179,27 +279,29 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
             />
           </label>
           <div className="alert-history-selects-row">
+            {/* Line / Corridor Selector */}
             <div className="alert-history-line-filter relative" ref={lineDropdownRef}>
-              <span className="alert-history-control-prefix">{network === "regional" ? "Corridor" : "Line"}</span>
+              <span className="alert-history-control-prefix">{network === "regional" ? "Corr" : "Line"}</span>
               <button
                 type="button"
                 className="alert-history-line-filter-trigger"
                 onClick={() => {
                   setIsLineDropdownOpen((prev) => !prev);
+                  setIsTypeDropdownOpen(false);
                   setIsSortDropdownOpen(false);
                 }}
                 aria-label="Transit line"
                 aria-expanded={isLineDropdownOpen}
               >
                 {selectedLineOption?.lineNumber && selectedLineOption?.lineId ? (
-                  <span className="flex items-center gap-2 min-w-0">
-                    <TransitLineBadge lineId={selectedLineOption.lineId} lineNumber={selectedLineOption.lineNumber} size={24} className="shrink-0" />
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <TransitLineBadge lineId={selectedLineOption.lineId} lineNumber={selectedLineOption.lineNumber} size={20} className="shrink-0" />
                     {selectedLineOption.lineName && <span className="truncate">{selectedLineOption.lineName}</span>}
                   </span>
                 ) : (
-                  <span className="truncate">{selectedLineOption?.label ?? "All Lines"}</span>
+                  <span className="truncate">{selectedLineOption?.label ?? (network === "regional" ? "All Corridors" : "All Lines")}</span>
                 )}
-                <ChevronDown size={14} className="shrink-0 ml-1" aria-hidden="true" />
+                <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
               </button>
               {isLineDropdownOpen && (
                 <ul className="alert-history-line-filter-options">
@@ -219,7 +321,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                       >
                         {option.lineNumber && option.lineId ? (
                           <span className="flex items-center gap-2 min-w-0">
-                            <TransitLineBadge lineId={option.lineId} lineNumber={option.lineNumber} size={24} className="shrink-0" />
+                            <TransitLineBadge lineId={option.lineId} lineNumber={option.lineNumber} size={22} className="shrink-0" />
                             {option.lineName && <span className="truncate">{option.lineName}</span>}
                           </span>
                         ) : (
@@ -232,6 +334,54 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
               )}
             </div>
 
+            {/* Alert Type Selector */}
+            <div className="alert-history-line-filter relative" ref={typeDropdownRef}>
+              <span className="alert-history-control-prefix">Type</span>
+              <button
+                type="button"
+                className="alert-history-line-filter-trigger"
+                onClick={() => {
+                  setIsTypeDropdownOpen((prev) => !prev);
+                  setIsLineDropdownOpen(false);
+                  setIsSortDropdownOpen(false);
+                }}
+                aria-label="Alert type"
+                aria-expanded={isTypeDropdownOpen}
+              >
+                <span className="flex items-center gap-1.5 min-w-0">
+                  {renderTypeOptionIcon(selectedTypeOption.value)}
+                  <span className="truncate">{selectedTypeOption.label}</span>
+                </span>
+                <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
+              </button>
+              {isTypeDropdownOpen && (
+                <ul className="alert-history-line-filter-options">
+                  {typeOptions.map((option) => (
+                    <li key={option.value}>
+                      <button
+                        type="button"
+                        className={`alert-history-line-filter-option ${selectedTypeId === option.value ? "selected" : ""}`}
+                        onClick={() => {
+                          if (selectedTypeId === option.value) {
+                            setSelectedTypeId(ALL_TYPES_VALUE);
+                          } else {
+                            setSelectedTypeId(option.value);
+                          }
+                          setIsTypeDropdownOpen(false);
+                        }}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          {renderTypeOptionIcon(option.value)}
+                          <span className="truncate">{option.label}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Sort Selector */}
             <div className="alert-history-line-filter relative" ref={sortDropdownRef}>
               <span className="alert-history-control-prefix">Sort</span>
               <button
@@ -240,6 +390,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                 onClick={() => {
                   setIsSortDropdownOpen((prev) => !prev);
                   setIsLineDropdownOpen(false);
+                  setIsTypeDropdownOpen(false);
                 }}
                 aria-label="Sort alert history"
                 aria-expanded={isSortDropdownOpen}
@@ -248,28 +399,36 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                   {renderSortOptionIcon(selectedSortOption.value)}
                   <span className="truncate">{selectedSortOption.label}</span>
                 </span>
-                <ChevronDown size={14} className="shrink-0 ml-1" aria-hidden="true" />
+                <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
               </button>
               {isSortDropdownOpen && (
-                <ul className="alert-history-line-filter-options">
-                  {sortOptions.map((option) => (
-                    <li key={option.value}>
-                      <button
-                        type="button"
-                        className={`alert-history-line-filter-option ${selectedSortBy === option.value ? "selected" : ""}`}
-                        onClick={() => {
-                          setSelectedSortBy(option.value);
-                          setIsSortDropdownOpen(false);
-                        }}
-                      >
-                        <span className="flex items-center gap-2 min-w-0">
-                          {renderSortOptionIcon(option.value)}
-                          <span className="truncate">{option.label}</span>
-                        </span>
-                      </button>
-                    </li>
+                <div className="alert-history-line-filter-options align-right">
+                  {sortGroups.map((group, groupIdx) => (
+                    <div key={group.id} className="alert-history-sort-group">
+                      {groupIdx > 0 && <div className="alert-history-sort-group-divider" aria-hidden="true" />}
+                      <div className="alert-history-sort-group-header">{group.label}</div>
+                      <ul className="alert-history-sort-group-list">
+                        {group.options.map((option) => (
+                          <li key={option.value}>
+                            <button
+                              type="button"
+                              className={`alert-history-line-filter-option ${selectedSortBy === option.value ? "selected" : ""}`}
+                              onClick={() => {
+                                setSelectedSortBy(option.value);
+                                setIsSortDropdownOpen(false);
+                              }}
+                            >
+                              <span className="flex items-center gap-2 min-w-0">
+                                {renderSortOptionIcon(option.value)}
+                                <span className="truncate">{option.label}</span>
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
           </div>

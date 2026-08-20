@@ -26,6 +26,12 @@ class ReliabilityServiceTest {
         )).thenReturn(List.of(new ReliabilityRepository.AggregateRow(
             "line-1", "1", "Yonge-University", 8, 1, 24L, 310L
         )));
+        when(repository.aggregateBreakdown(
+            Mockito.eq("ttc"), Mockito.any(OffsetDateTime.class), Mockito.any(OffsetDateTime.class)
+        )).thenReturn(List.of(
+            new ReliabilityRepository.BreakdownRow("delay", 6, 120L),
+            new ReliabilityRepository.BreakdownRow("reduced_speed_zone", 2, 190L)
+        ));
 
         ReliabilityResponses.ReliabilityResponse response = service.lines("ttc");
 
@@ -33,6 +39,9 @@ class ReliabilityServiceTest {
         assertThat(response.confidence()).isEqualTo("high");
         assertThat(response.metrics().getFirst().incidents()).isEqualTo(8);
         assertThat(response.metrics().getFirst().medianDurationMinutes()).isEqualTo(24);
+        assertThat(response.breakdown()).hasSize(2);
+        assertThat(response.breakdown().getFirst().label()).isEqualTo("Delays");
+        assertThat(response.breakdown().getFirst().percentage()).isEqualTo(38.7);
     }
 
     @Test
@@ -44,6 +53,11 @@ class ReliabilityServiceTest {
         )).thenReturn(List.of(new ReliabilityRepository.AggregateRow(
             "regional-le", "", "", 2, 0, 18L, 36L
         )));
+        when(repository.aggregateBreakdown(
+            Mockito.eq("regional"), Mockito.any(OffsetDateTime.class), Mockito.any(OffsetDateTime.class)
+        )).thenReturn(List.of(
+            new ReliabilityRepository.BreakdownRow("delay", 2, 36L)
+        ));
 
         ReliabilityResponses.ReliabilityResponse response = service.lines("regional");
 
@@ -54,5 +68,6 @@ class ReliabilityServiceTest {
             assertThat(metric.incidents()).isEqualTo(2);
         });
         assertThat(response.metrics()).hasSize(8);
+        assertThat(response.breakdown()).hasSize(1);
     }
 }

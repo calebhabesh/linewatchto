@@ -37,6 +37,7 @@ export type DirectionalDetail = {
   displayDirection: string;
   location: string;
   description: string;
+  resolution?: string | null;
 };
 
 export type ReducedSpeedZone = {
@@ -242,6 +243,14 @@ export type ReliabilitySummary = {
   medianDuration: string;
 };
 
+export type AlertTypeBreakdownItem = {
+  impactKind: string;
+  label: string;
+  incidents: number;
+  observedDisruptionMinutes: number;
+  percentage: number;
+};
+
 export type ReliabilitySnapshot = {
   networkId: "ttc" | "regional";
   period: "30d";
@@ -262,6 +271,7 @@ export type ReliabilitySnapshot = {
     observedDisruptionMinutes: number;
     confidence: "low" | "medium" | "high";
   }[];
+  breakdown?: AlertTypeBreakdownItem[];
 };
 
 export type IngestionHealthItem = {
@@ -487,6 +497,11 @@ export const reliabilitySnapshot: ReliabilitySnapshot = {
     observedDisruptionMinutes: item.incidents7d * Number.parseInt(item.medianDuration, 10),
     confidence: "high",
   })),
+  breakdown: [
+    { impactKind: "delay", label: "Delays", incidents: 28, observedDisruptionMinutes: 340, percentage: 56.7 },
+    { impactKind: "reduced-speed-zone", label: "Reduced Speed Zones", incidents: 12, observedDisruptionMinutes: 180, percentage: 30.0 },
+    { impactKind: "planned-closure", label: "Planned Closures (Active Window Only)", incidents: 3, observedDisruptionMinutes: 80, percentage: 13.3 },
+  ],
 };
 
 export const ingestionHealth: IngestionHealthItem[] = [

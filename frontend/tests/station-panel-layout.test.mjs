@@ -41,8 +41,7 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /<Train size=\{20\}/);
     assert.doesNotMatch(panelSource, /<Clock3 size=\{20\}/);
     assert.match(panelSource, /data-arrivals-subway-closed=\{subwayClosed \? "true" : undefined\}/);
-    assert.match(panelSource, /Schedule May Be Disrupted/);
-    assert.doesNotMatch(panelSource, /station\.arrivalContext\.reason/);
+    assert.match(panelSource, /<AlertCircle[^>]*animate-terminating-blink[^>]*\/>[\s\S]*Schedule May Be Disrupted/);
     assert.match(panelSource, /data-arrivals-disrupted/);
     assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
     assert.match(panelSource, /href=\{`#station-impact-\$\{impact\.id\}`\}/);

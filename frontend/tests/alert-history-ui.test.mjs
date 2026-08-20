@@ -149,12 +149,15 @@ describe("alert history timeline UI", () => {
     assert.doesNotMatch(cssSource, /\.alert-history-route-arrow/);
   });
 
-  it("renders search, transit line, and sort by alert type selector controls on two lines", () => {
+  it("renders search, transit line, alert type, and sort selector controls on two lines", () => {
     assert.match(timelineSource, /Search alert history/);
     assert.match(timelineSource, /Transit line/);
+    assert.match(timelineSource, /Alert type/);
     assert.match(timelineSource, /Sort alert history/);
     assert.match(timelineSource, /Search\s+size=\{14\}/);
     assert.match(timelineSource, /buildAlertHistoryLineOptions/);
+    assert.match(timelineSource, /buildAlertHistoryTypeOptions/);
+    assert.match(timelineSource, /buildAlertHistorySortGroups/);
     assert.match(timelineSource, /buildAlertHistorySortOptions/);
     assert.match(timelineSource, /filterAndSortAlertHistory/);
     assert.match(cssSource, /\.alert-history-search-row/);
@@ -164,6 +167,7 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-line-filter-trigger/);
     assert.match(cssSource, /\.alert-history-line-filter-options/);
     assert.match(cssSource, /\.alert-history-line-filter-option/);
+    assert.match(cssSource, /\.alert-history-sort-group-header/);
   });
 
   it("uses event-aware lifecycle filtering instead of incident-only filtering", () => {

@@ -8,8 +8,15 @@ describe("official TTC performance panel source", () => {
   it("renders coverage-labeled observed disruption history without an invented score", () => {
     assert.match(source, /reliability\.coverageLabel/);
     assert.match(source, /reliability\.confidence/);
-    assert.match(source, /Observed disruptions · 30 days/);
-    assert.match(source, /observed disruption min/);
+    assert.match(source, /Observed Disruptions · Rolling 30 Days/);
+    assert.match(source, /formatDisruptionDuration/);
+    assert.match(source, /Share by Alert Type/);
+    assert.match(source, /During Subway Operating Hours/);
+    assert.match(source, /Planned Closures \(Active Window Only\)/);
+    assert.match(source, /#FEEC41/);
+    assert.match(source, /strokeLinecap="butt"/);
+    assert.match(source, /dark:text-white/);
+    assert.match(source, /AlertTypeBreakdownChart/);
     assert.doesNotMatch(source, /Reliability score/);
   });
 
@@ -20,5 +27,19 @@ describe("official TTC performance panel source", () => {
     assert.doesNotMatch(source, /Reliability Analytics \(7-Day\)/);
     assert.doesNotMatch(source, /incidents7d/);
     assert.doesNotMatch(source, /median delay/);
+  });
+
+  it("supports regional corridors with TransitLineBadge and operating hours label", () => {
+    assert.match(source, /TransitLineBadge/);
+    assert.match(source, /id\.startsWith\("regional-"\)/);
+    assert.match(source, /During Operating Hours/);
+  });
+
+  it("keeps Reliability Analytics accessible in both TTC and GO/UP modes", () => {
+    const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+
+    assert.doesNotMatch(shellSource, /selectedNetwork === "ttc" \? [^>]*Reliability Analytics/);
+    assert.doesNotMatch(moreSheetSource, /currentNetwork === "ttc" \? [^>]*Reliability Analytics/);
   });
 });

@@ -41,7 +41,7 @@ export function countReducedSpeedZones(zones: ReducedSpeedZone[]): number {
   return sourceAlertIds.size + groupsWithoutSourceIds;
 }
 
-function normalizedDirection(value: string): ReducedSpeedZoneDirection {
+export function normalizeReducedSpeedZoneDirection(value: string): ReducedSpeedZoneDirection {
   const direction = value.trim().toLowerCase();
   const hasNorthbound = direction.includes("northbound");
   const hasSouthbound = direction.includes("southbound");
@@ -68,7 +68,7 @@ export function countReducedSpeedZonesByDirection(
   for (const detail of zone.directionalDetails ?? []) {
     const sourceAlertId = detail.sourceAlertId.trim();
     if (!sourceAlertId) continue;
-    const direction = normalizedDirection(detail.displayDirection);
+    const direction = normalizeReducedSpeedZoneDirection(detail.displayDirection);
     const existing = sourceDirections.get(sourceAlertId);
     const destination = detail.location.split(/\s+to\s+/i, 2)[1]?.trim() || null;
     sourceDirections.set(
@@ -87,7 +87,7 @@ export function countReducedSpeedZonesByDirection(
   }
 
   if (sourceDirections.size === 0) {
-    return [{ direction: normalizedDirection(zone.displayDirection), count: 1, destination: null }];
+    return [{ direction: normalizeReducedSpeedZoneDirection(zone.displayDirection), count: 1, destination: null }];
   }
 
   const counts = new Map<ReducedSpeedZoneDirection, { count: number; destinations: Set<string> }>();

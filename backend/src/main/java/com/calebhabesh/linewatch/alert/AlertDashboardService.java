@@ -1063,7 +1063,12 @@ public class AlertDashboardService {
                     detail.sourceAlertId(),
                     detail.displayDirection(),
                     detail.location(),
-                    detail.description()
+                    detail.description(),
+                    zone.sourceAlerts().stream()
+                        .filter(alert -> alert.getId().equals(detail.sourceAlertId()))
+                        .findFirst()
+                        .map(this::resolution)
+                        .orElse(null)
                 ))
                 .toList(),
             sourceLabel(first, "TTC Live Alerts"),
@@ -1525,7 +1530,8 @@ public class AlertDashboardService {
         String sourceAlertId,
         String displayDirection,
         String location,
-        String description
+        String description,
+        String resolution
     ) {}
 
     public record ReducedSpeedZoneDto(

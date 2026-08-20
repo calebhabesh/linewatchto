@@ -195,13 +195,15 @@ class LineSubscriptionPushPlannerTest {
                     "rsz-north",
                     "Northbound",
                     "Eglinton to Davisville",
-                    "Northbound trains are moving slowly."
+                    "Northbound trains are moving slowly.",
+                    null
                 ),
                 new AlertDashboardService.DirectionalDetailDto(
                     "rsz-south",
                     "Southbound",
                     "St Clair to Summerhill",
-                    "Southbound trains are moving slowly."
+                    "Southbound trains are moving slowly.",
+                    null
                 )
             ),
             "TTC Live Alerts",

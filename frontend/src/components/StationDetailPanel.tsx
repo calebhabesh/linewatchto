@@ -835,7 +835,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 {arrivalsDisrupted && station.arrivalContext && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs font-semibold dark:border-amber-500/30 dark:bg-amber-500/10">
                     <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
-                      <AlertCircle size={15} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                      <AlertCircle size={15} className="animate-terminating-blink shrink-0 text-amber-600 dark:text-amber-400" />
                       <span>Schedule May Be Disrupted:</span>
                     </div>
                     {distinctImpacts.length > 0 && (

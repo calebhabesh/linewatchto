@@ -42,6 +42,53 @@ function DirectionCountArrow({
   return <span aria-hidden="true">?</span>;
 }
 
+export function ReducedSpeedZoneDirectionArrow({
+  direction,
+  lineId,
+}: {
+  direction: ReducedSpeedZoneDirection;
+  lineId: string;
+}) {
+  return (
+    <span
+      className="rsz-direction-arrow"
+      style={{
+        color: LINE_DIRECTION_COLORS[lineId] ?? "#F59E0B",
+        display: "inline-flex",
+        alignItems: "center",
+      }}
+      aria-hidden="true"
+    >
+      <DirectionCountArrow direction={direction} verticalLine={lineId === "line-1"} />
+    </span>
+  );
+}
+
+export function ReducedSpeedZoneDirectionTextArrow({
+  direction,
+  lineId,
+}: {
+  direction: ReducedSpeedZoneDirection;
+  lineId: string;
+}) {
+  const verticalLine = lineId === "line-1";
+  const glyph = direction === "northbound" ? "↑"
+    : direction === "southbound" ? "↓"
+      : direction === "eastbound" ? "→"
+        : direction === "westbound" ? "←"
+          : direction === "bidirectional" ? (verticalLine ? "↕" : "↔")
+            : "?";
+
+  return (
+    <span
+      style={{ color: LINE_DIRECTION_COLORS[lineId] ?? "#F59E0B", fontWeight: 900 }}
+      aria-hidden="true"
+    >
+      {glyph}
+    </span>
+  );
+}
+
 export function DirectionalZoneCount({ zone }: { zone: ReducedSpeedZone }) {
   const directionCounts = countReducedSpeedZonesByDirection(zone);
   const verticalLine = zone.lineId === "line-1";
@@ -51,7 +98,6 @@ export function DirectionalZoneCount({ zone }: { zone: ReducedSpeedZone }) {
   const sortedCounts = [...directionCounts].sort(
     (left, right) => directionOrder.indexOf(left.direction) - directionOrder.indexOf(right.direction),
   );
-  const arrowColor = LINE_DIRECTION_COLORS[zone.lineId] ?? "#F59E0B";
 
   return (
     <span
@@ -70,9 +116,7 @@ export function DirectionalZoneCount({ zone }: { zone: ReducedSpeedZone }) {
             title={`${label}: ${count} ${count === 1 ? "zone" : "zones"}${destinationLabel}`}
             style={{ display: "inline-flex", flexDirection: "row", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}
           >
-            <span style={{ color: arrowColor, display: "inline-flex", alignItems: "center" }}>
-              <DirectionCountArrow direction={direction} verticalLine={verticalLine} />
-            </span>
+            <ReducedSpeedZoneDirectionArrow direction={direction} lineId={zone.lineId} />
             <strong aria-hidden="true">{count}</strong>
             <span
               className="rsz-zone-direction-label"
