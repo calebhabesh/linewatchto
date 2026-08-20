@@ -11582,11 +11582,11 @@ img.transit-line-badge {
     cursor: grab;
     display: flex;
     justify-content: center;
-    margin-top: -6px;
-    min-height: 36px;
+    margin-top: -4px;
+    min-height: 24px;
     outline: none;
-    padding-bottom: 10px;
-    padding-top: 6px;
+    padding-bottom: 8px;
+    padding-top: 4px;
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
@@ -11626,9 +11626,9 @@ img.transit-line-badge {
   background: rgba(148, 163, 184, 0.55);
   border-radius: 9999px;
   display: flex;
-  height: 8px;
+  height: 9px;
   justify-content: center;
-  width: 56px;
+  width: 60px;
 }
 
 .dark .station-sheet-drag-pill {
@@ -11647,15 +11647,15 @@ img.transit-line-badge {
 }
 
 .station-sheet-drag-ridges span {
-  background: rgba(71, 85, 105, 0.8);
+  background: rgba(71, 85, 105, 0.4);
   border-radius: 9999px;
   display: block;
-  height: 4.5px;
+  height: 5px;
   width: 2px;
 }
 
 .dark .station-sheet-drag-ridges span {
-  background: rgba(241, 245, 249, 0.7);
+  background: rgba(241, 245, 249, 0.4);
 }
 
 .high-contrast .station-sheet-drag-ridges span {
