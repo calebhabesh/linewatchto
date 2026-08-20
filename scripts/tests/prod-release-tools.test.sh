@@ -324,7 +324,17 @@ EOF
 
   assert_contains "$(cat "$log")" "--env-file $prod_env"
   assert_contains "$(cat "$log")" "--env-file $release_env"
+  assert_contains "$(cat "$log")" "--project-name linewatch-to"
   assert_contains "$(cat "$log")" "docker-compose.prod.yml ps"
+
+  FAKE_DOCKER_LOG="$log" \
+  DOCKER_BIN="$fake_docker" \
+  LINEWATCH_PROD_ENV_FILE="$prod_env" \
+  LINEWATCH_RELEASE_ENV_FILE="$release_env" \
+  LINEWATCH_PROD_COMPOSE_PROJECT=linewatch-override \
+    "$ROOT_DIR/scripts/prod-compose.sh" ps
+
+  assert_contains "$(cat "$log")" "--project-name linewatch-override"
 }
 
 make_fake_deploy_docker() {

@@ -149,6 +149,7 @@ linewatch_compose() {
   local prod_env
   local release_env
   local compose_file
+  local compose_project="${LINEWATCH_PROD_COMPOSE_PROJECT:-linewatch-to}"
   local docker_bin="${DOCKER_BIN:-docker}"
 
   if [[ -z "$root_dir" ]]; then
@@ -171,6 +172,7 @@ linewatch_compose() {
 
   LINEWATCH_PROD_ENV_FILE="$prod_env" \
     "$docker_bin" compose \
+      --project-name "$compose_project" \
       --env-file "$prod_env" \
       --env-file "$release_env" \
       -f "$compose_file" \
