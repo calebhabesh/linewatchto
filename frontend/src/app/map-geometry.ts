@@ -768,11 +768,24 @@ export function readSvgStationCenters(
   return centers;
 }
 
+export interface StationLabelPolygonPadding {
+  leading?: number;
+  trailing?: number;
+  top?: number;
+  bottom?: number;
+  x?: number;
+  y?: number;
+}
+
 export function readSvgStationLabelPolygons(
   root: SVGSVGElement,
   stationIds: string[],
-  padding = 0,
+  padding: number | StationLabelPolygonPadding = 0,
 ): Map<string, MapPolygon> {
+  const padLeading = typeof padding === "number" ? padding : (padding.leading ?? padding.x ?? 0);
+  const padTrailing = typeof padding === "number" ? padding : (padding.trailing ?? padding.x ?? 0);
+  const padTop = typeof padding === "number" ? padding : (padding.top ?? padding.y ?? 0);
+  const padBottom = typeof padding === "number" ? padding : (padding.bottom ?? padding.y ?? 0);
   const expectedIds = new Set(stationIds);
   const polygonsByStationId = new Map<string, MapPolygon>();
   // Label hit targets live in the root viewBox, so measure them with SVG-local
@@ -790,10 +803,10 @@ export function readSvgStationLabelPolygons(
       const box = element.getBBox();
       const polygon = transformBoundsToRootPolygon(
         {
-          x: box.x - padding,
-          y: box.y - padding,
-          width: box.width + padding * 2,
-          height: box.height + padding * 2,
+          x: box.x - padLeading,
+          y: box.y - padTop,
+          width: box.width + padLeading + padTrailing,
+          height: box.height + padTop + padBottom,
         },
         element.getCTM() ?? element.getScreenCTM(),
         rootMatrix,

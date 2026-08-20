@@ -459,7 +459,11 @@ function InteractiveTtcMapComponent({
       readSvgStationCenters(mapSvgRef.current, stationVisualCenterIds(stations)),
     );
     setStationLabelPolygons(
-      readSvgStationLabelPolygons(mapSvgRef.current, stations.map((station) => station.id), 24),
+      readSvgStationLabelPolygons(mapSvgRef.current, stations.map((station) => station.id), {
+        leading: 0,
+        trailing: 68,
+        y: 8,
+      }),
     );
     const baseRouteCollisionBoxes = collectBaseRouteCollisionBoxes(
       networkSegments,
@@ -2256,28 +2260,6 @@ function InteractiveTtcMapComponent({
                         values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
                       />
                     </filter>
-                    <filter id="ttc-hovered-label-target-alpha" colorInterpolationFilters="sRGB">
-                      <feMorphology in="SourceAlpha" operator="dilate" radius="16" result="expandedTargetAlpha" />
-                      <feColorMatrix
-                        in="expandedTargetAlpha"
-                        type="matrix"
-                        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
-                      />
-                    </filter>
-                    <mask
-                      id="ttc-hovered-station-target-mask"
-                      maskUnits="userSpaceOnUse"
-                      x="0"
-                      y="0"
-                      width="8250"
-                      height="4000"
-                    >
-                      <use
-                        href={`#station-label-${hoveredStationLabelId}`}
-                        filter="url(#ttc-hovered-label-target-alpha)"
-                        visibility="visible"
-                      />
-                    </mask>
                     <mask
                       id="ttc-hovered-station-label-mask"
                       maskUnits="userSpaceOnUse"
@@ -2286,16 +2268,14 @@ function InteractiveTtcMapComponent({
                       width="8250"
                       height="4000"
                     >
-                      <g mask="url(#ttc-hovered-station-target-mask)">
-                        <image
-                          href={rasterMapSource("ttc", "labels", rasterTheme, rasterDensity)}
-                          width="8250"
-                          height="4000"
-                          preserveAspectRatio="xMidYMid meet"
-                          clipPath="url(#ttc-hovered-station-label-clip)"
-                          filter="url(#ttc-hovered-label-white-alpha)"
-                        />
-                      </g>
+                      <image
+                        href={rasterMapSource("ttc", "labels", rasterTheme, rasterDensity)}
+                        width="8250"
+                        height="4000"
+                        preserveAspectRatio="xMidYMid meet"
+                        clipPath="url(#ttc-hovered-station-label-clip)"
+                        filter="url(#ttc-hovered-label-white-alpha)"
+                      />
                     </mask>
                   </defs>
                   <image

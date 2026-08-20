@@ -27,7 +27,7 @@ const maps = [
     foregroundCss: `
       #ttc-tracks-layer,
       #non-linear-guides-layer,
-      #ttc-station-labels-layer { opacity: 0 !important; }
+      #ttc-station-labels-layer text { opacity: 0 !important; }
       .fil3:has(+ .fil0),
       .fil3:has(+ .fil2),
       .fil3:has(+ .fil4),
@@ -39,7 +39,8 @@ const maps = [
       #non-linear-guides-layer,
       #ttc-stations-layer,
       #ttc-line-badges-layer,
-      #ttc-connection-labels-layer { opacity: 0 !important; }
+      #ttc-connection-labels-layer,
+      #ttc-station-labels-layer polygon { opacity: 0 !important; }
       #ttc-station-labels-layer [data-station-label-for] {
         font-family: "TeX Gyre Heros", Arial, sans-serif !important;
         stroke: #000000 !important;

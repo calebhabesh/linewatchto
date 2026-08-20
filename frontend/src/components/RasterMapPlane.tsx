@@ -113,7 +113,7 @@ export function RasterMapPlane({
             <feMorphology
               in="SourceAlpha"
               operator="dilate"
-              radius={network === "regional" ? "24" : "16"}
+              radius={network === "regional" ? "4" : "3"}
               result="expandedAlpha"
             />
             <feColorMatrix

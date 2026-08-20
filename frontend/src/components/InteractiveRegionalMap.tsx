@@ -263,7 +263,7 @@ function regionalStationLabelHover(
   if (!label || !svg || !cutoutSource) return null;
   const bounds = regionalCollisionBoxForElement(svg, label);
   if (!bounds) return null;
-  const cropBounds = expandedRegionalCollisionBox(bounds, 24);
+  const cropBounds = expandedRegionalCollisionBox(bounds, { leading: 0, trailing: 88, y: 12 });
   const isolatedCutoutSource = cutoutSource.cloneNode(true) as SVGGraphicsElement;
   removeDescendantIds(isolatedCutoutSource);
   return {
@@ -1489,13 +1489,17 @@ function regionalPathCorridorCollisionBoxes(
 
 function expandedRegionalCollisionBox(
   box: RegionalCollisionBox,
-  padding: number,
+  padding: number | { leading?: number; trailing?: number; top?: number; bottom?: number; x?: number; y?: number },
 ): RegionalCollisionBox {
+  const padLeading = typeof padding === "number" ? padding : (padding.leading ?? padding.x ?? 0);
+  const padTrailing = typeof padding === "number" ? padding : (padding.trailing ?? padding.x ?? 0);
+  const padTop = typeof padding === "number" ? padding : (padding.top ?? padding.y ?? 0);
+  const padBottom = typeof padding === "number" ? padding : (padding.bottom ?? padding.y ?? 0);
   return {
-    x: box.x - padding,
-    y: box.y - padding,
-    width: box.width + padding * 2,
-    height: box.height + padding * 2,
+    x: box.x - padLeading,
+    y: box.y - padTop,
+    width: box.width + padLeading + padTrailing,
+    height: box.height + padTop + padBottom,
   };
 }
 
@@ -4445,27 +4449,6 @@ function InteractiveRegionalMapComponent({
                       values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
                     />
                   </filter>
-                  <filter id="regional-hovered-label-target-alpha" colorInterpolationFilters="sRGB">
-                    <feMorphology in="SourceAlpha" operator="dilate" radius="24" result="expandedTargetAlpha" />
-                    <feColorMatrix
-                      in="expandedTargetAlpha"
-                      type="matrix"
-                      values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
-                    />
-                  </filter>
-                  <mask
-                    id="regional-hovered-station-target-mask"
-                    maskUnits="userSpaceOnUse"
-                    x="-200"
-                    y="-200"
-                    width="17036.959"
-                    height="9031.6719"
-                  >
-                    <g
-                      filter="url(#regional-hovered-label-target-alpha)"
-                      dangerouslySetInnerHTML={{ __html: hoveredStationLabel.cutoutMarkup }}
-                    />
-                  </mask>
                   <mask
                     id="regional-hovered-station-label-mask"
                     maskUnits="userSpaceOnUse"
@@ -4474,18 +4457,16 @@ function InteractiveRegionalMapComponent({
                     width="17036.959"
                     height="9031.6719"
                   >
-                    <g mask="url(#regional-hovered-station-target-mask)">
-                      <image
-                        href={rasterMapSource("regional", "labels", rasterTheme, rasterDensity)}
-                        x="-200"
-                        y="-200"
-                        width="17036.959"
-                        height="9031.6719"
-                        preserveAspectRatio="xMidYMid meet"
-                        clipPath="url(#regional-hovered-station-label-clip)"
-                        filter="url(#regional-hovered-label-white-alpha)"
-                      />
-                    </g>
+                    <image
+                      href={rasterMapSource("regional", "labels", rasterTheme, rasterDensity)}
+                      x="-200"
+                      y="-200"
+                      width="17036.959"
+                      height="9031.6719"
+                      preserveAspectRatio="xMidYMid meet"
+                      clipPath="url(#regional-hovered-station-label-clip)"
+                      filter="url(#regional-hovered-label-white-alpha)"
+                    />
                   </mask>
                 </defs>
                 <image

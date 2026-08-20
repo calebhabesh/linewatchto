@@ -55,7 +55,7 @@ describe("asset-backed map layering", () => {
 
   it("derives pointer targets from authored station text bounds", () => {
     assert.match(interactiveMapSource, /readSvgStationLabelPolygons/);
-    assert.match(interactiveMapSource, /readSvgStationLabelPolygons\(mapSvgRef\.current, stations\.map\(\(station\) => station\.id\), 24\)/);
+    assert.match(interactiveMapSource, /readSvgStationLabelPolygons\(mapSvgRef\.current, stations\.map\(\(station\) => station\.id\), \{[\s\S]*?leading:\s*0,[\s\S]*?trailing:\s*68,[\s\S]*?y:\s*8/);
     assert.match(interactiveMapSource, /data-station-label-id=\{station\.id\}/);
     assert.match(interactiveMapSource, /<polygon/);
     assert.match(interactiveMapSource, /points=\{labelPolygon\.map/);
