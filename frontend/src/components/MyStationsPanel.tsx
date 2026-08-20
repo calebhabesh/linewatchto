@@ -441,7 +441,7 @@ function SavedStationRow({
           >
             <summary className="saved-commute-impact-summary saved-station-disruption-summary">
               <span className="saved-commute-impact-summary-heading saved-station-disruption-heading">
-                {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={16} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
+                {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
                 <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
                 <span className="saved-commute-impact-total saved-station-disruption-total">{disruptionCount}</span>
               </span>
@@ -449,7 +449,7 @@ function SavedStationRow({
                 <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
                   {disruptionSummary.map(({ kind, count }) => (
                     <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
-                      <DisruptionIcon kind={kind} size={14} />
+                      <DisruptionIcon kind={kind} size={16} />
                       {disruptionKindCountLabel(kind, count)}
                     </span>
                   ))}
@@ -458,7 +458,7 @@ function SavedStationRow({
               <span className="saved-commute-impact-summary-action saved-station-disruption-action">
                 <span className="saved-commute-impact-summary-action-collapsed">List View</span>
                 <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
-                <ChevronDown className="saved-commute-impact-summary-chevron" size={15} aria-hidden="true" />
+                <ChevronDown className="saved-commute-impact-summary-chevron" size={16} aria-hidden="true" />
               </span>
             </summary>
             {disruptionCount > 0 ? (
@@ -511,11 +511,11 @@ function SavedStationRow({
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
             <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
             <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
-              <span className="flex items-center justify-start text-left gap-1.5 min-w-0 text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
-                <Train size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
+              <span className="flex items-center justify-start text-left gap-2 min-w-0 text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                <Train size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Train Arrivals</strong>
               </span>
-              <p className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">
+              <p className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 truncate">
                 {regionalArrivalSnapshot?.availability === "available"
                   ? regionalArrivalSnapshot.source
                   : regionalArrivalSnapshot?.availability === "no-service"
@@ -539,7 +539,7 @@ function SavedStationRow({
                   return (
                     <div key={section.lineId} className="saved-station-arrival-line-section" data-arrival-line-section={section.lineId} data-pinned-line={isPinned ? "true" : "false"}>
                       {showLineDivider && (
-                        <div className="station-arrival-line-divider my-1" aria-hidden="true" />
+                        <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                       )}
                       <div className="saved-station-arrival-line-header flex items-center justify-between px-1 py-1">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -714,7 +714,7 @@ function SavedStationRow({
           >
             <summary className="saved-commute-impact-summary saved-station-disruption-summary">
               <span className="saved-commute-impact-summary-heading saved-station-disruption-heading">
-                {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={16} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
+                {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
                 <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
                 <span className="saved-commute-impact-total saved-station-disruption-total">{disruptionCount}</span>
               </span>
@@ -722,7 +722,7 @@ function SavedStationRow({
                 <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
                   {disruptionSummary.map(({ kind, count }) => (
                     <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
-                      <DisruptionIcon kind={kind} size={12} />
+                      <DisruptionIcon kind={kind} size={16} />
                       {disruptionKindCountLabel(kind, count)}
                     </span>
                   ))}
@@ -731,7 +731,7 @@ function SavedStationRow({
               <span className="saved-commute-impact-summary-action saved-station-disruption-action">
                 <span className="saved-commute-impact-summary-action-collapsed">List View</span>
                 <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
-                <ChevronDown className="saved-commute-impact-summary-chevron" size={15} aria-hidden="true" />
+                <ChevronDown className="saved-commute-impact-summary-chevron" size={16} aria-hidden="true" />
               </span>
             </summary>
             {disruptionCount > 0 ? (
@@ -787,11 +787,11 @@ function SavedStationRow({
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
               <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
               <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
-                <span className="flex items-center justify-start text-left gap-1.5 min-w-0 text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
-                  <Train size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
+                <span className="flex items-center justify-start text-left gap-2 min-w-0 text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                  <Train size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                   <strong>{arrivalHeading}</strong>
                 </span>
-                <p className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">
+                <p className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 truncate">
                   {formatArrivalSourceSummary(detail.arrivals, detail.arrivalsSource)}
                 </p>
               </div>
@@ -809,7 +809,7 @@ function SavedStationRow({
                   return (
                     <div key={section.lineId} className="saved-station-arrival-line-section" data-arrival-line-section={section.lineId} data-pinned-line={isPinned ? "true" : "false"}>
                       {showLineDivider && (
-                        <div className="station-arrival-line-divider my-1" aria-hidden="true" />
+                        <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                       )}
                       <div className="saved-station-arrival-line-header flex items-center justify-between px-1 py-1">
                         <div className="flex items-center gap-2.5 min-w-0">

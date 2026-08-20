@@ -47,7 +47,7 @@ export function ArrivalLinePinButton({
       aria-label={`${action} ${lineLabel} arrivals at ${stationName}`}
       title={`${action} ${lineLabel} arrivals`}
     >
-      <Star size={compact ? 20 : 27} fill={starFill} aria-hidden="true" strokeWidth={isFilled ? 0 : 1.85} />
+      <Star size={compact ? 23 : 27} fill={starFill} aria-hidden="true" strokeWidth={isFilled ? 0 : 1.85} />
     </button>
   );
 }

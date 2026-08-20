@@ -420,22 +420,22 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
         <summary className="surface-connections-summary block w-full min-w-0 max-w-full cursor-pointer list-none overflow-hidden">
           <div className="saved-station-arrivals-heading flex w-full min-w-0 max-w-full flex-col items-start text-left gap-0.5 overflow-hidden">
             <div className="flex items-center justify-between gap-2 w-full min-w-0 max-w-full">
-              <span className="flex items-center gap-1.5 min-w-0 max-w-full text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
-                <Bus size={15} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
+              <span className="flex items-center gap-2 min-w-0 max-w-full text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                <Bus size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Surface Connections</strong>
                 {!loading && (
-                  <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1 text-[10px] font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                  <span className="flex h-4.5 min-w-4.5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 text-[11px] font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
                     {allGroups.length}
                   </span>
                 )}
               </span>
               <ChevronDown
-                size={14}
+                size={16}
                 className="surface-connections-chevron shrink-0 text-slate-500 dark:text-slate-300"
                 aria-hidden="true"
               />
             </div>
-            <p className="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate w-full min-w-0 max-w-full">
+            <p className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 truncate w-full min-w-0 max-w-full">
               {loading
                 ? "Checking connections"
                 : surfaceSourceSummary(snapshot)}

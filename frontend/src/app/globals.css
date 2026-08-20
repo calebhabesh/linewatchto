@@ -1754,15 +1754,15 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   border-radius: 999px;
   color: white;
   display: inline-flex;
-  font-size: 6px;
+  font-size: 8px;
   font-weight: 950;
-  height: 9px;
+  height: 11px;
   justify-content: center;
   line-height: 1;
   position: absolute;
   right: -5px;
   top: -4px;
-  width: 9px;
+  width: 11px;
 }
 
 .my-stations-bookmark {
@@ -1978,29 +1978,38 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   align-items: center;
   color: rgb(180, 83, 9);
   display: flex;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+}
+
+.saved-station-disruption-heading .saved-commute-impact-summary-icon,
+.saved-commute-impact-summary-heading.saved-station-disruption-heading .saved-commute-impact-summary-icon {
+  height: 1.15rem !important;
+  width: 1.15rem !important;
 }
 
 .is-clear .saved-station-disruption-heading {
   color: rgb(5, 150, 105);
 }
 
-.saved-station-disruption-heading strong {
+.saved-station-disruption-heading strong,
+.saved-commute-impact-summary-heading.saved-station-disruption-heading strong {
   color: rgb(51, 65, 85);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 0.98rem !important;
+  font-weight: 850 !important;
+  line-height: 1.25;
 }
 
-.dark .saved-station-disruption-heading strong {
-  color: rgb(226, 232, 240);
+.dark .saved-station-disruption-heading strong,
+.dark .saved-commute-impact-summary-heading.saved-station-disruption-heading strong {
+  color: #ffffff !important;
 }
 
 .saved-station-clear-dot {
   background: rgb(16, 185, 129);
   border-radius: 999px;
-  height: 8px;
-  width: 8px;
+  height: 10px;
+  width: 10px;
 }
 
 .saved-station-disruption-total {
@@ -2009,12 +2018,12 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   border-radius: 999px;
   color: rgb(71, 85, 105);
   display: inline-flex;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
-  height: 22px;
+  height: 24px;
   justify-content: center;
-  min-width: 22px;
-  padding: 0 6px;
+  min-width: 24px;
+  padding: 0 7px;
 }
 
 .dark .saved-station-disruption-total {
@@ -2024,7 +2033,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .saved-station-disruption-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
   grid-column: 1;
 }
 
@@ -2032,15 +2041,15 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   align-items: center;
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 5px;
+  border-radius: 6px;
   color: rgb(180, 83, 9);
   display: inline-flex;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 850;
-  gap: 0.25rem;
+  gap: 0.35rem;
   line-height: 1;
-  min-height: 22px;
-  padding: 0.2rem 0.45rem;
+  min-height: 26px;
+  padding: 0.25rem 0.55rem;
 }
 
 .saved-station-disruption-chips > span.kind-suspension {
@@ -2089,14 +2098,18 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   border-radius: 5px;
   color: rgb(51, 65, 85);
   display: inline-flex;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 850;
-  gap: 2px;
+  gap: 3px;
   grid-column: 2;
   grid-row: 1 / span 2;
   min-height: 26px;
-  padding: 3px 3px 3px 7px;
+  padding: 3px 4px 3px 8px;
   text-transform: uppercase;
+}
+
+.dark .saved-station-disruption-action {
+  color: rgb(226, 232, 240);
 }
 
 .dark .saved-station-disruption-action {
@@ -2167,20 +2180,13 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   padding: 0;
 }
 
-.saved-station-section-divider {
-  height: 3px;
-  margin: 14px 2px 10px;
-}
-
-.saved-station-surface-divider {
-  height: 3px;
-  margin: 16px 2px 12px;
-}
-
+.saved-station-section-divider,
+.saved-station-surface-divider,
+.saved-station-line-divider,
 .saved-station-rich-content .saved-station-surface-divider,
 .station-arrival-line-divider.saved-station-surface-divider {
   height: 3px;
-  margin: 16px 2px 12px;
+  margin: 7px 2px;
 }
 
 .saved-station-arrivals-heading {
@@ -2197,25 +2203,25 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   align-items: center;
   color: rgb(51, 65, 85);
   display: inline-flex;
-  font-size: 0.82rem;
-  gap: 0.38rem;
+  font-size: 0.98rem !important;
+  gap: 0.45rem;
   justify-content: flex-start;
   text-align: left;
 }
 
 .saved-station-arrivals .saved-station-arrivals-heading strong {
-  font-size: 0.82rem;
-  font-weight: 900;
+  font-size: 0.98rem !important;
+  font-weight: 850 !important;
   text-align: left;
 }
 
 .saved-station-arrivals-heading svg {
-  height: 1rem;
-  width: 1rem;
+  height: 1.15rem !important;
+  width: 1.15rem !important;
 }
 
 .dark .saved-station-arrivals-heading > span {
-  color: rgb(226, 232, 240);
+  color: #ffffff !important;
 }
 
 .saved-station-arrivals-heading small,
@@ -2307,13 +2313,13 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   color: rgb(245, 158, 11);
   display: inline-flex;
   flex: 0 0 auto;
-  height: 28px;
+  height: 32px;
   justify-content: center;
-  margin: -8px -8px -8px -6px;
-  padding: 8px;
+  margin: -6px -6px -6px 0;
+  padding: 4px;
   touch-action: manipulation;
   transition: color 150ms ease, transform 150ms ease;
-  width: 28px;
+  width: 32px;
 }
 
 .arrival-line-pin svg {
@@ -2378,10 +2384,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .arrival-line-pin.is-compact {
-  height: 24px;
-  margin: -10px -10px -10px 0;
-  padding: 10px;
-  width: 24px;
+  height: 28px;
+  margin: -6px -6px -6px 0;
+  padding: 4px;
+  width: 28px;
 }
 
 .dark .arrival-line-pin {
@@ -2549,14 +2555,14 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 @media (max-width: 30rem) {
   .saved-station-arrivals-heading > span,
   .saved-station-arrivals .saved-station-arrivals-heading strong {
-    font-size: 0.78rem;
+    font-size: 0.92rem !important;
   }
 }
 
 @media (max-width: 23.5rem) {
   .saved-station-arrivals-heading > span,
   .saved-station-arrivals .saved-station-arrivals-heading strong {
-    font-size: 0.72rem;
+    font-size: 0.85rem !important;
   }
 }
 
@@ -11642,7 +11648,7 @@ img.transit-line-badge {
 
 .station-arrival-line-divider {
   height: 3px;
-  margin: 3px 2px;
+  margin: 7px 2px;
   border-radius: 999px;
   background: linear-gradient(
     90deg,

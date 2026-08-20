@@ -110,12 +110,12 @@ describe("My Stations UI", () => {
     assert.doesNotMatch(panel, />Condensed</);
     assert.match(panel, /saved-commute-impact-summary/);
     assert.match(panel, /saved-commute-impact-summary-chip/);
-    assert.match(styles, /\.saved-station-disruption-chips > span\s*\{[^}]*border-radius:\s*5px;[^}]*font-size:\s*0\.68rem;[^}]*gap:\s*0\.25rem;[^}]*line-height:\s*1;[^}]*min-height:\s*22px;[^}]*padding:\s*0\.2rem 0\.45rem;/s);
+    assert.match(styles, /\.saved-station-disruption-chips > span\s*\{[^}]*border-radius:\s*6px;[^}]*font-size:\s*0\.78rem;[^}]*gap:\s*0\.35rem;[^}]*line-height:\s*1;[^}]*min-height:\s*26px;[^}]*padding:\s*0\.25rem 0\.55rem;/s);
     assert.match(panel, /SAVED_STATION_OUTAGE_ICON_SRC/);
     assert.match(panel, /\/assets\/linewatch\/outages\/elevator\.svg/);
     assert.match(panel, /\/assets\/linewatch\/outages\/escalator\.svg/);
     assert.match(panel, /saved-station-outage-icon-mark">×/);
-    assert.match(styles, /\.saved-station-outage-icon-mark\s*\{[^}]*background:\s*rgb\(220, 38, 38\);[^}]*border-radius:\s*999px;/s);
+    assert.match(styles, /\.saved-station-outage-icon-mark\s*\{[^}]*background:\s*rgb\(220, 38, 38\);[^}]*border-radius:\s*999px;[^}]*font-size:\s*8px;[^}]*height:\s*11px;[^}]*width:\s*11px;/s);
     assert.match(panel, /saved-commute-impact-kind-label/);
     assert.match(panel, /className=\{`kind-\$\{disruptionKindClassName/);
     assert.match(panel, /disruptionKindCountLabel/);
@@ -165,7 +165,7 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-line-badges\s*\{[^}]*align-items:\s*center;[^}]*flex:\s*0 0 auto;/s);
     assert.doesNotMatch(styles, /\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*grid-template-columns:/s);
     assert.match(transitLineBadge, /\/assets\/linewatch\/\$\{assetId\}-legend\.svg\?v=3/);
-    assert.match(styles, /\.saved-station-disruption-total\s*\{[^}]*height:\s*22px;[^}]*min-width:\s*22px;/s);
+    assert.match(styles, /\.saved-station-disruption-total\s*\{[^}]*height:\s*24px;[^}]*min-width:\s*24px;/s);
     assert.match(panel, /saved-station-arrival-line-header/);
     assert.match(panel, /formatArrivalLineHeaderLabel/);
     assert.match(styles, /\.saved-station-arrival-line-header\s*\{[^}]*justify-content:\s*space-between;/s);
@@ -173,8 +173,8 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-arrival-groups/);
     assert.match(panel, /station-arrival-line-divider saved-station-section-divider/);
     assert.match(styles, /\.station-arrival-line-divider\s*\{[^}]*linear-gradient/s);
-    assert.match(styles, /\.saved-station-section-divider\s*\{[^}]*height:\s*3px;[^}]*margin:\s*14px 2px 10px;/s);
-    assert.match(styles, /\.saved-station-surface-divider\s*\{[^}]*height:\s*3px;[^}]*margin:\s*16px 2px 12px;/s);
+    assert.match(styles, /\.saved-station-section-divider[\s\S]*?margin:\s*7px 2px;/s);
+    assert.match(styles, /\.saved-station-surface-divider[\s\S]*?margin:\s*7px 2px;/s);
     assert.match(styles, /\.saved-station-arrivals\s*\{[^}]*background:\s*transparent;[^}]*border-radius:\s*0;[^}]*box-shadow:\s*none;/s);
     assert.match(styles, /\.saved-station-disruption-summary\s*\{[^}]*padding:\s*14px 8px;/s);
     assert.match(styles, /\.saved-station-arrival-source::after\s*\{[^}]*height:\s*18px/s);

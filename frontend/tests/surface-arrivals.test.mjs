@@ -46,7 +46,7 @@ describe("surface station arrivals", () => {
     assert.match(section, /data-station-section="surface-connections"/);
     assert.match(section, /Bay and platform labels are source-published and are never inferred by proximity/);
     assert.match(section, /<Bus size=\{20\}[\s\S]*?<span[^>]*>Surface Connections<\/span>/);
-    assert.match(section, /<Bus size=\{15\}[\s\S]*?<strong[^>]*>[\s\S]*?Surface Connections/);
+    assert.match(section, /<Bus size=\{18\}[\s\S]*?<strong[^>]*>[\s\S]*?Surface Connections/);
     assert.match(section, /ArrivalLinePinButton/);
     assert.match(section, /station-arrival-line-divider/);
     assert.match(section, /data-pinned-route/);
