@@ -101,10 +101,24 @@ Create `A` records for the three hostnames pointing to the VPS public IP. When u
 
 ## Persistent Volumes
 
-- `postgres_prod_data`
-- `redis_prod_data`
-- `caddy_data`
-- `caddy_config`
+Production data uses canonical external Docker volume names so it remains independent of the
+Compose project lifecycle and cannot be removed by `docker compose down --volumes`:
+
+- `linewatchto_postgres_prod_data`
+- `linewatchto_redis_prod_data`
+- `linewatchto_caddy_data`
+- `linewatchto_caddy_config`
+- `linewatchto_alloy_prod_data`
+
+Initialize them once on a new production host before the first deployment:
+
+```bash
+scripts/prod-init-volumes.sh
+```
+
+The command is idempotent and preserves every existing volume. Routine deployments deliberately
+do not create missing external volumes: an unexpectedly missing production volume must stop the
+deployment rather than silently initialize an empty database or certificate store.
 
 ## Server-Local Files
 

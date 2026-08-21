@@ -122,13 +122,57 @@ test_renders_immutable_release_images() {
         --env-file "$PROD_ENV" \
         --env-file "$release_env" \
         -f docker-compose.prod.yml \
+        --profile observability \
         config 2>&1
   )"
 
   assert_contains "$output" "ghcr.io/calebhabesh/linewatch-postgres:$TEST_SHA"
   assert_contains "$output" "ghcr.io/calebhabesh/linewatch-backend:$TEST_SHA"
   assert_contains "$output" "ghcr.io/calebhabesh/linewatch-frontend:$TEST_SHA"
+  assert_contains "$output" "name: linewatchto_postgres_prod_data"
+  assert_contains "$output" "name: linewatchto_redis_prod_data"
+  assert_contains "$output" "name: linewatchto_caddy_data"
+  assert_contains "$output" "name: linewatchto_caddy_config"
+  assert_contains "$output" "name: linewatchto_alloy_prod_data"
+  assert_contains "$output" "external: true"
   assert_not_contains "$output" "build:"
+}
+
+test_initializes_only_missing_external_volumes() {
+  local temp_dir
+  local fake_docker
+  local log
+  local output
+
+  temp_dir="$(mktemp -d "$TEST_TMP/volumes.XXXXXX")"
+  fake_docker="$temp_dir/docker"
+  log="$temp_dir/docker.log"
+
+  cat > "$fake_docker" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG:?}"
+if [[ "$*" == "volume inspect linewatchto_postgres_prod_data" ]]; then
+  exit 0
+fi
+if [[ "$*" == volume\ inspect\ * ]]; then
+  exit 1
+fi
+EOF
+  chmod +x "$fake_docker"
+
+  output="$(
+    FAKE_DOCKER_LOG="$log" \
+    DOCKER_BIN="$fake_docker" \
+      "$ROOT_DIR/scripts/prod-init-volumes.sh"
+  )"
+
+  assert_contains "$output" "Existing production volume: linewatchto_postgres_prod_data"
+  assert_not_contains "$(cat "$log")" "volume create --label ca.linewatchto.persistence=production linewatchto_postgres_prod_data"
+  assert_contains "$(cat "$log")" "volume create --label ca.linewatchto.persistence=production linewatchto_redis_prod_data"
+  assert_contains "$(cat "$log")" "volume create --label ca.linewatchto.persistence=production linewatchto_caddy_data"
+  assert_contains "$(cat "$log")" "volume create --label ca.linewatchto.persistence=production linewatchto_caddy_config"
+  assert_contains "$(cat "$log")" "volume create --label ca.linewatchto.persistence=production linewatchto_alloy_prod_data"
 }
 
 test_validates_full_lowercase_git_sha() {
@@ -466,6 +510,7 @@ test_deploy_keeps_success_when_image_prune_fails() {
 verify_test_harness
 run_test "production Compose requires LINEWATCH_IMAGE_TAG" test_requires_release_image_tag
 run_test "production Compose renders immutable release images" test_renders_immutable_release_images
+run_test "production volume initialization preserves existing volumes" test_initializes_only_missing_external_volumes
 run_test "image tags require full lowercase Git SHAs" test_validates_full_lowercase_git_sha
 run_test "component image references are deterministic" test_builds_component_image_reference
 run_test "release env files round trip normalized values" test_release_file_round_trip

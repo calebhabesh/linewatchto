@@ -189,10 +189,20 @@ services:
 
 volumes:
   postgres_prod_data:
+    name: linewatchto_postgres_prod_data
+    external: true
   redis_prod_data:
+    name: linewatchto_redis_prod_data
+    external: true
   caddy_data:
+    name: linewatchto_caddy_data
+    external: true
   caddy_config:
+    name: linewatchto_caddy_config
+    external: true
   alloy_prod_data:
+    name: linewatchto_alloy_prod_data
+    external: true
 
 networks:
   linewatch-net:
