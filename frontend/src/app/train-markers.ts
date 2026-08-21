@@ -348,6 +348,27 @@ export function orientedEstimatedTrainMarkerAngle(pathAngle: number, pathStartsA
   return pathStartsAtFrom ? pathAngle : pathAngle + 180;
 }
 
+export function estimatedTrainMarkerLanePoint(
+  point: { x: number; y: number },
+  pathTangent: { x: number; y: number },
+  pathTravelDirection: "forward" | "reverse" | "bidirectional",
+  offset: number,
+) {
+  const tangentLength = Math.hypot(pathTangent.x, pathTangent.y);
+  if (pathTravelDirection === "bidirectional"
+    || !Number.isFinite(tangentLength)
+    || tangentLength <= 0
+    || !Number.isFinite(offset)) {
+    return point;
+  }
+
+  const directionSign = pathTravelDirection === "forward" ? 1 : -1;
+  return {
+    x: point.x - pathTangent.y / tangentLength * offset * directionSign,
+    y: point.y + pathTangent.x / tangentLength * offset * directionSign,
+  };
+}
+
 function normalizedMarkerText(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? "";
 }

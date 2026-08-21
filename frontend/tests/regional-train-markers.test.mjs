@@ -29,6 +29,8 @@ describe("regional estimated train marker rendering", () => {
     assert.match(regionalMapSource, /\["regional-route-up-path", "regional-route-up-airport-path"\]/);
     assert.match(regionalMapSource, /getPointAtLength/);
     assert.match(regionalMapSource, /getTotalLength/);
+    assert.match(regionalMapSource, /estimatedTrainMarkerLanePoint/);
+    assert.match(regionalMapSource, /REGIONAL_TRAIN_MARKER_LANE_OFFSET/);
     assert.match(regionalMapSource, /REGIONAL_TRAIN_MARKER_LAYER_ID/);
     assert.doesNotMatch(regionalMapSource, /const x = from\.x \+ \(to\.x - from\.x\) \* progress/);
     assert.doesNotMatch(regionalMapSource, /documentNode\.documentElement\.append\(markerLayer\)/);
@@ -36,6 +38,12 @@ describe("regional estimated train marker rendering", () => {
       regionalMapSource,
       /const pathD = corridorSegmentPathInRootCoordinates\(documentNode, segment\)\s*\?\?\s*fallbackSegmentPathInRootCoordinates/,
     );
+  });
+
+  it("uses path-relative directional lanes on both map modes", () => {
+    assert.match(ttcMapSource, /estimatedTrainMarkerLanePoint/);
+    assert.match(ttcMapSource, /TTC_TRAIN_MARKER_LANE_OFFSET/);
+    assert.match(regionalMapSource, /pathStartsAtFrom \? "forward" : "reverse"/);
   });
 
   it("updates regional markers without rebuilding the map or replaying marker motion", () => {

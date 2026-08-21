@@ -5,6 +5,7 @@ import {
   EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
   EMPTY_REGIONAL_TRAIN_SNAPSHOT,
   createEstimatedTrainMarkerContinuityState,
+  estimatedTrainMarkerLanePoint,
   estimatedTrainMarkerMotionDurationMs,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
@@ -14,6 +15,39 @@ import {
   reconcileEstimatedTrainSnapshot,
   sampleEstimatedTrainMarkerMotion,
 } from "../src/app/train-markers.ts";
+
+describe("estimated train marker directional lanes", () => {
+  it("places opposing trains on opposite sides of horizontal and vertical paths", () => {
+    assert.deepEqual(
+      estimatedTrainMarkerLanePoint({ x: 100, y: 200 }, { x: 10, y: 0 }, "forward", 20),
+      { x: 100, y: 220 },
+    );
+    assert.deepEqual(
+      estimatedTrainMarkerLanePoint({ x: 100, y: 200 }, { x: 10, y: 0 }, "reverse", 20),
+      { x: 100, y: 180 },
+    );
+    assert.deepEqual(
+      estimatedTrainMarkerLanePoint({ x: 100, y: 200 }, { x: 0, y: 10 }, "forward", 20),
+      { x: 80, y: 200 },
+    );
+    assert.deepEqual(
+      estimatedTrainMarkerLanePoint({ x: 100, y: 200 }, { x: 0, y: 10 }, "reverse", 20),
+      { x: 120, y: 200 },
+    );
+  });
+
+  it("keeps bidirectional markers centered and curved-path lanes perpendicular", () => {
+    const center = { x: 100, y: 200 };
+    assert.equal(
+      estimatedTrainMarkerLanePoint(center, { x: 3, y: 4 }, "bidirectional", 20),
+      center,
+    );
+
+    const lanePoint = estimatedTrainMarkerLanePoint(center, { x: 3, y: 4 }, "forward", 20);
+    assert.equal(Math.hypot(lanePoint.x - center.x, lanePoint.y - center.y), 20);
+    assert.equal((lanePoint.x - center.x) * 3 + (lanePoint.y - center.y) * 4, 0);
+  });
+});
 
 describe("estimated train marker data adapter", () => {
   it("returns backend marker snapshots", async () => {

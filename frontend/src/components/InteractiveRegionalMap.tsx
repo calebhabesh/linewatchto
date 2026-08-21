@@ -5,6 +5,7 @@ import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDirection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
+  estimatedTrainMarkerLanePoint,
   estimatedTrainMarkerMotionDurationMs,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
@@ -129,6 +130,7 @@ const REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer";
 const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
 const REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer";
 const REGIONAL_TRAIN_MARKER_LAYER_ID = "regional-train-marker-layer";
+const REGIONAL_TRAIN_MARKER_LANE_OFFSET = 44;
 const SELECTION_INTRO_DURATION_MS = 2400;
 const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
 const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
@@ -1326,9 +1328,18 @@ function regionalTrainMarkerFrame(
     const delta = Math.min(24, Math.max(2, length * 0.015));
     const before = markerPath.getPointAtLength(Math.max(0, distance - delta));
     const after = markerPath.getPointAtLength(Math.min(length, distance + delta));
-    const pathAngle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI;
+    const tangent = { x: after.x - before.x, y: after.y - before.y };
+    const pathAngle = Math.atan2(tangent.y, tangent.x) * 180 / Math.PI;
+    const pathTravelDirection = marker.travelDirection === "bidirectional"
+      ? "bidirectional"
+      : pathStartsAtFrom ? "forward" : "reverse";
     return {
-      point,
+      point: estimatedTrainMarkerLanePoint(
+        point,
+        tangent,
+        pathTravelDirection,
+        REGIONAL_TRAIN_MARKER_LANE_OFFSET,
+      ),
       angle: orientedEstimatedTrainMarkerAngle(pathAngle, pathStartsAtFrom),
     };
   } catch {

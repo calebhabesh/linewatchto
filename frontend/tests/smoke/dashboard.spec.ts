@@ -1391,8 +1391,13 @@ test("renders regional estimated train markers from the network-scoped endpoint"
       const route = document.getElementById(routePathId) as SVGPathElement | null;
       const markerMatrix = (marker as SVGGraphicsElement).getCTM();
       const routeMatrix = route?.getCTM();
-      if (!route || !markerMatrix || !routeMatrix) {
-        return { segmentId, deviation: Number.POSITIVE_INFINITY };
+      const markerRootMatrix = (marker as SVGGraphicsElement).ownerSVGElement?.getCTM();
+      if (!route || !markerMatrix || !routeMatrix || !markerRootMatrix) {
+        return {
+          segmentId,
+          deviation: Number.POSITIVE_INFINITY,
+          expectedDeviation: 0,
+        };
       }
       const markerCenter = new DOMPoint(0, 0).matrixTransform(markerMatrix);
       const routeLength = route.getTotalLength();
@@ -1425,11 +1430,18 @@ test("renders regional estimated train markers from the network-scoped endpoint"
         }
         step /= 2;
       }
-      return { segmentId, deviation: Math.sqrt(closestDistanceSquared) };
+      return {
+        segmentId,
+        deviation: Math.sqrt(closestDistanceSquared),
+        expectedDeviation: 44 * Math.hypot(markerRootMatrix.a, markerRootMatrix.b),
+      };
     });
   });
-  for (const { segmentId, deviation } of regionalMarkerCenterlineDeviations) {
-    expect(deviation, `${segmentId} marker should stay on its authored track centerline`).toBeLessThan(1);
+  for (const { segmentId, deviation, expectedDeviation } of regionalMarkerCenterlineDeviations) {
+    expect(
+      Math.abs(deviation - expectedDeviation),
+      `${segmentId} marker should use its scaled directional lane`,
+    ).toBeLessThan(1);
   }
 
   const disruptionOverlay = page.locator(".regional-overlay-segment-group").first();
@@ -4358,7 +4370,7 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" }).getByRole("button", { name: "Notifications" })).toHaveCount(0);
 });
 
-test("renders and incrementally moves estimated train markers on desktop and mobile", async ({ page, request }) => {
+test("renders and incrementally moves estimated train markers on desktop and mobile", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -4370,6 +4382,24 @@ test("renders and incrementally moves estimated train markers on desktop and mob
   const marker = page.locator('[data-train-marker-line-id="line-1"]');
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(1);
   await expect(marker).toBeVisible();
+  const markerBorderStyles = await marker.evaluate((node) => {
+    const outline = getComputedStyle(
+      node.querySelector<SVGPathElement>(".estimated-train-marker-outline")!,
+    );
+    const core = getComputedStyle(
+      node.querySelector<SVGPathElement>(".estimated-train-marker-core")!,
+    );
+    return {
+      strokes: [outline.stroke, core.stroke].sort(),
+      outlineWidth: outline.strokeWidth,
+      coreWidth: core.strokeWidth,
+    };
+  });
+  expect(markerBorderStyles.strokes).toEqual(
+    ["rgb(9, 13, 22)", "rgb(255, 255, 255)"].sort(),
+  );
+  expect(markerBorderStyles.outlineWidth).toBe(isMobile ? "7.5px" : "5.5px");
+  expect(markerBorderStyles.coreWidth).toBe(isMobile ? "4px" : "2.2px");
   const initialTransform = await marker.getAttribute("transform");
   expect(await page.evaluate(() => document.visibilityState)).toBe("visible");
   const nextTrainResponse = page.waitForResponse((response) =>

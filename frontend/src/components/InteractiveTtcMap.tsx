@@ -48,6 +48,7 @@ import type {
 import type { StationSummary } from "../app/station-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
+  estimatedTrainMarkerLanePoint,
   estimatedTrainMarkerMotionDurationMs,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
@@ -5577,6 +5578,8 @@ type TrainMarkerPathMetrics = {
   length: number;
 };
 
+const TTC_TRAIN_MARKER_LANE_OFFSET = 20;
+
 function ttcMarkerVisualDirection(
   marker: EstimatedTrainMarker,
   segmentById: Map<string, RenderedNetworkSegment>,
@@ -5662,7 +5665,12 @@ function pathFrameAtProgress(
     const angle = pathAngleRad * (180 / Math.PI);
 
     return {
-      point,
+      point: estimatedTrainMarkerLanePoint(
+        point,
+        { x: dx, y: dy },
+        visualDirection,
+        TTC_TRAIN_MARKER_LANE_OFFSET,
+      ),
       angle: visualDirection === "reverse" ? angle + 180 : angle,
     };
   } catch {

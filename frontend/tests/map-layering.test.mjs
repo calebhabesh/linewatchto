@@ -1030,9 +1030,9 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /estimated-train-marker-mobile-dot/);
     assert.match(interactiveMapSource, /<TrainMarkerGlyph \/>/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker\s*\{[^}]*filter:\s*none\s*!important;/s);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-outline\s*\{[^}]*stroke:\s*#050505;/s);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-core\s*\{[^}]*stroke:\s*#050505;/s);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-window/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-outline\s*\{[^}]*stroke:\s*#090d16;[^}]*stroke-width:\s*7\.5;/s);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-core\s*\{[^}]*stroke:\s*#ffffff;[^}]*stroke-width:\s*4;/s);
+    assert.doesNotMatch(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-(?:arrow|window)\s*\{/);
 
     const overlayIndex = interactiveMapSource.indexOf('aria-label="Disruption overlays"');
     const trainIndex = interactiveMapSource.indexOf('aria-label="Estimated train markers"');

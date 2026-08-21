@@ -22697,22 +22697,21 @@ img.transit-line-badge {
 }
 
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-outline {
-  stroke: #050505;
-  stroke-width: 6;
+  stroke: #090d16;
+  stroke-width: 7.5;
 }
 
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-core {
-  stroke: #050505;
-  stroke-width: 2.4;
+  stroke: #ffffff;
+  stroke-width: 4;
 }
 
-.linewatch-shell.mobile-performance-mode .estimated-train-marker-arrow {
-  fill: #050505;
-  stroke: #050505;
+.linewatch-shell.mobile-performance-mode:not(.dark) .estimated-train-marker-outline {
+  stroke: #ffffff;
 }
 
-.linewatch-shell.mobile-performance-mode .estimated-train-marker-window {
-  fill: #050505;
+.linewatch-shell.mobile-performance-mode:not(.dark) .estimated-train-marker-core {
+  stroke: #090d16;
 }
 
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-halo {
