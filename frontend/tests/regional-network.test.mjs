@@ -126,6 +126,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(mobileLegendSource, /"w-0 max-w-0 opacity-0 translate-x-1 pointer-events-none"/);
     assert.match(mobileLegendSource, /size=\{20\}/);
     assert.match(mobileLegendSource, /isRegional[\s\S]*?\?\s*"w-\[40px\]/);
+    assert.match(mobileLegendSource, /name:\s*"Union Pearson Express"/);
     assert.doesNotMatch(mobileLegendSource, /compactText/);
     assert.match(
       globalsCss,
