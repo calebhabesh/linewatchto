@@ -4203,6 +4203,19 @@ button {
   filter: none;
 }
 
+@keyframes train-spinner-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.estimated-train-pending-spinner {
+  animation: train-spinner-rotate 1.6s linear infinite !important;
+}
+
 .motion-paused .estimated-train-pending-spinner {
   animation: none !important;
 }
@@ -22445,13 +22458,13 @@ img.transit-line-badge {
 }
 
 .mobile-train-pending-spinner {
+  animation: train-spinner-rotate 1.6s linear infinite !important;
   color: #f5f5f5 !important;
   height: 18px !important;
-  left: 50% !important;
+  inset: 0 !important;
+  margin: auto !important;
   pointer-events: none !important;
   position: absolute !important;
-  top: 50% !important;
-  transform: translate(-50%, -50%) !important;
   width: 18px !important;
   z-index: 2 !important;
 }
@@ -22559,8 +22572,8 @@ img.transit-line-badge {
 .mobile-train-toggle.active.mobile-train-toggle--loading > span,
 .mobile-train-toggle[aria-busy="true"] > span,
 .mobile-train-toggle.active[aria-busy="true"] > span {
-  opacity: 0 !important;
-  visibility: hidden !important;
+  opacity: 0.22 !important;
+  visibility: visible !important;
 }
 
 .mobile-train-toggle:disabled {
