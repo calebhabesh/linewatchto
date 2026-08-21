@@ -54,6 +54,7 @@ import {
   estimatedTrainMarkerObservationKey,
   estimatedTrainMarkerRenderKey,
   sampleEstimatedTrainMarkerMotion,
+  scheduleEstimatedTrainMarkerAnimation,
   TRAIN_MARKER_ARROW_PATH,
   TRAIN_MARKER_BODY_PATH,
   TRAIN_MARKER_WINDOWS,
@@ -5470,12 +5471,10 @@ function AnimatedTtcTrainMarker({
     const current = motionRef.current;
     const targetObservationKey = estimatedTrainMarkerObservationKey(marker);
     if (current?.targetObservationKey === targetObservationKey && animate) return;
-    if (current?.animationFrame !== null && current?.animationFrame !== undefined) {
-      window.cancelAnimationFrame(current.animationFrame);
-    }
+    current?.cancelAnimation?.();
     if (!current || !animate) {
       setTrainMarkerTransform(group, targetFrame);
-      motionRef.current = { marker, frame: targetFrame, targetObservationKey, animationFrame: null };
+      motionRef.current = { marker, frame: targetFrame, targetObservationKey, cancelAnimation: null };
       return;
     }
 
@@ -5488,7 +5487,7 @@ function AnimatedTtcTrainMarker({
     const runtime: TrainMarkerMotionRuntime = {
       ...current,
       targetObservationKey,
-      animationFrame: null,
+      cancelAnimation: null,
     };
     motionRef.current = runtime;
 
@@ -5501,26 +5500,27 @@ function AnimatedTtcTrainMarker({
         setTtcTrainMarkerMetadata(group, settledMarker, segmentById);
         runtime.marker = settledMarker;
         runtime.frame = settledFrame;
-        runtime.animationFrame = null;
-        return;
+        runtime.cancelAnimation = null;
+        return false;
       }
       setTrainMarkerTransform(group, motion.frame);
       setTtcTrainMarkerMetadata(group, motion.marker, segmentById);
       runtime.marker = motion.marker;
       runtime.frame = motion.frame;
-      if (progress < 1) {
-        runtime.animationFrame = window.requestAnimationFrame(update);
-      } else {
+      if (progress >= 1) {
         runtime.marker = settledMarker;
         runtime.frame = settledFrame;
-        runtime.animationFrame = null;
+        runtime.cancelAnimation = null;
         setTrainMarkerTransform(group, settledFrame);
         setTtcTrainMarkerMetadata(group, settledMarker, segmentById);
+        return false;
       }
+      return true;
     };
-    runtime.animationFrame = window.requestAnimationFrame(update);
+    runtime.cancelAnimation = scheduleEstimatedTrainMarkerAnimation(update);
     return () => {
-      if (runtime.animationFrame !== null) window.cancelAnimationFrame(runtime.animationFrame);
+      runtime.cancelAnimation?.();
+      runtime.cancelAnimation = null;
     };
   }, [animate, marker, segmentById, segments]);
 
@@ -5570,7 +5570,7 @@ type TrainMarkerMotionRuntime = {
   marker: EstimatedTrainMarker;
   frame: TrainMarkerPathFrame;
   targetObservationKey: string;
-  animationFrame: number | null;
+  cancelAnimation: (() => void) | null;
 };
 
 type TrainMarkerPathMetrics = {

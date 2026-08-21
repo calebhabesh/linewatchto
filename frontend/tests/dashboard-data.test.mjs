@@ -6,6 +6,7 @@ const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts",
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const dockerfileSource = readFileSync(new URL("../Dockerfile", import.meta.url), "utf8");
 const prodBuildPushSource = readFileSync(new URL("../../scripts/prod-build-push.sh", import.meta.url), "utf8");
+const stagingComposeSource = readFileSync(new URL("../../docker-compose.staging.yml", import.meta.url), "utf8");
 
 describe("dashboard spike mitigation", () => {
   it("prefers the single aggregate dashboard endpoint before legacy fan-out", () => {
@@ -30,5 +31,12 @@ describe("dashboard spike mitigation", () => {
     assert.match(dockerfileSource, /ARG NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS/);
     assert.match(dockerfileSource, /ENV NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS=\$\{NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS\}/);
     assert.match(prodBuildPushSource, /NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS/);
+  });
+
+  it("aligns container train-marker polling with the smooth local cadence", () => {
+    assert.match(dockerfileSource, /ARG NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS/);
+    assert.match(dockerfileSource, /ENV NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS=\$\{NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS\}/);
+    assert.match(stagingComposeSource, /NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS: \$\{NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS:-4000\}/);
+    assert.match(prodBuildPushSource, /NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS=\$\{NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS:-4000\}/);
   });
 });

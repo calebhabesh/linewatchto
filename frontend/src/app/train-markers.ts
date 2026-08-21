@@ -71,6 +71,10 @@ export type EstimatedTrainMarkerMotionSample = {
   progress: number;
 };
 
+type EstimatedTrainMarkerAnimation = {
+  callback: (now: number) => boolean;
+};
+
 export const TRAIN_MARKER_BODY_PATH =
   "M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z";
 export const TRAIN_MARKER_ARROW_PATH = "M 13 -8 L 27 0 L 13 8 Z";
@@ -110,6 +114,41 @@ const MIN_TRAIN_MARKER_MOTION_MS = 650;
 const MAX_FALLBACK_TRAIN_MARKER_MOTION_MS = 14_000;
 const MAX_CADENCE_TRAIN_MARKER_MOTION_MS = 45_000;
 const TRAIN_MARKER_CADENCE_COVERAGE = 1.05;
+const estimatedTrainMarkerAnimations = new Map<number, EstimatedTrainMarkerAnimation>();
+let nextEstimatedTrainMarkerAnimationId = 1;
+let estimatedTrainMarkerAnimationFrame: number | null = null;
+
+export function scheduleEstimatedTrainMarkerAnimation(
+  callback: (now: number) => boolean,
+) {
+  if (typeof window === "undefined") return () => undefined;
+  const animationId = nextEstimatedTrainMarkerAnimationId++;
+  estimatedTrainMarkerAnimations.set(animationId, { callback });
+  requestEstimatedTrainMarkerAnimationFrame();
+
+  return () => {
+    estimatedTrainMarkerAnimations.delete(animationId);
+    if (estimatedTrainMarkerAnimations.size === 0 && estimatedTrainMarkerAnimationFrame !== null) {
+      window.cancelAnimationFrame(estimatedTrainMarkerAnimationFrame);
+      estimatedTrainMarkerAnimationFrame = null;
+    }
+  };
+}
+
+function requestEstimatedTrainMarkerAnimationFrame() {
+  if (estimatedTrainMarkerAnimationFrame !== null || estimatedTrainMarkerAnimations.size === 0) return;
+  estimatedTrainMarkerAnimationFrame = window.requestAnimationFrame(runEstimatedTrainMarkerAnimations);
+}
+
+function runEstimatedTrainMarkerAnimations(now: number) {
+  estimatedTrainMarkerAnimationFrame = null;
+  for (const [animationId, animation] of estimatedTrainMarkerAnimations) {
+    if (!animation.callback(now)) {
+      estimatedTrainMarkerAnimations.delete(animationId);
+    }
+  }
+  requestEstimatedTrainMarkerAnimationFrame();
+}
 
 export function estimatedTrainMarkerRefreshMs(
   network: "ttc" | "regional" = "ttc",

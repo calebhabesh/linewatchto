@@ -13,6 +13,7 @@ import {
   orientedEstimatedTrainMarkerAngle,
   resolveEstimatedTrainMarkerSegmentDirection,
   sampleEstimatedTrainMarkerMotion,
+  scheduleEstimatedTrainMarkerAnimation,
   TRAIN_MARKER_ARROW_PATH,
   TRAIN_MARKER_BODY_PATH,
   TRAIN_MARKER_WINDOWS,
@@ -842,7 +843,7 @@ type RegionalTrainMarkerMotionRuntime = {
   marker: EstimatedTrainMarker;
   frame: RegionalTrainMarkerFrame;
   targetObservationKey: string;
-  animationFrame: number | null;
+  cancelAnimation: (() => void) | null;
 };
 
 function applySvgTransform(point: SvgPoint, transform: string | null): SvgPoint {
@@ -1373,7 +1374,7 @@ function animateRegionalTrainMarker(
       marker,
       frame: targetFrame,
       targetObservationKey,
-      animationFrame: null,
+      cancelAnimation: null,
     });
     return;
   }
@@ -1389,7 +1390,7 @@ function animateRegionalTrainMarker(
   const runtime: RegionalTrainMarkerMotionRuntime = {
     ...current,
     targetObservationKey,
-    animationFrame: null,
+    cancelAnimation: null,
   };
   runtimes.set(markerKey, runtime);
 
@@ -1402,24 +1403,24 @@ function animateRegionalTrainMarker(
       setRegionalTrainMarkerMetadata(group, settledMarker);
       runtime.marker = settledMarker;
       runtime.frame = settledFrame;
-      runtime.animationFrame = null;
-      return;
+      runtime.cancelAnimation = null;
+      return false;
     }
     setRegionalTrainMarkerTransform(group, motion.frame);
     setRegionalTrainMarkerMetadata(group, motion.marker);
     runtime.marker = motion.marker;
     runtime.frame = motion.frame;
-    if (progress < 1) {
-      runtime.animationFrame = window.requestAnimationFrame(update);
-    } else {
+    if (progress >= 1) {
       runtime.marker = settledMarker;
       runtime.frame = settledFrame;
-      runtime.animationFrame = null;
+      runtime.cancelAnimation = null;
       setRegionalTrainMarkerTransform(group, settledFrame);
       setRegionalTrainMarkerMetadata(group, settledMarker);
+      return false;
     }
+    return true;
   };
-  runtime.animationFrame = window.requestAnimationFrame(update);
+  runtime.cancelAnimation = scheduleEstimatedTrainMarkerAnimation(update);
 }
 
 function regionalTrainMarkerMotionFrame(
@@ -1461,10 +1462,8 @@ function setRegionalTrainMarkerMetadata(group: SVGGElement, marker: EstimatedTra
 }
 
 function cancelRegionalTrainMarkerMotion(runtime: RegionalTrainMarkerMotionRuntime | undefined) {
-  if (runtime?.animationFrame !== null && runtime?.animationFrame !== undefined) {
-    window.cancelAnimationFrame(runtime.animationFrame);
-    runtime.animationFrame = null;
-  }
+  runtime?.cancelAnimation?.();
+  if (runtime) runtime.cancelAnimation = null;
 }
 
 function appendRegionalTrainMarkerGlyph(documentNode: Document, group: SVGGElement) {
@@ -3648,7 +3647,7 @@ function InteractiveRegionalMapComponent({
       trainMarkerMotionRef.current.delete(markerKey);
       group.remove();
     });
-  }, [estimatedTrainMarkers, estimatedTrainsEnabled, mobilePerformanceMode, networkSegments, reducedMotion, svgMarkup]);
+  }, [estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, reducedMotion, svgMarkup]);
 
   useEffect(() => () => {
     trainMarkerMotionRef.current.forEach(cancelRegionalTrainMarkerMotion);
