@@ -8,6 +8,11 @@ type AdapterOptions = {
   apiBaseUrl?: string;
 };
 
+type AccountRetryOptions = AdapterOptions & {
+  retryDelaysMs?: number[];
+  wait?: (delayMs: number) => Promise<void>;
+};
+
 type LogoutOptions = AdapterOptions & {
   pushEndpoint?: string | null;
 };
@@ -805,6 +810,35 @@ export async function getCurrentAccount(options: AdapterOptions = {}): Promise<A
       message: "Account service unavailable.",
     };
   }
+}
+
+const DEFAULT_ACCOUNT_RETRY_DELAYS_MS = [1_000, 3_000, 10_000];
+
+export async function getCurrentAccountWithRetry(options: AccountRetryOptions = {}): Promise<AccountState> {
+  const {
+    retryDelaysMs = DEFAULT_ACCOUNT_RETRY_DELAYS_MS,
+    wait = (delayMs) => new Promise<void>((resolve) => globalThis.setTimeout(resolve, delayMs)),
+    ...adapterOptions
+  } = options;
+
+  let state = await getCurrentAccount(adapterOptions);
+  for (const delayMs of retryDelaysMs) {
+    if (state.source === "backend") return state;
+    await wait(Math.max(0, delayMs));
+    state = await getCurrentAccount(adapterOptions);
+  }
+  return state;
+}
+
+export function preserveAccountStateDuringOutage(current: AccountState, refreshed: AccountState): AccountState {
+  if (refreshed.source !== "unavailable" || !current.authenticated || current.user === null) {
+    return refreshed;
+  }
+  return {
+    ...current,
+    source: "unavailable",
+    message: refreshed.message,
+  };
 }
 
 export async function registerAccount(input: { email: string; password: string; displayName: string }, options: AdapterOptions = {}) {

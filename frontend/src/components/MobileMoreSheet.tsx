@@ -14,6 +14,7 @@ import { hasReleaseNotes } from "../app/release-notes";
 import { LogsDropdown } from "./LogsDropdown";
 import { PushDeliveryDiagnosticsPanel } from "./PushDeliveryDiagnosticsPanel";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
+import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
 import {
   getPwaInstallHeading,
   getPwaInstallInstructionText,
@@ -185,7 +186,12 @@ export function MobileMoreSheet({
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Account</h3>
           </div>
-          {accountState.authenticated && accountState.user ? (
+          {accountState.source === "unavailable" ? (
+            <AccountAvailabilityNotice
+              compact
+              knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null}
+            />
+          ) : accountState.authenticated && accountState.user ? (
             <>
               <div className="mobile-more-account">
                 <UserRound size={18} />
@@ -305,7 +311,11 @@ export function MobileMoreSheet({
               </div>
             </div>
             <div className="shrink-0 flex items-center">
-              {!accountState.authenticated ? (
+              {accountState.source === "unavailable" ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                  Checking
+                </span>
+              ) : !accountState.authenticated ? (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-blue-500 text-white dark:bg-blue-600">
                   Sign In
                 </span>

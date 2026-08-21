@@ -18,6 +18,7 @@ import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotifica
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
+import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
 
 type Props = {
   accountState: AccountState;
@@ -145,7 +146,9 @@ export function NotificationSettingsPanel({
       </div>
 
       <div className="notification-settings-scroll">
-        {!accountState.authenticated ? (
+        {accountState.source === "unavailable" ? (
+          <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
+        ) : !accountState.authenticated ? (
           <div className="account-feature-preview notification-settings-prompt !p-4 !flex !flex-col !gap-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
@@ -205,7 +208,7 @@ export function NotificationSettingsPanel({
           </div>
         ) : null}
 
-        {accountState.authenticated ? (
+        {accountState.source === "backend" && accountState.authenticated ? (
           <>
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">

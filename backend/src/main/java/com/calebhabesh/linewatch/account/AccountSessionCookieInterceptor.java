@@ -25,22 +25,52 @@ public class AccountSessionCookieInterceptor implements HandlerInterceptor {
     }
 
     @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if (!requiresPreHandlerRenewal(request.getRequestURI())) {
+            return true;
+        }
+        Cookie sessionCookie = sessionCookie(request);
+        if (sessionCookie != null && accountService.renewSessionBeforeProtectedRequest(sessionCookie.getValue())) {
+            addRenewedCookie(response, sessionCookie.getValue());
+        }
+        return true;
+    }
+
+    @Override
     public void postHandle(
         HttpServletRequest request,
         HttpServletResponse response,
         Object handler,
         org.springframework.web.servlet.ModelAndView modelAndView
     ) {
-        if (!sessionContext.shouldRenewCookie() || response.getStatus() >= 400) {
+        if (!sessionContext.shouldRenewCookie()) {
             return;
         }
-        Cookie sessionCookie = WebUtils.getCookie(request, AuthCookieFactory.COOKIE_NAME);
-        if (sessionCookie == null || sessionCookie.getValue() == null || sessionCookie.getValue().isBlank()) {
+        Cookie sessionCookie = sessionCookie(request);
+        if (sessionCookie == null) {
             return;
         }
+        addRenewedCookie(response, sessionCookie.getValue());
+    }
+
+    private boolean requiresPreHandlerRenewal(String requestUri) {
+        return requestUri.startsWith("/api/account/")
+            || requestUri.equals("/api/auth/google/link")
+            || requestUri.equals("/api/auth/google/callback");
+    }
+
+    private Cookie sessionCookie(HttpServletRequest request) {
+        Cookie cookie = WebUtils.getCookie(request, AuthCookieFactory.COOKIE_NAME);
+        if (cookie == null || cookie.getValue() == null || cookie.getValue().isBlank()) {
+            return null;
+        }
+        return cookie;
+    }
+
+    private void addRenewedCookie(HttpServletResponse response, String rawSessionToken) {
         response.addHeader(
             HttpHeaders.SET_COOKIE,
-            cookieFactory.sessionCookie(sessionCookie.getValue(), accountService.sessionTtl()).toString()
+            cookieFactory.sessionCookie(rawSessionToken, accountService.sessionTtl()).toString()
         );
     }
 }

@@ -11,6 +11,7 @@ import {
   getLatestPushNotificationForSubscription,
   getAuthConfig,
   getCurrentAccount,
+  getCurrentAccountWithRetry,
   getPushDeliveryDiagnostics,
   getPushDevices,
   getPushNotificationConfig,
@@ -22,6 +23,7 @@ import {
   linkGoogleAccount,
   logoutAccount,
   normalizeSavedCommuteNotificationRule,
+  preserveAccountStateDuringOutage,
   registerAccount,
   requestPasswordReset,
   savePushSubscription,
@@ -170,6 +172,71 @@ describe("account data adapter", () => {
     assert.equal(result.source, "unavailable");
     assert.equal(result.authenticated, false);
     assert.equal(result.user, null);
+  });
+
+  it("retries unavailable account checks and accepts a later authenticated response", async () => {
+    let attempts = 0;
+    const result = await getCurrentAccountWithRetry({
+      fetcher: async () => {
+        attempts += 1;
+        if (attempts < 3) throw new Error("temporary outage");
+        return new Response(JSON.stringify({
+          authenticated: true,
+          user: {
+            id: "user_1",
+            email: "rider@example.com",
+            displayName: "Rider",
+            demo: false,
+            googleLinked: false,
+          },
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      },
+      retryDelaysMs: [0, 0],
+      wait: async () => {},
+    });
+
+    assert.equal(attempts, 3);
+    assert.equal(result.source, "backend");
+    assert.equal(result.authenticated, true);
+    assert.equal(result.user.displayName, "Rider");
+  });
+
+  it("preserves the last known account while authentication is temporarily unavailable", () => {
+    const known = {
+      source: "backend",
+      authenticated: true,
+      user: {
+        id: "user_1",
+        email: "rider@example.com",
+        displayName: "Rider",
+        demo: false,
+        googleLinked: false,
+      },
+    };
+
+    const result = preserveAccountStateDuringOutage(known, {
+      source: "unavailable",
+      authenticated: false,
+      user: null,
+      message: "Account service unavailable.",
+    });
+
+    assert.equal(result.source, "unavailable");
+    assert.equal(result.authenticated, true);
+    assert.equal(result.user.displayName, "Rider");
+    assert.equal(result.message, "Account service unavailable.");
+
+    const repeatedOutage = preserveAccountStateDuringOutage(result, {
+      source: "unavailable",
+      authenticated: false,
+      user: null,
+      message: "Account service still unavailable.",
+    });
+
+    assert.equal(repeatedOutage.source, "unavailable");
+    assert.equal(repeatedOutage.authenticated, true);
+    assert.equal(repeatedOutage.user.displayName, "Rider");
+    assert.equal(repeatedOutage.message, "Account service still unavailable.");
   });
 
   it("posts demo login with credentials included", async () => {

@@ -37,6 +37,7 @@ import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
+import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
 
 const COMMUTE_SORT_OPTIONS: Array<ToolbarSelectOption<SavedCommuteSort>> = [
   { value: "impact", label: "Most Affected" },
@@ -1768,13 +1769,17 @@ export function SavedCommutesPanel({
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <span className={`shrink-0 text-[8px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold border whitespace-nowrap ${
-            accountState.authenticated
+            accountState.source === "unavailable"
+              ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+              : accountState.authenticated
               ? accountState.user?.demo
                 ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
                 : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
               : "bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20"
           }`}>
-            {accountState.authenticated
+            {accountState.source === "unavailable"
+              ? "Account Check Pending"
+              : accountState.authenticated
               ? accountState.user?.demo
                 ? "Demo Account"
                 : "Route Impacts Enabled"
@@ -1798,7 +1803,9 @@ export function SavedCommutesPanel({
         </div>
       </div>
       <div key={activeView} className="commute-grid min-w-0 px-3 sm:px-4 py-3 flex flex-col gap-3" data-nav-direction={activeView === "create" ? "forward" : "back"}>
-        {!accountState.authenticated ? (
+        {accountState.source === "unavailable" ? (
+          <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
+        ) : !accountState.authenticated ? (
           <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
@@ -1865,7 +1872,7 @@ export function SavedCommutesPanel({
           </div>
         ) : null}
 
-        {accountState.authenticated ? (
+        {accountState.source === "backend" && accountState.authenticated ? (
           <>
             {activeView === "create" ? (
               <div className="saved-commute-form">

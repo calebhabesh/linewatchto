@@ -12,6 +12,10 @@ const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommute
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const savedCommutePickerSource = readFileSync(new URL("../src/components/SavedCommuteStationPicker.tsx", import.meta.url), "utf8");
 const googleSignInSource = readFileSync(new URL("../src/components/GoogleSignInButton.tsx", import.meta.url), "utf8");
+const accountAvailabilitySource = readFileSync(new URL("../src/components/AccountAvailabilityNotice.tsx", import.meta.url), "utf8");
+const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+const notificationSettingsSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
+const myStationsSource = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 
 describe("account UI source", () => {
   it("loads account state and exposes sign-in, create-account, demo, and sign-out actions", () => {
@@ -45,6 +49,20 @@ describe("account UI source", () => {
     assert.doesNotMatch(shellSource, /Your account and all features are free\./);
     assert.match(shellSource, /account-dialog-header/);
     assert.match(shellSource, /account-dialog-description/);
+  });
+
+  it("keeps account outages distinct from signed-out state and retries automatically", () => {
+    assert.match(shellSource, /getCurrentAccountWithRetry/);
+    assert.match(shellSource, /preserveAccountStateDuringOutage/);
+    assert.match(shellSource, /addEventListener\("online"/);
+    assert.match(shellSource, /addEventListener\("visibilitychange"/);
+    assert.match(shellSource, /accountState\.source === "unavailable"/);
+    assert.match(accountAvailabilitySource, /Your sign-in has not been cleared/);
+    assert.match(accountAvailabilitySource, /retrying automatically/);
+    assert.match(savedCommutesSource, /AccountAvailabilityNotice/);
+    assert.match(myStationsSource, /AccountAvailabilityNotice/);
+    assert.match(notificationSettingsSource, /AccountAvailabilityNotice/);
+    assert.match(mobileMoreSource, /AccountAvailabilityNotice/);
   });
 
   it("routes signed-out station saves to account creation without a redundant error", () => {

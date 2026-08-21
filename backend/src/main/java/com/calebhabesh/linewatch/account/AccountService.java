@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,9 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AccountService {
+    private static final Logger log = LoggerFactory.getLogger(AccountService.class);
     public static final String DEMO_EMAIL = "demo@linewatch.local";
     public static final String DEV_EMAIL = "dev@linewatch.local";
-    private static final Duration SESSION_TTL = Duration.ofDays(14);
+    private static final Duration MAX_SESSION_RENEWAL_INTERVAL = Duration.ofDays(1);
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_EMAIL_LENGTH = 320;
     private static final int MAX_PASSWORD_LENGTH = 256;
@@ -44,6 +47,7 @@ public class AccountService {
     private final AccountSessionRequestContext sessionRequestContext;
     private final Clock clock;
     private final boolean passwordResetDevLinks;
+    private final Duration sessionTtl;
 
     @Autowired
     public AccountService(
@@ -59,7 +63,8 @@ public class AccountService {
         GoogleIdentityVerifier googleIdentityVerifier,
         GoogleAuthProperties googleAuthProperties,
         AccountSessionRequestContext sessionRequestContext,
-        @org.springframework.beans.factory.annotation.Value("${linewatch.auth.password-reset.dev-links:false}") boolean passwordResetDevLinks
+        @org.springframework.beans.factory.annotation.Value("${linewatch.auth.password-reset.dev-links:false}") boolean passwordResetDevLinks,
+        @org.springframework.beans.factory.annotation.Value("${linewatch.auth.session-ttl:P365D}") Duration sessionTtl
     ) {
         this(
             accountRepository,
@@ -75,7 +80,8 @@ public class AccountService {
             googleAuthProperties,
             sessionRequestContext,
             Clock.systemUTC(),
-            passwordResetDevLinks
+            passwordResetDevLinks,
+            sessionTtl
         );
     }
 
@@ -93,7 +99,8 @@ public class AccountService {
         GoogleAuthProperties googleAuthProperties,
         AccountSessionRequestContext sessionRequestContext,
         Clock clock,
-        boolean passwordResetDevLinks
+        boolean passwordResetDevLinks,
+        Duration sessionTtl
     ) {
         this.accountRepository = accountRepository;
         this.sessionRepository = sessionRepository;
@@ -109,6 +116,10 @@ public class AccountService {
         this.sessionRequestContext = sessionRequestContext;
         this.clock = clock;
         this.passwordResetDevLinks = passwordResetDevLinks;
+        if (sessionTtl == null || sessionTtl.isZero() || sessionTtl.isNegative()) {
+            throw new IllegalArgumentException("Session TTL must be positive.");
+        }
+        this.sessionTtl = sessionTtl;
     }
 
     @Transactional
@@ -338,16 +349,23 @@ public class AccountService {
     @Transactional
     public AccountResponses.AuthResponse currentUser(String rawSessionToken) {
         if (rawSessionToken == null || rawSessionToken.isBlank()) {
+            log.debug("Account authentication outcome=missing_cookie operation=current_user");
             return new AccountResponses.AuthResponse(false, null);
         }
         String tokenHash = tokenService.hashToken(rawSessionToken);
-        return sessionRepository.findByTokenHash(tokenHash)
-            .filter(session -> session.getExpiresAt().isAfter(clock.instant()))
-            .map(session -> {
-                sessionRequestContext.markValidated(extendSessionIfNecessary(session));
-                return new AccountResponses.AuthResponse(true, toUserResponse(session.getAccount()));
-            })
-            .orElse(new AccountResponses.AuthResponse(false, null));
+        UserSessionEntity session = sessionRepository.findByTokenHash(tokenHash).orElse(null);
+        if (session == null) {
+            log.info("Account authentication outcome=session_not_found operation=current_user");
+            return new AccountResponses.AuthResponse(false, null);
+        }
+        if (!session.getExpiresAt().isAfter(clock.instant())) {
+            log.info("Account authentication outcome=expired_session operation=current_user");
+            return new AccountResponses.AuthResponse(false, null);
+        }
+        boolean renewed = extendSessionIfNecessary(session);
+        sessionRequestContext.markValidated(renewed);
+        log.debug("Account authentication outcome=authenticated operation=current_user renewed={}", renewed);
+        return new AccountResponses.AuthResponse(true, toUserResponse(session.getAccount()));
     }
 
     @Transactional
@@ -368,29 +386,57 @@ public class AccountService {
     @Transactional
     public AccountEntity requireAccount(String rawSessionToken) {
         if (rawSessionToken == null || rawSessionToken.isBlank()) {
+            log.debug("Account authentication outcome=missing_cookie operation=protected_account");
             throw new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use account features.");
         }
         String tokenHash = tokenService.hashToken(rawSessionToken);
-        UserSessionEntity session = sessionRepository.findByTokenHash(tokenHash)
-            .filter(candidate -> candidate.getExpiresAt().isAfter(clock.instant()))
-            .orElseThrow(() -> new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use account features."));
+        UserSessionEntity session = sessionRepository.findByTokenHash(tokenHash).orElse(null);
+        if (session == null) {
+            log.info("Account authentication outcome=session_not_found operation=protected_account");
+            throw notAuthenticated();
+        }
+        if (!session.getExpiresAt().isAfter(clock.instant())) {
+            log.info("Account authentication outcome=expired_session operation=protected_account");
+            throw notAuthenticated();
+        }
         sessionRequestContext.markValidated(extendSessionIfNecessary(session));
         return session.getAccount();
     }
 
+    @Transactional
+    public boolean renewSessionBeforeProtectedRequest(String rawSessionToken) {
+        if (rawSessionToken == null || rawSessionToken.isBlank()) {
+            return false;
+        }
+        return sessionRepository.findByTokenHash(tokenService.hashToken(rawSessionToken))
+            .filter(session -> session.getExpiresAt().isAfter(clock.instant()))
+            .map(this::extendSessionIfNecessary)
+            .orElse(false);
+    }
+
     public Duration sessionTtl() {
-        return SESSION_TTL;
+        return sessionTtl;
     }
 
     private boolean extendSessionIfNecessary(UserSessionEntity session) {
         Instant now = clock.instant();
-        Instant halfway = now.plus(SESSION_TTL.dividedBy(2));
-        if (session.getExpiresAt().isBefore(halfway)) {
-            session.setExpiresAt(now.plus(SESSION_TTL));
+        Duration renewalInterval = sessionTtl.compareTo(MAX_SESSION_RENEWAL_INTERVAL) > 0
+            ? MAX_SESSION_RENEWAL_INTERVAL
+            : sessionTtl.dividedBy(2);
+        if (renewalInterval.isZero()) {
+            renewalInterval = sessionTtl;
+        }
+        Instant renewalThreshold = now.plus(sessionTtl.minus(renewalInterval));
+        if (session.getExpiresAt().isBefore(renewalThreshold)) {
+            session.setExpiresAt(now.plus(sessionTtl));
             sessionRepository.save(session);
             return true;
         }
         return false;
+    }
+
+    private AccountException notAuthenticated() {
+        return new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use account features.");
     }
 
     private AccountResponses.AuthSession createSession(AccountEntity account, Instant now) {
@@ -403,7 +449,7 @@ public class AccountService {
 
     private AccountResponses.AuthSession createSession(AccountEntity account, Instant now, AccountResponses.UserResponse user) {
         SessionTokenService.GeneratedSessionToken token = tokenService.generateToken();
-        Instant expiresAt = now.plus(SESSION_TTL);
+        Instant expiresAt = now.plus(sessionTtl);
         sessionRepository.save(UserSessionEntity.create(
             nextId("session"),
             account,

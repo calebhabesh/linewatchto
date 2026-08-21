@@ -43,6 +43,7 @@ import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { LiveSignalIcon } from "./LiveSignalIcon";
+import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
@@ -1183,7 +1184,9 @@ export function MyStationsPanel({
       </div>
 
       <div key={mode} className="my-stations-body" data-nav-direction={mode === "add" ? "forward" : "back"}>
-        {!authenticated ? (
+        {accountState?.source === "unavailable" ? (
+          <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
+        ) : !authenticated ? (
           <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">

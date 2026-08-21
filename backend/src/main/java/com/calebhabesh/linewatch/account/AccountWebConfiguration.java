@@ -15,6 +15,11 @@ public class AccountWebConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(sessionCookieInterceptor)
-            .addPathPatterns("/api/account/**", "/api/auth/me");
+            .addPathPatterns(
+                "/api/account/**",
+                "/api/auth/me",
+                "/api/auth/google/link",
+                "/api/auth/google/callback"
+            );
     }
 }

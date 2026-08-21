@@ -11,14 +11,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.HttpStatus;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.mockito.ArgumentCaptor;
 
+@ExtendWith(OutputCaptureExtension.class)
 class AccountServiceTest {
     private final AccountRepository accountRepository = mock(AccountRepository.class);
     private final UserSessionRepository sessionRepository = mock(UserSessionRepository.class);
@@ -47,7 +52,8 @@ class AccountServiceTest {
         googleAuthProperties,
         sessionRequestContext,
         clock,
-        true
+        true,
+        Duration.ofDays(365)
     );
 
     private static GoogleAuthProperties googleProperties() {
@@ -71,7 +77,8 @@ class AccountServiceTest {
         assertThat(response.user().displayName()).isEqualTo("Rider");
         assertThat(response.user().googleLinked()).isFalse();
         assertThat(response.rawSessionToken()).isNotBlank();
-        assertThat(response.expiresAt()).isAfter(Instant.parse("2026-06-05T14:30:00Z"));
+        assertThat(response.expiresAt()).isEqualTo(Instant.parse("2027-06-05T14:30:00Z"));
+        assertThat(service.sessionTtl()).isEqualTo(Duration.ofDays(365));
         verify(accountRepository).save(any(AccountEntity.class));
         verify(sessionRepository).save(any(UserSessionEntity.class));
     }
@@ -195,7 +202,18 @@ class AccountServiceTest {
     }
 
     @Test
-    void currentUserRenewsSessionAfterHalfItsTtlAndMarksCookieForRenewal() {
+    void currentUserLogsPrivacySafeMissingSessionOutcome(CapturedOutput output) {
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-token"))).thenReturn(Optional.empty());
+
+        assertThat(service.currentUser("raw-token").authenticated()).isFalse();
+
+        assertThat(output).contains("outcome=session_not_found operation=current_user");
+        assertThat(output).doesNotContain("raw-token");
+        assertThat(output).doesNotContain(tokenService.hashToken("raw-token"));
+    }
+
+    @Test
+    void currentUserMigratesAStillValidLegacySessionToTheLongSlidingTtl() {
         AccountEntity account = AccountEntity.create(
             "user_test",
             "rider@example.com",
@@ -216,7 +234,7 @@ class AccountServiceTest {
 
         assertThat(service.currentUser("raw-token").authenticated()).isTrue();
 
-        assertThat(session.getExpiresAt()).isEqualTo(Instant.parse("2026-06-19T14:30:00Z"));
+        assertThat(session.getExpiresAt()).isEqualTo(Instant.parse("2027-06-05T14:30:00Z"));
         verify(sessionRepository).save(session);
         verify(sessionRequestContext).markValidated(true);
     }
@@ -236,7 +254,7 @@ class AccountServiceTest {
             account,
             tokenService.hashToken("raw-token"),
             Instant.parse("2026-06-05T14:00:00Z"),
-            Instant.parse("2026-06-19T14:00:00Z")
+            Instant.parse("2027-06-05T14:00:00Z")
         );
         when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-token")))
             .thenReturn(Optional.of(session));
@@ -245,6 +263,33 @@ class AccountServiceTest {
 
         verify(sessionRepository, never()).save(any(UserSessionEntity.class));
         verify(sessionRequestContext).markValidated(false);
+    }
+
+    @Test
+    void protectedAccountActivityRenewsAfterTheDailyWriteInterval() {
+        AccountEntity account = AccountEntity.create(
+            "user_test",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            account,
+            tokenService.hashToken("raw-token"),
+            Instant.parse("2026-06-04T14:00:00Z"),
+            Instant.parse("2027-06-04T14:00:00Z")
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-token")))
+            .thenReturn(Optional.of(session));
+
+        assertThat(service.requireAccount("raw-token")).isSameAs(account);
+
+        assertThat(session.getExpiresAt()).isEqualTo(Instant.parse("2027-06-05T14:30:00Z"));
+        verify(sessionRepository).save(session);
+        verify(sessionRequestContext).markValidated(true);
     }
 
     @Test
@@ -377,7 +422,8 @@ class AccountServiceTest {
             googleAuthProperties,
             sessionRequestContext,
             clock,
-            false
+            false,
+            Duration.ofDays(365)
         );
 
         AccountService.PasswordResetRequestResponse response = productionLikeService.requestPasswordReset(
