@@ -3937,22 +3937,34 @@ export function LineWatchShell({
                     <Train size={24} className="desktop-status-train-icon" aria-hidden="true" />
                     <span className="desktop-status-train-copy">
                       <strong>Estimated Train Markers</strong>
-                      <span>{estimatedTrainStatusLabel}</span>
+                      <span className="desktop-status-train-status">
+                        <span>{estimatedTrainStatusLabel}</span>
+                        {estimatedTrainDisplayPending ? (
+                          <span
+                            className="estimated-train-pending-indicator"
+                            role="status"
+                            aria-label={estimatedTrainPendingLabel}
+                            title={estimatedTrainPendingLabel}
+                          >
+                            <Loader2 className="estimated-train-pending-spinner animate-spin" size={11} aria-hidden="true" />
+                          </span>
+                        ) : null}
+                      </span>
                     </span>
                     <span className="desktop-status-train-copy desktop-status-train-copy--compact" aria-hidden="true">
                       <strong>Trains</strong>
-                      <span>{estimatedTrainStatusLabel}</span>
-                    </span>
-                    {estimatedTrainDisplayPending ? (
-                      <span
-                        className="estimated-train-pending-indicator"
-                        role="status"
-                        aria-label={estimatedTrainPendingLabel}
-                        title={estimatedTrainPendingLabel}
-                      >
-                        <Loader2 className="estimated-train-pending-spinner animate-spin" size={14} aria-hidden="true" />
+                      <span className="desktop-status-train-status">
+                        <span>{estimatedTrainStatusLabel}</span>
+                        {estimatedTrainDisplayPending ? (
+                          <span
+                            className="estimated-train-pending-indicator"
+                            aria-hidden="true"
+                          >
+                            <Loader2 className="estimated-train-pending-spinner animate-spin" size={11} aria-hidden="true" />
+                          </span>
+                        ) : null}
                       </span>
-                    ) : null}
+                    </span>
                     <button
                       type="button"
                       onClick={handleToggleEstimatedTrains}
@@ -4168,7 +4180,9 @@ export function LineWatchShell({
               : regionalRailOperatingState.closingSoon || (regionalRailOperatingState.status === "closed" && closedMapPeek))
               ? "mobile-train-toggle--announcement"
               : ""
-          } ${estimatedTrainsEnabled ? "active" : ""}`}
+          } ${estimatedTrainsEnabled ? "active" : ""} ${
+            estimatedTrainDisplayPending ? "mobile-train-toggle--loading" : ""
+          }`}
           data-map-chooser-keepout
           aria-pressed={estimatedTrainsEnabled}
           aria-busy={estimatedTrainDisplayPending}
@@ -4181,7 +4195,7 @@ export function LineWatchShell({
           {estimatedTrainDisplayPending ? (
             <Loader2
               className="mobile-train-pending-spinner animate-spin"
-              size={11}
+              size={18}
               role="status"
               aria-label={estimatedTrainPendingLabel}
             />

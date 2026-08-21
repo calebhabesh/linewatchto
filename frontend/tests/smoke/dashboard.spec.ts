@@ -4456,7 +4456,7 @@ test("shows train-marker connection progress until markers return on desktop and
   await toggle.click();
   const pendingIndicator = page.locator(isMobile
     ? ".mobile-train-pending-spinner"
-    : ".estimated-train-pending-indicator");
+    : ".estimated-train-pending-indicator:visible");
   await expect(pendingIndicator).toBeVisible();
   await expect(toggle).toHaveAttribute("aria-label", /Connecting|Reconnecting/);
   if (isMobile) await expect(toggle).toHaveAttribute("aria-busy", "true");
