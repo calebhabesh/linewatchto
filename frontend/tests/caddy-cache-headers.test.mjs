@@ -18,13 +18,16 @@ function assertCachePolicy(source, label) {
   assert.match(source, /\/assets\/\*/, `${label} should cache public assets`);
   assert.match(source, /@linewatch_public_api_cache/, `${label} should define public API cache matcher`);
   assert.match(source, /\/api\/dashboard/, `${label} should cache aggregate dashboard endpoint`);
-  assert.match(source, /\/api\/trains/, `${label} should cache public train marker endpoint`);
+  assert.match(source, /@linewatch_train_marker_api_cache\s*\{\s*path \/api\/trains \/api\/regional\/trains\s*\}/, `${label} should isolate train marker cache cadence`);
+  assert.match(source, /@linewatch_train_marker_api_cache Cache-Control "public, max-age=0, s-maxage=4, stale-while-revalidate=4"/, `${label} should align train marker cache freshness with polling`);
   assert.match(source, /\/api\/alerts/, `${label} should cache public alert endpoint`);
   assert.match(source, /\/api\/announcements/, `${label} should cache public announcements endpoint`);
   assert.match(source, /\/api\/stations/, `${label} should cache public stations endpoint`);
   assert.match(source, /\/api\/stations\/\*/, `${label} should cache dynamic station detail endpoint`);
   assert.match(source, /\/api\/alert-history/, `${label} should cache public alert history endpoint`);
   assert.match(source, /s-maxage=30/, `${label} should expose a short shared-cache TTL`);
+  const publicApiMatcher = source.match(/@linewatch_public_api_cache\s*\{\s*path ([^\n]+)\s*\}/)?.[1] ?? "";
+  assert.doesNotMatch(publicApiMatcher, /\/api\/trains|\/api\/regional\/trains/, `${label} should not apply dashboard TTLs to train markers`);
   assert.match(source, /@linewatch_private_api_no_store/, `${label} should define private API no-store matcher`);
   assert.match(source, /\/api\/auth\/\*/, `${label} should keep auth uncached`);
   assert.match(source, /\/api\/account\/\*/, `${label} should keep account APIs uncached`);

@@ -78,7 +78,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2 } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -158,6 +158,7 @@ type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "
 type ImpactCategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
+type EstimatedTrainRequestState = "idle" | "loading" | "ready" | "reconnecting";
 type SavedStationNotice = {
   message: string;
   linksToMyStations?: boolean;
@@ -372,6 +373,8 @@ export function LineWatchShell({
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
   const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(initialVisualPreferences.estimatedTrainsEnabled);
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
+  const [estimatedTrainRequestState, setEstimatedTrainRequestState] = useState<EstimatedTrainRequestState>("idle");
+  const estimatedTrainConnectedRef = useRef({ ttc: false, regional: false });
   const trainMarkerContinuityRef = useRef({
     ttc: createEstimatedTrainMarkerContinuityState(),
     regional: createEstimatedTrainMarkerContinuityState(),
@@ -519,11 +522,20 @@ export function LineWatchShell({
       try {
         const result = await getEstimatedTrainMarkers({ network: selectedNetwork });
         if (!cancelled) {
-          setEstimatedTrainSnapshot(reconcileEstimatedTrainSnapshot(
+          const reconciled = reconcileEstimatedTrainSnapshot(
             trainMarkerContinuityRef.current[selectedNetwork],
             result.data,
             selectedNetwork,
-          ));
+          );
+          setEstimatedTrainSnapshot(reconciled);
+          if (result.source === "backend") {
+            estimatedTrainConnectedRef.current[selectedNetwork] = true;
+            setEstimatedTrainRequestState("ready");
+          } else {
+            setEstimatedTrainRequestState(estimatedTrainConnectedRef.current[selectedNetwork]
+              ? "reconnecting"
+              : "loading");
+          }
         }
       } finally {
         trainMarkerRefreshInFlight = false;
@@ -531,17 +543,37 @@ export function LineWatchShell({
     };
 
     if (estimatedTrainMarkersVisible) {
+      setEstimatedTrainRequestState(estimatedTrainConnectedRef.current[selectedNetwork]
+        ? "reconnecting"
+        : "loading");
+      setEstimatedTrainSnapshot(selectedNetwork === "regional"
+        ? EMPTY_REGIONAL_TRAIN_SNAPSHOT
+        : EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
       refresh();
       intervalId = window.setInterval(
         refresh,
         estimatedTrainMarkerRefreshMs(selectedNetwork),
       );
+      const refreshAfterResume = () => {
+        if (document.visibilityState === "visible") void refresh();
+      };
+      document.addEventListener("visibilitychange", refreshAfterResume);
+      window.addEventListener("online", refreshAfterResume);
+
+      return () => {
+        cancelled = true;
+        if (intervalId !== null) {
+          window.clearInterval(intervalId);
+        }
+        document.removeEventListener("visibilitychange", refreshAfterResume);
+        window.removeEventListener("online", refreshAfterResume);
+      };
     } else {
       trainMarkerContinuityRef.current[selectedNetwork] = createEstimatedTrainMarkerContinuityState();
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEstimatedTrainSnapshot(selectedNetwork === "regional"
         ? EMPTY_REGIONAL_TRAIN_SNAPSHOT
         : EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
+      setEstimatedTrainRequestState("idle");
     }
 
     return () => {
@@ -1185,12 +1217,29 @@ export function LineWatchShell({
   const estimatedTrainStatusLabel = !trainNetworkOpen
     ? "Closed"
     : estimatedTrainsEnabled
-      ? estimatedTrainSnapshot.fresh
-        ? `${estimatedTrainSnapshot.markers.length} shown`
-        : estimatedTrainSnapshot.markers.length > 0
-          ? `${estimatedTrainSnapshot.markers.length} held`
-          : "Waiting"
+      ? estimatedTrainSnapshot.markers.length > 0
+        ? estimatedTrainSnapshot.fresh
+          ? `${estimatedTrainSnapshot.markers.length} shown`
+          : `${estimatedTrainSnapshot.markers.length} held`
+        : estimatedTrainRequestState === "reconnecting"
+          ? "Reconnecting"
+          : estimatedTrainRequestState === "loading"
+            ? "Connecting"
+            : estimatedTrainSnapshot.availability === "disabled"
+              || estimatedTrainSnapshot.availability === "unavailable"
+              ? "Unavailable"
+              : "Waiting"
       : "Off";
+
+  const estimatedTrainDisplayPending = estimatedTrainMarkersVisible
+    && estimatedTrainSnapshot.markers.length === 0
+    && (estimatedTrainRequestState === "loading"
+      || estimatedTrainRequestState === "reconnecting"
+      || (estimatedTrainSnapshot.availability !== "disabled"
+        && estimatedTrainSnapshot.availability !== "unavailable"));
+  const estimatedTrainPendingLabel = estimatedTrainRequestState === "reconnecting"
+    ? "Estimated train markers reconnecting"
+    : "Waiting for estimated train markers";
 
   const notificationSummary = useMemo(() => {
     const tone: "on" | "off" | "unavailable" =
@@ -3894,6 +3943,16 @@ export function LineWatchShell({
                       <strong>Trains</strong>
                       <span>{estimatedTrainStatusLabel}</span>
                     </span>
+                    {estimatedTrainDisplayPending ? (
+                      <span
+                        className="estimated-train-pending-indicator"
+                        role="status"
+                        aria-label={estimatedTrainPendingLabel}
+                        title={estimatedTrainPendingLabel}
+                      >
+                        <Loader2 className="estimated-train-pending-spinner animate-spin" size={14} aria-hidden="true" />
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       onClick={handleToggleEstimatedTrains}
@@ -4112,12 +4171,21 @@ export function LineWatchShell({
           } ${estimatedTrainsEnabled ? "active" : ""}`}
           data-map-chooser-keepout
           aria-pressed={estimatedTrainsEnabled}
+          aria-busy={estimatedTrainDisplayPending}
           aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
         >
           <Train size={16} />
           <span>
             View<br />Trains
           </span>
+          {estimatedTrainDisplayPending ? (
+            <Loader2
+              className="mobile-train-pending-spinner animate-spin"
+              size={11}
+              role="status"
+              aria-label={estimatedTrainPendingLabel}
+            />
+          ) : null}
         </button>
       )}
 

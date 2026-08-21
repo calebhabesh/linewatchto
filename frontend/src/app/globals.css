@@ -4179,6 +4179,28 @@ button {
   display: none;
 }
 
+.estimated-train-pending-indicator {
+  align-items: center;
+  color: #0284c7;
+  display: inline-flex;
+  flex: 0 0 16px;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
+}
+
+.dark .estimated-train-pending-indicator {
+  color: #7dd3fc;
+}
+
+.high-contrast .estimated-train-pending-indicator {
+  color: currentColor;
+}
+
+.motion-paused .estimated-train-pending-spinner {
+  animation: none !important;
+}
+
 .desktop-status-train-switch {
   background: rgb(203, 213, 225);
   border-radius: 999px;
@@ -22416,6 +22438,23 @@ img.transit-line-badge {
   color: var(--mobile-chrome-text) !important;
 }
 
+.mobile-train-pending-spinner {
+  color: #0284c7 !important;
+  height: 11px !important;
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 11px !important;
+}
+
+.dark .mobile-train-pending-spinner {
+  color: #7dd3fc !important;
+}
+
+.high-contrast .mobile-train-pending-spinner {
+  color: currentColor !important;
+}
+
 .mobile-train-toggle svg {
   color: var(--mobile-chrome-text-muted) !important;
   flex: 0 0 auto !important;
@@ -22580,6 +22619,10 @@ img.transit-line-badge {
 .estimated-train-marker {
   color: #111827;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+  /* Markers are opt-in and continuously transform. Keep their SVG paint work
+     independently compositable on phones instead of repainting at the cadence
+     of the much larger authored map plane. */
+  will-change: transform;
 }
 
 .estimated-train-marker-halo {

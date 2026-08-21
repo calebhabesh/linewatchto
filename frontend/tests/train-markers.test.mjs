@@ -7,6 +7,7 @@ import {
   createEstimatedTrainMarkerContinuityState,
   estimatedTrainMarkerLanePoint,
   estimatedTrainMarkerMotionDurationMs,
+  estimatedTrainMarkerMotionStartedAt,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
   estimatedTrainMarkerRenderKey,
@@ -14,7 +15,45 @@ import {
   getEstimatedTrainMarkers,
   reconcileEstimatedTrainSnapshot,
   sampleEstimatedTrainMarkerMotion,
+  scheduleEstimatedTrainMarkerAnimation,
 } from "../src/app/train-markers.ts";
+
+describe("estimated train marker frame scheduler", () => {
+  it("uses one monotonic clock and isolates a failed marker from the shared cadence", () => {
+    const originalWindow = globalThis.window;
+    const frames = [];
+    globalThis.window = {
+      requestAnimationFrame(callback) {
+        frames.push(callback);
+        return frames.length;
+      },
+      cancelAnimationFrame() {},
+    };
+
+    try {
+      const observedTimes = [];
+      scheduleEstimatedTrainMarkerAnimation(() => {
+        throw new Error("simulated mobile SVG geometry failure");
+      });
+      scheduleEstimatedTrainMarkerAnimation((now) => {
+        observedTimes.push(now);
+        return false;
+      });
+
+      const beforeFrame = performance.now();
+      assert.doesNotThrow(() => frames.shift()(-1_000_000));
+      assert.equal(observedTimes.length, 1);
+      assert.ok(observedTimes[0] >= beforeFrame);
+      assert.equal(frames.length, 0);
+    } finally {
+      if (originalWindow === undefined) {
+        delete globalThis.window;
+      } else {
+        globalThis.window = originalWindow;
+      }
+    }
+  });
+});
 
 describe("estimated train marker directional lanes", () => {
   it("places opposing trains on opposite sides of horizontal and vertical paths", () => {
@@ -252,6 +291,24 @@ describe("estimated train marker data adapter", () => {
         { ...target, updatedAt: "2026-07-02T10:02:00Z" },
       ]),
       45_000,
+    );
+  });
+
+  it("anchors motion to source time so slower clients catch up to the same wall clock", () => {
+    const target = {
+      ...markerFixture(),
+      updatedAt: "2026-07-02T10:00:04Z",
+    };
+    const wallNow = Date.parse("2026-07-02T10:00:05Z");
+
+    assert.equal(estimatedTrainMarkerMotionStartedAt(target, 4_200, 5_000, wallNow), 4_000);
+    assert.equal(
+      estimatedTrainMarkerMotionStartedAt(target, 4_200, 5_000, wallNow + 10_000),
+      800,
+    );
+    assert.equal(
+      estimatedTrainMarkerMotionStartedAt({ ...target, updatedAt: null, feedCreatedAt: null }, 4_200, 5_000, wallNow),
+      5_000,
     );
   });
 

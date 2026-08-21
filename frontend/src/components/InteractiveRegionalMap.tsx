@@ -7,6 +7,7 @@ import type { AccountCommutePathPreview } from "../app/account-data";
 import {
   estimatedTrainMarkerLanePoint,
   estimatedTrainMarkerMotionDurationMs,
+  estimatedTrainMarkerMotionStartedAt,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
   estimatedTrainMarkerRenderKey,
@@ -1386,7 +1387,7 @@ function animateRegionalTrainMarker(
     ? regionalTrainMarkerFrame(documentNode, settledSegment, settledMarker) ?? current.frame
     : current.frame;
   const duration = estimatedTrainMarkerMotionDurationMs(waypoints);
-  const startedAt = performance.now();
+  const startedAt = estimatedTrainMarkerMotionStartedAt(settledMarker, duration);
   const runtime: RegionalTrainMarkerMotionRuntime = {
     ...current,
     targetObservationKey,

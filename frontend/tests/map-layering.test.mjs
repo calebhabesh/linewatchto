@@ -1000,6 +1000,10 @@ describe("asset-backed map layering", () => {
     assert.match(shellSource, /trainMarkerRefreshInFlight = true;/);
     assert.match(shellSource, /trainMarkerRefreshInFlight = false;/);
     assert.match(shellSource, /if \(!estimatedTrainMarkersVisible \|\| document\.visibilityState !== "visible"\)/);
+    assert.match(shellSource, /document\.addEventListener\("visibilitychange", refreshAfterResume\)/);
+    assert.match(shellSource, /window\.addEventListener\("online", refreshAfterResume\)/);
+    assert.match(shellSource, /estimatedTrainRequestState === "reconnecting"/);
+    assert.match(shellSource, /mobile-train-pending-spinner/);
     assert.match(shellSource, /estimatedTrainsEnabled=\{estimatedTrainMarkersVisible\}/);
     assert.match(shellSource, /estimatedTrainMarkers=\{estimatedTrainMarkersVisible \? estimatedTrainSnapshot\.markers : \[\]\}/);
     assert.match(shellSource, /Live Train Markers/);
@@ -1019,6 +1023,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /estimated-train-marker-arrow/);
     assert.match(globalCss, /\.estimated-train-marker-core/);
     assert.match(globalCss, /\.estimated-train-marker-arrow/);
+    assert.match(globalCss, /\.estimated-train-marker\s*\{[^}]*will-change:\s*transform;/s);
     assert.match(globalCss, /\.estimated-train-marker-layer\[data-muted="true"\]/);
     assert.match(globalCss, /\.estimated-train-marker-layer\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
     assert.match(globalCss, /\.estimated-train-marker-layer \*,[\s\S]*?\.estimated-train-marker\s*\{[^}]*pointer-events:\s*none\s*!important;/s);

@@ -140,10 +140,22 @@ function requestEstimatedTrainMarkerAnimationFrame() {
   estimatedTrainMarkerAnimationFrame = window.requestAnimationFrame(runEstimatedTrainMarkerAnimations);
 }
 
-function runEstimatedTrainMarkerAnimations(now: number) {
+function runEstimatedTrainMarkerAnimations() {
   estimatedTrainMarkerAnimationFrame = null;
+  // Motion runtimes record their start with performance.now(). Keep every
+  // browser on that same monotonic clock instead of mixing it with a
+  // user-agent supplied frame timestamp, which can be quantized differently
+  // on mobile and after an installed PWA resumes.
+  const now = performance.now();
   for (const [animationId, animation] of estimatedTrainMarkerAnimations) {
-    if (!animation.callback(now)) {
+    let keepAnimating = false;
+    try {
+      keepAnimating = animation.callback(now);
+    } catch {
+      // One malformed path or platform-specific SVG geometry failure must not
+      // stop the shared frame loop and freeze every other train marker.
+    }
+    if (!keepAnimating) {
       estimatedTrainMarkerAnimations.delete(animationId);
     }
   }
@@ -334,6 +346,19 @@ export function estimatedTrainMarkerMotionDurationMs(waypoints: EstimatedTrainMa
     MIN_TRAIN_MARKER_MOTION_MS,
     Math.min(MAX_CADENCE_TRAIN_MARKER_MOTION_MS, Math.max(fallbackDuration, sourceCadence)),
   );
+}
+
+export function estimatedTrainMarkerMotionStartedAt(
+  target: EstimatedTrainMarker,
+  durationMs: number,
+  performanceNow = performance.now(),
+  wallNow = Date.now(),
+) {
+  const observedAt = markerTimestamp(target);
+  const sourceAge = observedAt > 0
+    ? Math.max(0, Math.min(durationMs, wallNow - observedAt))
+    : 0;
+  return performanceNow - sourceAge;
 }
 
 export function sampleEstimatedTrainMarkerMotion(

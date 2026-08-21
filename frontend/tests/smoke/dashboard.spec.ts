@@ -4400,6 +4400,23 @@ test("renders and incrementally moves estimated train markers on desktop and mob
   );
   expect(markerBorderStyles.outlineWidth).toBe(isMobile ? "7.5px" : "5.5px");
   expect(markerBorderStyles.coreWidth).toBe(isMobile ? "4px" : "2.2px");
+  await marker.evaluate((node) => {
+    const motionWindow = window as Window & {
+      __lineWatchTrainMarkerFrames?: Array<{ at: number; transform: string | null }>;
+      __lineWatchTrainMarkerObserver?: MutationObserver;
+    };
+    motionWindow.__lineWatchTrainMarkerFrames = [];
+    motionWindow.__lineWatchTrainMarkerObserver?.disconnect();
+    motionWindow.__lineWatchTrainMarkerObserver = new MutationObserver(() => {
+      motionWindow.__lineWatchTrainMarkerFrames?.push({
+        at: performance.now(),
+        transform: node.getAttribute("transform"),
+      });
+    });
+    motionWindow.__lineWatchTrainMarkerObserver.observe(node, {
+      attributeFilter: ["transform"],
+    });
+  });
   const initialTransform = await marker.getAttribute("transform");
   expect(await page.evaluate(() => document.visibilityState)).toBe("visible");
   const nextTrainResponse = page.waitForResponse((response) =>
@@ -4413,6 +4430,48 @@ test("renders and incrementally moves estimated train markers on desktop and mob
   await expect.poll(() => marker.getAttribute("transform"), { timeout: 4_000 })
     .not.toBe(initialTransform);
   const intermediateTransform = await marker.getAttribute("transform");
-  await page.waitForTimeout(180);
+  await page.waitForTimeout(240);
   expect(await marker.getAttribute("transform")).not.toBe(intermediateTransform);
+  const markerFrames = await page.evaluate(() => {
+    const motionWindow = window as Window & {
+      __lineWatchTrainMarkerFrames?: Array<{ at: number; transform: string | null }>;
+      __lineWatchTrainMarkerObserver?: MutationObserver;
+    };
+    motionWindow.__lineWatchTrainMarkerObserver?.disconnect();
+    return motionWindow.__lineWatchTrainMarkerFrames ?? [];
+  });
+  expect(new Set(markerFrames.map((frame) => frame.transform)).size).toBeGreaterThanOrEqual(6);
+  const frameSpan = markerFrames.at(-1)!.at - markerFrames[0].at;
+  expect(frameSpan).toBeGreaterThanOrEqual(160);
+});
+
+test("shows train-marker connection progress until markers return on desktop and mobile", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  const disconnectResponse = await request.post(`${stubUrl}/__test/train-marker-disconnect`);
+  expect(disconnectResponse.ok()).toBeTruthy();
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const toggle = page.getByRole("button", { name: /Toggle estimated train markers/ });
+  await toggle.click();
+  const pendingIndicator = page.locator(isMobile
+    ? ".mobile-train-pending-spinner"
+    : ".estimated-train-pending-indicator");
+  await expect(pendingIndicator).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-label", /Connecting|Reconnecting/);
+  if (isMobile) await expect(toggle).toHaveAttribute("aria-busy", "true");
+  await expect(page.locator(".estimated-train-marker")).toHaveCount(0);
+
+  const nextTrainResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === "/api/trains"
+      && response.request().method() === "GET"
+      && response.status() === 200,
+  );
+  const reconnectResponse = await request.post(`${stubUrl}/__test/train-marker-reconnect`);
+  expect(reconnectResponse.ok()).toBeTruthy();
+  await nextTrainResponse;
+
+  await expect(page.locator(".estimated-train-marker")).toHaveCount(1);
+  await expect(pendingIndicator).toHaveCount(0);
+  await expect(toggle).toHaveAttribute("aria-label", /1 shown/);
 });

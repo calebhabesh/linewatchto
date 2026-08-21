@@ -119,6 +119,7 @@ Cache key: include query string
 
 `/api/alerts?type=delay`, `/api/alerts?type=slowdown`, and `/api/alerts?type=planned` share the same path but must remain distinct by query string.
 `/api/announcements` also supports query parameters. Keep the query string in the cache key for direct API consumers; the LineWatchTO panel and menu count share one unfiltered read, and the panel searches that result locally to avoid creating an edge-cache entry for every search term.
+The origin gives `/api/trains` and `/api/regional/trains` a separate `max-age=0, s-maxage=4, stale-while-revalidate=4` policy. Keep Rule 3 set to respect origin so a newly enabled marker layer is not held behind the dashboard's 30-second shared-cache cadence.
 
 ## WAF And Rate Limiting Rules
 
@@ -258,6 +259,12 @@ Check headers:
 ```text
 cache-control: public, max-age=15, s-maxage=30, stale-while-revalidate=30
 cf-cache-status: HIT
+```
+
+The train-marker endpoints should instead report:
+
+```text
+cache-control: public, max-age=0, s-maxage=4, stale-while-revalidate=4
 ```
 
 Private paths must not cache:

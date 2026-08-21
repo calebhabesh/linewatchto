@@ -50,6 +50,7 @@ import type { AccountCommutePathPreview } from "../app/account-data";
 import {
   estimatedTrainMarkerLanePoint,
   estimatedTrainMarkerMotionDurationMs,
+  estimatedTrainMarkerMotionStartedAt,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
   estimatedTrainMarkerRenderKey,
@@ -5483,7 +5484,7 @@ function AnimatedTtcTrainMarker({
     const settledFrame = ttcTrainMarkerFrame(settledMarker, segmentById, pathMetricCacheRef.current)
       ?? current.frame;
     const duration = estimatedTrainMarkerMotionDurationMs(waypoints);
-    const startedAt = performance.now();
+    const startedAt = estimatedTrainMarkerMotionStartedAt(settledMarker, duration);
     const runtime: TrainMarkerMotionRuntime = {
       ...current,
       targetObservationKey,

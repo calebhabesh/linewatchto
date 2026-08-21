@@ -75,6 +75,8 @@ describe("desktop status capsule", () => {
     assert.match(shellSource, /Estimated Train Markers/);
     assert.match(shellSource, /desktop-status-train-copy/);
     assert.match(shellSource, /desktop-status-train-copy--compact/);
+    assert.match(shellSource, /estimatedTrainDisplayPending[\s\S]*estimated-train-pending-indicator/);
+    assert.match(globalCss, /\.estimated-train-pending-indicator/);
     assert.match(globalCss, /\.desktop-status-train-switch\[aria-pressed="true"\]/);
     assert.match(globalCss, /@media \(max-width:\s*1399px\)\s*\{[^}]*\.desktop-status-train-copy:not\(\.desktop-status-train-copy--compact\)\s*\{[^}]*display:\s*none;[^}]*\}[^}]*\.desktop-status-train-copy--compact\s*\{[^}]*display:\s*flex;/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\) and \(max-width:\s*1399px\)\s*\{[\s\S]*?\.desktop-status-capsule-anchor\s*\{[^}]*left:\s*calc\(50% \+ clamp\(40px, 7vw, 90px\)\)/s);

@@ -25,6 +25,7 @@ let mode = "seeded";
 let demoSessionActive = false;
 let demoSavedStations = [];
 let estimatedTrainMotionAdvanced = false;
+let estimatedTrainConnectionDropped = false;
 
 const defaultPushNotificationPreferences = {
   commuteNotificationsEnabled: true,
@@ -332,6 +333,7 @@ const server = createServer(async (request, response) => {
     demoSessionActive = false;
     demoSavedStations = [];
     estimatedTrainMotionAdvanced = false;
+    estimatedTrainConnectionDropped = false;
     pushPreferences = JSON.parse(JSON.stringify(defaultPushNotificationPreferences));
     sendJson(request, response, 200, { mode });
     return;
@@ -340,6 +342,18 @@ const server = createServer(async (request, response) => {
   if (request.method === "POST" && url.pathname === "/__test/train-marker-advance") {
     estimatedTrainMotionAdvanced = true;
     sendJson(request, response, 200, { advanced: true });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/__test/train-marker-disconnect") {
+    estimatedTrainConnectionDropped = true;
+    sendJson(request, response, 200, { connected: false });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/__test/train-marker-reconnect") {
+    estimatedTrainConnectionDropped = false;
+    sendJson(request, response, 200, { connected: true });
     return;
   }
 
@@ -711,6 +725,10 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/trains") {
+    if (estimatedTrainConnectionDropped) {
+      sendJson(request, response, 503, { error: "Train marker source temporarily unavailable" });
+      return;
+    }
     const advancedTimestamp = "2026-06-04T16:00:01Z";
     sendJson(request, response, 200, estimatedTrainMotionAdvanced ? {
       ...estimatedTrainsResponse,
