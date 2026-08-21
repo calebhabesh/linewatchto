@@ -6917,6 +6917,15 @@ button {
   stroke-width: 2.5;
 }
 
+.impact-overlap-refs {
+  box-sizing: border-box;
+  margin-left: 0;
+  margin-right: 0;
+  margin-inline: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
 .overlap-impact-ref {
   align-items: flex-start;
   background: rgba(255, 255, 255, 0.8);
@@ -18108,7 +18117,8 @@ img.transit-line-badge {
   .station-detail-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll,
-  .mobile-status-content-scroll {
+  .mobile-status-content-scroll,
+  .mobile-impact-inspector-scroll {
     scrollbar-color: var(--mobile-scroll-indicator-thumb) transparent !important;
     scrollbar-width: thin !important;
   }
@@ -18128,6 +18138,7 @@ img.transit-line-badge {
   .station-detail-scroll::-webkit-scrollbar,
   .release-notes-content::-webkit-scrollbar,
   .privacy-acknowledgements-scroll::-webkit-scrollbar,
+  .mobile-impact-inspector-scroll::-webkit-scrollbar,
   .mobile-status-content-scroll::-webkit-scrollbar {
     display: block !important;
     height: 4px;
@@ -18149,6 +18160,7 @@ img.transit-line-badge {
   .station-detail-scroll::-webkit-scrollbar-track,
   .release-notes-content::-webkit-scrollbar-track,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-track,
+  .mobile-impact-inspector-scroll::-webkit-scrollbar-track,
   .mobile-status-content-scroll::-webkit-scrollbar-track {
     background: transparent;
   }
@@ -18168,6 +18180,7 @@ img.transit-line-badge {
   .station-detail-scroll::-webkit-scrollbar-thumb,
   .release-notes-content::-webkit-scrollbar-thumb,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
+  .mobile-impact-inspector-scroll::-webkit-scrollbar-thumb,
   .mobile-status-content-scroll::-webkit-scrollbar-thumb {
     background: var(--mobile-scroll-indicator-thumb);
     background-clip: padding-box;
@@ -18583,9 +18596,10 @@ img.transit-line-badge {
     flex: 1 1 auto;
     flex-direction: column;
     gap: 10px;
+    margin-right: -12px;
     min-height: 0;
     overflow-y: auto;
-    padding-right: 2px;
+    padding-right: 12px;
   }
 
   @keyframes mobile-impact-inspector-content-in {
@@ -18626,8 +18640,10 @@ img.transit-line-badge {
     grid-template-columns: max-content minmax(0, 1fr);
     align-items: start;
     column-gap: 4px;
-    margin-inline: auto;
-    max-width: 350px;
+    margin-left: 0;
+    margin-right: 0;
+    margin-inline: 0;
+    max-width: 100%;
     width: 100%;
   }
 
@@ -24458,6 +24474,8 @@ button:active .account-network-badge,
 
   .mobile-impact-inspector-scroll {
     gap: 8px;
+    margin-right: -9px;
+    padding-right: 9px;
   }
 
   .mobile-impact-inspector-action {

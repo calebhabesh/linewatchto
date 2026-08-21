@@ -25,7 +25,7 @@ export function OverlappingImpactRefs({
   if (overlaps.length === 0) return null;
 
   return (
-    <div className="impact-overlap-refs text-[11px] mt-2 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40 border border-black/5 dark:border-white/5 px-2 py-1 rounded-md w-fit flex gap-1 items-start">
+    <div className="impact-overlap-refs text-[11px] mt-2 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40 border border-black/5 dark:border-white/5 px-2 py-1 rounded-md w-full flex gap-1 items-start">
       <span className="font-bold text-amber-600 dark:text-amber-400 mr-1 shrink-0 mt-[5px]">{label}</span>
       <div className="impact-overlap-ref-list flex flex-wrap items-center gap-1">
         {overlaps.map((overlap) => (

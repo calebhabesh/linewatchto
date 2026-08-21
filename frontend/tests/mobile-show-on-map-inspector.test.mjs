@@ -59,7 +59,7 @@ describe("mobile Show on Map inspector", () => {
     assert.match(globalCss, /\.mobile-impact-inspector-window\s*\{[^}]*text-transform:\s*capitalize/s);
     assert.match(overlapRefsSource, /className="impact-overlap-refs/);
     assert.match(overlapRefsSource, /className="impact-overlap-ref-list/);
-    assert.match(globalCss, /\n  \.impact-overlap-refs\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*max-content minmax\(0, 1fr\);[^}]*max-width:\s*350px;[^}]*width:\s*100%/s);
+    assert.match(globalCss, /\n  \.impact-overlap-refs\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*max-content minmax\(0, 1fr\);[^}]*margin-left:\s*0;[^}]*margin-right:\s*0;[^}]*margin-inline:\s*0;[^}]*max-width:\s*100%;[^}]*width:\s*100%/s);
     assert.match(globalCss, /\n  \.impact-overlap-ref-list\s*\{[^}]*flex:\s*1 1 0;[^}]*min-width:\s*0/s);
     assert.match(globalCss, /\n  \.overlap-impact-ref\s*\{[^}]*font-size:\s*10px;[^}]*gap:\s*3px;[^}]*padding:\s*3px 4px/s);
     assert.doesNotMatch(globalCss, /\.impact-overlap-ref-list\s*\{[^}]*display:\s*contents/s);
