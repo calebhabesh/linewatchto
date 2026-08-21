@@ -349,7 +349,7 @@ class GtfsRtSubwayTrainMarkerServiceTest {
         EstimatedTrainMarkerSnapshot second = service.estimatedMarkers();
 
         assertThat(first.markers()).singleElement().extracting(EstimatedTrainMarker::vehicleId).isEqualTo("232");
-        assertThat(second.markers()).singleElement().extracting(EstimatedTrainMarker::vehicleId).isEqualTo("233");
+        assertThat(second.markers()).extracting(EstimatedTrainMarker::vehicleId).containsExactlyInAnyOrder("232", "233");
         verify(lineSegmentRepository, times(2)).findAllByOrderBySortOrderAsc();
         verify(travelTimeRepository, times(2)).activeScheduleSignature();
         verify(travelTimeRepository, times(1)).findSeededFallbackSegmentWeights();
@@ -394,7 +394,7 @@ class GtfsRtSubwayTrainMarkerServiceTest {
         )));
         EstimatedTrainMarkerSnapshot first = mutableService.estimatedMarkers();
 
-        mutableClock.advance(Duration.ofSeconds(2));
+        mutableClock.advance(Duration.ofSeconds(10));
         OffsetDateTime gapNow = OffsetDateTime.now(mutableClock);
         mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(gapNow.minusSeconds(1), gapNow, List.of()));
         EstimatedTrainMarkerSnapshot duringGap = mutableService.estimatedMarkers();
@@ -404,6 +404,42 @@ class GtfsRtSubwayTrainMarkerServiceTest {
             assertThat(marker.id()).isEqualTo("line-2:126789:232:eastbound:bay");
             assertThat(marker.updatedAt()).isEqualTo(now);
         });
+
+        mutableClock.advance(Duration.ofSeconds(21));
+        OffsetDateTime expiredAt = OffsetDateTime.now(mutableClock);
+        mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(expiredAt.minusSeconds(1), expiredAt, List.of()));
+
+        assertThat(mutableService.estimatedMarkers().markers()).isEmpty();
+    }
+
+    @Test
+    void usesVehicleIdentityToAvoidDuplicatingAReassignedTrip() {
+        MutableClock mutableClock = new MutableClock(Instant.parse("2026-07-02T10:00:00Z"), ZoneOffset.UTC);
+        GtfsRtSubwayArrivalCache mutableCache = new GtfsRtSubwayArrivalCache(properties, mutableClock);
+        GtfsRtSubwayTrainMarkerService mutableService = new GtfsRtSubwayTrainMarkerService(
+            mutableCache, lineSegmentRepository, travelTimeRepository, properties, mutableClock,
+            new SubwayOperatingWindow(mutableClock)
+        );
+        OffsetDateTime now = OffsetDateTime.now(mutableClock);
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-bay", "line-2", "st-george", "bay", 315, "eastbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of());
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+        mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(1), now, List.of(
+            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", now.plusSeconds(80), "232", "trip-a", "13753")
+        )));
+        mutableService.estimatedMarkers();
+
+        mutableClock.advance(Duration.ofSeconds(2));
+        OffsetDateTime next = OffsetDateTime.now(mutableClock);
+        mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(next.minusSeconds(1), next, List.of(
+            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", next.plusSeconds(70), "232", "trip-b", "13753")
+        )));
+
+        assertThat(mutableService.estimatedMarkers().markers()).singleElement()
+            .extracting(EstimatedTrainMarker::tripId).isEqualTo("trip-b");
     }
 
     @Test

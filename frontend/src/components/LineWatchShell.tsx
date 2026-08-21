@@ -69,8 +69,10 @@ import { StationDetailPanel } from "./StationDetailPanel";
 import {
   EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
   EMPTY_REGIONAL_TRAIN_SNAPSHOT,
+  createEstimatedTrainMarkerContinuityState,
   estimatedTrainMarkerRefreshMs,
   getEstimatedTrainMarkers,
+  reconcileEstimatedTrainSnapshot,
   type EstimatedTrainSnapshot,
 } from "../app/train-markers";
 import { useTorontoClock } from "../hooks/useTorontoClock";
@@ -96,7 +98,7 @@ import {
   confirmPasswordReset,
   commutePathPreviewFromCommute,
   getAuthConfig,
-  getCurrentAccount,
+  getCurrentAccountWithRetry,
   getSavedCommutes,
   loginAccount,
   loginDemoAccount,
@@ -105,6 +107,7 @@ import {
   logoutAccount,
   registerAccount,
   requestPasswordReset,
+  preserveAccountStateDuringOutage,
   summarizeSavedCommuteStatuses,
   unavailableAuthConfig,
   type AccountState,
@@ -115,6 +118,7 @@ import {
   type AuthConfig,
   type SavedCommuteSort,
 } from "../app/account-data";
+import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
 import {
   getSavedStations,
   removeSavedStation,
@@ -368,6 +372,10 @@ export function LineWatchShell({
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
   const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(initialVisualPreferences.estimatedTrainsEnabled);
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
+  const trainMarkerContinuityRef = useRef({
+    ttc: createEstimatedTrainMarkerContinuityState(),
+    regional: createEstimatedTrainMarkerContinuityState(),
+  });
   const subwayOperatingState = useSubwayOperatingState();
   const regionalRailOperatingState = useRegionalRailOperatingState();
   const trainNetworkOpen = selectedNetwork === "ttc"
@@ -511,7 +519,11 @@ export function LineWatchShell({
       try {
         const result = await getEstimatedTrainMarkers({ network: selectedNetwork });
         if (!cancelled) {
-          setEstimatedTrainSnapshot(result.data);
+          setEstimatedTrainSnapshot(reconcileEstimatedTrainSnapshot(
+            trainMarkerContinuityRef.current[selectedNetwork],
+            result.data,
+            selectedNetwork,
+          ));
         }
       } finally {
         trainMarkerRefreshInFlight = false;
@@ -525,6 +537,7 @@ export function LineWatchShell({
         estimatedTrainMarkerRefreshMs(selectedNetwork),
       );
     } else {
+      trainMarkerContinuityRef.current[selectedNetwork] = createEstimatedTrainMarkerContinuityState();
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setEstimatedTrainSnapshot(selectedNetwork === "regional"
         ? EMPTY_REGIONAL_TRAIN_SNAPSHOT
@@ -1174,7 +1187,9 @@ export function LineWatchShell({
     : estimatedTrainsEnabled
       ? estimatedTrainSnapshot.fresh
         ? `${estimatedTrainSnapshot.markers.length} shown`
-        : "Waiting"
+        : estimatedTrainSnapshot.markers.length > 0
+          ? `${estimatedTrainSnapshot.markers.length} held`
+          : "Waiting"
       : "Off";
 
   const notificationSummary = useMemo(() => {
@@ -1198,13 +1213,32 @@ export function LineWatchShell({
 
   useEffect(() => {
     let cancelled = false;
-    getCurrentAccount().then((state) => {
-      if (!cancelled) {
-        setAccountState(state);
-      }
-    });
+    let request: Promise<void> | null = null;
+    const refreshAccount = () => {
+      if (request) return request;
+      request = getCurrentAccountWithRetry()
+        .then((state) => {
+          if (!cancelled) {
+            setAccountState((current) => preserveAccountStateDuringOutage(current, state));
+          }
+        })
+        .finally(() => {
+          request = null;
+        });
+      return request;
+    };
+    const handleOnline = () => { void refreshAccount(); };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshAccount();
+    };
+
+    void refreshAccount();
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       cancelled = true;
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -1406,6 +1440,10 @@ export function LineWatchShell({
   }, []);
 
   const handleSaveStation = useCallback(async (stationId: string, networkId: NetworkId = selectedNetwork) => {
+    if (accountState.source === "unavailable") {
+      showSavedStationNotice("Account connection interrupted. Retrying automatically");
+      return false;
+    }
     if (!accountState.authenticated) {
       setAccountEntryIntent("register");
       openAccountDialog("auth-choice");
@@ -1443,9 +1481,13 @@ export function LineWatchShell({
     } finally {
       setSavedStationPending(stationId, false);
     }
-  }, [accountState.authenticated, openAccountDialog, pendingSavedStationIds, savedStations, selectedNetwork, setAccountEntryIntent, setAccountError, setSavedStationPending, showSavedStationNotice, stationCatalogs]);
+  }, [accountState.authenticated, accountState.source, openAccountDialog, pendingSavedStationIds, savedStations, selectedNetwork, setAccountEntryIntent, setAccountError, setSavedStationPending, showSavedStationNotice, stationCatalogs]);
 
   const handleRemoveSavedStation = useCallback(async (stationId: string, networkId: NetworkId = selectedNetwork) => {
+    if (accountState.source === "unavailable") {
+      showSavedStationNotice("Account connection interrupted. Retrying automatically");
+      return false;
+    }
     if (!accountState.authenticated || pendingSavedStationIds.has(stationId)) return false;
     const previous = savedStations.find(
       (saved) => saved.networkId === networkId && saved.station.id === stationId,
@@ -1470,7 +1512,7 @@ export function LineWatchShell({
     } finally {
       setSavedStationPending(stationId, false);
     }
-  }, [accountState.authenticated, pendingSavedStationIds, savedStations, selectedNetwork, setSavedStationPending, showSavedStationNotice]);
+  }, [accountState.authenticated, accountState.source, pendingSavedStationIds, savedStations, selectedNetwork, setSavedStationPending, showSavedStationNotice]);
 
   const handleToggleSavedStation = useCallback((stationId: string, networkId: NetworkId = selectedNetwork) => {
     if (savedStations.some((saved) => saved.networkId === networkId && saved.station.id === stationId)) {
@@ -3246,7 +3288,12 @@ export function LineWatchShell({
                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                     <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Account</span>
                   </div>
-                  {accountState.authenticated && accountState.user ? (
+                  {accountState.source === "unavailable" ? (
+                    <AccountAvailabilityNotice
+                      compact
+                      knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null}
+                    />
+                  ) : accountState.authenticated && accountState.user ? (
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-2 min-w-0 text-sm text-slate-700 dark:text-slate-200 px-3 py-2">
                         <UserRound size={17} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -3790,7 +3837,7 @@ export function LineWatchShell({
             inputRef={stationSearchInputRef}
             keyDownHandlerRef={stationKeyDownHandlerRef}
             isMobile={isMobile}
-            authenticated={accountState.authenticated}
+            authenticated={accountState.authenticated || accountState.source === "unavailable"}
             savedStationKeys={savedStationKeys}
             pendingSavedStationIds={pendingSavedStationIds}
             onToggleSavedStation={handleToggleSavedStation}
@@ -4084,7 +4131,7 @@ export function LineWatchShell({
           onClose={() => closeSelectedStation(selectedStationId)}
           onSelectImpact={handleStationSelectImpact}
           reducedMotion={reducedMotion}
-          authenticated={accountState.authenticated}
+          authenticated={accountState.authenticated || accountState.source === "unavailable"}
           saved={savedStationIds.has(selectedStationId)}
           savePending={pendingSavedStationIds.has(selectedStationId)}
           onToggleSaved={handleToggleSavedStation}
@@ -4110,7 +4157,7 @@ export function LineWatchShell({
           accessibilityFresh={accessibilityOutageResult?.fresh === true}
           onClose={() => closeSelectedStation(selectedStationId)}
           onSelectImpact={handleStationSelectImpact}
-          authenticated={accountState.authenticated}
+          authenticated={accountState.authenticated || accountState.source === "unavailable"}
           saved={savedStationIds.has(selectedStationId)}
           savePending={pendingSavedStationIds.has(selectedStationId)}
           onToggleSaved={handleToggleSavedStation}

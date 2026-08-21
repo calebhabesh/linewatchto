@@ -783,7 +783,7 @@ export function readSvgStationLabelPolygons(
   padding: number | StationLabelPolygonPadding = 0,
 ): Map<string, MapPolygon> {
   const padLeading = typeof padding === "number" ? padding : (padding.leading ?? padding.x ?? 0);
-  const padTrailing = typeof padding === "number" ? padding : (padding.trailing ?? padding.x ?? 0);
+  const defaultTrailing = typeof padding === "number" ? padding : (padding.trailing ?? padding.x ?? 0);
   const padTop = typeof padding === "number" ? padding : (padding.top ?? padding.y ?? 0);
   const padBottom = typeof padding === "number" ? padding : (padding.bottom ?? padding.y ?? 0);
   const expectedIds = new Set(stationIds);
@@ -793,6 +793,12 @@ export function readSvgStationLabelPolygons(
   // be non-invertible during the first entrance frame.
   const rootMatrix = root.getCTM() ?? root.getScreenCTM();
 
+  const labelEntries: Array<{
+    stationId: string;
+    element: SVGGraphicsElement;
+    box: DOMRect;
+  }> = [];
+
   for (const element of root.querySelectorAll<SVGGraphicsElement>(
     "#ttc-station-labels-layer [data-station-label-for]",
   )) {
@@ -801,11 +807,36 @@ export function readSvgStationLabelPolygons(
 
     try {
       const box = element.getBBox();
+      labelEntries.push({ stationId, element, box });
+    } catch {
+      // A temporarily hidden or not-yet-laid-out SVG label has no usable box.
+    }
+  }
+
+  for (const { stationId, element, box } of labelEntries) {
+    let allowedTrailing = defaultTrailing;
+
+    for (const other of labelEntries) {
+      if (other.stationId === stationId) continue;
+      const deltaX = other.box.x - (box.x + box.width);
+      const verticalOverlap = Math.max(
+        0,
+        Math.min(box.y + box.height, other.box.y + other.box.height) - Math.max(box.y, other.box.y),
+      );
+      const verticalDist = Math.abs((box.y + box.height / 2) - (other.box.y + other.box.height / 2));
+
+      if (deltaX >= -5 && deltaX < defaultTrailing + 30 && (verticalOverlap > 0 || verticalDist < 40)) {
+        const safeGap = Math.max(0, deltaX - 2);
+        allowedTrailing = Math.min(allowedTrailing, safeGap);
+      }
+    }
+
+    try {
       const polygon = transformBoundsToRootPolygon(
         {
           x: box.x - padLeading,
           y: box.y - padTop,
-          width: box.width + padLeading + padTrailing,
+          width: box.width + padLeading + allowedTrailing,
           height: box.height + padTop + padBottom,
         },
         element.getCTM() ?? element.getScreenCTM(),

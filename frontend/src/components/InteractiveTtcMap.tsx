@@ -48,7 +48,11 @@ import type {
 import type { StationSummary } from "../app/station-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
+  estimatedTrainMarkerMotionDurationMs,
+  estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerRenderKey,
+  interpolatedEstimatedTrainMarkerAngle,
+  sampleEstimatedTrainMarkerMotion,
   TRAIN_MARKER_ARROW_PATH,
   TRAIN_MARKER_BODY_PATH,
   TRAIN_MARKER_WINDOWS,
@@ -2293,6 +2297,7 @@ function InteractiveTtcMapComponent({
                   markers={estimatedTrainMarkers}
                   segments={renderedNetworkSegments}
                   muted={Boolean(selection || selectedStationId || commutePathPreview)}
+                  animate={!reducedMotion && !mobilePerformanceMode}
                 />
               </g>
               <g aria-label="Cardinal North Compass" transform="translate(7600, 2300) scale(4)">
@@ -5412,51 +5417,119 @@ function EstimatedTrainMarkerLayer({
   markers,
   segments,
   muted,
+  animate,
 }: {
   enabled: boolean;
   markers: EstimatedTrainMarker[];
   segments: RenderedNetworkSegment[];
   muted: boolean;
+  animate: boolean;
 }) {
   const segmentById = useMemo(() => new Map(segments.map((segment) => [segment.id, segment])), [segments]);
-  const markerNodes = useMemo(() => {
-    if (!enabled || markers.length === 0) return [];
-
-    const pathMetricCache = new Map<string, TrainMarkerPathMetrics>();
-
-    return markers.flatMap((marker) => {
-      const segment = segmentById.get(marker.segmentId);
-      if (!segment?.pathD) return [];
-
-      const visualDirection = visualTravelDirection({ ...segment, travelDirection: marker.travelDirection });
-      const pathProgress = visualDirection === "reverse" ? 1 - marker.progress : marker.progress;
-      const frame = pathFrameAtProgress(segment.pathD, pathProgress, visualDirection, pathMetricCache);
-      if (!frame) return [];
-
-      return [
-        <g
-          key={estimatedTrainMarkerRenderKey(marker)}
-          className={`estimated-train-marker estimated-train-marker-${marker.lineId}`}
-          data-train-marker-id={marker.id}
-          data-train-marker-line-id={marker.lineId}
-          data-train-marker-direction={marker.direction}
-          data-train-marker-segment-id={marker.segmentId}
-          data-train-marker-travel-direction={visualDirection}
-          transform={`translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`}
-          pointerEvents="none"
-        >
-          <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
-          <TrainMarkerGlyph />
-        </g>,
-      ];
-    });
-  }, [enabled, markers, segmentById]);
+  const markerNodes = enabled ? markers
+    .filter((marker) => segmentById.get(marker.segmentId)?.pathD)
+    .map((marker) => (
+      <AnimatedTtcTrainMarker
+        key={estimatedTrainMarkerRenderKey(marker)}
+        marker={marker}
+        segments={segments}
+        segmentById={segmentById}
+        animate={animate}
+      />
+    )) : [];
 
   if (markerNodes.length === 0) return null;
 
   return (
     <g className="estimated-train-marker-layer" data-muted={muted ? "true" : "false"} pointerEvents="none">
       {markerNodes}
+    </g>
+  );
+}
+
+function AnimatedTtcTrainMarker({
+  marker,
+  segments,
+  segmentById,
+  animate,
+}: {
+  marker: EstimatedTrainMarker;
+  segments: RenderedNetworkSegment[];
+  segmentById: Map<string, RenderedNetworkSegment>;
+  animate: boolean;
+}) {
+  const groupRef = useRef<SVGGElement>(null);
+  const pathMetricCacheRef = useRef(new Map<string, TrainMarkerPathMetrics>());
+  const motionRef = useRef<TrainMarkerMotionRuntime | null>(null);
+
+  useLayoutEffect(() => {
+    const group = groupRef.current;
+    const targetFrame = ttcTrainMarkerFrame(marker, segmentById, pathMetricCacheRef.current);
+    if (!group || !targetFrame) return;
+    const current = motionRef.current;
+    if (current?.animationFrame !== null && current?.animationFrame !== undefined) {
+      window.cancelAnimationFrame(current.animationFrame);
+    }
+    if (!current || !animate) {
+      setTrainMarkerTransform(group, targetFrame);
+      motionRef.current = { marker, frame: targetFrame, animationFrame: null };
+      return;
+    }
+
+    const waypoints = estimatedTrainMarkerMotionWaypoints(current.marker, marker, segments);
+    const duration = estimatedTrainMarkerMotionDurationMs(waypoints);
+    const startedAt = performance.now();
+    const startFrame = current.frame;
+    const runtime: TrainMarkerMotionRuntime = { ...current, animationFrame: null };
+    motionRef.current = runtime;
+
+    const update = (now: number) => {
+      const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
+      const sample = sampleEstimatedTrainMarkerMotion(waypoints, progress);
+      const motion = ttcTrainMarkerMotionFrame(sample, segmentById, pathMetricCacheRef.current);
+      if (!motion) {
+        setTrainMarkerTransform(group, targetFrame);
+        runtime.marker = marker;
+        runtime.frame = targetFrame;
+        runtime.animationFrame = null;
+        return;
+      }
+      // If a new feed update interrupted a station-to-station bridge, blend
+      // from the exact painted frame before continuing along the new plan.
+      const continuityBlend = Math.min(1, (now - startedAt) / 180);
+      const frame = interpolateTrainMarkerFrame(startFrame, motion.frame, continuityBlend);
+      setTrainMarkerTransform(group, frame);
+      runtime.marker = motion.marker;
+      runtime.frame = frame;
+      if (progress < 1) {
+        runtime.animationFrame = window.requestAnimationFrame(update);
+      } else {
+        runtime.marker = marker;
+        runtime.frame = targetFrame;
+        runtime.animationFrame = null;
+        setTrainMarkerTransform(group, targetFrame);
+      }
+    };
+    runtime.animationFrame = window.requestAnimationFrame(update);
+    return () => {
+      if (runtime.animationFrame !== null) window.cancelAnimationFrame(runtime.animationFrame);
+    };
+  }, [animate, marker, segmentById, segments]);
+
+  const visualDirection = ttcMarkerVisualDirection(marker, segmentById);
+  return (
+    <g
+      ref={groupRef}
+      className={`estimated-train-marker estimated-train-marker-${marker.lineId}`}
+      data-train-marker-id={marker.id}
+      data-train-marker-line-id={marker.lineId}
+      data-train-marker-direction={marker.direction}
+      data-train-marker-segment-id={marker.segmentId}
+      data-train-marker-travel-direction={visualDirection}
+      pointerEvents="none"
+    >
+      <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
+      <TrainMarkerGlyph />
     </g>
   );
 }
@@ -5485,10 +5558,84 @@ type TrainMarkerPathFrame = {
   angle: number;
 };
 
+type TrainMarkerMotionRuntime = {
+  marker: EstimatedTrainMarker;
+  frame: TrainMarkerPathFrame;
+  animationFrame: number | null;
+};
+
 type TrainMarkerPathMetrics = {
   path: SVGPathElement;
   length: number;
 };
+
+function ttcMarkerVisualDirection(
+  marker: EstimatedTrainMarker,
+  segmentById: Map<string, RenderedNetworkSegment>,
+) {
+  const segment = segmentById.get(marker.segmentId);
+  return segment
+    ? visualTravelDirection({ ...segment, travelDirection: marker.travelDirection })
+    : marker.travelDirection;
+}
+
+function ttcTrainMarkerFrame(
+  marker: EstimatedTrainMarker,
+  segmentById: Map<string, RenderedNetworkSegment>,
+  pathMetricCache: Map<string, TrainMarkerPathMetrics>,
+) {
+  const segment = segmentById.get(marker.segmentId);
+  if (!segment?.pathD) return null;
+  const visualDirection = ttcMarkerVisualDirection(marker, segmentById);
+  const pathProgress = visualDirection === "reverse" ? 1 - marker.progress : marker.progress;
+  return pathFrameAtProgress(segment.pathD, pathProgress, visualDirection, pathMetricCache);
+}
+
+function ttcTrainMarkerMotionFrame(
+  sample: ReturnType<typeof sampleEstimatedTrainMarkerMotion>,
+  segmentById: Map<string, RenderedNetworkSegment>,
+  pathMetricCache: Map<string, TrainMarkerPathMetrics>,
+): { marker: EstimatedTrainMarker; frame: TrainMarkerPathFrame } | null {
+  if (sample.from.segmentId === sample.to.segmentId
+    && sample.from.fromStationId === sample.to.fromStationId
+    && sample.from.toStationId === sample.to.toStationId) {
+    const marker = {
+      ...sample.to,
+      progress: sample.from.progress + (sample.to.progress - sample.from.progress) * sample.progress,
+    };
+    const frame = ttcTrainMarkerFrame(marker, segmentById, pathMetricCache);
+    return frame ? { marker, frame } : null;
+  }
+  const fromFrame = ttcTrainMarkerFrame(sample.from, segmentById, pathMetricCache);
+  const toFrame = ttcTrainMarkerFrame(sample.to, segmentById, pathMetricCache);
+  if (!fromFrame || !toFrame) return null;
+  return {
+    marker: sample.progress < 0.5 ? sample.from : sample.to,
+    frame: interpolateTrainMarkerFrame(fromFrame, toFrame, sample.progress),
+  };
+}
+
+function interpolateTrainMarkerFrame(
+  from: TrainMarkerPathFrame,
+  to: TrainMarkerPathFrame,
+  progress: number,
+): TrainMarkerPathFrame {
+  const bounded = Math.max(0, Math.min(1, progress));
+  return {
+    point: {
+      x: from.point.x + (to.point.x - from.point.x) * bounded,
+      y: from.point.y + (to.point.y - from.point.y) * bounded,
+    },
+    angle: interpolatedEstimatedTrainMarkerAngle(from.angle, to.angle, bounded),
+  };
+}
+
+function setTrainMarkerTransform(group: SVGGElement, frame: TrainMarkerPathFrame) {
+  group.setAttribute(
+    "transform",
+    `translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`,
+  );
+}
 
 function pathFrameAtProgress(
   pathD: string,

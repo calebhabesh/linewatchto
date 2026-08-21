@@ -61,6 +61,58 @@ class RegionalTrainMarkerServiceTest {
         verifyNoInteractions(client);
     }
 
+    @Test
+    void holdsLastPositionsAcrossACompleteTemporarySourceOutage() {
+        MetrolinxVehiclePositionClient client = mock(MetrolinxVehiclePositionClient.class);
+        RegionalTrainMarkerProperties properties = new RegionalTrainMarkerProperties();
+        properties.setEnabled(true);
+        properties.setCacheTtl(Duration.ofSeconds(15));
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:30Z");
+        when(client.fetchGo())
+            .thenReturn(new RegionalTrainMarkerFeed(updatedAt, "GO source", List.of(marker(updatedAt))))
+            .thenThrow(new MetrolinxClientException("unavailable"));
+        when(client.fetchUp()).thenThrow(new MetrolinxClientException("unavailable"));
+        MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
+        RegionalTrainMarkerService service = new RegionalTrainMarkerService(client, properties, clock);
+
+        RegionalTrainMarkerService.Snapshot first = service.markers();
+        clock.advance(Duration.ofSeconds(16));
+        RegionalTrainMarkerService.Snapshot outage = service.markers();
+
+        assertThat(first.markers()).hasSize(1);
+        assertThat(outage.fresh()).isFalse();
+        assertThat(outage.availability()).isEqualTo("unavailable");
+        assertThat(outage.markers()).singleElement().extracting(RegionalTrainMarkerRecord::vehicleId)
+            .isEqualTo("cab-1");
+        assertThat(outage.message()).contains("holding the last estimated marker positions");
+    }
+
+    @Test
+    void replacesAChangedTripForTheSameVehicleWithoutLeavingAGhostMarker() {
+        MetrolinxVehiclePositionClient client = mock(MetrolinxVehiclePositionClient.class);
+        RegionalTrainMarkerProperties properties = new RegionalTrainMarkerProperties();
+        properties.setEnabled(true);
+        properties.setCacheTtl(Duration.ofSeconds(1));
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:30Z");
+        when(client.fetchGo())
+            .thenReturn(new RegionalTrainMarkerFeed(updatedAt, "GO source", List.of(marker(updatedAt))))
+            .thenReturn(new RegionalTrainMarkerFeed(updatedAt.plusSeconds(2), "GO source", List.of(
+                new RegionalTrainMarkerRecord("go-2", "regional-ki", "Outbound", "forward",
+                    "segment-ki-mount-dennis-weston", "mount-dennis", "weston", "weston", 0.6,
+                    420, updatedAt.plusSeconds(170), true, "cab-1", "trip-2", updatedAt.plusSeconds(2), "GO source")
+            )));
+        when(client.fetchUp()).thenThrow(new MetrolinxClientException("unavailable"));
+        MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
+        RegionalTrainMarkerService service = new RegionalTrainMarkerService(client, properties, clock);
+        service.markers();
+
+        clock.advance(Duration.ofSeconds(2));
+        RegionalTrainMarkerService.Snapshot next = service.markers();
+
+        assertThat(next.markers()).singleElement().extracting(RegionalTrainMarkerRecord::tripId)
+            .isEqualTo("trip-2");
+    }
+
     private RegionalTrainMarkerRecord marker(OffsetDateTime updatedAt) {
         return new RegionalTrainMarkerRecord("go-1", "regional-ki", "Outbound", "forward",
             "segment-ki-mount-dennis-weston", "mount-dennis", "weston", "weston", 0.5,

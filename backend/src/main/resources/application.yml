@@ -29,6 +29,7 @@ linewatch:
       enabled: ${LINEWATCH_DIAGNOSTICS_RAW_ALERTS_ENABLED:false}
   auth:
     secure-cookie: ${LINEWATCH_AUTH_SECURE_COOKIE:false}
+    session-ttl: ${LINEWATCH_AUTH_SESSION_TTL:P365D}
     allowed-origins: ${LINEWATCH_AUTH_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:4173}
     client-address:
       trusted-proxy-cidrs: ${LINEWATCH_AUTH_TRUSTED_PROXY_CIDRS:127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
@@ -90,6 +91,7 @@ linewatch:
     schedule-horizon: ${LINEWATCH_ARRIVALS_SCHEDULE_HORIZON:PT90M}
     schedule-lookahead-days: ${LINEWATCH_ARRIVALS_SCHEDULE_LOOKAHEAD_DAYS:7}
     train-marker-horizon: ${LINEWATCH_ARRIVALS_TRAIN_MARKER_HORIZON:PT20M}
+    train-marker-retention: ${LINEWATCH_ARRIVALS_TRAIN_MARKER_RETENTION:PT30S}
     max-arrivals-per-line: ${LINEWATCH_ARRIVALS_MAX_ARRIVALS_PER_LINE:4}
     live-gtfs-rt-url: ${LINEWATCH_ARRIVALS_LIVE_GTFS_RT_URL:https://gtfsrt.ttc.ca/trips/subway?format=text}
     live-gtfs-rt-initial-delay: ${LINEWATCH_ARRIVALS_LIVE_GTFS_RT_INITIAL_DELAY:PT10S}
@@ -137,6 +139,7 @@ linewatch:
       enabled: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_ENABLED:false}
       cache-ttl: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_CACHE_TTL:PT15S}
       max-source-age: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_MAX_SOURCE_AGE:PT2M}
+      retention-ttl: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_RETENTION_TTL:PT90S}
       max-markers: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_MAX_MARKERS:80}
   performance:
     ttc:
