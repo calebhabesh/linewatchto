@@ -24,6 +24,7 @@ const port = Number(process.env.LINEWATCH_STUB_PORT ?? "4174");
 let mode = "seeded";
 let demoSessionActive = false;
 let demoSavedStations = [];
+let estimatedTrainMotionAdvanced = false;
 
 const defaultPushNotificationPreferences = {
   commuteNotificationsEnabled: true,
@@ -330,8 +331,15 @@ const server = createServer(async (request, response) => {
     mode = body.mode;
     demoSessionActive = false;
     demoSavedStations = [];
+    estimatedTrainMotionAdvanced = false;
     pushPreferences = JSON.parse(JSON.stringify(defaultPushNotificationPreferences));
     sendJson(request, response, 200, { mode });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/__test/train-marker-advance") {
+    estimatedTrainMotionAdvanced = true;
+    sendJson(request, response, 200, { advanced: true });
     return;
   }
 
@@ -703,7 +711,18 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/trains") {
-    sendJson(request, response, 200, estimatedTrainsResponse);
+    const advancedTimestamp = "2026-06-04T16:00:01Z";
+    sendJson(request, response, 200, estimatedTrainMotionAdvanced ? {
+      ...estimatedTrainsResponse,
+      feedCreatedAt: "2026-06-04T15:59:51Z",
+      generatedAt: advancedTimestamp,
+      markers: estimatedTrainsResponse.markers.map((marker) => ({
+        ...marker,
+        progress: 0.5,
+        feedCreatedAt: "2026-06-04T15:59:51Z",
+        updatedAt: advancedTimestamp,
+      })),
+    } : estimatedTrainsResponse);
     return;
   }
 

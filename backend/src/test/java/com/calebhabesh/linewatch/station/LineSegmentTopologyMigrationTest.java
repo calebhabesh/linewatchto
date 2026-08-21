@@ -53,6 +53,14 @@ class LineSegmentTopologyMigrationTest {
         assertThat(sql).contains("'seg-line-6-humber-college-westmore'");
     }
 
+    @Test
+    void v71MarksTheUnionKingGuideAsOppositeTheStoredTopologyOrder() throws IOException {
+        String sql = migrationSql("/db/migration/V71__correct_union_guide_direction.sql");
+
+        assertThat(sql).contains("'line-1-king-union'");
+        assertThat(sql).contains("guide_path_reversed = true");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

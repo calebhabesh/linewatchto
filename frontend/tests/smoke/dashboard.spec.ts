@@ -1354,7 +1354,7 @@ test("renders regional estimated train markers from the network-scoped endpoint"
   await page.getByRole("button", { name: /Toggle estimated train markers/ }).click();
 
   await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
-  const marker = page.locator('[data-marker-key="regional-ki:westbound:vehicle:cab-3775"]');
+  const marker = page.locator('[data-marker-key="regional-ki:vehicle:cab-3775"]');
   await expect(page.locator(".estimated-train-marker-regional-ki")).toHaveCount(1);
   await expect(marker).toBeAttached();
   await expect(marker.locator(".estimated-train-marker-outline")).toHaveCount(1);
@@ -4358,14 +4358,31 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" }).getByRole("button", { name: "Notifications" })).toHaveCount(0);
 });
 
-test("renders estimated train markers only after the layer is enabled", async ({ page, request }) => {
+test("renders and incrementally moves estimated train markers on desktop and mobile", async ({ page, request }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.locator(".linewatch-shell")).not.toHaveClass(/motion-paused/);
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(0);
 
   await page.getByRole("button", { name: /Toggle estimated train markers/ }).click();
 
+  const marker = page.locator('[data-train-marker-line-id="line-1"]');
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(1);
-  await expect(page.locator('[data-train-marker-line-id="line-1"]')).toBeVisible();
+  await expect(marker).toBeVisible();
+  const initialTransform = await marker.getAttribute("transform");
+  expect(await page.evaluate(() => document.visibilityState)).toBe("visible");
+  const nextTrainResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === "/api/trains"
+      && response.request().method() === "GET",
+  );
+  const advanceResponse = await request.post(`${stubUrl}/__test/train-marker-advance`);
+  expect(advanceResponse.ok()).toBeTruthy();
+  const refreshedTrainResponse = await nextTrainResponse;
+  expect((await refreshedTrainResponse.json()).markers[0].progress).toBe(0.5);
+  await expect.poll(() => marker.getAttribute("transform"), { timeout: 4_000 })
+    .not.toBe(initialTransform);
+  const intermediateTransform = await marker.getAttribute("transform");
+  await page.waitForTimeout(180);
+  expect(await marker.getAttribute("transform")).not.toBe(intermediateTransform);
 });

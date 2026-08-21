@@ -181,7 +181,9 @@ public class GtfsRtSubwayTrainMarkerService {
         Map<String, RetainedMarker> nextRetained = new LinkedHashMap<>();
 
         for (EstimatedTrainMarker marker : currentMarkers) {
-            nextRetained.put(markerContinuityKey(marker), new RetainedMarker(marker, generatedAt));
+            String key = markerContinuityKey(marker);
+            EstimatedTrainMarker stabilized = stabilizeProgress(previous.get(key), marker);
+            nextRetained.putIfAbsent(key, new RetainedMarker(stabilized, generatedAt));
         }
         List<EstimatedTrainMarker> resolved = nextRetained.values().stream()
             .map(RetainedMarker::marker)
@@ -405,9 +407,23 @@ public class GtfsRtSubwayTrainMarkerService {
     private String markerContinuityKey(EstimatedTrainMarker marker) {
         return marker.lineId()
             + "|"
-            + markerDirectionIdentity(marker.direction())
-            + "|"
             + trainContinuityIdentity(marker.tripId(), marker.vehicleId(), marker.id());
+    }
+
+    private EstimatedTrainMarker stabilizeProgress(RetainedMarker previous, EstimatedTrainMarker current) {
+        if (previous == null
+            || !previous.marker().segmentId().equals(current.segmentId())
+            || !previous.marker().fromStationId().equals(current.fromStationId())
+            || !previous.marker().toStationId().equals(current.toStationId())
+            || current.progress() >= previous.marker().progress()) {
+            return current;
+        }
+        return new EstimatedTrainMarker(
+            current.id(), current.lineId(), current.direction(), current.travelDirection(), current.segmentId(),
+            current.fromStationId(), current.toStationId(), current.nextStationId(), previous.marker().progress(),
+            current.segmentTravelSeconds(), current.predictedAt(), current.vehicleId(), current.tripId(),
+            current.feedCreatedAt(), current.updatedAt()
+        );
     }
 
     private String trainIdentity(GtfsRtSubwayStationArrival arrival) {

@@ -178,7 +178,7 @@ class MapControllerTest {
                 216,
                 "southbound",
                 "seg-line-1-union-king",
-                false,
+                true,
                 null,
                 null
             ),
@@ -224,7 +224,7 @@ class MapControllerTest {
         assertThat(response.segments().get(0)).satisfies(segment -> {
             assertThat(segment.id()).isEqualTo("line-1-king-union");
             assertThat(segment.guidePathId()).isEqualTo("seg-line-1-union-king");
-            assertThat(segment.guidePathReversed()).isFalse();
+            assertThat(segment.guidePathReversed()).isTrue();
             assertThat(segment.overlay()).isEqualTo("delay");
             assertThat(segment.reducedSpeedZoneIds())
                 .containsExactly("reduced-speed-zone-ttc-route-scenario-rsz-union-king-south");

@@ -93,7 +93,9 @@ public class RegionalTrainMarkerService {
     ) {
         Map<String, RetainedMarker> next = new LinkedHashMap<>();
         for (RegionalTrainMarkerRecord marker : currentMarkers) {
-            next.put(markerContinuityKey(marker), new RetainedMarker(marker, now));
+            String key = markerContinuityKey(marker);
+            RegionalTrainMarkerRecord stabilized = stabilizeProgress(retainedMarkers.get(key), marker);
+            next.putIfAbsent(key, new RetainedMarker(stabilized, now));
         }
         Duration retention = properties.getRetentionTtl() == null || properties.getRetentionTtl().isNegative()
             ? Duration.ZERO : properties.getRetentionTtl();
@@ -113,7 +115,26 @@ public class RegionalTrainMarkerService {
         String identity = !vehicleId.isBlank() ? "vehicle:" + vehicleId
             : !tripId.isBlank() ? "trip:" + tripId
             : "marker:" + normalize(marker.id());
-        return normalize(marker.lineId()) + "|" + normalize(marker.direction()) + "|" + identity;
+        return normalize(marker.lineId()) + "|" + identity;
+    }
+
+    private RegionalTrainMarkerRecord stabilizeProgress(
+        RetainedMarker previous,
+        RegionalTrainMarkerRecord current
+    ) {
+        if (previous == null
+            || !previous.marker().segmentId().equals(current.segmentId())
+            || !previous.marker().fromStationId().equals(current.fromStationId())
+            || !previous.marker().toStationId().equals(current.toStationId())
+            || current.progress() >= previous.marker().progress()) {
+            return current;
+        }
+        return new RegionalTrainMarkerRecord(
+            current.id(), current.lineId(), current.direction(), current.travelDirection(), current.segmentId(),
+            current.fromStationId(), current.toStationId(), current.nextStationId(), previous.marker().progress(),
+            current.segmentTravelSeconds(), current.predictedAt(), current.moving(), current.vehicleId(),
+            current.tripId(), current.updatedAt(), current.source()
+        );
     }
 
     private String normalize(String value) {

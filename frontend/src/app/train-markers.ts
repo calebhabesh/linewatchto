@@ -105,6 +105,11 @@ const TTC_TRAIN_MARKER_REFRESH_MS = 1_000;
 const REGIONAL_TRAIN_MARKER_REFRESH_MS = 15_000;
 const TTC_TRAIN_MARKER_RETENTION_MS = 30_000;
 const REGIONAL_TRAIN_MARKER_RETENTION_MS = 90_000;
+const MAX_TRAIN_MARKER_SKIPPED_SEGMENTS = 4;
+const MIN_TRAIN_MARKER_MOTION_MS = 650;
+const MAX_FALLBACK_TRAIN_MARKER_MOTION_MS = 14_000;
+const MAX_CADENCE_TRAIN_MARKER_MOTION_MS = 45_000;
+const TRAIN_MARKER_CADENCE_COVERAGE = 1.05;
 
 export function estimatedTrainMarkerRefreshMs(
   network: "ttc" | "regional" = "ttc",
@@ -128,9 +133,27 @@ export function estimatedTrainMarkerRenderKey(marker: EstimatedTrainMarker) {
     : tripId
       ? `trip:${tripId}`
       : `marker:${normalizedMarkerText(marker.id) || "unknown-train"}`;
-  const direction = normalizedMarkerText(marker.direction).replace(/\s+/g, "-") || "unknown-direction";
+  return `${marker.lineId}:${trainIdentity}`;
+}
 
-  return `${marker.lineId}:${direction}:${trainIdentity}`;
+export function estimatedTrainMarkerObservationKey(marker: EstimatedTrainMarker) {
+  return [
+    marker.id,
+    marker.lineId,
+    marker.direction,
+    marker.travelDirection,
+    marker.segmentId,
+    marker.fromStationId,
+    marker.toStationId,
+    marker.nextStationId,
+    marker.progress,
+    marker.segmentTravelSeconds,
+    marker.predictedAt,
+    marker.vehicleId ?? "",
+    marker.tripId ?? "",
+    marker.feedCreatedAt ?? "",
+    marker.updatedAt ?? "",
+  ].join("|");
 }
 
 export function createEstimatedTrainMarkerContinuityState(): EstimatedTrainMarkerContinuityState {
@@ -152,11 +175,15 @@ export function reconcileEstimatedTrainSnapshot(
     ? REGIONAL_TRAIN_MARKER_RETENTION_MS
     : TTC_TRAIN_MARKER_RETENTION_MS;
   const currentKeys = new Set<string>();
+  const currentMarkers = new Map<string, EstimatedTrainMarker>();
 
-  for (const marker of incoming.markers) {
-    const key = estimatedTrainMarkerRenderKey(marker);
+  for (const incomingMarker of incoming.markers) {
+    const key = estimatedTrainMarkerRenderKey(incomingMarker);
+    if (currentKeys.has(key)) continue;
     const previous = state.markers.get(key);
+    const marker = stabilizeEstimatedTrainMarker(previous?.marker, incomingMarker);
     currentKeys.add(key);
+    currentMarkers.set(key, marker);
     state.markers.set(key, {
       marker,
       // A non-fresh backend response can already contain a held marker. Do not
@@ -176,9 +203,18 @@ export function reconcileEstimatedTrainSnapshot(
   const retainedMarkers = [...state.markers.entries()]
     .filter(([key]) => !currentKeys.has(key))
     .map(([, retained]) => retained.marker);
-  const markers = incoming.markers.concat(retainedMarkers);
-  if (markers.length === incoming.markers.length) {
+  const markers = [...currentMarkers.values(), ...retainedMarkers];
+  const markersUnchangedByReference = markers.length === incoming.markers.length
+    && markers.every((marker, index) => marker === incoming.markers[index]);
+  if (markersUnchangedByReference) {
     return incoming;
+  }
+
+  if (retainedMarkers.length === 0) {
+    // Preserve stable marker object identities through duplicate source polls.
+    // The map animation effects can then continue toward their existing target
+    // instead of restarting from every equivalent HTTP response.
+    return { ...incoming, markers };
   }
 
   return {
@@ -196,13 +232,19 @@ export function estimatedTrainMarkerMotionWaypoints(
   target: EstimatedTrainMarker,
   segments: EstimatedTrainMarkerMotionSegment[],
 ): EstimatedTrainMarker[] {
-  if (previous.lineId !== target.lineId) return [previous, target];
-  if (sameMarkerSegment(previous, target)) return [previous, target];
+  if (previous.lineId !== target.lineId) return [previous];
+  if (sameMarkerSegment(previous, target)) {
+    return deduplicatedMotionWaypoints([
+      previous,
+      { ...target, progress: Math.max(previous.progress, target.progress) },
+    ]);
+  }
+  if (previous.segmentId === target.segmentId) return [previous];
 
   const segmentById = new Map(segments.map((segment) => [segment.id, segment]));
   const previousSegment = segmentById.get(previous.segmentId);
   const targetSegment = segmentById.get(target.segmentId);
-  if (!previousSegment || !targetSegment) return [previous, target];
+  if (!previousSegment || !targetSegment) return [previous];
 
   const waypoints: EstimatedTrainMarker[] = [previous, { ...previous, progress: 1 }];
   const middle = markerSegmentRoute(
@@ -211,15 +253,16 @@ export function estimatedTrainMarkerMotionWaypoints(
     target.lineId,
     segments,
     new Set([previous.segmentId, target.segmentId]),
+    new Set([previous.fromStationId]),
   );
-  if (middle === null) return [previous, target];
+  if (middle === null) return [previous];
 
   let fromStationId = previous.toStationId;
   for (const segment of middle) {
     const toStationId = segment.stationAId === fromStationId
       ? segment.stationBId
       : segment.stationAId;
-    if (!toStationId || !segment.stationAId || !segment.stationBId) return [previous, target];
+    if (!toStationId || !segment.stationAId || !segment.stationBId) return [previous];
     const travelDirection = segment.stationAId === fromStationId ? "forward" : "reverse";
     const marker = {
       ...target,
@@ -245,9 +288,13 @@ export function estimatedTrainMarkerMotionDurationMs(waypoints: EstimatedTrainMa
   const first = waypoints[0];
   const last = waypoints.at(-1);
   const sourceCadence = first && last
-    ? Math.max(0, markerTimestamp(last) - markerTimestamp(first)) * 0.9
+    ? Math.max(0, markerTimestamp(last) - markerTimestamp(first)) * TRAIN_MARKER_CADENCE_COVERAGE
     : 0;
-  return Math.max(650, Math.min(14_000, Math.max(weightedSeconds * 80, sourceCadence)));
+  const fallbackDuration = Math.min(MAX_FALLBACK_TRAIN_MARKER_MOTION_MS, weightedSeconds * 80);
+  return Math.max(
+    MIN_TRAIN_MARKER_MOTION_MS,
+    Math.min(MAX_CADENCE_TRAIN_MARKER_MOTION_MS, Math.max(fallbackDuration, sourceCadence)),
+  );
 }
 
 export function sampleEstimatedTrainMarkerMotion(
@@ -269,11 +316,6 @@ export function sampleEstimatedTrainMarkerMotion(
   }
   const last = legs.at(-1)!;
   return { from: last.from, to: last.to, progress: 1 };
-}
-
-export function interpolatedEstimatedTrainMarkerAngle(from: number, to: number, progress: number) {
-  const delta = ((to - from + 540) % 360) - 180;
-  return from + delta * Math.max(0, Math.min(1, progress));
 }
 
 export function resolveEstimatedTrainMarkerSegmentDirection(
@@ -327,6 +369,20 @@ function markerObservationChanged(
     || previous.predictedAt !== current.predictedAt;
 }
 
+function stabilizeEstimatedTrainMarker(
+  previous: EstimatedTrainMarker | undefined,
+  current: EstimatedTrainMarker,
+) {
+  if (!previous) return current;
+  const stabilized = sameMarkerSegment(previous, current) && current.progress < previous.progress
+    ? { ...current, progress: previous.progress }
+    : current;
+  if (estimatedTrainMarkerObservationKey(previous) === estimatedTrainMarkerObservationKey(stabilized)) {
+    return previous;
+  }
+  return stabilized;
+}
+
 function sameMarkerSegment(left: EstimatedTrainMarker, right: EstimatedTrainMarker) {
   return left.segmentId === right.segmentId
     && left.fromStationId === right.fromStationId
@@ -339,6 +395,7 @@ function markerSegmentRoute(
   lineId: string,
   segments: EstimatedTrainMarkerMotionSegment[],
   excludedSegmentIds: Set<string>,
+  forbiddenStationIds: Set<string>,
 ): EstimatedTrainMarkerMotionSegment[] | null {
   if (startStationId === endStationId) return [];
   const candidates = segments.filter((segment) => segment.lineId === lineId
@@ -346,7 +403,7 @@ function markerSegmentRoute(
   const queue: Array<{ stationId: string; route: EstimatedTrainMarkerMotionSegment[] }> = [
     { stationId: startStationId, route: [] },
   ];
-  const visited = new Set([startStationId]);
+  const visited = new Set([startStationId, ...forbiddenStationIds]);
   while (queue.length > 0) {
     const current = queue.shift()!;
     for (const segment of candidates) {
@@ -357,7 +414,10 @@ function markerSegmentRoute(
           : undefined;
       if (!nextStationId || visited.has(nextStationId)) continue;
       const route = current.route.concat(segment);
-      if (nextStationId === endStationId) return route;
+      if (nextStationId === endStationId) {
+        return route.length <= MAX_TRAIN_MARKER_SKIPPED_SEGMENTS ? route : null;
+      }
+      if (route.length >= MAX_TRAIN_MARKER_SKIPPED_SEGMENTS) continue;
       visited.add(nextStationId);
       queue.push({ stationId: nextStationId, route });
     }
@@ -373,17 +433,16 @@ function deduplicatedMotionWaypoints(waypoints: EstimatedTrainMarker[]) {
 }
 
 function motionLegs(waypoints: EstimatedTrainMarker[]) {
-  return waypoints.slice(1).map((to, index) => {
+  return waypoints.slice(1).flatMap((to, index) => {
     const from = waypoints[index];
     const sameSegment = sameMarkerSegment(from, to);
+    if (!sameSegment) return [];
     const segmentSeconds = Math.max(1, to.segmentTravelSeconds || from.segmentTravelSeconds || 1);
-    return {
+    return [{
       from,
       to,
-      weight: sameSegment
-        ? Math.max(0.25, Math.abs(to.progress - from.progress) * segmentSeconds)
-        : Math.max(1, Math.min(8, segmentSeconds * 0.03)),
-    };
+      weight: Math.max(0.25, Math.abs(to.progress - from.progress) * segmentSeconds),
+    }];
   });
 }
 

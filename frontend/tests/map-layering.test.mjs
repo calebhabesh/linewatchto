@@ -1025,6 +1025,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /data-train-marker-travel-direction=\{visualDirection\}[\s\S]*?pointerEvents="none"/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-halo/);
     assert.match(interactiveMapSource, /pathMetricCache/);
+    assert.match(interactiveMapSource, /animate=\{!reducedMotion\}/);
+    assert.doesNotMatch(interactiveMapSource, /animate=\{!reducedMotion && !mobilePerformanceMode\}/);
     assert.doesNotMatch(interactiveMapSource, /estimated-train-marker-mobile-dot/);
     assert.match(interactiveMapSource, /<TrainMarkerGlyph \/>/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker\s*\{[^}]*filter:\s*none\s*!important;/s);

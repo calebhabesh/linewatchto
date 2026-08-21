@@ -83,7 +83,7 @@ export const mapResponse = {
       stationAId: "stub-king",
       stationBId: "stub-union",
       guidePathId: "seg-line-1-union-king",
-      guidePathReversed: false,
+      guidePathReversed: true,
       pathD: "",
       impacts: [
         {

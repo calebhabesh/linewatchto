@@ -98,7 +98,7 @@ class GtfsRtSubwayTrainMarkerServiceTest {
     }
 
     @Test
-    void givesConflictingDirectionMarkersDistinctIds() {
+    void collapsesConflictingDirectionRowsForTheSameVehicle() {
         OffsetDateTime now = OffsetDateTime.now(CLOCK);
         cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
             new GtfsRtSubwayStationArrival(
@@ -136,10 +136,8 @@ class GtfsRtSubwayTrainMarkerServiceTest {
 
         EstimatedTrainMarkerSnapshot snapshot = service.estimatedMarkers();
 
-        assertThat(snapshot.markers()).hasSize(2);
-        assertThat(snapshot.markers())
-            .extracting(EstimatedTrainMarker::id)
-            .doesNotHaveDuplicates();
+        assertThat(snapshot.markers()).singleElement()
+            .extracting(EstimatedTrainMarker::vehicleId).isEqualTo("5");
     }
 
     @Test
@@ -430,16 +428,18 @@ class GtfsRtSubwayTrainMarkerServiceTest {
         mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(1), now, List.of(
             new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", now.plusSeconds(80), "232", "trip-a", "13753")
         )));
-        mutableService.estimatedMarkers();
+        EstimatedTrainMarker firstMarker = mutableService.estimatedMarkers().markers().getFirst();
 
         mutableClock.advance(Duration.ofSeconds(2));
         OffsetDateTime next = OffsetDateTime.now(mutableClock);
         mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(next.minusSeconds(1), next, List.of(
-            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", next.plusSeconds(70), "232", "trip-b", "13753")
+            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", next.plusSeconds(100), "232", "trip-b", "13753")
         )));
 
-        assertThat(mutableService.estimatedMarkers().markers()).singleElement()
-            .extracting(EstimatedTrainMarker::tripId).isEqualTo("trip-b");
+        assertThat(mutableService.estimatedMarkers().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.tripId()).isEqualTo("trip-b");
+            assertThat(marker.progress()).isEqualTo(firstMarker.progress());
+        });
     }
 
     @Test

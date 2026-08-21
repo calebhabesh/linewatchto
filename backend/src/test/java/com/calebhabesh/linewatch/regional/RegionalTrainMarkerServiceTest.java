@@ -98,7 +98,7 @@ class RegionalTrainMarkerServiceTest {
             .thenReturn(new RegionalTrainMarkerFeed(updatedAt, "GO source", List.of(marker(updatedAt))))
             .thenReturn(new RegionalTrainMarkerFeed(updatedAt.plusSeconds(2), "GO source", List.of(
                 new RegionalTrainMarkerRecord("go-2", "regional-ki", "Outbound", "forward",
-                    "segment-ki-mount-dennis-weston", "mount-dennis", "weston", "weston", 0.6,
+                    "segment-ki-mount-dennis-weston", "mount-dennis", "weston", "weston", 0.4,
                     420, updatedAt.plusSeconds(170), true, "cab-1", "trip-2", updatedAt.plusSeconds(2), "GO source")
             )));
         when(client.fetchUp()).thenThrow(new MetrolinxClientException("unavailable"));
@@ -109,8 +109,10 @@ class RegionalTrainMarkerServiceTest {
         clock.advance(Duration.ofSeconds(2));
         RegionalTrainMarkerService.Snapshot next = service.markers();
 
-        assertThat(next.markers()).singleElement().extracting(RegionalTrainMarkerRecord::tripId)
-            .isEqualTo("trip-2");
+        assertThat(next.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.tripId()).isEqualTo("trip-2");
+            assertThat(marker.progress()).isEqualTo(0.5);
+        });
     }
 
     private RegionalTrainMarkerRecord marker(OffsetDateTime updatedAt) {

@@ -48,6 +48,9 @@ describe("regional estimated train marker rendering", () => {
       /\}, \[estimatedTrainMarkers, estimatedTrainsEnabled, mobilePerformanceMode, networkSegments, reducedMotion, svgMarkup\]\);/,
     );
     assert.match(regionalMapSource, /estimatedTrainMarkerMotionWaypoints/);
+    assert.match(regionalMapSource, /targetObservationKey/);
+    assert.match(regionalMapSource, /!reducedMotion,/);
+    assert.doesNotMatch(regionalMapSource, /!reducedMotion && !mobilePerformanceMode,/);
     assert.match(regionalMapSource, /requestAnimationFrame\(update\)/);
     assert.doesNotMatch(
       regionalMapSource,
