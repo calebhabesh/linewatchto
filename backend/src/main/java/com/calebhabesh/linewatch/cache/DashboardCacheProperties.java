@@ -10,6 +10,7 @@ public class DashboardCacheProperties {
     private Duration statusTtl = Duration.ofSeconds(30);
     private Duration mapTtl = Duration.ofSeconds(30);
     private Duration alertsTtl = Duration.ofSeconds(30);
+    private Duration alertHistoryTtl = Duration.ofMinutes(1);
     private Duration ingestionHealthTtl = Duration.ofSeconds(15);
     private Duration performanceTtl = Duration.ofHours(6);
 
@@ -23,6 +24,8 @@ public class DashboardCacheProperties {
     public void setMapTtl(Duration mapTtl) { this.mapTtl = mapTtl; }
     public Duration getAlertsTtl() { return alertsTtl; }
     public void setAlertsTtl(Duration alertsTtl) { this.alertsTtl = alertsTtl; }
+    public Duration getAlertHistoryTtl() { return alertHistoryTtl; }
+    public void setAlertHistoryTtl(Duration alertHistoryTtl) { this.alertHistoryTtl = alertHistoryTtl; }
     public Duration getIngestionHealthTtl() { return ingestionHealthTtl; }
     public void setIngestionHealthTtl(Duration ingestionHealthTtl) { this.ingestionHealthTtl = ingestionHealthTtl; }
     public Duration getPerformanceTtl() { return performanceTtl; }

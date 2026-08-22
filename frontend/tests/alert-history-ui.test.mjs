@@ -179,4 +179,15 @@ describe("alert history timeline UI", () => {
     assert.doesNotMatch(timelineSource, /history\.filter\(\(incident\) => incident\.status === "cleared"\)/);
     assert.doesNotMatch(timelineSource, /incident\.events\.some\(\(event\) => event\.state !== "cleared"\)/);
   });
+
+  it("keeps 30-day search responsive with deferred, indexed, progressive rendering", () => {
+    assert.match(timelineSource, /useDeferredValue\(searchQuery\)/);
+    assert.match(timelineSource, /buildAlertHistorySearchIndex\(history\)/);
+    assert.match(timelineSource, /const HISTORY_PAGE_SIZE = 50/);
+    assert.match(timelineSource, /visibleItems\.slice\(0, visibleCount\)/);
+    assert.match(timelineSource, /Show \{Math\.min\(HISTORY_PAGE_SIZE/);
+    assert.match(timelineSource, /const HistoryIncident = memo/);
+    assert.match(timelineSource, /lifecycleExpanded \? \(/);
+    assert.match(cssSource, /\.alert-history-item\s*\{[^}]*content-visibility:\s*auto;/s);
+  });
 });

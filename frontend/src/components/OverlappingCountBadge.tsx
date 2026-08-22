@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 type OverlappingCountBadgeProps = {
   className: string;
   count: number;
@@ -6,9 +8,20 @@ type OverlappingCountBadgeProps = {
 export function OverlappingCountBadge({ className, count }: OverlappingCountBadgeProps) {
   const label = String(count);
   const viewBoxWidth = Math.max(7, label.length * 5.5 + 1);
+  const isSingleDigit = label.length <= 1;
 
   return (
-    <span className={`overlapping-count-badge ${className}`} aria-hidden="true">
+    <span
+      className={`overlapping-count-badge ${className}`}
+      data-count-digits={label.length}
+      data-single-digit={isSingleDigit ? "true" : "false"}
+      style={
+        {
+          "--overlapping-count-viewbox-width": viewBoxWidth,
+        } as CSSProperties
+      }
+      aria-hidden="true"
+    >
       <svg
         className="overlapping-count-badge__svg"
         viewBox={`0 0 ${viewBoxWidth} 16`}
@@ -30,3 +43,4 @@ export function OverlappingCountBadge({ className, count }: OverlappingCountBadg
     </span>
   );
 }
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -48,6 +48,7 @@ import {
   SORT_OLDEST,
   SORT_SHORTEST_DURATION,
   buildAlertHistoryLineOptions,
+  buildAlertHistorySearchIndex,
   buildAlertHistorySortGroups,
   buildAlertHistorySortOptions,
   buildAlertHistoryTypeOptions,
@@ -57,6 +58,8 @@ import {
   type AlertHistoryLifecycleFilter,
   type AlertHistoryViewItem,
 } from "./alert-history-filters";
+
+const HISTORY_PAGE_SIZE = 50;
 
 const PERIODS: Array<{ value: AlertHistoryPeriod; label: string }> = [
   { value: "today", label: "Today" },
@@ -152,6 +155,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [history, setHistory] = useState<AlertHistoryIncident[]>([]);
+  const [pagination, setPagination] = useState({ key: "", visibleCount: HISTORY_PAGE_SIZE });
   const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
   const lineDropdownRef = useRef<HTMLDivElement>(null);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
@@ -193,6 +197,8 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   }, [network, period, requestedQuery]);
 
   const loading = loadedQuery !== requestedQuery;
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const searchIndex = useMemo(() => buildAlertHistorySearchIndex(history), [history]);
 
   const lineOptions = useMemo(() => buildAlertHistoryLineOptions(history).map((option) => (
     network === "regional" && option.value === ALL_LINES_VALUE
@@ -200,7 +206,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
       : option
   )), [history, network]);
   const typeOptions = useMemo(() => buildAlertHistoryTypeOptions(history), [history]);
-  const sortGroups = useMemo(() => buildAlertHistorySortGroups(history), [history]);
+  const sortGroups = useMemo(() => buildAlertHistorySortGroups(), []);
   const sortOptions = useMemo(() => buildAlertHistorySortOptions(history), [history]);
 
   if (selectedLineId !== ALL_LINES_VALUE && !lineOptions.some((option) => option.value === selectedLineId)) {
@@ -215,9 +221,27 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
     lifecycleFilter: filter,
     lineId: selectedLineId,
     typeId: selectedTypeId,
-    searchQuery,
+    searchQuery: deferredSearchQuery,
     sortBy: selectedSortBy,
-  }), [filter, history, searchQuery, selectedLineId, selectedTypeId, selectedSortBy]);
+  }, searchIndex), [deferredSearchQuery, filter, history, searchIndex, selectedLineId, selectedTypeId, selectedSortBy]);
+
+  const resultSetKey = [
+    network,
+    period,
+    filter,
+    selectedLineId,
+    selectedTypeId,
+    selectedSortBy,
+    deferredSearchQuery,
+  ].join(":");
+  const visibleCount = pagination.key === resultSetKey
+    ? pagination.visibleCount
+    : HISTORY_PAGE_SIZE;
+
+  const displayedItems = useMemo(
+    () => visibleItems.slice(0, visibleCount),
+    [visibleCount, visibleItems],
+  );
 
   const selectedLineOption = useMemo(() => {
     return lineOptions.find((o) => o.value === selectedLineId);
@@ -445,21 +469,45 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
           No alert lifecycle events match the selected filters.
         </p>
       ) : (
-        <ol className="alert-history-list">
-          {visibleItems.map((item) => (
-            <HistoryIncident
-              key={`${item.incident.alertId}-${item.displayEvent?.id ?? item.incident.clearedAt ?? item.incident.firstSeenAt ?? item.incident.title}`}
-              item={item}
-            />
-          ))}
-        </ol>
+        <>
+          <p className="alert-history-result-count" aria-live="polite">
+            Showing {displayedItems.length} of {visibleItems.length} matching {visibleItems.length === 1 ? "incident" : "incidents"}
+          </p>
+          <ol className="alert-history-list" aria-busy={searchQuery !== deferredSearchQuery}>
+            {displayedItems.map((item) => (
+              <HistoryIncident
+                key={item.incident.alertId}
+                incident={item.incident}
+                displayEvent={item.displayEvent}
+                cleared={item.cleared}
+              />
+            ))}
+          </ol>
+          {displayedItems.length < visibleItems.length ? (
+            <button
+              type="button"
+              className="alert-history-load-more"
+              onClick={() => setPagination((current) => ({
+                key: resultSetKey,
+                visibleCount:
+                  (current.key === resultSetKey ? current.visibleCount : HISTORY_PAGE_SIZE) + HISTORY_PAGE_SIZE,
+              }))}
+            >
+              Show {Math.min(HISTORY_PAGE_SIZE, visibleItems.length - displayedItems.length)} more
+            </button>
+          ) : null}
+        </>
       )}
     </section>
   );
 }
 
-function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
-  const { incident, displayEvent, cleared } = item;
+const HistoryIncident = memo(function HistoryIncident({
+  incident,
+  displayEvent,
+  cleared,
+}: AlertHistoryViewItem) {
+  const [lifecycleExpanded, setLifecycleExpanded] = useState(false);
   const time = displayEvent?.happenedAt ?? incident.clearedAt ?? incident.firstSeenAt ?? "";
   const title = compactHistoryTitle(incident);
   const statusLabel = cleared ? "Cleared" : formatHistoryStatusLabel(displayEvent?.label);
@@ -507,21 +555,26 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
             </span>
           ) : null}
         </div>
-        <details className="alert-history-details">
+        <details
+          className="alert-history-details"
+          onToggle={(event) => setLifecycleExpanded(event.currentTarget.open)}
+        >
           <summary>Lifecycle details</summary>
-          <ol>
-            {incident.events.map((event) => (
-              <li key={event.id}>
-                <span>{event.label}</span>
-                <HistoryTimestamp timestamp={event.happenedAt} />
-              </li>
-            ))}
-          </ol>
+          {lifecycleExpanded ? (
+            <ol>
+              {incident.events.map((event) => (
+                <li key={event.id}>
+                  <span>{event.label}</span>
+                  <HistoryTimestamp timestamp={event.happenedAt} />
+                </li>
+              ))}
+            </ol>
+          ) : null}
         </details>
       </div>
     </li>
   );
-}
+});
 
 function HistoryAlertType({ eventType }: { eventType: string }) {
   const normalizedType = eventType.trim().toLowerCase();

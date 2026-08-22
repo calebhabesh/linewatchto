@@ -34,7 +34,7 @@ public class AlertHistoryService {
     }
 
     public AlertHistoryResponse history(String requestedNetwork, String requestedPeriod, Integer requestedLimit) {
-        String network = "regional".equalsIgnoreCase(requestedNetwork) ? "regional" : "ttc";
+        String network = normalizeNetwork(requestedNetwork);
         String period = normalizePeriod(requestedPeriod);
         OffsetDateTime until = OffsetDateTime.now(clock).atZoneSameInstant(TORONTO_ZONE).toOffsetDateTime();
         OffsetDateTime since = switch (period) {
@@ -42,14 +42,18 @@ public class AlertHistoryService {
             case "30d" -> until.minusDays(30);
             default -> until.toLocalDate().atStartOfDay(TORONTO_ZONE).toOffsetDateTime();
         };
-        int limit = Math.max(1, Math.min(requestedLimit == null ? MAX_LIMIT : requestedLimit, MAX_LIMIT));
+        int limit = normalizeLimit(requestedLimit);
         List<AlertHistoryRepository.AlertHistoryRow> rows = "regional".equals(network)
             ? repository.findRegionalLifecycleRows(since, until, limit)
             : repository.findLifecycleRows(since, until, limit);
         return new AlertHistoryResponse(until, period, since, until, group(rows, network));
     }
 
-    private String normalizePeriod(String period) {
+    static String normalizeNetwork(String network) {
+        return "regional".equalsIgnoreCase(network) ? "regional" : "ttc";
+    }
+
+    static String normalizePeriod(String period) {
         if ("7d".equalsIgnoreCase(period) || "week".equalsIgnoreCase(period)) {
             return "7d";
         }
@@ -57,6 +61,10 @@ public class AlertHistoryService {
             return "30d";
         }
         return "today";
+    }
+
+    static int normalizeLimit(Integer requestedLimit) {
+        return Math.max(1, Math.min(requestedLimit == null ? MAX_LIMIT : requestedLimit, MAX_LIMIT));
     }
 
     private List<AlertHistoryIncidentDto> group(

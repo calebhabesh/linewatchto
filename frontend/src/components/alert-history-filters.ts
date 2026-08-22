@@ -40,6 +40,8 @@ export type AlertHistoryViewItem = {
   cleared: boolean;
 };
 
+export type AlertHistorySearchIndex = ReadonlyMap<AlertHistoryIncident, string>;
+
 export type AlertHistoryFilterControls = {
   lifecycleFilter: AlertHistoryLifecycleFilter;
   lineId: string;
@@ -92,6 +94,7 @@ const EVENT_TYPE_RANKS: Record<string, number> = {
 export function filterAndSortAlertHistory(
   incidents: AlertHistoryIncident[],
   controls: AlertHistoryFilterControls,
+  searchIndex?: AlertHistorySearchIndex,
 ): AlertHistoryViewItem[] {
   const query = normalizeSearchText(controls.searchQuery);
   const sortBy = controls.sortBy ?? MOST_RECENT_SORT_VALUE;
@@ -117,7 +120,7 @@ export function filterAndSortAlertHistory(
       return [];
     }
 
-    if (query && !incidentMatchesSearch(incident, query)) {
+    if (query && !incidentMatchesSearch(incident, query, searchIndex)) {
       return [];
     }
 
@@ -264,6 +267,12 @@ export function filterAndSortAlertHistory(
   });
 }
 
+export function buildAlertHistorySearchIndex(
+  incidents: AlertHistoryIncident[],
+): AlertHistorySearchIndex {
+  return new Map(incidents.map((incident) => [incident, buildIncidentSearchText(incident)]));
+}
+
 function getIncidentDuration(incident: AlertHistoryIncident): number {
   if (incident.durationMinutes != null && incident.durationMinutes >= 0) {
     return incident.durationMinutes;
@@ -380,9 +389,7 @@ export function buildAlertHistoryTypeOptions(
   return options;
 }
 
-export function buildAlertHistorySortGroups(
-  incidents?: AlertHistoryIncident[],
-): AlertHistorySortGroup[] {
+export function buildAlertHistorySortGroups(): AlertHistorySortGroup[] {
   return [
     {
       id: "timing",
@@ -427,7 +434,7 @@ export function buildAlertHistorySortGroups(
 export function buildAlertHistorySortOptions(
   incidents?: AlertHistoryIncident[],
 ): AlertHistorySortOption[] {
-  const groups = buildAlertHistorySortGroups(incidents);
+  const groups = buildAlertHistorySortGroups();
   const options = groups.flatMap((g) => g.options);
 
   const seenValues = new Set<string>(options.map((o) => o.value));
@@ -529,9 +536,18 @@ export function formatAlertTypeName(eventType: string): string {
 function incidentMatchesSearch(
   incident: AlertHistoryIncident,
   normalizedQuery: string,
+  searchIndex?: AlertHistorySearchIndex,
 ): boolean {
+  const searchable = searchIndex?.get(incident) ?? buildIncidentSearchText(incident);
+
+  return normalizedQuery
+    .split(" ")
+    .every((token) => searchable.includes(token));
+}
+
+function buildIncidentSearchText(incident: AlertHistoryIncident): string {
   const eventTypeLabel = formatAlertTypeName(incident.eventType ?? "");
-  const searchable = normalizeSearchText([
+  return normalizeSearchText([
     incident.alertId,
     incident.sourceId,
     incident.lineId,
@@ -556,10 +572,6 @@ function incidentMatchesSearch(
       event.source,
     ]),
   ].filter(Boolean).join(" "));
-
-  return normalizedQuery
-    .split(" ")
-    .every((token) => searchable.includes(token));
 }
 
 function normalizeSearchText(value: string): string {

@@ -12,11 +12,11 @@ import {
   SORT_LOCATION_AZ,
   SORT_LOCATION_ZA,
   SORT_LONGEST_DURATION,
-  SORT_MOST_RECENT,
   SORT_MOST_UPDATES,
   SORT_OLDEST,
   SORT_SHORTEST_DURATION,
   buildAlertHistoryLineOptions,
+  buildAlertHistorySearchIndex,
   buildAlertHistorySortGroups,
   buildAlertHistorySortOptions,
   buildAlertHistoryTypeOptions,
@@ -226,6 +226,42 @@ describe("alert history filtering", () => {
     assert.equal(visible.length, 1);
     assert.equal(visible[0].incident.alertId, "ttc-route-2-warden");
     assert.equal(visible[0].displayEvent?.state, "opened");
+  });
+
+  it("uses a precomputed search index without rebuilding incident text per query", () => {
+    const indexedIncident = incident({
+      alertId: "indexed-alert",
+      lineId: "line-2",
+      lineNumber: "2",
+      lineName: "Bloor-Danforth",
+      title: "Unique cached phrase",
+      location: "",
+      status: "active",
+      events: [event({
+        id: 99,
+        state: "opened",
+        label: "Alert opened",
+        happenedAt: "2026-06-23T12:05:00-04:00",
+        title: "Generic alert",
+        description: "Generic description",
+        location: "",
+      })],
+    });
+    const searchIndex = buildAlertHistorySearchIndex([indexedIncident]);
+    indexedIncident.title = "Title changed after indexing";
+
+    const visible = filterAndSortAlertHistory(
+      [indexedIncident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "unique cached",
+      },
+      searchIndex,
+    );
+
+    assert.equal(visible.length, 1);
+    assert.match(searchIndex.get(indexedIncident), /unique cached phrase/);
   });
 
   it("filters by selected transit line while preserving chronological input order", () => {

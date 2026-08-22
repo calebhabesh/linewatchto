@@ -35,6 +35,32 @@ describe("overlapping count badge sizing", () => {
     assert.match(stationDetail, /<OverlappingCountBadge className="station-access-outage-count" count=\{count\}/);
   });
 
+  it("preserves circular 1:1 aspect ratio for single digits and expands for multi-digit counts", () => {
+    assert.match(badge, /data-count-digits=\{label\.length\}/);
+    assert.match(badge, /data-single-digit=\{isSingleDigit \? "true" : "false"\}/);
+    assert.match(badge, /"--overlapping-count-viewbox-width": viewBoxWidth/);
+    assert.match(
+      css,
+      /\.overlapping-count-badge\[data-single-digit="true"\]\s*\{(?=[^}]*aspect-ratio:\s*1\s*\/\s*1;)(?=[^}]*padding-left:\s*0\s*!important;)(?=[^}]*padding-right:\s*0\s*!important;)[^}]*\}/s,
+    );
+    assert.match(
+      css,
+      /\.mobile-bottom-nav-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*17px;)[^}]*\}/s,
+    );
+    assert.match(
+      css,
+      /\.desktop-menu-count-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding-left:\s*0\s*!important;)(?=[^}]*padding-right:\s*0\s*!important;)(?=[^}]*width:\s*26px;)[^}]*\}/s,
+    );
+    assert.match(
+      css,
+      /\.station-access-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*16px;)[^}]*\}/s,
+    );
+    assert.match(
+      css,
+      /\.station-search-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*14px;)[^}]*\}/s,
+    );
+  });
+
   it("renders shared TTC and GO/UP map counts as vector geometry without live glyph text", () => {
     assert.match(ttcMap, /<MapOverlapIndicator/);
     assert.match(regionalMap, /<MapOverlapIndicator/);

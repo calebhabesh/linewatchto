@@ -3261,10 +3261,18 @@ button {
   white-space: nowrap;
 }
 
+.overlapping-count-badge[data-single-digit="true"] {
+  aspect-ratio: 1 / 1;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 .overlapping-count-badge__svg {
+  aspect-ratio: var(--overlapping-count-viewbox-width, 7) / 16;
   display: block;
   flex: none;
   height: 100%;
+  max-width: 100%;
   overflow: hidden;
   width: auto;
 }
@@ -3279,6 +3287,12 @@ button {
 
 .desktop-menu-count-badge {
   --overlapping-count-font-size: 9px;
+}
+
+.desktop-menu-count-badge[data-single-digit="true"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: 26px;
 }
 
 @media (max-width: 767px) {
@@ -3816,6 +3830,11 @@ button {
   font-weight: 950;
   line-height: 1;
   box-shadow: 0 0 0 1px rgb(248, 250, 252);
+}
+
+.station-access-outage-count[data-single-digit="true"] {
+  padding: 0;
+  width: 16px;
 }
 
 .dark .station-access-outage-count {
@@ -11392,6 +11411,11 @@ img.transit-line-badge {
   box-shadow: 0 0 0 1px rgb(248, 250, 252);
 }
 
+.station-search-outage-count[data-single-digit="true"] {
+  padding: 0;
+  width: 14px;
+}
+
 .dark .station-search-outage-count {
   box-shadow: 0 0 0 1px rgb(10, 12, 16);
 }
@@ -16327,6 +16351,11 @@ img.transit-line-badge {
     position: absolute;
     right: -12px;
     top: -8px;
+  }
+
+  .mobile-bottom-nav-badge[data-single-digit="true"] {
+    padding: 0;
+    width: 17px;
   }
 
   .mobile-bottom-nav-label {
@@ -21390,6 +21419,31 @@ img.transit-line-badge {
   display: block;
   padding: 0.65rem 0.7rem;
   background: rgba(248, 250, 252, 0.82);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 12rem;
+}
+
+.alert-history-result-count {
+  color: var(--muted);
+  font-size: 0.74rem;
+  margin: 0 0 0.45rem;
+}
+
+.alert-history-load-more {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  color: inherit;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin: 0.75rem auto 0;
+  min-height: 2.5rem;
+  padding: 0.55rem 1rem;
+}
+
+.alert-history-load-more:hover,
+.alert-history-load-more:focus-visible {
+  background: rgba(148, 163, 184, 0.14);
 }
 
 .dark .alert-history-item,
