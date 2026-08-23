@@ -775,14 +775,13 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   border-radius: 9999px;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.95;
-  filter: blur(4px);
+  opacity: 1;
+  filter: blur(2px) drop-shadow(0 0 8px rgba(56, 189, 248, 0.45));
   background:
-    radial-gradient(ellipse 160px 70% at 4px 50%, rgba(56, 189, 248, 0.28) 0%, rgba(0, 130, 201, 0.14) 45%, transparent 85%),
-    radial-gradient(ellipse 340px 85% at 4px 50%, rgba(56, 189, 248, 0.18) 0%, rgba(0, 130, 201, 0.10) 50%, transparent 95%),
-    radial-gradient(ellipse 520px 100% at 4px 50%, rgba(0, 130, 201, 0.08) 0%, rgba(0, 130, 201, 0.02) 60%, transparent 100%);
-  mask-image: radial-gradient(ellipse 100% 100% at 0% 50%, #000 0%, #000 45%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 0% 50%, #000 0%, #000 45%, transparent 100%);
+    radial-gradient(ellipse 380px 100% at 4px 50%, rgba(186, 230, 253, 0.90) 0%, rgba(56, 189, 248, 0.75) 35%, rgba(0, 130, 201, 0.45) 75%, transparent 100%),
+    linear-gradient(90deg, rgba(186, 230, 253, 0.65) 0%, rgba(56, 189, 248, 0.55) 20%, rgba(0, 130, 201, 0.38) 55%, rgba(0, 130, 201, 0.16) 80%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
 }
 
 /* Ensure text, icons, and badges stay razor-sharp above the diffuse light beam */
@@ -797,11 +796,13 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 :root:not(.dark) .station-subsection-header::before,
 :root:not(.dark) .station-connections-title::before,
 :root:not(.dark) .mobile-status-section-heading::before {
-  opacity: 0.90;
+  opacity: 0.95;
+  filter: blur(2px);
   background:
-    radial-gradient(ellipse 150px 70% at 4px 50%, rgba(0, 102, 184, 0.16) 0%, rgba(15, 23, 42, 0.08) 45%, transparent 85%),
-    radial-gradient(ellipse 340px 85% at 4px 50%, rgba(0, 102, 184, 0.10) 0%, rgba(15, 23, 42, 0.04) 50%, transparent 95%),
-    radial-gradient(ellipse 520px 100% at 4px 50%, rgba(0, 102, 184, 0.05) 0%, rgba(15, 23, 42, 0.02) 60%, transparent 100%);
+    radial-gradient(ellipse 380px 90% at 4px 50%, rgba(0, 102, 184, 0.28) 0%, rgba(15, 23, 42, 0.14) 45%, transparent 95%),
+    linear-gradient(90deg, rgba(0, 102, 184, 0.22) 0%, rgba(15, 23, 42, 0.10) 35%, rgba(0, 102, 184, 0.05) 75%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
 }
 
 :root:not(.dark) .station-subsection-header > .bg-logo-blue,
