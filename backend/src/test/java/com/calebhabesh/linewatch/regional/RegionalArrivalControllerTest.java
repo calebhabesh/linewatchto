@@ -26,6 +26,7 @@ class RegionalArrivalControllerTest {
         var response = controller.arrivals("union");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
         assertThat(response.getBody()).isSameAs(snapshot);
     }
 
@@ -33,6 +34,9 @@ class RegionalArrivalControllerTest {
     void returnsNotFoundForUnknownRegionalStation() {
         when(service.arrivals("missing")).thenThrow(new StationNotFoundException("missing"));
 
-        assertThat(controller.arrivals("missing").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        var response = controller.arrivals("missing");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
     }
 }

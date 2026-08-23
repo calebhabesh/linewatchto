@@ -39,7 +39,27 @@ export type RegionalArrivalSnapshot = {
 export type RegionalArrivalDataResult = {
   source: "backend" | "fallback";
   data: RegionalArrivalSnapshot;
+  receivedAt: number;
 };
+
+export const REGIONAL_ARRIVAL_HTTP_FAILURE_GRACE_MS = 90_000;
+
+export function preserveRegionalArrivalsOnRefresh(
+  current: RegionalArrivalDataResult | null | undefined,
+  incoming: RegionalArrivalDataResult,
+  now = Date.now(),
+): RegionalArrivalDataResult {
+  if (
+    incoming.source === "fallback"
+    && current?.source === "backend"
+    && current.data.stationId === incoming.data.stationId
+    && now >= current.receivedAt
+    && now - current.receivedAt <= REGIONAL_ARRIVAL_HTTP_FAILURE_GRACE_MS
+  ) {
+    return current;
+  }
+  return incoming;
+}
 
 export function formatRegionalArrivalSourceSummary(
   arrivals: Pick<RegionalArrival, "lineId" | "status">[],
@@ -116,12 +136,16 @@ export async function getRegionalStationArrivals(
     if (!response.ok) {
       throw new Error(`Regional station arrivals request failed with ${response.status}`);
     }
-    return { source: "backend", data: await response.json() as RegionalArrivalSnapshot };
+    return {
+      source: "backend",
+      data: await response.json() as RegionalArrivalSnapshot,
+      receivedAt: Date.now(),
+    };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw error;
     }
-    return { source: "fallback", data: emptyRegionalArrivalSnapshot(stationId) };
+    return { source: "fallback", data: emptyRegionalArrivalSnapshot(stationId), receivedAt: Date.now() };
   }
 }
 

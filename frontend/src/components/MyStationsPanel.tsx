@@ -17,7 +17,7 @@ import {
   isArrivalDue,
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
-import { getStationDetail, isLrtOnlyStation, isSubwayAndLrtStation, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
+import { getStationDetail, isLrtOnlyStation, isSubwayAndLrtStation, preserveStationDetailOnRefresh, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
 import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelectionsByStation } from "../app/station-impact-types";
 import { DataProvider, useDashboardData, type DashboardData } from "../app/DataContext";
 import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId, type RegionalRouteCode } from "../app/regional-data";
@@ -27,6 +27,7 @@ import {
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
+  preserveRegionalArrivalsOnRefresh,
   regionalArrivalTimeDisplay,
   shouldUseDetailedRegionalArrivalCountdown,
   type RegionalArrivalDataResult,
@@ -1079,7 +1080,13 @@ export function MyStationsPanel({
     const refresh = async () => {
       const results = await Promise.all(stationIds.map(async (stationId) => [`ttc:${stationId}`, await getStationDetail(stationId)] as const));
       if (!cancelled) {
-        setStationDetails((current) => ({ ...current, ...Object.fromEntries(results) }));
+        setStationDetails((current) => {
+          const next = { ...current };
+          for (const [key, result] of results) {
+            next[key] = preserveStationDetailOnRefresh(current[key], result);
+          }
+          return next;
+        });
       }
     };
 
@@ -1110,7 +1117,13 @@ export function MyStationsPanel({
         getAccessibilityOutages(undefined, { networkId: "regional" }),
       ]);
       if (!cancelled) {
-        setRegionalArrivalDetails((current) => ({ ...current, ...Object.fromEntries(arrivalResults) }));
+        setRegionalArrivalDetails((current) => {
+          const next = { ...current };
+          for (const [stationId, result] of arrivalResults) {
+            next[stationId] = preserveRegionalArrivalsOnRefresh(current[stationId], result);
+          }
+          return next;
+        });
         setRegionalAccessibility(accessibilityResult.data);
       }
     };

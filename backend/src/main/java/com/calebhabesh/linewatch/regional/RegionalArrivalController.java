@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.regional;
 
 import com.calebhabesh.linewatch.station.StationNotFoundException;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,9 +22,13 @@ public class RegionalArrivalController {
         @PathVariable String stationId
     ) {
         try {
-            return ResponseEntity.ok(service.arrivals(stationId));
+            return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(service.arrivals(stationId));
         } catch (StationNotFoundException exception) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.notFound()
+                .cacheControl(CacheControl.noStore())
+                .build();
         }
     }
 }

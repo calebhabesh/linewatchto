@@ -23,11 +23,34 @@ public class RegionalArrivalService {
     private record CachedSnapshot(OffsetDateTime expiresAt, RegionalArrivalResponses.SnapshotResponse response) {
     }
 
+    private record RefreshResult(
+        RegionalArrivalResponses.SnapshotResponse response,
+        OffsetDateTime cacheUntil
+    ) {}
+
+    private record RealtimeDirectionKey(String stationId, String lineId, String directionFamily) {}
+
+    private record RetainedRealtimeDirection(
+        List<RegionalArrivalRecord> arrivals,
+        OffsetDateTime lastSeenAt,
+        OffsetDateTime sourceUpdatedAt
+    ) {}
+
+    private record RealtimeResolution(
+        List<RegionalArrivalRecord> arrivals,
+        int heldArrivalCount,
+        OffsetDateTime latestSourceUpdatedAt,
+        OffsetDateTime cacheUntil
+    ) {}
+
     private final MetrolinxArrivalClient client;
     private final RegionalScheduledArrivalProvider scheduledProvider;
     private final RegionalArrivalProperties properties;
     private final Clock clock;
     private final Map<String, CachedSnapshot> cache = new ConcurrentHashMap<>();
+    private final Map<String, Object> refreshLocks = new ConcurrentHashMap<>();
+    private final Map<RealtimeDirectionKey, RetainedRealtimeDirection> retainedRealtimeDirections =
+        new ConcurrentHashMap<>();
 
     public RegionalArrivalService(
         MetrolinxArrivalClient client,
@@ -46,8 +69,12 @@ public class RegionalArrivalService {
             .orElseThrow(() -> new StationNotFoundException(stationId));
         OffsetDateTime now = OffsetDateTime.now(clock);
         if (!properties.isEnabled() && !properties.isScheduleEnabled()) {
+            clearRetainedRealtime(station.id());
             return unavailable(station, "disabled", now,
                 "Regional station arrivals are disabled.");
+        }
+        if (!properties.isEnabled()) {
+            clearRetainedRealtime(station.id());
         }
 
         CachedSnapshot cached = cache.get(station.id());
@@ -55,12 +82,24 @@ public class RegionalArrivalService {
             return cached.response();
         }
 
-        RegionalArrivalResponses.SnapshotResponse response = refresh(station, now);
-        cache.put(station.id(), new CachedSnapshot(now.plus(properties.getCacheTtl()), response));
-        return response;
+        synchronized (refreshLocks.computeIfAbsent(station.id(), ignored -> new Object())) {
+            now = OffsetDateTime.now(clock);
+            cached = cache.get(station.id());
+            if (cached != null && cached.expiresAt().isAfter(now)) {
+                return cached.response();
+            }
+
+            RefreshResult refreshed = refresh(station, now);
+            OffsetDateTime expiresAt = earlier(
+                now.plus(nonNegative(properties.getCacheTtl())),
+                refreshed.cacheUntil()
+            );
+            cache.put(station.id(), new CachedSnapshot(expiresAt, refreshed.response()));
+            return refreshed.response();
+        }
     }
 
-    private RegionalArrivalResponses.SnapshotResponse refresh(
+    private RefreshResult refresh(
         StationResponses.StationSummaryResponse station,
         OffsetDateTime now
     ) {
@@ -87,31 +126,37 @@ public class RegionalArrivalService {
         }
 
         List<RegionalArrivalFeed> freshFeeds = feeds.stream().filter(feed -> isFresh(feed, now)).toList();
+        List<RegionalArrivalRecord> currentRealtime = deduplicate(freshFeeds.stream()
+            .flatMap(feed -> feed.arrivals().stream())
+            .filter(arrival -> !arrival.predictedAt().isBefore(now.minus(PAST_TOLERANCE)))
+            .filter(arrival -> !arrival.predictedAt().isAfter(now.plus(properties.getHorizon())))
+            .toList());
+        RealtimeResolution realtime = properties.isEnabled()
+            ? retainMissingRealtimeDirections(
+                station.id(), station.lineIds(), currentRealtime, freshFeeds, now
+            )
+            : new RealtimeResolution(List.of(), 0, null, null);
         List<RegionalArrivalRecord> scheduled = scheduledProvider.arrivals(station.id(), station.lineIds());
         boolean scheduleAvailable = scheduledProvider.hasActiveSchedule(station.lineIds());
-        if (freshFeeds.isEmpty() && scheduled.isEmpty() && !scheduleAvailable) {
+        if (realtime.arrivals().isEmpty() && scheduled.isEmpty() && !scheduleAvailable) {
             String message = requestedFeeds > 0 && failedFeeds == requestedFeeds
                 ? "Metrolinx station arrivals are temporarily unavailable."
                 : properties.isScheduleEnabled()
                     ? "No current regional GTFS schedule import covers this station."
                     : "The latest Metrolinx station-arrival data is stale.";
-            return unavailable(station, "unavailable", now, message);
+            return new RefreshResult(
+                unavailable(station, "unavailable", now, message),
+                realtime.cacheUntil()
+            );
         }
 
-        List<RegionalArrivalRecord> realtime = deduplicate(freshFeeds.stream()
-            .flatMap(feed -> feed.arrivals().stream())
-            .filter(arrival -> !arrival.predictedAt().isBefore(now.minus(PAST_TOLERANCE)))
-            .filter(arrival -> !arrival.predictedAt().isAfter(now.plus(properties.getHorizon())))
-            .toList());
-        List<RegionalArrivalRecord> visible = merge(station.id(), realtime, deduplicate(scheduled)).stream()
+        List<RegionalArrivalRecord> visible = merge(station.id(), realtime.arrivals(), deduplicate(scheduled)).stream()
             .sorted(Comparator.comparing(RegionalArrivalRecord::predictedAt)
                 .thenComparing(RegionalArrivalRecord::lineId)
                 .thenComparing(RegionalArrivalRecord::tripNumber))
             .toList();
         List<RegionalArrivalRecord> bounded = boundPerDirection(station.id(), visible);
-        OffsetDateTime sourceUpdatedAt = freshFeeds.stream()
-            .map(RegionalArrivalFeed::sourceUpdatedAt)
-            .max(OffsetDateTime::compareTo)
+        OffsetDateTime sourceUpdatedAt = java.util.Optional.ofNullable(realtime.latestSourceUpdatedAt())
             .or(() -> scheduledProvider.latestImportedAt(station.lineIds()))
             .orElse(null);
         String source = bounded.stream()
@@ -126,6 +171,10 @@ public class RegionalArrivalService {
         String message = bounded.isEmpty()
             ? "No scheduled train service was found in the next "
                 + properties.getScheduleLookaheadDays() + " days."
+            : realtime.heldArrivalCount() > 0 && freshFeeds.isEmpty()
+                ? "The Metrolinx arrival source is temporarily unavailable; briefly holding last-seen live estimates."
+            : realtime.heldArrivalCount() > 0
+                ? "Fresh Metrolinx data is available; briefly holding last-seen live estimates through a partial source gap."
             : hasLive && hasScheduled
                 ? "Fresh estimates with published schedule fallback."
                 : hasScheduled
@@ -134,10 +183,154 @@ public class RegionalArrivalService {
                 ? "Showing the available fresh regional arrival source; another source is temporarily unavailable."
                 : "Fresh Metrolinx regional train estimates.";
 
-        return new RegionalArrivalResponses.SnapshotResponse(
-            station.id(), station.name(), availability, now, sourceUpdatedAt, source, message,
-            bounded.stream().map(arrival -> response(arrival, now)).toList()
+        return new RefreshResult(
+            new RegionalArrivalResponses.SnapshotResponse(
+                station.id(), station.name(), availability, now, sourceUpdatedAt, source, message,
+                bounded.stream().map(arrival -> response(arrival, now)).toList()
+            ),
+            realtime.cacheUntil()
         );
+    }
+
+    private RealtimeResolution retainMissingRealtimeDirections(
+        String stationId,
+        List<String> lineIds,
+        List<RegionalArrivalRecord> currentRealtime,
+        List<RegionalArrivalFeed> freshFeeds,
+        OffsetDateTime now
+    ) {
+        Duration retention = nonNegative(properties.getLiveArrivalRetention());
+        retainedRealtimeDirections.entrySet().removeIf(entry -> retainedExpired(entry.getValue(), now, retention));
+        if (retention.isZero()) {
+            clearRetainedRealtime(stationId);
+            return new RealtimeResolution(
+                currentRealtime,
+                0,
+                latestSourceUpdatedAt(freshFeeds),
+                null
+            );
+        }
+
+        Map<RealtimeDirectionKey, List<RegionalArrivalRecord>> currentByDirection = currentRealtime.stream()
+            .collect(java.util.stream.Collectors.groupingBy(
+                arrival -> realtimeDirectionKey(stationId, arrival),
+                LinkedHashMap::new,
+                java.util.stream.Collectors.toList()
+            ));
+        currentByDirection.forEach((key, arrivals) -> retainedRealtimeDirections.put(
+            key,
+            new RetainedRealtimeDirection(
+                List.copyOf(arrivals),
+                now,
+                sourceUpdatedAtForLine(freshFeeds, key.lineId())
+            )
+        ));
+
+        List<RegionalArrivalRecord> resolved = new ArrayList<>(currentRealtime);
+        int heldArrivalCount = 0;
+        OffsetDateTime heldUntil = null;
+        OffsetDateTime latestSourceUpdatedAt = latestSourceUpdatedAt(freshFeeds);
+        for (Map.Entry<RealtimeDirectionKey, RetainedRealtimeDirection> entry
+                : retainedRealtimeDirections.entrySet()) {
+            RealtimeDirectionKey key = entry.getKey();
+            RetainedRealtimeDirection retained = entry.getValue();
+            if (!key.stationId().equals(stationId)
+                    || !lineIds.contains(key.lineId())
+                    || currentByDirection.containsKey(key)) {
+                continue;
+            }
+
+            List<RegionalArrivalRecord> visibleHeld = retained.arrivals().stream()
+                .filter(arrival -> !arrival.predictedAt().isBefore(now.minus(PAST_TOLERANCE)))
+                .filter(arrival -> !arrival.predictedAt().isAfter(now.plus(properties.getHorizon())))
+                .toList();
+            if (visibleHeld.isEmpty()) {
+                retainedRealtimeDirections.remove(key, retained);
+                continue;
+            }
+
+            resolved.addAll(visibleHeld);
+            heldArrivalCount += visibleHeld.size();
+            OffsetDateTime expiresAt = retainedExpiresAt(retained, retention);
+            heldUntil = earlier(heldUntil, expiresAt);
+            latestSourceUpdatedAt = later(latestSourceUpdatedAt, retained.sourceUpdatedAt());
+        }
+
+        return new RealtimeResolution(
+            List.copyOf(resolved),
+            heldArrivalCount,
+            latestSourceUpdatedAt,
+            heldUntil
+        );
+    }
+
+    private RealtimeDirectionKey realtimeDirectionKey(String stationId, RegionalArrivalRecord arrival) {
+        String family = directionFamily(stationId, arrival);
+        return new RealtimeDirectionKey(
+            stationId,
+            arrival.lineId(),
+            family.isBlank() ? normalize(arrival.direction()) : family
+        );
+    }
+
+    private boolean retainedExpired(
+        RetainedRealtimeDirection retained,
+        OffsetDateTime now,
+        Duration retention
+    ) {
+        return retention.isZero() || !retainedExpiresAt(retained, retention).isAfter(now);
+    }
+
+    private OffsetDateTime retainedExpiresAt(
+        RetainedRealtimeDirection retained,
+        Duration retention
+    ) {
+        OffsetDateTime retentionExpiry = retained.lastSeenAt().plus(retention);
+        if (retained.sourceUpdatedAt() == null) {
+            return retentionExpiry;
+        }
+        return earlier(
+            retentionExpiry,
+            retained.sourceUpdatedAt().plus(nonNegative(properties.getMaxSourceAge()))
+        );
+    }
+
+    private OffsetDateTime sourceUpdatedAtForLine(
+        List<RegionalArrivalFeed> freshFeeds,
+        String lineId
+    ) {
+        return freshFeeds.stream()
+            .filter(feed -> feed.arrivals().stream().anyMatch(arrival -> arrival.lineId().equals(lineId)))
+            .map(RegionalArrivalFeed::sourceUpdatedAt)
+            .max(OffsetDateTime::compareTo)
+            .orElse(null);
+    }
+
+    private OffsetDateTime latestSourceUpdatedAt(List<RegionalArrivalFeed> freshFeeds) {
+        return freshFeeds.stream()
+            .map(RegionalArrivalFeed::sourceUpdatedAt)
+            .max(OffsetDateTime::compareTo)
+            .orElse(null);
+    }
+
+    private void clearRetainedRealtime(String stationId) {
+        retainedRealtimeDirections.keySet().removeIf(key -> key.stationId().equals(stationId));
+    }
+
+    private Duration nonNegative(Duration duration) {
+        return duration == null || duration.isNegative() ? Duration.ZERO : duration;
+    }
+
+    private OffsetDateTime earlier(OffsetDateTime left, OffsetDateTime right) {
+        if (left == null) return right;
+        if (right == null) return left;
+        return left.isBefore(right) ? left : right;
+    }
+
+    private OffsetDateTime later(OffsetDateTime left, OffsetDateTime right) {
+        if (left == null) return right;
+        if (right == null) return left;
+        return left.isAfter(right) ? left : right;
     }
 
     private List<RegionalArrivalRecord> merge(

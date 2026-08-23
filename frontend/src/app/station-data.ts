@@ -123,12 +123,32 @@ export type StationDetail = {
 export type StationDataResult<T> = {
   source: "backend" | "fallback";
   data: T;
+  receivedAt: number;
 };
 
 export type StationFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
 };
+
+export const TTC_STATION_HTTP_FAILURE_GRACE_MS = 30_000;
+
+export function preserveStationDetailOnRefresh(
+  current: StationDataResult<StationDetail | null> | null | undefined,
+  incoming: StationDataResult<StationDetail | null>,
+  now = Date.now(),
+): StationDataResult<StationDetail | null> {
+  if (
+    incoming.source === "fallback"
+    && current?.source === "backend"
+    && current.data?.id === incoming.data?.id
+    && now >= current.receivedAt
+    && now - current.receivedAt <= TTC_STATION_HTTP_FAILURE_GRACE_MS
+  ) {
+    return current;
+  }
+  return incoming;
+}
 
 const EMPTY_ACCESS_OUTAGE_COUNTS: StationAccessOutageCounts = { elevator: 0, escalator: 0 };
 
@@ -1937,9 +1957,9 @@ export async function getStationSummaries(
       throw new Error(`Station summaries request failed with ${response.status}`);
     }
 
-    return { source: "backend", data: (await response.json()) as StationListResponse };
+    return { source: "backend", data: (await response.json()) as StationListResponse, receivedAt: Date.now() };
   } catch {
-    return { source: "fallback", data: fallbackStationSummaries };
+    return { source: "fallback", data: fallbackStationSummaries, receivedAt: Date.now() };
   }
 }
 
@@ -1955,15 +1975,15 @@ export async function getStationDetail(
       { cache: "no-store" },
     );
     if (response.status === 404) {
-      return { source: "backend", data: null };
+      return { source: "backend", data: null, receivedAt: Date.now() };
     }
     if (!response.ok) {
       throw new Error(`Station detail request failed with ${response.status}`);
     }
 
-    return { source: "backend", data: (await response.json()) as StationDetail };
+    return { source: "backend", data: (await response.json()) as StationDetail, receivedAt: Date.now() };
   } catch {
-    return { source: "fallback", data: fallbackStationDetails[id] ?? null };
+    return { source: "fallback", data: fallbackStationDetails[id] ?? null, receivedAt: Date.now() };
   }
 }
 

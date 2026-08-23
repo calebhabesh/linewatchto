@@ -23,11 +23,13 @@ function assertCachePolicy(source, label) {
   assert.match(source, /\/api\/alerts/, `${label} should cache public alert endpoint`);
   assert.match(source, /\/api\/announcements/, `${label} should cache public announcements endpoint`);
   assert.match(source, /\/api\/stations/, `${label} should cache public stations endpoint`);
-  assert.match(source, /\/api\/stations\/\*/, `${label} should cache dynamic station detail endpoint`);
+  assert.match(source, /@linewatch_station_api_no_store\s*\{\s*path \/api\/stations\/\* \/api\/regional\/stations\/\*\s*\}/, `${label} should isolate dynamic station APIs`);
+  assert.match(source, /@linewatch_station_api_no_store Cache-Control "no-store"/, `${label} should keep station arrivals uncached`);
   assert.match(source, /\/api\/alert-history/, `${label} should cache public alert history endpoint`);
   assert.match(source, /s-maxage=30/, `${label} should expose a short shared-cache TTL`);
   const publicApiMatcher = source.match(/@linewatch_public_api_cache\s*\{\s*path ([^\n]+)\s*\}/)?.[1] ?? "";
   assert.doesNotMatch(publicApiMatcher, /\/api\/trains|\/api\/regional\/trains/, `${label} should not apply dashboard TTLs to train markers`);
+  assert.doesNotMatch(publicApiMatcher, /\/api\/stations\/\*|\/api\/regional\/stations\/\*/, `${label} should not cache dynamic station APIs`);
   assert.match(source, /@linewatch_private_api_no_store/, `${label} should define private API no-store matcher`);
   assert.match(source, /\/api\/auth\/\*/, `${label} should keep auth uncached`);
   assert.match(source, /\/api\/account\/\*/, `${label} should keep account APIs uncached`);
@@ -74,14 +76,16 @@ describe("Caddy cache headers", () => {
     assert.doesNotMatch(productionCompose, /LINEWATCH_DIAGNOSTICS_RAW_ALERTS_ENABLED/);
   });
 
-  it("documents public APIs including train markers, station details, and alert history in traffic spike runbook", () => {
+  it("documents public API caching and dynamic station cache bypass in traffic spike runbook", () => {
     assert.match(trafficSpikeRunbook, /"\/api\/trains"/, "runbook should include train markers in cache rules");
     assert.match(trafficSpikeRunbook, /"\/api\/stations"/, "runbook should include stations in cache rules");
-    assert.match(trafficSpikeRunbook, /starts_with\(http\.request\.uri\.path, "\/api\/stations\/"\)/, "runbook should include dynamic station details in cache rules");
+    assert.match(trafficSpikeRunbook, /starts_with\(http\.request\.uri\.path, "\/api\/stations\/"\)/, "runbook should include dynamic station details in bypass rules");
+    assert.match(trafficSpikeRunbook, /starts_with\(http\.request\.uri\.path, "\/api\/regional\/stations\/"\)/, "runbook should include regional station arrivals in bypass rules");
     assert.match(trafficSpikeRunbook, /"\/api\/alert-history"/, "runbook should include alert history in cache rules");
     assert.match(trafficSpikeRunbook, /"\/api\/announcements"/, "runbook should include announcements in cache rules");
     assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/trains/, "runbook should verify train marker cache headers");
     assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/stations\/union/, "runbook should verify station detail cache headers");
+    assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/regional\/stations\/bloor\/arrivals/, "runbook should verify regional arrival cache headers");
     assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/alert-history/, "runbook should verify alert history cache headers");
     assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/announcements/, "runbook should verify announcement cache headers");
     assert.match(trafficSpikeRunbook, /autocannon .*https:\/\/linewatchto\.ca\/api\/trains/, "runbook should load-test train markers");

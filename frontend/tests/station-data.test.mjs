@@ -18,6 +18,7 @@ import {
   isSubwayLine,
   isSubwayAndLrtStation,
   isSubwayAndLrtStationId,
+  preserveStationDetailOnRefresh,
 } from "../src/app/station-data.ts";
 import { groupStationArrivals } from "../src/app/station-arrivals.ts";
 
@@ -112,6 +113,23 @@ describe("station data adapter", () => {
     assert.equal(response.source, "fallback");
     assert.equal(response.data.id, "union");
     assert.match(response.data.disclaimer, /demo placeholders/);
+  });
+
+  it("preserves the last backend station detail through a transient browser request failure", () => {
+    const current = { source: "backend", data: fallbackStationDetails.cedarvale, receivedAt: 1_000 };
+    const failedRefresh = { source: "fallback", data: fallbackStationDetails.cedarvale, receivedAt: 16_000 };
+
+    assert.equal(preserveStationDetailOnRefresh(current, failedRefresh, 16_000), current);
+    assert.equal(
+      preserveStationDetailOnRefresh(current, failedRefresh, 31_001),
+      failedRefresh,
+      "the browser grace window should expire instead of showing live data indefinitely",
+    );
+    assert.equal(
+      preserveStationDetailOnRefresh(failedRefresh, current, 16_000),
+      current,
+      "a recovered backend response should replace an initial fallback",
+    );
   });
 
   it("does not preserve the old misspelled eglinton id", () => {

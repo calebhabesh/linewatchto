@@ -1191,7 +1191,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
   await expect(stationPanel).toBeVisible();
   await expect(stationPanel.getByText("Metrolinx GO live estimates", { exact: true })).toBeVisible();
-  await expect(stationPanel.getByText("To Kitchener GO", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("To Kitchener", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("7 min", { exact: true })).toBeVisible();
   await expect(stationPanel.getByRole("heading", { name: "Platform 11" })).toBeVisible();
   await expect(stationPanel.getByText("Delayed estimate", { exact: true })).toBeVisible();

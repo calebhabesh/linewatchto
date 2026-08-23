@@ -11,6 +11,7 @@ import {
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
+  preserveRegionalArrivalsOnRefresh,
   REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS,
   regionalArrivalMinuteLabel,
   regionalArrivalTimeDisplay,
@@ -49,6 +50,32 @@ describe("regional station arrivals adapter", () => {
     assert.equal(result.data.availability, "available");
     assert.equal(result.data.arrivals[0].platform, "11");
     assert.equal(result.data.arrivals[0].delayMinutes, 3);
+  });
+
+  it("preserves the last backend regional snapshot through a transient browser request failure", () => {
+    const backendSnapshot = {
+      ...emptyRegionalArrivalSnapshot("bloor"),
+      availability: "available",
+      arrivals: [{ status: "live" }],
+    };
+    const current = { source: "backend", data: backendSnapshot, receivedAt: 1_000 };
+    const failedRefresh = {
+      source: "fallback",
+      data: emptyRegionalArrivalSnapshot("bloor"),
+      receivedAt: 16_000,
+    };
+
+    assert.equal(preserveRegionalArrivalsOnRefresh(current, failedRefresh, 16_000), current);
+    assert.equal(
+      preserveRegionalArrivalsOnRefresh(current, failedRefresh, 91_001),
+      failedRefresh,
+      "the browser grace window should expire instead of showing live data indefinitely",
+    );
+    assert.equal(
+      preserveRegionalArrivalsOnRefresh(failedRefresh, current, 16_000),
+      current,
+      "a recovered backend response should replace an initial fallback",
+    );
   });
 
   it("falls back to an unavailable source-honest snapshot", async () => {

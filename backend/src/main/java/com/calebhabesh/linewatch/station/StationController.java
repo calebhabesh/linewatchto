@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.station;
 
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,9 +49,13 @@ public class StationController {
     @GetMapping("/{id}")
     public ResponseEntity<StationResponses.StationDetailResponse> station(@PathVariable String id) {
         try {
-            return ResponseEntity.ok(stationService.stationDetail(id));
+            return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(stationService.stationDetail(id));
         } catch (StationNotFoundException exception) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.notFound()
+                .cacheControl(CacheControl.noStore())
+                .build();
         }
     }
 }

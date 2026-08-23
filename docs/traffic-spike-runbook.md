@@ -53,6 +53,8 @@ Expression:
 (starts_with(http.request.uri.path, "/api/account/")) or
 (http.request.uri.path eq "/api/feedback") or
 (starts_with(http.request.uri.path, "/api/health")) or
+(starts_with(http.request.uri.path, "/api/stations/")) or
+(starts_with(http.request.uri.path, "/api/regional/stations/")) or
 (starts_with(http.request.uri.path, "/actuator"))
 ```
 
@@ -102,9 +104,7 @@ Expression:
     "/api/regional/trains"
     "/api/regional/trip-changes"
   }
-  or starts_with(http.request.uri.path, "/api/stations/")
   or starts_with(http.request.uri.path, "/api/reliability/stations/")
-  or starts_with(http.request.uri.path, "/api/regional/stations/")
 )
 ```
 
@@ -120,6 +120,7 @@ Cache key: include query string
 `/api/alerts?type=delay`, `/api/alerts?type=slowdown`, and `/api/alerts?type=planned` share the same path but must remain distinct by query string.
 `/api/announcements` also supports query parameters. Keep the query string in the cache key for direct API consumers; the LineWatchTO panel and menu count share one unfiltered read, and the panel searches that result locally to avoid creating an edge-cache entry for every search term.
 The origin gives `/api/trains` and `/api/regional/trains` a separate `max-age=0, s-maxage=4, stale-while-revalidate=4` policy. Keep Rule 3 set to respect origin so a newly enabled marker layer is not held behind the dashboard's 30-second shared-cache cadence.
+Dynamic `/api/stations/*` and `/api/regional/stations/*` responses contain independently refreshed arrivals and must remain in Rule 1's cache-bypass set. The station-list endpoint `/api/stations` remains cacheable.
 
 ## WAF And Rate Limiting Rules
 
@@ -244,8 +245,6 @@ curl -I https://linewatchto.ca/api/trains
 curl -I https://linewatchto.ca/api/trains
 curl -I 'https://linewatchto.ca/api/alerts?type=delay'
 curl -I 'https://linewatchto.ca/api/alerts?type=delay'
-curl -I https://linewatchto.ca/api/stations/union
-curl -I https://linewatchto.ca/api/stations/union
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/announcements
@@ -267,12 +266,14 @@ The train-marker endpoints should instead report:
 cache-control: public, max-age=0, s-maxage=4, stale-while-revalidate=4
 ```
 
-Private paths must not cache:
+Private and dynamic station paths must not cache:
 
 ```bash
 curl -I https://linewatchto.ca/api/auth/config
 curl -I https://linewatchto.ca/api/account/commutes
 curl -I https://linewatchto.ca/api/feedback
+curl -I https://linewatchto.ca/api/stations/union
+curl -I https://linewatchto.ca/api/regional/stations/bloor/arrivals
 ```
 
 Expected:

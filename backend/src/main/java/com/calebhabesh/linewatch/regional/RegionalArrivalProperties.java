@@ -9,6 +9,7 @@ public class RegionalArrivalProperties {
     private boolean enabled;
     private Duration cacheTtl = Duration.ofSeconds(30);
     private Duration maxSourceAge = Duration.ofMinutes(5);
+    private Duration liveArrivalRetention = Duration.ofSeconds(90);
     private Duration horizon = Duration.ofHours(3);
     private int maxArrivalsPerLine = 4;
     private boolean scheduleEnabled;
@@ -29,6 +30,8 @@ public class RegionalArrivalProperties {
     public void setCacheTtl(Duration cacheTtl) { this.cacheTtl = cacheTtl; }
     public Duration getMaxSourceAge() { return maxSourceAge; }
     public void setMaxSourceAge(Duration maxSourceAge) { this.maxSourceAge = maxSourceAge; }
+    public Duration getLiveArrivalRetention() { return liveArrivalRetention; }
+    public void setLiveArrivalRetention(Duration value) { this.liveArrivalRetention = value; }
     public Duration getHorizon() { return horizon; }
     public void setHorizon(Duration horizon) { this.horizon = horizon; }
     public int getMaxArrivalsPerLine() { return maxArrivalsPerLine; }

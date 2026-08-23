@@ -27,9 +27,10 @@ import {
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
   REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS,
+  preserveRegionalArrivalsOnRefresh,
   regionalArrivalTimeDisplay,
   shouldUseDetailedRegionalArrivalCountdown,
-  type RegionalArrivalSnapshot,
+  type RegionalArrivalDataResult,
 } from "../app/regional-arrivals";
 import type { StationSummary } from "../app/station-data";
 import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
@@ -294,10 +295,7 @@ export function RegionalStationDetailPanel({
   const [isClosing, setIsClosing] = useState(false);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
-  const [arrivalState, setArrivalState] = useState<{
-    stationId: string;
-    snapshot: RegionalArrivalSnapshot;
-  }>(() => ({ stationId: "", snapshot: emptyRegionalArrivalSnapshot(station.id) }));
+  const [arrivalState, setArrivalState] = useState<RegionalArrivalDataResult | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setArrivalTick(Date.now()), REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS);
@@ -312,12 +310,12 @@ export function RegionalStationDetailPanel({
     response: RegionalTripChangeResponse;
   }>(() => ({ stationId: "", response: emptyRegionalTripChangeResponse }));
   const noticesDetailsRef = useRef<HTMLDetailsElement>(null);
-  const arrivalsLoading = arrivalState.stationId !== station.id;
+  const arrivalsLoading = arrivalState?.data.stationId !== station.id;
   const tripChangesLoading = tripChangesState.stationId !== station.id;
   const tripChanges = tripChangesLoading ? emptyRegionalTripChangeResponse : tripChangesState.response;
   const arrivalSnapshot = arrivalsLoading
     ? emptyRegionalArrivalSnapshot(station.id)
-    : arrivalState.snapshot;
+    : arrivalState.data;
   const closeTimeoutRef = useRef<number | null>(null);
   const routes = REGIONAL_ROUTE_DEFINITIONS.filter((route) => station.lineIds.includes(route.id));
   const impacts = useMemo(() => {
@@ -416,7 +414,7 @@ export function RegionalStationDetailPanel({
       const activeRequestId = ++requestId;
       void getRegionalStationArrivals(station.id, { signal: controller.signal }).then((result) => {
         if (active && activeRequestId === requestId) {
-          setArrivalState({ stationId: station.id, snapshot: result.data });
+          setArrivalState((current) => preserveRegionalArrivalsOnRefresh(current, result));
         }
       }).catch(() => undefined);
     };

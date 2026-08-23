@@ -6,8 +6,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,147 @@ class RegionalArrivalServiceTest {
         assertThat(response.arrivals().getFirst().minutes()).isEqualTo(5);
         verify(client).fetchGoNextService("BL");
         verify(client).fetchUpTripUpdates("BL");
+    }
+
+    @Test
+    void retainsGoArrivalsThroughPartialAndFailedRefreshesThenExpiresToSchedule() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-07-28T19:48:00Z"));
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setScheduleEnabled(true);
+        properties.setCacheTtl(Duration.ZERO);
+        properties.setLiveArrivalRetention(Duration.ofSeconds(90));
+        OffsetDateTime initialSourceTime = OffsetDateTime.parse("2026-07-28T19:47:50Z");
+        RegionalArrivalRecord live = regionalLiveArrival(
+            "regional-mi", "Union Station", "2026-07-28T20:10:00Z",
+            "2026-07-28T20:09:00Z", "MI100"
+        );
+        when(client.fetchGoNextService("ML"))
+            .thenReturn(new RegionalArrivalFeed(initialSourceTime, List.of(live)))
+            .thenReturn(new RegionalArrivalFeed(initialSourceTime.plusSeconds(30), List.of()))
+            .thenThrow(new MetrolinxClientException("temporary GO failure"))
+            .thenThrow(new MetrolinxClientException("continued GO failure"));
+        when(scheduled.arrivals("milton", List.of("regional-mi"))).thenReturn(List.of(
+            regionalScheduledArrival(
+                "regional-mi", "Union Station", "2026-07-28T20:09:00Z", "MI100"
+            )
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-mi"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, clock);
+
+        assertThat(service.arrivals("milton").arrivals())
+            .extracting(RegionalArrivalResponses.ArrivalResponse::status)
+            .containsExactly("live");
+
+        clock.advance(Duration.ofSeconds(30));
+        RegionalArrivalResponses.SnapshotResponse partialGap = service.arrivals("milton");
+        assertThat(partialGap.arrivals())
+            .extracting(RegionalArrivalResponses.ArrivalResponse::status)
+            .containsExactly("live");
+        assertThat(partialGap.message()).contains("partial source gap");
+
+        clock.advance(Duration.ofSeconds(30));
+        RegionalArrivalResponses.SnapshotResponse failedRefresh = service.arrivals("milton");
+        assertThat(failedRefresh.arrivals())
+            .extracting(RegionalArrivalResponses.ArrivalResponse::status)
+            .containsExactly("live");
+        assertThat(failedRefresh.message()).contains("temporarily unavailable");
+
+        clock.advance(Duration.ofSeconds(31));
+        RegionalArrivalResponses.SnapshotResponse expired = service.arrivals("milton");
+        assertThat(expired.arrivals())
+            .extracting(RegionalArrivalResponses.ArrivalResponse::status)
+            .containsExactly("scheduled");
+        assertThat(expired.message()).isEqualTo("Published regional train schedule.");
+    }
+
+    @Test
+    void neverRetainsRegionalLiveArrivalsPastTheSourceFreshnessLimit() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-07-28T19:48:00Z"));
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setScheduleEnabled(true);
+        properties.setCacheTtl(Duration.ZERO);
+        properties.setMaxSourceAge(Duration.ofMinutes(5));
+        properties.setLiveArrivalRetention(Duration.ofSeconds(90));
+        OffsetDateTime nearlyStaleSourceTime = OffsetDateTime.parse("2026-07-28T19:43:10Z");
+        when(client.fetchGoNextService("ML"))
+            .thenReturn(new RegionalArrivalFeed(nearlyStaleSourceTime, List.of(
+                regionalLiveArrival(
+                    "regional-mi", "Union Station", "2026-07-28T20:10:00Z",
+                    "2026-07-28T20:09:00Z", "MI100"
+                )
+            )))
+            .thenThrow(new MetrolinxClientException("temporary GO failure"));
+        when(scheduled.arrivals("milton", List.of("regional-mi"))).thenReturn(List.of(
+            regionalScheduledArrival(
+                "regional-mi", "Union Station", "2026-07-28T20:09:00Z", "MI100"
+            )
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-mi"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, clock);
+
+        assertThat(service.arrivals("milton").arrivals())
+            .extracting(RegionalArrivalResponses.ArrivalResponse::status)
+            .containsExactly("live");
+
+        clock.advance(Duration.ofSeconds(11));
+        assertThat(service.arrivals("milton").arrivals())
+            .extracting(RegionalArrivalResponses.ArrivalResponse::status)
+            .containsExactly("scheduled");
+    }
+
+    @Test
+    void isolatesGoAndUpRetentionBySourceDirectionAndStationAtSharedStations() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-07-28T19:48:00Z"));
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setCacheTtl(Duration.ZERO);
+        properties.setLiveArrivalRetention(Duration.ofSeconds(90));
+        OffsetDateTime initialSourceTime = OffsetDateTime.parse("2026-07-28T19:47:50Z");
+        when(client.fetchGoNextService("BL"))
+            .thenReturn(new RegionalArrivalFeed(initialSourceTime, List.of(
+                arrival("regional-ki", "Kitchener GO", "2026-07-28T20:05:00Z")
+            )))
+            .thenReturn(new RegionalArrivalFeed(initialSourceTime.plusSeconds(30), List.of(
+                arrival("regional-ki", "Kitchener GO", "2026-07-28T20:06:00Z")
+            )));
+        when(client.fetchUpTripUpdates("BL"))
+            .thenReturn(new RegionalArrivalFeed(initialSourceTime, List.of(
+                arrival("regional-up", "Pearson Airport", "2026-07-28T20:03:00Z")
+            )))
+            .thenThrow(new MetrolinxClientException("temporary UP failure"));
+        when(scheduled.arrivals("bloor", List.of("regional-ki", "regional-up"))).thenReturn(List.of());
+        when(scheduled.arrivals("weston", List.of("regional-ki", "regional-up"))).thenReturn(List.of());
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, clock);
+
+        assertThat(service.arrivals("bloor").arrivals())
+            .extracting(RegionalArrivalResponses.ArrivalResponse::lineId)
+            .containsExactly("regional-up", "regional-ki");
+
+        clock.advance(Duration.ofSeconds(30));
+        RegionalArrivalResponses.SnapshotResponse partialSourceFailure = service.arrivals("bloor");
+        assertThat(partialSourceFailure.arrivals())
+            .extracting(RegionalArrivalResponses.ArrivalResponse::lineId)
+            .containsExactly("regional-up", "regional-ki");
+        assertThat(partialSourceFailure.message()).contains("partial source gap");
+
+        when(client.fetchGoNextService("WE")).thenReturn(new RegionalArrivalFeed(
+            initialSourceTime.plusSeconds(30), List.of()
+        ));
+        when(client.fetchUpTripUpdates("WE")).thenReturn(new RegionalArrivalFeed(
+            initialSourceTime.plusSeconds(30), List.of()
+        ));
+
+        RegionalArrivalResponses.SnapshotResponse otherStation = service.arrivals("weston");
+        assertThat(otherStation.arrivals()).isEmpty();
+        assertThat(otherStation.availability()).isEqualTo("unavailable");
     }
 
     @Test
@@ -331,5 +474,32 @@ class RegionalArrivalServiceTest {
             lineId, direction, OffsetDateTime.parse(scheduledAt), OffsetDateTime.parse(predictedAt),
             "", tripNumber, "Metrolinx test feed", "live"
         );
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant instant;
+
+        private MutableClock(Instant instant) {
+            this.instant = instant;
+        }
+
+        private void advance(Duration duration) {
+            instant = instant.plus(duration);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return Clock.fixed(instant, zone);
+        }
+
+        @Override
+        public Instant instant() {
+            return instant;
+        }
     }
 }

@@ -33,6 +33,7 @@ class StationControllerTest {
         ResponseEntity<StationResponses.StationDetailResponse> response = controller.station("union");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().id()).isEqualTo("union");
         assertThat(response.getBody().dataMode()).isEqualTo("seeded-demo");
@@ -48,6 +49,7 @@ class StationControllerTest {
         ResponseEntity<StationResponses.StationDetailResponse> response = controller.station("missing");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
         assertThat(response.getBody()).isNull();
     }
 

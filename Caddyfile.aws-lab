@@ -26,8 +26,15 @@
 		defer
 	}
 
+	@linewatch_station_api_no_store {
+		path /api/stations/* /api/regional/stations/*
+	}
+	header @linewatch_station_api_no_store Cache-Control "no-store" {
+		defer
+	}
+
 	@linewatch_public_api_cache {
-		path /api/dashboard /api/status /api/map /api/alerts /api/performance /api/accessibility-outages /api/surface-notices /api/announcements /api/stations /api/stations/* /api/alert-history /api/reliability/lines /api/reliability/stations/* /api/regional/trip-changes /api/regional/stations/*
+		path /api/dashboard /api/status /api/map /api/alerts /api/performance /api/accessibility-outages /api/surface-notices /api/announcements /api/stations /api/alert-history /api/reliability/lines /api/reliability/stations/* /api/regional/trip-changes
 	}
 	header @linewatch_public_api_cache Cache-Control "public, max-age=15, s-maxage=30, stale-while-revalidate=30" {
 		defer

@@ -61,6 +61,7 @@ import {
   fallbackStationSummaries,
   getStationDetail,
   getStationSummaries,
+  preserveStationDetailOnRefresh,
   type StationDataResult,
   type StationDetail,
   type StationSummary,
@@ -2192,7 +2193,7 @@ export function LineWatchShell({
       }
       getStationDetail(selectedStationId).then((result) => {
         if (!cancelled && activeRequestId === requestId) {
-          setVisibleStationResult(result);
+          setVisibleStationResult((current) => preserveStationDetailOnRefresh(current, result));
         }
       }).finally(() => {
         if (!cancelled && activeRequestId === requestId) {
