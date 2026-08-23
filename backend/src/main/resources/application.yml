@@ -5,6 +5,9 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5434/linewatch}
     username: ${SPRING_DATASOURCE_USERNAME:linewatch}
     password: ${SPRING_DATASOURCE_PASSWORD:linewatch_dev_password}
+    hikari:
+      connection-timeout: ${LINEWATCH_DB_CONNECTION_TIMEOUT_MS:5000}
+      connection-init-sql: SET statement_timeout TO ${LINEWATCH_DB_STATEMENT_TIMEOUT_MS:30000}
   flyway:
     enabled: true
   jpa:

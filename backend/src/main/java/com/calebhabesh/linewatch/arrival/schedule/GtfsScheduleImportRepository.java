@@ -302,6 +302,15 @@ public class GtfsScheduleImportRepository {
         );
     }
 
+    public void refreshPlannerStatistics() {
+        jdbc.getJdbcTemplate().execute("""
+            analyze gtfs_schedule_imports, gtfs_routes, gtfs_stops, gtfs_services,
+                    gtfs_service_exceptions, gtfs_trips, gtfs_stop_times,
+                    gtfs_station_stops, ttc_surface_routes, ttc_surface_station_stops,
+                    ttc_surface_trips, ttc_surface_station_connections
+            """);
+    }
+
     public Optional<Long> activateLatestImportCoveringDate(LocalDate serviceDate) {
         List<ActivationCandidate> candidates = jdbc.query("""
             select id, active

@@ -23,6 +23,43 @@ active sessions ~= visits per minute * average visible session minutes
 origin read pressure ~= active sessions / dashboard refresh interval
 ```
 
+## Database Saturation Triage
+
+The frontend container health check must use `/healthz`. It must never request `/`,
+because rendering the dashboard performs backend reads and a failed read can continue
+after the health-check client times out.
+
+If the dashboard falls back while `/api/health` still returns `ok`, inspect the pool and
+active PostgreSQL statements before restarting anything:
+
+```bash
+scripts/prod-compose.sh logs --tail 200 backend | rg 'HikariPool|CannotGetJdbcConnection'
+scripts/prod-compose.sh exec -T postgres \
+  psql -U linewatch -d linewatch -X -P pager=off -c \
+  "select pid, state, now() - query_start age, left(query, 160) query
+   from pg_stat_activity
+   where datname = current_database() and state <> 'idle'
+   order by query_start;"
+```
+
+GTFS replacement imports and GTFS cleanup explicitly refresh planner statistics. If an
+older release has stale GTFS statistics, recover it in this order so a restart does not
+immediately repeat the bad plan:
+
+```bash
+scripts/prod-compose.sh exec -T postgres \
+  psql -U linewatch -d linewatch -X -v ON_ERROR_STOP=1 -c \
+  "analyze gtfs_schedule_imports, gtfs_routes, gtfs_stops, gtfs_services,
+           gtfs_service_exceptions, gtfs_trips, gtfs_stop_times, gtfs_station_stops;"
+scripts/prod-compose.sh restart backend
+```
+
+Do not terminate arbitrary database sessions. If orphaned reliability statements remain
+after the backend restart, cancel only leaders older than five minutes whose SQL begins
+with the reliability `service_dates` CTE, then verify `/api/reliability/lines?network=ttc`.
+Application database statements have a 30-second server-side timeout and reliability
+aggregation has a stricter 15-second transaction timeout as last-resort circuit breakers.
+
 ## Cloudflare Free Setup
 
 1. Add `linewatchto.ca` to Cloudflare.

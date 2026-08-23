@@ -12,7 +12,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -121,5 +127,75 @@ class DashboardCacheServiceTest {
 
         assertThat(result).containsExactly("computed");
         verify(redis, never()).opsForValue();
+    }
+
+    @Test
+    void sharesOneComputationAcrossConcurrentCacheMisses() throws Exception {
+        when(redis.opsForValue()).thenReturn(values);
+        AtomicInteger reads = new AtomicInteger();
+        CountDownLatch secondCallerRead = new CountDownLatch(1);
+        when(values.get("linewatch:dashboard:v1:test")).thenAnswer(ignored -> {
+            if (reads.incrementAndGet() >= 3) secondCallerRead.countDown();
+            return null;
+        });
+
+        AtomicInteger computations = new AtomicInteger();
+        CountDownLatch computationStarted = new CountDownLatch(1);
+        CountDownLatch releaseComputation = new CountDownLatch(1);
+        Supplier<List<String>> supplier = () -> {
+            computations.incrementAndGet();
+            computationStarted.countDown();
+            try {
+                if (!releaseComputation.await(5, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("test computation was not released");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(exception);
+            }
+            return List.of("computed");
+        };
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<List<String>> first = executor.submit(() -> cache.getOrCompute(
+                "test", new TypeReference<List<String>>() {}, Duration.ofSeconds(30), supplier
+            ));
+            assertThat(computationStarted.await(5, TimeUnit.SECONDS)).isTrue();
+            Future<List<String>> second = executor.submit(() -> cache.getOrCompute(
+                "test", new TypeReference<List<String>>() {}, Duration.ofSeconds(30), supplier
+            ));
+            assertThat(secondCallerRead.await(5, TimeUnit.SECONDS)).isTrue();
+
+            releaseComputation.countDown();
+
+            assertThat(first.get(5, TimeUnit.SECONDS)).containsExactly("computed");
+            assertThat(second.get(5, TimeUnit.SECONDS)).containsExactly("computed");
+            assertThat(computations).hasValue(1);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void clearsSingleFlightEntryAfterComputationFailure() {
+        when(redis.opsForValue()).thenReturn(values);
+        when(values.get("linewatch:dashboard:v1:test")).thenReturn(null);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> cache.getOrCompute(
+            "test",
+            new TypeReference<List<String>>() {},
+            Duration.ofSeconds(30),
+            () -> { throw new IllegalStateException("failed"); }
+        )).isInstanceOf(IllegalStateException.class);
+
+        List<String> recovered = cache.getOrCompute(
+            "test",
+            new TypeReference<List<String>>() {},
+            Duration.ofSeconds(30),
+            () -> List.of("recovered")
+        );
+
+        assertThat(recovered).containsExactly("recovered");
     }
 }

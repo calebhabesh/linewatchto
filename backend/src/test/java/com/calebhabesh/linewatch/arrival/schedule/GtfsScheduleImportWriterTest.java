@@ -90,6 +90,7 @@ class GtfsScheduleImportWriterTest {
         order.verify(repository, times(3)).insertStopTimes(eq(42L), any());
         order.verify(repository).insertStationStops(eq(42L), any());
         order.verify(repository).activateImport(42L);
+        order.verify(repository).refreshPlannerStatistics();
     }
 
     @Test
@@ -122,6 +123,7 @@ class GtfsScheduleImportWriterTest {
 
         assertThat(summary.importId()).isEqualTo(43L);
         verify(repository, never()).activateImport(43L);
+        verify(repository).refreshPlannerStatistics();
     }
 
     @Test
@@ -159,6 +161,7 @@ class GtfsScheduleImportWriterTest {
             .hasMessage("database write failed");
 
         verify(repository, never()).activateImport(anyLong());
+        verify(repository, never()).refreshPlannerStatistics();
     }
 
     @Test

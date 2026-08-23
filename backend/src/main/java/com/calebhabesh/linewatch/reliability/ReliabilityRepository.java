@@ -256,7 +256,7 @@ public class ReliabilityRepository {
             join gtfs_station_stops mapped_stop
               on mapped_stop.import_id = stop_time.import_id
              and mapped_stop.stop_id = stop_time.stop_id
-             and mapped_stop.line_id = route.line_id
+             and mapped_stop.line_id = trip.line_id
              and mapped_stop.station_id = :stationId
             """;
         return queryServiceWindows("""
@@ -293,16 +293,21 @@ public class ReliabilityRepository {
                   on exception.import_id = selected.import_id
                  and exception.service_date = selected.service_date
                  and exception.exception_type = 1
-            ), service_line_spans as materialized (
-                select trip.import_id, trip.service_id, route.line_id,
-                       min(stop_time.departure_seconds) start_seconds,
-                       max(stop_time.departure_seconds) end_seconds
+            ), selected_trips as materialized (
+                select trip.import_id, trip.trip_id, trip.service_id, route.line_id
                 from (select distinct import_id from active_services) selected
                 join gtfs_trips trip on trip.import_id = selected.import_id
-                join gtfs_routes route on route.import_id = trip.import_id and route.route_id = trip.route_id
-                join gtfs_stop_times stop_time on stop_time.import_id = trip.import_id and stop_time.trip_id = trip.trip_id
+                join gtfs_routes route
+                  on route.import_id = trip.import_id and route.route_id = trip.route_id
+            ), service_line_spans as materialized (
+                select trip.import_id, trip.service_id, trip.line_id,
+                       min(stop_time.departure_seconds) start_seconds,
+                       max(stop_time.departure_seconds) end_seconds
+                from selected_trips trip
+                join gtfs_stop_times stop_time
+                  on stop_time.import_id = trip.import_id and stop_time.trip_id = trip.trip_id
                 """ + stationJoin + """
-                group by trip.import_id, trip.service_id, route.line_id
+                group by trip.import_id, trip.service_id, trip.line_id
             )
             select active.service_date, span.line_id,
                    min(span.start_seconds) start_seconds,

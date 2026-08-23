@@ -2,6 +2,7 @@
 
 const frontendUrl = process.env.LINEWATCH_DEPLOY_FRONTEND_URL;
 const backendUrl = process.env.LINEWATCH_DEPLOY_BACKEND_URL;
+const requestTimeoutMs = Number(process.env.LINEWATCH_DEPLOY_REQUEST_TIMEOUT_MS || 10000);
 
 if (!frontendUrl || !backendUrl) {
   console.error("Set LINEWATCH_DEPLOY_FRONTEND_URL and LINEWATCH_DEPLOY_BACKEND_URL before running deployment smoke checks.");
@@ -9,7 +10,8 @@ if (!frontendUrl || !backendUrl) {
 }
 
 async function checkJson(label, url, predicate) {
-  const response = await fetch(url);
+  const startedAt = performance.now();
+  const response = await fetch(url, { signal: AbortSignal.timeout(requestTimeoutMs) });
   if (!response.ok) {
     throw new Error(`${label} returned HTTP ${response.status}`);
   }
@@ -17,11 +19,12 @@ async function checkJson(label, url, predicate) {
   if (!predicate(body)) {
     throw new Error(`${label} returned an unexpected response: ${JSON.stringify(body).slice(0, 500)}`);
   }
-  console.log(`ok - ${label}`);
+  console.log(`ok - ${label} (${Math.round(performance.now() - startedAt)}ms)`);
 }
 
 async function checkHtml(label, url, expectedText) {
-  const response = await fetch(url);
+  const startedAt = performance.now();
+  const response = await fetch(url, { signal: AbortSignal.timeout(requestTimeoutMs) });
   if (!response.ok) {
     throw new Error(`${label} returned HTTP ${response.status}`);
   }
@@ -29,9 +32,10 @@ async function checkHtml(label, url, expectedText) {
   if (!text.includes(expectedText)) {
     throw new Error(`${label} did not include expected text: ${expectedText}`);
   }
-  console.log(`ok - ${label}`);
+  console.log(`ok - ${label} (${Math.round(performance.now() - startedAt)}ms)`);
 }
 
+await checkJson("frontend health", `${frontendUrl}/healthz`, body => body.service === "linewatch-frontend" && body.status === "ok");
 await checkJson("backend health", `${backendUrl}/api/health`, body => body.status === "ok");
 await checkJson("ingestion health", `${backendUrl}/api/health/ingestion`, body => typeof body.status === "string" && typeof body.dashboardLive === "boolean");
 await checkJson("schedule health", `${backendUrl}/api/health/schedule`, body => typeof body.status === "string" && typeof body.scheduleActive === "boolean" && Object.hasOwn(body, "serviceDaysRemaining") && Object.hasOwn(body, "refreshStatus") && Object.hasOwn(body, "refreshStartedAt") && Object.hasOwn(body, "refreshCompletedAt") && Object.hasOwn(body, "refreshErrorMessage"));

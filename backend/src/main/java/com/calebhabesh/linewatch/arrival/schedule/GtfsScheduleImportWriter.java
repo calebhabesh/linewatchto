@@ -66,6 +66,10 @@ public class GtfsScheduleImportWriter {
         if (coversToday(prepared)) {
             repository.activateImport(importId);
         }
+        // The small route table can remain below PostgreSQL's auto-analyze threshold
+        // while its import IDs change completely. Refresh all related statistics in
+        // the replacement transaction so readers never plan against mismatched IDs.
+        repository.refreshPlannerStatistics();
 
         return new GtfsScheduleImportService.ImportSummary(
             importId,

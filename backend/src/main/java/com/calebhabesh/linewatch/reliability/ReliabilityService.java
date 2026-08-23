@@ -8,6 +8,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReliabilityService {
@@ -20,10 +21,12 @@ public class ReliabilityService {
         this.clock = clock;
     }
 
+    @Transactional(readOnly = true, timeout = 15)
     public ReliabilityResponse lines(String requestedNetwork) {
         return response(normalizeNetwork(requestedNetwork), null);
     }
 
+    @Transactional(readOnly = true, timeout = 15)
     public ReliabilityResponse station(String requestedNetwork, String stationId) {
         return response(normalizeNetwork(requestedNetwork), normalizeStationId(stationId));
     }

@@ -36,6 +36,15 @@ public class MaintenanceCleanupStore {
             ));
     }
 
+    public void refreshGtfsPlannerStatistics() {
+        jdbc.getJdbcTemplate().execute("""
+            analyze gtfs_schedule_imports, gtfs_routes, gtfs_stops, gtfs_services,
+                    gtfs_service_exceptions, gtfs_trips, gtfs_stop_times,
+                    gtfs_station_stops, ttc_surface_routes, ttc_surface_station_stops,
+                    ttc_surface_trips, ttc_surface_station_connections
+            """);
+    }
+
     public int deleteExpiredDemoAccounts(OffsetDateTime now) {
         return jdbc.update("""
             delete from accounts account

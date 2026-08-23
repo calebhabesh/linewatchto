@@ -34,6 +34,9 @@ public class MaintenanceCleanupService {
         int demoAccountsDeleted = store.deleteExpiredDemoAccounts(now);
         int gtfsImportsDeleted =
             store.deleteOldInactiveGtfsImports(properties.getRetainInactiveGtfsImports());
+        if (gtfsImportsDeleted > 0) {
+            store.refreshGtfsPlannerStatistics();
+        }
         int ingestionRunsDeleted =
             store.deleteOldIngestionRuns(now.minus(retention(properties.getIngestionRunRetention())));
         OffsetDateTime alertSourceCutoff = now.minus(retention(properties.getAlertSourceRecordRetention()));

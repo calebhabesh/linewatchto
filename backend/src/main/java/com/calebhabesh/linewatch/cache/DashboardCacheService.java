@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -19,6 +23,7 @@ public class DashboardCacheService {
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
     private final DashboardCacheProperties properties;
+    private final ConcurrentMap<String, CompletableFuture<Object>> inFlight = new ConcurrentHashMap<>();
 
     public DashboardCacheService(
         StringRedisTemplate redis,
@@ -45,29 +50,80 @@ public class DashboardCacheService {
             return supplier.get();
         }
         String redisKey = PREFIX + key;
-        try {
-            String cached = redis.opsForValue().get(redisKey);
-            if (cached != null && !cached.isBlank()) {
-                T value = objectMapper.readValue(cached, type);
-                if (shouldCache.test(value)) {
-                    return value;
-                }
-            }
-        } catch (Exception exception) {
-            log.warn("Dashboard cache read failed for key {}", redisKey, exception);
-            return supplier.get();
+        T cached = readCached(redisKey, type, shouldCache);
+        if (cached != null) {
+            return cached;
         }
 
-        T computed = supplier.get();
-        if (!shouldCache.test(computed)) {
-            return computed;
+        CompletableFuture<Object> computation = new CompletableFuture<>();
+        CompletableFuture<Object> existing = inFlight.putIfAbsent(redisKey, computation);
+        if (existing != null) {
+            return await(existing);
         }
+
         try {
-            redis.opsForValue().set(redisKey, objectMapper.writeValueAsString(computed), ttl);
-        } catch (Exception exception) {
-            log.warn("Dashboard cache write failed for key {}", redisKey, exception);
+            // The cache may have been populated between the first read and winning
+            // the in-process single-flight slot.
+            cached = readCached(redisKey, type, shouldCache);
+            if (cached != null) {
+                computation.complete(cached);
+                return cached;
+            }
+
+            T computed = supplier.get();
+            if (shouldCache.test(computed)) {
+                try {
+                    redis.opsForValue().set(
+                        redisKey,
+                        objectMapper.writeValueAsString(computed),
+                        ttl
+                    );
+                } catch (Exception exception) {
+                    log.warn("Dashboard cache write failed for key {}", redisKey, exception);
+                }
+            }
+            computation.complete(computed);
+            return computed;
+        } catch (RuntimeException | Error failure) {
+            computation.completeExceptionally(failure);
+            throw failure;
+        } finally {
+            inFlight.remove(redisKey, computation);
         }
-        return computed;
+    }
+
+    private <T> T readCached(
+        String redisKey,
+        TypeReference<T> type,
+        Predicate<T> shouldCache
+    ) {
+        try {
+            String cached = redis.opsForValue().get(redisKey);
+            if (cached == null || cached.isBlank()) {
+                return null;
+            }
+            T value = objectMapper.readValue(cached, type);
+            return value != null && shouldCache.test(value) ? value : null;
+        } catch (Exception exception) {
+            log.warn("Dashboard cache read failed for key {}", redisKey, exception);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T await(CompletableFuture<Object> computation) {
+        try {
+            return (T) computation.join();
+        } catch (CompletionException exception) {
+            Throwable cause = exception.getCause();
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
+            throw new IllegalStateException("Dashboard cache computation failed", cause);
+        }
     }
 
     public void evictDashboard() {

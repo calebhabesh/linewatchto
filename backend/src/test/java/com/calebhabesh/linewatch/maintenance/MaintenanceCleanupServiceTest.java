@@ -4,6 +4,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -59,6 +60,15 @@ class MaintenanceCleanupServiceTest {
         verify(store).deleteOldInactiveAlertSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
         verify(store).deleteOldInactiveMetrolinxAlertSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
         verify(store).deleteOldInactiveMetrolinxOperationalSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
+    }
+
+    @Test
+    void refreshesPlannerStatisticsAfterDeletingGtfsImports() {
+        when(store.deleteOldInactiveGtfsImports(1)).thenReturn(2);
+
+        service.cleanup();
+
+        verify(store).refreshGtfsPlannerStatistics();
     }
 
     @Test

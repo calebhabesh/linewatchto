@@ -101,6 +101,10 @@ public class RegionalGtfsScheduleRepository {
                   limit 1
               )
             """, Map.of("sourceSystem", schedule.sourceSystem()));
+        jdbc.getJdbcTemplate().execute("""
+            analyze regional_gtfs_schedule_imports, regional_gtfs_services,
+                    regional_gtfs_service_exceptions, regional_gtfs_departures
+            """);
         return importId;
     }
 
