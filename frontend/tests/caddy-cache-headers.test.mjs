@@ -25,6 +25,7 @@ function assertCachePolicy(source, label) {
   assert.match(source, /\/api\/stations/, `${label} should cache public stations endpoint`);
   assert.match(source, /@linewatch_station_api_no_store\s*\{\s*path \/api\/stations\/\* \/api\/regional\/stations\/\*\s*\}/, `${label} should isolate dynamic station APIs`);
   assert.match(source, /@linewatch_station_api_no_store Cache-Control "no-store"/, `${label} should keep station arrivals uncached`);
+  assert.match(source, /not path \/api\/stations\/\* \/api\/regional\/stations\/\*/, `${label} should explicitly exclude dynamic station APIs from public caching`);
   assert.match(source, /\/api\/alert-history/, `${label} should cache public alert history endpoint`);
   assert.match(source, /\/api\/reliability\/lines/, `${label} should cache line reliability aggregates`);
   assert.match(source, /\/api\/reliability\/stations\/\*/, `${label} should cache station reliability aggregates`);
