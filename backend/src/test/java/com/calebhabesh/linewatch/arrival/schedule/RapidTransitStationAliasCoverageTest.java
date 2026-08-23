@@ -6,7 +6,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -48,5 +50,31 @@ class RapidTransitStationAliasCoverageTest {
             "humber-college|line-6",
             "finch-west|line-6"
         );
+    }
+
+    @Test
+    void normalizedAliasesNeverResolveToDifferentStations() throws IOException {
+        Map<String, Set<String>> stationsByAlias = new HashMap<>();
+        try (var input = getClass().getResourceAsStream("/arrival/rapid-transit-station-aliases.csv")) {
+            assertThat(input).isNotNull();
+            try (var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+                reader.readLine();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",", 3);
+                    for (String alias : parts[2].split("\\|")) {
+                        String normalized = GtfsCsvReader.normalizeStationName(alias);
+                        assertThat(normalized).isNotBlank();
+                        stationsByAlias.computeIfAbsent(normalized, ignored -> new HashSet<>())
+                            .add(parts[0]);
+                    }
+                }
+            }
+        }
+
+        assertThat(stationsByAlias)
+            .allSatisfy((alias, stationIds) -> assertThat(stationIds)
+                .as("normalized alias '%s'", alias)
+                .hasSize(1));
     }
 }

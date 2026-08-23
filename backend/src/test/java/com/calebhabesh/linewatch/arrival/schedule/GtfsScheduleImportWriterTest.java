@@ -165,6 +165,39 @@ class GtfsScheduleImportWriterTest {
     }
 
     @Test
+    void incompleteStationCoverageRollsBackBeforeActivation() throws Exception {
+        Path zip = tempDir.resolve("gtfs_incomplete.zip");
+        writeLargeZip(zip, 1);
+
+        when(repository.beginReplacementImport(any(), any(), any(), any(), any())).thenReturn(44L);
+        when(repository.findMissingStationLines(44L)).thenReturn(List.of(
+            "aga-khan-park-and-museum:line-5",
+            "humber-college:line-6"
+        ));
+
+        GtfsSchedulePreparedImport prepared = new GtfsSchedulePreparedImport(
+            List.of(new GtfsImportModels.RouteRow("5", "line-5", "5", "Eglinton Crosstown")),
+            List.of(new GtfsImportModels.StopRow("AGA_E", "Aga Khan Park & Museum", "")),
+            List.of(new GtfsImportModels.ServiceRow("DAILY", true, true, true, true, true, true, true,
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-12-31"))),
+            Collections.emptyList(),
+            List.of(new GtfsImportModels.TripRow("L1_N_1", "5", "DAILY", "Eastbound", 0)),
+            List.of(new GtfsImportModels.StationStopRow("aga-khan-park-and-museum", "line-5", "AGA_E")),
+            Set.of("L1_N_1"),
+            LocalDate.parse("2026-06-01"),
+            LocalDate.parse("2026-12-31")
+        );
+
+        assertThatThrownBy(() -> writer.write(zip, "test-source", prepared))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("aga-khan-park-and-museum:line-5")
+            .hasMessageContaining("humber-college:line-6");
+
+        verify(repository, never()).activateImport(anyLong());
+        verify(repository, never()).refreshPlannerStatistics();
+    }
+
+    @Test
     void writeMethodIsTransactional() throws Exception {
         Transactional transactional = GtfsScheduleImportWriter.class
             .getMethod("write", Path.class, String.class, GtfsSchedulePreparedImport.class)

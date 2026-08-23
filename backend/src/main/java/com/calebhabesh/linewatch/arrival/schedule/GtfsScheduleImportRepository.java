@@ -195,6 +195,22 @@ public class GtfsScheduleImportRepository {
         jdbc.batchUpdate(sql, batch);
     }
 
+    public List<String> findMissingStationLines(long importId) {
+        return jdbc.query("""
+            select station_line.station_id || ':' || station_line.line_id as station_line
+            from station_lines station_line
+            where station_line.line_id in ('line-1', 'line-2', 'line-4', 'line-5', 'line-6')
+              and not exists (
+                  select 1
+                  from gtfs_station_stops mapping
+                  where mapping.import_id = :importId
+                    and mapping.station_id = station_line.station_id
+                    and mapping.line_id = station_line.line_id
+              )
+            order by station_line.line_id, station_line.sort_order, station_line.station_id
+            """, Map.of("importId", importId), (rs, rowNum) -> rs.getString("station_line"));
+    }
+
     public void insertSurfaceRoutes(long importId, List<GtfsImportModels.SurfaceRouteRow> rows) {
         if (rows.isEmpty()) return;
         String sql = """

@@ -63,6 +63,13 @@ public class GtfsScheduleImportWriter {
         batcher.finish();
 
         repository.insertStationStops(importId, prepared.stationStops());
+        List<String> missingStationLines = repository.findMissingStationLines(importId);
+        if (!missingStationLines.isEmpty()) {
+            throw new IllegalStateException(
+                "TTC GTFS import is missing expected station-line mappings: "
+                    + String.join(", ", missingStationLines)
+            );
+        }
         if (coversToday(prepared)) {
             repository.activateImport(importId);
         }

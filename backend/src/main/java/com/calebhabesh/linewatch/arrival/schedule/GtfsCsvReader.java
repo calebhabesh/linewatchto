@@ -94,6 +94,10 @@ public final class GtfsCsvReader {
         String clean = value.split(" - ")[0];
         return clean
             .toLowerCase(Locale.ROOT)
+            // TTC alternates between ampersands and the word "and" in stop
+            // names. Preserve the conjunction before stripping punctuation so
+            // reviewed aliases match either spelling.
+            .replace("&", " and ")
             .replace(".", "")
             .replace("-", " ")
             .replaceAll("\\bstation\\b", "")

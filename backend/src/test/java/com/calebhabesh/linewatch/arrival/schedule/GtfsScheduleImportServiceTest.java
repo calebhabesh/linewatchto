@@ -142,6 +142,57 @@ class GtfsScheduleImportServiceTest {
             );
     }
 
+    @Test
+    void mapsAmpersandStationNameToReviewedAndAlias() throws Exception {
+        Path zip = tempDir.resolve("gtfs-aga-khan.zip");
+        try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(zip))) {
+            entry(output, "routes.txt", """
+                route_id,agency_id,route_short_name,route_long_name,route_type
+                5,TTC,5,Eglinton Crosstown,1
+                """);
+            entry(output, "stops.txt", """
+                stop_id,stop_name,parent_station
+                99924,Aga Khan Park & Museum,
+                16218,Aga Khan Park & Museum Station - Eastbound Platform,99924
+                16219,Aga Khan Park & Museum Station - Westbound Platform,99924
+                """);
+            entry(output, "calendar.txt", """
+                service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
+                DAILY,1,1,1,1,1,1,1,20260726,20260905
+                """);
+            entry(output, "trips.txt", """
+                route_id,service_id,trip_id,trip_headsign,direction_id
+                5,DAILY,L5_E_1,Eastbound to Kennedy,0
+                5,DAILY,L5_W_1,Westbound to Mount Dennis,1
+                """);
+            entry(output, "stop_times.txt", """
+                trip_id,arrival_time,departure_time,stop_id,stop_sequence
+                L5_E_1,09:00:00,09:00:00,16218,1
+                L5_W_1,09:05:00,09:05:00,16219,1
+                """);
+        }
+
+        GtfsScheduleImportWriter writer = mock(GtfsScheduleImportWriter.class);
+        when(writer.write(eq(zip), eq("test-aga-khan"), any()))
+            .thenReturn(new GtfsScheduleImportService.ImportSummary(44L, 1, 3, 1, 0, 2, 2, 2));
+
+        new GtfsScheduleImportService(writer).importZip(zip, "test-aga-khan");
+
+        ArgumentCaptor<GtfsSchedulePreparedImport> prepared =
+            ArgumentCaptor.forClass(GtfsSchedulePreparedImport.class);
+        verify(writer).write(eq(zip), eq("test-aga-khan"), prepared.capture());
+        assertThat(prepared.getValue().stationStops())
+            .extracting(
+                GtfsImportModels.StationStopRow::stationId,
+                GtfsImportModels.StationStopRow::lineId,
+                GtfsImportModels.StationStopRow::stopId
+            )
+            .containsExactlyInAnyOrder(
+                org.assertj.core.groups.Tuple.tuple("aga-khan-park-and-museum", "line-5", "16218"),
+                org.assertj.core.groups.Tuple.tuple("aga-khan-park-and-museum", "line-5", "16219")
+            );
+    }
+
     private void writeZip(Path zip) throws IOException {
         try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(zip))) {
             entry(output, "routes.txt", """
