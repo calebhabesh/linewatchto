@@ -53,12 +53,11 @@ describe("regional estimated train marker rendering", () => {
     assert.doesNotMatch(regionalMapSource, /markerLayer\.replaceChildren\(\)/);
     assert.match(
       regionalMapSource,
-      /\}, \[estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, reducedMotion, svgMarkup\]\);/,
+      /\}, \[estimatedTrainMarkers, estimatedTrainsEnabled, mapEffectMotionPaused, networkSegments, svgMarkup\]\);/,
     );
     assert.match(regionalMapSource, /estimatedTrainMarkerMotionWaypoints/);
     assert.match(regionalMapSource, /targetObservationKey/);
-    assert.match(regionalMapSource, /!reducedMotion,/);
-    assert.doesNotMatch(regionalMapSource, /!reducedMotion && !mobilePerformanceMode,/);
+    assert.match(regionalMapSource, /!mapEffectMotionPaused,/);
     assert.match(regionalMapSource, /scheduleEstimatedTrainMarkerAnimation\(update\)/);
     assert.doesNotMatch(regionalMapSource, /requestAnimationFrame\(update\)/);
     assert.doesNotMatch(

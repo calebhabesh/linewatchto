@@ -37,7 +37,7 @@ export function ConstellationBackground({
 
     let width = 0;
     let height = 0;
-    let frameId = 0;
+    let frameId: number | null = null;
     let nodes: Node[] = [];
     let isMobile = false;
     const pointer = { x: Number.POSITIVE_INFINITY, y: Number.POSITIVE_INFINITY };
@@ -55,21 +55,36 @@ export function ConstellationBackground({
       }));
     };
 
-    const resize = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
+    const resetCanvas = (recreateNodes: boolean) => {
+      const nextWidth = window.innerWidth;
+      const nextHeight = window.innerHeight;
+      const dimensionsChanged = nextWidth !== width || nextHeight !== height;
+      width = nextWidth;
+      height = nextHeight;
       isMobile = width < MOBILE_BREAKPOINT;
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      // Assigning both backing dimensions deliberately clears and reallocates
+      // the canvas surface. Mobile WebKit can discard or retain stale canvas
+      // tiles while a standalone PWA is suspended, so a resume must not keep
+      // drawing into the pre-suspension backing store.
       canvas.width = Math.round(width * pixelRatio);
       canvas.height = Math.round(height * pixelRatio);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-      createNodes();
+      if (recreateNodes || dimensionsChanged || nodes.length === 0) createNodes();
     };
 
     const draw = () => {
-      context.clearRect(0, 0, width, height);
+      frameId = null;
+      if (document.visibilityState === "hidden") return;
+
+      // Clear in physical backing-store coordinates. This remains correct if
+      // the device pixel ratio changed while the PWA was suspended.
+      context.save();
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.restore();
 
       for (let index = 0; index < nodes.length; index += 1) {
         const node = nodes[index];
@@ -124,6 +139,40 @@ export function ConstellationBackground({
       if (interactive) frameId = window.requestAnimationFrame(draw);
     };
 
+    const stop = () => {
+      if (frameId === null) return;
+      window.cancelAnimationFrame(frameId);
+      frameId = null;
+    };
+
+    const start = () => {
+      stop();
+      if (document.visibilityState === "hidden") return;
+      draw();
+    };
+
+    const handleResize = () => {
+      if (document.visibilityState === "hidden") return;
+      stop();
+      resetCanvas(true);
+      start();
+    };
+
+    const resetAfterResume = () => {
+      if (document.visibilityState !== "visible") return;
+      stop();
+      resetCanvas(false);
+      start();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        stop();
+        return;
+      }
+      resetAfterResume();
+    };
+
     const handlePointerMove = (event: PointerEvent) => {
       pointer.x = event.clientX;
       pointer.y = event.clientY;
@@ -133,17 +182,23 @@ export function ConstellationBackground({
       pointer.y = Number.POSITIVE_INFINITY;
     };
 
-    resize();
-    draw();
-    window.addEventListener("resize", resize);
+    resetCanvas(true);
+    start();
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", stop);
+    window.addEventListener("pageshow", resetAfterResume);
     if (interactive) {
       window.addEventListener("pointermove", handlePointerMove, { passive: true });
       document.documentElement.addEventListener("pointerleave", handlePointerLeave);
     }
 
     return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("resize", resize);
+      stop();
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", stop);
+      window.removeEventListener("pageshow", resetAfterResume);
       window.removeEventListener("pointermove", handlePointerMove);
       document.documentElement.removeEventListener("pointerleave", handlePointerLeave);
     };

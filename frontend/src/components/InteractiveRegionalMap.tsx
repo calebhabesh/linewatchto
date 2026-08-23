@@ -66,6 +66,7 @@ import {
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
+import { usePageVisibility } from "../hooks/usePageVisibility";
 import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-chooser-keepouts";
 
 const MAP_WIDTH = 4739.2821;
@@ -2616,6 +2617,9 @@ function InteractiveRegionalMapComponent({
     cutoutMarkup: string;
   } | null>(null);
   const mapLabelFontReady = useMapLabelFontReady();
+  const pageVisible = usePageVisibility();
+  const useMobileRendering = mobilePerformanceMode || mobilePerformanceModeMatches();
+  const mapEffectMotionPaused = reducedMotion || !pageVisible;
 
   useLayoutEffect(() => observeMapChooserKeepouts(() => {
     setChooserKeepoutRevision((revision) => revision + 1);
@@ -2623,7 +2627,7 @@ function InteractiveRegionalMapComponent({
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   // Select the mobile textures on the first client render. Waiting for the
   // shell effect would start decoding all three desktop planes on phones.
-  const rasterDensity = mobilePerformanceMode || mobilePerformanceModeMatches()
+  const rasterDensity = useMobileRendering
     ? "mobile"
     : "desktop";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
@@ -2668,7 +2672,7 @@ function InteractiveRegionalMapComponent({
   const entranceWasDeferredRef = useRef(false);
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
-  const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode;
+  const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode && pageVisible;
   useLayoutEffect(() => {
     selectionRef.current = selection;
     selectedStationIdRef.current = selectedStationId;
@@ -3344,7 +3348,7 @@ function InteractiveRegionalMapComponent({
         impactId: alert.id,
         kind,
         label: `${alert.lineNumber} ${alert.title}`,
-        reducedMotion,
+        reducedMotion: mapEffectMotionPaused,
       }));
     }
 
@@ -3386,7 +3390,7 @@ function InteractiveRegionalMapComponent({
         segmentCount: run.segments.length,
         segmentIds: run.segments.map((segment) => segment.id),
         travelDirection: run.impact.travelDirection,
-        reducedMotion,
+        reducedMotion: mapEffectMotionPaused,
       }));
     }
 
@@ -3588,7 +3592,7 @@ function InteractiveRegionalMapComponent({
     delays,
     networkSegments,
     plannedClosures,
-    reducedMotion,
+    mapEffectMotionPaused,
     reducedSpeedZones,
     stationNodeImpacts,
     svgMarkup,
@@ -3642,7 +3646,7 @@ function InteractiveRegionalMapComponent({
         networkSegments,
         documentNode,
         trainMarkerMotionRef.current,
-        !reducedMotion,
+        !mapEffectMotionPaused,
       );
       existingMarkersByKey.delete(markerKey);
     }
@@ -3651,7 +3655,7 @@ function InteractiveRegionalMapComponent({
       trainMarkerMotionRef.current.delete(markerKey);
       group.remove();
     });
-  }, [estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, reducedMotion, svgMarkup]);
+  }, [estimatedTrainMarkers, estimatedTrainsEnabled, mapEffectMotionPaused, networkSegments, svgMarkup]);
 
   useEffect(() => () => {
     trainMarkerMotionRef.current.forEach(cancelRegionalTrainMarkerMotion);

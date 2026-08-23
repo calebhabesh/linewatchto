@@ -63,6 +63,12 @@ describe("stable raster map renderer", () => {
     assert.match(mobileHook, /export function mobilePerformanceModeMatches\(\)/);
     assert.match(ttc, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
     assert.match(regional, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
+    assert.match(ttc, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
+    assert.match(regional, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
+    assert.match(ttc, /reducedMotion=\{mapEffectMotionPaused\}/);
+    assert.match(ttc, /animate=\{!mapEffectMotionPaused\}/);
+    assert.match(regional, /reducedMotion: mapEffectMotionPaused/);
+    assert.match(regional, /!mapEffectMotionPaused/);
     assert.match(ttc, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
     assert.match(regional, /readyRasterPlanes\.has\(`\$\{rasterVariantKey\}:labels`\)/);
     assert.match(ttc, /<RasterMapPlane[\s\S]*?plane="labels"/);

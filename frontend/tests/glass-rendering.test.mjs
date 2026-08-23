@@ -6,6 +6,7 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const dynamicBackgroundSource = readFileSync(new URL("../src/components/DynamicBackground.tsx", import.meta.url), "utf8");
 const constellationSource = readFileSync(new URL("../src/components/ConstellationBackground.tsx", import.meta.url), "utf8");
+const pageVisibilitySource = readFileSync(new URL("../src/hooks/usePageVisibility.ts", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
@@ -74,6 +75,23 @@ describe("frosted glass rendering", () => {
     assert.match(constellationSource, /if \(interactive\) frameId = window\.requestAnimationFrame\(draw\)/);
     assert.match(constellationSource, /if \(interactive && !isMobile\)/);
     assert.match(constellationSource, /if \(interactive\) \{\s*window\.addEventListener\("pointermove"/s);
+  });
+
+  it("reallocates the constellation canvas and restarts one clean loop after PWA resume", () => {
+    assert.match(constellationSource, /const resetCanvas = \(recreateNodes: boolean\) =>/);
+    assert.match(constellationSource, /canvas\.width = Math\.round\(width \* pixelRatio\)/);
+    assert.match(constellationSource, /context\.setTransform\(1, 0, 0, 1, 0, 0\);\s*context\.clearRect\(0, 0, canvas\.width, canvas\.height\)/s);
+    assert.match(constellationSource, /const stop = \(\) => \{[\s\S]*?cancelAnimationFrame\(frameId\)/);
+    assert.match(constellationSource, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
+    assert.match(constellationSource, /window\.addEventListener\("pagehide", stop\)/);
+    assert.match(constellationSource, /window\.addEventListener\("pageshow", resetAfterResume\)/);
+    assert.match(constellationSource, /resetAfterResume[\s\S]*?resetCanvas\(false\);\s*start\(\)/);
+  });
+
+  it("shares foreground visibility with map animation owners", () => {
+    assert.match(pageVisibilitySource, /document\.addEventListener\("visibilitychange", synchronizeVisibility\)/);
+    assert.match(pageVisibilitySource, /window\.addEventListener\("pagehide", handlePageHide\)/);
+    assert.match(pageVisibilitySource, /window\.addEventListener\("pageshow", synchronizeVisibility\)/);
   });
 
   it("does not use live backdrop blur on interactive panels", () => {

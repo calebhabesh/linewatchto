@@ -73,6 +73,7 @@ import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMa
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
+import { usePageVisibility } from "../hooks/usePageVisibility";
 import {
   alignedOverlapBadgePositionCandidates,
   buildStationOverlapBadgeGroups,
@@ -397,12 +398,15 @@ function InteractiveTtcMapComponent({
   const [hoveredOverlapChooserImpact, setHoveredOverlapChooserImpact] = useState<ImpactSelection>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const mapLabelFontReady = useMapLabelFontReady();
+  const pageVisible = usePageVisibility();
+  const useMobileRendering = mobilePerformanceMode || mobilePerformanceModeMatches();
+  const mapEffectMotionPaused = reducedMotion || !pageVisible;
   const lockedOverlapBadgeLayoutsRef = useRef<LockedOverlapBadgeLayouts>(new Map());
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   // The shell's media-query hook resolves after hydration. Read the same query
   // synchronously for texture selection so a phone never starts decoding the
   // much larger desktop planes during that first client render.
-  const rasterDensity = mobilePerformanceMode || mobilePerformanceModeMatches()
+  const rasterDensity = useMobileRendering
     ? "mobile"
     : "desktop";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
@@ -2088,7 +2092,7 @@ function InteractiveTtcMapComponent({
                         selectedSegmentIds={selectedSegmentIds}
                         onSelectImpact={onSelectImpact}
                         shouldSuppressMapClick={shouldSuppressMapClick}
-                        reducedMotion={reducedMotion}
+                        reducedMotion={mapEffectMotionPaused}
                         exiting={exiting}
                         onHoverHighlightChange={setHoveredOverlayHighlight}
                         renderInteractionTarget={false}
@@ -2113,7 +2117,7 @@ function InteractiveTtcMapComponent({
                         selectedSegmentIds={selectedSegmentIds}
                         onSelectImpact={onSelectImpact}
                         shouldSuppressMapClick={shouldSuppressMapClick}
-                        reducedMotion={reducedMotion}
+                        reducedMotion={mapEffectMotionPaused}
                         exiting={exiting}
                         onHoverHighlightChange={setHoveredOverlayHighlight}
                         renderInteractionTarget={false}
@@ -2144,7 +2148,7 @@ function InteractiveTtcMapComponent({
                           selectedSegmentIds={selectedSegmentIds}
                           onSelectImpact={onSelectImpact}
                           shouldSuppressMapClick={shouldSuppressMapClick}
-                          reducedMotion={reducedMotion}
+                          reducedMotion={mapEffectMotionPaused}
                           idSuffix="-commute-focus"
                           onHoverHighlightChange={setHoveredOverlayHighlight}
                           renderInteractionTarget={false}
@@ -2173,7 +2177,7 @@ function InteractiveTtcMapComponent({
                         selectedSegmentIds={selectedSegmentIds}
                         onSelectImpact={onSelectImpact}
                         shouldSuppressMapClick={shouldSuppressMapClick}
-                        reducedMotion={reducedMotion}
+                        reducedMotion={mapEffectMotionPaused}
                         idSuffix="-chooser-foreground"
                         renderInteractionTarget={false}
                       />
@@ -2338,7 +2342,7 @@ function InteractiveTtcMapComponent({
                   markers={estimatedTrainMarkers}
                   segments={renderedNetworkSegments}
                   muted={Boolean(selection || selectedStationId || commutePathPreview)}
-                  animate={!reducedMotion}
+                  animate={!mapEffectMotionPaused}
                 />
               </g>
               <g aria-label="Cardinal North Compass" transform="translate(7600, 2300) scale(4)">

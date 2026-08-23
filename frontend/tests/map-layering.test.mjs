@@ -1030,8 +1030,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /data-train-marker-travel-direction=\{visualDirection\}[\s\S]*?pointerEvents="none"/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-halo/);
     assert.match(interactiveMapSource, /pathMetricCache/);
-    assert.match(interactiveMapSource, /animate=\{!reducedMotion\}/);
-    assert.doesNotMatch(interactiveMapSource, /animate=\{!reducedMotion && !mobilePerformanceMode\}/);
+    assert.match(interactiveMapSource, /animate=\{!mapEffectMotionPaused\}/);
+    assert.match(interactiveMapSource, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(interactiveMapSource, /scheduleEstimatedTrainMarkerAnimation\(update\)/);
     assert.doesNotMatch(interactiveMapSource, /estimatedTrainMarkerFrameIntervalMs|MOBILE_TRAIN_MARKER_FRAME_INTERVAL_MS/);
     assert.doesNotMatch(interactiveMapSource, /runtime\.animationFrame = window\.requestAnimationFrame\(update\)/);
