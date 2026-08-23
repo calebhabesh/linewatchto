@@ -72,6 +72,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
+import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import {
   alignedOverlapBadgePositionCandidates,
   buildStationOverlapBadgeGroups,
@@ -395,6 +396,7 @@ function InteractiveTtcMapComponent({
   const [hoveredOverlapBadgeId, setHoveredOverlapBadgeId] = useState<string | null>(null);
   const [hoveredOverlapChooserImpact, setHoveredOverlapChooserImpact] = useState<ImpactSelection>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
+  const mapLabelFontReady = useMapLabelFontReady();
   const lockedOverlapBadgeLayoutsRef = useRef<LockedOverlapBadgeLayouts>(new Map());
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   // The shell's media-query hook resolves after hydration. Read the same query
@@ -439,6 +441,7 @@ function InteractiveTtcMapComponent({
     y: hoveredLabelPolygon.reduce((sum, point) => sum + point.y, 0) / hoveredLabelPolygon.length,
   } : null;
   const measuredGeometrySignatureRef = useRef<string | null>(null);
+  const measuredLabelGeometrySignatureRef = useRef<string | null>(null);
   const geometryMeasurementSignature = [
     mapAsset.src,
     stations.map((station) => `${station.id}:${station.mapX}:${station.mapY}`).join("|"),
@@ -465,13 +468,6 @@ function InteractiveTtcMapComponent({
     setStationCenterPoints(
       readSvgStationCenters(mapSvgRef.current, stationVisualCenterIds(stations)),
     );
-    setStationLabelPolygons(
-      readSvgStationLabelPolygons(mapSvgRef.current, stations.map((station) => station.id), {
-        leading: 0,
-        trailing: 68,
-        y: 8,
-      }),
-    );
     const baseRouteCollisionBoxes = collectBaseRouteCollisionBoxes(
       networkSegments,
       mapStations,
@@ -485,6 +481,20 @@ function InteractiveTtcMapComponent({
     measuredGeometrySignatureRef.current = geometryMeasurementSignature;
     setGeometryReady(true);
   }, [geometryMeasurementSignature, loadState, mapStations, networkSegments, stations]);
+
+  useLayoutEffect(() => {
+    if (!mapLabelFontReady || loadState !== "ready" || !mapSvgRef.current) return;
+    if (measuredLabelGeometrySignatureRef.current === geometryMeasurementSignature) return;
+
+    setStationLabelPolygons(
+      readSvgStationLabelPolygons(mapSvgRef.current, stations.map((station) => station.id), {
+        leading: 0,
+        trailing: 68,
+        y: 8,
+      }),
+    );
+    measuredLabelGeometrySignatureRef.current = geometryMeasurementSignature;
+  }, [geometryMeasurementSignature, loadState, mapLabelFontReady, stations]);
 
   // The authored labels live inside dangerouslySetInnerHTML while estimated
   // markers are ordinary React children of the same SVG. Marker polling can
@@ -1966,6 +1976,7 @@ function InteractiveTtcMapComponent({
         {loadState === "ready" && (
           <div
             ref={mapRef}
+            data-map-label-font-ready={mapLabelFontReady ? "true" : "false"}
             data-raster-map-ready={rasterMapReady ? "true" : "false"}
             className="ttc-map-stage absolute top-0 left-0 origin-top-left"
             style={{
@@ -2267,6 +2278,31 @@ function InteractiveTtcMapComponent({
                         values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
                       />
                     </filter>
+                    {/* Intersect the padded texture crop with the loaded-font
+                        glyph alpha so neighboring station text cannot enter the
+                        enlarged hover copy. */}
+                    <filter id="ttc-hovered-label-target-alpha" colorInterpolationFilters="sRGB">
+                      <feMorphology in="SourceAlpha" operator="dilate" radius="4" result="expandedTargetAlpha" />
+                      <feColorMatrix
+                        in="expandedTargetAlpha"
+                        type="matrix"
+                        values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
+                      />
+                    </filter>
+                    <mask
+                      id="ttc-hovered-station-target-mask"
+                      maskUnits="userSpaceOnUse"
+                      x="0"
+                      y="0"
+                      width="8250"
+                      height="4000"
+                    >
+                      <use
+                        href={`#station-label-${hoveredStationLabelId}`}
+                        filter="url(#ttc-hovered-label-target-alpha)"
+                        visibility="visible"
+                      />
+                    </mask>
                     <mask
                       id="ttc-hovered-station-label-mask"
                       maskUnits="userSpaceOnUse"
@@ -2275,14 +2311,16 @@ function InteractiveTtcMapComponent({
                       width="8250"
                       height="4000"
                     >
-                      <image
-                        href={rasterMapSource("ttc", "labels", rasterTheme, rasterDensity)}
-                        width="8250"
-                        height="4000"
-                        preserveAspectRatio="xMidYMid meet"
-                        clipPath="url(#ttc-hovered-station-label-clip)"
-                        filter="url(#ttc-hovered-label-white-alpha)"
-                      />
+                      <g mask="url(#ttc-hovered-station-target-mask)">
+                        <image
+                          href={rasterMapSource("ttc", "labels", rasterTheme, rasterDensity)}
+                          width="8250"
+                          height="4000"
+                          preserveAspectRatio="xMidYMid meet"
+                          clipPath="url(#ttc-hovered-station-label-clip)"
+                          filter="url(#ttc-hovered-label-white-alpha)"
+                        />
+                      </g>
                     </mask>
                   </defs>
                   <image

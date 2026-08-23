@@ -65,6 +65,7 @@ import {
 } from "../hooks/panZoomMath";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
+import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-chooser-keepouts";
 
 const MAP_WIDTH = 4739.2821;
@@ -2614,6 +2615,7 @@ function InteractiveRegionalMapComponent({
     center: SvgPoint;
     cutoutMarkup: string;
   } | null>(null);
+  const mapLabelFontReady = useMapLabelFontReady();
 
   useLayoutEffect(() => observeMapChooserKeepouts(() => {
     setChooserKeepoutRevision((revision) => revision + 1);
@@ -3198,10 +3200,11 @@ function InteractiveRegionalMapComponent({
           label.dataset.regionalStationLabelFor = stationId;
           label.id = `regional-station-label-${stationId}`;
 
-          // Use authored glyph geometry only for the resting-plane cutout. The
-          // enlarged hover copy is still extracted from the raster texture, so
-          // browser font metrics cannot slice its letterforms. A glyph-shaped
-          // cutout also leaves nearby labels untouched when bounds overlap.
+          // Reuse the authored glyph geometry for both the resting-plane cutout
+          // and the hover isolation mask. Hover pixels still come from the
+          // raster texture, while the font-readiness gate and small mask
+          // dilation keep browser metrics from slicing their edges. The
+          // glyph-shaped mask also rejects nearby labels when bounds overlap.
           const cutoutSource = documentNode.createElementNS(SVG_NAMESPACE, "g");
           cutoutSource.id = `regional-station-label-cutout-source-${stationId}`;
           cutoutSource.classList.add("regional-station-label-cutout-source");
@@ -4388,6 +4391,7 @@ function InteractiveRegionalMapComponent({
       const station = target.closest<SVGElement>("[data-regional-station-id]");
       const nextStationId = station?.dataset.regionalStationId ?? null;
       setHoveredStationLabel((current) => {
+        if (!mapLabelFontReady) return null;
         if (current?.stationId === nextStationId) return current;
         return regionalStationLabelHover(root, nextStationId);
       });
@@ -4400,7 +4404,7 @@ function InteractiveRegionalMapComponent({
       const station = event.target instanceof Element
         ? event.target.closest<SVGElement>("[data-regional-station-id]")
         : null;
-      if (station?.dataset.regionalStationId) {
+      if (mapLabelFontReady && station?.dataset.regionalStationId) {
         const root = viewportRef.current;
         if (root) setHoveredStationLabel(regionalStationLabelHover(root, station.dataset.regionalStationId));
       }
@@ -4414,7 +4418,9 @@ function InteractiveRegionalMapComponent({
         : null;
       if (currentStation?.dataset.regionalStationId !== nextStation?.dataset.regionalStationId) {
         const root = viewportRef.current;
-        if (root) setHoveredStationLabel(regionalStationLabelHover(root, nextStation?.dataset.regionalStationId ?? null));
+        if (root) setHoveredStationLabel(mapLabelFontReady
+          ? regionalStationLabelHover(root, nextStation?.dataset.regionalStationId ?? null)
+          : null);
       }
       const currentImpact = regionalImpactIdentity(event.target);
       const nextImpact = regionalImpactIdentity(event.relatedTarget);
@@ -4434,7 +4440,7 @@ function InteractiveRegionalMapComponent({
       document.removeEventListener("focusin", handleFocusIn);
       document.removeEventListener("focusout", handleFocusOut);
     };
-  }, [setLinkedImpactHover, svgMarkup]);
+  }, [mapLabelFontReady, setLinkedImpactHover, svgMarkup]);
 
   const closeRegionalOverlapChooser = useCallback(() => {
     const badge = overlapBadges.find((candidate) => candidate.markerId === expandedOverlapBadgeId);
@@ -4600,6 +4606,7 @@ function InteractiveRegionalMapComponent({
         </div>
         <div
           ref={mapStageRef}
+          data-map-label-font-ready={mapLabelFontReady ? "true" : "false"}
           data-raster-map-ready={rasterMapReady ? "true" : "false"}
           className="regional-map-stage relative"
           style={{
@@ -4666,6 +4673,27 @@ function InteractiveRegionalMapComponent({
                       values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
                     />
                   </filter>
+                  <filter id="regional-hovered-label-target-alpha" colorInterpolationFilters="sRGB">
+                    <feMorphology in="SourceAlpha" operator="dilate" radius="6" result="expandedTargetAlpha" />
+                    <feColorMatrix
+                      in="expandedTargetAlpha"
+                      type="matrix"
+                      values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"
+                    />
+                  </filter>
+                  <mask
+                    id="regional-hovered-station-target-mask"
+                    maskUnits="userSpaceOnUse"
+                    x="-200"
+                    y="-200"
+                    width="17036.959"
+                    height="9031.6719"
+                  >
+                    <g
+                      filter="url(#regional-hovered-label-target-alpha)"
+                      dangerouslySetInnerHTML={{ __html: hoveredStationLabel.cutoutMarkup }}
+                    />
+                  </mask>
                   <mask
                     id="regional-hovered-station-label-mask"
                     maskUnits="userSpaceOnUse"
@@ -4674,16 +4702,18 @@ function InteractiveRegionalMapComponent({
                     width="17036.959"
                     height="9031.6719"
                   >
-                    <image
-                      href={rasterMapSource("regional", "labels", rasterTheme, rasterDensity)}
-                      x="-200"
-                      y="-200"
-                      width="17036.959"
-                      height="9031.6719"
-                      preserveAspectRatio="xMidYMid meet"
-                      clipPath="url(#regional-hovered-station-label-clip)"
-                      filter="url(#regional-hovered-label-white-alpha)"
-                    />
+                    <g mask="url(#regional-hovered-station-target-mask)">
+                      <image
+                        href={rasterMapSource("regional", "labels", rasterTheme, rasterDensity)}
+                        x="-200"
+                        y="-200"
+                        width="17036.959"
+                        height="9031.6719"
+                        preserveAspectRatio="xMidYMid meet"
+                        clipPath="url(#regional-hovered-station-label-clip)"
+                        filter="url(#regional-hovered-label-white-alpha)"
+                      />
+                    </g>
                   </mask>
                 </defs>
                 <image

@@ -104,11 +104,12 @@ describe("stable raster map renderer", () => {
   });
 
   it("preserves authored label weights and theme-aware interchange leaders", async () => {
-    const [generator, ttc, regional, css] = await Promise.all([
+    const [generator, ttc, regional, css, mapLabelFontHook] = await Promise.all([
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/app/globals.css`, "utf8"),
+      readFile(`${frontendRoot}/src/hooks/useMapLabelFontReady.ts`, "utf8"),
     ]);
 
     const ttcLabelsCss = generator.match(/id: "ttc"[\s\S]*?labelsCss: `([\s\S]*?)`,\n    darkCss:/)?.[1] ?? "";
@@ -127,6 +128,9 @@ describe("stable raster map renderer", () => {
     );
     assert.match(ttc, /rasterMapSource\("ttc", "labels", rasterTheme, rasterDensity\)/);
     assert.match(ttc, /mask="url\(#ttc-hovered-station-label-mask\)"/);
+    assert.match(ttc, /id="ttc-hovered-station-target-mask"/);
+    assert.match(ttc, /mask="url\(#ttc-hovered-station-target-mask\)"/);
+    assert.match(ttc, /<feMorphology in="SourceAlpha" operator="dilate" radius="4" result="expandedTargetAlpha" \/>/);
     assert.match(
       await readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8"),
       /<feMorphology[\s\S]*?result="expandedAlpha"/,
@@ -136,6 +140,9 @@ describe("stable raster map renderer", () => {
     assert.match(generator, /labelsRenderedSize: \{ width: 17036\.959, height: 9031\.6719 \}/);
     assert.match(regional, /rasterMapSource\("regional", "labels", rasterTheme, rasterDensity\)/);
     assert.match(regional, /mask="url\(#regional-hovered-station-label-mask\)"/);
+    assert.match(regional, /id="regional-hovered-station-target-mask"/);
+    assert.match(regional, /mask="url\(#regional-hovered-station-target-mask\)"/);
+    assert.match(regional, /<feMorphology in="SourceAlpha" operator="dilate" radius="6" result="expandedTargetAlpha" \/>/);
     assert.match(regional, /clipPath="url\(#regional-hovered-station-label-clip\)"/);
     assert.match(regional, /filter="url\(#regional-hovered-label-white-alpha\)"/);
     assert.match(regional, /removeDescendantIds\(isolatedCutoutSource\)/);
@@ -159,5 +166,11 @@ describe("stable raster map renderer", () => {
     );
     assert.doesNotMatch(css, /\.ttc-authored-svg-source \.station-label-hover-effect-active[\s\S]*visibility:\s*visible/);
     assert.match(css, /\.raster-station-label-text-hover\s*\{[^}]*filter:\s*drop-shadow/s);
+    assert.match(mapLabelFontHook, /document\.fonts\s*\.load\(MAP_LABEL_FONT_SPEC, MAP_LABEL_FONT_SAMPLE\)/);
+    assert.match(mapLabelFontHook, /faces\.length > 0 && faces\.every\(\(face\) => face\.status === "loaded"\)/);
+    assert.match(ttc, /if \(!mapLabelFontReady \|\| loadState !== "ready" \|\| !mapSvgRef\.current\) return/);
+    assert.match(regional, /if \(!mapLabelFontReady\) return null/);
+    assert.match(ttc, /data-map-label-font-ready=\{mapLabelFontReady \? "true" : "false"\}/);
+    assert.match(regional, /data-map-label-font-ready=\{mapLabelFontReady \? "true" : "false"\}/);
   });
 });

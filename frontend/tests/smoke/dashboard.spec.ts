@@ -563,6 +563,9 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(rasterLabelHover).toHaveCount(1);
   await expect(rasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
   await expect(rasterLabelHover.locator(":scope > image")).toHaveAttribute("mask", "url(#ttc-hovered-station-label-mask)");
+  await expect(rasterLabelHover.locator("#ttc-hovered-station-target-mask")).toHaveCount(1);
+  await expect(rasterLabelHover.locator("#ttc-hovered-station-label-mask > g"))
+    .toHaveAttribute("mask", "url(#ttc-hovered-station-target-mask)");
   await expect(ttcStage.locator(".raster-map-plane--labels > image")).toHaveAttribute("mask", "url(#ttc-labels-raster-mask)");
   await expect(ttcStage.locator('[data-station-label-for="kipling"]')).toHaveCSS("visibility", "hidden");
   const ttcRasterSources = await ttcStage.locator(".raster-map-plane").evaluateAll((images) =>
@@ -587,12 +590,51 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(regionalRasterLabelHover).toHaveCount(1);
   await expect(regionalRasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
   await expect(regionalRasterLabelHover.locator(":scope > image")).toHaveAttribute("mask", "url(#regional-hovered-station-label-mask)");
+  await expect(regionalRasterLabelHover.locator("#regional-hovered-station-target-mask")).toHaveCount(1);
+  await expect(regionalRasterLabelHover.locator("#regional-hovered-station-label-mask > g"))
+    .toHaveAttribute("mask", "url(#regional-hovered-station-target-mask)");
   await expect(regionalStage.locator(".raster-map-plane--labels > image")).toHaveAttribute("mask", "url(#regional-labels-raster-mask)");
   await unionLabelTarget.dispatchEvent("pointerdown", { pointerId: 31, pointerType: "mouse", button: 0 });
   await expect(unionLabelTarget).not.toHaveClass(/regional-raster-label-halo|regional-station-label-hovered/);
   await expect(regionalRasterLabelHover).toHaveCount(1);
   await unionLabelTarget.dispatchEvent("pointerup", { pointerId: 31, pointerType: "mouse", button: 0 });
   await expect(regionalStage.locator('[data-regional-station-label-for="union"]').locator("..")).toHaveCSS("opacity", "0");
+});
+
+test("waits for the authored map font before measuring station label hover geometry", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop font-loading race coverage");
+  await setStubMode(request, "unavailable");
+
+  let releaseFont!: () => void;
+  let fontRequested = false;
+  const fontGate = new Promise<void>((resolve) => {
+    releaseFont = resolve;
+  });
+  await page.route("**/assets/fonts/texgyreheros-regular.woff2", async (route) => {
+    fontRequested = true;
+    await fontGate;
+    await route.continue();
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const ttcStage = page.locator(".ttc-map-stage");
+  await expect(ttcStage).toBeVisible();
+
+  try {
+    await expect.poll(() => fontRequested).toBe(true);
+    await expect(ttcStage).toHaveAttribute("data-map-label-font-ready", "false");
+    await expect(ttcStage.locator("[data-station-label-id]")).toHaveCount(0);
+  } finally {
+    releaseFont();
+  }
+
+  await expect(ttcStage).toHaveAttribute("data-map-label-font-ready", "true");
+  await expect(ttcStage.locator("[data-station-label-id]")).toHaveCount(109);
+  const tobermoryLabel = ttcStage.locator('[data-station-label-for="tobermory"]');
+  await expect.poll(() => tobermoryLabel.evaluate((label: SVGGraphicsElement) => label.getBBox().width))
+    .toBeGreaterThan(375);
+  await ttcStage.locator('[data-station-label-id="tobermory"]').hover();
+  await expect(ttcStage.locator("#ttc-hovered-station-target-mask")).toHaveCount(1);
 });
 
 test("mobile loads compact independent label textures for both maps", async ({ page, request, isMobile }) => {
@@ -2911,6 +2953,8 @@ test("station names share hover and selection behavior with station dots", async
   if (!isMobile) {
     const authoredLabel = page.locator('[data-station-label-for="kipling"]');
     const hoverEffect = authoredLabel.locator("..");
+    await expect.poll(() => authoredLabel.evaluate((element) => getComputedStyle(element).fontSize))
+      .not.toBe("");
     const authoredFontSize = await authoredLabel.evaluate((element) => getComputedStyle(element).fontSize);
     await labelTarget.hover();
     await expect(authoredLabel).toHaveClass(/station-label-hovered/);
