@@ -26,6 +26,8 @@ function assertCachePolicy(source, label) {
   assert.match(source, /@linewatch_station_api_no_store\s*\{\s*path \/api\/stations\/\* \/api\/regional\/stations\/\*\s*\}/, `${label} should isolate dynamic station APIs`);
   assert.match(source, /@linewatch_station_api_no_store Cache-Control "no-store"/, `${label} should keep station arrivals uncached`);
   assert.match(source, /\/api\/alert-history/, `${label} should cache public alert history endpoint`);
+  assert.match(source, /\/api\/reliability\/lines/, `${label} should cache line reliability aggregates`);
+  assert.match(source, /\/api\/reliability\/stations\/\*/, `${label} should cache station reliability aggregates`);
   assert.match(source, /s-maxage=30/, `${label} should expose a short shared-cache TTL`);
   const publicApiMatcher = source.match(/@linewatch_public_api_cache\s*\{\s*path ([^\n]+)\s*\}/)?.[1] ?? "";
   assert.doesNotMatch(publicApiMatcher, /\/api\/trains|\/api\/regional\/trains/, `${label} should not apply dashboard TTLs to train markers`);
@@ -88,6 +90,9 @@ describe("Caddy cache headers", () => {
     assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/regional\/stations\/bloor\/arrivals/, "runbook should verify regional arrival cache headers");
     assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/alert-history/, "runbook should verify alert history cache headers");
     assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/announcements/, "runbook should verify announcement cache headers");
+    assert.match(trafficSpikeRunbook, /curl -I 'https:\/\/linewatchto\.ca\/api\/reliability\/lines\?network=ttc'/, "runbook should verify TTC reliability cache headers");
+    assert.match(trafficSpikeRunbook, /curl -I 'https:\/\/linewatchto\.ca\/api\/reliability\/lines\?network=regional'/, "runbook should verify regional reliability cache headers");
+    assert.match(trafficSpikeRunbook, /linewatch:dashboard:v1:reliability:\*/, "runbook should verify backend reliability cache keys");
     assert.match(trafficSpikeRunbook, /autocannon .*https:\/\/linewatchto\.ca\/api\/trains/, "runbook should load-test train markers");
     assert.match(trafficSpikeRunbook, /autocannon .*https:\/\/linewatchto\.ca\/api\/stations\/union/, "runbook should load-test station details");
     assert.match(trafficSpikeRunbook, /autocannon .*https:\/\/linewatchto\.ca\/api\/alert-history/, "runbook should load-test alert history");

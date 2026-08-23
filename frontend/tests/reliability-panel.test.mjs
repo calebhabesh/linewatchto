@@ -8,7 +8,9 @@ describe("official TTC performance panel source", () => {
   it("renders coverage-labeled observed disruption history without an invented score", () => {
     assert.match(source, /reliability\.coverageLabel/);
     assert.match(source, /reliability\.confidence/);
-    assert.match(source, /Observed Disruptions · Rolling 30 Days/);
+    assert.match(source, /Observed Disruptions · Rolling 30 Day Basis/);
+    assert.match(source, /formatReliabilityTitleCase\(reliability\.coverageLabel\)/);
+    assert.match(source, /formatReliabilityTitleCase\(`\$\{reliability\.confidence\} confidence`\)/);
     assert.match(source, /formatDisruptionDuration/);
     assert.match(source, /Share of Incident-Hours/);
     assert.match(source, /Overlapping alerts counted separately/);

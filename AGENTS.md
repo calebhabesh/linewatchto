@@ -262,7 +262,7 @@ The backend now owns:
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
 - Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
 - `/api/performance` exposes source-labeled official TTC.ca on-time and elevator/escalator status metrics with a low-frequency refresh guard and stale last-good fallback when TTC.ca cannot be parsed or fetched.
-- Redis-backed dashboard caching is implemented for current status, map, alerts, ingestion health, and performance reads. Cache misses and Redis outages fall back to live/database computation, and alert ingestion success evicts dashboard cache keys.
+- Redis-backed dashboard caching is implemented for current status, map, alerts, reliability analytics, ingestion health, and performance reads. Reliability line/corridor and station aggregates use normalized network-scoped keys with a configurable one-minute default TTL. Cache misses and Redis outages fall back to live/database computation, and alert ingestion success evicts dashboard cache keys.
 
 The backend should eventually own:
 

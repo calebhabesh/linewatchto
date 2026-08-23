@@ -192,5 +192,7 @@ describe("alert scenario scripts", () => {
     assert.match(smokeDeployScript, /serviceDaysRemaining/);
     assert.match(smokeDeployScript, /refreshStatus/);
     assert.match(smokeDeployScript, /refreshErrorMessage/);
+    assert.match(smokeDeployScript, /api\/reliability\/lines\?network=ttc/);
+    assert.match(smokeDeployScript, /api\/reliability\/lines\?network=regional/);
   });
 });

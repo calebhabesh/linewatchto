@@ -188,6 +188,10 @@ function formatReliabilityRange(since: string, until: string): string {
   return `${formatter.format(start)}–${formatter.format(end)}`;
 }
 
+function formatReliabilityTitleCase(value: string): string {
+  return value.replace(/\b[a-z]/g, character => character.toUpperCase());
+}
+
 function getImpactKindColor(kind: string): { stroke: string; bg: string; text: string } {
   switch (kind.toLowerCase().replace(/_/g, "-")) {
     case "delay":
@@ -414,7 +418,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
               <span>Reliability Analytics</span>
             </h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-              {reliability.coverageLabel} · {reliability.confidence} confidence
+              {formatReliabilityTitleCase(reliability.coverageLabel)} · {formatReliabilityTitleCase(`${reliability.confidence} confidence`)}
             </p>
           </div>
         </div>
@@ -432,7 +436,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
         <div className="flex flex-col gap-1.5 min-w-0">
           <div className="min-w-0">
             <h3 className="text-[15px] font-black text-slate-900 dark:text-white break-words">
-              Observed Disruptions · Rolling 30 Days
+              Observed Disruptions · Rolling 30 Day Basis
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
               Source: {reliability.source.replace(/alert history/gi, "Alert History")} · {formatReliabilityRange(reliability.since, reliability.until)}

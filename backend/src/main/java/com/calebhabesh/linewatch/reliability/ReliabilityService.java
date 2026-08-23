@@ -6,6 +6,7 @@ import com.calebhabesh.linewatch.reliability.ReliabilityResponses.ReliabilityRes
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,10 +25,7 @@ public class ReliabilityService {
     }
 
     public ReliabilityResponse station(String requestedNetwork, String stationId) {
-        if (stationId == null || stationId.isBlank()) {
-            throw new IllegalArgumentException("stationId is required");
-        }
-        return response(normalizeNetwork(requestedNetwork), stationId.trim());
+        return response(normalizeNetwork(requestedNetwork), normalizeStationId(stationId));
     }
 
     private ReliabilityResponse response(String networkId, String stationId) {
@@ -152,8 +150,15 @@ public class ReliabilityService {
         );
     }
 
-    private String normalizeNetwork(String network) {
+    static String normalizeNetwork(String network) {
         return "regional".equalsIgnoreCase(network) ? "regional" : "ttc";
+    }
+
+    static String normalizeStationId(String stationId) {
+        if (stationId == null || stationId.isBlank()) {
+            throw new IllegalArgumentException("stationId is required");
+        }
+        return stationId.trim().toLowerCase(Locale.ROOT);
     }
 
     private String confidence(double coveragePercentage) {

@@ -56,6 +56,20 @@ if ! linewatch_compose up \
   exit 1
 fi
 
+if ! linewatch_compose exec -T caddy \
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; then
+  printf 'Deployment failed: the mounted production Caddyfile is invalid.\n' >&2
+  printf 'The previous release tag remains recorded as %s.\n' "${PREVIOUS_TAG:-none}" >&2
+  exit 1
+fi
+
+if ! linewatch_compose exec -T caddy \
+  caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile; then
+  printf 'Deployment failed: Caddy could not reload the mounted production configuration.\n' >&2
+  printf 'The previous release tag remains recorded as %s.\n' "${PREVIOUS_TAG:-none}" >&2
+  exit 1
+fi
+
 mv -T -- "$CANDIDATE" "$RELEASE_ENV"
 trap - EXIT
 export LINEWATCH_RELEASE_ENV_FILE="$RELEASE_ENV"

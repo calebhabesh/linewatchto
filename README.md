@@ -39,7 +39,7 @@ Implemented now:
 - Account sign-in supports optional Google sign-in when a Google OAuth web client ID, client secret, and redirect URI are configured, while retaining email/password registration, explicit Google linking for existing password accounts, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Source-labeled 30-day TTC line/station and GO/UP corridor/station disruption summaries derived from retained normalized alert lifecycles. Counted intervals must overlap verified polling, a GTFS-derived daily line/corridor service span, and any applicable planned-closure window. The UI separates unique service-impact time from additive incident-hours, reports polling and schedule-date coverage, and lowers confidence to the weaker coverage source without inventing a reliability score.
-- Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
+- Redis-backed dashboard cache for status, map, alerts, reliability analytics, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable. Reliability line/corridor and station aggregates use normalized network-scoped keys, expire after one minute by default, and are evicted when successful alert ingestion refreshes dashboard data.
 - Ingestion/system health panel in fixture mode.
 - High-contrast display toggle.
 - Independent reduced-motion and dot-background toggles, with a plain black or white background option.
@@ -638,7 +638,7 @@ Inspect its latest poll result:
 curl http://localhost:8080/api/health/ingestion
 ```
 
-Official TTC.ca performance metrics are intentionally fetched slowly because the TTC homepage is not an API and appears to update on a daily cadence. `LINEWATCH_PERFORMANCE_TTC_REFRESH_INTERVAL` defaults to `PT24H`, `LINEWATCH_PERFORMANCE_TTC_MAX_AGE` defaults to `PT48H`, and `LINEWATCH_CACHE_DASHBOARD_PERFORMANCE_TTL` defaults to `PT6H`.
+Official TTC.ca performance metrics are intentionally fetched slowly because the TTC homepage is not an API and appears to update on a daily cadence. `LINEWATCH_PERFORMANCE_TTC_REFRESH_INTERVAL` defaults to `PT24H`, `LINEWATCH_PERFORMANCE_TTC_MAX_AGE` defaults to `PT48H`, and `LINEWATCH_CACHE_DASHBOARD_PERFORMANCE_TTL` defaults to `PT6H`. Reliability aggregates use the shared fail-open Redis cache with `LINEWATCH_CACHE_DASHBOARD_RELIABILITY_TTL` defaulting to `PT1M`; successful alert ingestion evicts those entries before their TTL when the underlying history changes.
 
 ### Optional Scheduled Arrival Import
 

@@ -225,6 +225,7 @@ Dashboard refresh: 60s
 Cloudflare public API edge TTL: 30s
 Caddy public API s-maxage: 30s
 Redis dashboard TTL: 30s
+Redis reliability TTL: 60s
 ```
 
 After the spike, rebuild with the default:
@@ -249,6 +250,10 @@ curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/announcements
 curl -I https://linewatchto.ca/api/announcements
+curl -I 'https://linewatchto.ca/api/reliability/lines?network=ttc'
+curl -I 'https://linewatchto.ca/api/reliability/lines?network=ttc'
+curl -I 'https://linewatchto.ca/api/reliability/lines?network=regional'
+curl -I 'https://linewatchto.ca/api/reliability/lines?network=regional'
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-custom.svg
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-custom.svg
 ```
@@ -282,6 +287,15 @@ Expected:
 cache-control: no-store
 cf-cache-status: BYPASS, DYNAMIC, or MISS that does not become HIT
 ```
+
+Confirm the direct backend path has populated the fail-open reliability cache:
+
+```bash
+scripts/prod-compose.sh exec -T redis \
+  redis-cli --scan --pattern 'linewatch:dashboard:v1:reliability:*'
+```
+
+Expected keys include `reliability:lines:ttc` and `reliability:lines:regional` after those views have been requested. Their TTL is at most 60 seconds and successful alert ingestion may evict them earlier.
 
 Check the security rules without hammering production:
 
