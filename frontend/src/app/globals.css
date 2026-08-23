@@ -734,6 +734,117 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   color: #f8fafc;
 }
 
+/* ==========================================================================
+   Station Submenu Subsection Header - Diffuse Light Beam Effect (Global)
+   ========================================================================== */
+
+.station-subsection-header,
+.station-connections-title,
+.mobile-status-section-heading {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+}
+
+/* 1. Origin Flare & Enhanced Glow on the Accent Chip */
+.station-subsection-header > .bg-logo-blue,
+.station-connections-title > .bg-logo-blue,
+.mobile-status-section-heading > .bg-logo-blue,
+[data-station-section] .station-subsection-header > .bg-logo-blue,
+[data-station-section] .station-connections-title > .bg-logo-blue {
+  position: relative;
+  z-index: 3;
+  box-shadow:
+    0 0 6px rgba(56, 189, 248, 0.85),
+    0 0 14px rgba(0, 130, 201, 0.55),
+    inset 0 0 2px rgba(255, 255, 255, 0.85);
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.75));
+}
+
+/* 2. Uniform Diffuse Light Strip across Header Text */
+.station-subsection-header::before,
+.station-connections-title::before,
+.mobile-status-section-heading::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(100% + 12px);
+  height: 36px;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.95;
+  filter: blur(4px);
+  background:
+    radial-gradient(ellipse 160px 70% at 4px 50%, rgba(56, 189, 248, 0.28) 0%, rgba(0, 130, 201, 0.14) 45%, transparent 85%),
+    radial-gradient(ellipse 340px 85% at 4px 50%, rgba(56, 189, 248, 0.18) 0%, rgba(0, 130, 201, 0.10) 50%, transparent 95%),
+    radial-gradient(ellipse 520px 100% at 4px 50%, rgba(0, 130, 201, 0.08) 0%, rgba(0, 130, 201, 0.02) 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 100% 100% at 0% 50%, #000 0%, #000 45%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 0% 50%, #000 0%, #000 45%, transparent 100%);
+}
+
+/* Ensure text, icons, and badges stay razor-sharp above the diffuse light beam */
+.station-subsection-header > *:not(.bg-logo-blue),
+.station-connections-title > *:not(.bg-logo-blue),
+.mobile-status-section-heading > *:not(.bg-logo-blue) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Light Theme: Deep Sapphire Ink Plume ("Dark Light" Equivalent) */
+:root:not(.dark) .station-subsection-header::before,
+:root:not(.dark) .station-connections-title::before,
+:root:not(.dark) .mobile-status-section-heading::before {
+  opacity: 0.90;
+  background:
+    radial-gradient(ellipse 150px 70% at 4px 50%, rgba(0, 102, 184, 0.16) 0%, rgba(15, 23, 42, 0.08) 45%, transparent 85%),
+    radial-gradient(ellipse 340px 85% at 4px 50%, rgba(0, 102, 184, 0.10) 0%, rgba(15, 23, 42, 0.04) 50%, transparent 95%),
+    radial-gradient(ellipse 520px 100% at 4px 50%, rgba(0, 102, 184, 0.05) 0%, rgba(15, 23, 42, 0.02) 60%, transparent 100%);
+}
+
+:root:not(.dark) .station-subsection-header > .bg-logo-blue,
+:root:not(.dark) .station-connections-title > .bg-logo-blue,
+:root:not(.dark) .mobile-status-section-heading > .bg-logo-blue {
+  box-shadow:
+    0 0 5px rgba(0, 102, 184, 0.75),
+    0 0 12px rgba(0, 130, 201, 0.45),
+    inset 0 0 2px rgba(255, 255, 255, 0.9);
+  filter: drop-shadow(0 0 3px rgba(0, 102, 184, 0.5));
+}
+
+/* High-Contrast / Reduced-Motion Accommodations */
+.high-contrast .station-subsection-header::before,
+.high-contrast .station-connections-title::before,
+.high-contrast .mobile-status-section-heading::before {
+  opacity: 0.4;
+}
+
+/* Ensure interactive menu rows and controls display in front of ambient header light */
+.account-menu-block > button,
+.account-menu-block > div,
+.desktop-top-chrome button,
+.mobile-more-row,
+.mobile-status-actions button,
+.station-detail-panel button {
+  position: relative;
+  z-index: 1;
+}
+
+/* Active solid card styling for elevated menu items */
+.desktop-top-chrome [role="menuitem"][aria-current="page"],
+.account-menu-block [role="menuitem"][aria-current="page"] {
+  background-color: rgba(241, 245, 249, 0.95);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.dark .desktop-top-chrome [role="menuitem"][aria-current="page"],
+.dark .account-menu-block [role="menuitem"][aria-current="page"] {
+  background-color: rgba(30, 41, 59, 0.95);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
 .dark .regional-map-stage .map-connection-airport :is(text, tspan),
 .high-contrast .regional-map-stage .map-connection-airport :is(text, tspan) {
   fill: #f8fafc !important;

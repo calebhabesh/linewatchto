@@ -152,7 +152,7 @@ export function MobileMoreSheet({
       <div className="mobile-more-content-scroll">
         {canShowPwaInstallHelp ? (
           <div className="mobile-more-section mobile-more-install-section">
-            <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+            <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
               <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
               <h3>{installHelpHeading}</h3>
             </div>
@@ -182,7 +182,7 @@ export function MobileMoreSheet({
         ) : null}
 
         <div className="mobile-more-section">
-          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Account</h3>
           </div>
@@ -294,7 +294,7 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications</h3>
           </div>
@@ -345,7 +345,7 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Operations</h3>
           </div>
@@ -364,28 +364,28 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Display</h3>
           </div>
           <button type="button" className="mobile-more-row" aria-pressed={highContrast} onClick={onToggleHighContrast}>
             <Contrast size={18} className="text-slate-500 dark:text-slate-400" />
             High Contrast Mode
-            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
               <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={reducedMotion} onClick={onToggleReducedMotion}>
             <Pause size={18} className="text-slate-500 dark:text-slate-400" />
             Reduced Motion
-            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
               <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={dotBackgroundEnabled} onClick={onToggleDotBackground}>
             <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />
             {BACKGROUND_PREFERENCE_LABEL}
-            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
               <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${dotBackgroundEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
@@ -393,7 +393,7 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>{"Support & About"}</h3>
           </div>
@@ -451,7 +451,7 @@ export function MobileMoreSheet({
         </div>
 
         {currentNetwork === "ttc" ? <div className="mobile-more-section">
-          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications Help</h3>
           </div>

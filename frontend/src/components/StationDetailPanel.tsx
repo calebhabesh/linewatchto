@@ -640,7 +640,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 className="flex flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
               >
-                <div className="flex items-center gap-2.5">
+                <div className="station-subsection-header flex items-center gap-2.5">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <ConciergeBell size={14} className="shrink-0 text-slate-700 dark:text-white" aria-hidden="true" />
                   <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-900 dark:text-white">
@@ -824,7 +824,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 data-station-section="arrivals"
               >
                 {/* Schedule May Be Disrupted */}
-                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <Train size={20} className="shrink-0" />
                   <span>{arrivalHeading}</span>
@@ -1095,7 +1095,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               <SurfaceConnectionsSection networkId="ttc" stationId={station.id} />
 
 	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-	            <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+	            <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
 	              <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
 	              <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
 	              <span className="truncate">Station Impacts</span>
@@ -1170,7 +1170,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               onClick={handleSummaryClick}
               className="station-accessibility-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white"
             >
-              <div className="flex min-w-0 items-center gap-2.5">
+              <div className="station-subsection-header flex min-w-0 items-center gap-2.5">
                 <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                 <Image
                   src="/assets/linewatch/accessibility-alert.svg"

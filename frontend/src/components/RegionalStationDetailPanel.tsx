@@ -761,7 +761,7 @@ export function RegionalStationDetailPanel({
                 className="flex flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
               >
-                <div className="flex items-center gap-2.5">
+                <div className="station-subsection-header flex items-center gap-2.5">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <ConciergeBell size={14} className="shrink-0 text-slate-700 dark:text-white" aria-hidden="true" />
                   <h4 className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-900 dark:text-white">
@@ -883,7 +883,7 @@ export function RegionalStationDetailPanel({
                 className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="arrivals"
               >
-                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <Train size={20} className="shrink-0" />
                   <span>Train Arrivals</span>
@@ -1202,7 +1202,7 @@ export function RegionalStationDetailPanel({
                 data-station-section="station-impacts"
                 aria-label="Station service impacts"
               >
-                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
                   <span className="truncate">Station Impacts</span>
@@ -1256,7 +1256,7 @@ export function RegionalStationDetailPanel({
                 data-station-section="trip-changes"
                 aria-label="Upcoming GO train changes"
               >
-                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <AlertTriangle size={20} className="shrink-0 text-amber-500" />
                   <span className="truncate">Upcoming Trip Changes</span>
@@ -1289,7 +1289,7 @@ export function RegionalStationDetailPanel({
                   onClick={handleNoticesSummaryClick}
                   className="station-notices-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white"
                 >
-                  <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="station-subsection-header flex min-w-0 items-center gap-2.5">
                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <FileText size={20} className="shrink-0 text-slate-700 dark:text-slate-300" />
                     <span className="min-w-0 truncate">Notices</span>
@@ -1403,7 +1403,7 @@ export function RegionalStationDetailPanel({
                 aria-label="Regional accessibility outages"
               >
                 <summary className="station-accessibility-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
-                  <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="station-subsection-header flex min-w-0 items-center gap-2.5">
                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <Image
                       src="/assets/linewatch/accessibility-alert.svg"

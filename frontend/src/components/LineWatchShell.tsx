@@ -3334,9 +3334,11 @@ export function LineWatchShell({
                 </div>
 
                 <div className="account-menu-block flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Account</span>
+                  <div className="px-3 pt-2 pb-2 select-none">
+                    <div className="station-subsection-header flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
+                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Account</span>
+                    </div>
                   </div>
                   {accountState.source === "unavailable" ? (
                     <AccountAvailabilityNotice
@@ -3506,21 +3508,23 @@ export function LineWatchShell({
                   {accountError ? <p className="px-2 pb-2 text-xs font-semibold text-red-600 dark:text-red-300">{accountError}</p> : null}
                 </div>
 
-               {/* Maps & Alerts */}
-               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Maps & Alerts</span>
-                 </div>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => { setActiveView("map"); setSelection(null); }}
-                   aria-current={activeView === "map" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <MapIcon size={18} className="text-slate-500 dark:text-slate-400" /> Map
-                 </button>
+                {/* Maps & Alerts */}
+                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+                  <div className="px-3 pt-2 pb-2 select-none">
+                    <div className="station-subsection-header flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
+                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Maps & Alerts</span>
+                    </div>
+                  </div>
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => { setActiveView("map"); setSelection(null); }}
+                    aria-current={activeView === "map" ? "page" : undefined}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <MapIcon size={18} className="text-slate-500 dark:text-slate-400" /> Map
+                  </button>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -3666,9 +3670,11 @@ export function LineWatchShell({
 
                {/* Notifications */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Notifications</span>
+                 <div className="px-3 pt-2 pb-2 select-none">
+                   <div className="station-subsection-header flex items-center gap-2">
+                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
+                     <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Notifications</span>
+                   </div>
                  </div>
                  <button
                    ref={registerMenuAction(actionIndex++)}
@@ -3692,9 +3698,11 @@ export function LineWatchShell({
 
                {/* Operations */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Operations</span>
+                 <div className="px-3 pt-2 pb-2 select-none">
+                    <div className="station-subsection-header flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
+                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Operations</span>
+                    </div>
                  </div>
                  <button
                    ref={registerMenuAction(actionIndex++)}
@@ -3709,9 +3717,11 @@ export function LineWatchShell({
 
                {/* Display */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Display</span>
+                 <div className="px-3 pt-2 pb-2 select-none">
+                    <div className="station-subsection-header flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
+                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Display</span>
+                    </div>
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
@@ -3762,9 +3772,11 @@ export function LineWatchShell({
 
                {/* Support & About */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
-                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Support & About</span>
+                 <div className="px-3 pt-2 pb-2 select-none">
+                    <div className="station-subsection-header flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
+                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Support & About</span>
+                    </div>
                  </div>
                  <button
                    ref={registerMenuAction(actionIndex++)}
@@ -3810,9 +3822,11 @@ export function LineWatchShell({
                {/* At-A-Glance Integrated Sub-panels */}
                <div className="flex flex-col p-4 gap-4">
                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2 px-1 select-none">
-                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Line Status</span>
+                    <div className="px-1 pb-2 select-none">
+                      <div className="station-subsection-header flex items-center gap-2">
+                        <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
+                        <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Line Status</span>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2">
                       {lineStatuses.map(l => {
