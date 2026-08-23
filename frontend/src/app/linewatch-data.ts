@@ -247,7 +247,7 @@ export type AlertTypeBreakdownItem = {
   impactKind: string;
   label: string;
   incidents: number;
-  observedDisruptionMinutes: number;
+  incidentDisruptionMinutes: number;
   percentage: number;
 };
 
@@ -258,8 +258,13 @@ export type ReliabilitySnapshot = {
   until: string;
   source: string;
   observedDays: number;
+  observationMinutes: number;
+  coveragePercentage: number;
   confidence: "low" | "medium" | "high";
   coverageLabel: string;
+  serviceWindowBasis: string;
+  scheduleBacked: boolean;
+  scheduleCoveragePercentage: number;
   message: string;
   metrics: {
     id: string;
@@ -268,7 +273,10 @@ export type ReliabilitySnapshot = {
     incidents: number;
     activeIncidents: number;
     medianDurationMinutes: number | null;
-    observedDisruptionMinutes: number;
+    serviceImpactMinutes: number;
+    observedServiceMinutes: number;
+    incidentDisruptionMinutes: number;
+    serviceImpactPercentage: number;
     confidence: "low" | "medium" | "high";
   }[];
   breakdown?: AlertTypeBreakdownItem[];
@@ -484,9 +492,14 @@ export const reliabilitySnapshot: ReliabilitySnapshot = {
   until: "2026-07-28T12:00:00Z",
   source: "LineWatch fixture Alert History",
   observedDays: 30,
+  observationMinutes: 43200,
+  coveragePercentage: 100,
   confidence: "high",
-  coverageLabel: "30 of 30 days observed",
-  message: "Fixture-mode disruption history for interface demonstration.",
+  coverageLabel: "100.0% polling · 100.0% schedule-date coverage",
+  serviceWindowBasis: "fixture scheduled-service windows",
+  scheduleBacked: false,
+  scheduleCoveragePercentage: 100,
+  message: "Observed TTC alerts during scheduled subway service and successful polling. A line counts as affected when there is an alert anywhere on it; 100% does not mean the entire line was disrupted. Incident-hours add overlapping alerts.",
   metrics: reliabilitySummaries.map((item) => ({
     id: item.lineId,
     number: item.lineNumber,
@@ -494,13 +507,16 @@ export const reliabilitySnapshot: ReliabilitySnapshot = {
     incidents: item.incidents7d,
     activeIncidents: 0,
     medianDurationMinutes: Number.parseInt(item.medianDuration, 10),
-    observedDisruptionMinutes: item.incidents7d * Number.parseInt(item.medianDuration, 10),
+    serviceImpactMinutes: item.incidents7d * Number.parseInt(item.medianDuration, 10),
+    observedServiceMinutes: 36000,
+    incidentDisruptionMinutes: item.incidents7d * Number.parseInt(item.medianDuration, 10),
+    serviceImpactPercentage: 0.5,
     confidence: "high",
   })),
   breakdown: [
-    { impactKind: "delay", label: "Delays", incidents: 28, observedDisruptionMinutes: 340, percentage: 56.7 },
-    { impactKind: "reduced-speed-zone", label: "Reduced Speed Zones", incidents: 12, observedDisruptionMinutes: 180, percentage: 30.0 },
-    { impactKind: "planned-closure", label: "Planned Closures (Active Window Only)", incidents: 3, observedDisruptionMinutes: 80, percentage: 13.3 },
+    { impactKind: "delay", label: "Delays", incidents: 28, incidentDisruptionMinutes: 340, percentage: 56.7 },
+    { impactKind: "reduced-speed-zone", label: "Reduced Speed Zones", incidents: 12, incidentDisruptionMinutes: 180, percentage: 30.0 },
+    { impactKind: "planned-closure", label: "Planned Closures", incidents: 3, incidentDisruptionMinutes: 80, percentage: 13.3 },
   ],
 };
 

@@ -4,12 +4,8 @@ import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import com.calebhabesh.linewatch.reliability.ReliabilityResponses.ReliabilityMetric;
 import com.calebhabesh.linewatch.reliability.ReliabilityResponses.ReliabilityResponse;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,56 +33,87 @@ public class ReliabilityService {
     private ReliabilityResponse response(String networkId, String stationId) {
         OffsetDateTime until = OffsetDateTime.now(clock);
         OffsetDateTime since = until.minusDays(PERIOD_DAYS);
-        OffsetDateTime firstSnapshot = repository.firstSnapshot(networkId);
-        int observedDays = firstSnapshot == null ? 0 : (int) Math.min(PERIOD_DAYS,
-            Math.max(1, Duration.between(firstSnapshot, until).toDays() + 1));
-        String confidence = confidence(observedDays);
-        List<ReliabilityRepository.AggregateRow> rows = stationId == null
-            ? repository.aggregateLines(networkId, since, until)
-            : repository.aggregateStation(networkId, stationId, since, until);
-        if ("regional".equals(networkId) && stationId == null) {
-            Map<String, ReliabilityRepository.AggregateRow> byId = rows.stream()
-                .collect(Collectors.toMap(ReliabilityRepository.AggregateRow::id, Function.identity()));
-            rows = RegionalNetworkCatalog.routes().stream()
-                .map(route -> byId.getOrDefault(route.id(), new ReliabilityRepository.AggregateRow(
-                    route.id(), route.number(), route.name(), 0, 0, null, 0
-                )))
-                .toList();
-        }
+        ReliabilityRepository.ReliabilityAggregation aggregation =
+            repository.aggregate(networkId, stationId, since, until);
+        double effectiveCoverage = Math.min(
+            aggregation.coveragePercentage(),
+            aggregation.scheduleCoveragePercentage()
+        );
+        int observedDays = (int) Math.min(PERIOD_DAYS,
+            Math.round(PERIOD_DAYS * effectiveCoverage / 100.0));
+        String confidence = confidence(effectiveCoverage);
+        List<ReliabilityRepository.AggregateRow> rows = aggregation.rows();
         List<ReliabilityMetric> metrics = rows.stream()
             .map(row -> metric(networkId, row, confidence))
             .toList();
-        List<ReliabilityResponses.AlertTypeBreakdown> breakdown = breakdown(networkId, since, until);
-        String scope = stationId == null ? "line and corridor" : "station";
-        String coverage = observedDays == 0 ? "No observed history"
-            : observedDays + " of " + PERIOD_DAYS + " days observed";
-        String message = observedDays == 0
+        List<ReliabilityResponses.AlertTypeBreakdown> breakdown = breakdown(aggregation.breakdown());
+        String coverage = coverageLabel(networkId, aggregation);
+        String message = aggregation.coveragePercentage() == 0
             ? "No retained alert lifecycle history is available yet."
-            : "Observed " + scope + " disruption history from normalized service alerts. "
-                + "Counts reflect source-published incidents, not all causes of service variance.";
+            : preamble(networkId, stationId, aggregation);
         return new ReliabilityResponse(
             networkId, "30d", since, until,
             "regional".equals(networkId) ? "Metrolinx Alert History" : "LineWatch TTC Alert History",
-            observedDays, confidence, coverage, message, metrics, breakdown
+            observedDays, aggregation.observationMinutes(), aggregation.coveragePercentage(),
+            confidence, coverage, aggregation.serviceWindowBasis(), aggregation.scheduleBacked(),
+            aggregation.scheduleCoveragePercentage(),
+            message, metrics, breakdown
         );
     }
 
-    private List<ReliabilityResponses.AlertTypeBreakdown> breakdown(
-        String networkId, OffsetDateTime since, OffsetDateTime until
+    private String coverageLabel(
+        String networkId,
+        ReliabilityRepository.ReliabilityAggregation aggregation
     ) {
-        List<ReliabilityRepository.BreakdownRow> rows = repository.aggregateBreakdown(networkId, since, until);
-        long totalDisruptionMinutes = rows.stream().mapToLong(ReliabilityRepository.BreakdownRow::disruptionMinutes).sum();
+        if (aggregation.coveragePercentage() == 0) return "No verified polling coverage";
+        if (aggregation.scheduleCoveragePercentage() == 0) {
+            return String.format(java.util.Locale.CANADA,
+                "%.1f%% polling · no schedule-date coverage", aggregation.coveragePercentage());
+        }
+        String scheduleLabel = "regional".equals(networkId)
+            ? "minimum GO/UP schedule-date coverage"
+            : "schedule-date coverage";
+        return String.format(java.util.Locale.CANADA,
+            "%.1f%% polling · %.1f%% %s",
+            aggregation.coveragePercentage(), aggregation.scheduleCoveragePercentage(), scheduleLabel);
+    }
+
+    private String preamble(
+        String networkId,
+        String stationId,
+        ReliabilityRepository.ReliabilityAggregation aggregation
+    ) {
+        if (!aggregation.scheduleBacked()) {
+            return "Published " + ("regional".equals(networkId) ? "GO/UP" : "TTC")
+                + " schedule coverage is unavailable, so service-hour totals are withheld.";
+        }
+        if ("regional".equals(networkId)) {
+            return "Observed GO/UP alerts during scheduled train service and successful polling. "
+                + (stationId == null
+                    ? "A corridor counts as affected when there is an alert anywhere on it; 100% does not mean the entire corridor was disrupted. Incident-hours add overlapping alerts."
+                    : "A station counts as affected when any linked alert exists; incident-hours add overlapping alerts.");
+        }
+        return "Observed TTC alerts during scheduled subway service and successful polling. "
+            + (stationId == null
+                ? "A line counts as affected when there is an alert anywhere on it; 100% does not mean the entire line was disrupted. Incident-hours add overlapping alerts."
+                : "A station counts as affected when any linked alert exists; incident-hours add overlapping alerts.");
+    }
+
+    private List<ReliabilityResponses.AlertTypeBreakdown> breakdown(
+        List<ReliabilityRepository.BreakdownRow> rows
+    ) {
+        long totalDisruptionMinutes = rows.stream().mapToLong(ReliabilityRepository.BreakdownRow::incidentMinutes).sum();
         long totalIncidents = rows.stream().mapToLong(ReliabilityRepository.BreakdownRow::incidents).sum();
         return rows.stream()
             .map(row -> {
                 double pct = totalDisruptionMinutes > 0
-                    ? Math.round((row.disruptionMinutes() * 1000.0) / totalDisruptionMinutes) / 10.0
+                    ? Math.round((row.incidentMinutes() * 1000.0) / totalDisruptionMinutes) / 10.0
                     : (totalIncidents > 0 ? Math.round((row.incidents() * 1000.0) / totalIncidents) / 10.0 : 0.0);
                 return new ReliabilityResponses.AlertTypeBreakdown(
                     row.impactKind(),
                     formatImpactKindLabel(row.impactKind()),
                     row.incidents(),
-                    row.disruptionMinutes(),
+                    row.incidentMinutes(),
                     pct
                 );
             })
@@ -98,7 +125,7 @@ public class ReliabilityService {
         return switch (impactKind.toLowerCase().replace('_', '-')) {
             case "delay" -> "Delays";
             case "reduced-speed-zone", "rsz" -> "Reduced Speed Zones";
-            case "planned-closure", "closure" -> "Planned Closures (Active Window Only)";
+            case "planned-closure", "closure" -> "Planned Closures";
             case "suspension" -> "Active Alerts";
             case "cancellation" -> "Train Cancellations";
             default -> "Service Notices";
@@ -119,7 +146,9 @@ public class ReliabilityService {
         }
         return new ReliabilityMetric(
             row.id(), number, label, row.incidents(), row.activeIncidents(),
-            row.medianDurationMinutes(), row.observedDisruptionMinutes(), confidence
+            row.medianDurationMinutes(), row.serviceImpactMinutes(),
+            row.observedServiceMinutes(), row.incidentDisruptionMinutes(),
+            row.serviceImpactPercentage(), confidence
         );
     }
 
@@ -127,9 +156,9 @@ public class ReliabilityService {
         return "regional".equalsIgnoreCase(network) ? "regional" : "ttc";
     }
 
-    private String confidence(int observedDays) {
-        if (observedDays >= 28) return "high";
-        if (observedDays >= 14) return "medium";
+    private String confidence(double coveragePercentage) {
+        if (coveragePercentage >= 95.0) return "high";
+        if (coveragePercentage >= 75.0) return "medium";
         return "low";
     }
 }

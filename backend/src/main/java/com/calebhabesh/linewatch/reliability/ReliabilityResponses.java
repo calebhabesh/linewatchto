@@ -13,8 +13,13 @@ public final class ReliabilityResponses {
         OffsetDateTime until,
         String source,
         int observedDays,
+        long observationMinutes,
+        double coveragePercentage,
         String confidence,
         String coverageLabel,
+        String serviceWindowBasis,
+        boolean scheduleBacked,
+        double scheduleCoveragePercentage,
         String message,
         List<ReliabilityMetric> metrics,
         List<AlertTypeBreakdown> breakdown
@@ -27,7 +32,10 @@ public final class ReliabilityResponses {
         long incidents,
         long activeIncidents,
         Long medianDurationMinutes,
-        long observedDisruptionMinutes,
+        long serviceImpactMinutes,
+        long observedServiceMinutes,
+        long incidentDisruptionMinutes,
+        double serviceImpactPercentage,
         String confidence
     ) {}
 
@@ -35,7 +43,7 @@ public final class ReliabilityResponses {
         String impactKind,
         String label,
         long incidents,
-        long observedDisruptionMinutes,
+        long incidentDisruptionMinutes,
         double percentage
     ) {}
 }

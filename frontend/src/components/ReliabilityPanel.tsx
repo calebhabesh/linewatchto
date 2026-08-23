@@ -165,28 +165,27 @@ function getMetricDetails(id: string, originalLabel: string) {
   }
 }
 
-function formatDisruptionDuration(
-  minutes: number | null | undefined,
-  options?: { showMultiResolution?: boolean },
-): string {
+function formatDisruptionDuration(minutes: number | null | undefined): string {
   if (minutes == null || isNaN(minutes) || minutes <= 0) return "0 min";
   if (minutes < 60) return `${Math.round(minutes)} min`;
-  if (minutes < 1440) {
-    const hours = Math.floor(minutes / 60);
-    const remMinutes = Math.round(minutes % 60);
-    const primary = remMinutes === 0 ? `${hours} hr` : `${hours} hr ${remMinutes} min`;
-    return options?.showMultiResolution ? `${primary} (${Math.round(minutes)} min)` : primary;
-  }
-  const totalHours = Math.round(minutes / 60);
-  const days = Math.floor(minutes / 1440);
-  const remHours = Math.round((minutes % 1440) / 60);
-  if (options?.showMultiResolution) {
-    const dayLabel = days === 1 ? "day" : "days";
-    const hrLabel = remHours === 1 ? "hr" : "hrs";
-    const dayPart = remHours > 0 ? `${days.toLocaleString()} ${dayLabel} ${remHours} ${hrLabel}` : `${days.toLocaleString()} ${dayLabel}`;
-    return `${totalHours.toLocaleString()} hrs (${dayPart})`;
-  }
-  return `${totalHours.toLocaleString()} hrs`;
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = Math.round(minutes % 60);
+  const hourLabel = hours === 1 ? "hr" : "hrs";
+  return remMinutes === 0
+    ? `${hours.toLocaleString()} ${hourLabel}`
+    : `${hours.toLocaleString()} ${hourLabel} ${remMinutes} min`;
+}
+
+function formatReliabilityRange(since: string, until: string): string {
+  const start = new Date(since);
+  const end = new Date(until);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "Rolling 30 days";
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    month: "short",
+    day: "numeric",
+    timeZone: "America/Toronto",
+  });
+  return `${formatter.format(start)}–${formatter.format(end)}`;
 }
 
 function getImpactKindColor(kind: string): { stroke: string; bg: string; text: string } {
@@ -232,14 +231,14 @@ function getImpactKindCanonicalLabel(kind: string, rawLabel?: string): string {
 
 function AlertTypeBreakdownChart({
   breakdown,
-  networkId = "ttc",
+  networkId,
 }: {
   breakdown?: AlertTypeBreakdownItem[];
-  networkId?: "ttc" | "regional";
+  networkId: "ttc" | "regional";
 }) {
   if (!breakdown || breakdown.length === 0) return null;
 
-  const totalMinutes = breakdown.reduce((sum, item) => sum + item.observedDisruptionMinutes, 0);
+  const totalMinutes = breakdown.reduce((sum, item) => sum + item.incidentDisruptionMinutes, 0);
   const totalIncidents = breakdown.reduce((sum, item) => sum + item.incidents, 0);
 
   const slices = breakdown.map((item) => {
@@ -258,13 +257,13 @@ function AlertTypeBreakdownChart({
       <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
         <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 min-w-0 shrink-0">
           <PieChart className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-          <span>Share of Observed Disruption Time</span>
+          <span>Share of Incident-Hours</span>
         </h4>
         <span className="hidden sm:inline text-slate-400 dark:text-slate-600 font-normal text-xs" aria-hidden="true">
           ·
         </span>
         <p className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider pl-5 sm:pl-0">
-          {networkId === "regional" ? "During Operating Hours" : "During Subway Operating Hours"}
+          Overlapping alerts counted separately
         </p>
       </div>
 
@@ -275,17 +274,17 @@ function AlertTypeBreakdownChart({
             {totalIncidents} total {totalIncidents === 1 ? "incident" : "incidents"}
           </span>
           <span className="font-semibold text-slate-700 dark:text-slate-300 text-right shrink-0">
-            {formatDisruptionDuration(totalMinutes, { showMultiResolution: true })} Total
+            {formatDisruptionDuration(totalMinutes)} Total
           </span>
         </div>
 
         {/* 100% Stacked Horizontal Spectrum Bar */}
         <div
           className="w-full h-3.5 sm:h-4 flex rounded-md overflow-hidden gap-[1px] bg-black/10 dark:bg-white/10 p-[1px]"
-          aria-label="100% stacked bar showing proportion of disruption time by alert category"
+          aria-label="100% stacked bar showing proportion of incident-hours by alert category"
         >
           {slices.map((slice) => {
-            if (slice.percentage <= 0 && slice.observedDisruptionMinutes <= 0) return null;
+            if (slice.percentage <= 0 && slice.incidentDisruptionMinutes <= 0) return null;
             return (
               <div
                 key={slice.impactKind}
@@ -294,7 +293,7 @@ function AlertTypeBreakdownChart({
                   width: `${Math.max(1, slice.percentage)}%`,
                   backgroundColor: slice.color.stroke,
                 }}
-                title={`${slice.label}: ${slice.percentage.toFixed(1)}% · ${formatDisruptionDuration(slice.observedDisruptionMinutes, { showMultiResolution: true })} (${slice.incidents} ${slice.incidents === 1 ? "incident" : "incidents"})`}
+                title={`${slice.label}: ${slice.percentage.toFixed(1)}% · ${formatDisruptionDuration(slice.incidentDisruptionMinutes)} (${slice.incidents} ${slice.incidents === 1 ? "incident" : "incidents"})`}
               />
             );
           })}
@@ -321,7 +320,9 @@ function AlertTypeBreakdownChart({
                 </strong>
                 {slice.impactKind.toLowerCase().includes("closure") && (
                   <span className="text-[10px] font-normal text-slate-400 dark:text-slate-300/80 whitespace-nowrap tracking-tight">
-                    (Active Window Only)
+                    {networkId === "ttc"
+                      ? "(During Active Subway Service Only)"
+                      : "(During Scheduled Train Service Only)"}
                   </span>
                 )}
               </div>
@@ -333,7 +334,7 @@ function AlertTypeBreakdownChart({
             {/* Bottom line: Duration + Incidents */}
             <div className="flex items-center justify-between gap-2 min-w-0 text-[11px] font-mono tabular-nums pl-4">
               <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
-                {formatDisruptionDuration(slice.observedDisruptionMinutes, { showMultiResolution: true })}
+                {formatDisruptionDuration(slice.incidentDisruptionMinutes)}
               </span>
               <span className="text-slate-500 dark:text-slate-400 shrink-0 text-right">
                 {slice.incidents} {slice.incidents === 1 ? "incident" : "incidents"}
@@ -431,16 +432,21 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
         <div className="flex flex-col gap-1.5 min-w-0">
           <div className="min-w-0">
             <h3 className="text-[15px] font-black text-slate-900 dark:text-white break-words">
-              Observed Disruptions · Rolling 30 Day Basis
+              Observed Disruptions · Rolling 30 Days
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
-              Source: {reliability.source.replace(/alert history/gi, "Alert History")}
+              Source: {reliability.source.replace(/alert history/gi, "Alert History")} · {formatReliabilityRange(reliability.since, reliability.until)}
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
+              Service window: {reliability.serviceWindowBasis} · {(reliability.scheduleCoveragePercentage ?? 0).toFixed(1)}% {networkId === "regional" ? "minimum date coverage" : "date coverage"}
             </p>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 break-words leading-relaxed">{reliability.message}</p>
           {reliability.metrics.length === 0 ? (
             <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
-              <strong className="text-sm font-bold text-slate-800 dark:text-white">History is accumulating</strong>
+              <strong className="text-sm font-bold text-slate-800 dark:text-white">
+                {reliability.scheduleBacked ? "History is accumulating" : "Schedule coverage unavailable"}
+              </strong>
               <p className="text-xs text-slate-500 dark:text-slate-400">{reliability.coverageLabel}</p>
             </div>
           ) : reliability.metrics.map((item) => {
@@ -471,20 +477,38 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                 <div className="flex flex-col gap-1 text-xs sm:text-[12.5px] font-mono tabular-nums text-slate-600 dark:text-slate-300 border-t border-black/[0.05] dark:border-white/[0.05] pt-2">
                   <div className="flex items-baseline justify-between gap-2 min-w-0">
                     <span className="text-slate-500 dark:text-slate-400 font-normal shrink-0">
-                      Total Disruption
+                      Observed Service Time
                     </span>
-                    <span className="font-bold text-slate-900 dark:text-white text-right truncate">
-                      {formatDisruptionDuration(item.observedDisruptionMinutes, { showMultiResolution: true })}
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
+                      {formatDisruptionDuration(item.observedServiceMinutes)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between gap-2 min-w-0">
+                    <span className="text-slate-500 dark:text-slate-400 font-normal min-w-0">
+                      {networkId === "regional" ? "Time With Any Alert on This Corridor" : "Time With Any Alert on This Line"}
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white text-right shrink-0">
+                      {formatDisruptionDuration(item.serviceImpactMinutes)} · {item.serviceImpactPercentage.toFixed(1)}%
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between gap-2 min-w-0">
+                    <span className="text-slate-500 dark:text-slate-400 font-normal shrink-0">
+                      Incident-Hours
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
+                      {formatDisruptionDuration(item.incidentDisruptionMinutes)}
                     </span>
                   </div>
 
                   {item.medianDurationMinutes != null && (
                     <div className="flex items-baseline justify-between gap-2 min-w-0">
                       <span className="text-slate-500 dark:text-slate-400 font-normal shrink-0">
-                        Median Delay
+                        Median Completed Incident
                       </span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                        {formatDisruptionDuration(item.medianDurationMinutes, { showMultiResolution: true })}
+                        {formatDisruptionDuration(item.medianDurationMinutes)}
                       </span>
                     </div>
                   )}

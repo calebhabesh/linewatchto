@@ -5,7 +5,6 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -19,26 +18,32 @@ class ReliabilityServiceTest {
 
     @Test
     void returnsCoverageLabeledTtcLineHistoryWithoutInventingAScore() {
-        when(repository.firstSnapshot("ttc"))
-            .thenReturn(OffsetDateTime.parse("2026-07-01T16:00:00Z"));
-        when(repository.aggregateLines(
-            Mockito.eq("ttc"), Mockito.any(OffsetDateTime.class), Mockito.any(OffsetDateTime.class)
-        )).thenReturn(List.of(new ReliabilityRepository.AggregateRow(
-            "line-1", "1", "Yonge-University", 8, 1, 24L, 310L
-        )));
-        when(repository.aggregateBreakdown(
-            Mockito.eq("ttc"), Mockito.any(OffsetDateTime.class), Mockito.any(OffsetDateTime.class)
-        )).thenReturn(List.of(
-            new ReliabilityRepository.BreakdownRow("delay", 6, 120L),
-            new ReliabilityRepository.BreakdownRow("reduced_speed_zone", 2, 190L)
+        when(repository.aggregate(
+            Mockito.eq("ttc"), Mockito.isNull(), Mockito.any(), Mockito.any()
+        )).thenReturn(new ReliabilityRepository.ReliabilityAggregation(
+            List.of(new ReliabilityRepository.AggregateRow(
+                "line-1", "1", "Yonge-University", 8, 1, 24L,
+                250L, 30_000L, 310L, 0.8
+            )),
+            List.of(
+                new ReliabilityRepository.BreakdownRow("delay", 6, 120L),
+                new ReliabilityRepository.BreakdownRow("reduced_speed_zone", 2, 190L)
+            ),
+            42_768L, 99.0, "published TTC GTFS schedules", true, 100.0
         ));
 
         ReliabilityResponses.ReliabilityResponse response = service.lines("ttc");
 
-        assertThat(response.observedDays()).isEqualTo(28);
+        assertThat(response.observedDays()).isEqualTo(30);
         assertThat(response.confidence()).isEqualTo("high");
+        assertThat(response.coverageLabel()).isEqualTo("99.0% polling · 100.0% schedule-date coverage");
         assertThat(response.metrics().getFirst().incidents()).isEqualTo(8);
         assertThat(response.metrics().getFirst().medianDurationMinutes()).isEqualTo(24);
+        assertThat(response.metrics().getFirst().serviceImpactMinutes()).isEqualTo(250);
+        assertThat(response.metrics().getFirst().incidentDisruptionMinutes()).isEqualTo(310);
+        assertThat(response.message()).contains("an alert anywhere on it")
+            .contains("100% does not mean the entire line was disrupted")
+            .contains("Incident-hours add overlapping alerts");
         assertThat(response.breakdown()).hasSize(2);
         assertThat(response.breakdown().getFirst().label()).isEqualTo("Delays");
         assertThat(response.breakdown().getFirst().percentage()).isEqualTo(38.7);
@@ -46,17 +51,15 @@ class ReliabilityServiceTest {
 
     @Test
     void labelsNewRegionalHistoryAsLowConfidenceAndUsesCatalogNames() {
-        when(repository.firstSnapshot("regional"))
-            .thenReturn(OffsetDateTime.parse("2026-07-27T16:00:00Z"));
-        when(repository.aggregateLines(
-            Mockito.eq("regional"), Mockito.any(OffsetDateTime.class), Mockito.any(OffsetDateTime.class)
-        )).thenReturn(List.of(new ReliabilityRepository.AggregateRow(
-            "regional-le", "", "", 2, 0, 18L, 36L
-        )));
-        when(repository.aggregateBreakdown(
-            Mockito.eq("regional"), Mockito.any(OffsetDateTime.class), Mockito.any(OffsetDateTime.class)
-        )).thenReturn(List.of(
-            new ReliabilityRepository.BreakdownRow("delay", 2, 36L)
+        when(repository.aggregate(
+            Mockito.eq("regional"), Mockito.isNull(), Mockito.any(), Mockito.any()
+        )).thenReturn(new ReliabilityRepository.ReliabilityAggregation(
+            List.of(new ReliabilityRepository.AggregateRow(
+                "regional-le", "LE", "Lakeshore East", 2, 0, 18L,
+                30L, 300L, 36L, 10.0
+            )),
+            List.of(new ReliabilityRepository.BreakdownRow("delay", 2, 36L)),
+            20_000L, 46.3, "published GO/UP GTFS train schedules", true, 90.0
         ));
 
         ReliabilityResponses.ReliabilityResponse response = service.lines("regional");
@@ -67,7 +70,41 @@ class ReliabilityServiceTest {
             assertThat(metric.label()).isEqualTo("Lakeshore East");
             assertThat(metric.incidents()).isEqualTo(2);
         });
-        assertThat(response.metrics()).hasSize(8);
+        assertThat(response.metrics()).hasSize(1);
         assertThat(response.breakdown()).hasSize(1);
+        assertThat(response.message()).contains("100% does not mean the entire corridor was disrupted");
+    }
+
+    @Test
+    void confidenceUsesTheWeakerOfPollingAndScheduleCoverage() {
+        when(repository.aggregate(
+            Mockito.eq("ttc"), Mockito.isNull(), Mockito.any(), Mockito.any()
+        )).thenReturn(new ReliabilityRepository.ReliabilityAggregation(
+            List.of(), List.of(), 42_768L, 99.0,
+            "published TTC GTFS schedules", true, 80.0
+        ));
+
+        ReliabilityResponses.ReliabilityResponse response = service.lines("ttc");
+
+        assertThat(response.observedDays()).isEqualTo(24);
+        assertThat(response.confidence()).isEqualTo("medium");
+        assertThat(response.coverageLabel())
+            .isEqualTo("99.0% polling · 80.0% schedule-date coverage");
+    }
+
+    @Test
+    void withholdsTotalsWhenNoScheduleCoverageExists() {
+        when(repository.aggregate(
+            Mockito.eq("regional"), Mockito.isNull(), Mockito.any(), Mockito.any()
+        )).thenReturn(new ReliabilityRepository.ReliabilityAggregation(
+            List.of(), List.of(), 30_000L, 69.4,
+            "published schedule coverage unavailable", false, 0.0
+        ));
+
+        ReliabilityResponses.ReliabilityResponse response = service.lines("regional");
+
+        assertThat(response.metrics()).isEmpty();
+        assertThat(response.message()).contains("schedule coverage is unavailable")
+            .contains("totals are withheld");
     }
 }
