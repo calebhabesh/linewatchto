@@ -152,7 +152,7 @@ export function MobileMoreSheet({
       <div className="mobile-more-content-scroll">
         {canShowPwaInstallHelp ? (
           <div className="mobile-more-section mobile-more-install-section">
-            <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+            <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-2 mb-0.5 select-none">
               <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
               <h3>{installHelpHeading}</h3>
             </div>
@@ -182,7 +182,7 @@ export function MobileMoreSheet({
         ) : null}
 
         <div className="mobile-more-section">
-          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-2 mb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Account</h3>
           </div>
@@ -294,7 +294,7 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-2 mb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications</h3>
           </div>
@@ -345,7 +345,7 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-2 mb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Operations</h3>
           </div>
@@ -364,7 +364,7 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-2 mb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Display</h3>
           </div>
@@ -393,7 +393,7 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-2 mb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>{"Support & About"}</h3>
           </div>
@@ -451,7 +451,7 @@ export function MobileMoreSheet({
         </div>
 
         {currentNetwork === "ttc" ? <div className="mobile-more-section">
-          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+          <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-2 mb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications Help</h3>
           </div>

@@ -17184,7 +17184,8 @@ img.transit-line-badge {
     align-items: center;
     display: flex;
     gap: 8px;
-    padding: 2px 2px 0;
+    padding: 2px 2px 6px;
+    margin-bottom: 2px;
   }
 
   .mobile-status-section-heading h3 {
