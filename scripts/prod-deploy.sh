@@ -56,16 +56,21 @@ if ! linewatch_compose up \
   exit 1
 fi
 
-if ! linewatch_compose exec -T caddy \
-  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; then
+if ! linewatch_compose run --rm --no-deps --entrypoint caddy caddy \
+  validate --config /etc/caddy/Caddyfile --adapter caddyfile; then
   printf 'Deployment failed: the mounted production Caddyfile is invalid.\n' >&2
   printf 'The previous release tag remains recorded as %s.\n' "${PREVIOUS_TAG:-none}" >&2
   exit 1
 fi
 
-if ! linewatch_compose exec -T caddy \
-  caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile; then
-  printf 'Deployment failed: Caddy could not reload the mounted production configuration.\n' >&2
+if ! linewatch_compose up \
+  -d \
+  --no-deps \
+  --force-recreate \
+  --wait \
+  --wait-timeout "${LINEWATCH_DEPLOY_WAIT_SECONDS:-240}" \
+  caddy; then
+  printf 'Deployment failed: Caddy could not restart with the mounted production configuration.\n' >&2
   printf 'The previous release tag remains recorded as %s.\n' "${PREVIOUS_TAG:-none}" >&2
   exit 1
 fi

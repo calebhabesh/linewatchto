@@ -392,7 +392,7 @@ printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG:?}"
 if [[ " $* " == *" up "* ]] && [[ "${FAKE_DOCKER_UP_FAIL:-false}" == "true" ]]; then
   exit 23
 fi
-if [[ "$*" == *"caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile"* ]] && [[ "${FAKE_CADDY_RELOAD_FAIL:-false}" == "true" ]]; then
+if [[ "$*" == *"up -d --no-deps --force-recreate --wait"* ]] && [[ "$*" == *" caddy" ]] && [[ "${FAKE_CADDY_RECREATE_FAIL:-false}" == "true" ]]; then
   exit 25
 fi
 if [[ "$*" == "image prune -a --force" ]] && [[ "${FAKE_DOCKER_PRUNE_FAIL:-false}" == "true" ]]; then
@@ -433,13 +433,13 @@ test_deploy_promotes_release_after_healthy_start() {
   assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$new_sha"
   assert_contains "$(cat "$log")" "pull postgres backend frontend"
   assert_contains "$(cat "$log")" "up -d --no-build --remove-orphans --wait"
-  assert_contains "$(cat "$log")" "exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile"
-  assert_contains "$(cat "$log")" "exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile"
+  assert_contains "$(cat "$log")" "run --rm --no-deps --entrypoint caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile"
+  assert_contains "$(cat "$log")" "up -d --no-deps --force-recreate --wait"
   assert_contains "$(cat "$log")" "image prune -a --force"
   assert_contains "$output" "Deployed LineWatchTO release $new_sha."
 }
 
-test_deploy_keeps_previous_release_when_caddy_reload_fails() {
+test_deploy_keeps_previous_release_when_caddy_recreate_fails() {
   local temp_dir
   local prod_env
   local release_env
@@ -462,7 +462,7 @@ test_deploy_keeps_previous_release_when_caddy_reload_fails() {
   set +e
   output="$(
     FAKE_DOCKER_LOG="$log" \
-    FAKE_CADDY_RELOAD_FAIL=true \
+    FAKE_CADDY_RECREATE_FAIL=true \
     DOCKER_BIN="$fake_docker" \
     LINEWATCH_PROD_ENV_FILE="$prod_env" \
     LINEWATCH_RELEASE_ENV_FILE="$release_env" \
@@ -474,7 +474,7 @@ test_deploy_keeps_previous_release_when_caddy_reload_fails() {
 
   assert_equals "$status" "1"
   assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$TEST_SHA"
-  assert_contains "$output" "Caddy could not reload"
+  assert_contains "$output" "Caddy could not restart"
   assert_not_contains "$(cat "$log")" "image prune"
 }
 
@@ -567,7 +567,7 @@ run_test "build script targets ARM64 registry images" test_build_script_targets_
 run_test "Compose wrapper loads both env files" test_compose_wrapper_loads_runtime_and_release_env
 run_test "deploy promotes a healthy candidate" test_deploy_promotes_release_after_healthy_start
 run_test "deploy retains the previous tag on failure" test_deploy_keeps_previous_release_after_failed_start
-run_test "deploy retains the previous tag when Caddy reload fails" test_deploy_keeps_previous_release_when_caddy_reload_fails
+run_test "deploy retains the previous tag when Caddy recreation fails" test_deploy_keeps_previous_release_when_caddy_recreate_fails
 run_test "deploy remains successful when image cleanup fails" test_deploy_keeps_success_when_image_prune_fails
 
 printf '%s tests passed\n' "$TEST_COUNT"

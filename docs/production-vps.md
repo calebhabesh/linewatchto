@@ -191,7 +191,7 @@ git pull --ff-only
 scripts/prod-deploy.sh <full-git-sha>
 ```
 
-The deployment validates and reloads the bind-mounted production Caddyfile after the stack is healthy. A validation or reload failure leaves the previous release tag recorded and stops the deployment before image cleanup.
+The deployment validates the host-side production Caddyfile in a fresh one-off container, then recreates only Caddy after the stack is healthy. Recreation is required because Git may atomically replace the bind-mounted file, leaving an existing container attached to its previous inode. A validation or Caddy restart failure leaves the previous release tag recorded and stops the deployment before image cleanup.
 
 Once the candidate stack is healthy and the release file has been promoted, deployment prunes Docker images that are not referenced by any container. This keeps immutable release tags from accumulating on the boot volume without touching running images or persistent volumes. Rollback can pull an uncached public GHCR image again. Temporarily set `LINEWATCH_DEPLOY_PRUNE_IMAGES=false` to skip this cleanup while troubleshooting.
 
