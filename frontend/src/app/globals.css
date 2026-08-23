@@ -755,10 +755,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   position: relative;
   z-index: 3;
   box-shadow:
-    0 0 6px rgba(56, 189, 248, 0.85),
-    0 0 14px rgba(0, 130, 201, 0.55),
+    0 0 6px rgba(56, 189, 248, 0.75),
+    0 0 12px rgba(0, 130, 201, 0.40),
     inset 0 0 2px rgba(255, 255, 255, 0.85);
-  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.75));
+  filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.60));
 }
 
 /* 2. Uniform Diffuse Light Strip across Header Text */
@@ -776,12 +776,13 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   pointer-events: none;
   z-index: 0;
   opacity: 1;
-  filter: blur(2px) drop-shadow(0 0 8px rgba(56, 189, 248, 0.45));
+  filter: blur(3.5px);
   background:
-    radial-gradient(ellipse 380px 100% at 4px 50%, rgba(186, 230, 253, 0.90) 0%, rgba(56, 189, 248, 0.75) 35%, rgba(0, 130, 201, 0.45) 75%, transparent 100%),
-    linear-gradient(90deg, rgba(186, 230, 253, 0.65) 0%, rgba(56, 189, 248, 0.55) 20%, rgba(0, 130, 201, 0.38) 55%, rgba(0, 130, 201, 0.16) 80%, transparent 100%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
+    radial-gradient(ellipse 260px 80% at 4px 50%, rgba(56, 189, 248, 0.40) 0%, rgba(0, 130, 201, 0.20) 45%, transparent 88%),
+    radial-gradient(ellipse 460px 95% at 4px 50%, rgba(56, 189, 248, 0.22) 0%, rgba(0, 130, 201, 0.10) 50%, transparent 95%),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.20) 0%, rgba(0, 130, 201, 0.10) 35%, transparent 75%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 68%, transparent 95%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 68%, transparent 95%);
 }
 
 /* Ensure text, icons, and badges stay razor-sharp above the diffuse light beam */
@@ -792,27 +793,51 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   z-index: 2;
 }
 
-/* Light Theme: Deep Sapphire Ink Plume ("Dark Light" Equivalent) */
+/* Light Theme: Subtle Cerulean Watercolor Plume */
 :root:not(.dark) .station-subsection-header::before,
 :root:not(.dark) .station-connections-title::before,
 :root:not(.dark) .mobile-status-section-heading::before {
-  opacity: 0.95;
-  filter: blur(2px);
+  opacity: 0.75;
+  filter: blur(4px);
   background:
-    radial-gradient(ellipse 380px 90% at 4px 50%, rgba(0, 102, 184, 0.28) 0%, rgba(15, 23, 42, 0.14) 45%, transparent 95%),
-    linear-gradient(90deg, rgba(0, 102, 184, 0.22) 0%, rgba(15, 23, 42, 0.10) 35%, rgba(0, 102, 184, 0.05) 75%, transparent 100%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 85%, transparent 100%);
+    radial-gradient(ellipse 260px 75% at 4px 50%, rgba(0, 130, 201, 0.08) 0%, rgba(0, 102, 184, 0.04) 45%, transparent 85%),
+    radial-gradient(ellipse 460px 85% at 4px 50%, rgba(0, 130, 201, 0.05) 0%, rgba(0, 102, 184, 0.02) 50%, transparent 95%),
+    linear-gradient(90deg, rgba(0, 130, 201, 0.05) 0%, rgba(0, 102, 184, 0.02) 35%, transparent 75%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 68%, transparent 95%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 68%, transparent 95%);
 }
 
 :root:not(.dark) .station-subsection-header > .bg-logo-blue,
 :root:not(.dark) .station-connections-title > .bg-logo-blue,
 :root:not(.dark) .mobile-status-section-heading > .bg-logo-blue {
   box-shadow:
-    0 0 5px rgba(0, 102, 184, 0.75),
-    0 0 12px rgba(0, 130, 201, 0.45),
+    0 0 4px rgba(0, 102, 184, 0.50),
+    0 0 8px rgba(0, 130, 201, 0.25),
     inset 0 0 2px rgba(255, 255, 255, 0.9);
-  filter: drop-shadow(0 0 3px rgba(0, 102, 184, 0.5));
+  filter: drop-shadow(0 0 2px rgba(0, 102, 184, 0.35));
+}
+
+/* 3. Station Submenu Contrast Compensation (balances against dark:bg-white/5 card backgrounds in dark mode) */
+[data-station-section] .station-subsection-header::before,
+[data-station-section] .station-connections-title::before,
+.station-detail-panel .station-subsection-header::before,
+.station-detail-panel .station-connections-title::before {
+  background:
+    radial-gradient(ellipse 280px 80% at 4px 50%, rgba(56, 189, 248, 0.58) 0%, rgba(0, 130, 201, 0.30) 45%, transparent 88%),
+    radial-gradient(ellipse 480px 95% at 4px 50%, rgba(56, 189, 248, 0.32) 0%, rgba(0, 130, 201, 0.15) 50%, transparent 95%),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.28) 0%, rgba(0, 130, 201, 0.14) 35%, transparent 75%);
+}
+
+:root:not(.dark) [data-station-section] .station-subsection-header::before,
+:root:not(.dark) [data-station-section] .station-connections-title::before,
+:root:not(.dark) .station-detail-panel .station-subsection-header::before,
+:root:not(.dark) .station-detail-panel .station-connections-title::before {
+  opacity: 0.80;
+  filter: blur(4px);
+  background:
+    radial-gradient(ellipse 280px 75% at 4px 50%, rgba(0, 130, 201, 0.10) 0%, rgba(0, 102, 184, 0.05) 45%, transparent 85%),
+    radial-gradient(ellipse 480px 85% at 4px 50%, rgba(0, 130, 201, 0.06) 0%, rgba(0, 102, 184, 0.02) 50%, transparent 95%),
+    linear-gradient(90deg, rgba(0, 130, 201, 0.06) 0%, rgba(0, 102, 184, 0.02) 35%, transparent 75%);
 }
 
 /* High-Contrast / Reduced-Motion Accommodations */
