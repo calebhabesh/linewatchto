@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class GtfsRtSubwayArrivalProviderTest {
     private ScheduledArrivalProvider scheduledArrivalProvider;
 
     private ArrivalProperties properties;
-    private Clock clock;
+    private MutableClock clock;
     private GtfsRtSubwayArrivalCache cache;
     private GtfsRtSubwayArrivalProvider provider;
 
@@ -44,7 +45,7 @@ class GtfsRtSubwayArrivalProviderTest {
     @BeforeEach
     void setUp() {
         properties = new ArrivalProperties();
-        clock = Clock.fixed(Instant.parse("2026-07-02T10:25:46Z"), ZoneId.of("UTC"));
+        clock = new MutableClock(Instant.parse("2026-07-02T10:25:46Z"));
         cache = new GtfsRtSubwayArrivalCache(properties, clock);
         provider = new GtfsRtSubwayArrivalProvider(cache, scheduledArrivalProvider, properties, clock, new SubwayOperatingWindow(clock));
     }
@@ -77,6 +78,92 @@ class GtfsRtSubwayArrivalProviderTest {
                 org.assertj.core.groups.Tuple.tuple("line-1", "Northbound", "live", "TTC GTFS-RT subway trip updates"),
                 org.assertj.core.groups.Tuple.tuple("line-1", "Southbound to Vaughan Metropolitan Centre", "scheduled", "TTC scheduled service"),
                 org.assertj.core.groups.Tuple.tuple("line-6", "Eastbound to Finch West", "scheduled", "TTC scheduled service")
+            );
+    }
+
+    @Test
+    void brieflyRetainsLastLiveDirectionsWhenAFreshSnapshotOmitsTheStation() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        properties.setLiveArrivalRetention(java.time.Duration.ofSeconds(30));
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now, now, List.of(
+            new GtfsRtSubwayStationArrival(
+                "cedarvale", "line-1", "Northbound", now.plusMinutes(3), "101", "trip-north", "stop-north"
+            ),
+            new GtfsRtSubwayStationArrival(
+                "cedarvale", "line-1", "Southbound", now.plusMinutes(5), "102", "trip-south", "stop-south"
+            )
+        )));
+        when(scheduledArrivalProvider.arrivalsFor(eq("cedarvale"), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled(
+                "line-1", "Yonge-University Line towards Vaughan Metropolitan Centre Station", 4,
+                now.plusMinutes(4), "TTC scheduled service"
+            ),
+            ArrivalPrediction.scheduled(
+                "line-1", "Yonge-University Line towards Finch Station", 6,
+                now.plusMinutes(6), "TTC scheduled service"
+            )
+        ));
+
+        assertThat(provider.arrivalsFor("cedarvale", List.of(line1)))
+            .extracting(ArrivalPrediction::direction, ArrivalPrediction::status)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("Northbound", "live"),
+                org.assertj.core.groups.Tuple.tuple("Southbound", "live")
+            );
+
+        clock.advance(java.time.Duration.ofSeconds(10));
+        OffsetDateTime omittedAt = OffsetDateTime.now(clock);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(omittedAt, omittedAt, List.of()));
+
+        assertThat(provider.arrivalsFor("cedarvale", List.of(line1)))
+            .extracting(ArrivalPrediction::direction, ArrivalPrediction::status)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("Northbound", "live"),
+                org.assertj.core.groups.Tuple.tuple("Southbound", "live")
+            );
+
+        clock.advance(java.time.Duration.ofSeconds(21));
+        OffsetDateTime expiredAt = OffsetDateTime.now(clock);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(expiredAt, expiredAt, List.of()));
+
+        assertThat(provider.arrivalsFor("cedarvale", List.of(line1)))
+            .extracting(ArrivalPrediction::direction, ArrivalPrediction::status)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple(
+                    "Yonge-University Line towards Vaughan Metropolitan Centre Station", "scheduled"
+                ),
+                org.assertj.core.groups.Tuple.tuple(
+                    "Yonge-University Line towards Finch Station", "scheduled"
+                )
+            );
+    }
+
+    @Test
+    void mapsScheduledLine1FallbackToTheCorrectCedarvalePlatformDirection() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now, now, List.of(
+            new GtfsRtSubwayStationArrival(
+                "cedarvale", "line-1", "Northbound", now.plusMinutes(3), "101", "trip-north", "stop-north"
+            )
+        )));
+        when(scheduledArrivalProvider.arrivalsFor(eq("cedarvale"), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled(
+                "line-1", "Yonge-University Line towards Vaughan Metropolitan Centre Station", 4,
+                now.plusMinutes(4), "TTC scheduled service"
+            ),
+            ArrivalPrediction.scheduled(
+                "line-1", "Yonge-University Line towards Finch Station", 6,
+                now.plusMinutes(6), "TTC scheduled service"
+            )
+        ));
+
+        assertThat(provider.arrivalsFor("cedarvale", List.of(line1)))
+            .extracting(ArrivalPrediction::direction, ArrivalPrediction::status)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("Northbound", "live"),
+                org.assertj.core.groups.Tuple.tuple(
+                    "Yonge-University Line towards Finch Station", "scheduled"
+                )
             );
     }
 
@@ -311,5 +398,32 @@ class GtfsRtSubwayArrivalProviderTest {
         cache.replace(staleSnapshot);
 
         assertThat(cache.freshSnapshot()).isEmpty();
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant instant;
+
+        private MutableClock(Instant instant) {
+            this.instant = instant;
+        }
+
+        private void advance(java.time.Duration duration) {
+            instant = instant.plus(duration);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return Clock.fixed(instant, zone);
+        }
+
+        @Override
+        public Instant instant() {
+            return instant;
+        }
     }
 }

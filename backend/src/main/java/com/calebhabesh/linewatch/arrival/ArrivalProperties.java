@@ -26,6 +26,7 @@ public class ArrivalProperties {
     private int scheduleLookaheadDays = 7;
     private Duration trainMarkerHorizon = Duration.ofMinutes(20);
     private Duration trainMarkerRetention = Duration.ofSeconds(30);
+    private Duration liveArrivalRetention = Duration.ofSeconds(30);
     private int maxArrivalsPerLine = 4;
     private URI liveGtfsRtUrl = URI.create("https://gtfsrt.ttc.ca/trips/subway?format=text");
     private Duration liveGtfsRtInitialDelay = Duration.ofSeconds(10);
@@ -135,6 +136,14 @@ public class ArrivalProperties {
 
     public void setTrainMarkerRetention(Duration trainMarkerRetention) {
         this.trainMarkerRetention = trainMarkerRetention;
+    }
+
+    public Duration getLiveArrivalRetention() {
+        return liveArrivalRetention;
+    }
+
+    public void setLiveArrivalRetention(Duration liveArrivalRetention) {
+        this.liveArrivalRetention = liveArrivalRetention;
     }
 
     public int getMaxArrivalsPerLine() {

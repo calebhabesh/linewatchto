@@ -58,8 +58,8 @@ describe("station data adapter", () => {
   it("uses same-origin API paths by default for station details", async () => {
     const requests = [];
     const response = await getStationDetail("union", {
-      fetcher: async (input) => {
-        requests.push(input);
+      fetcher: async (input, init) => {
+        requests.push([input, init]);
         return new Response(
           JSON.stringify({
             id: "union",
@@ -83,7 +83,7 @@ describe("station data adapter", () => {
 
     assert.equal(response.source, "backend");
     assert.equal(response.data.id, "union");
-    assert.equal(requests[0], "/api/stations/union");
+    assert.deepEqual(requests[0], ["/api/stations/union", { cache: "no-store" }]);
   });
 
   it("still honors explicit non-local station API bases", async () => {

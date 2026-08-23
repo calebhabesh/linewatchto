@@ -1950,7 +1950,10 @@ export async function getStationDetail(
   const fetcher = options.fetcher ?? fetch;
 
   try {
-    const response = await fetcher(apiUrl(`/api/stations/${encodeURIComponent(id)}`, options.apiBaseUrl));
+    const response = await fetcher(
+      apiUrl(`/api/stations/${encodeURIComponent(id)}`, options.apiBaseUrl),
+      { cache: "no-store" },
+    );
     if (response.status === 404) {
       return { source: "backend", data: null };
     }
