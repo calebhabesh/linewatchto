@@ -11,7 +11,7 @@ import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource, JumpToLocationI
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
-import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
+import { dashboardImpactSourcesLabel } from "../app/dashboard-source-label";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
 import { useImpactListView } from "../hooks/useImpactListView";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
@@ -96,7 +96,7 @@ export function DelaysPanel({
             <span className="delay-count-badge shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
               {delays.length} {delays.length === 1 ? "Delay" : "Delays"}
             </span>
-            <CardSource source={dashboardImpactSourceLabel(dashboard, delays[0]?.source)} />
+            <CardSource source={dashboardImpactSourcesLabel(dashboard, delays.map((delay) => delay.source))} />
           </div>
           {onClose && (
             <button

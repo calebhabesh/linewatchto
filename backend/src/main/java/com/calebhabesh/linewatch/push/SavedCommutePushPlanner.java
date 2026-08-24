@@ -288,7 +288,7 @@ public class SavedCommutePushPlanner {
         String segmentIds = String.join(",", emptyWhenNull(match.matchedSegmentIds()));
         String stationIds = String.join(",", emptyWhenNull(match.matchedStationIds()));
         
-        String stableImpactPart = stableImpactPart(match);
+        String stableImpactPart = stableImpactPart(match, eventType, eventTime);
 
         String sourceIncidentKey = String.join(
             "|",
@@ -309,7 +309,18 @@ public class SavedCommutePushPlanner {
 
         String url = ("regional".equals(commute.getNetworkId()) ? "/?network=regional&" : "/?")
             + "panel=commutes&commute=" + commute.getId();
-        String updateFingerprint = regional
+        String updateFingerprint = plannedClosure && !regional
+            ? PlannedClosurePushIdentity.updateFingerprint(
+                stableImpactPart,
+                eventType,
+                match.location(),
+                match.displayDirection(),
+                match.notificationShuttle(),
+                match.notificationCause(),
+                match.closureHours(),
+                match.closureDates()
+            )
+            : regional
             ? PushNotificationUpdateFingerprint.forRegionalCandidate(eventType, notification, url)
             : PushNotificationUpdateFingerprint.forCandidate(match.updatedAt(), eventType, notification, url);
         String dedupeKey = String.join(
@@ -319,7 +330,7 @@ public class SavedCommutePushPlanner {
             legId,
             eventType,
             reminderBucket,
-            safe(match.id()),
+            plannedClosure ? stableImpactPart : safe(match.id()),
             "segments:" + segmentIds,
             "stations:" + stationIds,
             "update:" + updateFingerprint
@@ -378,7 +389,20 @@ public class SavedCommutePushPlanner {
         return SavedCommuteNotificationSchedule.matches(commute, legId, clock.instant());
     }
 
-    private String stableImpactPart(CommuteResponses.MatchedImpactResponse match) {
+    private String stableImpactPart(
+        CommuteResponses.MatchedImpactResponse match,
+        String eventType,
+        OffsetDateTime eventTime
+    ) {
+        if ("planned-closure".equals(eventType)) {
+            return PlannedClosurePushIdentity.stableId(
+                match.lineId(),
+                match.matchedSegmentIds(),
+                match.location(),
+                eventTime,
+                match.id()
+            );
+        }
         String id = safe(match.id());
         if (!id.isBlank()) {
             return id;

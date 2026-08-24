@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   dashboardImpactSourceLabel,
+  dashboardImpactSourcesLabel,
   normalizeDashboardSourceLabel,
 } from "../src/app/dashboard-source-label.ts";
 
@@ -18,11 +19,38 @@ describe("dashboard source labels", () => {
     assert.equal(normalizeDashboardSourceLabel("Metrolinx GTFS-RT"), "Metrolinx GTFS-RT");
   });
 
+  it("uses a compact label for TTC.ca service advisory records", () => {
+    assert.equal(
+      normalizeDashboardSourceLabel("TTC.ca Subway Service Advisories"),
+      "TTC.ca Advisories",
+    );
+  });
+
   it("normalizes item sources selected by desktop category headers", () => {
     assert.equal(
       dashboardImpactSourceLabel(
         { networkId: "ttc", dataSource: "backend" },
         "TTC Service Advisory",
+      ),
+      "TTC Live Alerts",
+    );
+  });
+
+  it("identifies a category containing both TTC alert sources", () => {
+    assert.equal(
+      dashboardImpactSourcesLabel(
+        { networkId: "ttc", dataSource: "backend" },
+        ["TTC Service Advisory", "TTC.ca Subway Service Advisories"],
+      ),
+      "TTC Live Alerts + TTC.ca",
+    );
+  });
+
+  it("does not treat aliases of one source as a mixed category", () => {
+    assert.equal(
+      dashboardImpactSourcesLabel(
+        { networkId: "ttc", dataSource: "backend" },
+        ["TTC Service Advisory", "TTC Live Alert"],
       ),
       "TTC Live Alerts",
     );

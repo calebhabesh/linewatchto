@@ -277,9 +277,13 @@ export function MetadataGrid({
 export function CardSource({ source }: { source: string }) {
   if (!source) return null;
   const displaySource = normalizeDashboardSourceLabel(source);
+  const sourceLabel = `Source: ${displaySource}`;
   return (
-    <span className="inline-flex items-center shrink-0 text-[7px] sm:text-[8px] text-slate-500/80 dark:text-slate-400/80 font-bold px-1 sm:px-1.5 py-0.5 rounded-[3px] border border-black/10 dark:border-white/10 uppercase tracking-wide sm:tracking-widest bg-black/5 dark:bg-white/5 whitespace-nowrap">
-      Source: {displaySource}
+    <span
+      className="inline-block shrink min-w-0 max-w-[min(14rem,46vw)] overflow-hidden text-ellipsis text-[7px] sm:text-[8px] text-slate-500/80 dark:text-slate-400/80 font-bold px-1 sm:px-1.5 py-0.5 rounded-[3px] border border-black/10 dark:border-white/10 uppercase tracking-wide sm:tracking-widest bg-black/5 dark:bg-white/5 whitespace-nowrap"
+      title={sourceLabel}
+    >
+      {sourceLabel}
     </span>
   );
 }
@@ -332,4 +336,3 @@ export function CommutePathPreviewCardBanner({
     </div>
   );
 }
-

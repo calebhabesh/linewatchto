@@ -169,11 +169,9 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                       </span>
                     ) : null}
                     {lineClosures.length > 0 ? (
-                      <span className="mobile-line-status-planned-row">
-                        <span className="mobile-line-status-impact-label mobile-line-status-btn-closures">
-                          <PlannedClosureIcon size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                          <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
-                        </span>
+                      <span className="mobile-line-status-impact-label mobile-line-status-btn-closures">
+                        <PlannedClosureIcon size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                        <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
                       </span>
                     ) : null}
                   </span>

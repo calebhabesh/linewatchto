@@ -12,7 +12,7 @@ import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-co
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
-import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
+import { dashboardImpactSourcesLabel } from "../app/dashboard-source-label";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
 import { useImpactListView } from "../hooks/useImpactListView";
 
@@ -102,7 +102,7 @@ export function PlannedClosuresPanel({
             <span className="shrink-0 text-[9px] sm:text-xs bg-blue-500/10 text-blue-500 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
               {plannedClosures.length} {plannedClosures.length === 1 ? "Notice" : "Notices"}
             </span>
-            <CardSource source={dashboardImpactSourceLabel(dashboard, plannedClosures[0]?.source)} />
+            <CardSource source={dashboardImpactSourcesLabel(dashboard, plannedClosures.map((closure) => closure.source))} />
           </div>
           {onClose && (
             <button

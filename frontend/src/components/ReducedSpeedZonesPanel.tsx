@@ -11,7 +11,7 @@ import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationI
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
-import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
+import { dashboardImpactSourcesLabel } from "../app/dashboard-source-label";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
 import { useImpactListView } from "../hooks/useImpactListView";
@@ -108,7 +108,7 @@ export function ReducedSpeedZonesPanel({
               {zoneCount} {zoneCount === 1 ? "Zone" : "Zones"}
               {zoneCount !== reducedSpeedZones.length ? ` · ${reducedSpeedZones.length} Locations` : ""}
             </span>
-            <CardSource source={dashboardImpactSourceLabel(dashboard, reducedSpeedZones[0]?.source)} />
+            <CardSource source={dashboardImpactSourcesLabel(dashboard, reducedSpeedZones.map((zone) => zone.source))} />
           </div>
           {onClose && (
             <button

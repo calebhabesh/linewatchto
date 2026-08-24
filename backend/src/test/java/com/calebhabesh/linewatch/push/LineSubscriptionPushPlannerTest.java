@@ -290,9 +290,10 @@ class LineSubscriptionPushPlannerTest {
             assertThat(candidate.category()).isEqualTo("line-current");
             assertThat(candidate.eventType()).isEqualTo("planned-closure");
             assertThat(candidate.reminderBucket()).isEqualTo("on-change");
-            assertThat(candidate.sourceIncidentKey()).isEqualTo("line-current|line-2|closure-parent-1");
+            assertThat(candidate.sourceIncidentKey())
+                .startsWith("line-current|line-2|planned-closure-");
             assertThat(candidate.notificationKey())
-                .isEqualTo("line-current|line-2|planned-closure|closure-parent-1");
+                .startsWith("line-current|line-2|planned-closure|planned-closure-");
             assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Closure");
             assertThat(candidate.body()).contains("No subway service between Jane and Ossington stations");
             assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
@@ -360,5 +361,81 @@ class LineSubscriptionPushPlannerTest {
         assertThat(revision.notificationKey()).isEqualTo(first.notificationKey());
         assertThat(revision.updateFingerprint()).isNotEqualTo(first.updateFingerprint());
         assertThat(revision.dedupeKey()).isNotEqualTo(first.dedupeKey());
+    }
+
+    @Test
+    void keepsNotificationIdentityWhenAWebsiteClosureMovesToLiveAlerts() {
+        OffsetDateTime eventStart = OffsetDateTime.parse("2026-06-06T04:00:00Z");
+        AlertDashboardService.PlannedClosureDto website = plannedClosure(
+            "ttc-route-website-closure",
+            "TTC.ca Subway Service Advisories",
+            OffsetDateTime.parse("2026-06-05T13:00:00Z"),
+            eventStart,
+            "11:59 PM – 6:00 AM",
+            true
+        );
+        AlertDashboardService.PlannedClosureDto live = plannedClosure(
+            "ttc-route-live-73253",
+            "TTC Service Advisory",
+            OffsetDateTime.parse("2026-06-05T14:00:00Z"),
+            eventStart,
+            "11:59 PM – 6:00 AM",
+            true
+        );
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of(website), List.of(live));
+
+        PushNotificationCandidate websiteCandidate = planner
+            .candidatesFor("user_1", List.of("line-2")).getFirst();
+        PushNotificationCandidate liveCandidate = planner
+            .candidatesFor("user_1", List.of("line-2")).getFirst();
+
+        assertThat(liveCandidate.sourceIncidentKey()).isEqualTo(websiteCandidate.sourceIncidentKey());
+        assertThat(liveCandidate.notificationKey()).isEqualTo(websiteCandidate.notificationKey());
+        assertThat(liveCandidate.updateFingerprint()).isEqualTo(websiteCandidate.updateFingerprint());
+        assertThat(liveCandidate.dedupeKey()).isEqualTo(websiteCandidate.dedupeKey());
+        assertThat(liveCandidate.url()).isNotEqualTo(websiteCandidate.url());
+    }
+
+    private AlertDashboardService.PlannedClosureDto plannedClosure(
+        String id,
+        String source,
+        OffsetDateTime updatedAt,
+        OffsetDateTime eventStart,
+        String closureHours,
+        boolean shuttle
+    ) {
+        return new AlertDashboardService.PlannedClosureDto(
+            id,
+            "line-2",
+            "2",
+            "Line 2 closure between St George and Broadview",
+            "Upcoming",
+            "St George to Broadview",
+            "Eastbound & Westbound",
+            "Subway service will end early for planned track work.",
+            eventStart,
+            updatedAt,
+            List.of("line-2-st-george-bay", "line-2-bay-bloor-yonge", "line-2-castle-frank-broadview"),
+            shuttle,
+            source,
+            "planned track work",
+            null,
+            false,
+            "upcoming",
+            true,
+            null,
+            null,
+            null,
+            eventStart,
+            eventStart.plusHours(6),
+            "Tonight",
+            closureHours,
+            "Sat, Jun 6",
+            "No subway service between St George and Broadview stations",
+            "bidirectional"
+        );
     }
 }

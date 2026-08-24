@@ -114,7 +114,7 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, on
           <label className="impact-list-search">
             <Search size={14} aria-hidden="true" />
             <span className="sr-only">Filter {lineName} impacts</span>
-            <input type="search" className="submenu-search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Filter ${lineName} impacts...`} aria-label={`Filter ${lineName} impacts`} />
+            <input type="search" className="submenu-search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filter Impacts..." aria-label={`Filter ${lineName} impacts`} />
           </label>
           <div className="impact-list-selects">
             <ToolbarSelectMenu

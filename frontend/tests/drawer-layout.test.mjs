@@ -52,6 +52,7 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters\s*\{[^}]*flex-wrap:\s*nowrap/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters button\s*\{[^}]*flex:\s*0 1 auto;/s);
     assert.match(globalCss, /\.line-impacts-panel > \.panel-heading h2\s*\{[^}]*padding-bottom:\s*2px;[^}]*line-height:\s*1\.35/s);
+    assert.match(globalCss, /@media \(max-width:\s*767px\)[\s\S]*?\.line-impacts-panel \.impact-list-toolbar\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/s);
     assert.match(globalCss, /\.line-impact-panel-stack\s*\{[^}]*overflow-y:\s*auto/s);
     assert.match(globalCss, /\.embedded-impact-panel > \.panel-heading,[\s\S]*display:\s*none !important/s);
     assert.match(shellSource, /VIEW_SCROLL_SELECTORS[\s\S]*mobile-status-content-scroll[\s\S]*mobile-more-content-scroll/);

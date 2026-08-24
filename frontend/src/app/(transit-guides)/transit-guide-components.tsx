@@ -2,15 +2,21 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import {
-  Accessibility,
   Activity,
+  AlertCircle,
   ArrowDownToLine,
   ArrowRight,
+  CheckCircle2,
   Compass,
   ConciergeBell,
   GitMerge,
+  Info,
+  Layers,
   Map,
   MapPin,
+  Route as RouteIcon,
+  ShieldCheck,
+  Train,
   Wifi,
 } from "lucide-react";
 import { JsonLd } from "../../components/JsonLd";
@@ -149,6 +155,9 @@ function PageHero({
 }) {
   return (
     <header className={styles.hero}>
+      {accentColor ? (
+        <div className={styles.heroAccentBar} style={{ backgroundColor: accentColor }} />
+      ) : null}
       <p
         className={styles.eyebrow}
         style={accentColor ? ({ "--chip-color": accentColor } as React.CSSProperties) : undefined}
@@ -178,17 +187,17 @@ function RouteList({ routes }: { routes: TransitGuideRoute[] }) {
             <a
               className={styles.routeLink}
               href={routeGuidePath(route)}
-              style={{ borderLeftColor: route.color, borderLeftWidth: 3 }}
+              style={{ borderLeftColor: route.color, borderLeftWidth: 4 }}
             >
               <RouteBadge route={route} size={38} />
               <div>
                 <strong>{route.name}</strong>
                 <small>{route.routeLabel}</small>
-                <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
-                  <span className={styles.pillBadge} style={{ fontSize: "0.72rem", padding: "2px 7px" }}>
+                <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
+                  <span className={styles.pillBadge} style={{ fontSize: "0.72rem", padding: "3px 8px" }}>
                     {route.directionLabel}
                   </span>
-                  <span className={styles.pillBadge} style={{ fontSize: "0.72rem", padding: "2px 7px" }}>
+                  <span className={styles.pillBadge} style={{ fontSize: "0.72rem", padding: "3px 8px" }}>
                     {stopCount} {stopCount === 1 ? "stop" : "stops"}
                   </span>
                 </div>
@@ -216,8 +225,8 @@ function StationDirectory({ stations }: { stations: TransitGuideStation[] }) {
                 <Image
                   src="/assets/linewatch/accessible.svg"
                   alt="Accessible"
-                  width={14}
-                  height={14}
+                  width={15}
+                  height={15}
                   className="shrink-0"
                 />
               ) : null}
@@ -267,7 +276,7 @@ function RouteStationSequence({ route }: { route: TransitGuideRoute }) {
             <div className={styles.trackMetaGroup}>
               {isTerminal ? (
                 <span className={styles.terminalTag}>
-                  <ArrowDownToLine size={10} aria-hidden="true" className="shrink-0" />
+                  <ArrowDownToLine size={11} aria-hidden="true" className="shrink-0" />
                   Terminal
                 </span>
               ) : null}
@@ -276,8 +285,8 @@ function RouteStationSequence({ route }: { route: TransitGuideRoute }) {
                   <Image
                     src="/assets/linewatch/accessible.svg"
                     alt="Accessible"
-                    width={15}
-                    height={15}
+                    width={16}
+                    height={16}
                     className={styles.trackAccessibleIcon}
                   />
                 </span>
@@ -285,7 +294,7 @@ function RouteStationSequence({ route }: { route: TransitGuideRoute }) {
               {transferRoutes.length > 0 ? (
                 <div className={styles.trackTransferBadges} title="Transfer connections">
                   {transferRoutes.map((tr) => (
-                    <RouteBadge key={tr.id} route={tr} size={20} />
+                    <RouteBadge key={tr.id} route={tr} size={22} />
                   ))}
                 </div>
               ) : null}
@@ -314,7 +323,7 @@ function StationAmenityBadge({
     <div className={styles.amenityItem} title={`${label} available`}>
       {isWifi ? (
         <div className={styles.amenityIconWifiWrap}>
-          <Wifi size={15} className="shrink-0" aria-hidden="true" />
+          <Wifi size={16} className="shrink-0" aria-hidden="true" />
         </div>
       ) : iconSrc ? (
         <Image
@@ -439,6 +448,7 @@ function SourceDisclaimer({ networkSlug }: { networkSlug: TransitGuideNetworkSlu
       <div className={styles.sectionHeading}>
         <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#f59e0b" } as React.CSSProperties}>
           <span className={styles.sectionHeaderBar} />
+          <AlertCircle size={18} className="shrink-0 text-amber-400" aria-hidden="true" />
           <h2>Source &amp; Freshness</h2>
         </div>
       </div>
@@ -503,6 +513,7 @@ export function ExploreGuidePage() {
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <RouteIcon size={18} className="shrink-0 text-slate-300" aria-hidden="true" />
                 <h2>TTC Subway, LRT Lines, and Stations</h2>
               </div>
               <a className={styles.sectionActionLink} href="/ttc">
@@ -516,6 +527,7 @@ export function ExploreGuidePage() {
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#10b981" } as React.CSSProperties}>
                 <span className={styles.sectionHeaderBar} />
+                <Train size={18} className="shrink-0 text-emerald-400" aria-hidden="true" />
                 <h2>GO Transit and UP Express</h2>
               </div>
               <a className={styles.sectionActionLink} href="/go-up">
@@ -531,6 +543,7 @@ export function ExploreGuidePage() {
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <Compass size={18} className="shrink-0 text-blue-400" aria-hidden="true" />
                 <h2>Reliability Guides</h2>
               </div>
             </div>
@@ -602,6 +615,7 @@ export function NetworkGuidePage({ networkSlug }: { networkSlug: TransitGuideNet
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <Layers size={18} className="shrink-0 text-slate-300" aria-hidden="true" />
                 <h2>{ttc ? "Lines" : "Corridors"}</h2>
               </div>
               <span className={styles.note}>{routes.length} mapped</span>
@@ -612,6 +626,7 @@ export function NetworkGuidePage({ networkSlug }: { networkSlug: TransitGuideNet
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <MapPin size={18} className="shrink-0 text-slate-300" aria-hidden="true" />
                 <h2>Station Directory</h2>
               </div>
               <span className={styles.note}>{stations.length} mapped stations and stops</span>
@@ -624,6 +639,7 @@ export function NetworkGuidePage({ networkSlug }: { networkSlug: TransitGuideNet
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <ShieldCheck size={18} className="shrink-0 text-blue-400" aria-hidden="true" />
                 <h2>What The Dashboard Covers</h2>
               </div>
             </div>
@@ -714,6 +730,7 @@ export function RouteGuidePage({ route }: { route: TransitGuideRoute }) {
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft} style={{ "--chip-color": route.color } as React.CSSProperties}>
                 <span className={styles.sectionHeaderBar} />
+                <RouteIcon size={18} className="shrink-0 text-slate-300" aria-hidden="true" />
                 <h2>Route Station Sequence</h2>
               </div>
               <span className={styles.note}>{stations.length} stops represented</span>
@@ -727,6 +744,7 @@ export function RouteGuidePage({ route }: { route: TransitGuideRoute }) {
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <Info size={18} className="shrink-0 text-blue-400" aria-hidden="true" />
                 <h2>Route Reference</h2>
               </div>
             </div>
@@ -791,8 +809,8 @@ export function StationGuidePage({ station }: { station: TransitGuideStation }) 
                 <Image
                   src="/assets/linewatch/accessible.svg"
                   alt=""
-                  width={14}
-                  height={14}
+                  width={15}
+                  height={15}
                   className="shrink-0"
                 />
                 <span>Wheelchair Accessible</span>
@@ -802,7 +820,7 @@ export function StationGuidePage({ station }: { station: TransitGuideStation }) 
             )}
             {station.interchange ? (
               <span className={`${styles.pillBadge} ${styles.pillBadgeAccent}`}>
-                <GitMerge size={12} className="shrink-0 text-blue-400" />
+                <GitMerge size={13} className="shrink-0 text-blue-400" />
                 <span>Interchange Hub</span>
               </span>
             ) : null}
@@ -830,6 +848,7 @@ export function StationGuidePage({ station }: { station: TransitGuideStation }) 
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <Layers size={18} className="shrink-0 text-slate-300" aria-hidden="true" />
                 <h2>{ttc ? "Lines at This Station" : "Routes at This Station"}</h2>
               </div>
             </div>
@@ -839,6 +858,7 @@ export function StationGuidePage({ station }: { station: TransitGuideStation }) 
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <MapPin size={18} className="shrink-0 text-slate-300" aria-hidden="true" />
                 <h2>Adjacent Mapped Stations</h2>
               </div>
             </div>
@@ -869,6 +889,7 @@ export function StationGuidePage({ station }: { station: TransitGuideStation }) 
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <Info size={18} className="shrink-0 text-blue-400" aria-hidden="true" />
                 <h2>Station Reference</h2>
               </div>
             </div>
@@ -932,6 +953,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#10b981" } as React.CSSProperties}>
                 <span className={styles.sectionHeaderBar} />
+                <CheckCircle2 size={18} className="shrink-0 text-emerald-400" aria-hidden="true" />
                 <h2>What Is Counted</h2>
               </div>
             </div>
@@ -946,6 +968,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#3b82f6" } as React.CSSProperties}>
                 <span className={styles.sectionHeaderBar} />
+                <ShieldCheck size={18} className="shrink-0 text-blue-400" aria-hidden="true" />
                 <h2>Coverage &amp; Confidence</h2>
               </div>
             </div>
@@ -956,6 +979,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#ef4444" } as React.CSSProperties}>
                 <span className={styles.sectionHeaderBar} />
+                <AlertCircle size={18} className="shrink-0 text-red-400" aria-hidden="true" />
                 <h2>What Is Excluded</h2>
               </div>
             </div>
@@ -973,6 +997,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
+                <Info size={18} className="shrink-0 text-blue-400" aria-hidden="true" />
                 <h2>Read Results Carefully</h2>
               </div>
             </div>

@@ -10952,6 +10952,7 @@ img.transit-line-badge {
   font-size: 11px;
   font-weight: 750;
   outline: none;
+  text-overflow: ellipsis;
 }
 
 .submenu-search-input::placeholder {
@@ -11124,6 +11125,19 @@ img.transit-line-badge {
     right: auto;
   }
 
+  .line-impacts-panel .impact-list-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .line-impacts-panel .impact-list-selects {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .line-impacts-panel .impact-list-selects .saved-commute-sort-options.impact-list-select-options {
+    left: auto;
+    right: 0;
+  }
 }
 
 .alert-stack.is-list-view,
@@ -17872,6 +17886,7 @@ img.transit-line-badge {
   .mobile-line-status-clear {
     display: inline-flex;
     align-items: center;
+    flex-shrink: 0;
     color: var(--ok);
   }
 
@@ -17889,9 +17904,10 @@ img.transit-line-badge {
   }
 
   .mobile-line-status-copy {
+    align-items: center;
     display: flex;
     flex: 1;
-    flex-direction: column;
+    flex-direction: row;
     gap: 6px;
     min-width: 0;
   }
@@ -17936,12 +17952,6 @@ img.transit-line-badge {
   .dark .mobile-line-status-impact-label.mobile-line-status-btn-delays { background: #2a2808 !important; }
   .dark .mobile-line-status-impact-label.mobile-line-status-btn-rsz { background: #2a1f08 !important; }
   .dark .mobile-line-status-impact-label.mobile-line-status-btn-closures { background: #0e1c30 !important; }
-
-  .mobile-line-status-planned-row {
-    display: flex;
-    flex-basis: 100%;
-    min-width: 0;
-  }
 
   .mobile-line-status-impacts button {
     min-height: 32px;

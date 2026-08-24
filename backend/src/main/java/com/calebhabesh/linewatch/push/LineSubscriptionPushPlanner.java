@@ -55,6 +55,15 @@ public class LineSubscriptionPushPlanner {
                 String impactId = activePlannedClosure && alert.relatedPlannedClosureId() != null
                     ? alert.relatedPlannedClosureId()
                     : alert.id();
+                String notificationImpactId = activePlannedClosure
+                    ? PlannedClosurePushIdentity.stableId(
+                        alert.lineId(),
+                        alert.affectedSegmentIds(),
+                        alert.location(),
+                        alert.startedAt(),
+                        impactId
+                    )
+                    : impactId;
                 candidates.add(createLineCandidate(
                     accountId,
                     alert.lineId(),
@@ -62,7 +71,7 @@ public class LineSubscriptionPushPlanner {
                     "line-current",
                     eventType,
                     "on-change",
-                    impactId,
+                    notificationImpactId,
                     alert.location(),
                     alert.displayDirection(),
                     alert.cause(),
@@ -141,6 +150,13 @@ public class LineSubscriptionPushPlanner {
                     continue;
                 }
                 String reminderBucket = effectivePolicy.reminderBucket(now, sourceEventAt);
+                String notificationImpactId = PlannedClosurePushIdentity.stableId(
+                    closure.lineId(),
+                    closure.previewSegmentIds(),
+                    closure.location(),
+                    eventStartAt,
+                    closure.id()
+                );
                 candidates.add(createLineCandidate(
                     accountId,
                     closure.lineId(),
@@ -148,7 +164,7 @@ public class LineSubscriptionPushPlanner {
                     category,
                     eventType,
                     reminderBucket,
-                    closure.id(),
+                    notificationImpactId,
                     closure.location(),
                     closure.displayDirection(),
                     closure.cause(),
@@ -274,9 +290,20 @@ public class LineSubscriptionPushPlanner {
             closureHours,
             closureDates
         ));
-        String updateFingerprint = PushNotificationUpdateFingerprint.forCandidate(
-            sourceUpdatedAt, eventType, notification, url
-        );
+        String updateFingerprint = "planned-closure".equals(eventType)
+            ? PlannedClosurePushIdentity.updateFingerprint(
+                sourceId,
+                eventType,
+                location,
+                displayDirection,
+                shuttle,
+                cause,
+                closureHours,
+                closureDates
+            )
+            : PushNotificationUpdateFingerprint.forCandidate(
+                sourceUpdatedAt, eventType, notification, url
+            );
         String dedupeKey = String.join(
             "|", accountId, "line", lineId, eventType, reminderBucket, sourceId, "update", updateFingerprint
         );

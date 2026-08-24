@@ -144,6 +144,50 @@ class PushNotificationUpdateDetectorTest {
         )).isFalse();
     }
 
+    @Test
+    void ignoresAClosureSourceHandoffWhenOperationalFactsAreUnchanged() {
+        String fingerprint = PlannedClosurePushIdentity.updateFingerprint(
+            "planned-closure-stable", "planned-closure", "St George to Broadview",
+            "Bidirectional", true, "planned track work", "11:59 PM – 6:00 AM", "Aug 31 – Sep 3"
+        );
+        PushNotificationCandidate liveCandidate = plannedClosureCandidate(
+            fingerprint, Instant.parse("2026-08-24T18:00:00Z")
+        );
+
+        assertThat(PushNotificationUpdateDetector.hasMeaningfulUpdate(
+            fingerprint,
+            Instant.parse("2026-08-24T17:00:00Z"),
+            liveCandidate.eventType(),
+            liveCandidate.eventLocation(),
+            liveCandidate.displayDirection(),
+            liveCandidate
+        )).isFalse();
+    }
+
+    @Test
+    void detectsAClosureOperationalChangeAfterTheSourceHandoff() {
+        String original = PlannedClosurePushIdentity.updateFingerprint(
+            "planned-closure-stable", "planned-closure", "St George to Broadview",
+            "Bidirectional", true, "planned track work", "11:59 PM – 6:00 AM", "Aug 31 – Sep 3"
+        );
+        String changed = PlannedClosurePushIdentity.updateFingerprint(
+            "planned-closure-stable", "planned-closure", "St George to Broadview",
+            "Bidirectional", true, "planned track work", "10:00 PM – 6:00 AM", "Aug 31 – Sep 3"
+        );
+        PushNotificationCandidate changedCandidate = plannedClosureCandidate(
+            changed, Instant.parse("2026-08-24T18:00:00Z")
+        );
+
+        assertThat(PushNotificationUpdateDetector.hasMeaningfulUpdate(
+            original,
+            Instant.parse("2026-08-24T17:00:00Z"),
+            changedCandidate.eventType(),
+            changedCandidate.eventLocation(),
+            changedCandidate.displayDirection(),
+            changedCandidate
+        )).isTrue();
+    }
+
     private PushNotificationCandidate candidate(String fingerprint, Instant sourceUpdatedAt) {
         return candidate("reduced-speed-zone", fingerprint, sourceUpdatedAt);
     }
@@ -219,6 +263,29 @@ class PushNotificationUpdateDetectorTest {
             fingerprint,
             true,
             sourceUpdatedAt
+        );
+    }
+
+    private PushNotificationCandidate plannedClosureCandidate(
+        String fingerprint,
+        Instant sourceUpdatedAt
+    ) {
+        FormattedPushNotification notification = new PushNotificationFormatter().formatActive(
+            new PushNotificationFacts(
+                "line-2", "2", "planned-closure", "on-change",
+                "St George to Broadview", "Bidirectional", true,
+                null, null, Instant.parse("2026-08-31T23:59:00-04:00"),
+                "planned track work", "No subway service between St George and Broadview",
+                null, "11:59 PM – 6:00 AM", "Aug 31 – Sep 3"
+            )
+        );
+        return new PushNotificationCandidate(
+            "user_1", null, null, "line-2", "2", "line-current",
+            "planned-closure", "on-change",
+            "line-current|line-2|planned-closure-stable",
+            "line-current|line-2|planned-closure|planned-closure-stable",
+            "dedupe|" + fingerprint, notification, "/?panel=closures",
+            fingerprint, true, sourceUpdatedAt
         );
     }
 }

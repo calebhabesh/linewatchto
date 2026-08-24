@@ -350,6 +350,39 @@ class SavedCommutePushPlannerTest {
     }
 
     @Test
+    void keepsSavedCommuteNotificationIdentityAcrossClosureSources() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_source_handoff", account, "Evening commute", "finch", "union", false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        CommuteResponses.PathResponse outboundPath = path("finch", "union", "line-1-finch-union");
+        OffsetDateTime eventStart = OffsetDateTime.parse("2026-06-06T04:00:00Z");
+        when(commutePathService.path("finch", "union")).thenReturn(outboundPath);
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(
+            impactWith(plannedCommuteImpact(
+                "ttc-route-website-closure",
+                "TTC.ca Subway Service Advisories",
+                OffsetDateTime.parse("2026-06-05T13:00:00Z"),
+                eventStart
+            )),
+            impactWith(plannedCommuteImpact(
+                "ttc-route-live-73253",
+                "TTC Service Advisory",
+                OffsetDateTime.parse("2026-06-05T14:00:00Z"),
+                eventStart
+            ))
+        );
+
+        PushNotificationCandidate websiteCandidate = planner.candidatesFor(commute).getFirst();
+        PushNotificationCandidate liveCandidate = planner.candidatesFor(commute).getFirst();
+
+        assertThat(liveCandidate.sourceIncidentKey()).isEqualTo(websiteCandidate.sourceIncidentKey());
+        assertThat(liveCandidate.notificationKey()).isEqualTo(websiteCandidate.notificationKey());
+        assertThat(liveCandidate.updateFingerprint()).isEqualTo(websiteCandidate.updateFingerprint());
+        assertThat(liveCandidate.dedupeKey()).isEqualTo(websiteCandidate.dedupeKey());
+    }
+
+    @Test
     void announcementOnlyPolicyKeepsPlannedClosureUpdatesAutomaticWithoutFollowUps() {
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_announcement", account, "Morning commute", "finch", "union", false,
@@ -761,6 +794,40 @@ class SavedCommutePushPlannerTest {
             null,
             "active-now",
             OffsetDateTime.parse("2026-06-05T10:20:00-04:00")
+        );
+    }
+
+    private CommuteResponses.MatchedImpactResponse plannedCommuteImpact(
+        String id,
+        String source,
+        OffsetDateTime updatedAt,
+        OffsetDateTime eventStart
+    ) {
+        return new CommuteResponses.MatchedImpactResponse(
+            id,
+            "planned-closure",
+            "planned",
+            "planned",
+            "Line 1 closure between Finch and Union",
+            "line-1",
+            "1",
+            "Finch to Union",
+            "Southbound",
+            "Subway service will end early for planned track work.",
+            source,
+            List.of("line-1-finch-union"),
+            List.of(),
+            eventStart,
+            updatedAt,
+            "Upcoming",
+            "upcoming",
+            eventStart,
+            "11:59 PM – 6:00 AM",
+            "Sat, Jun 6",
+            false,
+            "No subway service between Finch and Union stations",
+            "planned track work",
+            true
         );
     }
 

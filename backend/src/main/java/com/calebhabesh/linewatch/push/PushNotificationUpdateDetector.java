@@ -21,6 +21,20 @@ final class PushNotificationUpdateDetector {
             existingDisplayDirection,
             candidate
         );
+        if ("planned-closure".equals(normalize(candidate.eventType()))
+            && candidate.updateFingerprint() != null
+            && candidate.updateFingerprint().startsWith(PlannedClosurePushIdentity.UPDATE_PREFIX)) {
+            if (structuredIdentityChanged) {
+                return true;
+            }
+            if (existingFingerprint == null
+                || !existingFingerprint.startsWith(PlannedClosurePushIdentity.UPDATE_PREFIX)) {
+                // Establish source-independent identity without re-notifying closures
+                // observed before this fingerprint format was introduced.
+                return false;
+            }
+            return !Objects.equals(existingFingerprint, candidate.updateFingerprint());
+        }
         if (regional(candidate.lineId())) {
             if (structuredIdentityChanged) {
                 return true;
