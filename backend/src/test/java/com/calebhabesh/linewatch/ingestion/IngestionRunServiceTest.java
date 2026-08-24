@@ -43,7 +43,13 @@ class IngestionRunServiceTest {
 
         service.succeed(42L, counts, feedUpdatedAt);
 
-        verify(store).markSuccess(42L, NOW, counts, feedUpdatedAt);
+        verify(store).markSuccess(
+            42L,
+            NOW,
+            counts,
+            feedUpdatedAt,
+            TtcSubwayClosureSnapshot.unavailable()
+        );
     }
 
     @Test

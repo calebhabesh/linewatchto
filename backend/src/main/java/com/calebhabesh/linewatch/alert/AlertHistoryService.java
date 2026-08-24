@@ -5,6 +5,7 @@ import com.calebhabesh.linewatch.alert.AlertHistoryResponses.AlertHistoryInciden
 import com.calebhabesh.linewatch.alert.AlertHistoryResponses.AlertHistoryResponse;
 import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
+import com.calebhabesh.linewatch.ingestion.TtcSubwayClosureParser;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -214,6 +215,9 @@ public class AlertHistoryService {
         }
         if ("GTFS-RT".equalsIgnoreCase(sourceAlertType)) {
             return "TTC GTFS-RT";
+        }
+        if (TtcSubwayClosureParser.SOURCE_ALERT_TYPE.equalsIgnoreCase(sourceAlertType)) {
+            return TtcSubwayClosureParser.SOURCE_ALERT_TYPE;
         }
         if ("Planned".equalsIgnoreCase(sourceAlertType)) {
             return "TTC Service Advisory";

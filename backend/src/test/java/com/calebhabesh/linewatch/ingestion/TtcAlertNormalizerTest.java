@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.calebhabesh.linewatch.station.StationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -79,6 +80,90 @@ class TtcAlertNormalizerTest {
                 OffsetDateTime.parse("2026-06-02T07:30:00Z"),
                 0
             ));
+    }
+
+    @Test
+    void classifiesTtcWebsiteSubwayClosureSourceAsAPlannedClosure() {
+        TtcFetchedRecord fetched = new TtcSubwayClosureParser().parse(
+            "website-closure",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/example"),
+            """
+                <html><body>
+                  <h1>
+                    <span class="field-routename">Line 2 (Bloor-Danforth)</span>
+                    <span class="field-satitle">St George to Broadview stations – Nightly early closures starting at 11:59 p.m.</span>
+                  </h1>
+                  <div class="sa-effective-date">
+                    <span class="field-starteffectivedate">August 31, 2026</span>
+                    <span class="field-endeffectivedate">August 31, 2026</span>
+                  </div>
+                  <div class="component content"><div class="u-type--body">
+                    <p>Subway service on Line 2 between St George and Broadview stations will end early at 11:59 p.m. for planned track work.</p>
+                    <p>Regular subway service will resume each morning at approximately 6 a.m.</p>
+                  </div></div>
+                </body></html>
+                """
+        );
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched)
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.type()).isEqualTo("planned-closure");
+        assertThat(alert.severity()).isEqualTo("planned");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.PLANNED_CLOSURE);
+        assertThat(alert.sourceAlertType())
+            .isEqualTo(TtcSubwayClosureParser.SOURCE_ALERT_TYPE);
+    }
+
+    @Test
+    void classifiesUnexpectedTtcWebsiteDelayByItsContent() {
+        TtcFetchedRecord fetched = new TtcSubwayClosureParser().parse(
+            "website-delay",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/delay"),
+            """
+                <html><body>
+                  <h1>
+                    <span class="field-routename">Line 2 (Bloor-Danforth)</span>
+                    <span class="field-satitle">Delays between St George and Broadview stations</span>
+                  </h1>
+                  <div class="component content"><div class="u-type--body">
+                    <p>Trains are experiencing delays between St George and Broadview stations.</p>
+                  </div></div>
+                </body></html>
+                """
+        );
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched)
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.type()).isEqualTo("active-alert");
+        assertThat(alert.severity()).isEqualTo("delay");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+    }
+
+    @Test
+    void doesNotTurnAWebsiteRestorationAdvisoryIntoAnActiveSuspension() {
+        TtcFetchedRecord fetched = new TtcSubwayClosureParser().parse(
+            "website-restoration",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/restored"),
+            """
+                <html><body>
+                  <h1>
+                    <span class="field-routename">Line 2 (Bloor-Danforth)</span>
+                    <span class="field-satitle">Service has resumed between St George and Broadview stations</span>
+                  </h1>
+                  <div class="component content"><div class="u-type--body">
+                    <p>Subway service has resumed between St George and Broadview stations.</p>
+                  </div></div>
+                </body></html>
+                """
+        );
+
+        NormalizationResult<NormalizedRouteAlert> result = normalizer.normalizeRoute(fetched);
+
+        assertThat(result.shouldPersist()).isFalse();
     }
 
     @Test

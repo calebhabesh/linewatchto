@@ -12,6 +12,7 @@ const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedS
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
+const lineImpactsSource = readFileSync(new URL("../src/components/LineImpactsPanel.tsx", import.meta.url), "utf8");
 const impactOverlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
 const impactOverlapRefsLogicSource = readFileSync(new URL("../src/components/impact-overlap-refs.ts", import.meta.url), "utf8");
 const impactTypeIconSource = readFileSync(new URL("../src/components/ImpactTypeIcon.tsx", import.meta.url), "utf8");
@@ -30,13 +31,38 @@ const selectedImpactScrollSource = readFileSync(new URL("../src/hooks/useScrollS
 
 
 describe("floating menu layout", () => {
-  it("opens alert submenus with a temporary line focus from desktop and mobile line status", () => {
-    assert.match(shellSource, /openImpactCategory\(view,\s*lineId\)/);
+  it("opens a combined line-impact submenu from desktop and mobile line status", () => {
+    assert.match(shellSource, /type ActiveView = [^;]*"line-impacts"/);
+    assert.match(shellSource, /onClick=\{\(\) => openLineImpacts\(l\.id\)\}/);
+    assert.match(shellSource, /<LineImpactsPanel/);
+    assert.match(mobileStatusSheetSource, /onOpenCategory\("line-impacts", line\.id\)/);
+    assert.match(lineImpactsSource, /<TransitLineBadge lineId=\{lineId\}/);
+    assert.match(lineImpactsSource, /line-impact-category-filters/);
+    assert.match(lineImpactsSource, /Filter \$\{lineName\} impacts/);
+    assert.match(lineImpactsSource, /Alert Type/);
+    assert.match(lineImpactsSource, /countReducedSpeedZones\(lineZones\)/);
+    assert.match(lineImpactsSource, /<ActiveAlertsPanel \{\.\.\.sharedProps\}/);
+    assert.match(lineImpactsSource, /<DelaysPanel \{\.\.\.sharedProps\}/);
+    assert.match(lineImpactsSource, /<ReducedSpeedZonesPanel \{\.\.\.sharedProps\}/);
+    assert.match(lineImpactsSource, /<PlannedClosuresPanel \{\.\.\.sharedProps\}/);
+    assert.match(lineImpactsSource, /line-impact-total-badge/);
+    assert.match(shellSource, /View all service impacts for \$\{l\.name\}[\s\S]*<ChevronRight/s);
+    assert.match(shellSource, /<CircleCheck[\s\S]*aria-label=\{clearServiceStatusLabel/s);
+    assert.match(globalCss, /\.line-impact-category-filters button\s*\{[^}]*min-height:\s*36px;[^}]*font-size:\s*10\.5px/s);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters\s*\{[^}]*flex-wrap:\s*nowrap/s);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters button\s*\{[^}]*flex:\s*0 1 auto;/s);
+    assert.match(globalCss, /\.line-impacts-panel > \.panel-heading h2\s*\{[^}]*padding-bottom:\s*2px;[^}]*line-height:\s*1\.35/s);
+    assert.match(globalCss, /\.line-impact-panel-stack\s*\{[^}]*overflow-y:\s*auto/s);
+    assert.match(globalCss, /\.embedded-impact-panel > \.panel-heading,[\s\S]*display:\s*none !important/s);
+    assert.match(shellSource, /VIEW_SCROLL_SELECTORS[\s\S]*mobile-status-content-scroll[\s\S]*mobile-more-content-scroll/);
+    assert.match(shellSource, /viewScrollPositionsRef\.current\[currentView\] = scrollElement\.scrollTop/);
+    assert.match(shellSource, /scrollElement\.scrollTop = savedScrollTop/);
+  });
+
+  it("keeps legend shortcuts as temporary line-focused alert categories", () => {
     assert.match(shellSource, /openLegendImpactCategory[\s\S]*navigateForward\("menu"\);[\s\S]*openImpactCategory\(view, lineId\)/);
     assert.match(shellSource, /initialLineId=\{impactListLaunch\.lineId\}/);
     assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(dataLineId\)/);
-    assert.match(mobileStatusSheetSource, /onOpenCategory\("reduced-speed-zones",\s*line\.id\)/);
-    assert.match(mobileStatusSheetSource, /onOpenCategory\("closures",\s*line\.id\)/);
     assert.match(activeAlertsSource, /useState\(initialLineId \?\? "all"\)/);
     assert.match(delaysPanelSource, /useState\(initialLineId \?\? "all"\)/);
     assert.match(reducedSpeedZonesSource, /useState\(initialLineId \?\? "all"\)/);
@@ -61,7 +87,7 @@ describe("floating menu layout", () => {
   });
 
   it("keeps the map first while exposing floating menu and submenu states", () => {
-    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "status" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "notifications" \| "analytics" \| "more"/);
+    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "status" \| "line-impacts" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "notifications" \| "analytics" \| "more"/);
     assert.match(shellSource, /handleToggleMenu/);
     assert.match(shellSource, /Toggle menu/);
     assert.match(shellSource, /Floating Dropdown Menu/);

@@ -16,4 +16,16 @@ class AlertIngestionPropertiesTest {
             URI.create("https://gtfsrt.ttc.ca/alerts/streetcar?format=text")
         );
     }
+
+    @Test
+    void subwayClosureWebsiteSupplementIsEnabledByDefault() {
+        AlertIngestionProperties properties = new AlertIngestionProperties();
+
+        assertThat(properties.isSubwayClosureSupplementEnabled()).isTrue();
+        assertThat(properties.getSubwayClosureSearchUrl())
+            .isEqualTo(URI.create("https://www.ttc.ca/sxa/search/results/"));
+        assertThat(properties.getSubwayClosureBaseUrl())
+            .isEqualTo(URI.create("https://www.ttc.ca"));
+        assertThat(properties.getSubwayClosureMaxEntries()).isEqualTo(100);
+    }
 }

@@ -416,9 +416,9 @@ export function OpeningDisclaimer({
                   priority
                 />
                 <h1>
-                  <span>Welcome to</span>{" "}
+                  <span className="opening-welcome-intro">Welcome to</span>{" "}
                   <span className="opening-welcome-product-name">
-                    <strong>LineWatchTO</strong>
+                    <strong className="linewatch-wordmark">LineWatchTO</strong>
                     <span className="opening-welcome-version">v 1.0.0</span>
                   </span>
                 </h1>

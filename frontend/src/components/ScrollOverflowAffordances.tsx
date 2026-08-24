@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 const SCROLL_LIST_SELECTOR = [
   "#linewatch-main-menu-scroll",
+  ".line-impact-panel-stack",
   ".alert-stack",
   ".closure-stack",
   ".commute-grid",

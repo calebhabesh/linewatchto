@@ -7,6 +7,7 @@ import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.ingestion.AlertDirection;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.TtcServiceState;
+import com.calebhabesh.linewatch.ingestion.TtcSubwayClosureParser;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -1098,6 +1099,11 @@ public class AlertDashboardService {
     }
 
     private String sourceLabel(AlertEntity alert, String liveAlertsDefault) {
+        if (TtcSubwayClosureParser.SOURCE_ALERT_TYPE.equalsIgnoreCase(
+            alert.getSourceAlertType()
+        )) {
+            return TtcSubwayClosureParser.SOURCE_ALERT_TYPE;
+        }
         return "GTFS-RT".equalsIgnoreCase(alert.getSourceAlertType())
             ? "TTC GTFS-RT"
             : liveAlertsDefault;

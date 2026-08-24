@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { AlertTriangle, Construction, X, Bus, TrainFront } from "lucide-react";
+import { AlertTriangle, ChevronRight, CircleCheck, Construction, X, Bus, TrainFront } from "lucide-react";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
@@ -14,7 +14,7 @@ import {
   networkStatusKicker,
 } from "../app/network-presentation";
 
-type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices" | "trip-changes";
+type StatusCategory = "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices" | "trip-changes";
 
 type Props = {
   pollText: string;
@@ -131,41 +131,53 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
 
             return (
               <article key={line.id} className="mobile-line-status-row">
-                <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={30} className="mobile-line-status-number" />
-                <span className="mobile-line-status-copy">
-                  <strong>{line.name}</strong>
-                  {clear ? <em>{clearServiceStatusLabel(presentationState)}</em> : null}
-                  {!clear ? (
-                    <span className="mobile-line-status-impacts">
-                      {lineAlerts.length > 0 ? (
-                        <button type="button" className="mobile-line-status-btn-alerts" onClick={() => onOpenCategory("alerts", line.id)}>
-                          <AlertTriangle size={12} className="text-red-500 dark:text-red-400 shrink-0" />
-                          <span><span className="mobile-line-status-impact-count">{lineAlerts.length}</span>{lineAlerts.length === 1 ? "Active Alert" : "Active Alerts"}</span>
-                        </button>
-                      ) : null}
-                      {lineDelays.length > 0 ? (
-                        <button type="button" className="mobile-line-status-btn-delays" onClick={() => onOpenCategory("delays", line.id)}>
-                          <DelayIcon size={12} className="delay-tone shrink-0" />
-                          <span><span className="mobile-line-status-impact-count">{lineDelays.length}</span>{lineDelays.length === 1 ? "Delay" : "Delays"}</span>
-                        </button>
-                      ) : null}
-                      {lineRsz.length > 0 ? (
-                        <button type="button" className="mobile-line-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones", line.id)}>
-                          <Construction size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                          <span><span className="mobile-line-status-impact-count">{lineRszCount}</span>{lineRszCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}</span>
-                        </button>
-                      ) : null}
-                      {lineClosures.length > 0 ? (
-                        <span className="mobile-line-status-planned-row">
-                          <button type="button" className="mobile-line-status-btn-closures" onClick={() => onOpenCategory("closures", line.id)}>
-                            <PlannedClosureIcon size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                            <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
-                          </button>
+                <button
+                  type="button"
+                  className="mobile-line-status-summary"
+                  onClick={() => onOpenCategory("line-impacts", line.id)}
+                  aria-label={`View all service impacts for ${line.name}`}
+                >
+                  <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={30} className="mobile-line-status-number" />
+                  <span className="mobile-line-status-copy">
+                    <strong>{line.name}</strong>
+                    {clear ? (
+                      <span className="mobile-line-status-clear" aria-label={clearServiceStatusLabel(presentationState)}>
+                        <CircleCheck size={16} strokeWidth={2.7} aria-hidden="true" />
+                      </span>
+                    ) : null}
+                  </span>
+                  <ChevronRight size={20} strokeWidth={2.8} className="mobile-line-status-chevron" aria-hidden="true" />
+                </button>
+                {!clear ? (
+                  <span className="mobile-line-status-impacts" aria-label={`${line.name} impact counts`}>
+                    {lineAlerts.length > 0 ? (
+                      <span className="mobile-line-status-impact-label mobile-line-status-btn-alerts">
+                        <AlertTriangle size={12} className="text-red-500 dark:text-red-400 shrink-0" />
+                        <span><span className="mobile-line-status-impact-count">{lineAlerts.length}</span>{lineAlerts.length === 1 ? "Active Alert" : "Active Alerts"}</span>
+                      </span>
+                    ) : null}
+                    {lineDelays.length > 0 ? (
+                      <span className="mobile-line-status-impact-label mobile-line-status-btn-delays">
+                        <DelayIcon size={12} className="delay-tone shrink-0" />
+                        <span><span className="mobile-line-status-impact-count">{lineDelays.length}</span>{lineDelays.length === 1 ? "Delay" : "Delays"}</span>
+                      </span>
+                    ) : null}
+                    {lineRsz.length > 0 ? (
+                      <span className="mobile-line-status-impact-label mobile-line-status-btn-rsz">
+                        <Construction size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span><span className="mobile-line-status-impact-count">{lineRszCount}</span>{lineRszCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}</span>
+                      </span>
+                    ) : null}
+                    {lineClosures.length > 0 ? (
+                      <span className="mobile-line-status-planned-row">
+                        <span className="mobile-line-status-impact-label mobile-line-status-btn-closures">
+                          <PlannedClosureIcon size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                          <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
                         </span>
-                      ) : null}
-                    </span>
-                  ) : null}
-                </span>
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
               </article>
             );
           })}

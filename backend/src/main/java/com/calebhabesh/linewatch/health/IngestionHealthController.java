@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.health;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
+import com.calebhabesh.linewatch.ingestion.AlertIngestionProperties;
 import java.util.Optional;
 import java.time.OffsetDateTime;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
@@ -19,17 +20,20 @@ public class IngestionHealthController {
     private final IngestionFreshness ingestionFreshness;
     private final DashboardCacheService cache;
     private final DashboardCacheProperties cacheProperties;
+    private final AlertIngestionProperties ingestionProperties;
 
     public IngestionHealthController(
         IngestionRunStore store,
         IngestionFreshness ingestionFreshness,
         DashboardCacheService cache,
-        DashboardCacheProperties cacheProperties
+        DashboardCacheProperties cacheProperties,
+        AlertIngestionProperties ingestionProperties
     ) {
         this.store = store;
         this.ingestionFreshness = ingestionFreshness;
         this.cache = cache;
         this.cacheProperties = cacheProperties;
+        this.ingestionProperties = ingestionProperties;
     }
 
     @GetMapping
@@ -46,7 +50,8 @@ public class IngestionHealthController {
         return store.findLatest()
             .map(this::toResponse)
             .orElseGet(() -> new IngestionHealthResponse(
-                "not-run", false, null, null, 0, 0, 0, 0, null
+                "not-run", false, null, null, 0, 0, 0, 0, null,
+                ingestionProperties.isSubwayClosureSupplementEnabled(), false, 0
             ));
     }
 
@@ -60,7 +65,10 @@ public class IngestionHealthController {
             run.recordsStaged(),
             run.recordsNormalized(),
             run.recordsUnmatched(),
-            run.sourceFeedUpdatedAt()
+            run.sourceFeedUpdatedAt(),
+            ingestionProperties.isSubwayClosureSupplementEnabled(),
+            run.subwayClosureSupplementAvailable(),
+            run.subwayClosureRecordsFetched()
         );
     }
 
@@ -73,6 +81,9 @@ public class IngestionHealthController {
         int recordsStaged,
         int recordsNormalized,
         int recordsUnmatched,
-        OffsetDateTime sourceFeedUpdatedAt
+        OffsetDateTime sourceFeedUpdatedAt,
+        boolean subwayClosureSupplementEnabled,
+        boolean subwayClosureSupplementAvailable,
+        int subwayClosureRecordsFetched
     ) {}
 }

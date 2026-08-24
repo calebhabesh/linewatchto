@@ -35,7 +35,7 @@ export function BrandedErrorScreen({
         <div className="linewatch-error-card-body">
           <div className="linewatch-error-brand">
             <Image src="/assets/linewatch/logo.svg" alt="" width={44} height={44} />
-            <span>LineWatchTO</span>
+            <span className="linewatch-wordmark">LineWatchTO</span>
           </div>
           <p className="linewatch-error-eyebrow">{eyebrow}</p>
           <h1 id="linewatch-error-title">{title}</h1>

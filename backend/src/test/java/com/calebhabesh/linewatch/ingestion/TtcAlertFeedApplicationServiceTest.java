@@ -4,6 +4,8 @@ import com.calebhabesh.linewatch.announcement.TtcAnnouncementNormalizer;
 import com.calebhabesh.linewatch.announcement.TtcAnnouncementStore;
 import com.calebhabesh.linewatch.announcement.TtcAnnouncement;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -122,10 +124,15 @@ class TtcAlertFeedApplicationServiceTest {
 
         service.apply(feed);
 
-        verify(store).deactivateMissingSources(Set.of(
-            "routes:route-source",
-            "accessibility:outage-source"
-        ));
+        verify(store).deactivateMissingSources(
+            Set.of("routes:route-source", "accessibility:outage-source"),
+            Set.of(
+                "routes",
+                "accessibility",
+                "site-wide-announcements",
+                "general-announcements"
+            )
+        );
         verify(store).deactivateMissingAlerts(Set.of(), NOW);
         verify(store).deactivateMissingAccessibilityOutages(Set.of("outage-source"), NOW);
     }
@@ -217,7 +224,15 @@ class TtcAlertFeedApplicationServiceTest {
 
         verify(announcementStore).upsert(announcement, NOW);
         verify(announcementStore).deactivateMissing(Set.of("site-wide:banner-1"), NOW);
-        verify(store).deactivateMissingSources(Set.of("site-wide-announcements:banner-1"));
+        verify(store).deactivateMissingSources(
+            Set.of("site-wide-announcements:banner-1"),
+            Set.of(
+                "routes",
+                "accessibility",
+                "site-wide-announcements",
+                "general-announcements"
+            )
+        );
         assertThat(counts).isEqualTo(new FeedApplicationCounts(1, 1, 1, 0));
     }
 
@@ -285,6 +300,129 @@ class TtcAlertFeedApplicationServiceTest {
         assertThat(counts).isEqualTo(new FeedApplicationCounts(2, 2, 1, 1));
     }
 
+    @Test
+    void persistsAndSourceScopesAnAvailableWebsiteClosureSupplement() {
+        TtcFetchedRecord websiteFetched = fetchedRoute("ttc-ca-closure-one");
+        NormalizedRouteAlert websiteClosure = plannedClosure(
+            "ttc-ca-closure-one",
+            TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+        );
+        TtcAlertFeed emptyFeed = new TtcAlertFeed(feed.lastUpdated(), List.of(), List.of());
+        when(store.upsertSource("subway-closures", websiteFetched, NOW))
+            .thenReturn("subway-closures:ttc-ca-closure-one");
+        when(normalizer.normalizeRoute(websiteFetched))
+            .thenReturn(NormalizationResult.matched(websiteClosure));
+
+        FeedApplicationCounts counts = service.apply(
+            emptyFeed,
+            new TtcSubwayClosureSnapshot(true, List.of(websiteFetched))
+        );
+
+        verify(store).upsertRouteAlert(websiteClosure, NOW);
+        verify(store).deactivateMissingSources(
+            Set.of("subway-closures:ttc-ca-closure-one"),
+            Set.of("subway-closures")
+        );
+        verify(store).deactivateMissingWebsiteAdvisories(
+            Set.of("ttc-ca-closure-one"),
+            NOW
+        );
+        assertThat(counts).isEqualTo(new FeedApplicationCounts(1, 1, 1, 0));
+    }
+
+    @Test
+    void unavailableWebsiteSupplementLeavesLastGoodWebsiteRowsUntouched() {
+        TtcAlertFeed emptyFeed = new TtcAlertFeed(feed.lastUpdated(), List.of(), List.of());
+
+        service.apply(emptyFeed, TtcSubwayClosureSnapshot.unavailable());
+
+        verify(store, never()).deactivateMissingWebsiteAdvisories(any(), eq(NOW));
+    }
+
+    @Test
+    void matchesWebsiteAndLiveClosuresOnlyWhenLineBoundsAndWindowsOverlap() {
+        NormalizedRouteAlert live = plannedClosure("live", "Planned");
+        NormalizedRouteAlert website = plannedClosure(
+            "website",
+            TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+        );
+
+        assertThat(TtcAlertFeedApplicationService.sameAdvisory(
+            live,
+            website,
+            OffsetDateTime.parse("2026-08-31T23:59:30-04:00")
+        )).isTrue();
+    }
+
+    @Test
+    void matchesCurrentLiveSuspensionToTheWebsiteClosureWindowButNotBeforeItStarts() {
+        NormalizedRouteAlert live = suspension("live");
+        NormalizedRouteAlert website = plannedClosure(
+            "website",
+            TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+        );
+
+        assertThat(TtcAlertFeedApplicationService.sameAdvisory(
+            live,
+            website,
+            OffsetDateTime.parse("2026-08-31T23:59:30-04:00")
+        )).isTrue();
+        assertThat(TtcAlertFeedApplicationService.sameAdvisory(
+            live,
+            website,
+            OffsetDateTime.parse("2026-08-31T21:00:00-04:00")
+        )).isFalse();
+    }
+
+    @Test
+    void matchesNonClosureAdvisoriesByImpactScopeAndCurrentWindow() {
+        NormalizedRouteAlert feedDelay = delay("feed-delay", "Live");
+        NormalizedRouteAlert websiteDelay = delay(
+            "website-delay",
+            TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+        );
+
+        assertThat(TtcAlertFeedApplicationService.sameAdvisory(
+            feedDelay,
+            websiteDelay,
+            OffsetDateTime.parse("2026-08-31T23:59:30-04:00")
+        )).isTrue();
+    }
+
+    @Test
+    void prefersMatchingLiveClosureAndDeactivatesTheWebsiteProjection() {
+        TtcFetchedRecord liveFetched = fetchedRoute("live-closure");
+        TtcFetchedRecord websiteFetched = fetchedRoute("website-closure");
+        NormalizedRouteAlert liveClosure = plannedClosure("live-closure", "Planned");
+        NormalizedRouteAlert websiteClosure = plannedClosure(
+            "website-closure",
+            TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+        );
+        TtcAlertFeed liveFeed = new TtcAlertFeed(
+            feed.lastUpdated(),
+            List.of(liveFetched),
+            List.of()
+        );
+        when(store.upsertSource("routes", liveFetched, NOW))
+            .thenReturn("routes:live-closure");
+        when(store.upsertSource("subway-closures", websiteFetched, NOW))
+            .thenReturn("subway-closures:website-closure");
+        when(normalizer.normalizeRoute(liveFetched))
+            .thenReturn(NormalizationResult.matched(liveClosure));
+        when(normalizer.normalizeRoute(websiteFetched))
+            .thenReturn(NormalizationResult.matched(websiteClosure));
+
+        FeedApplicationCounts counts = service.apply(
+            liveFeed,
+            new TtcSubwayClosureSnapshot(true, List.of(websiteFetched))
+        );
+
+        verify(store).upsertRouteAlert(liveClosure, NOW);
+        verify(store, never()).upsertRouteAlert(websiteClosure, NOW);
+        verify(store).deactivateMissingWebsiteAdvisories(Set.of(), NOW);
+        assertThat(counts).isEqualTo(new FeedApplicationCounts(2, 2, 1, 0));
+    }
+
     private TtcFetchedRecord fetchedRoute(String sourceId) {
         return new TtcFetchedRecord(
             TestAlertRecords.route(sourceId),
@@ -327,6 +465,121 @@ class TtcAlertFeedApplicationServiceTest {
             base.stationIds(),
             base.periods(),
             base.fingerprint()
+        );
+    }
+
+    private NormalizedRouteAlert plannedClosure(String sourceId, String sourceType) {
+        OffsetDateTime startsAt = OffsetDateTime.parse("2026-08-31T23:59:00-04:00");
+        OffsetDateTime endsAt = OffsetDateTime.parse("2026-09-01T06:00:00-04:00");
+        return new NormalizedRouteAlert(
+            "ttc-route-" + sourceId,
+            sourceId,
+            "line-2",
+            "planned-closure",
+            "planned",
+            "Line 2 closure",
+            "Planned track work",
+            sourceType,
+            "NO_SERVICE",
+            "Subway closure",
+            AlertDirection.BIDIRECTIONAL,
+            "MAINTENANCE",
+            "Closure - Planned Track Work",
+            null,
+            AlertImpactKind.PLANNED_CLOSURE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "st-george",
+            "broadview",
+            startsAt,
+            endsAt,
+            null,
+            "Will Operate",
+            "St George",
+            "Broadview",
+            "{}",
+            List.of("st-george", "broadview"),
+            List.of(new NormalizedAlertPeriod("window", startsAt, endsAt, 0)),
+            sourceId + "-fingerprint"
+        );
+    }
+
+    private NormalizedRouteAlert suspension(String sourceId) {
+        NormalizedRouteAlert closure = plannedClosure(sourceId, "Live");
+        return new NormalizedRouteAlert(
+            closure.id(),
+            closure.sourceId(),
+            closure.lineId(),
+            "active-alert",
+            "suspension",
+            closure.title(),
+            closure.description(),
+            closure.sourceAlertType(),
+            closure.effect(),
+            closure.effectDescription(),
+            closure.direction(),
+            closure.cause(),
+            closure.causeDescription(),
+            closure.targetRemoval(),
+            AlertImpactKind.SUSPENSION,
+            closure.rszLength(),
+            closure.stationDistance(),
+            closure.trackPercent(),
+            closure.reducedSpeed(),
+            closure.averageSpeed(),
+            closure.startStationId(),
+            closure.endStationId(),
+            closure.activePeriodStart(),
+            closure.activePeriodEnd(),
+            closure.sourceUpdatedAt(),
+            closure.shuttleType(),
+            closure.shuttleStart(),
+            closure.shuttleEnd(),
+            closure.rawPayload(),
+            closure.stationIds(),
+            closure.periods(),
+            closure.fingerprint()
+        );
+    }
+
+    private NormalizedRouteAlert delay(String sourceId, String sourceType) {
+        NormalizedRouteAlert closure = plannedClosure(sourceId, sourceType);
+        return new NormalizedRouteAlert(
+            closure.id(),
+            closure.sourceId(),
+            closure.lineId(),
+            "active-alert",
+            "delay",
+            "Line 2 delays",
+            "Delays between St George and Broadview stations.",
+            closure.sourceAlertType(),
+            "SIGNIFICANT_DELAYS",
+            "Delays",
+            closure.direction(),
+            null,
+            null,
+            closure.targetRemoval(),
+            AlertImpactKind.DELAY,
+            closure.rszLength(),
+            closure.stationDistance(),
+            closure.trackPercent(),
+            closure.reducedSpeed(),
+            closure.averageSpeed(),
+            closure.startStationId(),
+            closure.endStationId(),
+            closure.activePeriodStart(),
+            closure.activePeriodEnd(),
+            closure.sourceUpdatedAt(),
+            null,
+            null,
+            null,
+            closure.rawPayload(),
+            closure.stationIds(),
+            closure.periods(),
+            closure.fingerprint()
         );
     }
 }

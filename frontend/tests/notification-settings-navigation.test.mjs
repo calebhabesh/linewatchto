@@ -105,7 +105,7 @@ describe("notification settings navigation", () => {
     assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);
     assert.match(globalCss, /\.push-diagnostics-scroll/);
     assert.match(globalCss, /\.push-diagnostics-details/);
-    assert.match(globalCss, /\.push-diagnostics-summary-copy span:first-child\s*\{[^}]*font-weight:\s*350;/s);
+    assert.match(globalCss, /\.push-diagnostics-summary-copy span:first-child\s*\{[^}]*font-weight:\s*500;/s);
     assert.match(globalCss, /\.push-diagnostics-summary-copy span:last-child\s*\{[^}]*font-weight:\s*400;/s);
     assert.match(globalCss, /\.push-devices-section/);
     assert.match(globalCss, /\.push-device-row/);

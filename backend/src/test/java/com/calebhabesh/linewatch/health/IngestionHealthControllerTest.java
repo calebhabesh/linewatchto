@@ -34,8 +34,9 @@ class IngestionHealthControllerTest {
     );
     private final DashboardCacheService cache = mock(DashboardCacheService.class);
     private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
+    private final AlertIngestionProperties ingestionProperties = new AlertIngestionProperties();
     private final IngestionHealthController controller = new IngestionHealthController(
-        store, freshness, cache, cacheProperties
+        store, freshness, cache, cacheProperties, ingestionProperties
     );
 
     @BeforeEach
@@ -61,7 +62,7 @@ class IngestionHealthControllerTest {
         OffsetDateTime started = OffsetDateTime.parse("2026-06-01T11:58:00Z");
         when(store.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
             42L, "success", started, started.plusSeconds(2),
-            44, 44, 12, 3, started.minusMinutes(1), null
+            44, 44, 12, 3, started.minusMinutes(1), null, true, 1
         )));
 
         IngestionHealthController.IngestionHealthResponse response = controller.ingestion();
@@ -70,6 +71,9 @@ class IngestionHealthControllerTest {
         assertThat(response.recordsFetched()).isEqualTo(44);
         assertThat(response.recordsNormalized()).isEqualTo(12);
         assertThat(response.dashboardLive()).isTrue();
+        assertThat(response.subwayClosureSupplementEnabled()).isTrue();
+        assertThat(response.subwayClosureSupplementAvailable()).isTrue();
+        assertThat(response.subwayClosureRecordsFetched()).isEqualTo(1);
     }
 
     @Test

@@ -33,6 +33,22 @@ public class IngestionRunStore {
         FeedApplicationCounts counts,
         OffsetDateTime sourceFeedUpdatedAt
     ) {
+        markSuccess(
+            id,
+            completedAt,
+            counts,
+            sourceFeedUpdatedAt,
+            TtcSubwayClosureSnapshot.unavailable()
+        );
+    }
+
+    public void markSuccess(
+        long id,
+        OffsetDateTime completedAt,
+        FeedApplicationCounts counts,
+        OffsetDateTime sourceFeedUpdatedAt,
+        TtcSubwayClosureSnapshot subwayClosures
+    ) {
         jdbc.update("""
             update ingestion_runs set
                 status = 'success',
@@ -43,6 +59,8 @@ public class IngestionRunStore {
                 records_normalized = :recordsNormalized,
                 records_unmatched = :recordsUnmatched,
                 source_feed_updated_at = :sourceFeedUpdatedAt,
+                ttc_subway_closure_supplement_available = :subwayClosureAvailable,
+                ttc_subway_closure_records_fetched = :subwayClosureRecordsFetched,
                 error_message = null
             where id = :id
             """, new MapSqlParameterSource()
@@ -52,7 +70,9 @@ public class IngestionRunStore {
                 .addValue("recordsStaged", counts.recordsStaged())
                 .addValue("recordsNormalized", counts.recordsNormalized())
                 .addValue("recordsUnmatched", counts.recordsUnmatched())
-                .addValue("sourceFeedUpdatedAt", sourceFeedUpdatedAt));
+                .addValue("sourceFeedUpdatedAt", sourceFeedUpdatedAt)
+                .addValue("subwayClosureAvailable", subwayClosures.available())
+                .addValue("subwayClosureRecordsFetched", subwayClosures.records().size()));
     }
 
     public void markFailed(long id, OffsetDateTime completedAt, String errorMessage) {
@@ -71,7 +91,9 @@ public class IngestionRunStore {
     public Optional<IngestionRunSnapshot> findLatest() {
         List<IngestionRunSnapshot> runs = jdbc.query("""
             select id, status, started_at, completed_at, records_fetched, records_staged,
-                   records_normalized, records_unmatched, source_feed_updated_at, error_message
+                   records_normalized, records_unmatched, source_feed_updated_at, error_message,
+                   ttc_subway_closure_supplement_available,
+                   ttc_subway_closure_records_fetched
             from ingestion_runs
             where run_type = 'alerts'
             order by started_at desc
@@ -86,7 +108,9 @@ public class IngestionRunStore {
                 resultSet.getInt("records_normalized"),
                 resultSet.getInt("records_unmatched"),
                 resultSet.getObject("source_feed_updated_at", OffsetDateTime.class),
-                resultSet.getString("error_message")
+                resultSet.getString("error_message"),
+                resultSet.getBoolean("ttc_subway_closure_supplement_available"),
+                resultSet.getInt("ttc_subway_closure_records_fetched")
             ));
         return runs.stream().findFirst();
     }

@@ -197,12 +197,19 @@ public class TtcAlertStore {
                 .toList());
     }
 
-    public void deactivateMissingSources(Set<String> sourceKeys) {
+    public void deactivateMissingSources(
+        Set<String> sourceKeys,
+        Set<String> managedSections
+    ) {
+        if (managedSections == null || managedSections.isEmpty()) {
+            return;
+        }
         List<ActiveSource> activeSources = jdbc.query("""
             select source_section, source_id
             from ttc_alert_source_records
-            where active = true
-            """, (resultSet, rowNumber) -> new ActiveSource(
+            where active = true and source_section in (:managedSections)
+            """, new MapSqlParameterSource("managedSections", managedSections),
+            (resultSet, rowNumber) -> new ActiveSource(
                 resultSet.getString("source_section"),
                 resultSet.getString("source_id")
             ));
@@ -226,8 +233,57 @@ public class TtcAlertStore {
                    impact_kind, start_station_id, end_station_id, direction, cause,
                    cause_description, source_updated_at
             from alerts
-            where active = true and id like 'ttc-route-%'
-            """, (resultSet, rowNumber) -> new ActiveAlert(
+            where active = true
+              and id like 'ttc-route-%'
+              and (source_alert_type is null or source_alert_type <> :websiteSource)
+            """, new MapSqlParameterSource(
+                "websiteSource",
+                TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+            ), (resultSet, rowNumber) -> new ActiveAlert(
+                resultSet.getString("id"),
+                resultSet.getString("source_id"),
+                resultSet.getString("line_id"),
+                resultSet.getString("severity"),
+                resultSet.getString("title"),
+                resultSet.getString("description"),
+                resultSet.getString("source_alert_type"),
+                resultSet.getString("impact_kind"),
+                resultSet.getString("start_station_id"),
+                resultSet.getString("end_station_id"),
+                resultSet.getString("direction"),
+                resultSet.getString("cause"),
+                resultSet.getString("cause_description"),
+                resultSet.getObject("source_updated_at", OffsetDateTime.class)
+            ));
+
+        for (ActiveAlert alert : activeAlerts) {
+            if (!sourceIds.contains(alert.sourceId())) {
+                jdbc.update("""
+                    update alerts
+                    set active = false, updated_at = :now
+                    where id = :id
+                    """, new MapSqlParameterSource()
+                        .addValue("id", alert.id())
+                        .addValue("now", now));
+                appendSnapshot(alert, false, now);
+            }
+        }
+    }
+
+    public void deactivateMissingWebsiteAdvisories(
+        Set<String> sourceIds,
+        OffsetDateTime now
+    ) {
+        List<ActiveAlert> activeAlerts = jdbc.query("""
+            select id, source_id, line_id, severity, title, description, source_alert_type,
+                   impact_kind, start_station_id, end_station_id, direction, cause,
+                   cause_description, source_updated_at
+            from alerts
+            where active = true and source_alert_type = :websiteSource
+            """, new MapSqlParameterSource(
+                "websiteSource",
+                TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+            ), (resultSet, rowNumber) -> new ActiveAlert(
                 resultSet.getString("id"),
                 resultSet.getString("source_id"),
                 resultSet.getString("line_id"),

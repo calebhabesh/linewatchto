@@ -137,7 +137,7 @@ export function MobileMoreSheet({
         <div className="mobile-more-brand">
           <Image src="/assets/linewatch/logo.svg" alt="" width={28} height={28} aria-hidden="true" />
           <span>
-            <p className="mobile-sheet-kicker">LineWatchTO</p>
+            <p className="mobile-sheet-kicker linewatch-wordmark">LineWatchTO</p>
             <h2>More</h2>
             <p className="mobile-more-build-label" aria-label={`App version ${lineWatchAppVersionLabel}`}>
               {lineWatchAppVersionLabel}

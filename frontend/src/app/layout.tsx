@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Noto_Sans_Ethiopic } from "next/font/google";
 import Script from "next/script";
 import { AppUpdateBanner } from "../components/AppUpdateBanner";
 import { PwaServiceWorkerRegistration } from "../components/PwaServiceWorkerRegistration";
@@ -21,6 +21,12 @@ const inter = Inter({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+});
+
+const notoSansEthiopic = Noto_Sans_Ethiopic({
+  subsets: ["latin"],
+  weight: "700",
+  variable: "--font-wordmark-family",
 });
 
 export const metadata: Metadata = {
@@ -118,7 +124,7 @@ export default function RootLayout({
   const cfAnalyticsToken = process.env.NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN;
 
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${notoSansEthiopic.variable}`}>
       <body suppressHydrationWarning>
         <PwaServiceWorkerRegistration />
         <AppUpdateBanner />

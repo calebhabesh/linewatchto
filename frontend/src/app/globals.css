@@ -4,7 +4,16 @@
   --font-sans: var(--font-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-mono), monospace;
   --font-subway: "Tex Gyre Heros", "TeX Gyre Heros", "Toronto Subway", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-wordmark: var(--font-wordmark-family), Arial, Helvetica, sans-serif;
   --color-logo-blue: #81c9ff;
+}
+
+.linewatch-wordmark {
+  font-family: var(--font-wordmark);
+  font-size: 1.3em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 .surface-connections-details.is-saved-station,
@@ -4218,6 +4227,7 @@ button {
   flex-shrink: 0;
 }
 
+.line-impact-panel-stack,
 .alert-stack,
 .closure-stack,
 .commute-grid,
@@ -4909,7 +4919,11 @@ button {
 }
 
 .opening-disclaimer-welcome h1 strong {
-  font-weight: 850;
+  font-weight: 700;
+}
+
+.opening-welcome-intro {
+  font-weight: 500;
 }
 
 .opening-welcome-product-name {
@@ -10735,6 +10749,169 @@ img.transit-line-badge {
   margin-top: -1px;
   background: rgba(248, 250, 252, 0.72);
   padding: 10px 12px;
+}
+
+.line-impact-category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(248, 250, 252, 0.5);
+  width: 100%;
+}
+
+.dark .line-impact-category-filters {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  background: rgba(10, 12, 16, 0.28);
+}
+
+.line-impact-category-filters button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(100, 116, 139, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 5px 10px;
+  color: rgb(71, 85, 105);
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.dark .line-impact-category-filters button {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(18, 21, 28, 0.92);
+  color: rgb(203, 213, 225);
+}
+
+.line-impact-category-filters button[aria-pressed="true"] {
+  border-color: rgba(37, 99, 235, 0.55);
+  background: rgba(37, 99, 235, 0.1);
+  color: rgb(29, 78, 216);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+}
+
+.dark .line-impact-category-filters button[aria-pressed="true"] {
+  color: rgb(147, 197, 253);
+}
+
+.line-impact-category-filters button strong {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.14);
+  padding-inline: 5px;
+  color: inherit;
+  font-size: 10px;
+}
+
+@media (min-width: 768px) {
+  .line-impact-category-filters {
+    flex-wrap: nowrap;
+    gap: 5px;
+    padding-inline: 10px;
+  }
+
+  .line-impact-category-filters button {
+    min-width: 0;
+    min-height: 36px;
+    flex: 0 1 auto;
+    gap: 5px;
+    padding: 5px 9px;
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+
+  .line-impact-category-filters button strong {
+    min-width: 21px;
+    height: 21px;
+    padding-inline: 5px;
+    font-size: 9.5px;
+  }
+}
+
+.line-impact-total-badge {
+  border: 1px solid rgba(59, 130, 246, 0.26);
+  background: rgba(59, 130, 246, 0.1);
+  color: rgb(37, 99, 235);
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+}
+
+.dark .line-impact-total-badge {
+  color: rgb(147, 197, 253);
+}
+
+.line-impacts-panel > .panel-heading h2 {
+  padding-bottom: 2px;
+  line-height: 1.35;
+}
+
+.line-impact-panel-stack {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.embedded-impact-panel {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+}
+
+.embedded-impact-panel > .panel-heading,
+.embedded-impact-panel > .impact-list-toolbar {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .floating-panel-shell .embedded-impact-panel > .panel-heading,
+  .floating-panel-shell .embedded-impact-panel > .impact-list-toolbar {
+    display: none !important;
+  }
+}
+
+.embedded-impact-panel > .alert-stack,
+.embedded-impact-panel > .closure-stack {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  overflow-y: visible !important;
+  max-height: none !important;
+  flex: none !important;
+  height: auto !important;
+}
+
+.embedded-impact-panel + .embedded-impact-panel > .alert-stack,
+.embedded-impact-panel + .embedded-impact-panel > .closure-stack {
+  padding-top: 0;
+}
+
+.line-impact-type-label {
+  display: block;
+  margin-bottom: 2px;
+  color: rgb(100, 116, 139);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dark .line-impact-type-label {
+  color: rgb(148, 163, 184);
 }
 
 .dark .impact-list-toolbar {
@@ -16774,6 +16951,7 @@ img.transit-line-badge {
 
 @media (max-width: 767px) {
   .floating-panel-scroll,
+  .line-impact-panel-stack,
   .station-search-results,
   .station-search-lines-column,
   .station-search-stations-column,
@@ -17521,10 +17699,11 @@ img.transit-line-badge {
 
   .mobile-sheet-kicker {
     color: var(--quiet) !important;
-    font-size: 10px !important;
-    font-weight: 950 !important;
-    letter-spacing: 0 !important;
-    text-transform: uppercase;
+    font-family: var(--font-wordmark);
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    text-transform: none;
   }
 
   .mobile-more-build-label {
@@ -17650,8 +17829,44 @@ img.transit-line-badge {
     border: 1px solid var(--border);
     border-radius: 8px;
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     padding: 10px;
+  }
+
+  .mobile-line-status-summary {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .mobile-line-status-summary:focus-visible {
+    border-radius: 6px;
+    outline: 2px solid rgb(59, 130, 246);
+    outline-offset: 3px;
+  }
+
+  .mobile-line-status-chevron {
+    flex: 0 0 auto;
+    color: rgb(100, 116, 139);
+  }
+
+  .dark .mobile-line-status-chevron {
+    color: rgb(203, 213, 225);
+  }
+
+  .mobile-line-status-clear {
+    display: inline-flex;
+    align-items: center;
+    color: var(--ok);
   }
 
   .mobile-line-status-number {
@@ -17692,7 +17907,29 @@ img.transit-line-badge {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    margin-left: 38px;
   }
+
+  .mobile-line-status-impact-label {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .mobile-line-status-impact-label.mobile-line-status-btn-alerts { background: #fef2f2 !important; }
+  .mobile-line-status-impact-label.mobile-line-status-btn-delays { background: #fefce8 !important; }
+  .mobile-line-status-impact-label.mobile-line-status-btn-rsz { background: #fffbeb !important; }
+  .mobile-line-status-impact-label.mobile-line-status-btn-closures { background: #eff6ff !important; }
+  .dark .mobile-line-status-impact-label.mobile-line-status-btn-alerts { background: #2d1414 !important; }
+  .dark .mobile-line-status-impact-label.mobile-line-status-btn-delays { background: #2a2808 !important; }
+  .dark .mobile-line-status-impact-label.mobile-line-status-btn-rsz { background: #2a1f08 !important; }
+  .dark .mobile-line-status-impact-label.mobile-line-status-btn-closures { background: #0e1c30 !important; }
 
   .mobile-line-status-planned-row {
     display: flex;
@@ -17862,13 +18099,13 @@ img.transit-line-badge {
 
   .mobile-more-install-copy span:first-child {
     color: var(--text);
-    font-weight: 850;
+    font-weight: 500;
   }
 
   .mobile-more-install-copy span:last-child {
     color: var(--quiet);
     font-size: 11px;
-    font-weight: 650;
+    font-weight: 400;
     line-height: 1.25;
   }
 
@@ -18045,13 +18282,13 @@ img.transit-line-badge {
 
   .mobile-more-share-copy span:first-child {
     color: var(--text);
-    font-weight: 850;
+    font-weight: 500;
   }
 
   .mobile-more-share-copy span:last-child {
     color: var(--quiet);
     font-size: 11px;
-    font-weight: 650;
+    font-weight: 400;
     line-height: 1.25;
   }
 
@@ -18076,13 +18313,13 @@ img.transit-line-badge {
 
   .mobile-more-map-attribution-title {
     color: var(--text);
-    font-weight: 850;
+    font-weight: 500;
   }
 
   .mobile-more-map-attribution-summary {
     color: #475569;
     font-size: 11px;
-    font-weight: 650;
+    font-weight: 400;
     line-height: 1.3;
   }
 
@@ -18706,6 +18943,7 @@ img.transit-line-badge {
   .mobile-sheet-heading {
     flex-shrink: 0 !important;
   }
+  .line-impact-panel-stack,
   .alert-stack,
   .closure-stack,
   .commute-grid,
@@ -18728,6 +18966,7 @@ img.transit-line-badge {
 
   /* Keep each list's authored end inset. The old shared 56px spacer and
      fade mask created an artificial empty tail at the end of every menu. */
+  .line-impact-panel-stack,
   .alert-stack,
   .closure-stack,
   .commute-grid,
@@ -18759,6 +18998,7 @@ img.transit-line-badge {
   }
 
   /* Keep a compact position indicator without rendering a full-height rail. */
+  .line-impact-panel-stack,
   .alert-stack,
   .closure-stack,
   .commute-grid,
@@ -18780,6 +19020,7 @@ img.transit-line-badge {
     scrollbar-width: thin !important;
   }
 
+  .line-impact-panel-stack::-webkit-scrollbar,
   .alert-stack::-webkit-scrollbar,
   .closure-stack::-webkit-scrollbar,
   .commute-grid::-webkit-scrollbar,
@@ -18802,6 +19043,7 @@ img.transit-line-badge {
     width: 4px;
   }
 
+  .line-impact-panel-stack::-webkit-scrollbar-track,
   .alert-stack::-webkit-scrollbar-track,
   .closure-stack::-webkit-scrollbar-track,
   .commute-grid::-webkit-scrollbar-track,
@@ -18822,6 +19064,7 @@ img.transit-line-badge {
     background: transparent;
   }
 
+  .line-impact-panel-stack::-webkit-scrollbar-thumb,
   .alert-stack::-webkit-scrollbar-thumb,
   .closure-stack::-webkit-scrollbar-thumb,
   .commute-grid::-webkit-scrollbar-thumb,
@@ -18871,6 +19114,7 @@ img.transit-line-badge {
      matching the visual gap in the More menu.
      Note: no margin-right adjustment needed here — .panel has zero right padding on mobile,
      so these scroll containers are already flush with the floating-panel-scroll border. */
+  .line-impact-panel-stack,
   .alert-stack,
   .closure-stack,
   .commute-grid,
@@ -19676,7 +19920,7 @@ img.transit-line-badge {
 
 .push-diagnostics-summary-copy span:first-child {
   color: var(--text);
-  font-weight: 350;
+  font-weight: 500;
 }
 
 .push-diagnostics-summary-copy span:last-child {
@@ -21459,6 +21703,7 @@ img.transit-line-badge {
 @media (min-width: 768px) {
   #linewatch-main-menu-scroll,
   .floating-panel-shell > div,
+  .line-impact-panel-stack,
   .alert-stack,
   .closure-stack,
   .commute-grid,
@@ -21482,6 +21727,7 @@ img.transit-line-badge {
 
   #linewatch-main-menu-scroll::-webkit-scrollbar,
   .floating-panel-shell > div::-webkit-scrollbar,
+  .line-impact-panel-stack::-webkit-scrollbar,
   .alert-stack::-webkit-scrollbar,
   .closure-stack::-webkit-scrollbar,
   .commute-grid::-webkit-scrollbar,
@@ -21510,6 +21756,7 @@ img.transit-line-badge {
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-track,
   .floating-panel-shell > div::-webkit-scrollbar-track,
+  .line-impact-panel-stack::-webkit-scrollbar-track,
   .alert-stack::-webkit-scrollbar-track,
   .closure-stack::-webkit-scrollbar-track,
   .commute-grid::-webkit-scrollbar-track,
@@ -21531,6 +21778,7 @@ img.transit-line-badge {
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
   .floating-panel-shell > div::-webkit-scrollbar-thumb,
+  .line-impact-panel-stack::-webkit-scrollbar-thumb,
   .alert-stack::-webkit-scrollbar-thumb,
   .closure-stack::-webkit-scrollbar-thumb,
   .commute-grid::-webkit-scrollbar-thumb,
@@ -21554,6 +21802,7 @@ img.transit-line-badge {
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-thumb:hover,
   .floating-panel-shell > div::-webkit-scrollbar-thumb:hover,
+  .line-impact-panel-stack::-webkit-scrollbar-thumb:hover,
   .alert-stack::-webkit-scrollbar-thumb:hover,
   .closure-stack::-webkit-scrollbar-thumb:hover,
   .commute-grid::-webkit-scrollbar-thumb:hover,
@@ -22899,7 +23148,6 @@ img.transit-line-badge {
 }
 
 .main-menu-pin[aria-pressed="true"] {
-  background: rgba(59, 130, 246, 0.14);
   color: #2563eb;
 }
 
@@ -23734,10 +23982,13 @@ img.transit-line-badge {
 }
 
 /* Empty state alignment overrides for alert and closure stacks on mobile/desktop */
+.line-impact-panel-stack.is-empty,
 .alert-stack.is-empty,
 .closure-stack.is-empty,
+.floating-panel-scroll .line-impact-panel-stack.is-empty,
 .floating-panel-scroll .alert-stack.is-empty,
 .floating-panel-scroll .closure-stack.is-empty,
+.mobile-view-content-wrapper .line-impact-panel-stack.is-empty,
 .mobile-view-content-wrapper .alert-stack.is-empty,
 .mobile-view-content-wrapper .closure-stack.is-empty {
   display: flex !important;
@@ -24890,6 +25141,10 @@ button:active .account-network-badge,
   .mobile-sheet-kicker,
   .mobile-more-build-label {
     font-size: 9px !important;
+  }
+
+  .mobile-sheet-kicker {
+    font-size: 12px !important;
   }
 
   .mobile-sheet-icon-button {

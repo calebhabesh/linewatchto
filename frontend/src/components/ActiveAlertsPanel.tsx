@@ -13,6 +13,7 @@ import { ImpactListToolbar } from "./ImpactListToolbar";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
 import { useImpactListView } from "../hooks/useImpactListView";
+import { ImpactTypeIcon } from "./ImpactTypeIcon";
 
 interface Props {
   selection: ImpactSelection;
@@ -21,6 +22,10 @@ interface Props {
   onClose?: () => void;
   onFocusMap?: () => void;
   initialLineId?: string | null;
+  embedded?: boolean;
+  externalQuery?: string;
+  externalSort?: ImpactListSort;
+  showImpactTypeIndicator?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
 }
@@ -41,6 +46,10 @@ export function ActiveAlertsPanel({
   onClose,
   onFocusMap,
   initialLineId,
+  embedded = false,
+  externalQuery,
+  externalSort,
+  showImpactTypeIndicator = false,
   commutePathPreview,
   onClearCommutePathPreview,
 }: Props) {
@@ -50,9 +59,13 @@ export function ActiveAlertsPanel({
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("updated");
   const { viewMode, setViewMode } = useImpactListView();
-  const visibleAlerts = useMemo(() => filterAndSortImpacts(activeAlerts, { lineId, query, sort }), [activeAlerts, lineId, query, sort]);
+  const effectiveQuery = externalQuery ?? query;
+  const effectiveSort = externalSort ?? sort;
+  const visibleAlerts = useMemo(() => filterAndSortImpacts(activeAlerts, { lineId, query: effectiveQuery, sort: effectiveSort }), [activeAlerts, lineId, effectiveQuery, effectiveSort]);
   const lineIds = useMemo(() => [...new Set(activeAlerts.map((alert) => alert.lineId))].sort(), [activeAlerts]);
   useScrollSelectedImpactCard(selection, "suspension");
+
+  if (embedded && visibleAlerts.length === 0) return null;
 
   const handleAlertClick = (alert: ActiveAlert) => {
     const alertImpactKind = impactKindForAlert(alert);
@@ -86,7 +99,7 @@ export function ActiveAlertsPanel({
   };
 
   return (
-    <section className="panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
+    <section className={`panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl ${embedded ? "embedded-impact-panel" : ""}`}>
       <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
         <div className="flex items-center gap-1 min-w-0">
           {onBack && (
@@ -193,6 +206,7 @@ export function ActiveAlertsPanel({
                 <div className="impact-card-heading has-status-badges flex items-start justify-between gap-3 w-full min-w-0">
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     <LineBadge lineId={alert.lineId} lineNumber={alert.lineNumber} />
+                    {showImpactTypeIndicator ? <ImpactTypeIcon kind={impactKindForAlert(alert)} size={17} className="line-impact-card-type-icon shrink-0" /> : null}
                     <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
                       {alert.title}
                     </strong>

@@ -78,6 +78,10 @@ linewatch:
       read-timeout: ${LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT:PT8S}
       surface-gtfs-rt-enabled: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED:true}
       surface-gtfs-rt-urls: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URLS:${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URL:https://gtfsrt.ttc.ca/alerts/bus?format=text,https://gtfsrt.ttc.ca/alerts/streetcar?format=text}}
+      subway-closure-supplement-enabled: ${LINEWATCH_INGESTION_ALERTS_SUBWAY_CLOSURE_SUPPLEMENT_ENABLED:true}
+      subway-closure-search-url: ${LINEWATCH_INGESTION_ALERTS_SUBWAY_CLOSURE_SEARCH_URL:https://www.ttc.ca/sxa/search/results/}
+      subway-closure-base-url: ${LINEWATCH_INGESTION_ALERTS_SUBWAY_CLOSURE_BASE_URL:https://www.ttc.ca}
+      subway-closure-max-entries: ${LINEWATCH_INGESTION_ALERTS_SUBWAY_CLOSURE_MAX_ENTRIES:100}
     metrolinx:
       enabled: ${LINEWATCH_INGESTION_METROLINX_ENABLED:false}
       base-url: ${LINEWATCH_INGESTION_METROLINX_BASE_URL:https://api.openmetrolinx.com/OpenDataAPI/}

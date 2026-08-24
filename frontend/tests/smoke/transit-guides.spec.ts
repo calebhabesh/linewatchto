@@ -31,3 +31,15 @@ test("keeps a station guide usable and overflow-free on desktop and mobile", asy
   }));
   expect(pageWidths.scroll).toBeLessThanOrEqual(pageWidths.client);
 });
+
+test("route guide Check Live Status deep links smoothly to line impacts submenu", async ({ page }) => {
+  await page.goto("/ttc/lines/1-yonge-university");
+  await expect(page).toHaveTitle(/Line 1 Yonge-University.*LineWatchTO/);
+  const liveStatusCta = page.getByRole("link", { name: /Check Live Status/i });
+  await expect(liveStatusCta).toHaveAttribute("href", "/?network=ttc&line=line-1");
+
+  await page.goto("/?network=ttc&line=line-1");
+  await expect(page.locator("[data-line-impacts]")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /Yonge-University/i })).toBeVisible();
+});
+

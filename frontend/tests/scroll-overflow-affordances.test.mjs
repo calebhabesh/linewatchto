@@ -20,6 +20,7 @@ describe("scroll overflow affordances", () => {
     assert.match(shellSource, /<ScrollOverflowAffordances \/>/);
     [
       "#linewatch-main-menu-scroll",
+      ".line-impact-panel-stack",
       ".alert-stack",
       ".closure-stack",
       ".commute-grid",

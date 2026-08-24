@@ -15,6 +15,10 @@ public class AlertIngestionProperties {
     private boolean enabled;
     private URI url = URI.create("https://alerts.ttc.ca/api/alerts/live-alerts");
     private boolean surfaceGtfsRtEnabled = true;
+    private boolean subwayClosureSupplementEnabled = true;
+    private URI subwayClosureSearchUrl = URI.create("https://www.ttc.ca/sxa/search/results/");
+    private URI subwayClosureBaseUrl = URI.create("https://www.ttc.ca");
+    private int subwayClosureMaxEntries = 100;
     private URI surfaceGtfsRtUrl;
     private List<URI> surfaceGtfsRtUrls = List.of(
         DEFAULT_BUS_GTFS_RT_URL,
@@ -73,6 +77,38 @@ public class AlertIngestionProperties {
 
     public Duration getFixedDelay() {
         return fixedDelay;
+    }
+
+    public boolean isSubwayClosureSupplementEnabled() {
+        return subwayClosureSupplementEnabled;
+    }
+
+    public void setSubwayClosureSupplementEnabled(boolean subwayClosureSupplementEnabled) {
+        this.subwayClosureSupplementEnabled = subwayClosureSupplementEnabled;
+    }
+
+    public URI getSubwayClosureSearchUrl() {
+        return subwayClosureSearchUrl;
+    }
+
+    public void setSubwayClosureSearchUrl(URI subwayClosureSearchUrl) {
+        this.subwayClosureSearchUrl = subwayClosureSearchUrl;
+    }
+
+    public URI getSubwayClosureBaseUrl() {
+        return subwayClosureBaseUrl;
+    }
+
+    public void setSubwayClosureBaseUrl(URI subwayClosureBaseUrl) {
+        this.subwayClosureBaseUrl = subwayClosureBaseUrl;
+    }
+
+    public int getSubwayClosureMaxEntries() {
+        return subwayClosureMaxEntries;
+    }
+
+    public void setSubwayClosureMaxEntries(int subwayClosureMaxEntries) {
+        this.subwayClosureMaxEntries = subwayClosureMaxEntries;
     }
 
     public void setFixedDelay(Duration fixedDelay) {

@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 class TtcAlertIngestionServiceTest {
     private final TtcAlertClient client = mock(TtcAlertClient.class);
+    private final TtcSubwayClosureClient subwayClosureClient = mock(TtcSubwayClosureClient.class);
     private final TtcAlertFeedApplicationService applicationService =
         mock(TtcAlertFeedApplicationService.class);
     private final IngestionRunService runService = mock(IngestionRunService.class);
@@ -33,21 +34,31 @@ class TtcAlertIngestionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TtcAlertIngestionService(client, applicationService, runService, cache, eventPublisher);
+        service = new TtcAlertIngestionService(
+            client,
+            subwayClosureClient,
+            applicationService,
+            runService,
+            cache,
+            eventPublisher
+        );
     }
 
     @Test
     void successfulPollFetchesAppliesAndCompletesRun() {
         when(runService.start()).thenReturn(42L);
         when(client.fetch()).thenReturn(feed);
-        when(applicationService.apply(feed)).thenReturn(counts);
+        TtcSubwayClosureSnapshot subwayClosures = TtcSubwayClosureSnapshot.unavailable();
+        when(subwayClosureClient.fetch()).thenReturn(subwayClosures);
+        when(applicationService.apply(feed, subwayClosures)).thenReturn(counts);
 
         service.ingestNow();
 
         verify(runService).succeed(
             42L,
             counts,
-            OffsetDateTime.parse("2026-06-01T15:55:00Z")
+            OffsetDateTime.parse("2026-06-01T15:55:00Z"),
+            subwayClosures
         );
         verify(runService, never()).fail(anyLong(), any());
         verify(cache).evictDashboard();
@@ -64,6 +75,7 @@ class TtcAlertIngestionServiceTest {
             .isSameAs(failure);
 
         verify(applicationService, never()).apply(any());
+        verify(applicationService, never()).apply(any(), any());
         verify(runService).fail(eq(42L), any(TtcAlertClientException.class));
         verify(cache, never()).evictDashboard();
         verify(eventPublisher, never()).publishEvent(any());

@@ -2635,20 +2635,86 @@ test("LineLegend clicks open a temporary line-focused view without highlighting 
   await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("all");
 });
 
-test("mobile Line Status opens a temporary line-focused alert category", async ({ page, request, isMobile }) => {
-  test.skip(!isMobile, "mobile-only System Status interaction");
+test("Line Status opens an all-types line submenu on desktop and mobile", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  if (isMobile) {
+    await page.setViewportSize({ width: 390, height: 600 });
+  }
+  await page.goto("/");
+  if (isMobile) {
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+  } else {
+    await openDashboardMenu(page, isMobile);
+  }
+
+  const originScroll = isMobile
+    ? page.locator(".mobile-status-content-scroll")
+    : page.locator("#linewatch-main-menu-scroll");
+  const lineStatusButton = page.getByRole("button", { name: /View all service impacts for .*Yonge-University/ });
+  if (isMobile) {
+    await originScroll.evaluate((element) => {
+      element.scrollTop = Math.min(40, element.scrollHeight - element.clientHeight);
+    });
+  } else {
+    await lineStatusButton.scrollIntoViewIfNeeded();
+  }
+  const enteredScrollTop = await originScroll.evaluate((element) => element.scrollTop);
+  expect(enteredScrollTop).toBeGreaterThan(0);
+  if (isMobile) {
+    await lineStatusButton.evaluate((element: HTMLButtonElement) => element.click());
+  } else {
+    await lineStatusButton.click();
+  }
+  await expect(page.getByRole("heading", { name: /Yonge-University/ })).toBeVisible();
+  const typeFilters = page.getByRole("group", { name: /Filter .*Yonge-University impacts by alert type/ });
+  await expect(typeFilters).toBeVisible();
+  await expect(page.locator('select[aria-label^="Sort "][aria-label$="Yonge-University impacts"]')).toHaveValue("updated");
+  await expect(page.getByRole("searchbox", { name: /Filter .*Yonge-University impacts/ })).toBeVisible();
+  await expect(typeFilters.getByRole("button", { name: /Reduced Speed Zones/ })).toBeVisible();
+  if (!isMobile) {
+    const filterTops = await typeFilters.getByRole("button").evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().top)));
+    expect(new Set(filterTops).size).toBe(1);
+  }
+  await expect(page.locator(".line-impact-total-badge")).toContainText(/\d+ Service Impacts/);
+  await typeFilters.getByRole("button", { name: /Reduced Speed Zones/ }).click();
+  await expect(page.locator(".line-impact-panel-stack .rsz-card-border").first()).toBeVisible();
+  await expect(page.locator(".line-impact-panel-stack .embedded-impact-panel > .panel-heading")).toBeHidden();
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect.poll(async () => originScroll.evaluate((element) => Math.round(element.scrollTop)))
+    .toBe(Math.round(enteredScrollTop));
+});
+
+test("regional corridor status opens the same all-types submenu", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "regional network selection is covered on desktop");
   await setStubMode(request, "seeded");
   await page.goto("/");
-  await page.getByRole("button", { name: "Status", exact: true }).click();
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
+  await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toBeVisible();
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
+  await page.getByRole("button", { name: "Toggle menu" }).click();
+  await page.getByRole("button", { name: /View all service impacts for .*Barrie/ }).click();
+  await expect(page.getByRole("heading", { name: /Barrie/ })).toBeVisible();
+  await expect(page.getByRole("group", { name: /Filter .*Barrie impacts by alert type/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Reduced Speed Zones/ })).toHaveCount(0);
+});
 
-  const statusSheet = page.getByRole("region", { name: "Current service status" });
-  const lineOneStatus = statusSheet.locator(".mobile-line-status-row").filter({ hasText: "Yonge-University" });
-  await lineOneStatus.getByRole("button", { name: /Reduced Speed Zone/ }).click();
-  await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("line-1");
+test("mobile More restores its scroll position after submenu back navigation", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only More sheet behavior");
+  await setStubMode(request, "seeded");
+  await openDashboardMenu(page, isMobile);
 
+  const moreScroll = page.locator(".mobile-more-content-scroll");
+  const historyButton = page.getByRole("button", { name: "Alert History", exact: true });
+  await historyButton.scrollIntoViewIfNeeded();
+  const enteredScrollTop = await moreScroll.evaluate((element) => element.scrollTop);
+  expect(enteredScrollTop).toBeGreaterThan(0);
+  await historyButton.click();
+  await expect(page.getByRole("heading", { name: "Alert History", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Back" }).click();
-  await statusSheet.getByRole("button", { name: /Reduced Speed Zones/ }).first().click();
-  await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("all");
+  await expect.poll(async () => moreScroll.evaluate((element) => Math.round(element.scrollTop)))
+    .toBe(Math.round(enteredScrollTop));
 });
 
 test("renders fixture fallback when the dashboard API is unavailable", async ({ page, request, isMobile }) => {

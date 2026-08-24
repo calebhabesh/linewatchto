@@ -3,7 +3,7 @@ import { buildTransitGuideMetadata } from "../../seo";
 import { NetworkGuidePage } from "../transit-guide-components";
 
 export const metadata: Metadata = buildTransitGuideMetadata({
-  title: "GO Transit & UP Express Corridors and Stations",
+  title: "GO Transit and UP Express Lines and Stations",
   description: "Browse mapped GO rail corridors, UP Express, and regional stations, then open LineWatchTO for freshness-gated service and reliability information.",
   path: "/go-up",
 });

@@ -37,7 +37,8 @@ export function useScrollSelectedImpactCard(
 
       const isMobile = window.matchMedia("(max-width: 767px)").matches ||
         Boolean(card.closest(".mobile-view-content-wrapper"));
-      const list = card.closest<HTMLElement>(".alert-stack, .closure-stack");
+      const list = card.closest<HTMLElement>(".line-impact-panel-stack") ??
+        card.closest<HTMLElement>(".alert-stack, .closure-stack");
       if (!list) return;
 
       const cardRect = card.getBoundingClientRect();

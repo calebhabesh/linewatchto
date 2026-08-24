@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- full navigation keeps the static guide shell free of client router code */
-import { ArrowRight, Map, Signpost } from "lucide-react";
+import { ArrowRight, Map } from "lucide-react";
 import Image from "next/image";
 import styles from "./transit-guide.module.css";
 
@@ -9,9 +9,8 @@ export default function TransitGuideLayout({ children }: Readonly<{ children: Re
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <a className={styles.brand} href="/" aria-label="LineWatchTO interactive dashboard">
-            <Image src="/assets/linewatch/logo.svg" alt="" width={30} height={30} />
-            <span>LineWatchTO</span>
-            <Signpost size={18} className={styles.brandGuideIcon} aria-hidden="true" />
+            <Image src="/assets/linewatch/logo.svg" alt="" width={36} height={36} className={styles.brandLogo} />
+            <span className={styles.brandWordmark}>LineWatchTO</span>
           </a>
           <nav className={styles.nav} aria-label="Transit information">
             <a href="/explore">Explore</a>

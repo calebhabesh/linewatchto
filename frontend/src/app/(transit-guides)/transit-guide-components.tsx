@@ -39,7 +39,11 @@ function absoluteUrl(path: string) {
 }
 
 function networkName(networkSlug: TransitGuideNetworkSlug) {
-  return networkSlug === "ttc" ? "TTC Subway & LRT" : "GO Transit & UP Express";
+  return networkSlug === "ttc" ? "TTC Subway & LRT" : "GO Transit and UP Express";
+}
+
+function networkPageTitle(networkSlug: TransitGuideNetworkSlug) {
+  return networkSlug === "ttc" ? "TTC Subway, LRT Lines, and Stations" : "GO Transit and UP Express Lines and Stations";
 }
 
 function networkShortName(networkSlug: TransitGuideNetworkSlug) {
@@ -49,6 +53,14 @@ function networkShortName(networkSlug: TransitGuideNetworkSlug) {
 function networkDashboardUrl(networkSlug: TransitGuideNetworkSlug, panel?: string) {
   const params = new URLSearchParams({ network: networkSlug === "ttc" ? "ttc" : "regional" });
   if (panel) params.set("panel", panel);
+  return `/?${params.toString()}`;
+}
+
+function routeDashboardUrl(route: TransitGuideRoute) {
+  const params = new URLSearchParams({
+    network: route.networkSlug === "ttc" ? "ttc" : "regional",
+    line: route.id,
+  });
   return `/?${params.toString()}`;
 }
 
@@ -124,6 +136,7 @@ function PageHero({
   badge,
   badges,
   caption,
+  accentColor,
 }: {
   eyebrow: string;
   title: string;
@@ -132,10 +145,14 @@ function PageHero({
   badge?: ReactNode;
   badges?: ReactNode;
   caption?: string;
+  accentColor?: string;
 }) {
   return (
     <header className={styles.hero}>
-      <p className={styles.eyebrow}>
+      <p
+        className={styles.eyebrow}
+        style={accentColor ? ({ "--chip-color": accentColor } as React.CSSProperties) : undefined}
+      >
         <span className={styles.eyebrowBar} aria-hidden="true" />
         {eyebrow}
       </p>
@@ -176,7 +193,7 @@ function RouteList({ routes }: { routes: TransitGuideRoute[] }) {
                   </span>
                 </div>
               </div>
-              <span className={styles.routeLinkArrow} aria-hidden="true">→</span>
+              <ArrowRight size={20} strokeWidth={2.5} className={styles.routeLinkArrow} aria-hidden="true" />
             </a>
           </li>
         );
@@ -420,8 +437,8 @@ function SourceDisclaimer({ networkSlug }: { networkSlug: TransitGuideNetworkSlu
   return (
     <section className={`${styles.section} ${styles.disclaimer}`}>
       <div className={styles.sectionHeading}>
-        <div className={styles.sectionHeadingLeft}>
-          <span className={styles.sectionHeaderBar} style={{ background: "#f59e0b" }} />
+        <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#f59e0b" } as React.CSSProperties}>
+          <span className={styles.sectionHeaderBar} />
           <h2>Source &amp; Freshness</h2>
         </div>
       </div>
@@ -486,7 +503,7 @@ export function ExploreGuidePage() {
             <div className={styles.sectionHeading}>
               <div className={styles.sectionHeadingLeft}>
                 <span className={styles.sectionHeaderBar} />
-                <h2>TTC Subway &amp; LRT</h2>
+                <h2>TTC Subway, LRT Lines, and Stations</h2>
               </div>
               <a className={styles.sectionActionLink} href="/ttc">
                 <span>All TTC Information</span>
@@ -497,9 +514,9 @@ export function ExploreGuidePage() {
           </section>
           <section className={`${styles.section} ${styles.cardTopAccent}`}>
             <div className={styles.sectionHeading}>
-              <div className={styles.sectionHeadingLeft}>
-                <span className={styles.sectionHeaderBar} style={{ background: "#10b981" }} />
-                <h2>GO Transit &amp; UP Express</h2>
+              <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#10b981" } as React.CSSProperties}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>GO Transit and UP Express</h2>
               </div>
               <a className={styles.sectionActionLink} href="/go-up">
                 <span>All Regional Information</span>
@@ -546,13 +563,13 @@ export function NetworkGuidePage({ networkSlug }: { networkSlug: TransitGuideNet
       <JsonLd data={{
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        name: `${networkName(networkSlug)} Lines and Stations`,
+        name: networkPageTitle(networkSlug),
         url: absoluteUrl(path),
         description,
       }} />
       <PageHero
         eyebrow={ttc ? "Toronto Rapid Transit" : "Regional Rail"}
-        title={`${networkName(networkSlug)} Lines and Stations`}
+        title={networkPageTitle(networkSlug)}
         badges={(
           <>
             <span className={`${styles.pillBadge} ${styles.pillBadgeAccent}`}>
@@ -676,7 +693,7 @@ export function RouteGuidePage({ route }: { route: TransitGuideRoute }) {
         )}
         actions={(
           <>
-            <a className={styles.cta} href={networkDashboardUrl(route.networkSlug, "status")}>
+            <a className={styles.cta} href={routeDashboardUrl(route)}>
               <Activity size={16} aria-hidden="true" />
               <span>Check Live Status</span>
               <ArrowRight size={14} className={styles.ctaArrow} aria-hidden="true" />
@@ -687,6 +704,7 @@ export function RouteGuidePage({ route }: { route: TransitGuideRoute }) {
             </a>
           </>
         )}
+        accentColor={route.color}
       >
         {route.description}
       </PageHero>
@@ -694,8 +712,8 @@ export function RouteGuidePage({ route }: { route: TransitGuideRoute }) {
         <div className={styles.content}>
           <section className={`${styles.section} ${styles.cardTopAccent}`}>
             <div className={styles.sectionHeading}>
-              <div className={styles.sectionHeadingLeft}>
-                <span className={styles.sectionHeaderBar} style={{ background: route.color }} />
+              <div className={styles.sectionHeadingLeft} style={{ "--chip-color": route.color } as React.CSSProperties}>
+                <span className={styles.sectionHeaderBar} />
                 <h2>Route Station Sequence</h2>
               </div>
               <span className={styles.note}>{stations.length} stops represented</span>
@@ -912,8 +930,8 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
         <div className={styles.content}>
           <section className={`${styles.section} ${styles.cardTopAccent}`}>
             <div className={styles.sectionHeading}>
-              <div className={styles.sectionHeadingLeft}>
-                <span className={styles.sectionHeaderBar} style={{ background: "#10b981" }} />
+              <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#10b981" } as React.CSSProperties}>
+                <span className={styles.sectionHeaderBar} />
                 <h2>What Is Counted</h2>
               </div>
             </div>
@@ -926,8 +944,8 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
           </section>
           <section className={`${styles.section} ${styles.cardTopAccent}`}>
             <div className={styles.sectionHeading}>
-              <div className={styles.sectionHeadingLeft}>
-                <span className={styles.sectionHeaderBar} style={{ background: "#3b82f6" }} />
+              <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#3b82f6" } as React.CSSProperties}>
+                <span className={styles.sectionHeaderBar} />
                 <h2>Coverage &amp; Confidence</h2>
               </div>
             </div>
@@ -936,8 +954,8 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
           </section>
           <section className={`${styles.section} ${styles.cardTopAccent}`}>
             <div className={styles.sectionHeading}>
-              <div className={styles.sectionHeadingLeft}>
-                <span className={styles.sectionHeaderBar} style={{ background: "#ef4444" }} />
+              <div className={styles.sectionHeadingLeft} style={{ "--chip-color": "#ef4444" } as React.CSSProperties}>
+                <span className={styles.sectionHeaderBar} />
                 <h2>What Is Excluded</h2>
               </div>
             </div>

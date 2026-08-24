@@ -245,17 +245,37 @@ public class TtcAlertNormalizer {
     }
 
     private boolean isPlannedClosure(TtcAlertRecord record) {
+        boolean websiteAdvisory = equalsIgnoreCase(
+            record.alertType(),
+            TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+        );
+        if (websiteAdvisory && isRestoration(record)) {
+            return false;
+        }
         boolean hasChildPeriods = record.childAlerts() != null && !record.childAlerts().isEmpty();
-        boolean plannedClosureEvidence = hasChildPeriods
+        boolean plannedClosureEvidence = (!websiteAdvisory && hasChildPeriods)
             || hasPlannedClosureEvidence(record)
             || (equalsIgnoreCase(record.cause(), "MAINTENANCE") && hasClosureText(record));
-        return (equalsIgnoreCase(record.alertType(), "Planned") || isGtfsRt(record))
+        return (equalsIgnoreCase(record.alertType(), "Planned")
+            || websiteAdvisory
+            || isGtfsRt(record))
             && !hasOperationalIncidentCause(record)
             && plannedClosureEvidence;
     }
 
     private boolean isSuspension(TtcAlertRecord record) {
-        return equalsIgnoreCase(record.effect(), "NO_SERVICE") || hasClosureText(record);
+        return !isRestoration(record)
+            && (equalsIgnoreCase(record.effect(), "NO_SERVICE") || hasClosureText(record));
+    }
+
+    private boolean isRestoration(TtcAlertRecord record) {
+        return TtcServiceState.isRestoration(
+            record.effect(),
+            null,
+            record.title(),
+            record.description(),
+            record.effectDesc()
+        );
     }
 
     private boolean hasPlannedClosureEvidence(TtcAlertRecord record) {

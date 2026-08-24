@@ -16,6 +16,7 @@ import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
 import { DelaysPanel } from "./DelaysPanel";
 import { ReducedSpeedZonesPanel } from "./ReducedSpeedZonesPanel";
 import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
+import { LineImpactsPanel } from "./LineImpactsPanel";
 import {
   SavedCommutesPanel,
   persistedExpandedImpactDisclosures,
@@ -79,7 +80,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -157,7 +158,7 @@ import { apiUrl } from "../app/api-client";
 import { popViewHistory, pushViewHistory, resolveInAppBackAction } from "../app/view-navigation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
+type ActiveView = "map" | "menu" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
 type ImpactCategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "verify-email" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
@@ -165,6 +166,12 @@ type EstimatedTrainRequestState = "idle" | "loading" | "ready" | "reconnecting";
 type SavedStationNotice = {
   message: string;
   linksToMyStations?: boolean;
+};
+
+const VIEW_SCROLL_SELECTORS: Partial<Record<ActiveView, string>> = {
+  menu: "#linewatch-main-menu-scroll",
+  status: ".mobile-status-content-scroll",
+  more: ".mobile-more-content-scroll",
 };
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 30_000;
@@ -194,6 +201,62 @@ function replaceBrowserSearchParams(params: URLSearchParams) {
   const search = params.toString();
   const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
   window.history.replaceState(null, "", nextUrl);
+}
+
+function resolveLineDeepLink(rawLine: string | null): { lineId: string; network: NetworkId } | null {
+  if (!rawLine) return null;
+  const normalized = rawLine.trim().toLowerCase();
+
+  // TTC matching
+  if (normalized === "line-1" || normalized === "1" || normalized === "1-yonge-university" || normalized === "yonge-university") {
+    return { lineId: "line-1", network: "ttc" };
+  }
+  if (normalized === "line-2" || normalized === "2" || normalized === "2-bloor-danforth" || normalized === "bloor-danforth") {
+    return { lineId: "line-2", network: "ttc" };
+  }
+  if (normalized === "line-4" || normalized === "4" || normalized === "4-sheppard" || normalized === "sheppard") {
+    return { lineId: "line-4", network: "ttc" };
+  }
+  if (normalized === "line-5" || normalized === "5" || normalized === "5-eglinton" || normalized === "eglinton") {
+    return { lineId: "line-5", network: "ttc" };
+  }
+  if (normalized === "line-6" || normalized === "6" || normalized === "6-finch-west" || normalized === "finch-west") {
+    return { lineId: "line-6", network: "ttc" };
+  }
+
+  // Regional matching
+  const regionalMap: Record<string, string> = {
+    "regional-lw": "regional-lw",
+    "lw": "regional-lw",
+    "lakeshore-west": "regional-lw",
+    "regional-le": "regional-le",
+    "le": "regional-le",
+    "lakeshore-east": "regional-le",
+    "regional-ki": "regional-ki",
+    "ki": "regional-ki",
+    "kitchener": "regional-ki",
+    "regional-mi": "regional-mi",
+    "mi": "regional-mi",
+    "milton": "regional-mi",
+    "regional-st": "regional-st",
+    "st": "regional-st",
+    "stouffville": "regional-st",
+    "regional-rh": "regional-rh",
+    "rh": "regional-rh",
+    "richmond-hill": "regional-rh",
+    "regional-br": "regional-br",
+    "br": "regional-br",
+    "barrie": "regional-br",
+    "regional-up": "regional-up",
+    "up": "regional-up",
+    "up-express": "regional-up",
+  };
+
+  if (regionalMap[normalized]) {
+    return { lineId: regionalMap[normalized], network: "regional" };
+  }
+
+  return null;
 }
 
 function currentBrowserLocalPath() {
@@ -356,12 +419,14 @@ export function LineWatchShell({
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
   const [impactListLaunch, setImpactListLaunch] = useState({ lineId: null as string | null, requestId: 0 });
+  const [lineImpactLaunch, setLineImpactLaunch] = useState({ lineId: null as string | null, requestId: 0 });
   const [navDirection, setNavDirection] = useState<"root" | "forward" | "back">("root");
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const activeViewRef = useRef<ActiveView>("map");
   const viewHistoryRef = useRef<ActiveView[]>([]);
+  const viewScrollPositionsRef = useRef<Partial<Record<ActiveView, number>>>({});
   const browserNavigationSessionRef = useRef("");
   const browserNavigationDepthRef = useRef(0);
   const suppressedPopstateCountRef = useRef(0);
@@ -705,6 +770,24 @@ export function LineWatchShell({
     activeViewRef.current = activeView;
   }, [activeView]);
 
+  useEffect(() => {
+    const selector = VIEW_SCROLL_SELECTORS[activeView];
+    const savedScrollTop = viewScrollPositionsRef.current[activeView];
+    if (!selector || savedScrollTop === undefined) return;
+
+    let secondFrame: number | null = null;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        const scrollElement = document.querySelector<HTMLElement>(selector);
+        if (scrollElement) scrollElement.scrollTop = savedScrollTop;
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) window.cancelAnimationFrame(secondFrame);
+    };
+  }, [activeView]);
+
   const pushBrowserNavigationEntry = useCallback(() => {
     if (typeof window === "undefined" || !browserNavigationSessionRef.current) return;
     const depth = browserNavigationDepthRef.current + 1;
@@ -730,6 +813,11 @@ export function LineWatchShell({
   const navigateForward = useCallback((nextView: ActiveView) => {
     const currentView = activeViewRef.current;
     if (currentView === nextView) return;
+    const scrollSelector = VIEW_SCROLL_SELECTORS[currentView];
+    const scrollElement = scrollSelector ? document.querySelector<HTMLElement>(scrollSelector) : null;
+    if (scrollElement) {
+      viewScrollPositionsRef.current[currentView] = scrollElement.scrollTop;
+    }
     pushBrowserNavigationEntry();
     if (currentView !== "map") {
       viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
@@ -852,6 +940,11 @@ export function LineWatchShell({
     }));
     setSelection(null);
     navigateForward(view);
+  }, [navigateForward, setSelection]);
+  const openLineImpacts = useCallback((lineId: string) => {
+    setLineImpactLaunch((current) => ({ lineId, requestId: current.requestId + 1 }));
+    setSelection(null);
+    navigateForward("line-impacts");
   }, [navigateForward, setSelection]);
   const openLegendImpactCategory = useCallback((view: ImpactCategoryView, lineId: string) => {
     navigateForward("menu");
@@ -977,6 +1070,7 @@ export function LineWatchShell({
         || activeView === "delays"
         || activeView === "reduced-speed-zones"
         || activeView === "closures"
+        || activeView === "line-impacts"
         || activeView === "accessibility-outages"
         || activeView === "surface-notices"
           ? "status"
@@ -1400,6 +1494,9 @@ export function LineWatchShell({
       && requestedStationId !== null
       && /^[a-z0-9_-]{1,80}$/.test(requestedStationId);
 
+    const requestedLineParam = params.get("line") || params.get("lineId");
+    const resolvedLineDeepLink = resolveLineDeepLink(requestedLineParam);
+
     if (impactSelection) {
       // Notification URLs include their category panel as a fallback. A concrete
       // impact should instead take the same focused map path as Show on Map, where
@@ -1420,8 +1517,22 @@ export function LineWatchShell({
       setStationPanelActivationKey((current) => current + 1);
       setMobileInspectorDetent("details-focus");
       setActiveView("map");
+    } else if (resolvedLineDeepLink) {
+      if (resolvedLineDeepLink.network !== requestedNetwork) {
+        setSelectedNetwork(resolvedLineDeepLink.network);
+      }
+      openLineImpacts(resolvedLineDeepLink.lineId);
+      nextParams.delete("line");
+      nextParams.delete("lineId");
+      if (panel) nextParams.delete("panel");
+      shouldReplaceUrl = true;
     } else if (panel && panelToView[panel]) {
-      navigateForward(panelToView[panel]);
+      const targetView = panelToView[panel];
+      if (targetView === "status" && !isMobile) {
+        navigateForward("menu");
+      } else {
+        navigateForward(targetView);
+      }
       nextParams.delete("panel");
       shouldReplaceUrl = true;
     }
@@ -1429,7 +1540,7 @@ export function LineWatchShell({
     if (shouldReplaceUrl) {
       replaceBrowserSearchParams(nextParams);
     }
-  }, [navigateForward, openAccountDialog, pushBrowserNavigationEntry]);
+  }, [isMobile, navigateForward, openAccountDialog, openLineImpacts, pushBrowserNavigationEntry]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2190,6 +2301,7 @@ export function LineWatchShell({
 
   useEffect(() => {
     if (activeView === "menu") {
+      if (viewScrollPositionsRef.current.menu !== undefined) return;
       const timer = window.setTimeout(() => focusMenuAction(0), 40);
       return () => window.clearTimeout(timer);
     }
@@ -2896,6 +3008,7 @@ export function LineWatchShell({
 
   const isMobilePanel = isMobile && (
     activeView === "status" ||
+    activeView === "line-impacts" ||
     activeView === "alerts" ||
     activeView === "delays" ||
     activeView === "reduced-speed-zones" ||
@@ -2916,6 +3029,7 @@ export function LineWatchShell({
   const getMobileSheetLabel = () => {
     switch (activeView) {
       case "status": return "Current service status";
+      case "line-impacts": return "Line service impacts";
       case "alerts": return "Active alerts";
       case "delays": return "Delays";
       case "reduced-speed-zones": return "Reduced Speed Zones";
@@ -2939,12 +3053,16 @@ export function LineWatchShell({
   const renderPanelContent = () => {
     switch (activeView) {
       case "status":
-        return (
+        return isMobile ? (
           <MobileStatusSheet
             pollText={pollText}
             dataSource={displayData.dataSource}
             networkId={selectedNetwork}
             onOpenCategory={(view, lineId) => {
+              if (view === "line-impacts" && lineId) {
+                openLineImpacts(lineId);
+                return;
+              }
               if (
                 view === "alerts"
                 || view === "delays"
@@ -2968,7 +3086,19 @@ export function LineWatchShell({
             surfaceNoticeCount={surfaceNoticeCount ?? 0}
             tripChangeCount={regionalTripChangeCount ?? 0}
           />
-        );
+        ) : null;
+      case "line-impacts":
+        return lineImpactLaunch.lineId ? (
+          <LineImpactsPanel
+            key={`line-impacts-${lineImpactLaunch.lineId}-${lineImpactLaunch.requestId}`}
+            lineId={lineImpactLaunch.lineId}
+            selection={selection}
+            onSelectImpact={handleMapSelectImpact}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
+            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+          />
+        ) : null;
       case "alerts":
         return (
           <ActiveAlertsPanel
@@ -3226,7 +3356,7 @@ export function LineWatchShell({
     }
   };
 
-  const isDesktopPanel = activeView !== "map" && activeView !== "search" && activeView !== "menu";
+  const isDesktopPanel = activeView !== "map" && activeView !== "search" && activeView !== "menu" && activeView !== "status";
   const showMenuAttention = !menuVisible && !isDesktopPanel;
 
   const activeFloatingPanel = (!showClosedScreen && (isDesktopPanel || isMobilePanel || isClosingPanel || isGoingBack)) ? (
@@ -3472,15 +3602,15 @@ export function LineWatchShell({
                   <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
                      <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
                   </div>
-                  <strong className="text-slate-900 dark:text-white font-bold tracking-wide">LineWatchTO</strong>
-                  <div className="ml-auto hidden md:flex items-center gap-2">
+                  <strong className="linewatch-wordmark -ml-1 text-slate-900 dark:text-white">LineWatchTO</strong>
+                  <div className="ml-auto hidden md:flex items-center gap-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400/80 dark:text-slate-500/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)] select-none whitespace-nowrap">
-                      Pin Main Menu
+                      Pin Menu
                     </span>
                     <button
                       type="button"
                       onClick={() => setMenuPinned((current) => !current)}
-                      className="main-menu-pin flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-500/10 transition-colors shrink-0"
+                      className="main-menu-pin flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-blue-500/10 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-300 transition-colors shrink-0"
                       aria-label={menuPinned ? "Unpin main menu" : "Pin main menu open"}
                       aria-pressed={menuPinned}
                       title={menuPinned ? "Unpin main menu" : "Keep main menu open"}
@@ -4002,28 +4132,38 @@ export function LineWatchShell({
                         const isClear = !hasAlert && !hasDelay && !hasRSZ && !hasClosure;
                         
                         return (
-                          <div key={l.id} className="flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm">
+                          <button
+                            key={l.id}
+                            type="button"
+                            onClick={() => openLineImpacts(l.id)}
+                            aria-label={`View all service impacts for ${l.name}`}
+                            className="flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm text-left hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors"
+                          >
                              <TransitLineBadge lineId={l.id} lineNumber={l.number} lineName={l.name} size={24} className="flex-shrink-0" />
-                             <div className="flex flex-col justify-center">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
-                                  <div className="flex items-center gap-1.5 ml-1">
+                             <div className="flex min-w-0 flex-1 flex-col justify-center">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span className="min-w-0 truncate text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
+                                  <div className="ml-auto flex shrink-0 items-center gap-1.5">
                                     {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
                                     {hasDelay && <DelayIcon size={14} className="delay-tone" /> /* /assets/linewatch/delay-icon.svg */}
                                     {hasRSZ && <Construction size={14} className="rsz-tone" />}
                                     {hasClosure && <PlannedClosureIcon size={14} className="text-blue-500 dark:text-blue-400" />}
                                   </div>
                                   {isClear && (
-                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider ml-1">
-                                      {clearServiceStatusLabel({
+                                    <CircleCheck
+                                      size={16}
+                                      strokeWidth={2.7}
+                                      className="ml-1 shrink-0 text-emerald-600 dark:text-emerald-400"
+                                      aria-label={clearServiceStatusLabel({
                                         networkId: selectedNetwork,
                                         dataSource: displayData.dataSource,
                                       })}
-                                    </span>
+                                    />
                                   )}
                                 </div>
                              </div>
-                          </div>
+                             <ChevronRight size={19} strokeWidth={2.8} className="shrink-0 text-slate-500 dark:text-slate-300" aria-hidden="true" />
+                          </button>
                         );
                       })}
                    </div>

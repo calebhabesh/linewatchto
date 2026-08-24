@@ -29,7 +29,17 @@ public class IngestionRunService {
         FeedApplicationCounts counts,
         OffsetDateTime sourceFeedUpdatedAt
     ) {
-        store.markSuccess(id, now(), counts, sourceFeedUpdatedAt);
+        succeed(id, counts, sourceFeedUpdatedAt, TtcSubwayClosureSnapshot.unavailable());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void succeed(
+        long id,
+        FeedApplicationCounts counts,
+        OffsetDateTime sourceFeedUpdatedAt,
+        TtcSubwayClosureSnapshot subwayClosures
+    ) {
+        store.markSuccess(id, now(), counts, sourceFeedUpdatedAt, subwayClosures);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

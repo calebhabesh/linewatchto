@@ -278,7 +278,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
             <div className="site-guide-title">
               <Info size={18} aria-hidden="true" />
               <div>
-                <h2>LineWatchTO Guide</h2>
+                <h2><span className="linewatch-wordmark">LineWatchTO</span> Guide</h2>
                 <p>Unofficial TTC subway and LRT reliability dashboard.</p>
               </div>
             </div>
