@@ -5108,7 +5108,8 @@ button {
 }
 
 .opening-welcome-portrait-frame img {
-  object-fit: contain;
+  object-fit: cover;
+  object-position: top center;
 }
 
 .opening-welcome-personal-grid figcaption {

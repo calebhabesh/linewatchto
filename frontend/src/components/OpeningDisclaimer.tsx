@@ -482,21 +482,21 @@ export function OpeningDisclaimer({
                         <div className="opening-welcome-personal-grid">
                           <figure>
                             <div className="opening-welcome-portrait-frame">
-                              <Image src="/assets/linewatch/onboarding/desktop-my-commutes.png" alt="My Commutes route with current impact and planning-time details" fill sizes="250px" draggable={false} />
+                              <Image src="/assets/linewatch/onboarding/desktop-my-commutes-v3.png" alt="My Commutes route with current impact and planning-time details" fill sizes="250px" draggable={false} />
                             </div>
-                            <figcaption>My Commutes</figcaption>
+                            <figcaption>Your Commutes</figcaption>
                           </figure>
                           <figure>
                             <div className="opening-welcome-portrait-frame">
-                              <Image src="/assets/linewatch/onboarding/desktop-my-stations.png" alt="My Stations panel with a saved station and upcoming arrivals" fill sizes="250px" draggable={false} />
+                              <Image src="/assets/linewatch/onboarding/desktop-my-stations-v3.png" alt="My Stations panel with a saved station and upcoming arrivals" fill sizes="250px" draggable={false} />
                             </div>
-                            <figcaption>My Stations</figcaption>
+                            <figcaption>Your Stations</figcaption>
                           </figure>
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-desktop-slide-3">Make It Yours</h2>
                           <p>
-                            My Commutes is designed to monitor routes within the transit systems LineWatchTO covers. It is not a
+                            Use My Stations to keep arrivals and station impacts for your frequented stations close at hand. My Commutes is designed to monitor routes within the transit systems LineWatchTO covers. It is not a
                             journey planner or wayfinder such as Google Maps.
                           </p>
                         </div>
@@ -567,10 +567,10 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-3">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
-                          <Image src="/assets/linewatch/onboarding/mobile-my-commutes.png" alt="Mobile My Commutes route with a current service impact" fill sizes="340px" draggable={false} />
+                          <Image src="/assets/linewatch/onboarding/mobile-my-commutes-v3.png" alt="Mobile My Commutes route with a current service impact" fill sizes="340px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
-                          <h2 id="opening-mobile-slide-3">Monitor My Commutes</h2>
+                          <h2 id="opening-mobile-slide-3">Monitor Your Commutes</h2>
                           <p>
                             Monitor disruptions on routes within the transit systems LineWatchTO covers. My Commutes is not a journey
                             planner or wayfinder such as Google Maps.
@@ -586,11 +586,11 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-4">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
-                          <Image src="/assets/linewatch/onboarding/mobile-my-stations.png" alt="Mobile My Stations panel showing a saved station" fill sizes="340px" draggable={false} />
+                          <Image src="/assets/linewatch/onboarding/mobile-my-stations-v3.png" alt="Mobile My Stations panel showing a saved station" fill sizes="340px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
-                          <h2 id="opening-mobile-slide-4">Watch My Stations</h2>
-                          <p>Keep arrivals and current station impacts close at hand.</p>
+                          <h2 id="opening-mobile-slide-4">Watch Your Stations</h2>
+                          <p>Keep arrivals and station impacts for your frequented stations close at hand.</p>
                         </div>
                       </article>
                     </div>

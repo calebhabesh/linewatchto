@@ -29,16 +29,16 @@ describe("first-visit welcome experience", () => {
     assert.match(onboardingSource, /Read the Live Map/);
     assert.match(onboardingSource, /Explore an Impact/);
     assert.match(onboardingSource, /Make It Yours/);
-    assert.match(onboardingSource, /Monitor My Commutes/);
-    assert.match(onboardingSource, /Watch My Stations/);
+    assert.match(onboardingSource, /Monitor Your Commutes/);
+    assert.match(onboardingSource, /Watch Your Stations/);
     assert.match(onboardingSource, /desktop-map-guide\.png/);
     assert.match(onboardingSource, /desktop-impact-details\.png/);
-    assert.match(onboardingSource, /desktop-my-commutes\.png/);
-    assert.match(onboardingSource, /desktop-my-stations\.png/);
+    assert.match(onboardingSource, /desktop-my-commutes-v3\.png/);
+    assert.match(onboardingSource, /desktop-my-stations-v3\.png/);
     assert.match(onboardingSource, /mobile-map-guide\.png/);
     assert.match(onboardingSource, /mobile-impact-details\.png/);
-    assert.match(onboardingSource, /mobile-my-commutes\.png/);
-    assert.match(onboardingSource, /mobile-my-stations\.png/);
+    assert.match(onboardingSource, /mobile-my-commutes-v3\.png/);
+    assert.match(onboardingSource, /mobile-my-stations-v3\.png/);
   });
 
   it("uses stable responsive slide stages and accessible manual controls", () => {

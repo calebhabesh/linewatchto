@@ -257,12 +257,12 @@ test("introduces first-time riders before showing the unofficial-project notice"
   await expect(activeSlide).toContainText(isMobile ? /Tap for alert details/i : /Explore an impact/i);
   await expectActiveWelcomeSlideToFit(carousel);
   await carousel.getByRole("button", { name: "Next" }).click();
-  await expect(activeSlide).toContainText(isMobile ? /Monitor My Commutes/i : /Make it yours/i);
+  await expect(activeSlide).toContainText(isMobile ? /Monitor Your Commutes/i : /Make it yours/i);
   await expectActiveWelcomeSlideToFit(carousel);
   await expect(carousel.getByAltText(/My Commutes route/)).toBeVisible();
   if (isMobile) {
     await carousel.getByRole("button", { name: "Next" }).click();
-    await expect(activeSlide).toContainText(/Watch My Stations/i);
+    await expect(activeSlide).toContainText(/Watch Your Stations/i);
     await expectActiveWelcomeSlideToFit(carousel);
   }
   await expect(carousel.getByAltText(/My Stations panel/)).toBeVisible();
