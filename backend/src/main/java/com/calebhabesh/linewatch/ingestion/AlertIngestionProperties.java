@@ -18,7 +18,7 @@ public class AlertIngestionProperties {
     private boolean subwayClosureSupplementEnabled = true;
     private URI subwayClosureSearchUrl = URI.create("https://www.ttc.ca/sxa/search/results/");
     private URI subwayClosureBaseUrl = URI.create("https://www.ttc.ca");
-    private int subwayClosureMaxEntries = 100;
+    private int subwayClosureMaxEntries = 250;
     private URI surfaceGtfsRtUrl;
     private List<URI> surfaceGtfsRtUrls = List.of(
         DEFAULT_BUS_GTFS_RT_URL,

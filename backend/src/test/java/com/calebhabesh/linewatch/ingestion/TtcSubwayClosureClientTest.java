@@ -39,6 +39,8 @@ class TtcSubwayClosureClientTest {
             assertThat(uri.getRawQuery())
                 .contains("v=%7B23DC07D4-6BAC-4B98-A9CC-07606C5B1322%7D")
                 .contains("s=%7B99D7699F-DB47-4BB1-8946-77561CE7B320%7D")
+                .contains("p=100")
+                .contains("e=0")
                 .contains("itemid=%7B72CC555F-9128-4581-AD12-3D04AB1C87BA%7D");
         }).andRespond(withSuccess("""
             {"Results":[{"Id":"closure-id","Url":"/service-advisories/subway-service/example"}]}
@@ -52,6 +54,59 @@ class TtcSubwayClosureClientTest {
         assertThat(snapshot.records()).singleElement().satisfies(record ->
             assertThat(record.record().id()).isEqualTo("ttc-ca-closure-closure-id")
         );
+        server.verify();
+    }
+
+    @Test
+    void followsSitecoreOffsetsWhenTheResultSetExceedsOneSearchPage() {
+        server.expect(request -> assertThat(request.getURI().getRawQuery())
+            .contains("p=100")
+            .contains("e=0"))
+            .andRespond(withSuccess("""
+                {"Count":101,"Results":[
+                  {"Id":"first-advisory","Url":"/service-advisories/subway-service/first"}
+                ]}
+                """, MediaType.APPLICATION_JSON));
+        server.expect(request -> assertThat(request.getURI().getRawQuery())
+            .contains("p=100")
+            .contains("e=100"))
+            .andRespond(withSuccess("""
+                {"Count":101,"Results":[
+                  {"Id":"last-advisory","Url":"/service-advisories/subway-service/last"}
+                ]}
+                """, MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://www.ttc.ca/service-advisories/subway-service/first"))
+            .andRespond(withSuccess(detailPage(), MediaType.TEXT_HTML));
+        server.expect(requestTo("https://www.ttc.ca/service-advisories/subway-service/last"))
+            .andRespond(withSuccess(detailPage(), MediaType.TEXT_HTML));
+
+        TtcSubwayClosureSnapshot snapshot = client.fetch();
+
+        assertThat(snapshot.available()).isTrue();
+        assertThat(snapshot.records()).extracting(record -> record.record().id())
+            .containsExactly(
+                "ttc-ca-closure-first-advisory",
+                "ttc-ca-closure-last-advisory"
+            );
+        server.verify();
+    }
+
+    @Test
+    void treatsAnOverLimitListingAsUnavailableInsteadOfApplyingAPartialSnapshot() {
+        properties.setSubwayClosureMaxEntries(100);
+        server.expect(request -> assertThat(request.getURI().getRawQuery())
+            .contains("p=100")
+            .contains("e=0"))
+            .andRespond(withSuccess("""
+                {"Count":101,"Results":[
+                  {"Id":"first-advisory","Url":"/service-advisories/subway-service/first"}
+                ]}
+                """, MediaType.APPLICATION_JSON));
+
+        TtcSubwayClosureSnapshot snapshot = client.fetch();
+
+        assertThat(snapshot.available()).isFalse();
+        assertThat(snapshot.records()).isEmpty();
         server.verify();
     }
 

@@ -17857,6 +17857,12 @@ img.transit-line-badge {
   .mobile-line-status-chevron {
     flex: 0 0 auto;
     color: rgb(100, 116, 139);
+    transition: transform 0.18s ease;
+  }
+
+  .mobile-line-status-summary:hover .mobile-line-status-chevron,
+  .mobile-line-status-summary:focus-visible .mobile-line-status-chevron {
+    transform: translateX(3px);
   }
 
   .dark .mobile-line-status-chevron {

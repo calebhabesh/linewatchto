@@ -26,6 +26,6 @@ class AlertIngestionPropertiesTest {
             .isEqualTo(URI.create("https://www.ttc.ca/sxa/search/results/"));
         assertThat(properties.getSubwayClosureBaseUrl())
             .isEqualTo(URI.create("https://www.ttc.ca"));
-        assertThat(properties.getSubwayClosureMaxEntries()).isEqualTo(100);
+        assertThat(properties.getSubwayClosureMaxEntries()).isEqualTo(250);
     }
 }

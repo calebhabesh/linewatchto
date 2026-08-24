@@ -4137,7 +4137,7 @@ export function LineWatchShell({
                             type="button"
                             onClick={() => openLineImpacts(l.id)}
                             aria-label={`View all service impacts for ${l.name}`}
-                            className="flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm text-left hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors"
+                            className="group/line-status flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm text-left hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors"
                           >
                              <TransitLineBadge lineId={l.id} lineNumber={l.number} lineName={l.name} size={24} className="flex-shrink-0" />
                              <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -4162,7 +4162,7 @@ export function LineWatchShell({
                                   )}
                                 </div>
                              </div>
-                             <ChevronRight size={19} strokeWidth={2.8} className="shrink-0 text-slate-500 dark:text-slate-300" aria-hidden="true" />
+                             <ChevronRight size={19} strokeWidth={2.8} className="shrink-0 text-slate-500 dark:text-slate-300 transition-transform duration-200 ease-out group-hover/line-status:translate-x-[3px]" aria-hidden="true" />
                           </button>
                         );
                       })}
