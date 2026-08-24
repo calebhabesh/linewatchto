@@ -22,7 +22,7 @@ import {
 
 const port = Number(process.env.LINEWATCH_STUB_PORT ?? "4174");
 let mode = "seeded";
-let demoSessionActive = false;
+let sessionUser = null;
 let demoSavedStations = [];
 let estimatedTrainMotionAdvanced = false;
 let estimatedTrainConnectionDropped = false;
@@ -101,6 +101,14 @@ const demoUser = {
   email: "demo@linewatch.local",
   displayName: "Demo Rider",
   demo: true,
+};
+
+const verifiedEmailUser = {
+  id: "user_1",
+  email: "rider@example.com",
+  displayName: "Rider",
+  demo: false,
+  googleLinked: false,
 };
 
 const demoOutboundPath = {
@@ -330,7 +338,7 @@ const server = createServer(async (request, response) => {
       return;
     }
     mode = body.mode;
-    demoSessionActive = false;
+    sessionUser = null;
     demoSavedStations = [];
     estimatedTrainMotionAdvanced = false;
     estimatedTrainConnectionDropped = false;
@@ -398,15 +406,15 @@ const server = createServer(async (request, response) => {
 
   // Account & Auth Stubs
   if (request.method === "GET" && url.pathname === "/api/auth/me") {
-    sendJson(request, response, 200, demoSessionActive
-      ? { authenticated: true, user: demoUser }
+    sendJson(request, response, 200, sessionUser
+      ? { authenticated: true, user: sessionUser }
       : { authenticated: false, user: null }
     );
     return;
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/demo") {
-    demoSessionActive = true;
+    sessionUser = demoUser;
     sendJson(request, response, 200, { authenticated: true, user: demoUser }, {
       "set-cookie": "linewatch_session=smoke-demo-session; Path=/; HttpOnly; SameSite=Lax",
     });
@@ -414,9 +422,48 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/logout") {
-    demoSessionActive = false;
+    sessionUser = null;
     sendJson(request, response, 200, { authenticated: false, user: null }, {
       "set-cookie": "linewatch_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+    });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/register") {
+    sendJson(request, response, 200, {
+      accepted: true,
+      message: "Check your email to verify your LineWatchTO account before signing in.",
+      devVerificationToken: "smoke-verification-token",
+      expiresAt: "2026-06-06T14:30:00Z",
+    });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/email-verification/request") {
+    sendJson(request, response, 200, {
+      accepted: true,
+      message: "If an unverified account exists for that email, a verification link has been sent.",
+      devVerificationToken: "smoke-verification-token",
+      expiresAt: "2026-06-06T14:30:00Z",
+    });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/email-verification/confirm") {
+    const body = await readJson(request);
+    if (body.token !== "smoke-verification-token") {
+      sendJson(request, response, 400, {
+        error: "invalid_verification_token",
+        message: "Verification link expired or invalid. Request a new link and try again.",
+      });
+      return;
+    }
+    sessionUser = verifiedEmailUser;
+    sendJson(request, response, 200, {
+      authenticated: true,
+      user: verifiedEmailUser,
+    }, {
+      "set-cookie": "linewatch_session=smoke-verification-session; Path=/; HttpOnly; SameSite=Lax",
     });
     return;
   }
@@ -432,15 +479,10 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/password-reset/confirm") {
-    demoSessionActive = true;
+    sessionUser = verifiedEmailUser;
     sendJson(request, response, 200, {
       authenticated: true,
-      user: {
-        id: "user_1",
-        email: "rider@example.com",
-        displayName: "Rider",
-        demo: false,
-      },
+      user: verifiedEmailUser,
     }, {
       "set-cookie": "linewatch_session=smoke-reset-session; Path=/; HttpOnly; SameSite=Lax",
     });
@@ -448,7 +490,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/account/commutes") {
-    if (!demoSessionActive) {
+    if (!sessionUser) {
       sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use My Commutes." });
       return;
     }
@@ -457,7 +499,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/account/stations") {
-    if (!demoSessionActive) {
+    if (!sessionUser) {
       sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use account features." });
       return;
     }
@@ -466,7 +508,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "PUT" && /^\/api\/account\/stations\/[^/]+$/.test(url.pathname)) {
-    if (!demoSessionActive) {
+    if (!sessionUser) {
       sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use account features." });
       return;
     }
@@ -490,7 +532,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "DELETE" && /^\/api\/account\/stations\/[^/]+$/.test(url.pathname)) {
-    if (!demoSessionActive) {
+    if (!sessionUser) {
       sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use account features." });
       return;
     }
@@ -503,7 +545,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "PATCH" && /^\/api\/account\/commutes\/[^/]+\/notification-rule$/.test(url.pathname)) {
-    if (!demoSessionActive) {
+    if (!sessionUser) {
       sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use My Commutes." });
       return;
     }
@@ -529,7 +571,7 @@ const server = createServer(async (request, response) => {
 
   // Push Notification Stubs
   if (url.pathname.startsWith("/api/account/push/")) {
-    if (!demoSessionActive) {
+    if (!sessionUser) {
       sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to manage notifications." });
       return;
     }

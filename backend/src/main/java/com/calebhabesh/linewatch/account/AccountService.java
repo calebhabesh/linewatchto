@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.account;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +23,7 @@ public class AccountService {
     private static final Duration MAX_SESSION_RENEWAL_INTERVAL = Duration.ofDays(1);
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_EMAIL_LENGTH = 320;
-    private static final int MAX_PASSWORD_LENGTH = 256;
+    private static final int MAX_PASSWORD_BYTES = 72;
     private static final int MAX_DISPLAY_NAME_LENGTH = 120;
     private static final int MAX_RESET_TOKEN_LENGTH = 256;
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
@@ -32,6 +33,8 @@ public class AccountService {
 
     private static final Duration PASSWORD_RESET_TTL = Duration.ofMinutes(30);
     private static final String PASSWORD_RESET_MESSAGE = "If an account exists for that email, a password reset link has been sent.";
+    private static final String EMAIL_VERIFICATION_MESSAGE = "If an unverified account exists for that email, a verification link has been sent.";
+    private static final String REGISTRATION_VERIFICATION_MESSAGE = "Check your email to verify your LineWatchTO account before signing in.";
 
     private final AccountRepository accountRepository;
     private final UserSessionRepository sessionRepository;
@@ -40,6 +43,7 @@ public class AccountService {
     private final SessionTokenService tokenService;
     private final PasswordResetEmailSender passwordResetEmailSender;
     private final PasswordResetLinkFactory passwordResetLinkFactory;
+    private final EmailVerificationService emailVerificationService;
     private final AccountAuthIdentityRepository authIdentityRepository;
     private final SavedCommuteRepository savedCommuteRepository;
     private final GoogleIdentityVerifier googleIdentityVerifier;
@@ -47,6 +51,7 @@ public class AccountService {
     private final AccountSessionRequestContext sessionRequestContext;
     private final Clock clock;
     private final boolean passwordResetDevLinks;
+    private final boolean emailVerificationDevLinks;
     private final Duration sessionTtl;
 
     @Autowired
@@ -58,12 +63,14 @@ public class AccountService {
         SessionTokenService tokenService,
         PasswordResetEmailSender passwordResetEmailSender,
         PasswordResetLinkFactory passwordResetLinkFactory,
+        EmailVerificationService emailVerificationService,
         AccountAuthIdentityRepository authIdentityRepository,
         SavedCommuteRepository savedCommuteRepository,
         GoogleIdentityVerifier googleIdentityVerifier,
         GoogleAuthProperties googleAuthProperties,
         AccountSessionRequestContext sessionRequestContext,
         @org.springframework.beans.factory.annotation.Value("${linewatch.auth.password-reset.dev-links:false}") boolean passwordResetDevLinks,
+        @org.springframework.beans.factory.annotation.Value("${linewatch.auth.email-verification.dev-links:false}") boolean emailVerificationDevLinks,
         @org.springframework.beans.factory.annotation.Value("${linewatch.auth.session-ttl:P365D}") Duration sessionTtl
     ) {
         this(
@@ -74,6 +81,7 @@ public class AccountService {
             tokenService,
             passwordResetEmailSender,
             passwordResetLinkFactory,
+            emailVerificationService,
             authIdentityRepository,
             savedCommuteRepository,
             googleIdentityVerifier,
@@ -81,6 +89,7 @@ public class AccountService {
             sessionRequestContext,
             Clock.systemUTC(),
             passwordResetDevLinks,
+            emailVerificationDevLinks,
             sessionTtl
         );
     }
@@ -93,6 +102,7 @@ public class AccountService {
         SessionTokenService tokenService,
         PasswordResetEmailSender passwordResetEmailSender,
         PasswordResetLinkFactory passwordResetLinkFactory,
+        EmailVerificationService emailVerificationService,
         AccountAuthIdentityRepository authIdentityRepository,
         SavedCommuteRepository savedCommuteRepository,
         GoogleIdentityVerifier googleIdentityVerifier,
@@ -100,6 +110,7 @@ public class AccountService {
         AccountSessionRequestContext sessionRequestContext,
         Clock clock,
         boolean passwordResetDevLinks,
+        boolean emailVerificationDevLinks,
         Duration sessionTtl
     ) {
         this.accountRepository = accountRepository;
@@ -109,6 +120,7 @@ public class AccountService {
         this.tokenService = tokenService;
         this.passwordResetEmailSender = passwordResetEmailSender;
         this.passwordResetLinkFactory = passwordResetLinkFactory;
+        this.emailVerificationService = emailVerificationService;
         this.authIdentityRepository = authIdentityRepository;
         this.savedCommuteRepository = savedCommuteRepository;
         this.googleIdentityVerifier = googleIdentityVerifier;
@@ -116,6 +128,7 @@ public class AccountService {
         this.sessionRequestContext = sessionRequestContext;
         this.clock = clock;
         this.passwordResetDevLinks = passwordResetDevLinks;
+        this.emailVerificationDevLinks = emailVerificationDevLinks;
         if (sessionTtl == null || sessionTtl.isZero() || sessionTtl.isNegative()) {
             throw new IllegalArgumentException("Session TTL must be positive.");
         }
@@ -123,34 +136,60 @@ public class AccountService {
     }
 
     @Transactional
-    public AccountResponses.AuthSession register(RegisterRequest request) {
+    public EmailVerificationRequestResponse register(RegisterRequest request) {
+        if (request == null) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_email", "Enter a valid email address.");
+        }
         String email = normalizeEmail(request.email());
-        validatePassword(request.password());
-        if (accountRepository.existsByEmail(email)) {
+        Instant now = clock.instant();
+        String displayName = normalizeDisplayName(request.displayName(), email);
+        AccountEntity saved = accountRepository.findByEmail(email)
+            .map(existing -> reusePendingEmailAccount(existing, displayName))
+            .orElseGet(() -> accountRepository.save(AccountEntity.createPendingEmailAccount(
+                nextId("user"),
+                email,
+                displayName,
+                now
+            )));
+        EmailVerificationService.IssuedVerification issued = emailVerificationService.issue(saved, now);
+        return new EmailVerificationRequestResponse(
+            true,
+            REGISTRATION_VERIFICATION_MESSAGE,
+            emailVerificationDevLinks ? issued.rawToken() : null,
+            issued.expiresAt()
+        );
+    }
+
+    private AccountEntity reusePendingEmailAccount(AccountEntity account, String displayName) {
+        if (account.isEmailVerified()) {
             throw new AccountException(HttpStatus.CONFLICT, "email_exists", "An account with that email already exists.");
         }
-
-        Instant now = clock.instant();
-        AccountEntity account = AccountEntity.create(
-            nextId("user"),
-            email,
-            normalizeDisplayName(request.displayName(), email),
-            passwordHasher.hash(request.password()),
-            false,
-            now
-        );
-        account.markLogin(now);
-        AccountEntity saved = accountRepository.save(account);
-        return createSession(saved, now);
+        account.updatePendingDisplayName(displayName);
+        return accountRepository.save(account);
     }
 
     @Transactional
     public AccountResponses.AuthSession login(LoginRequest request) {
+        if (request == null) {
+            throw invalidCredentials();
+        }
         String email = normalizeEmail(request.email());
         AccountEntity account = accountRepository.findByEmail(email)
             .orElseThrow(this::invalidCredentials);
-        if (account.getPasswordHash() == null || !passwordHasher.matches(request.password(), account.getPasswordHash())) {
+        if (
+            account.getPasswordHash() == null ||
+                request.password() == null ||
+                passwordByteLength(request.password()) > MAX_PASSWORD_BYTES ||
+                !passwordHasher.matches(request.password(), account.getPasswordHash())
+        ) {
             throw invalidCredentials();
+        }
+        if (!account.isEmailVerified()) {
+            throw new AccountException(
+                HttpStatus.FORBIDDEN,
+                "email_not_verified",
+                "Verify your email before signing in. You can request a new verification link."
+            );
         }
 
         Instant now = clock.instant();
@@ -218,12 +257,13 @@ public class AccountService {
 
     @Transactional
     public AccountResponses.AuthSession googleLogin(GoogleLoginRequest request) {
-        VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request.credential());
+        VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request == null ? null : request.credential());
         return googleLogin(googleIdentity);
     }
 
     @Transactional
     public AccountResponses.AuthSession googleLogin(VerifiedGoogleIdentity googleIdentity) {
+        requireVerifiedGoogleEmail(googleIdentity);
         String email = normalizeEmail(googleIdentity.email());
         Instant now = clock.instant();
 
@@ -234,6 +274,9 @@ public class AccountService {
             .map(identity -> {
                 identity.updateGoogleProfile(email, googleIdentity.emailVerified(), now);
                 AccountEntity account = identity.getAccount();
+                if (email.equals(account.getEmail()) && googleIdentity.emailVerified()) {
+                    account.markEmailVerified(now);
+                }
                 account.markLogin(now);
                 return createSession(account, now, true);
             })
@@ -242,12 +285,13 @@ public class AccountService {
 
     @Transactional
     public AccountResponses.AuthResponse linkGoogle(String rawSessionToken, GoogleLoginRequest request) {
-        VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request.credential());
+        VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request == null ? null : request.credential());
         return linkGoogle(rawSessionToken, googleIdentity);
     }
 
     @Transactional
     public AccountResponses.AuthResponse linkGoogle(String rawSessionToken, VerifiedGoogleIdentity googleIdentity) {
+        requireVerifiedGoogleEmail(googleIdentity);
         AccountEntity account = requireAccount(rawSessionToken);
         if (account.isDemo()) {
             throw new AccountException(HttpStatus.CONFLICT, "google_link_demo_account", "Demo accounts cannot link Google sign-in.");
@@ -272,21 +316,15 @@ public class AccountService {
     }
 
     private AccountResponses.AuthSession createGoogleAccountSession(VerifiedGoogleIdentity googleIdentity, String email, Instant now) {
-        accountRepository.findByEmail(email).ifPresent(account -> {
-            throw new AccountException(
-                HttpStatus.CONFLICT,
-                "google_account_link_required",
-                "An account already exists for that email. Sign in with email and password before linking Google."
-            );
-        });
-
-        AccountEntity account = AccountEntity.createPasswordless(
-            nextId("user"),
-            email,
-            normalizeDisplayName(googleIdentity.displayName(), email),
-            false,
-            now
-        );
+        AccountEntity account = accountRepository.findByEmail(email)
+            .map(existing -> claimPendingEmailAccountWithGoogle(existing, googleIdentity, now))
+            .orElseGet(() -> AccountEntity.createPasswordless(
+                nextId("user"),
+                email,
+                normalizeDisplayName(googleIdentity.displayName(), email),
+                false,
+                now
+            ));
         account.markLogin(now);
         AccountEntity saved = accountRepository.save(account);
         authIdentityRepository.save(AccountAuthIdentityEntity.createGoogle(
@@ -298,6 +336,25 @@ public class AccountService {
             now
         ));
         return createSession(saved, now, true);
+    }
+
+    private AccountEntity claimPendingEmailAccountWithGoogle(
+        AccountEntity account,
+        VerifiedGoogleIdentity googleIdentity,
+        Instant now
+    ) {
+        if (account.isEmailVerified()) {
+            throw new AccountException(
+                HttpStatus.CONFLICT,
+                "google_account_link_required",
+                "An account already exists for that email. Sign in with email and password before linking Google."
+            );
+        }
+        account.updatePendingDisplayName(normalizeDisplayName(googleIdentity.displayName(), account.getEmail()));
+        account.clearPasswordHash();
+        account.markEmailVerified(now);
+        emailVerificationService.discardPendingTokens(account.getId());
+        return account;
     }
 
     private AccountResponses.AuthResponse updateExistingGoogleLink(
@@ -362,6 +419,10 @@ public class AccountService {
             log.info("Account authentication outcome=expired_session operation=current_user");
             return new AccountResponses.AuthResponse(false, null);
         }
+        if (!session.getAccount().isEmailVerified()) {
+            log.info("Account authentication outcome=email_not_verified operation=current_user");
+            return new AccountResponses.AuthResponse(false, null);
+        }
         boolean renewed = extendSessionIfNecessary(session);
         sessionRequestContext.markValidated(renewed);
         log.debug("Account authentication outcome=authenticated operation=current_user renewed={}", renewed);
@@ -399,6 +460,9 @@ public class AccountService {
             log.info("Account authentication outcome=expired_session operation=protected_account");
             throw notAuthenticated();
         }
+        if (!session.getAccount().isEmailVerified()) {
+            throw notAuthenticated();
+        }
         sessionRequestContext.markValidated(extendSessionIfNecessary(session));
         return session.getAccount();
     }
@@ -410,6 +474,7 @@ public class AccountService {
         }
         return sessionRepository.findByTokenHash(tokenService.hashToken(rawSessionToken))
             .filter(session -> session.getExpiresAt().isAfter(clock.instant()))
+            .filter(session -> session.getAccount().isEmailVerified())
             .map(this::extendSessionIfNecessary)
             .orElse(false);
     }
@@ -504,8 +569,8 @@ public class AccountService {
 
     private void validatePassword(String password) {
         String candidate = password == null ? "" : password.trim();
-        if (candidate.length() > MAX_PASSWORD_LENGTH) {
-            throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must be 256 characters or less.");
+        if (passwordByteLength(password) > MAX_PASSWORD_BYTES) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must be 72 UTF-8 bytes or less.");
         }
         if (candidate.length() < MIN_PASSWORD_LENGTH) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must be at least 8 characters.");
@@ -522,6 +587,20 @@ public class AccountService {
         }
     }
 
+    private int passwordByteLength(String password) {
+        return password == null ? 0 : password.getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    private void requireVerifiedGoogleEmail(VerifiedGoogleIdentity googleIdentity) {
+        if (googleIdentity == null || !googleIdentity.emailVerified()) {
+            throw new AccountException(
+                HttpStatus.UNAUTHORIZED,
+                "invalid_google_credential",
+                "Could not verify Google sign-in."
+            );
+        }
+    }
+
     private AccountException invalidCredentials() {
         return new AccountException(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Incorrect Email or Password.");
     }
@@ -531,7 +610,54 @@ public class AccountService {
     }
 
     @Transactional
+    public EmailVerificationRequestResponse requestEmailVerification(EmailVerificationRequest request) {
+        if (request == null) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_email", "Enter a valid email address.");
+        }
+        String email = normalizeEmail(request.email());
+        Instant now = clock.instant();
+
+        return accountRepository.findByEmail(email)
+            .filter(account -> !account.isDemo() && !account.isEmailVerified())
+            .map(account -> {
+                EmailVerificationService.IssuedVerification issued = emailVerificationService.issue(account, now);
+                return new EmailVerificationRequestResponse(
+                    true,
+                    EMAIL_VERIFICATION_MESSAGE,
+                    emailVerificationDevLinks ? issued.rawToken() : null,
+                    issued.expiresAt()
+                );
+            })
+            .orElseGet(() -> new EmailVerificationRequestResponse(
+                true,
+                EMAIL_VERIFICATION_MESSAGE,
+                null,
+                null
+            ));
+    }
+
+    @Transactional
+    public AccountResponses.AuthSession confirmEmailVerification(EmailVerificationConfirmRequest request) {
+        if (request == null) {
+            throw new AccountException(
+                HttpStatus.BAD_REQUEST,
+                "invalid_verification_token",
+                "Verification link expired or invalid. Request a new link and try again."
+            );
+        }
+        validatePassword(request.password());
+        Instant now = clock.instant();
+        AccountEntity account = emailVerificationService.confirm(request.token(), now);
+        account.replacePasswordHash(passwordHasher.hash(request.password()));
+        account.markLogin(now);
+        return createSession(account, now);
+    }
+
+    @Transactional
     public PasswordResetRequestResponse requestPasswordReset(PasswordResetRequest request) {
+        if (request == null) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_email", "Enter a valid email address.");
+        }
         String email = normalizeEmail(request.email());
         Instant now = clock.instant();
         passwordResetTokenRepository.deleteExpiredTokens(now);
@@ -562,6 +688,9 @@ public class AccountService {
 
     @Transactional
     public AccountResponses.AuthSession confirmPasswordReset(PasswordResetConfirmRequest request) {
+        if (request == null) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_reset_token", "Reset link expired or invalid.");
+        }
         String rawToken = request.token() == null ? "" : request.token().trim();
         if (rawToken.isBlank()) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_reset_token", "Reset link expired or invalid.");
@@ -579,16 +708,19 @@ public class AccountService {
 
         AccountEntity account = resetToken.getAccount();
         account.replacePasswordHash(passwordHasher.hash(request.password()));
+        account.markEmailVerified(now);
         resetToken.markUsed(now);
         sessionRepository.deleteByAccountId(account.getId());
         account.markLogin(now);
         return createSession(account, now);
     }
 
-    public record RegisterRequest(String email, String password, String displayName) {}
+    public record RegisterRequest(String email, String displayName) {}
     public record LoginRequest(String email, String password) {}
     public record LogoutRequest(String pushEndpoint) {}
     public record GoogleLoginRequest(String credential) {}
+    public record EmailVerificationRequest(String email) {}
+    public record EmailVerificationConfirmRequest(String token, String password) {}
     public record PasswordResetRequest(String email) {}
     public record PasswordResetConfirmRequest(String token, String password) {}
     private record DevCommuteSeed(
@@ -602,6 +734,12 @@ public class AccountService {
         boolean accepted,
         String message,
         String devResetToken,
+        Instant expiresAt
+    ) {}
+    public record EmailVerificationRequestResponse(
+        boolean accepted,
+        String message,
+        String devVerificationToken,
         Instant expiresAt
     ) {}
 }

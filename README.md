@@ -36,7 +36,7 @@ Implemented now:
 - Network-scoped regional My Commutes with GO/UP route computation over the reviewed 72-station/74-link schematic topology, shared-station and Union transfers, route endpoint/label/return-leg editing, map path review, low-confidence planning-time estimates, freshness-gated corridor, segment, and station disruption matching, and granular per-route Web Push rules.
 - Account-backed, cross-map My Stations watchlist with All/TTC/GO & UP filtering, network-qualified station identity and actions, automatic network switching for station/impact drill-downs, save/remove actions in station details and global search, searchable/filterable/sortable rows, expandable fresh station-impact and accessibility-outage summaries, source-labeled compact station arrivals, and consistent desktop Account/mobile More navigation. Riders can pin a station's TTC line or GO/UP corridor arrivals to the top using a per-device preference that is shared by station detail and My Stations. My Stations does not send push notifications.
 - Account-backed Web Push notification subscriptions and preferences for TTC and GO/UP My Commutes impacts plus opt-in TTC line and GO/UP corridor subscriptions. My Commutes notifications can be narrowed per route; regional train cancellations have a distinct event-type preference instead of using the delay preference. Corridor subscribers can receive fresh structured cancellation notices. My Commutes cancellation delivery additionally requires an exact static-GTFS match, at least two matching path stops in the correct order/direction, the scheduled trip time inside the selected leg schedule, and the current time inside that notification window. Delivery remains opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, fresh relevant source data, and a matching route or line/corridor rule. Regional active and updated notifications reuse the lifecycle observation and deduplication path; cancellation expiry does not send a service-restored notification.
-- Account sign-in supports optional Google sign-in when a Google OAuth web client ID, client secret, and redirect URI are configured, while retaining email/password registration, explicit Google linking for existing password accounts, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
+- Account sign-in supports optional Google sign-in when a Google OAuth web client ID, client secret, and redirect URI are configured, while retaining email/password registration with mandatory email verification, explicit Google linking for existing password accounts, password reset through emailed reset links when SMTP is configured, local/dev token fallbacks, and demo login.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Source-labeled 30-day TTC line/station and GO/UP corridor/station disruption summaries derived from retained normalized alert lifecycles. Counted intervals must overlap verified polling, a GTFS-derived daily line/corridor service span, and any applicable planned-closure window. The UI separates unique service-impact time from additive incident-hours, reports polling and schedule-date coverage, and lowers confidence to the weaker coverage source without inventing a reliability score.
 - Redis-backed dashboard cache for status, map, alerts, reliability analytics, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable. Reliability line/corridor and station aggregates use normalized network-scoped keys, expire after one minute by default, and are evicted when successful alert ingestion refreshes dashboard data.
@@ -303,6 +303,8 @@ LINEWATCH_AUTH_ALLOWED_ORIGINS=https://linewatchto.ca,https://www.linewatchto.ca
 LINEWATCH_AUTH_TRUSTED_PROXY_CIDRS=127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
 LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false
 LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL=https://linewatchto.ca
+LINEWATCH_AUTH_EMAIL_VERIFICATION_DEV_LINKS=false
+LINEWATCH_EMAIL_VERIFICATION_FRONTEND_BASE_URL=https://linewatchto.ca
 LINEWATCH_INGESTION_ALERTS_ENABLED=true
 LINEWATCH_ARRIVALS_ENABLED=true
 LINEWATCH_ARRIVALS_PROVIDER=scheduled
@@ -334,17 +336,24 @@ LINEWATCH_ARRIVALS_TRAIN_MARKER_HORIZON=PT20M
 
 Live rows are shown only when the GTFS-RT Subway Trip Updates feed is fresh and the active static GTFS import can resolve the feed `stop_id` values to LineWatch stations. Missing directions or missing lines fall back to source-labeled scheduled service.
 
-Account auth endpoints have a small in-memory rate limiter for login, register, demo login, password-reset request, and password-reset confirmation. Keep it enabled in production, but also use your edge/provider rate-limit rules because the in-app limiter is per backend instance. Forwarded client addresses are accepted only when the immediate peer belongs to `LINEWATCH_AUTH_TRUSTED_PROXY_CIDRS`; the resolver walks `X-Forwarded-For` from the nearest hop and recognizes `CF-Connecting-IP` only when the nearest public proxy is in Cloudflare's configured CIDRs. The defaults trust loopback, private container networks, and Cloudflare's published ranges. Narrow either CIDR list if the deployment uses fixed proxy addresses.
+Account auth endpoints have a small in-memory rate limiter for login, register, demo login, email-verification request/confirmation, and password-reset request/confirmation. Keep it enabled in production, but also use your edge/provider rate-limit rules because the in-app limiter is per backend instance. Forwarded client addresses are accepted only when the immediate peer belongs to `LINEWATCH_AUTH_TRUSTED_PROXY_CIDRS`; the resolver walks `X-Forwarded-For` from the nearest hop and recognizes `CF-Connecting-IP` only when the nearest public proxy is in Cloudflare's configured CIDRs. The defaults trust loopback, private container networks, and Cloudflare's published ranges. Narrow either CIDR list if the deployment uses fixed proxy addresses.
 
-Normal account sessions use a persistent HttpOnly cookie and a one-year sliding expiry by default (`LINEWATCH_AUTH_SESSION_TTL=P365D`). After the first day, a valid authenticated request renews both the stored session and browser cookie at most once per day, keeping the effective inactivity window within one day of the configured TTL without writing on every request. Existing still-valid shorter sessions are upgraded on their next authenticated request. Explicit sign-out, password reset, browser/site-data clearing, or reaching the configured inactivity limit still ends the device session.
+New email/password accounts do not accept a password or receive a session until a 24-hour, one-time verification link is confirmed. The mailbox owner chooses the password at confirmation time, preventing an attacker from pre-registering a known password against somebody else's address. Only a SHA-256 token hash is stored. The emailed link carries the raw token in a browser-only URL fragment and removes it after hydration, keeping it out of request targets, proxy logs, and referrer headers. Pending addresses can receive a fresh link and can be safely claimed by the same verified Google address. Registration and resend requests share independent per-IP and per-email rate limits, and resend responses use neutral wording. The verification migration grandfathers accounts that existed before this feature so deployment does not invalidate existing sessions. A successful password reset also marks the account email verified because the reset link proves mailbox control.
+
+Registration fails closed with `503 email_verification_unavailable` when neither SMTP verification delivery nor loopback-only development links are available. This avoids creating a pending account that the rider has no way to activate.
+
+Normal verified account sessions use a persistent HttpOnly cookie and a one-year sliding expiry by default (`LINEWATCH_AUTH_SESSION_TTL=P365D`). After the first day, a valid authenticated request renews both the stored session and browser cookie at most once per day, keeping the effective inactivity window within one day of the configured TTL without writing on every request. Existing still-valid shorter sessions are upgraded on their next authenticated request. Explicit sign-out, password reset, browser/site-data clearing, or reaching the configured inactivity limit still ends the device session.
 
 Each public demo login receives a separate disposable account and session. Demo visitors can interact with My Commutes and My Stations without sharing account-owned state; logout removes the disposable account immediately, and maintenance removes abandoned accounts after session expiry.
 
-For Resend password-reset email, you can use `linewatchto.ca` now that you own the domain. Resend requires a verified domain before SMTP sending. Add `linewatchto.ca` or a sending subdomain such as `mail.linewatchto.ca` in Resend, publish the DKIM/SPF/DMARC DNS records Resend shows, then configure Spring Mail:
+For Resend account email (verification and password reset), you can use `linewatchto.ca` now that you own the domain. Resend requires a verified domain before SMTP sending. Add `linewatchto.ca` or a sending subdomain such as `mail.linewatchto.ca` in Resend, publish the DKIM/SPF/DMARC DNS records Resend shows, then configure Spring Mail:
 
 ```bash
 LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_ENABLED=true
 LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_FROM=no-reply@linewatchto.ca
+LINEWATCH_AUTH_EMAIL_VERIFICATION_EMAIL_ENABLED=true
+LINEWATCH_AUTH_EMAIL_VERIFICATION_EMAIL_FROM=no-reply@linewatchto.ca
+LINEWATCH_EMAIL_VERIFICATION_FRONTEND_BASE_URL=https://linewatchto.ca
 SPRING_MAIL_HOST=smtp.resend.com
 SPRING_MAIL_PORT=587
 SPRING_MAIL_USERNAME=resend
@@ -548,7 +557,7 @@ LINEWATCH_REGIONAL_TRAIN_MARKERS_ENABLED=true
 
 With those values in `.env.local`, `scripts/dev-live-backend.sh` polls GO service, information, and marketing alerts; GO and UP Express GTFS-RT alert feeds; GO Train Exceptions; and GO GTFS-RT TripUpdates. Every identified rider alert is raw-staged, while exceptions and TripUpdate entities use the separate operational store; only reviewed supported rail alerts are normalized for the dashboard. The profile also enables on-demand station estimates from GO Next Service and UP Express TripUpdates, imports the public GO/UP schedules as fallback, and enables freshness-gated schematic regional markers from the dedicated GO/UP VehiclePosition feeds. The key is added only to backend-to-Metrolinx requests and is never returned by the API or included in frontend configuration. Static schedule import does not require the developer key.
 
-This dev helper also enables local password-reset links by default. It binds the backend to `127.0.0.1` and returns a short-lived reset token to the frontend for existing local accounts so the `Forgot password?` flow can be tested without email delivery. When dev links are enabled, startup fails unless `SERVER_ADDRESS`, the reset frontend URL, and every allowed origin are loopback-only. Forwarded requests never receive the token or its expiry. Public tunnels, staging, AWS lab, and production must keep `LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false`.
+This dev helper also enables local email-verification and password-reset links by default. It binds the backend to `127.0.0.1` and returns one-time tokens to the frontend so registration and `Forgot password?` can be tested without email delivery. When dev links are enabled, startup fails unless `SERVER_ADDRESS`, the relevant frontend URLs, and every allowed origin are loopback-only. Forwarded requests never receive a token or its expiry. Public tunnels, staging, AWS lab, and production must keep both dev-link settings false.
 
 The same helper enables the local dev account endpoint by default with
 `LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED=true`. That endpoint is disabled by default
@@ -558,12 +567,15 @@ local developer persona seeded with My Commutes routes for quick desktop/mobile 
 testing. Normal Web Push delivery remains off unless you explicitly enable the
 push settings below.
 
-To send real password reset emails from a local run, configure SMTP credentials before starting the backend:
+To send real verification and password-reset emails from a local run, configure SMTP credentials before starting the backend:
 
 ```bash
 LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_ENABLED=true \
+LINEWATCH_AUTH_EMAIL_VERIFICATION_EMAIL_ENABLED=true \
 LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL=http://localhost:3000 \
+LINEWATCH_EMAIL_VERIFICATION_FRONTEND_BASE_URL=http://localhost:3000 \
 LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_FROM=no-reply@example.com \
+LINEWATCH_AUTH_EMAIL_VERIFICATION_EMAIL_FROM=no-reply@example.com \
 SPRING_MAIL_HOST=smtp.example.com \
 SPRING_MAIL_PORT=587 \
 SPRING_MAIL_USERNAME=your-smtp-user \
@@ -573,7 +585,7 @@ SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true \
 scripts/dev-live-backend.sh
 ```
 
-Password reset emails are sent as multipart HTML with a plain-text fallback and an inline LineWatchTO logo from `backend/src/main/resources/email/linewatch-logo.png`.
+Verification and password-reset emails are sent as multipart HTML with a plain-text fallback and an inline LineWatchTO logo from `backend/src/main/resources/email/linewatch-logo.png`.
 
 Do not commit SMTP usernames, passwords, API keys, or app passwords.
 

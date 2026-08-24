@@ -96,6 +96,7 @@ import {
 } from "../hooks/useMobileDraggableSheet";
 import {
   AccountRequestError,
+  confirmEmailVerification,
   confirmPasswordReset,
   commutePathPreviewFromCommute,
   getAuthConfig,
@@ -107,6 +108,7 @@ import {
   linkGoogleAccount,
   logoutAccount,
   registerAccount,
+  requestEmailVerification,
   requestPasswordReset,
   preserveAccountStateDuringOutage,
   summarizeSavedCommuteStatuses,
@@ -128,7 +130,7 @@ import {
 } from "../app/saved-station-data";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 import { accountOAuthErrorState } from "../app/account-oauth-error";
-import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
+import { normalizeAccountEmail, validateAccountCredentials, validateAccountEmail } from "../app/account-validation";
 import { getCurrentPushSubscription } from "../app/push-browser-state";
 import { hasReleaseNotes } from "../app/release-notes";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -157,7 +159,7 @@ import { popViewHistory, pushViewHistory, resolveInAppBackAction } from "../app/
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
 type ImpactCategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures";
-type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
+type AccountDialogMode = "auth-choice" | "login" | "register" | "verify-email" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 type EstimatedTrainRequestState = "idle" | "loading" | "ready" | "reconnecting";
 type SavedStationNotice = {
@@ -227,10 +229,12 @@ function viewForSavedCommuteImpact(
 
 export function LineWatchShell({
   initialData,
+  initialEmailVerificationToken = "",
   initialPasswordResetToken = "",
   initialVisualPreferences = defaultVisualPreferences,
 }: {
   initialData: DashboardData;
+  initialEmailVerificationToken?: string;
   initialPasswordResetToken?: string;
   initialVisualPreferences?: InitialVisualPreferences;
 }) {
@@ -392,7 +396,13 @@ export function LineWatchShell({
     authenticated: false,
     user: null,
   });
-  const [accountDialogMode, setAccountDialogMode] = useState<AccountDialogMode | null>(initialPasswordResetToken.trim() ? "reset-password" : null);
+  const [accountDialogMode, setAccountDialogMode] = useState<AccountDialogMode | null>(
+    initialEmailVerificationToken.trim()
+      ? "verify-email"
+      : initialPasswordResetToken.trim()
+        ? "reset-password"
+        : null
+  );
   const [accountEntryIntent, setAccountEntryIntent] = useState<AccountEntryIntent>("login");
   const [accountEmail, setAccountEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
@@ -400,6 +410,9 @@ export function LineWatchShell({
   const [accountResetToken, setAccountResetToken] = useState(initialPasswordResetToken.trim());
   const [accountResetMessage, setAccountResetMessage] = useState<string | null>(null);
   const [accountDevResetToken, setAccountDevResetToken] = useState<string | null>(null);
+  const [accountVerificationToken, setAccountVerificationToken] = useState(initialEmailVerificationToken.trim());
+  const [accountVerificationMessage, setAccountVerificationMessage] = useState<string | null>(null);
+  const [accountDevVerificationToken, setAccountDevVerificationToken] = useState<string | null>(null);
   const [accountDisplayName, setAccountDisplayName] = useState("");
   const [accountError, setAccountError] = useState<string | null>(null);
   const [accountSuccessMessage, setAccountSuccessMessage] = useState<string | null>(null);
@@ -1131,6 +1144,26 @@ export function LineWatchShell({
     setAccountDialogMode(mode);
   }, [pushBrowserNavigationEntry]);
 
+  useEffect(() => {
+    if (initialEmailVerificationToken.trim() || window.location.pathname !== "/verify-email") {
+      return;
+    }
+    const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get("token")?.trim() ?? "";
+    if (!fragmentToken) {
+      return;
+    }
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${window.location.search}`,
+    );
+    const openTimer = window.setTimeout(() => {
+      setAccountVerificationToken(fragmentToken);
+      openAccountDialog("verify-email");
+    }, 0);
+    return () => window.clearTimeout(openTimer);
+  }, [initialEmailVerificationToken, openAccountDialog]);
+
   const closeAccountDialog = useCallback(() => {
     if (!accountDialogModeRef.current) return;
     consumeBrowserNavigationEntries();
@@ -1482,6 +1515,9 @@ export function LineWatchShell({
     setAccountResetToken("");
     setAccountResetMessage(null);
     setAccountDevResetToken(null);
+    setAccountVerificationToken("");
+    setAccountVerificationMessage(null);
+    setAccountDevVerificationToken(null);
     setAccountError(null);
     setAccountSuccessMessage(null);
   };
@@ -1603,6 +1639,8 @@ export function LineWatchShell({
         return "Link Google";
       case "register":
         return "Create Account";
+      case "verify-email":
+        return "Verify Email";
       case "forgot-password":
         return "Reset password";
       case "reset-password":
@@ -1621,6 +1659,8 @@ export function LineWatchShell({
         return "Link Google sign-in to LineWatchTO account";
       case "register":
         return "Create LineWatchTO account";
+      case "verify-email":
+        return "Verify your email for LineWatchTO";
       case "forgot-password":
         return "Reset LineWatchTO password";
       case "reset-password":
@@ -1635,6 +1675,9 @@ export function LineWatchShell({
     if (accountDialogMode === "auth-choice" && accountEntryIntent === "login") {
       return "Sign in to access your saved stations and commutes, notification settings, and disruption impacts.";
     }
+    if (accountDialogMode === "verify-email") {
+      return "Email verification protects account-owned commutes, stations, and notification settings.";
+    }
     return "Create a free account to save stations and commutes, get push notifications, and track disruption impacts. All features are free.";
   };
 
@@ -1648,6 +1691,14 @@ export function LineWatchShell({
     if (accountDialogMode === "link-google") {
       return;
     }
+    if (accountDialogMode === "verify-email") {
+      if (accountVerificationToken.trim()) {
+        await handleConfirmEmailVerification();
+      } else {
+        await handleRequestEmailVerification();
+      }
+      return;
+    }
     if (accountDialogMode === "forgot-password") {
       handleRequestPasswordReset();
       return;
@@ -1656,12 +1707,17 @@ export function LineWatchShell({
       handleConfirmPasswordReset();
       return;
     }
+    if (accountDialogMode !== "login" && accountDialogMode !== "register") {
+      return;
+    }
 
-    const validation = validateAccountCredentials({
-      mode: accountDialogMode,
-      email: accountEmail,
-      password: accountPassword,
-    });
+    const validation = accountDialogMode === "register"
+      ? validateAccountEmail(accountEmail)
+      : validateAccountCredentials({
+          mode: "login",
+          email: accountEmail,
+          password: accountPassword,
+        });
 
     if (!validation.valid) {
       setAccountError(validation.message);
@@ -1673,19 +1729,34 @@ export function LineWatchShell({
     setAccountSuccessMessage(null);
     try {
       const normalizedEmail = validation.normalizedEmail;
-      const response = accountDialogMode === "login"
-        ? await loginAccount({ email: normalizedEmail, password: accountPassword })
-        : await registerAccount({
-            email: normalizedEmail,
-            password: accountPassword,
-            displayName: accountDisplayName.trim(),
-          });
-      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      closeAccountDialog();
-      resetAccountForm();
+      if (accountDialogMode === "login") {
+        const response = await loginAccount({ email: normalizedEmail, password: accountPassword });
+        setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
+        closeAccountDialog();
+        resetAccountForm();
+      } else {
+        const response = await registerAccount({
+          email: normalizedEmail,
+          displayName: accountDisplayName.trim(),
+        });
+        setAccountEmail(normalizedEmail);
+        setAccountPassword("");
+        setAccountPasswordConfirmation("");
+        setAccountVerificationMessage(response.message);
+        setAccountDevVerificationToken(response.devVerificationToken ?? null);
+        setAccountVerificationToken(response.devVerificationToken ?? "");
+        openAccountDialog("verify-email");
+      }
     } catch (error) {
       if (error instanceof AccountRequestError) {
-        setAccountError(error.message);
+        if (accountDialogMode === "login" && error.errorCode === "email_not_verified") {
+          setAccountVerificationMessage(error.message);
+          setAccountDevVerificationToken(null);
+          setAccountVerificationToken("");
+          openAccountDialog("verify-email");
+        } else {
+          setAccountError(error.message);
+        }
       } else {
         setAccountError(accountDialogMode === "login" ? "Incorrect Email or Password." : "Could not create that account.");
       }
@@ -1715,6 +1786,75 @@ export function LineWatchShell({
         setAccountError(error.message);
       } else {
         setAccountError("Password reset is unavailable.");
+      }
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleRequestEmailVerification = async () => {
+    const normalizedEmail = normalizeAccountEmail(accountEmail);
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      setAccountError("Enter a valid email address.");
+      return;
+    }
+
+    setAccountBusy(true);
+    setAccountError(null);
+    setAccountSuccessMessage(null);
+    try {
+      const response = await requestEmailVerification({ email: normalizedEmail });
+      setAccountEmail(normalizedEmail);
+      setAccountVerificationMessage(response.message);
+      setAccountDevVerificationToken(response.devVerificationToken ?? null);
+      setAccountVerificationToken(response.devVerificationToken ?? "");
+    } catch (error) {
+      if (error instanceof AccountRequestError) {
+        setAccountError(error.message);
+      } else {
+        setAccountError("Email verification is unavailable.");
+      }
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleConfirmEmailVerification = async (rawToken = accountVerificationToken) => {
+    const token = rawToken.trim();
+    if (!token) {
+      setAccountError("Open the verification link from your email or request a new one.");
+      return;
+    }
+
+    const passwordValidation = validateAccountCredentials({
+      mode: "register",
+      email: accountEmail || "verification@example.com",
+      password: accountPassword,
+    });
+    if (!passwordValidation.valid && passwordValidation.message !== "Enter a valid email address.") {
+      setAccountError(passwordValidation.message);
+      return;
+    }
+    if (accountPassword !== accountPasswordConfirmation) {
+      setAccountError("Passwords do not match.");
+      return;
+    }
+
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      const response = await confirmEmailVerification({ token, password: accountPassword });
+      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
+      setAccountVerificationToken("");
+      setAccountDevVerificationToken(null);
+      setAccountVerificationMessage(null);
+      setAccountSuccessMessage("Email verified. You are now signed in.");
+      router.replace("/");
+    } catch (error) {
+      if (error instanceof AccountRequestError) {
+        setAccountError(error.message);
+      } else {
+        setAccountError("Could not verify that email.");
       }
     } finally {
       setAccountBusy(false);
@@ -3741,7 +3881,7 @@ export function LineWatchShell({
                     </div>
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                   <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
                      <Contrast size={18} className="text-slate-500 dark:text-slate-400" /> High Contrast Mode
                    </span>
                    <button
@@ -3756,7 +3896,7 @@ export function LineWatchShell({
                    </button>
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                   <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
                      <Pause size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Motion
                    </span>
                    <button
@@ -3771,7 +3911,7 @@ export function LineWatchShell({
                    </button>
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                   <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
                      <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {BACKGROUND_PREFERENCE_LABEL}
                    </span>
                    <button
@@ -3799,9 +3939,9 @@ export function LineWatchShell({
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
                    href="/explore"
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                  >
-                   <BookOpen size={18} className="text-slate-500 dark:text-slate-400" /> Transit Guides
+                   <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" /> Transit Guides
                  </a>
                  <button
                    ref={registerMenuAction(actionIndex++)}
@@ -4590,6 +4730,129 @@ export function LineWatchShell({
                     Back To Account
                   </button>
                 </>
+              ) : accountDialogMode === "verify-email" ? (
+                <>
+                  {accountSuccessMessage ? (
+                    <div className="account-reset-status" role="status">
+                      <p>{accountSuccessMessage}</p>
+                    </div>
+                  ) : (
+                    <>
+                      {accountVerificationMessage ? (
+                        <div className="account-reset-status" role="status">
+                          <p>{accountVerificationMessage}</p>
+                        </div>
+                      ) : accountBusy ? (
+                        <p className="account-reset-hint" role="status">Creating your verified account…</p>
+                      ) : (
+                        <p className="account-reset-hint">Use the secure link sent to your email address. Verification links expire after 24 hours.</p>
+                      )}
+                      {accountEmail ? (
+                        <p className="account-reset-hint">Verification address: <strong>{accountEmail}</strong></p>
+                      ) : !accountVerificationToken || accountError ? (
+                        <label className="account-field">
+                          <span>{accountVerificationToken ? "Email for a new link" : "Email"}</span>
+                          <input
+                            type="email"
+                            value={accountEmail}
+                            autoComplete="email"
+                            onBlur={() => setAccountEmail((current) => normalizeAccountEmail(current))}
+                            onChange={(event) => setAccountEmail(event.target.value)}
+                          />
+                        </label>
+                      ) : null}
+                      {accountVerificationToken ? (
+                        <>
+                          <p className="account-reset-hint">Choose the password you will use after verification. It was intentionally not accepted before mailbox ownership was proven.</p>
+                          <label className="account-field">
+                            <span>Password</span>
+                            <input
+                              type="password"
+                              value={accountPassword}
+                              autoComplete="new-password"
+                              aria-describedby="account-verification-password-help"
+                              onChange={(event) => setAccountPassword(event.target.value)}
+                            />
+                          </label>
+                          <label className="account-field">
+                            <span>Confirm password</span>
+                            <input
+                              type="password"
+                              value={accountPasswordConfirmation}
+                              autoComplete="new-password"
+                              onChange={(event) => setAccountPasswordConfirmation(event.target.value)}
+                            />
+                          </label>
+                          <p id="account-verification-password-help" className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+                            Use at least 8 characters with a letter and a number, symbol, or space.
+                          </p>
+                        </>
+                      ) : null}
+                      {accountDevVerificationToken ? (
+                        <>
+                          <p className="account-reset-dev-note">Local dev mode: no email was sent. Use this one-time token to test account verification.</p>
+                          <button
+                            type="button"
+                            className="account-primary-button"
+                            onClick={() => void handleConfirmEmailVerification(accountDevVerificationToken)}
+                            disabled={accountBusy}
+                          >
+                            Verify Local Account
+                          </button>
+                        </>
+                      ) : null}
+                    </>
+                  )}
+                  {accountError ? (
+                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
+                      {accountError}
+                    </p>
+                  ) : null}
+                  {accountSuccessMessage ? (
+                    <button
+                      type="button"
+                      className="account-primary-button"
+                      onClick={() => {
+                        closeAccountDialog();
+                        resetAccountForm();
+                      }}
+                    >
+                      Continue
+                    </button>
+                  ) : (
+                    <>
+                      {accountVerificationToken && !accountDevVerificationToken && !accountBusy ? (
+                        <button
+                          type="button"
+                          className="account-primary-button"
+                          onClick={() => void handleConfirmEmailVerification()}
+                        >
+                          Verify Email
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="account-link-button"
+                        onClick={() => void handleRequestEmailVerification()}
+                        disabled={accountBusy || !accountEmail.trim()}
+                      >
+                        Send New Verification Link
+                      </button>
+                      <button
+                        type="button"
+                        className="account-link-button"
+                        onClick={() => {
+                          setAccountError(null);
+                          setAccountVerificationMessage(null);
+                          setAccountDevVerificationToken(null);
+                          openAccountDialog("login");
+                        }}
+                      >
+                        Back To Sign In
+                      </button>
+                    </>
+                  )}
+                </>
               ) : accountDialogMode === "forgot-password" ? (
                 <>
                   <label className="account-field">
@@ -4720,17 +4983,17 @@ export function LineWatchShell({
                       onChange={(event) => setAccountEmail(event.target.value)}
                     />
                   </label>
-                  <label className="account-field">
-                    <span>Password</span>
-                    <input
-                      type="password"
-                      value={accountPassword}
-                      autoComplete={accountDialogMode === "login" ? "current-password" : "new-password"}
-                      aria-describedby={accountDialogMode === "register" ? "account-password-help" : undefined}
-                      aria-invalid={Boolean(accountError && accountDialogMode === "register")}
-                      onChange={(event) => setAccountPassword(event.target.value)}
-                    />
-                  </label>
+                  {accountDialogMode === "login" ? (
+                    <label className="account-field">
+                      <span>Password</span>
+                      <input
+                        type="password"
+                        value={accountPassword}
+                        autoComplete="current-password"
+                        onChange={(event) => setAccountPassword(event.target.value)}
+                      />
+                    </label>
+                  ) : null}
                   {accountDialogMode === "login" ? (
                     <button
                       type="button"
@@ -4746,8 +5009,8 @@ export function LineWatchShell({
                     </button>
                   ) : null}
                   {accountDialogMode === "register" ? (
-                    <p id="account-password-help" className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">
-                      Use at least 8 characters with a letter and a number, symbol, or space.
+                    <p className="account-reset-hint">
+                      We will email a one-time link. You will choose your password only after opening it, so nobody else can pre-register a password for your address.
                     </p>
                   ) : null}
                   {accountError ? (

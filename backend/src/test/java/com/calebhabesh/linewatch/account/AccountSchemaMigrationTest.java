@@ -126,6 +126,20 @@ class AccountSchemaMigrationTest {
         assertThat(sql).contains("line_trip_cancellation_enabled boolean not null default true");
     }
 
+    @Test
+    void v72AddsGrandfatheredAccountVerificationAndHashedOneTimeTokens() throws IOException {
+        String sql = migrationSql("/db/migration/V72__email_verification.sql").toLowerCase();
+
+        assertThat(sql).contains("add column email_verified_at timestamp with time zone");
+        assertThat(sql).contains("set email_verified_at = created_at");
+        assertThat(sql).contains("create table email_verification_tokens");
+        assertThat(sql).contains("token_hash varchar(64) not null unique");
+        assertThat(sql).contains("account_id varchar(80) not null references accounts(id) on delete cascade");
+        assertThat(sql).contains("expires_at timestamp with time zone not null");
+        assertThat(sql).contains("used_at timestamp with time zone");
+        assertThat(sql).doesNotContain("raw_token");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

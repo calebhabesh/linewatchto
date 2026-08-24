@@ -92,4 +92,10 @@ describe("crawlable transit guides", () => {
     assert.match(guideComponents, /reviewed station-map attributes, not current facility-operation guarantees/);
     assert.match(guideComponents, /only presents supported current information when ingestion is fresh/);
   });
+
+  it("reuses the canonical map legend TransitLineBadge in route listings", () => {
+    assert.match(guideComponents, /import \{ TransitLineBadge \} from "\.\.\/\.\.\/components\/TransitLineBadge"/);
+    assert.match(guideComponents, /<TransitLineBadge/);
+    assert.match(guideComponents, /lineId=\{route\.id\}/);
+  });
 });

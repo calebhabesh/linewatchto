@@ -29,6 +29,7 @@ class AccountServiceTest {
     private final UserSessionRepository sessionRepository = mock(UserSessionRepository.class);
     private final PasswordResetTokenRepository passwordResetTokenRepository = mock(PasswordResetTokenRepository.class);
     private final PasswordResetEmailSender passwordResetEmailSender = mock(PasswordResetEmailSender.class);
+    private final EmailVerificationService emailVerificationService = mock(EmailVerificationService.class);
     private final AccountAuthIdentityRepository authIdentityRepository = mock(AccountAuthIdentityRepository.class);
     private final SavedCommuteRepository savedCommuteRepository = mock(SavedCommuteRepository.class);
     private final GoogleIdentityVerifier googleIdentityVerifier = mock(GoogleIdentityVerifier.class);
@@ -46,12 +47,14 @@ class AccountServiceTest {
         tokenService,
         passwordResetEmailSender,
         passwordResetLinkFactory,
+        emailVerificationService,
         authIdentityRepository,
         savedCommuteRepository,
         googleIdentityVerifier,
         googleAuthProperties,
         sessionRequestContext,
         clock,
+        true,
         true,
         Duration.ofDays(365)
     );
@@ -64,31 +67,48 @@ class AccountServiceTest {
     }
 
     @Test
-    void registerNormalizesEmailHashesPasswordAndCreatesSession() {
-        when(accountRepository.existsByEmail("rider@example.com")).thenReturn(false);
+    void registerNormalizesEmailHashesPasswordAndRequiresVerificationBeforeSession() {
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.empty());
         when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(emailVerificationService.issue(any(AccountEntity.class), eq(clock.instant())))
+            .thenReturn(new EmailVerificationService.IssuedVerification(
+                "verification-token",
+                Instant.parse("2026-06-06T14:30:00Z")
+            ));
 
-        AccountResponses.AuthSession response = service.register(
-            new AccountService.RegisterRequest(" Rider@Example.COM ", "correct horse battery staple", " Rider ")
+        AccountService.EmailVerificationRequestResponse response = service.register(
+            new AccountService.RegisterRequest(" Rider@Example.COM ", " Rider ")
         );
 
-        assertThat(response.user().email()).isEqualTo("rider@example.com");
-        assertThat(response.user().displayName()).isEqualTo("Rider");
-        assertThat(response.user().googleLinked()).isFalse();
-        assertThat(response.rawSessionToken()).isNotBlank();
-        assertThat(response.expiresAt()).isEqualTo(Instant.parse("2027-06-05T14:30:00Z"));
+        assertThat(response.accepted()).isTrue();
+        assertThat(response.message()).contains("verify");
+        assertThat(response.devVerificationToken()).isEqualTo("verification-token");
+        assertThat(response.expiresAt()).isEqualTo(Instant.parse("2026-06-06T14:30:00Z"));
         assertThat(service.sessionTtl()).isEqualTo(Duration.ofDays(365));
-        verify(accountRepository).save(any(AccountEntity.class));
-        verify(sessionRepository).save(any(UserSessionEntity.class));
+        ArgumentCaptor<AccountEntity> accountCaptor = ArgumentCaptor.forClass(AccountEntity.class);
+        verify(accountRepository).save(accountCaptor.capture());
+        assertThat(accountCaptor.getValue().getEmail()).isEqualTo("rider@example.com");
+        assertThat(accountCaptor.getValue().getDisplayName()).isEqualTo("Rider");
+        assertThat(accountCaptor.getValue().isEmailVerified()).isFalse();
+        assertThat(accountCaptor.getValue().getPasswordHash()).isNull();
+        verify(emailVerificationService).issue(accountCaptor.getValue(), clock.instant());
+        verify(sessionRepository, never()).save(any(UserSessionEntity.class));
     }
 
     @Test
     void registerRejectsDuplicateEmail() {
-        when(accountRepository.existsByEmail("rider@example.com")).thenReturn(true);
+        AccountEntity existing = AccountEntity.create(
+            "user_existing",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("existing password 1"),
+            false,
+            clock.instant()
+        );
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> service.register(
-            new AccountService.RegisterRequest("rider@example.com", "correct horse battery staple", "Rider")
+            new AccountService.RegisterRequest("rider@example.com", "Rider")
         ))
             .isInstanceOf(AccountException.class)
             .extracting("status")
@@ -96,9 +116,35 @@ class AccountServiceTest {
     }
 
     @Test
+    void registerReissuesVerificationForPendingAddressWithoutAcceptingAPassword() {
+        AccountEntity pending = AccountEntity.createPendingEmailAccount(
+            "user_pending",
+            "rider@example.com",
+            "Old pending name",
+            clock.instant().minusSeconds(60)
+        );
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(pending));
+        when(accountRepository.save(pending)).thenReturn(pending);
+        when(emailVerificationService.issue(pending, clock.instant()))
+            .thenReturn(new EmailVerificationService.IssuedVerification(
+                "new-verification-token",
+                Instant.parse("2026-06-06T14:30:00Z")
+            ));
+
+        AccountService.EmailVerificationRequestResponse response = service.register(
+            new AccountService.RegisterRequest("rider@example.com", "Mailbox Owner")
+        );
+
+        assertThat(response.accepted()).isTrue();
+        assertThat(pending.getDisplayName()).isEqualTo("Mailbox Owner");
+        assertThat(pending.getPasswordHash()).isNull();
+        verify(emailVerificationService).issue(pending, clock.instant());
+    }
+
+    @Test
     void registerRejectsMalformedEmail() {
         assertThatThrownBy(() -> service.register(
-            new AccountService.RegisterRequest("rider@localhost", "correct horse battery staple", "Rider")
+            new AccountService.RegisterRequest("rider@localhost", "Rider")
         ))
             .isInstanceOf(AccountException.class)
             .extracting("status")
@@ -110,7 +156,7 @@ class AccountServiceTest {
         String displayName = "A".repeat(121);
 
         assertThatThrownBy(() -> service.register(
-            new AccountService.RegisterRequest("rider@example.com", "correct horse battery staple", displayName)
+            new AccountService.RegisterRequest("rider@example.com", displayName)
         ))
             .isInstanceOf(AccountException.class)
             .hasMessageContaining("Display name must be 120 characters or less");
@@ -118,43 +164,78 @@ class AccountServiceTest {
     }
 
     @Test
-    void registerRejectsOverlongPasswordBeforeHashing() {
+    void verificationRejectsOverlongAsciiPasswordBeforeConsumingToken() {
         String password = "a".repeat(257) + " 1";
 
-        assertThatThrownBy(() -> service.register(
-            new AccountService.RegisterRequest("rider@example.com", password, "Rider")
+        assertThatThrownBy(() -> service.confirmEmailVerification(
+            new AccountService.EmailVerificationConfirmRequest("verification-token", password)
         ))
             .isInstanceOf(AccountException.class)
-            .hasMessageContaining("Password must be 256 characters or less");
+            .hasMessageContaining("Password must be 72 UTF-8 bytes or less");
         verify(accountRepository, never()).save(any(AccountEntity.class));
     }
 
     @Test
-    void registerAcceptsEasyPassphrasePassword() {
-        when(accountRepository.existsByEmail("rider@example.com")).thenReturn(false);
-        when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void verificationRejectsPasswordOverBcryptUtf8ByteLimit() {
+        String password = "é".repeat(40) + "1a";
 
-        AccountResponses.AuthSession response = service.register(
-            new AccountService.RegisterRequest("rider@example.com", "correct horse battery staple", "Rider")
-        );
-
-        assertThat(response.user().email()).isEqualTo("rider@example.com");
+        assertThatThrownBy(() -> service.confirmEmailVerification(
+            new AccountService.EmailVerificationConfirmRequest("verification-token", password)
+        ))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("72 UTF-8 bytes or less");
+        verify(emailVerificationService, never()).confirm(any(), any());
     }
 
     @Test
-    void registerRejectsPasswordWithoutLetter() {
-        assertThatThrownBy(() -> service.register(
-            new AccountService.RegisterRequest("rider@example.com", "1234567890!", "Rider")
+    void loginTreatsOverlongBcryptInputAsInvalidCredentialsInsteadOfServerError() {
+        AccountEntity account = AccountEntity.create(
+            "user_test",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            clock.instant()
+        );
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> service.login(new AccountService.LoginRequest(
+            "rider@example.com",
+            "é".repeat(40)
+        )))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Incorrect Email or Password");
+    }
+
+    @Test
+    void verificationAcceptsEasyPassphrasePassword() {
+        AccountEntity account = AccountEntity.createPendingEmailAccount(
+            "user_test", "rider@example.com", "Rider", clock.instant()
+        );
+        when(emailVerificationService.confirm("verification-token", clock.instant())).thenReturn(account);
+        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthSession response = service.confirmEmailVerification(
+            new AccountService.EmailVerificationConfirmRequest("verification-token", "correct horse battery staple")
+        );
+
+        assertThat(response.user().email()).isEqualTo("rider@example.com");
+        assertThat(passwordHasher.matches("correct horse battery staple", account.getPasswordHash())).isTrue();
+    }
+
+    @Test
+    void verificationRejectsPasswordWithoutLetter() {
+        assertThatThrownBy(() -> service.confirmEmailVerification(
+            new AccountService.EmailVerificationConfirmRequest("verification-token", "1234567890!")
         ))
             .isInstanceOf(AccountException.class)
             .hasMessageContaining("Password must include at least one letter");
     }
 
     @Test
-    void registerRejectsPasswordWithoutNumberSymbolOrSpace() {
-        assertThatThrownBy(() -> service.register(
-            new AccountService.RegisterRequest("rider@example.com", "aaaaaaaaaa", "Rider")
+    void verificationRejectsPasswordWithoutNumberSymbolOrSpace() {
+        assertThatThrownBy(() -> service.confirmEmailVerification(
+            new AccountService.EmailVerificationConfirmRequest("verification-token", "aaaaaaaaaa")
         ))
             .isInstanceOf(AccountException.class)
             .hasMessageContaining("Password must include a number, symbol, or space");
@@ -177,6 +258,89 @@ class AccountServiceTest {
         ))
             .isInstanceOf(AccountException.class)
             .hasMessageContaining("Incorrect Email or Password");
+    }
+
+    @Test
+    void loginRejectsCorrectPasswordUntilEmailIsVerified() {
+        AccountEntity account = AccountEntity.createUnverified(
+            "user_test",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> service.login(
+            new AccountService.LoginRequest("rider@example.com", "correct horse battery staple")
+        ))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Verify your email")
+            .extracting("status")
+            .isEqualTo(HttpStatus.FORBIDDEN);
+        verify(sessionRepository, never()).save(any(UserSessionEntity.class));
+    }
+
+    @Test
+    void resendVerificationUsesNeutralResponseAndIssuesTokenOnlyForUnverifiedPasswordAccount() {
+        AccountEntity account = AccountEntity.createUnverified(
+            "user_test",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(account));
+        when(emailVerificationService.issue(account, clock.instant()))
+            .thenReturn(new EmailVerificationService.IssuedVerification(
+                "verification-token",
+                Instant.parse("2026-06-06T14:30:00Z")
+            ));
+
+        AccountService.EmailVerificationRequestResponse response = service.requestEmailVerification(
+            new AccountService.EmailVerificationRequest(" Rider@Example.COM ")
+        );
+
+        assertThat(response.accepted()).isTrue();
+        assertThat(response.message()).startsWith("If an unverified account exists");
+        assertThat(response.devVerificationToken()).isEqualTo("verification-token");
+        verify(emailVerificationService).issue(account, clock.instant());
+    }
+
+    @Test
+    void resendVerificationDoesNotRevealUnknownOrAlreadyVerifiedAccounts() {
+        when(accountRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        AccountService.EmailVerificationRequestResponse response = service.requestEmailVerification(
+            new AccountService.EmailVerificationRequest("missing@example.com")
+        );
+
+        assertThat(response.accepted()).isTrue();
+        assertThat(response.devVerificationToken()).isNull();
+        assertThat(response.expiresAt()).isNull();
+        verify(emailVerificationService, never()).issue(any(), any());
+    }
+
+    @Test
+    void confirmEmailVerificationCreatesTheFirstAuthenticatedSession() {
+        AccountEntity account = AccountEntity.createUnverified(
+            "user_test",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        account.markEmailVerified(clock.instant());
+        when(emailVerificationService.confirm("verification-token", clock.instant())).thenReturn(account);
+        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthSession response = service.confirmEmailVerification(
+            new AccountService.EmailVerificationConfirmRequest("verification-token", "correct horse battery staple")
+        );
+
+        assertThat(response.user().email()).isEqualTo("rider@example.com");
+        assertThat(response.rawSessionToken()).isNotBlank();
+        verify(sessionRepository).save(any(UserSessionEntity.class));
     }
 
     @Test
@@ -416,12 +580,14 @@ class AccountServiceTest {
             tokenService,
             passwordResetEmailSender,
             passwordResetLinkFactory,
+            emailVerificationService,
             authIdentityRepository,
             savedCommuteRepository,
             googleIdentityVerifier,
             googleAuthProperties,
             sessionRequestContext,
             clock,
+            false,
             false,
             Duration.ofDays(365)
         );
@@ -455,12 +621,11 @@ class AccountServiceTest {
 
     @Test
     void confirmPasswordResetUpdatesPasswordInvalidatesSessionsAndCreatesSession() {
-        AccountEntity account = AccountEntity.create(
+        AccountEntity account = AccountEntity.createUnverified(
             "user_test",
             "rider@example.com",
             "Rider",
             passwordHasher.hash("old password 1"),
-            false,
             Instant.parse("2026-06-05T14:00:00Z")
         );
         String rawResetToken = "reset-token";
@@ -481,6 +646,7 @@ class AccountServiceTest {
         assertThat(response.user().email()).isEqualTo("rider@example.com");
         assertThat(response.rawSessionToken()).isNotBlank();
         assertThat(passwordHasher.matches("new correct horse 2", account.getPasswordHash())).isTrue();
+        assertThat(account.isEmailVerified()).isTrue();
         assertThat(token.getUsedAt()).isEqualTo(Instant.parse("2026-06-05T14:30:00Z"));
         verify(sessionRepository).deleteByAccountId("user_test");
         verify(sessionRepository).save(any(UserSessionEntity.class));
@@ -556,6 +722,22 @@ class AccountServiceTest {
         assertThat(response.user().email()).isEqualTo("rider@example.com");
         assertThat(response.user().googleLinked()).isTrue();
         verify(googleIdentityVerifier, never()).verify("credential");
+    }
+
+    @Test
+    void googleLoginRejectsAnUnverifiedIdentityAtTheServiceBoundary() {
+        VerifiedGoogleIdentity identity = new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "rider@example.com",
+            false,
+            "Transit Rider"
+        );
+
+        assertThatThrownBy(() -> service.googleLogin(identity))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Could not verify Google sign-in");
+        verify(accountRepository, never()).save(any(AccountEntity.class));
+        verify(sessionRepository, never()).save(any(UserSessionEntity.class));
     }
 
     @Test
@@ -639,6 +821,37 @@ class AccountServiceTest {
             .isEqualTo(HttpStatus.CONFLICT);
 
         verify(authIdentityRepository, never()).save(any(AccountAuthIdentityEntity.class));
+    }
+
+    @Test
+    void verifiedGoogleLoginSafelyClaimsAPendingEmailRegistration() {
+        AccountEntity pending = AccountEntity.createPendingEmailAccount(
+            "user_pending",
+            "rider@example.com",
+            "Pending Rider",
+            clock.instant().minusSeconds(60)
+        );
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "rider@example.com",
+            true,
+            "Google Rider"
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1"))
+            .thenReturn(Optional.empty());
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(pending));
+        when(accountRepository.save(pending)).thenReturn(pending);
+        when(authIdentityRepository.save(any(AccountAuthIdentityEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthSession response = service.googleLogin(new AccountService.GoogleLoginRequest("credential"));
+
+        assertThat(response.user().id()).isEqualTo("user_pending");
+        assertThat(response.user().googleLinked()).isTrue();
+        assertThat(pending.isEmailVerified()).isTrue();
+        assertThat(pending.getPasswordHash()).isNull();
+        verify(emailVerificationService).discardPendingTokens("user_pending");
     }
 
     @Test

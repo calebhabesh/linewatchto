@@ -7,6 +7,7 @@ const devBootstrapSource = existsSync(devBootstrapUrl) ? readFileSync(devBootstr
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const resetPasswordPageSource = readFileSync(new URL("../src/app/reset-password/page.tsx", import.meta.url), "utf8");
+const verifyEmailPageSource = readFileSync(new URL("../src/app/verify-email/page.tsx", import.meta.url), "utf8");
 const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -390,9 +391,12 @@ describe("account UI source", () => {
 
   it("validates create-account input before sending registration requests", () => {
     assert.match(shellSource, /validateAccountCredentials/);
+    assert.match(shellSource, /validateAccountEmail/);
     assert.match(shellSource, /normalizeAccountEmail/);
     assert.match(shellSource, /account-error-live/);
-    assert.match(shellSource, /autoComplete=\{accountDialogMode === "login" \? "current-password" : "new-password"\}/);
+    assert.match(shellSource, /autoComplete="current-password"/);
+    assert.match(shellSource, /It was intentionally not accepted before mailbox ownership was proven/);
+    assert.match(shellSource, /registerAccount\(\{\s*email:\s*normalizedEmail,\s*displayName:/s);
     assert.match(shellSource, /aria-invalid=\{Boolean\(accountError && accountDialogMode === "register"\)\}/);
     assert.match(shellSource, /Use at least 8 characters with a letter and a number, symbol, or space\./);
     assert.match(shellSource, /error instanceof AccountRequestError/);
@@ -434,6 +438,18 @@ describe("account UI source", () => {
     assert.match(shellSource, /initialPasswordResetToken/);
     assert.match(shellSource, /accountDialogMode.*initialPasswordResetToken.*"reset-password"/s);
     assert.match(shellSource, /accountResetToken.*initialPasswordResetToken/s);
+  });
+
+  it("requires email verification after password registration and supports one-time emailed links", () => {
+    assert.match(shellSource, /"verify-email"/);
+    assert.match(shellSource, /requestEmailVerification/);
+    assert.match(shellSource, /confirmEmailVerification/);
+    assert.match(shellSource, /Send New Verification Link/);
+    assert.match(shellSource, /Verify Local Account/);
+    assert.match(shellSource, /initialEmailVerificationToken/);
+    assert.match(verifyEmailPageSource, /initialEmailVerificationToken/);
+    assert.match(verifyEmailPageSource, /decodeEmailVerificationTokenParam/);
+    assert.match(verifyEmailPageSource, /robots:\s*{\s*index:\s*false,\s*follow:\s*false/s);
   });
 
   it("formats Sheppard-Yonge and Bloor-Yonge correctly with hyphen awareness", () => {

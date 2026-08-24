@@ -81,6 +81,21 @@ class AccountRateLimiterTest {
     }
 
     @Test
+    void emailVerificationResendHasIndependentAddressAndEmailLimits() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-08-24T14:00:00Z"));
+        AccountRateLimitProperties properties = new AccountRateLimitProperties();
+        properties.setEmailVerificationMaxRequests(1);
+        AccountRateLimiter limiter = new AccountRateLimiter(properties, clock);
+
+        limiter.requireEmailVerificationAttempt("203.0.113.10", "Rider@Example.COM");
+
+        assertThatThrownBy(() -> limiter.requireEmailVerificationAttempt("203.0.113.11", " rider@example.com "))
+            .isInstanceOf(AccountException.class)
+            .extracting("status")
+            .isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    @Test
     void preferenceMutationsUseTheirOwnAccountBucket() {
         MutableClock clock = new MutableClock(Instant.parse("2026-06-15T14:00:00Z"));
         AccountRateLimitProperties properties = new AccountRateLimitProperties();

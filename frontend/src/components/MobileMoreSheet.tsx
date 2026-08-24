@@ -335,7 +335,7 @@ export function MobileMoreSheet({
             </div>
           </button>
           <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
-            <History size={18} className="text-slate-500 dark:text-slate-400" />
+            <History size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Alert History
           </button>
           {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenAnnouncements}>
@@ -350,7 +350,7 @@ export function MobileMoreSheet({
             <h3>Operations</h3>
           </div>
           <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
-            <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
+            <BarChart3 size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Reliability Analytics
           </button>
           <div className="mobile-more-health-grid" aria-label="Source Health">
@@ -369,21 +369,21 @@ export function MobileMoreSheet({
             <h3>Display</h3>
           </div>
           <button type="button" className="mobile-more-row" aria-pressed={highContrast} onClick={onToggleHighContrast}>
-            <Contrast size={18} className="text-slate-500 dark:text-slate-400" />
+            <Contrast size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             High Contrast Mode
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
               <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={reducedMotion} onClick={onToggleReducedMotion}>
-            <Pause size={18} className="text-slate-500 dark:text-slate-400" />
+            <Pause size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Reduced Motion
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
               <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={dotBackgroundEnabled} onClick={onToggleDotBackground}>
-            <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />
+            <Sparkles size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             {BACKGROUND_PREFERENCE_LABEL}
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
               <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${dotBackgroundEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -410,21 +410,21 @@ export function MobileMoreSheet({
             ) : null}
           </button>
           <a href="/explore" className="mobile-more-row">
-            <BookOpen size={18} className="text-slate-500 dark:text-slate-400" />
+            <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Transit Guides
           </a>
           <button type="button" className="mobile-more-row" onClick={onOpenFeedback}>
-            <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" />
+            <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Leave Feedback
           </button>
           {supportUrl ? (
             <a href={supportUrl} target="_blank" rel="noreferrer" className="mobile-more-row">
-              <HeartHandshake size={18} className="text-slate-500 dark:text-slate-400" />
+              <HeartHandshake size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
               Support
             </a>
           ) : null}
           <button type="button" className="mobile-more-row" onClick={onOpenPrivacyAcknowledgements}>
-            <FileText size={18} className="text-slate-500 dark:text-slate-400" />
+            <FileText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Privacy & Acknowledgements
           </button>
           <div className="mobile-more-row mobile-more-map-attribution" role="note" aria-label="Map Attribution">
@@ -441,7 +441,7 @@ export function MobileMoreSheet({
           </div>
           {hasReleaseNotes ? (
             <button type="button" className="mobile-more-row" onClick={onOpenReleaseNotes}>
-              <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />
+              <Sparkles size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
               {"What's New"}
             </button>
           ) : null}

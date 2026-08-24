@@ -62,6 +62,13 @@ export type PasswordResetRequestResponse = {
   expiresAt?: string | null;
 };
 
+export type EmailVerificationRequestResponse = {
+  accepted: boolean;
+  message: string;
+  devVerificationToken?: string | null;
+  expiresAt?: string | null;
+};
+
 export type AccountCommutePath = {
   status: "available" | "unavailable";
   stationIds: string[];
@@ -841,8 +848,12 @@ export function preserveAccountStateDuringOutage(current: AccountState, refreshe
   };
 }
 
-export async function registerAccount(input: { email: string; password: string; displayName: string }, options: AdapterOptions = {}) {
-  return authRequest("/api/auth/register", { method: "POST", body: JSON.stringify(input) }, options);
+export async function registerAccount(input: { email: string; displayName: string }, options: AdapterOptions = {}) {
+  return authJsonRequest<EmailVerificationRequestResponse>(
+    "/api/auth/register",
+    { method: "POST", body: JSON.stringify(input) },
+    options
+  );
 }
 
 export async function loginAccount(input: { email: string; password: string }, options: AdapterOptions = {}) {
@@ -852,6 +863,22 @@ export async function loginAccount(input: { email: string; password: string }, o
 export async function requestPasswordReset(input: { email: string }, options: AdapterOptions = {}) {
   return authJsonRequest<PasswordResetRequestResponse>(
     "/api/auth/password-reset/request",
+    { method: "POST", body: JSON.stringify(input) },
+    options
+  );
+}
+
+export async function requestEmailVerification(input: { email: string }, options: AdapterOptions = {}) {
+  return authJsonRequest<EmailVerificationRequestResponse>(
+    "/api/auth/email-verification/request",
+    { method: "POST", body: JSON.stringify(input) },
+    options
+  );
+}
+
+export async function confirmEmailVerification(input: { token: string; password: string }, options: AdapterOptions = {}) {
+  return authRequest(
+    "/api/auth/email-verification/confirm",
     { method: "POST", body: JSON.stringify(input) },
     options
   );

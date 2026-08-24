@@ -37,6 +37,7 @@ class AccountSessionRenewalIntegrationTest {
     private final SessionTokenService tokenService = new SessionTokenService();
     private final PasswordResetEmailSender passwordResetEmailSender = mock(PasswordResetEmailSender.class);
     private final PasswordResetLinkFactory passwordResetLinkFactory = new PasswordResetLinkFactory("https://linewatch.example");
+    private final EmailVerificationService emailVerificationService = mock(EmailVerificationService.class);
     private final AccountAuthIdentityRepository authIdentityRepository = mock(AccountAuthIdentityRepository.class);
     private final SavedCommuteRepository savedCommuteRepository = mock(SavedCommuteRepository.class);
     private final GoogleIdentityVerifier googleIdentityVerifier = mock(GoogleIdentityVerifier.class);
@@ -50,12 +51,14 @@ class AccountSessionRenewalIntegrationTest {
         tokenService,
         passwordResetEmailSender,
         passwordResetLinkFactory,
+        emailVerificationService,
         authIdentityRepository,
         savedCommuteRepository,
         googleIdentityVerifier,
         new GoogleAuthProperties(),
         sessionContext,
         Clock.fixed(NOW, ZoneOffset.UTC),
+        false,
         false,
         Duration.ofDays(365)
     );
@@ -135,6 +138,7 @@ class AccountSessionRenewalIntegrationTest {
             mock(PushNotificationService.class),
             new ClientAddressResolver(new TrustedProxyProperties()),
             new PasswordResetDevLinkPolicy(true, "127.0.0.1", "http://localhost:3000", "http://localhost:3000"),
+            new EmailVerificationDevLinkPolicy(true, "127.0.0.1", "http://localhost:3000", "http://localhost:3000"),
             false
         );
     }

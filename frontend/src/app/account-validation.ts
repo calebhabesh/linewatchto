@@ -14,9 +14,17 @@ export type AccountValidationResult = {
 
 export const ACCOUNT_EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 export const MIN_ACCOUNT_PASSWORD_LENGTH = 8;
+export const MAX_ACCOUNT_PASSWORD_BYTES = 72;
 
 export function normalizeAccountEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+export function validateAccountEmail(email: string): AccountValidationResult {
+  const normalizedEmail = normalizeAccountEmail(email);
+  return ACCOUNT_EMAIL_PATTERN.test(normalizedEmail)
+    ? { valid: true, normalizedEmail, message: null }
+    : { valid: false, normalizedEmail, message: "Enter a valid email address." };
 }
 
 function hasLetter(value: string) {
@@ -31,12 +39,9 @@ export function validateAccountCredentials(input: AccountCredentialInput): Accou
   const normalizedEmail = normalizeAccountEmail(input.email);
   const password = input.password;
 
-  if (!ACCOUNT_EMAIL_PATTERN.test(normalizedEmail)) {
-    return {
-      valid: false,
-      normalizedEmail,
-      message: "Enter a valid email address.",
-    };
+  const emailValidation = validateAccountEmail(input.email);
+  if (!emailValidation.valid) {
+    return emailValidation;
   }
 
   if (!password) {
@@ -56,6 +61,13 @@ export function validateAccountCredentials(input: AccountCredentialInput): Accou
   }
 
   const trimmedPassword = password.trim();
+  if (new TextEncoder().encode(password).length > MAX_ACCOUNT_PASSWORD_BYTES) {
+    return {
+      valid: false,
+      normalizedEmail,
+      message: "Password must be 72 UTF-8 bytes or less.",
+    };
+  }
   if (trimmedPassword.length < MIN_ACCOUNT_PASSWORD_LENGTH) {
     return {
       valid: false,

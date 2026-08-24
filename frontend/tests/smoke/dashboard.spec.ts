@@ -1593,7 +1593,7 @@ test("opens an impact notification deep link in the focused map view", async ({ 
   }
 });
 
-test("opens the site guide and blocks invalid account signup input", async ({ page, request, isMobile }) => {
+test("opens the site guide and completes verified email signup", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -1623,14 +1623,40 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
   await expect(dialog).toBeVisible();
 
   await dialog.getByLabel("Email").fill("rider@localhost");
-  await dialog.getByLabel("Password").fill("correct horse battery staple");
   await dialog.getByRole("button", { name: "Create Account" }).click();
   await expect(dialog.getByRole("alert")).toContainText("Enter a valid email address.");
 
   await dialog.getByLabel("Email").fill("rider@example.com");
-  await dialog.getByLabel("Password").fill("aaaaaaaaaa");
   await dialog.getByRole("button", { name: "Create Account" }).click();
-  await expect(dialog.getByRole("alert")).toContainText("Password must include a number, symbol, or space.");
+
+  const verificationDialog = page.getByRole("dialog", { name: "Verify your email for LineWatchTO" });
+  await expect(verificationDialog).toContainText("Check your email to verify your LineWatchTO account");
+  await verificationDialog.getByLabel("Password", { exact: true }).fill("aaaaaaaaaa");
+  await verificationDialog.getByLabel("Confirm password").fill("aaaaaaaaaa");
+  await verificationDialog.getByRole("button", { name: "Verify Local Account" }).click();
+  await expect(verificationDialog.getByRole("alert")).toContainText("Password must include a number, symbol, or space.");
+
+  await verificationDialog.getByLabel("Password", { exact: true }).fill("correct horse battery staple");
+  await verificationDialog.getByLabel("Confirm password").fill("correct horse battery staple");
+  await verificationDialog.getByRole("button", { name: "Verify Local Account" }).click();
+  await expect(verificationDialog).toContainText("Email verified. You are now signed in.");
+  await verificationDialog.getByRole("button", { name: "Continue" }).click();
+  await expect(verificationDialog).toHaveCount(0);
+});
+
+test("accepts a one-time email verification link", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/verify-email#token=smoke-verification-token");
+
+  const dialog = page.getByRole("dialog", { name: "Verify your email for LineWatchTO" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("Verification links expire after 24 hours");
+  await dialog.getByLabel("Password", { exact: true }).fill("correct horse battery staple");
+  await dialog.getByLabel("Confirm password").fill("correct horse battery staple");
+  await dialog.getByRole("button", { name: "Verify Email" }).click();
+
+  await expect(dialog).toContainText("Email verified. You are now signed in.");
+  await expect(page).toHaveURL("/");
 });
 
 test("map overlays open the corresponding submenu cards", async ({ page, request, isMobile }) => {

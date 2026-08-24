@@ -30,6 +30,12 @@ class AccountControllerTest {
         "http://localhost:3000",
         "http://localhost:3000"
     );
+    private final EmailVerificationDevLinkPolicy emailVerificationDevLinkPolicy = new EmailVerificationDevLinkPolicy(
+        true,
+        "127.0.0.1",
+        "http://localhost:3000",
+        "http://localhost:3000"
+    );
     private final AccountController controller = new AccountController(
         accountService,
         cookieFactory,
@@ -39,6 +45,7 @@ class AccountControllerTest {
         pushNotificationService,
         clientAddressResolver,
         passwordResetDevLinkPolicy,
+        emailVerificationDevLinkPolicy,
         false
     );
 
@@ -119,6 +126,80 @@ class AccountControllerTest {
     }
 
     @Test
+    void registrationRequiresEmailVerificationAndDoesNotSetSessionCookie() {
+        AccountService.RegisterRequest request = new AccountService.RegisterRequest(
+            "rider@example.com",
+            "Rider"
+        );
+        AccountService.EmailVerificationRequestResponse serviceResponse =
+            new AccountService.EmailVerificationRequestResponse(
+                true,
+                "Check your email to verify your LineWatchTO account before signing in.",
+                "dev-verification-token",
+                Instant.parse("2026-06-06T14:30:00Z")
+            );
+        when(accountService.register(request)).thenReturn(serviceResponse);
+
+        ResponseEntity<AccountService.EmailVerificationRequestResponse> response = controller.register(
+            request,
+            requestFrom("203.0.113.15")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders()).doesNotContainKey(HttpHeaders.SET_COOKIE);
+        assertThat(response.getBody().accepted()).isTrue();
+        assertThat(response.getBody().devVerificationToken()).isNull();
+        assertThat(response.getBody().expiresAt()).isNull();
+        verify(rateLimiter).requireEmailVerificationAttempt("203.0.113.15", "rider@example.com");
+    }
+
+    @Test
+    void emailVerificationRequestIsRateLimitedByAddressAndEmail() {
+        AccountService.EmailVerificationRequest request = new AccountService.EmailVerificationRequest("rider@example.com");
+        AccountService.EmailVerificationRequestResponse serviceResponse =
+            new AccountService.EmailVerificationRequestResponse(true, "Check your email.", null, null);
+        when(accountService.requestEmailVerification(request)).thenReturn(serviceResponse);
+
+        ResponseEntity<AccountService.EmailVerificationRequestResponse> response = controller.requestEmailVerification(
+            request,
+            requestFrom("203.0.113.16")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(serviceResponse);
+        verify(rateLimiter).requireEmailVerificationAttempt("203.0.113.16", "rider@example.com");
+    }
+
+    @Test
+    void emailVerificationConfirmationSetsSessionCookie() {
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse(
+            "user_1",
+            "rider@example.com",
+            "Rider",
+            false,
+            false
+        );
+        AccountService.EmailVerificationConfirmRequest request =
+            new AccountService.EmailVerificationConfirmRequest("verification-token", "correct horse battery staple");
+        when(accountService.confirmEmailVerification(request)).thenReturn(new AccountResponses.AuthSession(
+            user,
+            "raw-token",
+            Instant.parse("2027-06-05T14:30:00Z")
+        ));
+
+        ResponseEntity<AccountResponses.AuthResponse> response = controller.confirmEmailVerification(
+            request,
+            requestFrom("203.0.113.17")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        assertThat(response.getHeaders().getFirst(HttpHeaders.SET_COOKIE))
+            .contains("linewatch_session=raw-token", "HttpOnly", "SameSite=Lax");
+        verify(rateLimiter).requireAuthAttempt("email-verification-confirm", "203.0.113.17");
+    }
+
+    @Test
     void passwordResetRequestReturnsNeutralMessage() {
         AccountService.PasswordResetRequest request = new AccountService.PasswordResetRequest("rider@example.com");
         AccountService.PasswordResetRequestResponse serviceResponse = new AccountService.PasswordResetRequestResponse(
@@ -194,6 +275,7 @@ class AccountControllerTest {
             pushNotificationService,
             clientAddressResolver,
             passwordResetDevLinkPolicy,
+            emailVerificationDevLinkPolicy,
             true
         );
         AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_dev", "dev@linewatch.local", "Dev Rider", false, false);

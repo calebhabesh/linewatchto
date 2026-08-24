@@ -9,6 +9,7 @@ public class AccountRateLimitProperties {
     private Duration window = Duration.ofMinutes(15);
     private int authMaxRequests = 12;
     private int passwordResetMaxRequests = 5;
+    private int emailVerificationMaxRequests = 5;
     private int demoMaxRequests = 20;
     private int preferenceMutationMaxRequests = 120;
     private int maxBuckets = 10_000;
@@ -43,6 +44,14 @@ public class AccountRateLimitProperties {
 
     public void setPasswordResetMaxRequests(int passwordResetMaxRequests) {
         this.passwordResetMaxRequests = passwordResetMaxRequests;
+    }
+
+    public int getEmailVerificationMaxRequests() {
+        return emailVerificationMaxRequests;
+    }
+
+    public void setEmailVerificationMaxRequests(int emailVerificationMaxRequests) {
+        this.emailVerificationMaxRequests = emailVerificationMaxRequests;
     }
 
     public int getDemoMaxRequests() {

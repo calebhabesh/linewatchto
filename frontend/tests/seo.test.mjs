@@ -77,6 +77,7 @@ describe("LineWatchTO SEO baseline", () => {
         disallow: [
           "/api/",
           "/reset-password",
+          "/verify-email",
           "/app-update.html",
           "/dev-reset.html",
           "/offline.html",
@@ -135,11 +136,13 @@ describe("LineWatchTO SEO baseline", () => {
     );
   });
 
-  it("keeps password reset links out of search indexes", () => {
+  it("keeps account token links out of search indexes", () => {
     const resetPasswordSource = readRequiredSource("../src/app/reset-password/page.tsx");
+    const verifyEmailSource = readRequiredSource("../src/app/verify-email/page.tsx");
     const notFoundSource = readRequiredSource("../src/app/not-found.tsx");
 
     assert.match(resetPasswordSource, /robots:\s*{\s*index:\s*false,\s*follow:\s*false/s);
+    assert.match(verifyEmailSource, /robots:\s*{\s*index:\s*false,\s*follow:\s*false/s);
     assert.match(notFoundSource, /robots:\s*{\s*index:\s*false,\s*follow:\s*false/s);
   });
 

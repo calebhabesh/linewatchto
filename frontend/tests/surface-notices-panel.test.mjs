@@ -105,7 +105,7 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /<RegionalTripChangesList/);
     assert.match(panelSource, /initialRegionalContent/);
     assert.match(shellSource, /openRegionalTripChanges/);
-    assert.match(shellSource, /> Trip Changes/);
+    assert.match(shellSource, /Trip Changes/);
     assert.match(statusSheetSource, /mobile-status-btn-trip-changes/);
   });
 });

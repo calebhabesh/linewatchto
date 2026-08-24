@@ -29,13 +29,13 @@ Edit `.env.staging`:
 - Set `LINEWATCH_STAGING_PUBLIC_ORIGIN` to `https://<staging-hostname>`.
 - Update `LINEWATCH_AUTH_ALLOWED_ORIGINS` to the same public origin.
 - Update `LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL` to the same public origin.
-- Configure staging-owned SMTP credentials if password-reset email should be exercised.
+- Configure staging-owned SMTP credentials so mandatory registration verification and password-reset email can be exercised.
 - Configure staging-owned VAPID keys if Web Push should be exercised.
 - Leave Grafana and Cloudflare Web Analytics values blank unless observability or analytics are under test.
 
 ## Functional Parity Boundary
 
-Staging should match production for app behavior: auth rate limits, password-reset mode, alert ingestion polling and freshness, scheduled-arrival refresh, TTC performance refresh, dashboard cache TTLs, and Web Push enablement/timing.
+Staging should match production for app behavior: auth rate limits, mandatory email verification, password-reset mode, alert ingestion polling and freshness, scheduled-arrival refresh, TTC performance refresh, dashboard cache TTLs, and Web Push enablement/timing.
 
 Staging may differ for environment identity and isolation: database name/user/password, hostname/origin, local port, Compose project, build label, Cloudflare tunnel token, `LINEWATCH_ENVIRONMENT`, observability host/project labels, SMTP secret, VAPID secrets, Grafana credentials, and Cloudflare Web Analytics token.
 
@@ -188,6 +188,7 @@ Use staging to verify:
 - Map overlays render and can be tapped/clicked.
 - Station detail opens and arrival state is clearly source-labeled.
 - Account register/login/logout works.
+- Email-only registration requires and completes email verification.
 - Password reset email flow works when staging SMTP credentials are configured.
 - My Commutes creation and impact matching works.
 - PWA install/update behavior works on a real phone when testing through HTTPS tunnel.

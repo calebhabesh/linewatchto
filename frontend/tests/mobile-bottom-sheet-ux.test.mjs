@@ -103,6 +103,18 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-more-build-label/);
   });
 
+  it("keeps desktop and mobile menu row typography uniform across links and buttons", () => {
+    assert.match(
+      globalCss,
+      /\.desktop-top-chrome \[role="menuitem"\],\s*\.desktop-top-chrome \.main-menu-display-label\s*\{[^}]*font-family:\s*inherit;[^}]*font-size:\s*1rem;[^}]*font-weight:\s*500;[^}]*line-height:\s*1\.5rem;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.mobile-more-row\s*\{[^}]*font-family:\s*inherit;[^}]*font-size:\s*14px;[^}]*font-weight:\s*500;[^}]*line-height:\s*1\.25rem;/s,
+    );
+    assert.equal((shellSource.match(/main-menu-display-label/g) ?? []).length, 3);
+  });
+
   it("prioritizes mobile More sections without turning More into Settings", () => {
     assert.match(bottomNavSource, /MoreHorizontal/);
     assert.match(bottomNavSource, /\{ key: "more", label: "More", Icon: MoreHorizontal \}/);

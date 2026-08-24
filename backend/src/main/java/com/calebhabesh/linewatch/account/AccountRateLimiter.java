@@ -32,6 +32,11 @@ public class AccountRateLimiter {
         check("password-reset-email:" + normalize(email), properties.getPasswordResetMaxRequests());
     }
 
+    public void requireEmailVerificationAttempt(String remoteAddress, String email) {
+        check("email-verification-ip:" + normalizeAddress(remoteAddress), properties.getEmailVerificationMaxRequests());
+        check("email-verification-email:" + normalize(email), properties.getEmailVerificationMaxRequests());
+    }
+
     public void requirePreferenceMutation(String accountId) {
         check("preference:" + normalize(accountId), properties.getPreferenceMutationMaxRequests());
     }

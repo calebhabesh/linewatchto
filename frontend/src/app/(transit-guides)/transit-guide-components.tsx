@@ -1,6 +1,20 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- full navigation keeps the static guide pages free of client router code */
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
+import Image from "next/image";
+import {
+  Accessibility,
+  Activity,
+  ArrowDownToLine,
+  ArrowRight,
+  Compass,
+  ConciergeBell,
+  GitMerge,
+  Map,
+  MapPin,
+  Wifi,
+} from "lucide-react";
 import { JsonLd } from "../../components/JsonLd";
+import { TransitLineBadge } from "../../components/TransitLineBadge";
 import { getLineWatchSiteOrigin } from "../seo";
 import {
   adjacentStationsForGuideStation,
@@ -11,6 +25,7 @@ import {
   stationsForGuideRoute,
   ttcGuideRoutes,
   ttcGuideStations,
+  type TransitGuideAmenity,
   type TransitGuideNetworkSlug,
   type TransitGuideRoute,
   type TransitGuideStation,
@@ -24,7 +39,7 @@ function absoluteUrl(path: string) {
 }
 
 function networkName(networkSlug: TransitGuideNetworkSlug) {
-  return networkSlug === "ttc" ? "TTC subway and LRT" : "GO Transit and UP Express";
+  return networkSlug === "ttc" ? "TTC Subway & LRT" : "GO Transit & UP Express";
 }
 
 function networkShortName(networkSlug: TransitGuideNetworkSlug) {
@@ -48,12 +63,26 @@ function stationDashboardUrl(station: TransitGuideStation) {
 function Breadcrumbs({ items }: { items: Breadcrumb[] }) {
   return (
     <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-      {items.map((item, index) => (
-        <span key={`${item.label}-${index}`}>
-          {index > 0 ? <span aria-hidden="true"> / </span> : null}
-          {item.href ? <a href={item.href}>{item.label}</a> : <span aria-current="page">{item.label}</span>}
-        </span>
-      ))}
+      <ol className={styles.breadcrumbList}>
+        {items.map((item, index) => (
+          <li key={`${item.label}-${index}`} className={styles.breadcrumbItem}>
+            {index > 0 && (
+              <span className={styles.breadcrumbSeparator} aria-hidden="true">
+                /
+              </span>
+            )}
+            {item.href ? (
+              <a href={item.href} className={styles.breadcrumbLink}>
+                {item.label}
+              </a>
+            ) : (
+              <span className={styles.breadcrumbCurrent} aria-current="page">
+                {item.label}
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
     </nav>
   );
 }
@@ -75,29 +104,47 @@ function BreadcrumbJsonLd({ items }: { items: Breadcrumb[] }) {
   );
 }
 
-function RouteBadge({ route }: { route: TransitGuideRoute }) {
+function RouteBadge({ route, size = 38 }: { route: TransitGuideRoute; size?: number }) {
   return (
-    <span
+    <TransitLineBadge
+      lineId={route.id}
+      lineNumber={route.number}
+      lineName={route.name}
+      size={size}
       className={styles.routeBadge}
-      data-text={route.textColor}
-      style={{ backgroundColor: route.color } as CSSProperties}
-      aria-label={`${route.name} ${route.networkSlug === "ttc" ? `Line ${route.number}` : route.number}`}
-    >
-      {route.number}
-    </span>
+    />
   );
 }
 
-function PageHero({ eyebrow, title, children, actions }: {
+function PageHero({
+  eyebrow,
+  title,
+  children,
+  actions,
+  badge,
+  badges,
+  caption,
+}: {
   eyebrow: string;
   title: string;
   children: ReactNode;
   actions?: ReactNode;
+  badge?: ReactNode;
+  badges?: ReactNode;
+  caption?: string;
 }) {
   return (
     <header className={styles.hero}>
-      <p className={styles.eyebrow}>{eyebrow}</p>
-      <h1>{title}</h1>
+      <p className={styles.eyebrow}>
+        <span className={styles.eyebrowBar} aria-hidden="true" />
+        {eyebrow}
+      </p>
+      {caption ? <span className={styles.stationCaption}>{caption}</span> : null}
+      <div className={styles.heroHeaderGroup}>
+        {badge}
+        <h1>{title}</h1>
+      </div>
+      {badges ? <div className={styles.heroBadges}>{badges}</div> : null}
       <div className={styles.lede}>{children}</div>
       {actions ? <div className={styles.actions}>{actions}</div> : null}
     </header>
@@ -107,18 +154,33 @@ function PageHero({ eyebrow, title, children, actions }: {
 function RouteList({ routes }: { routes: TransitGuideRoute[] }) {
   return (
     <ul className={styles.routeList}>
-      {routes.map((route) => (
-        <li key={route.id}>
-          <a className={styles.routeLink} href={routeGuidePath(route)}>
-            <RouteBadge route={route} />
-            <span>
-              <strong>{route.name}</strong>
-              <small>{route.routeLabel}</small>
-            </span>
-            <span className={styles.routeLinkArrow} aria-hidden="true">→</span>
-          </a>
-        </li>
-      ))}
+      {routes.map((route) => {
+        const stopCount = route.stationIds.length;
+        return (
+          <li key={route.id}>
+            <a
+              className={styles.routeLink}
+              href={routeGuidePath(route)}
+              style={{ borderLeftColor: route.color, borderLeftWidth: 3 }}
+            >
+              <RouteBadge route={route} size={38} />
+              <div>
+                <strong>{route.name}</strong>
+                <small>{route.routeLabel}</small>
+                <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
+                  <span className={styles.pillBadge} style={{ fontSize: "0.72rem", padding: "2px 7px" }}>
+                    {route.directionLabel}
+                  </span>
+                  <span className={styles.pillBadge} style={{ fontSize: "0.72rem", padding: "2px 7px" }}>
+                    {stopCount} {stopCount === 1 ? "stop" : "stops"}
+                  </span>
+                </div>
+              </div>
+              <span className={styles.routeLinkArrow} aria-hidden="true">→</span>
+            </a>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -128,17 +190,241 @@ function StationDirectory({ stations }: { stations: TransitGuideStation[] }) {
     <ul className={styles.directory}>
       {stations.map((station) => (
         <li key={station.id}>
-          <a href={stationGuidePath(station)}>{station.name}</a>
+          <a href={stationGuidePath(station)}>
+            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {station.name}
+            </span>
+            <span className={styles.stationDirectoryBadges}>
+              {station.wheelchairAccessible ? (
+                <Image
+                  src="/assets/linewatch/accessible.svg"
+                  alt="Accessible"
+                  width={14}
+                  height={14}
+                  className="shrink-0"
+                />
+              ) : null}
+              {station.routes.map((r) => (
+                <span
+                  key={r.id}
+                  className={styles.stationDirectoryBadge}
+                  style={{ backgroundColor: r.color }}
+                  title={r.name}
+                />
+              ))}
+            </span>
+          </a>
         </li>
       ))}
     </ul>
   );
 }
 
+function RouteStationSequence({ route }: { route: TransitGuideRoute }) {
+  const stations = stationsForGuideRoute(route);
+  return (
+    <ol className={styles.trackSequence}>
+      {stations.map((station, index) => {
+        const isFirst = index === 0;
+        const isLast = index === stations.length - 1;
+        const isTerminal = isFirst || isLast;
+        const transferRoutes = station.routes.filter((r) => r.id !== route.id);
+        const padIndex = String(index + 1).padStart(2, "0");
+
+        return (
+          <li className={styles.trackStop} key={station.id}>
+            <span className={styles.trackStopNum}>{padIndex}</span>
+            <div className={styles.trackLineCol}>
+              <div
+                className={`${styles.trackLineBar} ${isFirst ? styles.trackLineBarFirst : ""} ${isLast ? styles.trackLineBarLast : ""}`}
+                style={{ backgroundColor: route.color }}
+              />
+              <div
+                className={isTerminal ? styles.trackStopDotTerminal : styles.trackStopDot}
+                style={{ borderColor: route.color }}
+              />
+            </div>
+            <a className={styles.trackStopName} href={stationGuidePath(station)}>
+              {station.name}
+            </a>
+            <div className={styles.trackMetaGroup}>
+              {isTerminal ? (
+                <span className={styles.terminalTag}>
+                  <ArrowDownToLine size={10} aria-hidden="true" className="shrink-0" />
+                  Terminal
+                </span>
+              ) : null}
+              {station.wheelchairAccessible ? (
+                <span title="Wheelchair accessible" className={styles.trackAccessibleBadge}>
+                  <Image
+                    src="/assets/linewatch/accessible.svg"
+                    alt="Accessible"
+                    width={15}
+                    height={15}
+                    className={styles.trackAccessibleIcon}
+                  />
+                </span>
+              ) : null}
+              {transferRoutes.length > 0 ? (
+                <div className={styles.trackTransferBadges} title="Transfer connections">
+                  {transferRoutes.map((tr) => (
+                    <RouteBadge key={tr.id} route={tr} size={20} />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function StationAmenityBadge({
+  iconSrc,
+  alt,
+  label,
+  iconClass,
+  isWifi,
+}: {
+  iconSrc?: string;
+  alt: string;
+  label: string;
+  iconClass?: string;
+  isWifi?: boolean;
+}) {
+  return (
+    <div className={styles.amenityItem} title={`${label} available`}>
+      {isWifi ? (
+        <div className={styles.amenityIconWifiWrap}>
+          <Wifi size={15} className="shrink-0" aria-hidden="true" />
+        </div>
+      ) : iconSrc ? (
+        <Image
+          src={iconSrc}
+          alt={alt}
+          width={28}
+          height={28}
+          className={iconClass || styles.amenityIconDefault}
+        />
+      ) : null}
+      <span className={styles.amenityLabel}>{label}</span>
+    </div>
+  );
+}
+
+function StationAmenitiesSection({ station }: { station: TransitGuideStation }) {
+  const availableItems: Array<{ key: string; label: string; iconSrc?: string; iconClass?: string; isWifi?: boolean }> = [];
+
+  if (station.wheelchairAccessible) {
+    availableItems.push({
+      key: "accessible",
+      label: "Accessible",
+      iconSrc: "/assets/linewatch/accessible.svg",
+      iconClass: styles.amenityIconAccessible,
+    });
+  }
+
+  for (const amenity of station.amenities) {
+    if (!amenity.available) continue;
+    const lower = amenity.label.toLowerCase();
+    if (lower.includes("elevator")) {
+      availableItems.push({
+        key: "elevator",
+        label: "Elevators",
+        iconSrc: "/assets/linewatch/outages/elevator.svg",
+        iconClass: styles.amenityIconElevator,
+      });
+    } else if (lower.includes("washroom")) {
+      availableItems.push({
+        key: "washroom",
+        label: "Washrooms",
+        iconSrc: "/assets/linewatch/washroom.svg",
+        iconClass: styles.amenityIconWashroom,
+      });
+    } else if (lower.includes("parking")) {
+      availableItems.push({
+        key: "parking",
+        label: "Parking",
+        iconSrc: "/assets/linewatch/parking.svg",
+        iconClass: styles.amenityIconParking,
+      });
+    } else if (lower.includes("lockup") || lower.includes("lock-up") || lower.includes("rack")) {
+      availableItems.push({
+        key: "bike-lockup",
+        label: station.networkSlug === "ttc" ? "Bike Lock-up" : "Bike Rack",
+        iconSrc: "/assets/linewatch/bicycle-lockup.svg",
+        iconClass: styles.amenityIconBicycle,
+      });
+    } else if (lower.includes("repair")) {
+      availableItems.push({
+        key: "bike-repair",
+        label: "Bike Repair",
+        iconSrc: "/assets/linewatch/bicycle-repair.svg",
+        iconClass: styles.amenityIconBicycle,
+      });
+    } else if (lower.includes("share")) {
+      availableItems.push({
+        key: "bike-share",
+        label: "Bike Share",
+        iconSrc: "/assets/linewatch/bike-share-toronto.svg",
+        iconClass: styles.amenityIconBikeShare,
+      });
+    } else if (lower.includes("pick-up") || lower.includes("drop-off") || lower.includes("ppudo")) {
+      availableItems.push({
+        key: "ppudo",
+        label: "Passenger Pick-up",
+        iconSrc: "/assets/linewatch/passenger-pick-up.svg",
+        iconClass: styles.amenityIconPpudo,
+      });
+    } else if (lower.includes("wi-fi") || lower.includes("wifi")) {
+      availableItems.push({
+        key: "wifi",
+        label: "Wi-Fi",
+        isWifi: true,
+      });
+    }
+  }
+
+  return (
+    <section className={styles.section} data-station-section="services-and-amenities">
+      <div className={styles.sectionHeading}>
+        <div className={styles.sectionHeadingLeft}>
+          <span className={styles.sectionHeaderBar} />
+          <ConciergeBell size={18} className="shrink-0 text-slate-300" aria-hidden="true" />
+          <h2>Services &amp; Amenities</h2>
+        </div>
+      </div>
+      <p>These are reviewed station-map attributes, not current facility-operation guarantees.</p>
+      {availableItems.length > 0 ? (
+        <div className={styles.amenityGrid}>
+          {availableItems.map((item) => (
+            <StationAmenityBadge
+              key={item.key}
+              label={item.label}
+              alt={item.label}
+              iconSrc={item.iconSrc}
+              iconClass={item.iconClass}
+              isWifi={item.isWifi}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className={styles.emptyAmenityNote}>No additional station amenities listed for this stop.</p>
+      )}
+    </section>
+  );
+}
+
 function SourceDisclaimer({ networkSlug }: { networkSlug: TransitGuideNetworkSlug }) {
   return (
     <section className={`${styles.section} ${styles.disclaimer}`}>
-      <h2>Source and freshness</h2>
+      <div className={styles.sectionHeading}>
+        <div className={styles.sectionHeadingLeft}>
+          <span className={styles.sectionHeaderBar} style={{ background: "#f59e0b" }} />
+          <h2>Source &amp; Freshness</h2>
+        </div>
+      </div>
       <p>
         <strong>Unofficial:</strong> LineWatchTO is not a TTC or Metrolinx product. Static guide pages explain the mapped network; they are not a current service guarantee. The interactive dashboard identifies source and freshness and only presents supported current information when ingestion is fresh.
       </p>
@@ -162,34 +448,78 @@ export function ExploreGuidePage() {
       <JsonLd data={{
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        name: "Toronto rapid transit information",
+        name: "Toronto Rapid Transit Information",
         url: absoluteUrl("/explore"),
         description: "TTC subway and LRT, GO Transit, UP Express, station, corridor, and reliability guides from LineWatchTO.",
       }} />
       <PageHero
-        eyebrow="Transit information"
-        title="Explore Toronto rapid transit"
-        actions={<a className={styles.cta} href="/">Open interactive dashboard</a>}
+        eyebrow="Transit Information"
+        title="Explore Toronto Rapid Transit"
+        badges={(
+          <>
+            <span className={`${styles.pillBadge} ${styles.pillBadgeAccent}`}>
+              5 TTC Lines · 8 GO/UP Corridors
+            </span>
+            <span className={styles.pillBadge}>181 Mapped Stations</span>
+            <span className={`${styles.pillBadge} ${styles.pillBadgeSuccess}`}>30-Day Reliability</span>
+          </>
+        )}
+        actions={(
+          <>
+            <a className={styles.cta} href="/">
+              <Map size={16} aria-hidden="true" />
+              <span>View Live Map</span>
+              <ArrowRight size={14} className={styles.ctaArrow} aria-hidden="true" />
+            </a>
+            <a className={styles.secondaryCta} href="/ttc/reliability">
+              <Activity size={16} aria-hidden="true" />
+              <span>Reliability Methodology</span>
+            </a>
+          </>
+        )}
       >
         Find TTC subway and LRT lines, GO rail corridors, UP Express, mapped stations, accessibility reference information, and LineWatchTO reliability methodology. The dashboard remains the place to check source-labeled current conditions.
       </PageHero>
       <div className={styles.contentGrid}>
         <div className={styles.content}>
-          <section className={styles.section}>
-            <div className={styles.sectionHeading}><h2>TTC subway and LRT</h2><a className={styles.link} href="/ttc">All TTC information</a></div>
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>TTC Subway &amp; LRT</h2>
+              </div>
+              <a className={styles.sectionActionLink} href="/ttc">
+                <span>All TTC Information</span>
+                <ArrowRight size={13} className={styles.sectionActionLinkIcon} aria-hidden="true" />
+              </a>
+            </div>
             <RouteList routes={ttcGuideRoutes} />
           </section>
-          <section className={styles.section}>
-            <div className={styles.sectionHeading}><h2>GO Transit and UP Express</h2><a className={styles.link} href="/go-up">All regional information</a></div>
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} style={{ background: "#10b981" }} />
+                <h2>GO Transit &amp; UP Express</h2>
+              </div>
+              <a className={styles.sectionActionLink} href="/go-up">
+                <span>All Regional Information</span>
+                <ArrowRight size={13} className={styles.sectionActionLinkIcon} aria-hidden="true" />
+              </a>
+            </div>
             <RouteList routes={regionalGuideRoutes} />
           </section>
         </div>
         <aside className={styles.sidebar}>
           <section className={styles.section}>
-            <h2>Reliability guides</h2>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>Reliability Guides</h2>
+              </div>
+            </div>
             <ul className={styles.plainList}>
-              <li><a className={styles.link} href="/ttc/reliability">How TTC reliability is measured</a></li>
-              <li><a className={styles.link} href="/go-up/reliability">How GO/UP reliability is measured</a></li>
+              <li><a className={styles.link} href="/ttc/reliability">How TTC Reliability Is Measured</a></li>
+              <li><a className={styles.link} href="/go-up/reliability">How GO/UP Reliability Is Measured</a></li>
             </ul>
           </section>
           <SourceDisclaimer networkSlug="ttc" />
@@ -216,17 +546,34 @@ export function NetworkGuidePage({ networkSlug }: { networkSlug: TransitGuideNet
       <JsonLd data={{
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        name: `${networkName(networkSlug)} lines and stations`,
+        name: `${networkName(networkSlug)} Lines and Stations`,
         url: absoluteUrl(path),
         description,
       }} />
       <PageHero
-        eyebrow={ttc ? "Toronto rapid transit" : "Regional rail"}
-        title={`${networkName(networkSlug)} lines and stations`}
+        eyebrow={ttc ? "Toronto Rapid Transit" : "Regional Rail"}
+        title={`${networkName(networkSlug)} Lines and Stations`}
+        badges={(
+          <>
+            <span className={`${styles.pillBadge} ${styles.pillBadgeAccent}`}>
+              {routes.length} {ttc ? "Rapid Transit Lines" : "Rail Corridors"}
+            </span>
+            <span className={styles.pillBadge}>
+              {stations.length} Mapped Stops
+            </span>
+          </>
+        )}
         actions={(
           <>
-            <a className={styles.cta} href={networkDashboardUrl(networkSlug)}>Open interactive map</a>
-            <a className={styles.secondaryCta} href={`${path}/reliability`}>Reliability methodology</a>
+            <a className={styles.cta} href={networkDashboardUrl(networkSlug)}>
+              <Map size={16} aria-hidden="true" />
+              <span>View {networkShortName(networkSlug)} Live Map</span>
+              <ArrowRight size={14} className={styles.ctaArrow} aria-hidden="true" />
+            </a>
+            <a className={styles.secondaryCta} href={`${path}/reliability`}>
+              <Activity size={16} aria-hidden="true" />
+              <span>Reliability Methodology</span>
+            </a>
           </>
         )}
       >
@@ -234,18 +581,35 @@ export function NetworkGuidePage({ networkSlug }: { networkSlug: TransitGuideNet
       </PageHero>
       <div className={styles.contentGrid}>
         <div className={styles.content}>
-          <section className={styles.section}>
-            <div className={styles.sectionHeading}><h2>{ttc ? "Lines" : "Corridors"}</h2><span className={styles.note}>{routes.length} mapped</span></div>
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>{ttc ? "Lines" : "Corridors"}</h2>
+              </div>
+              <span className={styles.note}>{routes.length} mapped</span>
+            </div>
             <RouteList routes={routes} />
           </section>
-          <section className={styles.section}>
-            <div className={styles.sectionHeading}><h2>Station directory</h2><span className={styles.note}>{stations.length} mapped stations and stops</span></div>
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>Station Directory</h2>
+              </div>
+              <span className={styles.note}>{stations.length} mapped stations and stops</span>
+            </div>
             <StationDirectory stations={stations} />
           </section>
         </div>
         <aside className={styles.sidebar}>
           <section className={styles.section}>
-            <h2>What the dashboard covers</h2>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>What The Dashboard Covers</h2>
+              </div>
+            </div>
             <ul className={styles.plainList}>
               <li>Map-based service impact views</li>
               <li>Planned closures and accessibility outages</li>
@@ -294,12 +658,33 @@ export function RouteGuidePage({ route }: { route: TransitGuideRoute }) {
         },
       }} />
       <PageHero
-        eyebrow={ttc ? "TTC line guide" : "Regional corridor guide"}
+        eyebrow={ttc ? "TTC Line Guide" : "Regional Corridor Guide"}
         title={`${ttc ? `Line ${route.number}` : route.number} ${route.name}`}
+        badge={<RouteBadge route={route} size={48} />}
+        badges={(
+          <>
+            <span className={`${styles.pillBadge} ${styles.pillBadgeAccent}`}>
+              {networkName(route.networkSlug)}
+            </span>
+            <span className={styles.pillBadge}>
+              {route.directionLabel}
+            </span>
+            <span className={`${styles.pillBadge} ${styles.pillBadgeSuccess}`}>
+              {stations.length} Mapped Stops
+            </span>
+          </>
+        )}
         actions={(
           <>
-            <a className={styles.cta} href={networkDashboardUrl(route.networkSlug, "status")}>Check dashboard status</a>
-            <a className={styles.secondaryCta} href={`${parentPath}/reliability`}>View reliability methodology</a>
+            <a className={styles.cta} href={networkDashboardUrl(route.networkSlug, "status")}>
+              <Activity size={16} aria-hidden="true" />
+              <span>Check Live Status</span>
+              <ArrowRight size={14} className={styles.ctaArrow} aria-hidden="true" />
+            </a>
+            <a className={styles.secondaryCta} href={`${parentPath}/reliability`}>
+              <Compass size={16} aria-hidden="true" />
+              <span>View Reliability Methodology</span>
+            </a>
           </>
         )}
       >
@@ -307,15 +692,26 @@ export function RouteGuidePage({ route }: { route: TransitGuideRoute }) {
       </PageHero>
       <div className={styles.contentGrid}>
         <div className={styles.content}>
-          <section className={styles.section}>
-            <div className={styles.sectionHeading}><h2>Mapped stations</h2><span className={styles.note}>{stations.length} stops represented</span></div>
-            <StationDirectory stations={stations} />
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} style={{ background: route.color }} />
+                <h2>Route Station Sequence</h2>
+              </div>
+              <span className={styles.note}>{stations.length} stops represented</span>
+            </div>
+            <RouteStationSequence route={route} />
           </section>
           <SourceDisclaimer networkSlug={route.networkSlug} />
         </div>
         <aside className={styles.sidebar}>
           <section className={styles.section}>
-            <h2>Route reference</h2>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>Route Reference</h2>
+              </div>
+            </div>
             <dl className={styles.facts}>
               <div><dt>Route</dt><dd>{route.routeLabel}</dd></div>
               <div><dt>Directions</dt><dd>{route.directionLabel}</dd></div>
@@ -351,7 +747,7 @@ export function StationGuidePage({ station }: { station: TransitGuideStation }) 
         {
           "@context": "https://schema.org",
           "@type": "WebPage",
-          name: `${station.name} ${ttc ? "TTC" : "GO/UP"} station guide`,
+          name: `${station.name} ${ttc ? "TTC" : "GO/UP"} Station Guide`,
           url: absoluteUrl(path),
           description,
           about: { "@type": "TrainStation", name: station.name },
@@ -364,12 +760,47 @@ export function StationGuidePage({ station }: { station: TransitGuideStation }) 
         },
       ]} />
       <PageHero
-        eyebrow={`${networkShortName(station.networkSlug)} station guide`}
-        title={`${station.name} station`}
+        eyebrow={`${networkShortName(station.networkSlug)} Station Guide`}
+        caption="Station"
+        title={station.name}
+        badges={(
+          <>
+            {station.routes.map((r) => (
+              <RouteBadge key={r.id} route={r} size={28} />
+            ))}
+            {station.wheelchairAccessible ? (
+              <span className={`${styles.pillBadge} ${styles.pillBadgeSuccess}`}>
+                <Image
+                  src="/assets/linewatch/accessible.svg"
+                  alt=""
+                  width={14}
+                  height={14}
+                  className="shrink-0"
+                />
+                <span>Wheelchair Accessible</span>
+              </span>
+            ) : (
+              <span className={styles.pillBadge}>Standard Access</span>
+            )}
+            {station.interchange ? (
+              <span className={`${styles.pillBadge} ${styles.pillBadgeAccent}`}>
+                <GitMerge size={12} className="shrink-0 text-blue-400" />
+                <span>Interchange Hub</span>
+              </span>
+            ) : null}
+          </>
+        )}
         actions={(
           <>
-            <a className={styles.cta} href={stationDashboardUrl(station)}>Open station on map</a>
-            <a className={styles.secondaryCta} href={parentPath}>Browse all stations</a>
+            <a className={styles.cta} href={stationDashboardUrl(station)}>
+              <Map size={16} aria-hidden="true" />
+              <span>View Station on Live Map</span>
+              <ArrowRight size={14} className={styles.ctaArrow} aria-hidden="true" />
+            </a>
+            <a className={styles.secondaryCta} href={parentPath}>
+              <ArrowRight size={16} aria-hidden="true" />
+              <span>Browse All Stations</span>
+            </a>
           </>
         )}
       >
@@ -377,39 +808,52 @@ export function StationGuidePage({ station }: { station: TransitGuideStation }) 
       </PageHero>
       <div className={styles.contentGrid}>
         <div className={styles.content}>
-          <section className={styles.section}>
-            <div className={styles.sectionHeading}><h2>{ttc ? "Lines at this station" : "Routes at this station"}</h2></div>
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>{ttc ? "Lines at This Station" : "Routes at This Station"}</h2>
+              </div>
+            </div>
             <RouteList routes={station.routes} />
           </section>
           <section className={styles.section}>
-            <h2>Reference amenities</h2>
-            <p>These are reviewed station-map attributes, not current facility-operation guarantees.</p>
-            <ul className={styles.amenityList}>
-              <li><span className={station.wheelchairAccessible ? styles.available : styles.unavailable} aria-hidden="true">{station.wheelchairAccessible ? "✓" : "–"}</span>Wheelchair-accessible route</li>
-              {station.amenities.map((amenity) => (
-                <li key={amenity.label}>
-                  <span className={amenity.available ? styles.available : styles.unavailable} aria-hidden="true">{amenity.available ? "✓" : "–"}</span>
-                  {amenity.label}
-                </li>
-              ))}
-            </ul>
-          </section>
-          <section className={styles.section}>
-            <h2>Adjacent mapped stations</h2>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>Adjacent Mapped Stations</h2>
+              </div>
+            </div>
             {adjacentGroups.map(({ route, stations }) => (
               <div className={styles.adjacentGroup} key={route.id}>
-                <h3>{ttc ? `Line ${route.number} ${route.name}` : route.name}</h3>
+                <div className={styles.adjacentGroupHeader}>
+                  <RouteBadge route={route} size={24} />
+                  <h3>{ttc ? `Line ${route.number} ${route.name}` : route.name}</h3>
+                </div>
                 <ul className={styles.adjacentList}>
-                  {stations.map((adjacent) => <li key={adjacent.id}><a href={stationGuidePath(adjacent)}>{adjacent.name}</a></li>)}
+                  {stations.map((adjacent) => (
+                    <li key={adjacent.id}>
+                      <a href={stationGuidePath(adjacent)}>
+                        <MapPin size={13} />
+                        {adjacent.name}
+                      </a>
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}
           </section>
+          <StationAmenitiesSection station={station} />
           <SourceDisclaimer networkSlug={station.networkSlug} />
         </div>
         <aside className={styles.sidebar}>
           <section className={styles.section}>
-            <h2>Station reference</h2>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>Station Reference</h2>
+              </div>
+            </div>
             <dl className={styles.facts}>
               <div><dt>Network</dt><dd>{networkName(station.networkSlug)}</dd></div>
               <div><dt>{ttc ? "Lines" : "Routes"}</dt><dd>{routeNames || "Mapped station"}</dd></div>
@@ -437,21 +881,42 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
       <JsonLd data={{
         "@context": "https://schema.org",
         "@type": "WebPage",
-        name: `${networkName(networkSlug)} reliability methodology`,
+        name: `${networkName(networkSlug)} Reliability Methodology`,
         url: absoluteUrl(path),
         description: `How LineWatchTO calculates coverage-aware 30-day ${networkShortName(networkSlug)} disruption metrics.`,
       }} />
       <PageHero
-        eyebrow="Reliability methodology"
-        title={`How LineWatchTO measures ${networkShortName(networkSlug)} reliability`}
-        actions={<a className={styles.cta} href={networkDashboardUrl(networkSlug, "analytics")}>Open reliability dashboard</a>}
+        eyebrow="Reliability Methodology"
+        title={`How LineWatchTO Measures ${networkShortName(networkSlug)} Reliability`}
+        badges={(
+          <>
+            <span className={`${styles.pillBadge} ${styles.pillBadgeAccent}`}>
+              Rolling 30-Day Window
+            </span>
+            <span className={`${styles.pillBadge} ${styles.pillBadgeSuccess}`}>
+              Coverage-Aware Metrics
+            </span>
+          </>
+        )}
+        actions={(
+          <a className={styles.cta} href={networkDashboardUrl(networkSlug, "analytics")}>
+            <Activity size={16} aria-hidden="true" />
+            <span>Open Reliability Dashboard</span>
+            <ArrowRight size={14} className={styles.ctaArrow} aria-hidden="true" />
+          </a>
+        )}
       >
         LineWatchTO summarizes a rolling 30-day observation window from {source}. Results are coverage-aware and are not presented as official agency performance statistics.
       </PageHero>
       <div className={styles.contentGrid}>
         <div className={styles.content}>
-          <section className={styles.section}>
-            <h2>What is counted</h2>
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} style={{ background: "#10b981" }} />
+                <h2>What Is Counted</h2>
+              </div>
+            </div>
             <ul className={styles.plainList}>
               <li>Normalized rail service-impact intervals that overlap verified successful polling.</li>
               <li>Only the applicable published daily service span when schedule coverage is available.</li>
@@ -459,13 +924,23 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
               <li>Unique service-impact time separately from additive incident-hours, so overlapping incidents are not hidden.</li>
             </ul>
           </section>
-          <section className={styles.section}>
-            <h2>Coverage and confidence</h2>
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} style={{ background: "#3b82f6" }} />
+                <h2>Coverage &amp; Confidence</h2>
+              </div>
+            </div>
             <p>Polling coverage and schedule-date coverage are reported separately. Confidence uses the weaker available coverage source, which keeps gaps visible instead of treating missing observations as normal service.</p>
             {!ttc ? <p>Regional history begins with LineWatchTO&apos;s regional reliability migration, so early GO/UP results can remain explicitly low-confidence while coverage accumulates.</p> : null}
           </section>
-          <section className={styles.section}>
-            <h2>What is excluded</h2>
+          <section className={`${styles.section} ${styles.cardTopAccent}`}>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} style={{ background: "#ef4444" }} />
+                <h2>What Is Excluded</h2>
+              </div>
+            </div>
             <ul className={styles.plainList}>
               <li>Accessibility outages and surface service notices.</li>
               <li>Station arrivals and estimated schematic train markers.</li>
@@ -477,7 +952,12 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
         </div>
         <aside className={styles.sidebar}>
           <section className={styles.section}>
-            <h2>Read results carefully</h2>
+            <div className={styles.sectionHeading}>
+              <div className={styles.sectionHeadingLeft}>
+                <span className={styles.sectionHeaderBar} />
+                <h2>Read Results Carefully</h2>
+              </div>
+            </div>
             <p>A 100% affected-line observation means at least one counted alert existed somewhere on that line during all observed service minutes. It does not mean every station or segment was disrupted.</p>
           </section>
         </aside>

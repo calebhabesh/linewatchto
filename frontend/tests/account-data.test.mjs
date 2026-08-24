@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 import {
   AccountRequestError,
+  confirmEmailVerification,
   confirmPasswordReset,
   createSavedCommute,
   disablePushDevice,
@@ -25,6 +26,7 @@ import {
   normalizeSavedCommuteNotificationRule,
   preserveAccountStateDuringOutage,
   registerAccount,
+  requestEmailVerification,
   requestPasswordReset,
   savePushSubscription,
   sortSavedCommutes,
@@ -286,14 +288,15 @@ describe("account data adapter", () => {
   it("posts registration with normalized payload and credentials included", async () => {
     const requests = [];
     const result = await registerAccount(
-      { email: "rider@example.com", password: "correct horse battery staple", displayName: "Rider" },
+      { email: "rider@example.com", displayName: "Rider" },
       {
         fetcher: async (input, init) => {
           requests.push({ input, init });
           return new Response(
             JSON.stringify({
-              authenticated: true,
-              user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false, googleLinked: false },
+              accepted: true,
+              message: "Check your email to verify your LineWatchTO account before signing in.",
+              devVerificationToken: null,
             }),
             { status: 200, headers: { "content-type": "application/json" } }
           );
@@ -301,20 +304,54 @@ describe("account data adapter", () => {
       }
     );
 
-    assert.equal(result.authenticated, true);
+    assert.equal(result.accepted, true);
+    assert.match(result.message, /verify/i);
     assert.equal(requests[0].init.method, "POST");
     assert.equal(requests[0].init.credentials, "include");
     assert.equal(requests[0].init.body, JSON.stringify({
       email: "rider@example.com",
-      password: "correct horse battery staple",
       displayName: "Rider",
     }));
+  });
+
+  it("requests and confirms email verification with credentials included", async () => {
+    const requests = [];
+    const fetcher = async (input, init) => {
+      requests.push({ input, init });
+      if (String(input).endsWith("/request")) {
+        return new Response(JSON.stringify({ accepted: true, message: "Check your email." }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({
+        authenticated: true,
+        user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false, googleLinked: false },
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    };
+
+    const requested = await requestEmailVerification({ email: "rider@example.com" }, { fetcher });
+    const confirmed = await confirmEmailVerification({
+      token: "verification-token",
+      password: "correct horse battery staple",
+    }, { fetcher });
+
+    assert.equal(requested.accepted, true);
+    assert.equal(confirmed.authenticated, true);
+    assert.equal(requests[0].input, "/api/auth/email-verification/request");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[1].input, "/api/auth/email-verification/confirm");
+    assert.equal(requests[1].init.body, JSON.stringify({
+      token: "verification-token",
+      password: "correct horse battery staple",
+    }));
+    assert.equal(requests[1].init.credentials, "include");
   });
 
   it("surfaces backend account error messages", async () => {
     await assert.rejects(
       () => registerAccount(
-        { email: "rider@example.com", password: "correct horse battery staple", displayName: "Rider" },
+        { email: "rider@example.com", displayName: "Rider" },
         {
           fetcher: async () =>
             new Response(

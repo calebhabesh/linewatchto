@@ -29,6 +29,7 @@ public class AccountController {
     private final PushNotificationService pushNotificationService;
     private final ClientAddressResolver clientAddressResolver;
     private final PasswordResetDevLinkPolicy passwordResetDevLinkPolicy;
+    private final EmailVerificationDevLinkPolicy emailVerificationDevLinkPolicy;
     private final boolean devAccountEnabled;
 
     public AccountController(
@@ -40,6 +41,7 @@ public class AccountController {
         PushNotificationService pushNotificationService,
         ClientAddressResolver clientAddressResolver,
         PasswordResetDevLinkPolicy passwordResetDevLinkPolicy,
+        EmailVerificationDevLinkPolicy emailVerificationDevLinkPolicy,
         @Value("${linewatch.auth.dev-account.enabled:false}") boolean devAccountEnabled
     ) {
         this.accountService = accountService;
@@ -50,6 +52,7 @@ public class AccountController {
         this.pushNotificationService = pushNotificationService;
         this.clientAddressResolver = clientAddressResolver;
         this.passwordResetDevLinkPolicy = passwordResetDevLinkPolicy;
+        this.emailVerificationDevLinkPolicy = emailVerificationDevLinkPolicy;
         this.devAccountEnabled = devAccountEnabled;
     }
 
@@ -132,12 +135,36 @@ public class AccountController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AccountResponses.AuthResponse> register(
+    public ResponseEntity<AccountService.EmailVerificationRequestResponse> register(
         @RequestBody AccountService.RegisterRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requireAuthAttempt("register", clientAddressResolver.clientAddress(httpRequest));
-        return authenticated(accountService.register(request));
+        rateLimiter.requireEmailVerificationAttempt(
+            clientAddressResolver.clientAddress(httpRequest),
+            request == null ? "" : request.email()
+        );
+        AccountService.EmailVerificationRequestResponse response = accountService.register(request);
+        return ResponseEntity.ok(emailVerificationDevLinkPolicy.filterResponse(response, httpRequest));
+    }
+
+    @PostMapping("/email-verification/request")
+    public ResponseEntity<AccountService.EmailVerificationRequestResponse> requestEmailVerification(
+        @RequestBody AccountService.EmailVerificationRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        String email = request == null ? "" : request.email();
+        rateLimiter.requireEmailVerificationAttempt(clientAddressResolver.clientAddress(httpRequest), email);
+        AccountService.EmailVerificationRequestResponse response = accountService.requestEmailVerification(request);
+        return ResponseEntity.ok(emailVerificationDevLinkPolicy.filterResponse(response, httpRequest));
+    }
+
+    @PostMapping("/email-verification/confirm")
+    public ResponseEntity<AccountResponses.AuthResponse> confirmEmailVerification(
+        @RequestBody AccountService.EmailVerificationConfirmRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        rateLimiter.requireAuthAttempt("email-verification-confirm", clientAddressResolver.clientAddress(httpRequest));
+        return authenticated(accountService.confirmEmailVerification(request));
     }
 
     @PostMapping("/login")
@@ -169,7 +196,10 @@ public class AccountController {
         @RequestBody AccountService.PasswordResetRequest request,
         HttpServletRequest httpRequest
     ) {
-        rateLimiter.requirePasswordResetAttempt(clientAddressResolver.clientAddress(httpRequest), request.email());
+        rateLimiter.requirePasswordResetAttempt(
+            clientAddressResolver.clientAddress(httpRequest),
+            request == null ? "" : request.email()
+        );
         AccountService.PasswordResetRequestResponse response = accountService.requestPasswordReset(request);
         return ResponseEntity.ok(passwordResetDevLinkPolicy.filterResponse(response, httpRequest));
     }

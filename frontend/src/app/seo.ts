@@ -127,6 +127,7 @@ export function buildLineWatchRobots(origin = getLineWatchSiteOrigin()): Metadat
       disallow: [
         "/api/",
         "/reset-password",
+        "/verify-email",
         "/app-update.html",
         "/dev-reset.html",
         "/offline.html",
