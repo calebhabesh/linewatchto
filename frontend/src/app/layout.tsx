@@ -6,6 +6,7 @@ import { PwaServiceWorkerRegistration } from "../components/PwaServiceWorkerRegi
 import { lineWatchAppTitle } from "./app-title.ts";
 import {
   getLineWatchSiteOrigin,
+  getLineWatchSiteVerification,
   lineWatchSeoDescription,
   lineWatchSeoImagePath,
   lineWatchSeoTitle,
@@ -95,6 +96,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  verification: getLineWatchSiteVerification(),
 };
 
 export const viewport: Viewport = {

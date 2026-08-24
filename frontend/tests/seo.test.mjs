@@ -5,8 +5,10 @@ import { describe, it } from "node:test";
 import {
   buildLineWatchRobots,
   buildLineWatchSitemap,
+  buildLineWatchWebsiteStructuredData,
   DEFAULT_LINEWATCH_SITE_ORIGIN,
   getLineWatchSiteOrigin,
+  getLineWatchSiteVerification,
 } from "../src/app/seo.ts";
 
 function readRequiredSource(relativePath) {
@@ -38,6 +40,7 @@ function withEnvValue(key, value, callback) {
 describe("LineWatchTO SEO baseline", () => {
   it("sets canonical production metadata and social share cards at the app root", () => {
     const layoutSource = readRequiredSource("../src/app/layout.tsx");
+    const pageSource = readRequiredSource("../src/app/page.tsx");
     const seoSource = readRequiredSource("../src/app/seo.ts");
 
     assert.match(layoutSource, /metadataBase:\s*getLineWatchSiteOrigin\(\)/);
@@ -45,7 +48,9 @@ describe("LineWatchTO SEO baseline", () => {
     assert.match(layoutSource, /openGraph:\s*{/);
     assert.match(layoutSource, /twitter:\s*{/);
     assert.match(layoutSource, /description:\s*lineWatchSeoDescription/);
-    assert.match(seoSource, /Unofficial TTC subway and LRT reliability dashboard/);
+    assert.match(seoSource, /Unofficial Toronto transit dashboard for TTC subway and LRT, GO Transit, and UP Express/);
+    assert.match(pageSource, /buildLineWatchWebsiteStructuredData/);
+    assert.match(pageSource, /<JsonLd data=/);
   });
 
   it("centralizes the production origin while allowing environment overrides", () => {
@@ -64,6 +69,7 @@ describe("LineWatchTO SEO baseline", () => {
 
     assert.match(robotsSource, /buildLineWatchRobots/);
     assert.match(sitemapSource, /buildLineWatchSitemap/);
+    assert.match(sitemapSource, /transitGuideSitemapPages/);
     assert.deepEqual(buildLineWatchRobots(origin), {
       rules: {
         userAgent: "*",
@@ -78,14 +84,39 @@ describe("LineWatchTO SEO baseline", () => {
       },
       sitemap: "https://linewatchto.ca/sitemap.xml",
     });
-    assert.deepEqual(buildLineWatchSitemap(origin, lastModified), [
+    assert.deepEqual(buildLineWatchSitemap(origin, [
+      {
+        path: "/",
+        lastModified,
+        changeFrequency: "hourly",
+        priority: 1,
+      },
+      {
+        path: "/ttc/stations/union",
+        changeFrequency: "monthly",
+        priority: 0.6,
+      },
+    ]), [
       {
         url: "https://linewatchto.ca/",
         lastModified,
         changeFrequency: "hourly",
         priority: 1,
       },
+      {
+        url: "https://linewatchto.ca/ttc/stations/union",
+        changeFrequency: "monthly",
+        priority: 0.6,
+      },
     ]);
+
+    assert.deepEqual(buildLineWatchSitemap(origin), [
+      {
+        url: "https://linewatchto.ca/",
+        changeFrequency: "hourly",
+        priority: 1,
+      },
+    ], "the sitemap must not claim every request time as a content modification");
   });
 
   it("uses a valid environment origin override and ignores invalid values", () => {
@@ -106,8 +137,10 @@ describe("LineWatchTO SEO baseline", () => {
 
   it("keeps password reset links out of search indexes", () => {
     const resetPasswordSource = readRequiredSource("../src/app/reset-password/page.tsx");
+    const notFoundSource = readRequiredSource("../src/app/not-found.tsx");
 
     assert.match(resetPasswordSource, /robots:\s*{\s*index:\s*false,\s*follow:\s*false/s);
+    assert.match(notFoundSource, /robots:\s*{\s*index:\s*false,\s*follow:\s*false/s);
   });
 
   it("renders a semantic dashboard heading without changing the visual layout", () => {
@@ -115,5 +148,37 @@ describe("LineWatchTO SEO baseline", () => {
 
     assert.match(shellSource, /<h1\s+className="sr-only">/);
     assert.match(shellSource, /TTC subway and LRT reliability dashboard/);
+  });
+
+  it("publishes site identity structured data without overstating official affiliation", () => {
+    const graph = buildLineWatchWebsiteStructuredData(new URL(DEFAULT_LINEWATCH_SITE_ORIGIN));
+
+    assert.deepEqual(graph.map((entry) => entry["@type"]), ["WebSite", "WebApplication"]);
+    assert.equal(graph[0].name, "LineWatchTO");
+    assert.equal(graph[0].url, "https://linewatchto.ca/");
+    assert.doesNotMatch(JSON.stringify(graph), /official TTC|official Metrolinx/i);
+  });
+
+  it("emits configured search ownership tags and omits empty ones", () => {
+    assert.equal(
+      withEnvValue("NEXT_PUBLIC_LINEWATCH_GOOGLE_SITE_VERIFICATION", undefined, () =>
+        withEnvValue("NEXT_PUBLIC_LINEWATCH_BING_SITE_VERIFICATION", undefined, () =>
+          getLineWatchSiteVerification(),
+        ),
+      ),
+      undefined,
+    );
+
+    assert.deepEqual(
+      withEnvValue("NEXT_PUBLIC_LINEWATCH_GOOGLE_SITE_VERIFICATION", "google-code", () =>
+        withEnvValue("NEXT_PUBLIC_LINEWATCH_BING_SITE_VERIFICATION", "bing-code", () =>
+          getLineWatchSiteVerification(),
+        ),
+      ),
+      {
+        google: "google-code",
+        other: { "msvalidate.01": "bing-code" },
+      },
+    );
   });
 });

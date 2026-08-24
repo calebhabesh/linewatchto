@@ -191,6 +191,28 @@ Keep `22/tcp` open only until WireGuard SSH has been verified after a VPS reboot
 
 Point the `linewatchto.ca`, `www.linewatchto.ca`, and `api.linewatchto.ca` DNS records at the VPS. If Cloudflare is authoritative, start with DNS-only records while validating Caddy certificate issuance, then enable proxying only if desired.
 
+### Search indexing and SEO
+
+The production frontend publishes canonical metadata, `robots.txt`, a sitemap, `WebSite` / `WebApplication` structured data, and statically generated transit guides. `/` remains the map-first application. `/explore` links to crawlable TTC and GO/UP network, line/corridor, station, and reliability-methodology pages without adding client JavaScript to the dashboard bundle.
+
+Google and Bing ownership verification tokens are public build-time values. Supply either or both when building the production frontend image:
+
+```bash
+NEXT_PUBLIC_LINEWATCH_GOOGLE_SITE_VERIFICATION=google_token \
+NEXT_PUBLIC_LINEWATCH_BING_SITE_VERIFICATION=bing_token \
+scripts/prod-build-push.sh
+```
+
+After deployment:
+
+1. Verify that `https://linewatchto.ca/robots.txt` allows normal search crawlers and references `https://linewatchto.ca/sitemap.xml`.
+2. Add the `https://linewatchto.ca/` URL-prefix or domain property in Google Search Console and Bing Webmaster Tools.
+3. Submit `https://linewatchto.ca/sitemap.xml` in both tools.
+4. Inspect and request indexing for `/`, `/explore`, `/ttc`, and `/go-up`. Search-engine recrawling is asynchronous; repeated requests do not accelerate it.
+5. Review indexed-page, crawl, Core Web Vitals, and search-query reports after data begins accumulating.
+
+Staging and AWS lab responses send `X-Robots-Tag: noindex, nofollow, noarchive`; do not add production ownership tokens to those builds.
+
 See [docs/production-vps.md](file://~/dev/ttc-reliability-navigator/docs/production-vps.md) for detailed hosting and server setups, and [docs/observability.md](file://~/dev/ttc-reliability-navigator/docs/observability.md) for the monitoring, metrics, Loki logs, and Grafana Cloud alerting configuration. For traffic-spike preparation, Cloudflare cache rules, surge-mode dashboard refresh, and production verification, see [docs/traffic-spike-runbook.md](docs/traffic-spike-runbook.md).
 
 For the separate AWS learning profile, see [infra/aws-lab/README.md](infra/aws-lab/README.md). The AWS lab is an ephemeral Terraform-managed environment for interview and infrastructure practice; production remains on the Oracle Cloud Always Free VPS.

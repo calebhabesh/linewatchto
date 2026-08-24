@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { LineWatchDevBootstrap } from "../components/LineWatchDevBootstrap";
+import { JsonLd } from "../components/JsonLd";
 import { loadDashboardInitialData } from "./dashboard-data";
-import { lineWatchSeoTitle } from "./seo";
+import { buildLineWatchWebsiteStructuredData, lineWatchSeoTitle } from "./seo";
 import {
   initialVisualPreferencesFromCookie,
   VISUAL_PREFERENCES_COOKIE_NAME,
 } from "./visual-preferences";
 
 export const metadata: Metadata = {
-  title: lineWatchSeoTitle,
+  title: { absolute: lineWatchSeoTitle },
 };
 
 export default async function Home() {
@@ -20,9 +21,12 @@ export default async function Home() {
   );
 
   return (
-    <LineWatchDevBootstrap
-      initialData={initialData}
-      initialVisualPreferences={initialVisualPreferences}
-    />
+    <>
+      <JsonLd data={buildLineWatchWebsiteStructuredData()} />
+      <LineWatchDevBootstrap
+        initialData={initialData}
+        initialVisualPreferences={initialVisualPreferences}
+      />
+    </>
   );
 }

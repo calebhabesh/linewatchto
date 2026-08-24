@@ -325,6 +325,8 @@ EOF
     DOCKER_BIN="$fake_docker" \
     LINEWATCH_SKIP_CLEAN_CHECK=true \
     LINEWATCH_RELEASE_SHA="$TEST_SHA" \
+    NEXT_PUBLIC_LINEWATCH_GOOGLE_SITE_VERIFICATION=google-test-code \
+    NEXT_PUBLIC_LINEWATCH_BING_SITE_VERIFICATION=bing-test-code \
       "$ROOT_DIR/scripts/prod-build-push.sh"
   )"
 
@@ -332,6 +334,8 @@ EOF
   assert_contains "$(cat "$log")" "--platform linux/arm64"
   assert_contains "$(cat "$log")" "--build-arg NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=https://ko-fi.com/linewatchto"
   assert_contains "$(cat "$log")" "--build-arg NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS=4000"
+  assert_contains "$(cat "$log")" "--build-arg NEXT_PUBLIC_LINEWATCH_GOOGLE_SITE_VERIFICATION=google-test-code"
+  assert_contains "$(cat "$log")" "--build-arg NEXT_PUBLIC_LINEWATCH_BING_SITE_VERIFICATION=bing-test-code"
   assert_contains "$(cat "$log")" "linewatch-frontend:$TEST_SHA"
   assert_contains "$(cat "$log")" "linewatch-backend:$TEST_SHA"
   assert_contains "$(cat "$log")" "linewatch-postgres:$TEST_SHA"

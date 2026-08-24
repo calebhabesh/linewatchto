@@ -23,6 +23,9 @@ const allowedDevOrigins = [
   process.env.LINEWATCH_DEV_ALLOWED_ORIGIN,
 ].filter((origin): origin is string => Boolean(origin));
 
+const staticGuideCacheControl = "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
+const staticGuideSources = ["/explore", "/ttc", "/ttc/:path*", "/go-up", "/go-up/:path*"];
+
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   env: {
@@ -45,6 +48,15 @@ const nextConfig: NextConfig = {
   allowedDevOrigins,
   async headers() {
     return [
+      ...staticGuideSources.map((source) => ({
+        source,
+        headers: [
+          {
+            key: "Cache-Control",
+            value: staticGuideCacheControl,
+          },
+        ],
+      })),
       {
         source: '/sw.js',
         headers: [

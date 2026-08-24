@@ -4,6 +4,7 @@ import { lineWatchAppTitle } from "./app-title";
 
 export const metadata: Metadata = {
   title: `Page not in service | ${lineWatchAppTitle}`,
+  robots: { index: false, follow: false },
 };
 
 export default function NotFound() {

@@ -79,7 +79,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2 } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -1347,6 +1347,7 @@ export function LineWatchShell({
       closures: "closures",
       commutes: "commutes",
       notifications: "notifications",
+      analytics: "analytics",
       "trip-changes": "surface-notices",
     };
     if (panel === "trip-changes") {
@@ -1360,6 +1361,11 @@ export function LineWatchShell({
     const impactSelection = impactKind && impactId
       ? { kind: impactKind, id: impactId } as const
       : null;
+    const requestedStationId = params.get("station");
+    const validStationDeepLink =
+      (requestedNetwork === "ttc" || requestedNetwork === "regional")
+      && requestedStationId !== null
+      && /^[a-z0-9_-]{1,80}$/.test(requestedStationId);
 
     if (impactSelection) {
       // Notification URLs include their category panel as a fallback. A concrete
@@ -1375,6 +1381,12 @@ export function LineWatchShell({
         nextParams.delete("panel");
         shouldReplaceUrl = true;
       }
+    } else if (validStationDeepLink) {
+      selectedStationIdRef.current = requestedStationId;
+      setSelectedStationId(requestedStationId);
+      setStationPanelActivationKey((current) => current + 1);
+      setMobileInspectorDetent("details-focus");
+      setActiveView("map");
     } else if (panel && panelToView[panel]) {
       navigateForward(panelToView[panel]);
       nextParams.delete("panel");
@@ -1981,22 +1993,27 @@ export function LineWatchShell({
   const headerSearchBarRef = useRef<HTMLDivElement>(null);
   const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
-  const menuActionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  type MainMenuActionElement = HTMLButtonElement | HTMLAnchorElement;
+  const menuActionRefs = useRef<Array<MainMenuActionElement | null>>([]);
 
-  const registerMenuAction = (index: number) => (element: HTMLButtonElement | null) => {
+  const registerMenuAction = (index: number) => (element: MainMenuActionElement | null) => {
     // eslint-disable-next-line react-hooks/refs
     menuActionRefs.current[index] = element;
   };
 
-  const focusMenuAction = (index: number) => {
-    const actions = menuActionRefs.current.filter((element): element is HTMLButtonElement => element !== null && !element.disabled);
+  const focusMenuAction = useCallback((index: number) => {
+    const actions = menuActionRefs.current.filter((element): element is MainMenuActionElement =>
+      element !== null && (!(element instanceof HTMLButtonElement) || !element.disabled)
+    );
     if (actions.length === 0) return;
     const nextIndex = Math.max(0, Math.min(index, actions.length - 1));
     actions[nextIndex]?.focus();
-  };
+  }, []);
 
   const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const actions = menuActionRefs.current.filter((element): element is HTMLButtonElement => element !== null && !element.disabled);
+    const actions = menuActionRefs.current.filter((element): element is MainMenuActionElement =>
+      element !== null && (!(element instanceof HTMLButtonElement) || !element.disabled)
+    );
     const currentIndex = actions.findIndex((element) => element === document.activeElement);
 
     if (event.key === "Escape") {
@@ -2036,7 +2053,7 @@ export function LineWatchShell({
       const timer = window.setTimeout(() => focusMenuAction(0), 40);
       return () => window.clearTimeout(timer);
     }
-  }, [activeView]);
+  }, [activeView, focusMenuAction]);
 
   useEffect(() => {
     if (reducedMotionOverride) return;
@@ -3778,6 +3795,14 @@ export function LineWatchShell({
                       <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Support & About</span>
                     </div>
                  </div>
+                 <a
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   href="/explore"
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <BookOpen size={18} className="text-slate-500 dark:text-slate-400" /> Transit Guides
+                 </a>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
