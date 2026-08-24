@@ -915,7 +915,8 @@ export async function createSavedCommute(input: CreateSavedCommuteInput, options
     body: JSON.stringify(input),
   });
   if (!response.ok) {
-    throw new Error(`Create commute failed with ${response.status}`);
+    const errorBody = await readJson<{ error?: string; message?: string }>(response).catch(() => null);
+    throw new Error(errorBody?.message || `Create commute failed with ${response.status}`);
   }
   return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
 }
@@ -933,7 +934,8 @@ export async function updateSavedCommuteNotificationRule(
     body: JSON.stringify(notificationRule),
   });
   if (!response.ok) {
-    throw new Error(`Update commute notification rule failed with ${response.status}`);
+    const errorBody = await readJson<{ error?: string; message?: string }>(response).catch(() => null);
+    throw new Error(errorBody?.message || `Update commute notification rule failed with ${response.status}`);
   }
   return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
 }
@@ -951,7 +953,8 @@ export async function updateSavedCommute(
     body: JSON.stringify(input),
   });
   if (!response.ok) {
-    throw new Error(`Update commute failed with ${response.status}`);
+    const errorBody = await readJson<{ error?: string; message?: string }>(response).catch(() => null);
+    throw new Error(errorBody?.message || `Update commute failed with ${response.status}`);
   }
   return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
 }
@@ -963,7 +966,8 @@ export async function deleteSavedCommute(id: string, options: AdapterOptions = {
     credentials: "include",
   });
   if (!response.ok) {
-    throw new Error(`Delete commute failed with ${response.status}`);
+    const errorBody = await readJson<{ error?: string; message?: string }>(response).catch(() => null);
+    throw new Error(errorBody?.message || `Delete commute failed with ${response.status}`);
   }
 }
 

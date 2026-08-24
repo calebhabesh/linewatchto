@@ -3577,7 +3577,8 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   }
 
   await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
-  await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
+  await expect(page.getByText("Stub Station", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("Union", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("Default Scheduled Route · To Union")).toBeVisible();
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
   await expect(page.getByText("Travel Time Unreliable", { exact: true })).toBeVisible();
@@ -3604,7 +3605,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.locator(".commute-station-picker").filter({ hasText: "Destination" })).toContainText("Union");
   await expect(page.getByRole("checkbox", { name: "Track Return Route" })).toBeChecked();
   await page.getByRole("button", { name: "Cancel" }).click();
-  await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
+  await expect(page.getByText("Stub Station", { exact: false }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit Alerts" })).toBeVisible();
   await page.getByRole("button", { name: "Edit Alerts" }).click();
   await expect(page.locator(".saved-commute-notification-checks > label")).toHaveCount(5);

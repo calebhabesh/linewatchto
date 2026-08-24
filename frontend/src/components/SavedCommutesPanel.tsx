@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Pencil, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Pencil, Route, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -96,6 +96,36 @@ function ExclaimAlertIcon({ className }: { className?: string }) {
     <svg viewBox="-0.5 0 25 25" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
       <path d="M10.8809 16.15C10.8809 16.0021 10.9101 15.8556 10.967 15.7191C11.024 15.5825 11.1073 15.4586 11.2124 15.3545C11.3175 15.2504 11.4422 15.1681 11.5792 15.1124C11.7163 15.0567 11.8629 15.0287 12.0109 15.03C12.2291 15.034 12.4413 15.1021 12.621 15.226C12.8006 15.3499 12.9399 15.5241 13.0211 15.7266C13.1024 15.9292 13.122 16.1512 13.0778 16.3649C13.0335 16.5786 12.9272 16.7745 12.7722 16.9282C12.6172 17.0818 12.4204 17.1863 12.2063 17.2287C11.9922 17.2711 11.7703 17.2494 11.5685 17.1663C11.3666 17.0833 11.1938 16.9426 11.0715 16.7618C10.9492 16.5811 10.8829 16.3683 10.8809 16.15ZM11.2408 13.42L11.1008 8.20001C11.0875 8.07453 11.1008 7.94766 11.1398 7.82764C11.1787 7.70761 11.2424 7.5971 11.3268 7.5033C11.4112 7.40949 11.5144 7.33449 11.6296 7.28314C11.7449 7.2318 11.8697 7.20526 11.9958 7.20526C12.122 7.20526 12.2468 7.2318 12.3621 7.28314C12.4773 7.33449 12.5805 7.40949 12.6649 7.5033C12.7493 7.5971 12.813 7.70761 12.8519 7.82764C12.8909 7.94766 12.9042 8.07453 12.8909 8.20001L12.7609 13.42C12.7609 13.6215 12.6809 13.8149 12.5383 13.9574C12.3958 14.0999 12.2024 14.18 12.0009 14.18C11.7993 14.18 11.606 14.0999 11.4635 13.9574C11.321 13.8149 11.2408 13.6215 11.2408 13.42Z" fill="currentColor" />
       <path d="M12 21.5C17.1086 21.5 21.25 17.3586 21.25 12.25C21.25 7.14137 17.1086 3 12 3C6.89137 3 2.75 7.14137 2.75 12.25C2.75 17.3586 6.89137 21.5 12 21.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CommuteOriginIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" className={className} aria-hidden="true">
+      <circle cx="8" cy="8" r="4.5" />
+    </svg>
+  );
+}
+
+function CommuteDestinationPinIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C8.13401 2 5 5.13401 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13401 15.866 2 12 2ZM12 11.5C10.6193 11.5 9.5 10.3807 9.5 9C9.5 7.61929 10.6193 6.5 12 6.5C13.3807 6.5 14.5 7.61929 14.5 9C14.5 10.3807 13.3807 11.5 12 11.5Z"
+      />
+    </svg>
+  );
+}
+
+function CommuteConnectingDots({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 4 15" className={className} fill="currentColor" aria-hidden="true">
+      <circle cx="2" cy="2" r="1.15" />
+      <circle cx="2" cy="7.5" r="1.15" />
+      <circle cx="2" cy="13" r="1.15" />
     </svg>
   );
 }
@@ -1028,6 +1058,28 @@ export function SavedCommutesPanel({
     }
   };
   const [deletingCommuteId, setDeletingCommuteId] = useState<string | null>(null);
+  const [userToggledCommuteIds, setUserToggledCommuteIds] = useState<Record<string, number>>({});
+  const swapAnimationTimeoutsRef = useRef<Record<string, number>>({});
+
+  const clearCommuteSwapAnimation = (commuteId?: string) => {
+    if (commuteId) {
+      if (swapAnimationTimeoutsRef.current[commuteId] !== undefined) {
+        window.clearTimeout(swapAnimationTimeoutsRef.current[commuteId]);
+        delete swapAnimationTimeoutsRef.current[commuteId];
+      }
+      setUserToggledCommuteIds((prev) => {
+        if (!prev[commuteId]) return prev;
+        const next = { ...prev };
+        delete next[commuteId];
+        return next;
+      });
+    } else {
+      Object.values(swapAnimationTimeoutsRef.current).forEach((timerId) => window.clearTimeout(timerId));
+      swapAnimationTimeoutsRef.current = {};
+      setUserToggledCommuteIds({});
+    }
+  };
+
   const [internalSelectedLegIds, setInternalSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
   const selectedLegIds = propSelectedLegIds ?? internalSelectedLegIds;
   const setSelectedLegIds = (
@@ -1041,6 +1093,31 @@ export function SavedCommutesPanel({
       setInternalSelectedLegIds(updater);
     }
   };
+
+  const handleToggleLeg = (
+    commuteId: string,
+    nextLegId: AccountCommuteLegId,
+    currentLegId: AccountCommuteLegId,
+  ) => {
+    if (nextLegId === currentLegId) return;
+
+    setSelectedLegIds((current) => ({ ...current, [commuteId]: nextLegId }));
+
+    if (swapAnimationTimeoutsRef.current[commuteId] !== undefined) {
+      window.clearTimeout(swapAnimationTimeoutsRef.current[commuteId]);
+      delete swapAnimationTimeoutsRef.current[commuteId];
+    }
+
+    setUserToggledCommuteIds((prev) => ({
+      ...prev,
+      [commuteId]: (prev[commuteId] || 0) + 1,
+    }));
+
+    swapAnimationTimeoutsRef.current[commuteId] = window.setTimeout(() => {
+      clearCommuteSwapAnimation(commuteId);
+    }, 550);
+  };
+
   const [activePicker, setActivePicker] = useState<"origin" | "destination" | null>(null);
   const [activeViewInternal, setActiveViewInternal] = useState<"create" | "saved">("create");
   const activeView = propActiveView ?? activeViewInternal;
@@ -1048,6 +1125,18 @@ export function SavedCommutesPanel({
     setActiveViewInternal(view);
     onActiveViewChange?.(view);
   };
+
+  useEffect(() => {
+    if (activeView !== "saved") {
+      clearCommuteSwapAnimation();
+    }
+  }, [activeView]);
+
+  useEffect(() => {
+    return () => {
+      clearCommuteSwapAnimation();
+    };
+  }, []);
   const [newNotificationRule, setNewNotificationRule] = useState<AccountSavedCommuteNotificationRule>(() => cloneNotificationRule(defaultSavedCommuteNotificationRule));
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showRoutingDisclaimer, setShowRoutingDisclaimer] = useState(false);
@@ -1186,12 +1275,14 @@ export function SavedCommutesPanel({
     setEditingCommuteId(null);
     setDraftNetworkId(networkId);
     setShowRoutingDisclaimer(false);
+    clearCommuteSwapAnimation();
   };
 
   const startCreatingCommute = () => {
     resetRouteDraft();
     setDraftNetworkId(networkId);
     setCommuteError(null);
+    clearCommuteSwapAnimation();
     setActiveView("create");
   };
 
@@ -1231,9 +1322,10 @@ export function SavedCommutesPanel({
       setToastKey((prev) => prev + 1);
       lastInteractedCommuteIdRef.current = targetCommuteId;
       setFocusedCommuteId(targetCommuteId);
+      clearCommuteSwapAnimation();
       setActiveView("saved");
-    } catch {
-      setCommuteError("Could not save that commute.");
+    } catch (error) {
+      setCommuteError(error instanceof Error ? error.message : "Could not save that commute.");
     } finally {
       setSaving(false);
     }
@@ -1249,6 +1341,7 @@ export function SavedCommutesPanel({
     setWatchReturnTrip(commute.watchReturnTrip);
     setDraftNetworkId(commute.networkId ?? "ttc");
     setCommuteError(null);
+    clearCommuteSwapAnimation(commute.id);
     setActiveView("create");
   };
 
@@ -1265,6 +1358,7 @@ export function SavedCommutesPanel({
       if (lastInteractedCommuteIdRef.current === id) {
         lastInteractedCommuteIdRef.current = null;
       }
+      clearCommuteSwapAnimation(id);
       setExpandedCommuteId((current) => current === id ? null : current);
     } catch {
       setCommuteError("Could not delete that commute.");
@@ -1326,9 +1420,6 @@ export function SavedCommutesPanel({
     const canViewPath = selectedLeg.path.status === "available" && selectedLeg.path.segmentIds.length > 0;
     const selectedPreview = commutePathPreviewFromCommute(commute, selectedLeg.id);
     const viewingPath = Boolean(selectedPreview && viewedCommuteId === selectedPreview.id);
-    const routeLabel = commute.watchReturnTrip
-      ? `${commute.originStationName} <-> ${commute.destinationStationName}`
-      : commute.routeLabel;
     const notificationRule = ruleForCommute(commute);
     const notificationDraft = notificationDrafts[commute.id] ?? notificationRule;
     const editingNotificationRule = editingNotificationCommuteId === commute.id;
@@ -1385,6 +1476,11 @@ export function SavedCommutesPanel({
       );
     }
 
+    const originStationName = selectedLeg.fromStationName || commute.originStationName || stationNameFor(commute.originStationId, commute.networkId ?? "ttc");
+    const destinationStationName = selectedLeg.toStationName || commute.destinationStationName || stationNameFor(commute.destinationStationId, commute.networkId ?? "ttc");
+    const toggleCount = userToggledCommuteIds[commute.id] ?? 0;
+    const isUserToggled = toggleCount > 0;
+
     renderedSavedCommutes.push(
       <div
         key={commute.id}
@@ -1396,8 +1492,9 @@ export function SavedCommutesPanel({
           <div className="saved-commute-card-header">
             <div className="saved-commute-card-identity">
               <div className="min-w-0 flex-1">
-                <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
-                  {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
+                <h3 className="min-w-0 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
+                  <Route size={15} aria-hidden="true" className="shrink-0 text-slate-500 dark:text-slate-400" />
+                  <span>{commute.label}</span>
                 </h3>
                 <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                   <AccountNetworkBadge networkId={commute.networkId ?? "ttc"} />
@@ -1431,18 +1528,55 @@ export function SavedCommutesPanel({
               );
             })()}
           </div>
-          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400 min-w-0 max-w-full break-words">{routeLabel}</p>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold min-w-0 max-w-full">
-            <div className="min-w-0 max-w-full break-words">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Origin:</span>
-              <span className="text-slate-800 dark:text-white break-words">{commute.originStationName}</span>
+          <div className="saved-commute-endpoints">
+            <div className="saved-commute-endpoint-row is-origin">
+              <div className="saved-commute-endpoint-icon-col" aria-hidden="true">
+                <CommuteOriginIcon className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300 shrink-0" />
+              </div>
+              <div className="saved-commute-endpoint-content">
+                <span className="saved-commute-endpoint-prefix">Origin:</span>
+                <span className="saved-commute-endpoint-station" title={originStationName}>
+                  <span
+                    key={isUserToggled ? `origin-${selectedLeg.id}-${toggleCount}` : undefined}
+                    className={`saved-commute-station-text ${isUserToggled ? "saved-commute-origin-swap" : ""}`}
+                    onAnimationEnd={(e) => {
+                      if (e.animationName === "commuteOriginSwapIn") {
+                        clearCommuteSwapAnimation(commute.id);
+                      }
+                    }}
+                  >
+                    {originStationName}
+                  </span>
+                </span>
+              </div>
             </div>
-            <div className="min-w-0 max-w-full break-words">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Destination:</span>
-              <span className="text-slate-800 dark:text-white break-words">{commute.destinationStationName}</span>
+            <div className="saved-commute-endpoint-connector" aria-hidden="true">
+              <div className="saved-commute-endpoint-icon-col">
+                <CommuteConnectingDots className="w-1 h-3.5 text-slate-500 dark:text-white" />
+              </div>
+            </div>
+            <div className="saved-commute-endpoint-row is-destination">
+              <div className="saved-commute-endpoint-icon-col" aria-hidden="true">
+                <CommuteDestinationPinIcon className="w-3.5 h-3.5 text-red-500 dark:text-red-400 shrink-0" />
+              </div>
+              <div className="saved-commute-endpoint-content">
+                <span className="saved-commute-endpoint-prefix">Destination:</span>
+                <span className="saved-commute-endpoint-station" title={destinationStationName}>
+                  <span
+                    key={isUserToggled ? `dest-${selectedLeg.id}-${toggleCount}` : undefined}
+                    className={`saved-commute-station-text ${isUserToggled ? "saved-commute-dest-swap" : ""}`}
+                    onAnimationEnd={(e) => {
+                      if (e.animationName === "commuteDestSwapIn") {
+                        clearCommuteSwapAnimation(commute.id);
+                      }
+                    }}
+                  >
+                    {destinationStationName}
+                  </span>
+                </span>
+              </div>
             </div>
           </div>
-
           {legs.length > 1 ? (
             <div
               className="commute-leg-toggle"
@@ -1468,7 +1602,9 @@ export function SavedCommutesPanel({
                     role="tab"
                     aria-selected={selectedLeg.id === leg.id}
                     className={isClearByFilters ? "leg-btn-filtered" : isClear ? "leg-btn-clear" : "leg-btn-affected"}
-                    onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
+                    onClick={() => {
+                      handleToggleLeg(commute.id, leg.id, selectedLeg.id);
+                    }}
                     title={`To ${leg.toStationName}`}
                   >
                     <span className="truncate min-w-0 max-w-full block">To {leg.toStationName}</span>
@@ -1476,7 +1612,22 @@ export function SavedCommutesPanel({
                 );
               })}
             </div>
-          ) : null}
+          ) : (
+            <div className="commute-single-leg-container">
+              <div
+                className="commute-single-leg-banner"
+                data-selected-state={
+                  selectedLegClearByFilters
+                    ? "filtered"
+                    : selectedLeg.impact.severity === "clear"
+                      ? "clear"
+                      : "affected"
+                }
+              >
+                <span>To {selectedLeg.toStationName}</span>
+              </div>
+            </div>
+          )}
 
           <div className="saved-commute-time-estimate-heading mt-3 justify-center">
             <strong
@@ -1652,12 +1803,12 @@ export function SavedCommutesPanel({
           <div className="commute-route-actions">
             <button
               type="button"
-              className="commute-route-stop-toggle"
+              className="commute-route-stop-toggle commute-route-edit-button"
               onClick={() => startEditingCommute(commute)}
               aria-label={`Edit commute ${commute.label}`}
             >
-              <Pencil size={13} aria-hidden="true" />
               Edit route
+              <Pencil size={13} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -1667,8 +1818,8 @@ export function SavedCommutesPanel({
               aria-controls={`commute-stops-${commute.id}`}
               disabled={routeStops.length === 0}
             >
-              <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${stopsExpanded ? "rotate-180" : ""}`} />
               {stopsExpanded ? "Hide stops" : `View ${routeStops.length} stops`}
+              <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${stopsExpanded ? "rotate-180" : ""}`} />
             </button>
             <button
               type="button"
@@ -1684,40 +1835,6 @@ export function SavedCommutesPanel({
               <MapPinned size={14} aria-hidden="true" />
               {viewingPath ? "Viewing path" : "View path on map"}
             </button>
-            {deletingCommuteId === commute.id ? (
-              <div ref={deleteConfirmationRef} className="commute-route-delete-confirmation">
-                <span className="commute-route-delete-confirmation-prompt text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mr-1">Are you sure?</span>
-                <button
-                  type="button"
-                  className="commute-route-delete-confirm-button"
-                  onClick={() => {
-                    handleDeleteCommute(commute.id);
-                    setDeletingCommuteId(null);
-                  }}
-                  aria-label={`Confirm delete commute ${commute.label}`}
-                >
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  className="commute-route-delete-cancel-button"
-                  onClick={() => setDeletingCommuteId(null)}
-                  aria-label={`Cancel delete commute ${commute.label}`}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="commute-route-delete-button"
-                onClick={() => setDeletingCommuteId(commute.id)}
-                aria-label={`Delete commute ${commute.label}`}
-                title="Delete commute"
-              >
-                <Trash2 size={22} aria-hidden="true" />
-              </button>
-            )}
           </div>
           {stopsExpanded ? (
             <ol id={`commute-stops-${commute.id}`} className="commute-route-stop-list" aria-label={`Stops for ${commute.label}`}>
@@ -1750,6 +1867,8 @@ export function SavedCommutesPanel({
                   if (editingCommuteId) {
                     lastInteractedCommuteIdRef.current = editingCommuteId;
                   }
+                  clearCommuteSwapAnimation();
+                  resetRouteDraft();
                   setActiveView("saved");
                   setCommuteError(null);
                 } else {
@@ -1995,6 +2114,49 @@ export function SavedCommutesPanel({
                   </button>
                 </div>
                 {commuteError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{commuteError}</p> : null}
+
+                {editingCommuteId ? (
+                  <div className="saved-commute-edit-danger-zone">
+                    {deletingCommuteId === editingCommuteId ? (
+                      <div className="saved-commute-delete-confirm-box">
+                        <span className="saved-commute-delete-confirm-prompt">Delete this commute route?</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            className="saved-commute-delete-confirm-btn"
+                            onClick={() => {
+                              handleDeleteCommute(editingCommuteId);
+                              setDeletingCommuteId(null);
+                              resetRouteDraft();
+                              setActiveView("saved");
+                            }}
+                            aria-label={`Confirm delete commute ${newLabel}`}
+                          >
+                            Delete
+                          </button>
+                          <button
+                            type="button"
+                            className="saved-commute-delete-cancel-btn"
+                            onClick={() => setDeletingCommuteId(null)}
+                            aria-label="Cancel delete commute"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="saved-commute-edit-delete-button"
+                        onClick={() => setDeletingCommuteId(editingCommuteId)}
+                        aria-label={`Delete commute ${newLabel}`}
+                      >
+                        <Trash2 size={15} aria-hidden="true" />
+                        <span>Delete this commute</span>
+                      </button>
+                    )}
+                  </div>
+                ) : null}
 
                 <SavedCommuteNotificationSummary
                     onOpenNotificationSettings={onOpenNotificationSettings}

@@ -175,8 +175,7 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.station-arrival-line-divider\s*\{[^}]*linear-gradient/s);
     assert.match(styles, /\.saved-station-section-divider[\s\S]*?margin:\s*6px 0;/s);
     assert.match(styles, /\.saved-station-surface-divider[\s\S]*?margin:\s*8px 0 6px;/s);
-    assert.match(styles, /\.saved-station-arrivals\s*\{[^}]*background:\s*transparent;[^}]*border-radius:\s*0;[^}]*box-shadow:\s*none;/s);
-    assert.match(styles, /\.saved-station-disruption-summary[\s\S]*?padding:\s*6px 0 2px;/s);
+    assert.match(styles, /\.saved-station-disruption-summary[\s\S]*?padding:\s*0 0 8px;/s);
     assert.match(styles, /\.saved-station-arrival-source::after\s*\{[^}]*height:\s*18px/s);
     assert.match(styles, /\.saved-station-arrival-times strong\.is-due/);
     assert.match(styles, /\.saved-station-arrival-times strong\.is-soon/);
@@ -185,9 +184,10 @@ describe("My Stations UI", () => {
     assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-group\s*\{[^}]*gap:\s*0;[^}]*min-height:\s*52px;[^}]*padding:\s*8px 10px 5px;/s);
     assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-line-badge\s*\{[^}]*height:\s*24px !important;[^}]*width:\s*24px !important;/s);
     assert.match(styles, /\.saved-commute-impact-disclosure\.saved-station-disruption-disclosure\s*\{[^}]*border:\s*0;[^}]*margin-top:\s*0;/s);
-    assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*padding:\s*0 12px 14px;/s);
+    assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*padding:\s*10px 12px;/s);
     assert.match(panel, /<div className="station-arrival-line-divider saved-station-section-divider saved-station-surface-divider" aria-hidden="true" \/>\s*<SurfaceConnectionsSection variant="saved-station" networkId="regional"/);
     assert.match(panel, /<div className="station-arrival-line-divider saved-station-section-divider saved-station-surface-divider" aria-hidden="true" \/>\s*<SurfaceConnectionsSection variant="saved-station" networkId="ttc"/);
+    assert.match(styles, /\.saved-station-disruption-list[\s\S]*?margin-top:\s*0;\s*padding:\s*8px 0 4px;/s);
     assert.doesNotMatch(styles, /\.saved-station-disruption-list\s*\{[^}]*border-top:/s);
   });
 

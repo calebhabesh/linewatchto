@@ -125,14 +125,48 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /saved-commute-card-header/);
     assert.match(savedCommutesSource, /saved-commute-card-identity/);
     assert.match(savedCommutesSource, /saved-commute-current-impact-badge/);
+    assert.match(savedCommutesSource, /saved-commute-endpoints/);
+    assert.match(savedCommutesSource, /saved-commute-endpoint-prefix">Origin:<\/span>/);
+    assert.match(savedCommutesSource, /saved-commute-endpoint-prefix">Destination:<\/span>/);
+    assert.match(savedCommutesSource, /CommuteOriginIcon/);
+    assert.match(savedCommutesSource, /CommuteDestinationPinIcon/);
+    assert.match(savedCommutesSource, /CommuteConnectingDots/);
     assert.match(
       globalCss,
-      /\.saved-commute-card-header\s*\{(?=[^}]*align-items:\s*center;)(?=[^}]*display:\s*flex;)(?=[^}]*flex-wrap:\s*nowrap;)(?=[^}]*justify-content:\s*space-between;)[^}]*\}/s,
+      /\.saved-commute-card-header\s*\{(?=[^}]*align-items:\s*flex-start;)(?=[^}]*display:\s*flex;)(?=[^}]*flex-wrap:\s*nowrap;)(?=[^}]*justify-content:\s*space-between;)[^}]*\}/s,
     );
     assert.match(
       globalCss,
       /\.saved-commute-current-impact-badge\s*\{(?=[^}]*align-items:\s*center;)(?=[^}]*justify-content:\s*center;)(?=[^}]*min-height:\s*28px;)(?=[^}]*font-size:\s*0\.72rem;)(?=[^}]*line-height:\s*1;)[^}]*\}/s,
     );
+    assert.match(
+      globalCss,
+      /\.saved-commute-endpoints\s*\{(?=[^}]*display:\s*flex)(?=[^}]*flex-direction:\s*column)[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /\.saved-commute-endpoint-row\s*\{(?=[^}]*align-items:\s*center;)(?=[^}]*display:\s*flex)(?=[^}]*gap:\s*0\.5rem;)[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /\.saved-commute-endpoint-prefix\s*\{(?=[^}]*font-family:\s*var\(--font-sans\))(?=[^}]*font-weight:\s*800;)(?=[^}]*text-transform:\s*uppercase;)[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /\.saved-commute-origin-swap\s*\{(?=[^}]*animation:[^}]*commuteOriginSwapIn)/s,
+    );
+    assert.match(
+      globalCss,
+      /\.saved-commute-dest-swap\s*\{(?=[^}]*animation:[^}]*commuteDestSwapIn)/s,
+    );
+    assert.match(globalCss, /@keyframes commuteOriginSwapIn/);
+    assert.match(globalCss, /@keyframes commuteDestSwapIn/);
+    assert.match(savedCommutesSource, /saved-commute-origin-swap/);
+    assert.match(savedCommutesSource, /saved-commute-dest-swap/);
+    assert.match(savedCommutesSource, /handleToggleLeg\([\s\S]*?commute\.id,\s*leg\.id,\s*selectedLeg\.id\)/);
+    assert.match(savedCommutesSource, /clearCommuteSwapAnimation/);
+    assert.match(savedCommutesSource, /onAnimationEnd=\{[\s\S]*?commuteOriginSwapIn[\s\S]*?clearCommuteSwapAnimation/);
+    assert.match(savedCommutesSource, /onAnimationEnd=\{[\s\S]*?commuteDestSwapIn[\s\S]*?clearCommuteSwapAnimation/);
     assert.match(savedCommutesSource, /To \{leg\.toStationName\}/);
     assert.match(savedCommutesSource, /Clear both ways/);
     assert.match(savedCommutesSource, /Return affected/);
@@ -143,35 +177,21 @@ describe("account UI source", () => {
       globalCss,
       /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*gap:\s*0\.45rem;)(?=[^}]*justify-content:\s*flex-start;)(?=[^}]*letter-spacing:\s*0\.025em;)(?=[^}]*padding-left:\s*0;)[^}]*\}/s,
     );
-    assert.match(globalCss, /\.commute-route-stop-toggle > svg\s*\{(?=[^}]*left:\s*-2px;)(?=[^}]*position:\s*relative;)[^}]*\}/s);
+    assert.match(savedCommutesSource, /Edit route\s*<Pencil size=\{13\}/);
+    assert.match(savedCommutesSource, /View \$\{routeStops\.length\} stops`\}\s*<ChevronDown size=\{14\}/);
     assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
     assert.match(savedCommutesSource, /View path on map/);
-    assert.match(savedCommutesSource, /<Trash2 size=\{22\} aria-hidden="true"/);
-    assert.match(globalCss, /\.commute-route-delete-button svg\s*\{[^}]*height:\s*22px;[^}]*width:\s*22px;/s);
+    assert.match(savedCommutesSource, /saved-commute-edit-delete-button/);
+    assert.match(savedCommutesSource, /Delete this commute/);
+    assert.match(savedCommutesSource, /saved-commute-delete-confirm-box/);
+    assert.match(globalCss, /\.saved-commute-edit-delete-button\s*\{(?=[^}]*font-weight:\s*850;)(?=[^}]*text-transform:\s*uppercase;)(?=[^}]*letter-spacing:\s*0\.025em;)[^}]*\}/s);
+    assert.match(globalCss, /\.saved-commute-delete-confirm-prompt\s*\{(?=[^}]*font-weight:\s*850;)(?=[^}]*text-transform:\s*uppercase;)[^}]*\}/s);
     assert.match(globalCss, /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-card\s*\{(?=[^}]*max-width:\s*100%;)(?=[^}]*overflow-x:\s*hidden;)(?=[^}]*width:\s*100%;)[^}]*\}/s);
-    assert.match(globalCss, /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-route-delete-button\s*\{[^}]*margin-top:\s*0\.35rem;/s);
-    assert.match(savedCommutesSource, /aria-label=\{`Delete commute \$\{commute\.label\}`\}/);
     assert.match(
       globalCss,
-      /\.commute-route-delete-confirmation\s*\{(?=[^}]*justify-content:\s*center;)(?=[^}]*margin-left:\s*auto;)[^}]*\}/s,
+      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.commute-route-actions\s*\{[^}]*gap:\s*0\.35rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-stop-toggle\s*\{[^}]*font-size:\s*0\.64rem;)(?=[\s\S]*?\.saved-commute-map-action,\s*\.commute-route-actions \.commute-route-map-button\s*\{[^}]*font-size:\s*0\.64rem;)/s,
     );
-    assert.match(
-      globalCss,
-      /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-route-delete-confirmation\s*\{(?=[^}]*flex-basis:\s*100%;)(?=[^}]*justify-content:\s*flex-start;)(?=[^}]*width:\s*100%;)[^}]*\}\s*\.commute-route-delete-confirmation \.commute-route-delete-confirm-button\s*\{[^}]*margin-left:\s*auto !important;/s,
-    );
-    assert.match(
-      globalCss,
-      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.commute-route-actions\s*\{[^}]*gap:\s*0\.25rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-stop-toggle\s*\{[^}]*font-size:\s*0\.64rem;)(?=[\s\S]*?\.saved-commute-map-action,\s*\.commute-route-actions \.commute-route-map-button\s*\{[^}]*font-size:\s*0\.64rem;)/s,
-    );
-    assert.match(globalCss, /\.commute-route-delete-confirmation-prompt\s*\{(?=[^}]*left:\s*2px;)(?=[^}]*position:\s*relative;)[^}]*\}/s);
-    assert.match(savedCommutesSource, /const deleteConfirmationRef = useRef<HTMLDivElement>\(null\)/);
-    assert.match(savedCommutesSource, /window\.matchMedia\("\(max-width: 767px\)"\)\.matches/);
-    assert.match(savedCommutesSource, /confirmation\.closest<HTMLElement>\("\.commute-grid"\)/);
-    assert.match(savedCommutesSource, /const revealInset = 12/);
-    assert.match(savedCommutesSource, /\(scrollContainer \?\? window\)\.scrollBy\(\{/);
-    assert.match(savedCommutesSource, /prefers-reduced-motion: reduce/);
-    assert.match(savedCommutesSource, /ref=\{deleteConfirmationRef\}/);
     assert.match(
       globalCss,
       /\.saved-commute-map-action\s*\{[^}]*background:[^;]+;[^}]*border-color:[^;]+;[^}]*box-shadow:[^;]+;[^}]*color:[^;]+;[^}]*\}/s,
@@ -222,14 +242,14 @@ describe("account UI source", () => {
     );
     assert.match(savedCommutesSource, /saved-commute-impact-summary-action-collapsed">List View/);
     assert.match(savedCommutesSource, /saved-commute-impact-summary-action-expanded">Hide List/);
-    assert.match(globalCss, /\.saved-commute-impact-summary-action\s*\{(?=[^}]*align-self:\s*center;)(?=[^}]*justify-self:\s*end;)[^}]*\}/s);
+    assert.match(globalCss, /\.saved-commute-impact-summary-action\s*\{(?=[^}]*align-self:\s*flex-start;)(?=[^}]*justify-self:\s*end;)[^}]*\}/s);
     assert.match(
       globalCss,
       /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*white-space:\s*nowrap;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*grid-row:\s*1;)(?=[\s\S]*?\.saved-commute-impact-summary-chips\s*\{[^}]*grid-column:\s*1 \/ -1;)/s,
     );
     assert.match(
       globalCss,
-      /@media \(max-width:\s*23\.5rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*font-size:\s*0\.72rem;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*font-size:\s*0\.52rem;)/s,
+      /@media \(max-width:\s*23\.5rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*font-size:\s*0\.76rem;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*font-size:\s*0\.52rem;)/s,
     );
     assert.match(globalCss, /\.dark \.saved-commute-impact-summary-chip\.kind-delay\s*\{(?=[^}]*#FEEC41)(?=[^}]*rgba\(254, 236, 65, 0\.14\))[^}]*\}/s);
     assert.match(savedCommutesSource, /selectedLeg\.impact\.matchedImpacts\.length === 0 \? \(/);
