@@ -409,10 +409,6 @@ export function MobileMoreSheet({
               </strong>
             ) : null}
           </button>
-          <a href="/explore" className="mobile-more-row">
-            <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            Transit Guides
-          </a>
           <button type="button" className="mobile-more-row" onClick={onOpenFeedback}>
             <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Leave Feedback
@@ -427,6 +423,10 @@ export function MobileMoreSheet({
             <FileText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Privacy & Acknowledgements
           </button>
+          <a href="/explore" className="mobile-more-row">
+            <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            Transit Guides
+          </a>
           <div className="mobile-more-row mobile-more-map-attribution" role="note" aria-label="Map Attribution">
             <MapIcon size={18} className="text-slate-500 dark:text-slate-400" />
             <div className="mobile-more-map-attribution-copy">

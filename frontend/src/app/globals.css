@@ -17844,8 +17844,8 @@ img.transit-line-badge {
     border-radius: 8px;
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
+    gap: 0px 10px;
+    padding: 9px 10px;
   }
 
   .mobile-line-status-summary {
@@ -17930,6 +17930,7 @@ img.transit-line-badge {
     flex-wrap: wrap;
     gap: 6px;
     margin-left: 38px;
+    margin-top: -1px;
   }
 
   .mobile-line-status-impact-label {
@@ -25201,7 +25202,7 @@ button:active .account-network-badge,
   }
 
   .mobile-line-status-row {
-    gap: 8px;
+    gap: 0px 8px;
     padding: 8px;
   }
 

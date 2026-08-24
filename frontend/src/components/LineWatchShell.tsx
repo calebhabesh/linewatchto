@@ -4065,14 +4065,6 @@ export function LineWatchShell({
                       <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Support & About</span>
                     </div>
                  </div>
-                 <a
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   href="/explore"
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
-                 >
-                   <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" /> Transit Guides
-                 </a>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -4112,6 +4104,14 @@ export function LineWatchShell({
                      <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {"What's New"}
                    </button>
                  ) : null}
+                 <a
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   href="/explore"
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
+                 >
+                   <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" /> Transit Guides
+                 </a>
                </div>
 
                {/* At-A-Glance Integrated Sub-panels */}
