@@ -1122,19 +1122,17 @@ export function SavedCommutesPanel({
   const [activeViewInternal, setActiveViewInternal] = useState<"create" | "saved">("create");
   const activeView = propActiveView ?? activeViewInternal;
   const setActiveView = (view: "create" | "saved") => {
+    if (view !== "saved") {
+      clearCommuteSwapAnimation();
+    }
     setActiveViewInternal(view);
     onActiveViewChange?.(view);
   };
 
   useEffect(() => {
-    if (activeView !== "saved") {
-      clearCommuteSwapAnimation();
-    }
-  }, [activeView]);
-
-  useEffect(() => {
     return () => {
-      clearCommuteSwapAnimation();
+      Object.values(swapAnimationTimeoutsRef.current).forEach((timerId) => window.clearTimeout(timerId));
+      swapAnimationTimeoutsRef.current = {};
     };
   }, []);
   const [newNotificationRule, setNewNotificationRule] = useState<AccountSavedCommuteNotificationRule>(() => cloneNotificationRule(defaultSavedCommuteNotificationRule));
