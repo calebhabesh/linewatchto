@@ -27,7 +27,7 @@ describe("mobile navigation motion", () => {
     assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mobile-bottom-nav::before/);
     assert.match(globalCss, /\.motion-paused \*,\s*\.motion-paused \*::before,\s*\.motion-paused \*::after\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/s);
     assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*\.linewatch-shell \*::after\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/s);
-    assert.match(shellSource, /reducedMotion \? 0 : 380/);
+    assert.match(shellSource, /reducedMotion \? 0 : isMobile \? 240 : 380/);
   });
 
   it("distinguishes root navigation, forward drill-ins, reverse Back, and Close", () => {
@@ -45,6 +45,9 @@ describe("mobile navigation motion", () => {
     assert.match(shellSource, /popViewHistory\(viewHistoryRef\.current, fallback\)/);
     assert.match(shellSource, /reducedMotion \|\| \(isMobile && targetView !== "map"\)/);
     assert.match(globalCss, /@media \(max-width:\s*767px\)\s*\{[\s\S]*?\.floating-panel-shell\[data-going-back="true"\],[\s\S]*?animation:\s*mobile-sheet-slide-down-exit 240ms/s);
+    assert.doesNotMatch(globalCss, /\.mobile-view-content-wrapper\[data-closing="true"\][\s\S]*?animation:\s*mobile-sheet-slide-down-exit/);
+    assert.match(shellSource, /<MobileStatusSheet[\s\S]*?onClose=\{handleClosePanel\}/);
+    assert.doesNotMatch(shellSource, /handleMobileSheetClose/);
   });
 
   it("animates account container entry and keyed inner view changes", () => {

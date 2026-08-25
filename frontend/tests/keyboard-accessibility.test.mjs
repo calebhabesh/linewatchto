@@ -51,6 +51,6 @@ describe("keyboard accessibility source", () => {
     assert.match(shellSource, /MobileBottomNav/);
     assert.match(shellSource, /aria-label="Primary mobile navigation"/);
     assert.match(shellSource, /onMobileNavSelect/);
-    assert.match(shellSource, /handleMobileSheetClose/);
+    assert.match(shellSource, /<MobileStatusSheet[\s\S]*?onClose=\{handleClosePanel\}/);
   });
 });

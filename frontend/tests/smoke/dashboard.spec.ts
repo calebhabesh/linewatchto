@@ -4513,6 +4513,36 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
   await expect(page.getByRole("button", { name: /High Contrast Mode/ })).toBeVisible();
 });
 
+test("mobile Close uses the same sheet exit animation as Back", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only sheet motion");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Status", exact: true }).click();
+  const closingSheet = page.locator('[data-floating-panel="mobile-panel"]');
+  await page.getByRole("button", { name: "Close status" }).click();
+  await expect(closingSheet).toHaveAttribute("data-closing", "true");
+  const closeAnimation = await closingSheet.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return [style.animationName, style.animationDuration, style.animationTimingFunction];
+  });
+  await expect(closingSheet).toHaveCount(0);
+
+  await page.locator(".mobile-status-peek-count-badge.delays").click();
+  const backSheet = page.locator('[data-floating-panel="mobile-panel"]');
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+  await backSheet.getByRole("button", { name: "Back" }).click();
+  await expect(backSheet).toHaveAttribute("data-going-back", "true");
+  const backAnimation = await backSheet.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return [style.animationName, style.animationDuration, style.animationTimingFunction];
+  });
+
+  expect(closeAnimation).toEqual(backAnimation);
+  expect(closeAnimation[0]).toBe("mobile-sheet-slide-down-exit");
+});
+
 test("mobile browser Back restores the path that launched Show on Map", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only browser history behavior");
   await setStubMode(request, "seeded");

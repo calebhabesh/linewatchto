@@ -24695,7 +24695,6 @@ img.transit-line-badge {
   .floating-panel-shell.floating-panel-back-exit,
   .floating-panel-shell.floating-panel-closing,
   .floating-panel-shell[data-closing="true"],
-  .mobile-view-content-wrapper[data-closing="true"],
   .panel-container-exit,
   .mobile-impact-inspector.mobile-impact-inspector-closing {
     animation: mobile-sheet-slide-down-exit 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;

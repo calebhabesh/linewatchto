@@ -1038,8 +1038,8 @@ export function LineWatchShell({
       setMapPresentationMode("standard");
       setMobileInspectorDetent("map-focus");
       setAccessibilityOutageTarget(null);
-    }, reducedMotion ? 0 : 380);
-  }, [consumeBrowserNavigationEntries, isClosingPanel, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent, setCommutePathPreview]);
+    }, reducedMotion ? 0 : isMobile ? 240 : 380);
+  }, [consumeBrowserNavigationEntries, isClosingPanel, isMobile, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent, setCommutePathPreview]);
 
   const [isGoingBack, setIsGoingBack] = useState(false);
   const backTimeoutRef = useRef<number | null>(null);
@@ -2727,15 +2727,6 @@ export function LineWatchShell({
   }, [navigateRoot, setCommutePathPreview, setMapPresentationMode, setMobileInspectorDetent, setSelectedStationId, setSelection, recordPwaInstallEngagement]);
 
 
-  const handleMobileSheetClose = useCallback(() => {
-    navigateRoot("map");
-    setSelection(null);
-    commutePathPreviewRef.current = null;
-    setCommutePathPreview(null);
-    setMapPresentationMode("standard");
-    setMobileInspectorDetent("map-focus");
-  }, [navigateRoot, setMapPresentationMode, setMobileInspectorDetent, setSelection, setCommutePathPreview]);
-
   const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
     switch (kind) {
       case "suspension":
@@ -3098,7 +3089,7 @@ export function LineWatchShell({
               setSelection(null);
               navigateForward(view);
             }}
-            onClose={handleMobileSheetClose}
+            onClose={handleClosePanel}
             accessibilityOutageCount={
               accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
             }
