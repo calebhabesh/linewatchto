@@ -17,6 +17,7 @@ export type AlertHistoryEvent = {
 };
 
 export type AlertHistoryIncident = {
+  incidentId?: string;
   alertId: string;
   sourceId: string | null;
   lineId: string | null;
@@ -29,6 +30,8 @@ export type AlertHistoryIncident = {
   source: string;
   cause: string | null;
   status: "active" | "cleared" | string;
+  latestState: "opened" | "updated" | "cleared" | string;
+  latestEventAt: string;
   firstSeenAt: string | null;
   lastUpdatedAt: string | null;
   clearedAt: string | null;

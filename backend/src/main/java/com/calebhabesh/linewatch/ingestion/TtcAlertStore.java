@@ -19,6 +19,7 @@ import org.springframework.stereotype.Repository;
 public class TtcAlertStore {
     private static final Duration MAX_RECURRING_CLOSURE_WINDOW = Duration.ofHours(18);
     private static final Duration MIN_RECURRING_CLOSURE_WINDOW = Duration.ofHours(1);
+    private static final int REQUIRED_CONSECUTIVE_MISSING_POLLS = 2;
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -42,6 +43,10 @@ public class TtcAlertStore {
         return previousActive == null
             || !previousActive
             || shouldAppendSnapshot(previousFingerprint, nextFingerprint);
+    }
+
+    static boolean shouldDeactivateAfterMissingPoll(int previousMissingPollCount) {
+        return previousMissingPollCount + 1 >= REQUIRED_CONSECUTIVE_MISSING_POLLS;
     }
 
     public String upsertSource(
@@ -86,7 +91,7 @@ public class TtcAlertStore {
                 start_station_id, end_station_id, active_period_start, active_period_end,
                 source_updated_at,
                 shuttle_type, shuttle_start, shuttle_end, raw_payload,
-                normalized_fingerprint, updated_at
+                normalized_fingerprint, missing_poll_count, updated_at
             ) values (
                 :id, :sourceId, :lineId, :type, :severity, :title, :description, true,
                 :sourceAlertType, :effect, :effectDescription, :direction, :cause,
@@ -95,7 +100,7 @@ public class TtcAlertStore {
                 :startStationId, :endStationId, :activePeriodStart, :activePeriodEnd,
                 :sourceUpdatedAt,
                 :shuttleType, :shuttleStart, :shuttleEnd, :rawPayload,
-                :fingerprint, :now
+                :fingerprint, 0, :now
             )
             on conflict (source_id) do update set
                 line_id = excluded.line_id,
@@ -104,6 +109,7 @@ public class TtcAlertStore {
                 title = excluded.title,
                 description = excluded.description,
                 active = true,
+                missing_poll_count = 0,
                 source_alert_type = excluded.source_alert_type,
                 effect = excluded.effect,
                 effect_description = excluded.effect_description,
@@ -231,7 +237,7 @@ public class TtcAlertStore {
         List<ActiveAlert> activeAlerts = jdbc.query("""
             select id, source_id, line_id, severity, title, description, source_alert_type,
                    impact_kind, start_station_id, end_station_id, direction, cause,
-                   cause_description, source_updated_at
+                   cause_description, source_updated_at, missing_poll_count
             from alerts
             where active = true
               and id like 'ttc-route-%'
@@ -253,19 +259,30 @@ public class TtcAlertStore {
                 resultSet.getString("direction"),
                 resultSet.getString("cause"),
                 resultSet.getString("cause_description"),
-                resultSet.getObject("source_updated_at", OffsetDateTime.class)
+                resultSet.getObject("source_updated_at", OffsetDateTime.class),
+                resultSet.getInt("missing_poll_count")
             ));
 
         for (ActiveAlert alert : activeAlerts) {
             if (!sourceIds.contains(alert.sourceId())) {
-                jdbc.update("""
-                    update alerts
-                    set active = false, updated_at = :now
-                    where id = :id
-                    """, new MapSqlParameterSource()
-                        .addValue("id", alert.id())
-                        .addValue("now", now));
-                appendSnapshot(alert, false, now);
+                if (shouldDeactivateAfterMissingPoll(alert.missingPollCount())) {
+                    int updated = jdbc.update("""
+                        update alerts
+                        set active = false, missing_poll_count = 0, updated_at = :now
+                        where id = :id and active = true
+                        """, new MapSqlParameterSource()
+                            .addValue("id", alert.id())
+                            .addValue("now", now));
+                    if (updated > 0) {
+                        appendSnapshot(alert, false, now);
+                    }
+                } else {
+                    jdbc.update("""
+                        update alerts
+                        set missing_poll_count = missing_poll_count + 1
+                        where id = :id and active = true
+                        """, new MapSqlParameterSource("id", alert.id()));
+                }
             }
         }
     }
@@ -297,7 +314,8 @@ public class TtcAlertStore {
                 resultSet.getString("direction"),
                 resultSet.getString("cause"),
                 resultSet.getString("cause_description"),
-                resultSet.getObject("source_updated_at", OffsetDateTime.class)
+                resultSet.getObject("source_updated_at", OffsetDateTime.class),
+                0
             ));
 
         for (ActiveAlert alert : activeAlerts) {
@@ -691,7 +709,8 @@ public class TtcAlertStore {
         String direction,
         String cause,
         String causeDescription,
-        OffsetDateTime sourceUpdatedAt
+        OffsetDateTime sourceUpdatedAt,
+        int missingPollCount
     ) {}
 
     public List<RawAlertDto> getRawAlerts(int limit, int offset) {

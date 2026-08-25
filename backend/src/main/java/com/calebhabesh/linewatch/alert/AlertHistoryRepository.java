@@ -49,31 +49,46 @@ public class AlertHistoryRepository {
                 from snapshots s
                 left join transit_lines l on l.id = s.line_id
             ),
-            window_rows as (
-                select alert_id, snapshot_time, id
-                from classified
-                where snapshot_time >= :since and snapshot_time < :until
-                order by snapshot_time desc, id desc
-                limit :limit
+            lifecycle as (
+                select c.*,
+                       case
+                           when c.active = false then 'cleared'
+                           when c.previous_active is null or c.previous_active = false then 'opened'
+                           else 'updated'
+                       end as lifecycle_state,
+                       sum(case
+                           when c.active = true
+                                and (c.previous_active is null or c.previous_active = false)
+                               then 1 else 0
+                       end) over (
+                           partition by c.alert_id
+                           order by c.snapshot_time asc, c.id asc
+                       ) as occurrence_number
+                from classified c
             ),
-            matching_alerts as (
-                select alert_id, max(snapshot_time) as matching_time
-                from window_rows
-                group by alert_id
+            matching_occurrences as (
+                select alert_id, occurrence_number,
+                       max(snapshot_time) as matching_time,
+                       max(id) as matching_id
+                from lifecycle
+                where snapshot_time >= :since and snapshot_time < :until
+                group by alert_id, occurrence_number
+                order by matching_time desc, matching_id desc
+                limit :limit
             )
             select c.id, c.alert_id, c.source_id, c.line_id, c.line_number, c.line_name,
                    c.title, c.description, c.snapshot_time, c.active, c.source_updated_at,
                    c.event_type, c.source_alert_type, c.impact_kind, c.start_station_id,
                    c.end_station_id, c.direction, c.cause, c.cause_description,
-                   case
-                       when c.active = false then 'cleared'
-                       when c.previous_active is null or c.previous_active = false then 'opened'
-                       else 'updated'
-                   end as lifecycle_state
-            from classified c
-            join matching_alerts m on m.alert_id = c.alert_id
+                   c.lifecycle_state, c.occurrence_number
+            from lifecycle c
+            join matching_occurrences m
+              on m.alert_id = c.alert_id
+             and m.occurrence_number = c.occurrence_number
             where c.snapshot_time < :until
-            order by m.matching_time desc, c.snapshot_time desc, c.id desc
+            order by m.matching_time desc, m.matching_id desc,
+                     c.alert_id, c.occurrence_number,
+                     c.snapshot_time desc, c.id desc
             """, new MapSqlParameterSource()
                 .addValue("since", since)
                 .addValue("until", until)
@@ -111,17 +126,32 @@ public class AlertHistoryRepository {
                 from regional_alert_snapshots s
                 left join regional_alerts a on a.id = s.alert_id
             ),
-            window_rows as (
-                select alert_id, snapshot_time, id
-                from classified
-                where snapshot_time >= :since and snapshot_time < :until
-                order by snapshot_time desc, id desc
-                limit :limit
+            lifecycle as (
+                select c.*,
+                       case
+                           when c.active = false then 'cleared'
+                           when c.previous_active is null or c.previous_active = false then 'opened'
+                           else 'updated'
+                       end as lifecycle_state,
+                       sum(case
+                           when c.active = true
+                                and (c.previous_active is null or c.previous_active = false)
+                               then 1 else 0
+                       end) over (
+                           partition by c.alert_id
+                           order by c.snapshot_time asc, c.id asc
+                       ) as occurrence_number
+                from classified c
             ),
-            matching_alerts as (
-                select alert_id, max(snapshot_time) as matching_time
-                from window_rows
-                group by alert_id
+            matching_occurrences as (
+                select alert_id, occurrence_number,
+                       max(snapshot_time) as matching_time,
+                       max(id) as matching_id
+                from lifecycle
+                where snapshot_time >= :since and snapshot_time < :until
+                group by alert_id, occurrence_number
+                order by matching_time desc, matching_id desc
+                limit :limit
             )
             select c.id, c.alert_id, c.source_id, c.line_id,
                    null::varchar as line_number, null::varchar as line_name,
@@ -129,15 +159,15 @@ public class AlertHistoryRepository {
                    c.impact_kind as event_type, c.source_system as source_alert_type,
                    c.impact_kind, c.start_station_id, c.end_station_id,
                    null::varchar as direction, c.cause, null::varchar as cause_description,
-                   case
-                       when c.active = false then 'cleared'
-                       when c.previous_active is null or c.previous_active = false then 'opened'
-                       else 'updated'
-                   end as lifecycle_state
-            from classified c
-            join matching_alerts m on m.alert_id = c.alert_id
+                   c.lifecycle_state, c.occurrence_number
+            from lifecycle c
+            join matching_occurrences m
+              on m.alert_id = c.alert_id
+             and m.occurrence_number = c.occurrence_number
             where c.snapshot_time < :until
-            order by m.matching_time desc, c.snapshot_time desc, c.id desc
+            order by m.matching_time desc, m.matching_id desc,
+                     c.alert_id, c.occurrence_number,
+                     c.snapshot_time desc, c.id desc
             """, new MapSqlParameterSource()
                 .addValue("since", since)
                 .addValue("until", until)
@@ -166,7 +196,8 @@ public class AlertHistoryRepository {
             rs.getString("direction"),
             rs.getString("cause"),
             rs.getString("cause_description"),
-            rs.getString("lifecycle_state")
+            rs.getString("lifecycle_state"),
+            rs.getLong("occurrence_number")
         );
     }
 
@@ -232,6 +263,7 @@ public class AlertHistoryRepository {
         String direction,
         String cause,
         String causeDescription,
-        String lifecycleState
+        String lifecycleState,
+        Long occurrenceNumber
     ) {}
 }

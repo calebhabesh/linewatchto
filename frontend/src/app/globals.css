@@ -22374,9 +22374,35 @@ img.transit-line-badge {
 }
 
 .alert-history-result-count {
-  color: var(--muted);
-  font-size: 0.74rem;
-  margin: 0 0 0.45rem;
+  color: rgb(71, 85, 105);
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.alert-history-result-count strong {
+  color: rgb(15, 23, 42);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+}
+
+.dark .alert-history-result-count {
+  color: rgb(148, 163, 184);
+}
+
+.dark .alert-history-result-count strong {
+  color: rgb(248, 250, 252);
+}
+
+.high-contrast .alert-history-result-count {
+  color: rgb(226, 232, 240);
+}
+
+.high-contrast .alert-history-result-count strong {
+  color: #ffffff;
 }
 
 .alert-history-load-more {
@@ -22598,6 +22624,11 @@ img.transit-line-badge {
   color: rgb(180, 83, 9);
 }
 
+.alert-history-event-active .alert-history-status-updated {
+  background: rgba(59, 130, 246, 0.12);
+  color: rgb(29, 78, 216);
+}
+
 .dark .alert-history-details,
 .high-contrast .alert-history-details {
   color: rgb(203, 213, 225);
@@ -22611,6 +22642,11 @@ img.transit-line-badge {
 .dark .alert-history-event-active .alert-history-status-label,
 .high-contrast .alert-history-event-active .alert-history-status-label {
   color: rgb(253, 186, 116);
+}
+
+.dark .alert-history-event-active .alert-history-status-updated,
+.high-contrast .alert-history-event-active .alert-history-status-updated {
+  color: rgb(147, 197, 253);
 }
 
 .alert-history-primary-time {
@@ -22754,20 +22790,48 @@ img.transit-line-badge {
   padding-top: 0.42rem;
 }
 
+.alert-history-details summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 0.45rem;
+  list-style: none;
+}
+
+.alert-history-details summary::-webkit-details-marker {
+  display: none;
+}
+
 .alert-history-details-heading {
   align-items: center;
-  display: flex;
+  display: inline-flex;
   font-size: 0.69rem;
   font-weight: 900;
   gap: 0.3rem;
   letter-spacing: 0.01em;
-  margin: 0;
 }
 
 .alert-history-details-heading svg {
   flex: 0 0 auto;
   height: 0.8125rem;
   width: 0.8125rem;
+}
+
+.alert-history-details-count {
+  color: rgb(100, 116, 139);
+  font-size: 0.64rem;
+  font-weight: 800;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.alert-history-details-chevron {
+  flex: 0 0 auto;
+  transition: transform 160ms ease;
+}
+
+.alert-history-details[open] .alert-history-details-chevron {
+  transform: rotate(180deg);
 }
 
 .alert-history-details ol {

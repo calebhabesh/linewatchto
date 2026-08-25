@@ -46,12 +46,46 @@ class AlertHistoryServiceTest {
             assertThat(incident.cause()).isEqualTo("Mechanical Problem");
             assertThat(incident.source()).isEqualTo("TTC Live Alerts");
             assertThat(incident.status()).isEqualTo("cleared");
+            assertThat(incident.latestState()).isEqualTo("cleared");
+            assertThat(incident.latestEventAt()).isEqualTo(
+                OffsetDateTime.parse("2026-06-23T12:20:00-04:00")
+            );
             assertThat(incident.firstSeenAt()).isEqualTo(OffsetDateTime.parse("2026-06-22T12:05:00-04:00"));
             assertThat(incident.clearedAt()).isEqualTo(OffsetDateTime.parse("2026-06-23T12:20:00-04:00"));
             assertThat(incident.durationMinutes()).isEqualTo(1_455L);
             assertThat(incident.events()).extracting(AlertHistoryResponses.AlertHistoryEventDto::state)
                 .containsExactly("cleared", "opened");
         });
+    }
+
+    @Test
+    void separatesRepeatedOccurrencesThatReuseTheSameAlertId() {
+        when(repository.findLifecycleRows(
+            OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            300
+        )).thenReturn(List.of(
+            row(4L, "ttc-route-1", true, "updated", "2026-06-23T12:20:00-04:00", 2L),
+            row(3L, "ttc-route-1", true, "opened", "2026-06-23T12:05:00-04:00", 2L),
+            row(2L, "ttc-route-1", false, "cleared", "2026-06-23T11:30:00-04:00", 1L),
+            row(1L, "ttc-route-1", true, "opened", "2026-06-23T11:00:00-04:00", 1L)
+        ));
+
+        AlertHistoryResponses.AlertHistoryResponse response = service.history("today", 300);
+
+        assertThat(response.incidents()).hasSize(2);
+        assertThat(response.incidents()).extracting(AlertHistoryResponses.AlertHistoryIncidentDto::incidentId)
+            .containsExactly("ttc-route-1:occurrence:3", "ttc-route-1:occurrence:1");
+        assertThat(response.incidents().get(0).status()).isEqualTo("active");
+        assertThat(response.incidents().get(0).latestState()).isEqualTo("updated");
+        assertThat(response.incidents().get(0).events())
+            .extracting(AlertHistoryResponses.AlertHistoryEventDto::state)
+            .containsExactly("updated", "opened");
+        assertThat(response.incidents().get(1).status()).isEqualTo("cleared");
+        assertThat(response.incidents().get(1).latestState()).isEqualTo("cleared");
+        assertThat(response.incidents().get(1).events())
+            .extracting(AlertHistoryResponses.AlertHistoryEventDto::state)
+            .containsExactly("cleared", "opened");
     }
 
     @Test
@@ -83,7 +117,7 @@ class AlertHistoryServiceTest {
                 "Lakeshore East service adjustment", "Trains are delayed between stations.",
                 OffsetDateTime.parse("2026-06-23T12:05:00-04:00"), true,
                 OffsetDateTime.parse("2026-06-23T12:05:00-04:00"), "delay", "metrolinx-go-service-alerts",
-                "delay", "union", "pickering", null, "operational issue", null, "opened"
+                "delay", "union", "pickering", null, "operational issue", null, "opened", 1L
             )
         ));
 
@@ -173,7 +207,8 @@ class AlertHistoryServiceTest {
             direction,
             "MECHANICAL_PROBLEM",
             "Mechanical Problem",
-            lifecycleState
+            lifecycleState,
+            1L
         );
     }
 
@@ -222,7 +257,8 @@ class AlertHistoryServiceTest {
             "northbound",
             "MECHANICAL_PROBLEM",
             "Mechanical Problem",
-            lifecycleState
+            lifecycleState,
+            1L
         );
     }
 
@@ -232,6 +268,17 @@ class AlertHistoryServiceTest {
         boolean active,
         String lifecycleState,
         String snapshotTime
+    ) {
+        return row(id, alertId, active, lifecycleState, snapshotTime, 1L);
+    }
+
+    private AlertHistoryRepository.AlertHistoryRow row(
+        long id,
+        String alertId,
+        boolean active,
+        String lifecycleState,
+        String snapshotTime,
+        long occurrenceNumber
     ) {
         return new AlertHistoryRepository.AlertHistoryRow(
             id,
@@ -253,7 +300,8 @@ class AlertHistoryServiceTest {
             "westbound",
             "MECHANICAL_PROBLEM",
             "Mechanical Problem",
-            lifecycleState
+            lifecycleState,
+            occurrenceNumber
         );
     }
 }

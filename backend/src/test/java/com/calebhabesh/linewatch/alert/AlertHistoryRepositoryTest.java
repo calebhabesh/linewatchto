@@ -16,7 +16,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 class AlertHistoryRepositoryTest {
     @Test
-    void ttcWindowSelectsIncidentsBeforeLoadingTheirCompleteLifecycle() {
+    void ttcWindowSelectsOccurrencesBeforeLoadingTheirCompleteLifecycle() {
         String sql = captureSql(repository -> repository.findLifecycleRows(
             OffsetDateTime.parse("2026-08-25T00:00:00-04:00"),
             OffsetDateTime.parse("2026-08-25T12:00:00-04:00"),
@@ -27,7 +27,7 @@ class AlertHistoryRepositoryTest {
     }
 
     @Test
-    void regionalWindowSelectsIncidentsBeforeLoadingTheirCompleteLifecycle() {
+    void regionalWindowSelectsOccurrencesBeforeLoadingTheirCompleteLifecycle() {
         String sql = captureSql(repository -> repository.findRegionalLifecycleRows(
             OffsetDateTime.parse("2026-08-25T00:00:00-04:00"),
             OffsetDateTime.parse("2026-08-25T12:00:00-04:00"),
@@ -56,10 +56,15 @@ class AlertHistoryRepositoryTest {
     private void assertCompleteLifecycleQuery(String sql, String sourceTable) {
         assertThat(sql)
             .contains(sourceTable)
-            .contains("window_rows as")
+            .contains("lifecycle as")
+            .contains("as occurrence_number")
             .containsOnlyOnce("snapshot_time >= :since")
-            .contains("matching_alerts as")
-            .contains("join matching_alerts m on m.alert_id = c.alert_id")
+            .contains("matching_occurrences as")
+            .contains("group by alert_id, occurrence_number")
+            .contains("order by matching_time desc, matching_id desc")
+            .contains("limit :limit")
+            .contains("join matching_occurrences m")
+            .contains("and m.occurrence_number = c.occurrence_number")
             .contains("where c.snapshot_time < :until")
             .doesNotContain("where c.snapshot_time >= :since");
     }

@@ -3,7 +3,7 @@ import type {
   AlertHistoryIncident,
 } from "../app/alert-history-data";
 
-export type AlertHistoryLifecycleFilter = "all" | "alerts" | "clearances";
+export type AlertHistoryStatusFilter = "all" | "active" | "cleared";
 
 export type AlertHistoryLineOption = {
   value: string;
@@ -36,14 +36,14 @@ export type AlertHistoryTypeOption = {
 
 export type AlertHistoryViewItem = {
   incident: AlertHistoryIncident;
-  displayEvent: AlertHistoryEvent | null;
+  latestEvent: AlertHistoryEvent;
   cleared: boolean;
 };
 
 export type AlertHistorySearchIndex = ReadonlyMap<AlertHistoryIncident, string>;
 
 export type AlertHistoryFilterControls = {
-  lifecycleFilter: AlertHistoryLifecycleFilter;
+  statusFilter: AlertHistoryStatusFilter;
   lineId: string;
   typeId?: string;
   searchQuery: string;
@@ -103,13 +103,17 @@ export function filterAndSortAlertHistory(
   const typeFilter = controls.typeId ?? ALL_TYPES_VALUE;
 
   const filtered = incidents.flatMap((incident) => {
-    const displayEvent = selectDisplayEvent(
-      incident,
-      controls.lifecycleFilter,
-      controls.since,
-      controls.until,
-    );
-    if (!displayEvent) {
+    const latestEvent = selectLatestEvent(incident);
+    if (!latestEvent || !incidentFallsWithinWindow(incident, controls.since, controls.until)) {
+      return [];
+    }
+    const cleared = latestIncidentState(incident, latestEvent) === "cleared";
+
+    if (controls.statusFilter === "active" && cleared) {
+      return [];
+    }
+
+    if (controls.statusFilter === "cleared" && !cleared) {
       return [];
     }
 
@@ -133,8 +137,8 @@ export function filterAndSortAlertHistory(
 
     return [{
       incident,
-      displayEvent,
-      cleared: displayEvent.state === "cleared",
+      latestEvent,
+      cleared,
     }];
   });
 
@@ -227,8 +231,8 @@ export function filterAndSortAlertHistory(
       }
 
       case SORT_MOST_UPDATES: {
-        const countA = a.incident.events?.length ?? 1;
-        const countB = b.incident.events?.length ?? 1;
+        const countA = getIncidentUpdateCount(a.incident);
+        const countB = getIncidentUpdateCount(b.incident);
         if (countA !== countB) {
           return countB - countA;
         }
@@ -236,8 +240,8 @@ export function filterAndSortAlertHistory(
       }
 
       case SORT_LEAST_UPDATES: {
-        const countA = a.incident.events?.length ?? 1;
-        const countB = b.incident.events?.length ?? 1;
+        const countA = getIncidentUpdateCount(a.incident);
+        const countB = getIncidentUpdateCount(b.incident);
         if (countA !== countB) {
           return countA - countB;
         }
@@ -301,7 +305,8 @@ function getEventTypeSortRank(eventType: string | null | undefined): number {
 
 function getEventTimestamp(item: AlertHistoryViewItem): number {
   const isoString =
-    item.displayEvent?.happenedAt ??
+    item.latestEvent.happenedAt ??
+    item.incident.latestEventAt ??
     item.incident.clearedAt ??
     item.incident.firstSeenAt ??
     "";
@@ -309,23 +314,42 @@ function getEventTimestamp(item: AlertHistoryViewItem): number {
   return Number.isNaN(time) ? 0 : time;
 }
 
-export function selectDisplayEvent(
+export function selectLatestEvent(
   incident: AlertHistoryIncident,
-  filter: AlertHistoryLifecycleFilter,
+): AlertHistoryEvent | null {
+  return incident.events.reduce<AlertHistoryEvent | null>((latest, event) => {
+    if (!latest) return event;
+    const eventTime = eventTimestamp(event);
+    const latestTime = eventTimestamp(latest);
+    if (eventTime !== latestTime) {
+      return eventTime > latestTime ? event : latest;
+    }
+    return event.id > latest.id ? event : latest;
+  }, null);
+}
+
+function latestIncidentState(
+  incident: AlertHistoryIncident,
+  latestEvent: AlertHistoryEvent,
+) {
+  return (incident.latestState || latestEvent.state).trim().toLowerCase();
+}
+
+function incidentFallsWithinWindow(
+  incident: AlertHistoryIncident,
   since?: string,
   until?: string,
-): AlertHistoryEvent | null {
-  const eventsInWindow = incident.events.filter((event) => eventFallsWithinWindow(event, since, until));
+) {
+  return incident.events.some((event) => eventFallsWithinWindow(event, since, until));
+}
 
-  if (filter === "clearances") {
-    return eventsInWindow.find((event) => event.state === "cleared") ?? null;
-  }
+function eventTimestamp(event: AlertHistoryEvent) {
+  const timestamp = new Date(event.happenedAt).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
 
-  if (filter === "alerts") {
-    return eventsInWindow.find((event) => event.state !== "cleared") ?? null;
-  }
-
-  return eventsInWindow[0] ?? null;
+function getIncidentUpdateCount(incident: AlertHistoryIncident) {
+  return incident.events.filter((event) => event.state === "updated").length;
 }
 
 function eventFallsWithinWindow(event: AlertHistoryEvent, since?: string, until?: string) {

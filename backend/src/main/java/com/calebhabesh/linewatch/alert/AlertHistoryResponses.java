@@ -15,6 +15,7 @@ public final class AlertHistoryResponses {
     ) {}
 
     public record AlertHistoryIncidentDto(
+        String incidentId,
         String alertId,
         String sourceId,
         String lineId,
@@ -27,6 +28,8 @@ public final class AlertHistoryResponses {
         String source,
         String cause,
         String status,
+        String latestState,
+        OffsetDateTime latestEventAt,
         OffsetDateTime firstSeenAt,
         OffsetDateTime lastUpdatedAt,
         OffsetDateTime clearedAt,

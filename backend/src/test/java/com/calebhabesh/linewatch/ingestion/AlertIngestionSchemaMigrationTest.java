@@ -54,4 +54,16 @@ class AlertIngestionSchemaMigrationTest {
             assertThat(sql).contains("source_current_continuous boolean not null default false");
         }
     }
+
+    @Test
+    void v74TracksConsecutiveMissingRouteAlertPolls() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+                "/db/migration/V74__ttc_alert_missing_poll_confirmation.sql")) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+
+            assertThat(sql).contains("add column missing_poll_count integer not null default 0");
+            assertThat(sql).contains("check (missing_poll_count >= 0)");
+        }
+    }
 }

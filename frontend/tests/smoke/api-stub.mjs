@@ -684,6 +684,69 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/alert-history") {
+    sendJson(request, response, 200, {
+      generatedAt: "2026-08-25T12:30:00-04:00",
+      period: url.searchParams.get("period") ?? "today",
+      since: "2026-08-25T00:00:00-04:00",
+      until: "2026-08-25T12:30:00-04:00",
+      incidents: [
+        {
+          incidentId: "ttc-route-history-1:occurrence:101",
+          alertId: "ttc-route-history-1",
+          sourceId: "history-1",
+          lineId: "line-2",
+          lineNumber: "2",
+          lineName: "Bloor-Danforth",
+          eventType: "delay",
+          title: "Track issue at Warden",
+          location: "Victoria Park to Warden",
+          displayDirection: "Eastbound",
+          source: "TTC Live Alerts",
+          cause: "Track Issue",
+          status: "cleared",
+          latestState: "cleared",
+          latestEventAt: "2026-08-25T10:27:00-04:00",
+          firstSeenAt: "2026-08-24T11:52:00-04:00",
+          lastUpdatedAt: "2026-08-25T09:15:00-04:00",
+          clearedAt: "2026-08-25T10:27:00-04:00",
+          durationMinutes: 1355,
+          events: [
+            { id: 103, state: "cleared", label: "Service restored", happenedAt: "2026-08-25T10:27:00-04:00", title: "Track issue at Warden", description: "Service restored.", location: "Victoria Park to Warden", displayDirection: "Eastbound", cause: "Track Issue", source: "TTC Live Alerts" },
+            { id: 102, state: "updated", label: "Alert updated", happenedAt: "2026-08-25T09:15:00-04:00", title: "Track issue at Warden", description: "Crews continue track repairs.", location: "Victoria Park to Warden", displayDirection: "Eastbound", cause: "Track Issue", source: "TTC Live Alerts" },
+            { id: 101, state: "opened", label: "Alert opened", happenedAt: "2026-08-24T11:52:00-04:00", title: "Track issue at Warden", description: "Trains are moving slowly.", location: "Victoria Park to Warden", displayDirection: "Eastbound", cause: "Track Issue", source: "TTC Live Alerts" },
+          ],
+        },
+        {
+          incidentId: "ttc-route-history-2:occurrence:201",
+          alertId: "ttc-route-history-2",
+          sourceId: "history-2",
+          lineId: "line-1",
+          lineNumber: "1",
+          lineName: "Yonge-University",
+          eventType: "reduced-speed-zone",
+          title: "Reduced speed zone near Rosedale",
+          location: "Rosedale to Bloor-Yonge",
+          displayDirection: "Southbound",
+          source: "TTC Live Alerts",
+          cause: "Track Issue",
+          status: "active",
+          latestState: "updated",
+          latestEventAt: "2026-08-25T10:23:00-04:00",
+          firstSeenAt: "2026-08-25T03:02:00-04:00",
+          lastUpdatedAt: "2026-08-25T10:23:00-04:00",
+          clearedAt: null,
+          durationMinutes: null,
+          events: [
+            { id: 202, state: "updated", label: "Alert updated", happenedAt: "2026-08-25T10:23:00-04:00", title: "Reduced speed zone near Rosedale", description: "Track work continues.", location: "Rosedale to Bloor-Yonge", displayDirection: "Southbound", cause: "Track Issue", source: "TTC Live Alerts" },
+            { id: 201, state: "opened", label: "Alert opened", happenedAt: "2026-08-25T03:02:00-04:00", title: "Reduced speed zone near Rosedale", description: "Trains are moving slowly.", location: "Rosedale to Bloor-Yonge", displayDirection: "Southbound", cause: "Track Issue", source: "TTC Live Alerts" },
+          ],
+        },
+      ],
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/alerts") {
     const type = url.searchParams.get("type");
     if (type === "planned") {

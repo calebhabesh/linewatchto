@@ -2817,6 +2817,33 @@ test("mobile More restores its scroll position after submenu back navigation", a
     .toBe(Math.round(enteredScrollTop));
 });
 
+test("alert history renders one stable card per incident occurrence with its full lifecycle", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop incident history behavior is sufficient here");
+  await setStubMode(request, "seeded");
+  await openDashboardMenu(page, isMobile);
+  await page.getByRole("menuitem", { name: "Alert History", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Alert History", exact: true })).toBeVisible();
+  await expect(page.locator(".alert-history-item")).toHaveCount(2);
+
+  const clearedIncident = page.locator(".alert-history-item").filter({ hasText: "Track issue at Warden" });
+  await expect(clearedIncident).toHaveCount(1);
+  await expect(clearedIncident.locator(".alert-history-status-label")).toHaveText("Cleared");
+  await expect(clearedIncident.locator(".alert-history-lifecycle-event")).toHaveCount(3);
+  await expect(clearedIncident.getByText("Alert Opened", { exact: true })).toBeVisible();
+  await expect(clearedIncident.getByText("Alert Updated", { exact: true })).toBeVisible();
+  await expect(clearedIncident.getByText("Service Restored", { exact: true })).toBeVisible();
+
+  const activeIncident = page.locator(".alert-history-item").filter({ hasText: "Reduced speed zone near Rosedale" });
+  await expect(activeIncident.locator(".alert-history-status-label")).toHaveText("Updated");
+  await page.getByRole("button", { name: "Active", exact: true }).click();
+  await expect(page.locator(".alert-history-item")).toHaveCount(1);
+  await expect(activeIncident).toBeVisible();
+  await page.getByRole("button", { name: "Cleared", exact: true }).click();
+  await expect(page.locator(".alert-history-item")).toHaveCount(1);
+  await expect(clearedIncident).toBeVisible();
+});
+
 test("renders fixture fallback when the dashboard API is unavailable", async ({ page, request, isMobile }) => {
   await setStubMode(request, "unavailable");
   await openDashboardMenu(page, isMobile);

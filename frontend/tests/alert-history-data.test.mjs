@@ -19,6 +19,7 @@ describe("alert history data adapter", () => {
           until: "2026-06-23T12:30:00-04:00",
           incidents: [
             {
+              incidentId: "ttc-route-1:occurrence:1",
               alertId: "ttc-route-1",
               sourceId: "source-1",
               lineId: "line-2",
@@ -31,6 +32,8 @@ describe("alert history data adapter", () => {
               source: "TTC Live Alerts",
               cause: "Mechanical Problem",
               status: "cleared",
+              latestState: "cleared",
+              latestEventAt: "2026-06-23T12:20:00-04:00",
               firstSeenAt: "2026-06-23T12:05:00-04:00",
               lastUpdatedAt: null,
               clearedAt: "2026-06-23T12:20:00-04:00",
@@ -60,6 +63,8 @@ describe("alert history data adapter", () => {
     assert.equal(calls[0].url, "/api/alert-history?period=today&network=ttc&limit=5000");
     assert.equal(calls[0].options.credentials, "include");
     assert.equal(result.source, "backend");
+    assert.equal(result.data.incidents[0].incidentId, "ttc-route-1:occurrence:1");
+    assert.equal(result.data.incidents[0].latestState, "cleared");
     assert.equal(result.data.incidents[0].durationMinutes, 15);
   });
 

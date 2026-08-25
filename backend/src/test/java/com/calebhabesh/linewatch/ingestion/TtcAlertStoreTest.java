@@ -1,11 +1,23 @@
 package com.calebhabesh.linewatch.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.sql.ResultSet;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class TtcAlertStoreTest {
@@ -23,6 +35,56 @@ class TtcAlertStoreTest {
         assertThat(TtcAlertStore.shouldAppendActiveSnapshot("old", true, "new")).isTrue();
         assertThat(TtcAlertStore.shouldAppendActiveSnapshot("same", false, "same")).isTrue();
         assertThat(TtcAlertStore.shouldAppendActiveSnapshot("same", true, "same")).isFalse();
+    }
+
+    @Test
+    void requiresTwoConsecutiveMissingPollsBeforeDeactivatingRouteAlert() {
+        assertThat(TtcAlertStore.shouldDeactivateAfterMissingPoll(0)).isFalse();
+        assertThat(TtcAlertStore.shouldDeactivateAfterMissingPoll(1)).isTrue();
+    }
+
+    @Test
+    void firstMissingPollOnlyIncrementsConfirmationCount() throws Exception {
+        NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
+        stubActiveAlert(jdbc, 0);
+
+        new TtcAlertStore(jdbc).deactivateMissingAlerts(
+            Set.of(),
+            OffsetDateTime.parse("2026-08-25T07:02:22Z")
+        );
+
+        verify(jdbc).update(
+            contains("missing_poll_count = missing_poll_count + 1"),
+            any(SqlParameterSource.class)
+        );
+        verify(jdbc, never()).update(
+            contains("insert into snapshots"),
+            any(SqlParameterSource.class)
+        );
+    }
+
+    @Test
+    void secondConsecutiveMissingPollDeactivatesAndRecordsLifecycleEvent() throws Exception {
+        NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
+        stubActiveAlert(jdbc, 1);
+        when(jdbc.update(
+            contains("set active = false, missing_poll_count = 0"),
+            any(SqlParameterSource.class)
+        )).thenReturn(1);
+
+        new TtcAlertStore(jdbc).deactivateMissingAlerts(
+            Set.of(),
+            OffsetDateTime.parse("2026-08-25T07:02:52Z")
+        );
+
+        verify(jdbc).update(
+            contains("set active = false, missing_poll_count = 0"),
+            any(SqlParameterSource.class)
+        );
+        verify(jdbc).update(
+            contains("insert into snapshots"),
+            any(SqlParameterSource.class)
+        );
     }
 
     @Test
@@ -173,5 +235,37 @@ class TtcAlertStoreTest {
             now,
             true
         )).containsExactly(canonical);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void stubActiveAlert(
+        NamedParameterJdbcTemplate jdbc,
+        int missingPollCount
+    ) throws Exception {
+        ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.getString("id")).thenReturn("ttc-route-71940");
+        when(resultSet.getString("source_id")).thenReturn("71940");
+        when(resultSet.getString("line_id")).thenReturn("1");
+        when(resultSet.getString("severity")).thenReturn("warning");
+        when(resultSet.getString("title")).thenReturn("Reduced speed zone");
+        when(resultSet.getString("description")).thenReturn("Track work");
+        when(resultSet.getString("source_alert_type")).thenReturn("Planned");
+        when(resultSet.getString("impact_kind")).thenReturn("reduced-speed-zone");
+        when(resultSet.getString("start_station_id")).thenReturn("rosedale");
+        when(resultSet.getString("end_station_id")).thenReturn("bloor-yonge");
+        when(resultSet.getString("direction")).thenReturn("southbound");
+        when(resultSet.getString("cause")).thenReturn("Track Issue");
+        when(resultSet.getObject("source_updated_at", OffsetDateTime.class))
+            .thenReturn(OffsetDateTime.parse("2026-08-24T23:02:00Z"));
+        when(resultSet.getInt("missing_poll_count")).thenReturn(missingPollCount);
+
+        when(jdbc.query(
+            anyString(),
+            any(SqlParameterSource.class),
+            any(RowMapper.class)
+        )).thenAnswer(invocation -> {
+            RowMapper<Object> mapper = invocation.getArgument(2);
+            return List.of(mapper.mapRow(resultSet, 0));
+        });
     }
 }

@@ -72,11 +72,12 @@ public class AlertHistoryService {
         List<AlertHistoryRepository.AlertHistoryRow> rows,
         String network
     ) {
-        Map<String, List<AlertHistoryRepository.AlertHistoryRow>> byAlertId = new LinkedHashMap<>();
+        Map<OccurrenceKey, List<AlertHistoryRepository.AlertHistoryRow>> byOccurrence = new LinkedHashMap<>();
         for (AlertHistoryRepository.AlertHistoryRow row : rows) {
-            byAlertId.computeIfAbsent(row.alertId(), ignored -> new ArrayList<>()).add(row);
+            OccurrenceKey key = new OccurrenceKey(row.alertId(), row.occurrenceNumber());
+            byOccurrence.computeIfAbsent(key, ignored -> new ArrayList<>()).add(row);
         }
-        return byAlertId.values().stream()
+        return byOccurrence.values().stream()
             .map(incidentRows -> incident(incidentRows, network))
             .toList();
     }
@@ -104,7 +105,8 @@ public class AlertHistoryService {
             .map(AlertHistoryRepository.AlertHistoryRow::snapshotTime)
             .max(OffsetDateTime::compareTo)
             .orElse(null);
-        Long durationMinutes = firstSeenAt != null && clearedAt != null
+        boolean cleared = "cleared".equals(latest.lifecycleState());
+        Long durationMinutes = firstSeenAt != null && cleared && clearedAt != null
             ? Math.max(0, Duration.between(firstSeenAt, clearedAt).toMinutes())
             : null;
 
@@ -113,6 +115,7 @@ public class AlertHistoryService {
             .toList();
 
         return new AlertHistoryIncidentDto(
+            incidentId(latest.alertId(), rows),
             latest.alertId(),
             latest.sourceId(),
             latest.lineId(),
@@ -124,13 +127,27 @@ public class AlertHistoryService {
             displayDirection(latest.direction()),
             sourceLabel(latest.sourceAlertType()),
             cause(latest),
-            clearedAt != null ? "cleared" : "active",
+            cleared ? "cleared" : "active",
+            latest.lifecycleState(),
+            latest.snapshotTime(),
             firstSeenAt,
             lastUpdatedAt,
             clearedAt,
             durationMinutes,
             events
         );
+    }
+
+    private String incidentId(
+        String alertId,
+        List<AlertHistoryRepository.AlertHistoryRow> rows
+    ) {
+        long firstSnapshotId = rows.stream()
+            .map(AlertHistoryRepository.AlertHistoryRow::id)
+            .filter(java.util.Objects::nonNull)
+            .min(Long::compareTo)
+            .orElse(0L);
+        return alertId + ":occurrence:" + firstSnapshotId;
     }
 
     private AlertHistoryEventDto event(AlertHistoryRepository.AlertHistoryRow row) {
@@ -262,4 +279,6 @@ public class AlertHistoryService {
     private String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
+
+    private record OccurrenceKey(String alertId, Long occurrenceNumber) {}
 }

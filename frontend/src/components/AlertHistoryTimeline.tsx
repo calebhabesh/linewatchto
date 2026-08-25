@@ -57,11 +57,12 @@ import {
   filterAndSortAlertHistory,
   formatAlertTypeName,
   normalizeEventTypeKey,
-  type AlertHistoryLifecycleFilter,
+  type AlertHistoryStatusFilter,
   type AlertHistoryViewItem,
 } from "./alert-history-filters";
 
 const HISTORY_PAGE_SIZE = 50;
+const COLLAPSED_LIFECYCLE_THRESHOLD = 4;
 
 const PERIODS: Array<{ value: AlertHistoryPeriod; label: string }> = [
   { value: "today", label: "Today" },
@@ -69,10 +70,10 @@ const PERIODS: Array<{ value: AlertHistoryPeriod; label: string }> = [
   { value: "30d", label: "30 days" },
 ];
 
-const FILTERS: Array<{ value: AlertHistoryLifecycleFilter; label: string }> = [
+const FILTERS: Array<{ value: AlertHistoryStatusFilter; label: string }> = [
   { value: "all", label: "All" },
-  { value: "alerts", label: "Alerts" },
-  { value: "clearances", label: "Clearances" },
+  { value: "active", label: "Active" },
+  { value: "cleared", label: "Cleared" },
 ];
 
 function renderTypeOptionIcon(value: string) {
@@ -148,7 +149,7 @@ function renderSortOptionIcon(value: string) {
 
 export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   const [period, setPeriod] = useState<AlertHistoryPeriod>("today");
-  const [filter, setFilter] = useState<AlertHistoryLifecycleFilter>("all");
+  const [filter, setFilter] = useState<AlertHistoryStatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLineId, setSelectedLineId] = useState(ALL_LINES_VALUE);
   const [selectedTypeId, setSelectedTypeId] = useState(ALL_TYPES_VALUE);
@@ -183,7 +184,6 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-  const [source, setSource] = useState<"backend" | "fallback">("fallback");
   const requestedQuery = `${network}:${period}`;
 
   useEffect(() => {
@@ -192,7 +192,6 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
       if (cancelled) return;
       setHistory(result.data.incidents);
       setHistoryWindow({ since: result.data.since, until: result.data.until });
-      setSource(result.source);
       setLoadedQuery(requestedQuery);
     });
     return () => {
@@ -222,7 +221,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   }
 
   const visibleItems = useMemo(() => filterAndSortAlertHistory(history, {
-    lifecycleFilter: filter,
+    statusFilter: filter,
     lineId: selectedLineId,
     typeId: selectedTypeId,
     searchQuery: deferredSearchQuery,
@@ -263,11 +262,6 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
 
   return (
     <section className="alert-history-timeline notification-settings-section" aria-label="Alert history timeline">
-      <div className="notification-settings-section-header">
-        <h3>Service Alert History</h3>
-        <span>{source === "backend" ? "Lifecycle" : "Unavailable"}</span>
-      </div>
-
       <div className="alert-history-controls" aria-label="Alert history filters">
         <div className="alert-history-chip-group" aria-label="History period">
           {PERIODS.map((option) => (
@@ -283,7 +277,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
           ))}
         </div>
         <div className="alert-history-divider" aria-hidden="true" />
-        <div className="alert-history-chip-group" aria-label="History event type">
+        <div className="alert-history-chip-group" aria-label="Incident status">
           {FILTERS.map((option) => (
             <button
               key={option.value}
@@ -472,19 +466,19 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
         </p>
       ) : visibleItems.length === 0 ? (
         <p className="notification-settings-note alert-history-empty">
-          No alert lifecycle events match the selected filters.
+          No alert incidents match the selected filters.
         </p>
       ) : (
         <>
           <p className="alert-history-result-count" aria-live="polite">
-            Showing {displayedItems.length} of {visibleItems.length} matching {visibleItems.length === 1 ? "incident" : "incidents"}
+            Showing <strong>{displayedItems.length}</strong> of <strong>{visibleItems.length}</strong> matching {visibleItems.length === 1 ? "incident" : "incidents"}
           </p>
           <ol className="alert-history-list" aria-busy={searchQuery !== deferredSearchQuery}>
             {displayedItems.map((item) => (
               <HistoryIncident
-                key={item.incident.alertId}
+                key={historyIncidentKey(item.incident)}
                 incident={item.incident}
-                displayEvent={item.displayEvent}
+                latestEvent={item.latestEvent}
                 cleared={item.cleared}
               />
             ))}
@@ -510,12 +504,16 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
 
 const HistoryIncident = memo(function HistoryIncident({
   incident,
-  displayEvent,
+  latestEvent,
   cleared,
 }: AlertHistoryViewItem) {
-  const time = displayEvent?.happenedAt ?? incident.clearedAt ?? incident.firstSeenAt ?? "";
+  const [lifecycleExpanded, setLifecycleExpanded] = useState(
+    incident.events.length <= COLLAPSED_LIFECYCLE_THRESHOLD,
+  );
+  const time = latestEvent.happenedAt ?? incident.latestEventAt ?? incident.clearedAt ?? incident.firstSeenAt ?? "";
   const title = compactHistoryTitle(incident);
-  const statusLabel = cleared ? "Cleared" : formatHistoryStatusLabel(displayEvent?.label);
+  const latestState = historyLifecycleTone(incident.latestState || latestEvent.state);
+  const statusLabel = formatHistoryStateLabel(latestState);
   const facts = [
     incident.displayDirection ? { label: "Direction", value: incident.displayDirection } : null,
     incident.cause ? { label: "Cause", value: formatCause(incident.cause) } : null,
@@ -535,8 +533,14 @@ const HistoryIncident = memo(function HistoryIncident({
           </div>
           <div className="alert-history-heading-badges">
             <HistoryAlertType eventType={incident.eventType} />
-            <span className="alert-history-status-label">
-              {cleared ? <Check size={12} aria-hidden="true" /> : <AlertTriangle size={13} aria-hidden="true" />}
+            <span className={`alert-history-status-label alert-history-status-${latestState}`}>
+              {latestState === "cleared" ? (
+                <Check size={12} aria-hidden="true" />
+              ) : latestState === "updated" ? (
+                <Activity size={13} aria-hidden="true" />
+              ) : (
+                <AlertTriangle size={13} aria-hidden="true" />
+              )}
               {statusLabel}
             </span>
           </div>
@@ -565,11 +569,21 @@ const HistoryIncident = memo(function HistoryIncident({
             </span>
           ) : null}
         </div>
-        <div className="alert-history-details">
-          <h4 className="alert-history-details-heading">
-            <ClipboardList size={13} aria-hidden="true" />
-            Lifecycle Details
-          </h4>
+        <details
+          className="alert-history-details"
+          open={lifecycleExpanded}
+          onToggle={(event) => setLifecycleExpanded(event.currentTarget.open)}
+        >
+          <summary>
+            <span className="alert-history-details-heading">
+              <ClipboardList size={13} aria-hidden="true" />
+              Lifecycle Details
+            </span>
+            <span className="alert-history-details-count">
+              {incident.events.length} {incident.events.length === 1 ? "event" : "events"}
+            </span>
+            <ChevronDown className="alert-history-details-chevron" size={13} aria-hidden="true" />
+          </summary>
           <ol>
             {incident.events.map((event) => (
               <li
@@ -581,16 +595,27 @@ const HistoryIncident = memo(function HistoryIncident({
               </li>
             ))}
           </ol>
-        </div>
+        </details>
       </div>
     </li>
   );
 });
 
+function historyIncidentKey(incident: AlertHistoryIncident) {
+  return incident.incidentId
+    ?? `${incident.alertId}:occurrence:${incident.events.at(-1)?.id ?? "unknown"}`;
+}
+
 function historyLifecycleTone(state: string) {
   if (state === "cleared") return "cleared";
   if (state === "opened") return "opened";
   return "updated";
+}
+
+function formatHistoryStateLabel(state: string) {
+  if (state === "cleared") return "Cleared";
+  if (state === "updated") return "Updated";
+  return "Opened";
 }
 
 function HistoryAlertType({ eventType }: { eventType: string }) {

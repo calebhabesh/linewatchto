@@ -22,7 +22,7 @@ import {
   buildAlertHistoryTypeOptions,
   filterAndSortAlertHistory,
   formatAlertTypeName,
-  selectDisplayEvent,
+  selectLatestEvent,
 } from "../src/components/alert-history-filters.ts";
 
 function event(overrides) {
@@ -41,7 +41,13 @@ function event(overrides) {
 }
 
 function incident(overrides) {
+  const latestEvent = overrides.events.reduce((latest, candidate) => (
+    !latest || new Date(candidate.happenedAt).getTime() > new Date(latest.happenedAt).getTime()
+      ? candidate
+      : latest
+  ), null);
   return {
+    incidentId: overrides.incidentId ?? `${overrides.alertId}:occurrence:${overrides.events.at(-1)?.id}`,
     alertId: overrides.alertId,
     sourceId: overrides.sourceId ?? `${overrides.alertId}-source`,
     lineId: overrides.lineId,
@@ -54,6 +60,8 @@ function incident(overrides) {
     source: overrides.source ?? "TTC Live Alerts",
     cause: overrides.cause ?? null,
     status: overrides.status,
+    latestState: overrides.latestState ?? latestEvent?.state ?? "opened",
+    latestEventAt: overrides.latestEventAt ?? latestEvent?.happenedAt ?? "",
     firstSeenAt: overrides.firstSeenAt ?? "2026-06-23T12:05:00-04:00",
     lastUpdatedAt: overrides.lastUpdatedAt ?? null,
     clearedAt: overrides.clearedAt ?? null,
@@ -199,35 +207,58 @@ const unknownLineIncident = incident({
 });
 
 describe("alert history filtering", () => {
-  it("selects the opened event for the Alerts chip when a clearance is newest", () => {
-    const selected = selectDisplayEvent(clearedLine2Incident, "alerts");
-
-    assert.equal(selected?.state, "opened");
-    assert.equal(selected?.label, "Alert opened");
-  });
-
-  it("selects the clearance event for the Clearances chip", () => {
-    const selected = selectDisplayEvent(clearedLine2Incident, "clearances");
+  it("always selects the latest lifecycle event as the card state", () => {
+    const selected = selectLatestEvent(clearedLine2Incident);
 
     assert.equal(selected?.state, "cleared");
     assert.equal(selected?.label, "Service restored");
   });
 
-  it("uses the selected period for matching while retaining the full lifecycle", () => {
+  it("selects the latest event by timestamp even when lifecycle rows are unsorted", () => {
+    const selected = selectLatestEvent(activeLine1Suspension);
+
+    assert.equal(selected?.state, "updated");
+    assert.equal(selected?.happenedAt, "2026-06-23T12:00:00-04:00");
+  });
+
+  it("uses the selected period to qualify a card while retaining its stable latest state and full lifecycle", () => {
     const since = "2026-06-23T12:10:00-04:00";
     const until = "2026-06-23T12:30:00-04:00";
+    const visible = filterAndSortAlertHistory(
+      [clearedLine2Incident],
+      {
+        statusFilter: "cleared",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        since,
+        until,
+      },
+    );
 
-    assert.equal(selectDisplayEvent(clearedLine2Incident, "all", since, until)?.state, "cleared");
-    assert.equal(selectDisplayEvent(clearedLine2Incident, "clearances", since, until)?.state, "cleared");
-    assert.equal(selectDisplayEvent(clearedLine2Incident, "alerts", since, until), null);
+    assert.equal(visible.length, 1);
+    assert.equal(visible[0].latestEvent.state, "cleared");
     assert.equal(clearedLine2Incident.events.length, 2);
+  });
+
+  it("filters whole incident cards by their latest active or cleared state", () => {
+    const active = filterAndSortAlertHistory(
+      [clearedLine2Incident, activeLine5Incident],
+      { statusFilter: "active", lineId: ALL_LINES_VALUE, searchQuery: "" },
+    );
+    const cleared = filterAndSortAlertHistory(
+      [clearedLine2Incident, activeLine5Incident],
+      { statusFilter: "cleared", lineId: ALL_LINES_VALUE, searchQuery: "" },
+    );
+
+    assert.deepEqual(active.map((item) => item.incident.alertId), ["ttc-route-5-avenue"]);
+    assert.deepEqual(cleared.map((item) => item.incident.alertId), ["ttc-route-2-warden"]);
   });
 
   it("filters search text across incident and lifecycle event fields", () => {
     const visible = filterAndSortAlertHistory(
       [clearedLine2Incident, activeLine5Incident],
       {
-        lifecycleFilter: "alerts",
+        statusFilter: "cleared",
         lineId: ALL_LINES_VALUE,
         searchQuery: "warden mechanical opened",
       },
@@ -235,7 +266,7 @@ describe("alert history filtering", () => {
 
     assert.equal(visible.length, 1);
     assert.equal(visible[0].incident.alertId, "ttc-route-2-warden");
-    assert.equal(visible[0].displayEvent?.state, "opened");
+    assert.equal(visible[0].latestEvent.state, "cleared");
   });
 
   it("uses a precomputed search index without rebuilding incident text per query", () => {
@@ -263,7 +294,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [indexedIncident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "unique cached",
       },
@@ -278,7 +309,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [activeLine5Incident, clearedLine2Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: "line-2",
         searchQuery: "",
       },
@@ -294,7 +325,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [activeLine5Incident, clearedLine2Incident, activeLine1Suspension],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         typeId: "reduced-speed-zone",
         searchQuery: "",
@@ -378,7 +409,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [clearedLine4Incident, clearedLine2Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_LONGEST_DURATION,
@@ -393,7 +424,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [clearedLine2Incident, clearedLine4Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_SHORTEST_DURATION,
@@ -408,7 +439,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [activeLine5Incident, clearedLine4Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_OLDEST,
@@ -423,7 +454,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [activeLine5Incident, clearedLine2Incident, activeLine1Suspension],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_ALERT_TYPE,
@@ -439,7 +470,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [activeLine5Incident, clearedLine4Incident, clearedLine2Incident, activeLine1Suspension],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_LINE,
@@ -456,7 +487,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [clearedLine2Incident, activeLine5Incident, clearedLine4Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_LOCATION_AZ,
@@ -472,7 +503,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [activeLine1Suspension, clearedLine4Incident, clearedLine2Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_CAUSE_AZ,
@@ -488,7 +519,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [clearedLine4Incident, activeLine1Suspension, clearedLine2Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_MOST_UPDATES,
@@ -504,7 +535,7 @@ describe("alert history filtering", () => {
     const activeFirst = filterAndSortAlertHistory(
       [clearedLine2Incident, activeLine5Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_ACTIVE_FIRST,
@@ -516,7 +547,7 @@ describe("alert history filtering", () => {
     const clearedFirst = filterAndSortAlertHistory(
       [activeLine5Incident, clearedLine2Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: SORT_CLEARED_FIRST,
@@ -530,7 +561,7 @@ describe("alert history filtering", () => {
     const visible = filterAndSortAlertHistory(
       [clearedLine2Incident, activeLine5Incident],
       {
-        lifecycleFilter: "all",
+        statusFilter: "all",
         lineId: ALL_LINES_VALUE,
         searchQuery: "",
         sortBy: "reduced-speed-zone",

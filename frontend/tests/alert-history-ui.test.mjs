@@ -28,13 +28,14 @@ const cssSource = readFileSync(
 );
 
 describe("alert history timeline UI", () => {
-  it("renders period chips and lifecycle filters", () => {
+  it("renders period chips and whole-incident status filters", () => {
     assert.match(timelineSource, /Today/);
     assert.match(timelineSource, /7 days/);
     assert.match(timelineSource, /30 days/);
     assert.match(timelineSource, /All/);
-    assert.match(timelineSource, /Alerts/);
-    assert.match(timelineSource, /Clearances/);
+    assert.match(timelineSource, /Active/);
+    assert.match(timelineSource, /Cleared/);
+    assert.match(timelineSource, /aria-label="Incident status"/);
   });
 
   it("loads alert history from the data adapter", () => {
@@ -119,9 +120,11 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-type-planned-closure\s*\{[^}]*var\(--planned\);/s);
   });
 
-  it("formats alert event labels in title case", () => {
-    assert.match(timelineSource, /formatHistoryStatusLabel\(displayEvent\?\.label\)/);
-    assert.doesNotMatch(timelineSource, /displayEvent\?\.label\s+\?\?\s+"Active"/);
+  it("uses a stable latest-state badge instead of changing the card for a filter", () => {
+    assert.match(timelineSource, /formatHistoryStateLabel\(latestState\)/);
+    assert.match(timelineSource, /incident\.latestState \|\| latestEvent\.state/);
+    assert.match(timelineSource, /alert-history-status-\$\{latestState\}/);
+    assert.match(cssSource, /\.alert-history-status-updated/);
   });
 
   it("uses the shared compact timestamp formatter for visible history times", () => {
@@ -131,13 +134,18 @@ describe("alert history timeline UI", () => {
     assert.doesNotMatch(timelineSource, /formatRelativeImpactTime/);
   });
 
-  it("emphasizes time and keeps lifecycle details permanently visible", () => {
+  it("keeps short lifecycles open and collapses only long lifecycles by default", () => {
     assert.match(timelineSource, /formatAlertHistoryDuration\(incident\.durationMinutes\)/);
     assert.match(timelineSource, /primary \? " alert-history-primary-time"/);
     assert.match(timelineSource, /ClipboardList/);
     assert.match(timelineSource, /className="alert-history-details-heading"/);
-    assert.doesNotMatch(timelineSource, /<details/);
-    assert.doesNotMatch(timelineSource, /lifecycleExpanded/);
+    assert.match(timelineSource, /const COLLAPSED_LIFECYCLE_THRESHOLD = 4/);
+    assert.match(timelineSource, /incident\.events\.length <= COLLAPSED_LIFECYCLE_THRESHOLD/);
+    assert.match(timelineSource, /<details[\s\S]*?open=\{lifecycleExpanded\}/);
+    assert.match(timelineSource, /onToggle=\{\(event\) => setLifecycleExpanded/);
+    assert.match(timelineSource, /incident\.events\.length === 1 \? "event" : "events"/);
+    assert.match(timelineSource, /alert-history-details-chevron/);
+    assert.match(cssSource, /\.alert-history-details\[open\] \.alert-history-details-chevron/);
     assert.match(cssSource, /\.alert-history-primary-time\s*\{[^}]*font-weight:\s*750;/s);
     assert.match(cssSource, /\.alert-history-duration\s*>\s*strong\s*\{[^}]*font-size:\s*0\.82rem;/s);
     assert.match(timelineSource, /className=\{`impact-timestamp/);
@@ -173,6 +181,12 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-lifecycle-event::before/);
     assert.match(cssSource, /\.alert-history-lifecycle-opened::before/);
     assert.match(cssSource, /\.alert-history-lifecycle-cleared::before/);
+  });
+
+  it("uses occurrence identity for repeated source alert cards", () => {
+    assert.match(timelineSource, /key=\{historyIncidentKey\(item\.incident\)\}/);
+    assert.match(timelineSource, /incident\.incidentId/);
+    assert.match(timelineSource, /incident\.events\.at\(-1\)\?\.id/);
   });
 
   it("uses a plain inline checkmark for cleared history rows", () => {
@@ -212,14 +226,12 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-sort-group-header/);
   });
 
-  it("uses event-aware lifecycle filtering instead of incident-only filtering", () => {
-    assert.match(filterSource, /selectDisplayEvent/);
-    assert.match(filterSource, /filter === "alerts"/);
-    assert.match(filterSource, /event\.state !== "cleared"/);
-    assert.match(filterSource, /filter === "clearances"/);
-    assert.match(filterSource, /event\.state === "cleared"/);
-    assert.doesNotMatch(timelineSource, /history\.filter\(\(incident\) => incident\.status === "cleared"\)/);
-    assert.doesNotMatch(timelineSource, /incident\.events\.some\(\(event\) => event\.state !== "cleared"\)/);
+  it("qualifies occurrences by the selected period and filters whole cards by latest state", () => {
+    assert.match(filterSource, /selectLatestEvent/);
+    assert.match(filterSource, /incidentFallsWithinWindow/);
+    assert.match(filterSource, /controls\.statusFilter === "active"/);
+    assert.match(filterSource, /controls\.statusFilter === "cleared"/);
+    assert.doesNotMatch(filterSource, /selectDisplayEvent/);
   });
 
   it("keeps 30-day search responsive with deferred, indexed, progressive rendering", () => {
