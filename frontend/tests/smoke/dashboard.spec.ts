@@ -1572,6 +1572,34 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
     (element) => getComputedStyle(element).color,
   );
   expect(timingCountColor).toBe(zoneCountColor);
+  if (isMobile) {
+    const directionalTimingColumns = await groupedTimingCard.locator(".has-directional-timing").evaluateAll(
+      (fields) => fields.map((field) => ({
+        start: getComputedStyle(field).gridColumnStart,
+        end: getComputedStyle(field).gridColumnEnd,
+      })),
+    );
+    expect(directionalTimingColumns).toEqual([
+      { start: "1", end: "-1" },
+      { start: "1", end: "-1" },
+    ]);
+
+    await groupedTimingCard.getByRole("button", { name: "Show on Map" }).click();
+    const groupedTimingInspector = page.locator('[data-mobile-impact-inspector]');
+    await expect(groupedTimingInspector).toBeVisible();
+    const inspectorTimingColumns = await groupedTimingInspector.locator(".has-directional-timing").evaluateAll(
+      (fields) => fields.map((field) => ({
+        start: getComputedStyle(field).gridColumnStart,
+        end: getComputedStyle(field).gridColumnEnd,
+      })),
+    );
+    expect(inspectorTimingColumns).toEqual([
+      { start: "1", end: "-1" },
+      { start: "1", end: "-1" },
+    ]);
+    await groupedTimingInspector.getByRole("button", { name: "View in List" }).click();
+    await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
+  }
 
   await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "Show on Map" }).click();
   await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeAttached();

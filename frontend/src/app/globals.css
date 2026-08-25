@@ -8975,6 +8975,11 @@ img.transit-line-badge {
   }
 }
 
+.alert-card,
+.mobile-impact-inspector {
+  container: impact-details / inline-size;
+}
+
 .impact-metadata-grid {
   border-top: 1px solid var(--border);
   display: grid;
@@ -9055,6 +9060,12 @@ img.transit-line-badge {
 .dark .rsz-timing-count,
 .high-contrast .rsz-timing-count {
   color: #b8a66f;
+}
+
+@container impact-details (max-width: 34rem) {
+  .impact-metadata-grid > .has-directional-timing {
+    grid-column: 1 / -1;
+  }
 }
 
 .impact-metadata-grid dd {

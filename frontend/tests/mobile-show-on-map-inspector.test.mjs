@@ -78,6 +78,11 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /isGroupedZone \? null : zone\.resolution/);
   });
 
+  it("gives extended directional timing fields the full mobile metadata width", () => {
+    assert.match(globalCss, /\.alert-card,\s*\.mobile-impact-inspector\s*\{[^}]*container:\s*impact-details \/ inline-size/s);
+    assert.match(globalCss, /@container impact-details \(max-width: 34rem\)[\s\S]*\.impact-metadata-grid > \.has-directional-timing\s*\{[^}]*grid-column:\s*1 \/ -1/s);
+  });
+
   it("scrolls the selected card within its list without moving the mobile sheet header", () => {
     assert.match(selectedCardScrollSource, /closest<HTMLElement>\("\.alert-stack, \.closure-stack"\)/);
     assert.match(selectedCardScrollSource, /list\.scrollTo\(/);

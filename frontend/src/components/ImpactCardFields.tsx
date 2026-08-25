@@ -269,6 +269,8 @@ export function MetadataGrid({
             ? "is-planned-closure-row"
             : label === "Status"
               ? "is-status-row"
+              : (label === "Started" && startedValue) || (label === "Updated" && updatedValue)
+                ? "has-directional-timing"
               : undefined}>
           <dt>{label}{labelSuffix}</dt>
           <dd>{value}</dd>
