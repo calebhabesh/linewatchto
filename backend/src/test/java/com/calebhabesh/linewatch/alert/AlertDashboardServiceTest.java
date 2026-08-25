@@ -781,6 +781,194 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void lateOpeningIsUpcomingUntilScheduledServiceStartsThenDrivesTheClosureOverlay() {
+        MutableClock lateOpeningClock = new MutableClock(
+            Instant.parse("2026-08-23T12:06:59Z"),
+            ZoneOffset.UTC
+        );
+        AlertDashboardService lateOpeningService = new AlertDashboardService(
+            alertRepository,
+            lineSegmentRepository,
+            new AlertSegmentMatcher(),
+            new ReducedSpeedZoneProjector(
+                new AlertSegmentMatcher(),
+                new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()
+            ),
+            ingestionFreshness,
+            alertActivePeriodRepository,
+            lateOpeningClock
+        );
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity closure = withLine(alert(
+            "ttc-route-line-2-st-george-chester-late-opening-aug-23-2026",
+            "planned-closure",
+            "planned",
+            "Line 2 Bloor-Danforth - St George to Chester - Late opening at 11 a.m., August 23, 2026",
+            "Subway service between St George and Chester stations will start at 11 a.m. due to planned work.",
+            "st-george",
+            "chester",
+            OffsetDateTime.parse("2026-08-20T14:00:00Z"),
+            "Will Operate"
+        ), "line-2", "2");
+        ReflectionTestUtils.setField(
+            closure,
+            "sourceAlertType",
+            com.calebhabesh.linewatch.ingestion.TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+        );
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-08-23T12:07:00Z")
+        );
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-08-23T15:00:00Z")
+        );
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(closure));
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of());
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-chester", "line-2", "st-george", "chester", 10)
+        ));
+        when(alertActivePeriodRepository.findByAlertIds(List.of(closure.getId())))
+            .thenReturn(Map.of(closure.getId(), List.of(
+                new AlertActivePeriodRepository.AlertPeriod(
+                    closure.getId(),
+                    "line-2-st-george-chester-late-opening-aug-23-2026-window-0",
+                    OffsetDateTime.parse("2026-08-23T12:07:00Z"),
+                    OffsetDateTime.parse("2026-08-23T15:00:00Z"),
+                    0
+                )
+            )));
+
+        assertThat(lateOpeningService.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.activeNow()).isFalse();
+            assertThat(dto.timingStatus()).isEqualTo("upcoming");
+            assertThat(dto.nightly()).isFalse();
+            assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-08-23T12:07:00Z"));
+            assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-08-23T15:00:00Z"));
+            assertThat(dto.windowHours()).isEqualTo("8:07 AM – 11:00 AM");
+            assertThat(dto.source()).isEqualTo(
+                com.calebhabesh.linewatch.ingestion.TtcSubwayClosureParser.SOURCE_ALERT_TYPE
+            );
+        });
+        assertThat(lateOpeningService.activeAlerts()).isEmpty();
+        assertThat(lateOpeningService.activeSegmentImpacts())
+            .doesNotContainKey("line-2-st-george-chester");
+
+        lateOpeningClock.advanceTo("2026-08-23T12:07:00Z");
+
+        assertThat(lateOpeningService.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.activeNow()).isTrue();
+            assertThat(dto.timingStatus()).isEqualTo("active-now");
+            assertThat(dto.nightly()).isFalse();
+            assertThat(dto.activeWindowStart()).isEqualTo(OffsetDateTime.parse("2026-08-23T12:07:00Z"));
+            assertThat(dto.activeWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-08-23T15:00:00Z"));
+        });
+        assertThat(lateOpeningService.activeAlerts()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo(closure.getId());
+            assertThat(dto.severity()).isEqualTo("planned");
+            assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-08-23T12:07:00Z"));
+        });
+        assertThat(lateOpeningService.activeSegmentImpacts().get("line-2-st-george-chester"))
+            .singleElement()
+            .satisfies(impact -> {
+                assertThat(impact.kind()).isEqualTo("suspension");
+                assertThat(impact.cardId()).isEqualTo(closure.getId());
+            });
+
+        lateOpeningClock.advanceTo("2026-08-23T15:00:01Z");
+
+        assertThat(lateOpeningService.plannedClosures()).isEmpty();
+        assertThat(lateOpeningService.activeAlerts()).isEmpty();
+        assertThat(lateOpeningService.activeSegmentImpacts())
+            .doesNotContainKey("line-2-st-george-chester");
+    }
+
+    @Test
+    void multipleLateOpeningDatesRemainOnePlannedNoticeWithIndependentActiveWindows() {
+        MutableClock lateOpeningClock = new MutableClock(
+            Instant.parse("2026-08-23T16:00:00Z"),
+            ZoneOffset.UTC
+        );
+        AlertDashboardService lateOpeningService = new AlertDashboardService(
+            alertRepository,
+            lineSegmentRepository,
+            new AlertSegmentMatcher(),
+            new ReducedSpeedZoneProjector(
+                new AlertSegmentMatcher(),
+                new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()
+            ),
+            ingestionFreshness,
+            alertActivePeriodRepository,
+            lateOpeningClock
+        );
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity closure = withLine(alert(
+            "ttc-route-multiple-late-openings",
+            "planned-closure",
+            "planned",
+            "Line 2 St George to Chester - Late openings at 11 a.m., August 23 to 24",
+            "Subway service will start at 11 a.m. on each date due to planned work.",
+            "st-george",
+            "chester",
+            OffsetDateTime.parse("2026-08-20T14:00:00Z"),
+            "Will Operate"
+        ), "line-2", "2");
+        ReflectionTestUtils.setField(
+            closure, "activePeriodStart", OffsetDateTime.parse("2026-08-23T12:07:00Z")
+        );
+        ReflectionTestUtils.setField(
+            closure, "activePeriodEnd", OffsetDateTime.parse("2026-08-24T15:00:00Z")
+        );
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(closure));
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of());
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-chester", "line-2", "st-george", "chester", 10)
+        ));
+        when(alertActivePeriodRepository.findByAlertIds(List.of(closure.getId())))
+            .thenReturn(Map.of(closure.getId(), List.of(
+                new AlertActivePeriodRepository.AlertPeriod(
+                    closure.getId(), "late-opening-window-0",
+                    OffsetDateTime.parse("2026-08-23T12:07:00Z"),
+                    OffsetDateTime.parse("2026-08-23T15:00:00Z"), 0
+                ),
+                new AlertActivePeriodRepository.AlertPeriod(
+                    closure.getId(), "late-opening-window-1",
+                    OffsetDateTime.parse("2026-08-24T10:05:00Z"),
+                    OffsetDateTime.parse("2026-08-24T15:00:00Z"), 1
+                )
+            )));
+
+        assertThat(lateOpeningService.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.activeNow()).isFalse();
+            assertThat(dto.timingStatus()).isEqualTo("upcoming");
+            assertThat(dto.nightly()).isFalse();
+            assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-08-24T10:05:00Z"));
+            assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-08-24T15:00:00Z"));
+            assertThat(dto.windowHours()).isEqualTo("Varies by closure date");
+        });
+        assertThat(lateOpeningService.activeAlerts()).isEmpty();
+        assertThat(lateOpeningService.activeSegmentImpacts())
+            .doesNotContainKey("line-2-st-george-chester");
+
+        lateOpeningClock.advanceTo("2026-08-24T10:05:00Z");
+
+        assertThat(lateOpeningService.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.activeNow()).isTrue();
+            assertThat(dto.nightly()).isFalse();
+            assertThat(dto.activeWindowStart()).isEqualTo(OffsetDateTime.parse("2026-08-24T10:05:00Z"));
+        });
+        assertThat(lateOpeningService.activeSegmentImpacts().get("line-2-st-george-chester"))
+            .singleElement()
+            .satisfies(impact -> assertThat(impact.kind()).isEqualTo("suspension"));
+    }
+
+    @Test
     void sourceConfirmedContinuousWeekendClosureRemainsPlannedAndAlsoBecomesActive() {
         MutableClock weekendClock = new MutableClock(
             Instant.parse("2026-08-15T03:58:00Z"),

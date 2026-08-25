@@ -256,6 +256,36 @@ class LineSubscriptionPushPlannerTest {
     }
 
     @Test
+    void lateOpeningNotificationUsesScheduledServiceStartInsteadOfMidnight() {
+        OffsetDateTime scheduledOpening = OffsetDateTime.parse("2026-08-23T08:07:00-04:00");
+        OffsetDateTime advertisedOpening = OffsetDateTime.parse("2026-08-23T11:00:00-04:00");
+        AlertDashboardService.PlannedClosureDto closure = new AlertDashboardService.PlannedClosureDto(
+            "late-opening", "line-2", "2", "Line 2 late opening", "Sunday morning",
+            "St George to Chester", "Eastbound & Westbound",
+            "Subway service will start at 11 a.m. due to planned work.",
+            OffsetDateTime.parse("2026-08-20T10:00:00-04:00"),
+            OffsetDateTime.parse("2026-08-20T10:00:00-04:00"),
+            List.of("line-2-st-george-chester"), true,
+            "TTC.ca Subway Service Advisories", "Planned work", null,
+            false, "upcoming", false, null, null, null,
+            scheduledOpening, advertisedOpening, "Sun 8:07 AM - 11:00 AM",
+            "8:07 AM – 11:00 AM", "Sun, Aug 23", "Line 2 late opening"
+        );
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of(closure));
+
+        assertThat(planner.candidatesFor("user_1", List.of("line-2")))
+            .singleElement()
+            .satisfies(candidate -> {
+                assertThat(candidate.sourceEventAt()).isEqualTo(scheduledOpening.toInstant());
+                assertThat(candidate.body()).contains("Closure hours: 8:07 AM – 11:00 AM.");
+                assertThat(candidate.body()).doesNotContain("12:00 AM");
+            });
+    }
+
+    @Test
     void plansActiveClosureWhenAnUpcomingClosureWindowStarts() {
         OffsetDateTime windowStart = OffsetDateTime.parse("2026-06-05T14:30:00Z");
         AlertDashboardService.ActiveAlertDto activeClosure = new AlertDashboardService.ActiveAlertDto(

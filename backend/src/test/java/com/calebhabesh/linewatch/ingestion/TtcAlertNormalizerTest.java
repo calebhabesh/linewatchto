@@ -12,6 +12,7 @@ import com.calebhabesh.linewatch.station.StationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Stream;
@@ -114,6 +115,56 @@ class TtcAlertNormalizerTest {
         assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.PLANNED_CLOSURE);
         assertThat(alert.sourceAlertType())
             .isEqualTo(TtcSubwayClosureParser.SOURCE_ALERT_TYPE);
+    }
+
+    @Test
+    void appliesTheScheduledServiceOpeningToEveryNormalizedLateOpeningTimestamp() {
+        TtcScheduledServiceOpeningRepository openingRepository =
+            mock(TtcScheduledServiceOpeningRepository.class);
+        when(openingRepository.firstDepartureSeconds(
+            "line-2",
+            LocalDate.parse("2026-08-23"),
+            List.of("st-george", "chester")
+        )).thenReturn(java.util.Optional.of(8 * 3600 + 7 * 60));
+        TtcAlertNormalizer scheduleAwareNormalizer = new TtcAlertNormalizer(
+            new StationAliasResolver(stationRepository),
+            new AlertDirectionParser(),
+            gtfsRtStationResolver,
+            new TtcLateOpeningWindowResolver(openingRepository)
+        );
+        TtcFetchedRecord fetched = new TtcSubwayClosureParser().parse(
+            "late-opening",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/late-opening"),
+            """
+                <html><body>
+                  <h1>
+                    <span class="field-routename">Line 2 (Bloor-Danforth)</span>
+                    <span class="field-satitle">St George to Chester stations – Late opening at 11 a.m. – Sunday, August 23, 2026</span>
+                  </h1>
+                  <div class="sa-effective-date">
+                    <span class="field-starteffectivedate">August 23, 2026</span>
+                    <span class="field-endeffectivedate">August 23, 2026</span>
+                  </div>
+                  <div class="component content"><div class="u-type--body">
+                    Subway service on Line 2 between St George and Chester stations will start at 11 a.m. due to planned work.
+                    Shuttle buses will be operating.
+                  </div></div>
+                </body></html>
+                """
+        );
+
+        NormalizedRouteAlert alert = scheduleAwareNormalizer.normalizeRoute(fetched)
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.activePeriodStart())
+            .isEqualTo(OffsetDateTime.parse("2026-08-23T08:07:00-04:00"));
+        assertThat(alert.activePeriodEnd())
+            .isEqualTo(OffsetDateTime.parse("2026-08-23T11:00:00-04:00"));
+        assertThat(alert.periods()).singleElement().satisfies(period -> {
+            assertThat(period.startsAt()).isEqualTo(alert.activePeriodStart());
+            assertThat(period.endsAt()).isEqualTo(alert.activePeriodEnd());
+        });
     }
 
     @Test

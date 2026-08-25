@@ -360,14 +360,41 @@ public class AlertDashboardService {
         return endsAt == null || endsAt.isAfter(now);
     }
 
-    private boolean isNightly(List<AlertActivePeriodRepository.AlertPeriod> periods) {
+    private boolean isNightly(
+        AlertEntity alert,
+        List<AlertActivePeriodRepository.AlertPeriod> periods
+    ) {
         if (periods == null || periods.isEmpty()) {
             return false;
+        }
+        String alertText = String.join(" ",
+            nullToEmpty(alert.getTitle()),
+            nullToEmpty(alert.getDescription()),
+            nullToEmpty(alert.getEffectDescription())
+        ).toLowerCase(Locale.ROOT);
+        if (alertText.contains("late opening")
+            || alertText.matches(
+                "(?s).*\\b(?:service|trains?)\\s+(?:(?:will\\s+)?start|starts?)"
+                    + "\\s+(?:at|by)\\b.*"
+            )) {
+            return false;
+        }
+        if (alertText.contains("nightly")
+            || alertText.contains("each night")
+            || alertText.contains("every night")) {
+            return true;
         }
         if (periods.size() > 1) {
             return true;
         }
-        return !"parent".equals(periods.getFirst().sourcePeriodId());
+        AlertActivePeriodRepository.AlertPeriod period = periods.getFirst();
+        if (isParentPeriod(period) || period.startsAt() == null || period.endsAt() == null) {
+            return false;
+        }
+        LocalDate startsOn = period.startsAt().atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        LocalDate endsOn = period.endsAt().atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        return endsOn.isAfter(startsOn)
+            && Duration.between(period.startsAt(), period.endsAt()).compareTo(Duration.ofHours(12)) <= 0;
     }
 
     private WindowState windowState(AlertEntity alert, List<AlertActivePeriodRepository.AlertPeriod> periods) {
@@ -396,7 +423,7 @@ public class AlertDashboardService {
         List<AlertActivePeriodRepository.AlertPeriod> reliablePeriods = usablePeriods.stream()
             .filter(period -> isReliableClosureWindow(alert, period))
             .toList();
-        boolean nightly = isNightly(reliablePeriods) || recurringParentWindow;
+        boolean nightly = isNightly(alert, reliablePeriods) || recurringParentWindow;
         String windowHours = closureWindowHours(reliablePeriods);
         String windowDates = closureWindowDates(reliablePeriods, nightly, now);
 

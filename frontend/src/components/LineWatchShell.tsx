@@ -418,6 +418,7 @@ export function LineWatchShell({
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
+  const [initialMapReady, setInitialMapReady] = useState(false);
   const [impactListLaunch, setImpactListLaunch] = useState({ lineId: null as string | null, requestId: 0 });
   const [lineImpactLaunch, setLineImpactLaunch] = useState({ lineId: null as string | null, requestId: 0 });
   const [navDirection, setNavDirection] = useState<"root" | "forward" | "back">("root");
@@ -3413,6 +3414,10 @@ export function LineWatchShell({
   const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview;
 
   const mobileMapPerformanceMode = mobilePerformanceMode || rotatedMapMode;
+
+  const handleMapReady = useCallback(() => {
+    setInitialMapReady(true);
+  }, []);
   const shellViewportStyle = {
     height: rotatedMapMode && rotatedMapViewportFrame
       ? `${rotatedMapViewportFrame.height}px`
@@ -4430,10 +4435,11 @@ export function LineWatchShell({
       >
         <NetworkMap
           network={selectedNetwork}
-          animateInitialEntrance={false}
+          animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
           deferInitialEntrance={disclaimerVisible
             || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
             || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
+          onMapReady={handleMapReady}
           mobileAnnouncementVisible={selectedNetwork === "ttc"
             ? subwayOperatingState.closingSoon
               || (subwayOperatingState.status === "closed" && closedMapPeek)
@@ -4460,6 +4466,13 @@ export function LineWatchShell({
           estimatedTrainsEnabled={estimatedTrainMarkersVisible}
           estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
         />
+
+        {selectedNetwork === "ttc" && (!initialMapReady || mobileMapPerformanceMode) ? (
+          <div
+            className={`ttc-map-entrance-reveal${initialMapReady ? " ttc-map-entrance-reveal--ready" : ""}`}
+            aria-hidden="true"
+          />
+        ) : null}
 
         {rotatedMapMode ? (
           <div className="rotated-map-ui-surface">

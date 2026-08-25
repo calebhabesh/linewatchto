@@ -409,6 +409,57 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   animation: map-center-feedback-fade 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Cover the first incomplete raster frame without changing the transformed
+   map's composition. Phones reveal the ready map by repainting this wash;
+   opacity on the large map stage would create the compositor layer that the
+   mobile flattened-raster contract deliberately avoids. */
+.ttc-map-entrance-reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  background-color: transparent;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .ttc-map-entrance-reveal:not(.ttc-map-entrance-reveal--ready) {
+    background-color: var(--ttc-map-entrance-color, rgb(248, 250, 252));
+  }
+
+  .ttc-map-entrance-reveal--ready {
+    animation: ttc-map-mobile-entrance-reveal 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes ttc-map-mobile-entrance-reveal {
+  from { background-color: var(--ttc-map-entrance-color, rgb(248, 250, 252)); }
+  to { background-color: transparent; }
+}
+
+.dark .ttc-map-entrance-reveal {
+  --ttc-map-entrance-color: rgb(13, 8, 8);
+}
+
+.high-contrast .ttc-map-entrance-reveal {
+  --ttc-map-entrance-color: rgb(255, 255, 255);
+}
+
+.dark.high-contrast .ttc-map-entrance-reveal {
+  --ttc-map-entrance-color: rgb(0, 0, 0);
+}
+
+.motion-paused .ttc-map-entrance-reveal--ready {
+  animation: none;
+  background-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ttc-map-entrance-reveal--ready {
+    animation: none !important;
+    background-color: transparent;
+  }
+}
+
 .dark .map-center-feedback {
   --map-center-feedback-color: rgb(13, 8, 8);
 }

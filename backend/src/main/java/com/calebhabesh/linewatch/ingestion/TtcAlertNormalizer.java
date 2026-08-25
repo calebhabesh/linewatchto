@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -44,15 +45,32 @@ public class TtcAlertNormalizer {
     private final StationAliasResolver stationAliasResolver;
     private final AlertDirectionParser directionParser;
     private final GtfsRtRapidTransitStationResolver gtfsRtStationResolver;
+    private final TtcLateOpeningWindowResolver lateOpeningWindowResolver;
 
+    @Autowired
     public TtcAlertNormalizer(
         StationAliasResolver stationAliasResolver,
         AlertDirectionParser directionParser,
-        GtfsRtRapidTransitStationResolver gtfsRtStationResolver
+        GtfsRtRapidTransitStationResolver gtfsRtStationResolver,
+        TtcLateOpeningWindowResolver lateOpeningWindowResolver
     ) {
         this.stationAliasResolver = stationAliasResolver;
         this.directionParser = directionParser;
         this.gtfsRtStationResolver = gtfsRtStationResolver;
+        this.lateOpeningWindowResolver = lateOpeningWindowResolver;
+    }
+
+    TtcAlertNormalizer(
+        StationAliasResolver stationAliasResolver,
+        AlertDirectionParser directionParser,
+        GtfsRtRapidTransitStationResolver gtfsRtStationResolver
+    ) {
+        this(
+            stationAliasResolver,
+            directionParser,
+            gtfsRtStationResolver,
+            TtcLateOpeningWindowResolver.fallbackOnly()
+        );
     }
 
     public NormalizationResult<NormalizedRouteAlert> normalizeRoute(TtcFetchedRecord fetched) {
@@ -81,6 +99,18 @@ public class TtcAlertNormalizer {
         List<NormalizedAlertPeriod> periods = normalizePeriods(record);
         OffsetDateTime activePeriodStart = activePeriodStart(record);
         OffsetDateTime activePeriodEnd = activePeriodEnd(record);
+        TtcLateOpeningWindowResolver.Resolution lateOpeningResolution =
+            lateOpeningWindowResolver.resolve(
+                record,
+                lineId,
+                stations.stationIds(),
+                periods,
+                activePeriodStart,
+                activePeriodEnd
+            );
+        periods = lateOpeningResolution.periods();
+        activePeriodStart = lateOpeningResolution.activePeriodStart();
+        activePeriodEnd = lateOpeningResolution.activePeriodEnd();
         String title = requiredTitle(record, "TTC service alert");
         String description = nullToEmpty(record.description());
         AlertDirection direction = directionParser.parse(

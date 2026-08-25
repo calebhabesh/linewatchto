@@ -424,6 +424,7 @@ function InteractiveTtcMapComponent({
     && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
   const readyNotifiedRef = useRef(false);
   const entranceWasDeferredRef = useRef(false);
+  const initialCameraPositionedRef = useRef(false);
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const mapRootRef = useRef<HTMLDivElement>(null);
@@ -718,17 +719,26 @@ function InteractiveTtcMapComponent({
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        if (deferInitialEntrance) {
+        const entranceStillCovered = deferInitialEntrance
+          || (focusTargetKey === null
+            && animateInitialEntrance
+            && (!geometryReady || !rasterMapReady));
+        if (entranceStillCovered) {
           entranceWasDeferredRef.current = true;
           stageInitialEntrance();
           return;
         }
         if (entranceWasDeferredRef.current) {
           entranceWasDeferredRef.current = false;
+          initialCameraPositionedRef.current = true;
           completeStagedEntrance();
+        } else if (initialCameraPositionedRef.current) {
+          return;
         } else if (focusTargetKey === null) {
+          initialCameraPositionedRef.current = true;
           initializeCamera();
         } else {
+          initialCameraPositionedRef.current = true;
           moveToDefaultCamera(false, false);
         }
       } else if (attempts < 10) {
@@ -741,7 +751,7 @@ function InteractiveTtcMapComponent({
     return () => {
       if (retryTimer !== null) window.clearTimeout(retryTimer);
     };
-  }, [completeStagedEntrance, containerRef, deferInitialEntrance, focusTargetKey, initializeCamera, loadState, moveToDefaultCamera, stageInitialEntrance]);
+  }, [animateInitialEntrance, completeStagedEntrance, containerRef, deferInitialEntrance, focusTargetKey, geometryReady, initializeCamera, loadState, moveToDefaultCamera, rasterMapReady, stageInitialEntrance]);
 
   useEffect(() => {
     if (
@@ -1153,9 +1163,16 @@ function InteractiveTtcMapComponent({
       }
     };
 
-    const frame = window.requestAnimationFrame(tryFocus);
+    // The selected overlay is already committed when this effect runs. Arm
+    // the desktop camera immediately so an entrance animation cannot advance
+    // another frame between activation and focus. Mobile retains its settled
+    // next-frame measurement because its inspector changes the usable viewport.
+    const frame = mobilePerformanceMode
+      ? window.requestAnimationFrame(tryFocus)
+      : null;
+    if (frame === null) tryFocus();
     return () => {
-      window.cancelAnimationFrame(frame);
+      if (frame !== null) window.cancelAnimationFrame(frame);
       if (retryTimer !== null) {
         window.clearTimeout(retryTimer);
       }
@@ -1167,6 +1184,7 @@ function InteractiveTtcMapComponent({
     isGestureActive,
     layoutResetSignal,
     loadState,
+    mobilePerformanceMode,
     preserveCameraOnSelectionClear,
     recenter,
     viewportOrientation,

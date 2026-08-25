@@ -58,10 +58,96 @@ class TtcSubwayClosureParserTest {
 
         assertThat(record.childAlerts()).singleElement().satisfies(period -> {
             assertThat(period.startTime())
-                .isEqualTo(OffsetDateTime.parse("2026-08-23T00:00:00-04:00"));
+                .isEqualTo(OffsetDateTime.parse("2026-08-23T08:00:00-04:00"));
             assertThat(period.endTime())
                 .isEqualTo(OffsetDateTime.parse("2026-08-23T11:00:00-04:00"));
         });
+    }
+
+    @Test
+    void usesPublishedRapidTransitHoursWhenGtfsRefinementIsNotYetAvailable() {
+        TtcAlertRecord lineFive = parser.parse(
+            "line-five-late-opening",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/line-five-late-opening"),
+            page(
+                "Line 5 (Eglinton)",
+                "Mount Dennis to Kennedy stations – Late opening at 10 a.m. – Sunday, August 23, 2026",
+                "August 23, 2026",
+                "August 23, 2026",
+                "LRT service on Line 5 between Mount Dennis and Kennedy stations will start at 10 a.m. due to planned maintenance."
+            )
+        ).record();
+        TtcAlertRecord weekdaySubway = parser.parse(
+            "weekday-late-opening",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/weekday-late-opening"),
+            page(
+                "Line 2 (Bloor-Danforth)",
+                "St George to Chester stations – Late opening at 9 a.m. – Monday, August 24, 2026",
+                "August 24, 2026",
+                "August 24, 2026",
+                "Subway service on Line 2 between St George and Chester stations will start at 9 a.m. due to planned maintenance."
+            )
+        ).record();
+
+        assertThat(lineFive.childAlerts().getFirst().startTime())
+            .isEqualTo(OffsetDateTime.parse("2026-08-23T08:00:00-04:00"));
+        assertThat(weekdaySubway.childAlerts().getFirst().startTime())
+            .isEqualTo(OffsetDateTime.parse("2026-08-24T06:00:00-04:00"));
+    }
+
+    @Test
+    void recognizesServiceStartsByWordingAsAPlannedLateOpening() {
+        TtcAlertRecord record = parser.parse(
+            "starts-by",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/starts-by"),
+            page(
+                "Line 2 (Bloor-Danforth)",
+                "St George to Chester stations – Service starts by 11 a.m. – Sunday, August 23, 2026",
+                "August 23, 2026",
+                "August 23, 2026",
+                "Subway service between St George and Chester stations will start by 11 a.m. due to planned work."
+            )
+        ).record();
+
+        assertThat(record.effect()).isEqualTo("NO_SERVICE");
+        assertThat(record.cause()).isEqualTo("MAINTENANCE");
+        assertThat(record.childAlerts()).singleElement().satisfies(period -> {
+            assertThat(period.startTime())
+                .isEqualTo(OffsetDateTime.parse("2026-08-23T08:00:00-04:00"));
+            assertThat(period.endTime())
+                .isEqualTo(OffsetDateTime.parse("2026-08-23T11:00:00-04:00"));
+        });
+    }
+
+    @Test
+    void createsOneLateOpeningWindowForEveryEffectiveDate() {
+        TtcAlertRecord record = parser.parse(
+            "multi-date-late-opening",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/multi-date"),
+            page(
+                "Line 2 (Bloor-Danforth)",
+                "St George to Chester stations – Late openings at 11 a.m. – Sunday, August 23 to Tuesday, August 25, 2026",
+                "August 23, 2026",
+                "August 25, 2026",
+                "Subway service between St George and Chester stations will start at 11 a.m. each day due to planned work."
+            )
+        ).record();
+
+        assertThat(record.childAlerts()).hasSize(3);
+        assertThat(record.childAlerts())
+            .extracting(TtcAlertChildPeriod::startTime)
+            .containsExactly(
+                OffsetDateTime.parse("2026-08-23T08:00:00-04:00"),
+                OffsetDateTime.parse("2026-08-24T06:00:00-04:00"),
+                OffsetDateTime.parse("2026-08-25T06:00:00-04:00")
+            );
+        assertThat(record.childAlerts())
+            .extracting(TtcAlertChildPeriod::endTime)
+            .containsExactly(
+                OffsetDateTime.parse("2026-08-23T11:00:00-04:00"),
+                OffsetDateTime.parse("2026-08-24T11:00:00-04:00"),
+                OffsetDateTime.parse("2026-08-25T11:00:00-04:00")
+            );
     }
 
     @Test

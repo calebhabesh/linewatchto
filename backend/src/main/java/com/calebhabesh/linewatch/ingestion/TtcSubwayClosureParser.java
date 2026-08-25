@@ -141,16 +141,21 @@ public class TtcSubwayClosureParser {
             || normalized.contains("reduced speeds");
         boolean delay = normalized.contains("delay")
             || normalized.contains("slower than normal");
+        boolean lateOpening = normalized.contains("late opening")
+            || normalized.matches(
+                "(?s).*\\b(?:subway|lrt|train)\\s+service\\b.{0,240}"
+                    + "\\b(?:will\\s+)?start\\s+(?:at|by)\\b.*"
+            );
         boolean closure = normalized.contains("no service")
             || normalized.contains("service is suspended")
             || normalized.contains("service will be suspended")
             || normalized.contains("closure")
-            || normalized.contains("late opening")
+            || lateOpening
             || normalized.contains("end early");
         boolean planned = closure && (normalized.contains("planned")
             || normalized.contains("nightly")
             || normalized.contains("scheduled")
-            || normalized.contains("late opening")
+            || lateOpening
             || normalized.contains("end early"));
 
         if (restoration) {
@@ -219,13 +224,22 @@ public class TtcSubwayClosureParser {
             return List.copyOf(periods);
         }
 
-        LocalTime lateOpening = timeAfter(text, "late opening(?:\\s+at)?|(?:service|trains?)\\s+(?:will\\s+)?start\\s+at");
+        LocalTime lateOpening = timeAfter(
+            text,
+            "late openings?(?:\\s+at)?|(?:service|trains?)\\s+"
+                + "(?:(?:will\\s+)?start|starts?)\\s+(?:at|by)"
+        );
         if (lateOpening != null) {
-            return List.of(new TtcAlertChildPeriod(
-                sourceId + "-window-0",
-                at(startDate, LocalTime.MIDNIGHT),
-                at(startDate, lateOpening)
-            ));
+            List<TtcAlertChildPeriod> periods = new ArrayList<>();
+            int index = 0;
+            for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                periods.add(new TtcAlertChildPeriod(
+                    sourceId + "-window-" + index++,
+                    at(date, defaultServiceStart(date)),
+                    at(date, lateOpening)
+                ));
+            }
+            return List.copyOf(periods);
         }
 
         return List.of(new TtcAlertChildPeriod(
@@ -233,6 +247,13 @@ public class TtcSubwayClosureParser {
             at(startDate, LocalTime.MIDNIGHT),
             at(endDate.plusDays(1), LocalTime.MIDNIGHT)
         ));
+    }
+
+    private LocalTime defaultServiceStart(LocalDate serviceDate) {
+        // Normalization replaces this conservative system-wide value with the
+        // affected stations' first GTFS departure whenever schedule data exists.
+        boolean sunday = serviceDate.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
+        return sunday ? LocalTime.of(8, 0) : LocalTime.of(6, 0);
     }
 
     private LocalTime timeAfter(String text, String prefixPattern) {

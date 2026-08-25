@@ -9,6 +9,7 @@ import java.util.Locale;
 
 final class PlannedClosurePushIdentity {
     static final String UPDATE_PREFIX = "planned-closure-content-v1:";
+    private static final long OCCURRENCE_BUCKET_SECONDS = 30 * 60;
 
     private PlannedClosurePushIdentity() {}
 
@@ -34,8 +35,14 @@ final class PlannedClosurePushIdentity {
         return "planned-closure-" + hash(
             normalize(lineId),
             scope,
-            eventStartAt.toInstant().toString()
+            occurrenceBucket(eventStartAt)
         ).substring(0, 24);
+    }
+
+    private static String occurrenceBucket(OffsetDateTime eventStartAt) {
+        long epochSecond = eventStartAt.toInstant().getEpochSecond();
+        long halfBucket = OCCURRENCE_BUCKET_SECONDS / 2;
+        return Long.toString(Math.floorDiv(epochSecond + halfBucket, OCCURRENCE_BUCKET_SECONDS));
     }
 
     static String updateFingerprint(

@@ -556,6 +556,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
 
   const ttcStage = page.locator(".ttc-map-stage");
   await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(page.locator(".ttc-map-entrance-reveal")).toHaveCount(0);
   await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(ttcStage.locator(".ttc-authored-svg-source").first()).toHaveCSS("visibility", "hidden");
   await ttcStage.locator('[data-station-label-id="kipling"]').hover();
@@ -1998,7 +1999,7 @@ test("desktop TTC overlay press arms the camera before the next frame", async ({
   const viewport = page.locator("[data-map-pan-zoom-viewport]");
   const target = page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" });
   await expect(target).toBeVisible();
-  await page.waitForTimeout(900);
+  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
 
   await page.evaluate(() => {
     const viewportElement = document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]");
@@ -3640,6 +3641,11 @@ test("keyboard opens and closes the main menu", async ({ page, request, isMobile
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  const mapViewport = page.locator("[data-map-pan-zoom-viewport]");
+  const mapStage = page.locator(".ttc-map-stage");
+  await expect(mapStage).toHaveAttribute("data-raster-map-ready", "true");
+  await expect(mapViewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
+  const settledMapTransform = await mapStage.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "Toggle menu" }).focus();
   await page.keyboard.press("Enter");
@@ -3653,6 +3659,8 @@ test("keyboard opens and closes the main menu", async ({ page, request, isMobile
 
   await expect(page.getByRole("menu")).toBeHidden();
   await expect(page.getByRole("button", { name: "Toggle menu" })).toBeFocused();
+  await expect.poll(() => mapStage.evaluate((element) => element.style.transform)).toBe(settledMapTransform);
+  await expect(mapViewport).toHaveAttribute("data-map-camera-moving", "false");
 });
 
 test("keyboard searches and selects a station", async ({ page, request, isMobile }) => {

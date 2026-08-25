@@ -24,6 +24,25 @@ class PlannedClosurePushIdentityTest {
     }
 
     @Test
+    void keepsIdentityWhenGtfsRefinesAServiceOpeningByMinutes() {
+        String fallback = PlannedClosurePushIdentity.stableId(
+            "line-2", List.of("st-george-chester"), "St George to Chester",
+            OffsetDateTime.parse("2026-08-23T08:00:00-04:00"), "ttc-route-website"
+        );
+        String scheduleRefined = PlannedClosurePushIdentity.stableId(
+            "line-2", List.of("st-george-chester"), "St George to Chester",
+            OffsetDateTime.parse("2026-08-23T08:07:00-04:00"), "ttc-route-website"
+        );
+        String separateOccurrence = PlannedClosurePushIdentity.stableId(
+            "line-2", List.of("st-george-chester"), "St George to Chester",
+            OffsetDateTime.parse("2026-08-23T11:00:00-04:00"), "ttc-route-website"
+        );
+
+        assertThat(scheduleRefined).isEqualTo(fallback);
+        assertThat(separateOccurrence).isNotEqualTo(fallback);
+    }
+
+    @Test
     void operationalChangesCreateANewUpdateFingerprint() {
         String stableId = "planned-closure-stable";
         String original = PlannedClosurePushIdentity.updateFingerprint(

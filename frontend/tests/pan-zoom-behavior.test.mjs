@@ -229,6 +229,22 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
   });
 
+  it("limits the fitted-camera entrance to initial page load", () => {
+    assert.doesNotMatch(shellSource, /mapEntranceSignal|previousEntranceViewRef/);
+    assert.doesNotMatch(shellSource, /entranceSignal=/);
+    assert.match(shellSource, /animateInitialEntrance=\{!initialMapReady && !mobileMapPerformanceMode\}/);
+  });
+
+  it("uses a paint-only mobile entrance reveal without animating map-stage opacity", () => {
+    assert.match(shellSource, /selectedNetwork === "ttc" && \(!initialMapReady \|\| mobileMapPerformanceMode\)/);
+    assert.match(shellSource, /initialMapReady \? " ttc-map-entrance-reveal--ready" : ""/);
+    assert.match(globalCss, /@media \(max-width: 767px\), \(pointer: coarse\)\s*\{[\s\S]*?\.ttc-map-entrance-reveal:not\(\.ttc-map-entrance-reveal--ready\)[\s\S]*?background-color:/s);
+    assert.match(globalCss, /\.ttc-map-entrance-reveal--ready\s*\{[^}]*animation:\s*ttc-map-mobile-entrance-reveal 280ms/s);
+    assert.match(globalCss, /@keyframes ttc-map-mobile-entrance-reveal\s*\{[\s\S]*?from\s*\{[^}]*background-color:[^}]*\}[\s\S]*?to\s*\{[^}]*background-color:\s*transparent/s);
+    assert.doesNotMatch(globalCss, /\.ttc-map-stage[^}]*opacity/s);
+    assert.match(globalCss, /\.motion-paused \.ttc-map-entrance-reveal--ready\s*\{[^}]*animation:\s*none/s);
+  });
+
   it("refits an untouched TTC map after resize but preserves manual camera changes", () => {
     assert.match(hookSource, /const cameraAdjustedByUserRef = useRef\(false\)/);
     assert.match(hookSource, /const refitIfCameraUntouched = useCallback/);
@@ -244,6 +260,8 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /animateInitialEntrance[\s\S]*computeFittedCameraFlyInStart\(fittedTransform, width, height\)[\s\S]*snapTransform\(fittedTransform\)/);
     assert.match(hookSource, /const completeStagedEntrance = useCallback/);
     assert.match(hookSource, /moveToDefaultCamera\(animateInitialEntrance, false\)/);
+    assert.match(mapSource, /focusTargetKey === null[\s\S]*animateInitialEntrance[\s\S]*!geometryReady \|\| !rasterMapReady/);
+    assert.match(mapSource, /initialCameraPositionedRef\.current[\s\S]*focusTargetKey === null/);
   });
 
   it("keeps the TTC camera transform outside React render reconciliation", () => {
@@ -487,4 +505,3 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /animateTransformTo\(\{[\s\S]*scale: targetAbsoluteScale,[\s\S]*\}, currentFitScale\);/);
   });
 });
-

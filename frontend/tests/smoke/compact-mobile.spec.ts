@@ -16,7 +16,13 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await page.goto(openMapPreviewUrl);
 
   const welcome = page.getByRole("dialog", { name: "Welcome to LineWatchTO" });
+  const mapEntranceReveal = page.locator(".ttc-map-entrance-reveal");
   await expect(welcome).toBeVisible();
+  await expect(mapEntranceReveal).toBeAttached();
+  await expect(mapEntranceReveal).not.toHaveClass(/ttc-map-entrance-reveal--ready/);
+  await expect.poll(() => mapEntranceReveal.evaluate((element) =>
+    getComputedStyle(element).backgroundColor
+  )).not.toBe("rgba(0, 0, 0, 0)");
   const welcomeBounds = await welcome.boundingBox();
   expect(welcomeBounds).not.toBeNull();
   expect(welcomeBounds!.x).toBeGreaterThanOrEqual(9);
@@ -27,6 +33,8 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
 
   await welcome.getByRole("button", { name: "Skip" }).click();
   await page.getByRole("button", { name: "Got it" }).click();
+  await expect(mapEntranceReveal).toHaveClass(/ttc-map-entrance-reveal--ready/);
+  await expect(mapEntranceReveal).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   const nav = page.getByRole("navigation", { name: "Primary mobile navigation" });
   await expect(nav).toBeVisible();
   await expect.poll(() => page.evaluate(() =>
