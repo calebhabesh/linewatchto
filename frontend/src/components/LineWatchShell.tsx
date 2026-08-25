@@ -4802,6 +4802,20 @@ export function LineWatchShell({
               {accountDialogMode === "auth-choice" ? (
                 <>
                   <div className="account-provider-stack">
+                    {authConfig.googleSignInAvailable ? (
+                      <>
+                        <div aria-label="Continue With Google">
+                          <GoogleSignInButton
+                            disabled={accountBusy}
+                            mode="login"
+                            onError={setAccountError}
+                          />
+                        </div>
+                        <div className="account-auth-divider" aria-hidden="true">
+                          <span>Or</span>
+                        </div>
+                      </>
+                    ) : null}
                     <button
                       type="button"
                       className="account-choice-primary"
@@ -4811,20 +4825,6 @@ export function LineWatchShell({
                       <Mail size={18} />
                       Continue With Email
                     </button>
-                    {authConfig.googleSignInAvailable ? (
-                      <>
-                        <div className="account-auth-divider" aria-hidden="true">
-                          <span>Or</span>
-                        </div>
-                        <div aria-label="Continue With Google">
-                          <GoogleSignInButton
-                            disabled={accountBusy}
-                            mode="login"
-                            onError={setAccountError}
-                          />
-                        </div>
-                      </>
-                    ) : null}
                   </div>
                   {accountError ? (
                     <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">

@@ -44,6 +44,11 @@ describe("account UI source", () => {
     assert.match(shellSource, /Back To Options/);
     assert.match(shellSource, /account-provider-stack/);
     assert.match(shellSource, /account-choice-primary/);
+    assert.ok(
+      shellSource.indexOf('aria-label="Continue With Google"')
+        < shellSource.indexOf("Continue With Email"),
+      "Google should be presented before email in the authentication choice dialog",
+    );
     assert.match(shellSource, /Create a free account[^<]*All features are free\./);
     assert.match(shellSource, /Sign in to access your saved stations and commutes/);
     assert.doesNotMatch(shellSource, /Welcome back/);
