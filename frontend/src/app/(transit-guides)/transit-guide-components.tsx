@@ -158,21 +158,28 @@ function PageHero({
       {accentColor ? (
         <div className={styles.heroAccentBar} style={{ backgroundColor: accentColor }} />
       ) : null}
-      <p
-        className={styles.eyebrow}
-        style={accentColor ? ({ "--chip-color": accentColor } as React.CSSProperties) : undefined}
-      >
-        <span className={styles.eyebrowBar} aria-hidden="true" />
-        {eyebrow}
-      </p>
-      {caption ? <span className={styles.stationCaption}>{caption}</span> : null}
-      <div className={styles.heroHeaderGroup}>
-        {badge}
-        <h1>{title}</h1>
+      <div className={styles.heroTopMeta}>
+        <p
+          className={styles.eyebrow}
+          style={accentColor ? ({ "--chip-color": accentColor } as React.CSSProperties) : undefined}
+        >
+          <span className={styles.eyebrowBar} aria-hidden="true" />
+          {eyebrow}
+        </p>
+        <span className={styles.note} style={{ color: "#64748b" }}>
+          LineWatch Transit Atlas
+        </span>
       </div>
-      {badges ? <div className={styles.heroBadges}>{badges}</div> : null}
-      <div className={styles.lede}>{children}</div>
-      {actions ? <div className={styles.actions}>{actions}</div> : null}
+      <div className={styles.heroMainBody}>
+        {caption ? <span className={styles.stationCaption}>{caption}</span> : null}
+        <div className={styles.heroHeaderGroup}>
+          {badge}
+          <h1>{title}</h1>
+        </div>
+        {badges ? <div className={styles.heroBadges}>{badges}</div> : null}
+        <div className={styles.lede}>{children}</div>
+        {actions ? <div className={styles.actions}>{actions}</div> : null}
+      </div>
     </header>
   );
 }
