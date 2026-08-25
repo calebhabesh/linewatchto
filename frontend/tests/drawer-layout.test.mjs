@@ -61,7 +61,8 @@ describe("floating menu layout", () => {
   });
 
   it("keeps legend shortcuts as temporary line-focused alert categories", () => {
-    assert.match(shellSource, /openLegendImpactCategory[\s\S]*navigateForward\("menu"\);[\s\S]*openImpactCategory\(view, lineId\)/);
+    assert.match(shellSource, /openLegendImpactCategory[\s\S]*openImpactCategory\(view, lineId\)/);
+    assert.doesNotMatch(shellSource, /openLegendImpactCategory[\s\S]{0,180}navigateForward\("menu"\)/);
     assert.match(shellSource, /initialLineId=\{impactListLaunch\.lineId\}/);
     assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(dataLineId\)/);
     assert.match(activeAlertsSource, /useState\(initialLineId \?\? "all"\)/);

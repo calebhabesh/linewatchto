@@ -2726,6 +2726,10 @@ test("LineLegend clicks open a temporary line-focused view without highlighting 
   await expect(page.locator(".alert-card").first()).not.toHaveClass(/!bg-amber-950|highlight-active-card/);
 
   await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "Toggle menu" }).click();
   await expect(page.getByText("Maps & Alerts", { exact: true })).toBeVisible();
   await page.getByRole("menuitem", { name: /Reduced Speed Zones/ }).click();
   await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("all");
@@ -4507,6 +4511,51 @@ test("mobile browser Back restores the path that launched Show on Map", async ({
   await page.goBack();
   await expect(page.getByRole("heading", { name: "System Status" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+});
+
+test("map impact shortcuts return directly to the map", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const openMapDelayShortcut = async () => {
+    if (isMobile) {
+      await page.locator(".mobile-status-peek-count-badge.delays").click();
+    } else {
+      await page.locator(".desktop-status-chip--delays").click();
+    }
+    await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+  };
+
+  const expectMapOrigin = async () => {
+    await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    if (isMobile) {
+      await expect(page.locator(".mobile-status-peek")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "System Status" })).toHaveCount(0);
+    } else {
+      await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveAttribute("aria-expanded", "false");
+    }
+  };
+
+  await openMapDelayShortcut();
+  await page.getByRole("button", { name: "Back" }).click();
+  await expectMapOrigin();
+
+  await openMapDelayShortcut();
+  await page.goBack();
+  await expectMapOrigin();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
+    const mobileSheet = page.locator('[data-floating-panel="mobile-panel"]');
+    await mobileSheet.evaluate((element) => { element.setAttribute("data-smoke-stable-sheet", "true"); });
+    await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
+    await page.getByRole("button", { name: "Back" }).click();
+    await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
+    await expect(page.locator('[data-floating-panel="mobile-panel"][data-smoke-stable-sheet="true"]')).toBeVisible();
+  }
 });
 
 test("desktop browser Back unfocuses an impact before leaving its submenu", async ({ page, request, isMobile }) => {

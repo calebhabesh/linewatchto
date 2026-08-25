@@ -43,6 +43,8 @@ describe("mobile navigation motion", () => {
     assert.match(shellSource, /onOpenCommutes=\{\(\) => navigateForward\("commutes"\)\}/);
     assert.match(shellSource, /onOpenMyStations=\{\(\) => navigateForward\("my-stations"\)\}/);
     assert.match(shellSource, /popViewHistory\(viewHistoryRef\.current, fallback\)/);
+    assert.match(shellSource, /reducedMotion \|\| \(isMobile && targetView !== "map"\)/);
+    assert.match(globalCss, /@media \(max-width:\s*767px\)\s*\{[\s\S]*?\.floating-panel-shell\[data-going-back="true"\],[\s\S]*?animation:\s*mobile-sheet-slide-down-exit 240ms/s);
   });
 
   it("animates account container entry and keyed inner view changes", () => {

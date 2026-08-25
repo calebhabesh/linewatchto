@@ -26,7 +26,8 @@ describe("mobile Show on Map inspector", () => {
 
   it("renders the selected impact in a mobile-only inspector instead of a tiny peek", () => {
     assert.match(shellSource, /MobileImpactInspector/);
-    assert.match(shellSource, /onViewFullDetails=\{\(\) => setActiveView\(viewForImpactSelection\(selection\)\)\}/);
+    assert.match(shellSource, /onViewFullDetails=\{\(\) => navigateForward\(viewForImpactSelection\(selection\)\)\}/);
+    assert.match(shellSource, /returningToSelectedMap = targetView === "map" && Boolean\(selectionRef\.current\)/);
     assert.match(inspectorSource, /data-mobile-impact-inspector/);
     assert.match(inspectorSource, /aria-label="Selected map impact details"/);
     assert.match(inspectorSource, /getSelectedImpactDetails/);

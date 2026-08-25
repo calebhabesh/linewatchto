@@ -41,12 +41,11 @@ describe("view navigation history", () => {
     assert.deepEqual(popViewHistory([], "map"), { history: [], view: "map" });
   });
 
-  it("navigates to the menu fallback on desktop when opening a submenu directly from the map", () => {
-    assert.deepEqual(popViewHistory([], "menu"), { history: [], view: "menu" });
-  });
+  it("restores the map after a map shortcut regardless of the device fallback", () => {
+    const history = pushViewHistory([], "map", "delays");
 
-  it("navigates to the status fallback on mobile when opening a submenu directly from the map", () => {
-    assert.deepEqual(popViewHistory([], "status"), { history: [], view: "status" });
+    assert.deepEqual(popViewHistory(history, "menu"), { history: [], view: "map" });
+    assert.deepEqual(popViewHistory(history, "status"), { history: [], view: "map" });
   });
 
   it("chronologically returns to commutes when going back from an active commute disruption", () => {

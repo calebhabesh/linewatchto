@@ -24508,8 +24508,10 @@ img.transit-line-badge {
   }
 }
 
-/* Container Exit Animations (Pressing Close 'x' Button or Retracting Panels) */
+/* Mobile Back-to-map and Close both reverse the sheet entrance in one pass. */
 @media (max-width: 767px) {
+  .floating-panel-shell[data-going-back="true"],
+  .floating-panel-shell.floating-panel-back-exit,
   .floating-panel-shell.floating-panel-closing,
   .floating-panel-shell[data-closing="true"],
   .mobile-view-content-wrapper[data-closing="true"],

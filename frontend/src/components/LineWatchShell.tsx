@@ -820,9 +820,7 @@ export function LineWatchShell({
       viewScrollPositionsRef.current[currentView] = scrollElement.scrollTop;
     }
     pushBrowserNavigationEntry();
-    if (currentView !== "map") {
-      viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
-    }
+    viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
     activeViewRef.current = nextView;
     setNavDirection("forward");
     setActiveView(nextView);
@@ -871,6 +869,7 @@ export function LineWatchShell({
       setCommutePathPreview(null);
     }
     setActiveView(previous.view);
+    return previous.view;
   }, [isMobile, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId]);
 
   const restoreMapDrilldownOrigin = useCallback(() => {
@@ -948,9 +947,8 @@ export function LineWatchShell({
     navigateForward("line-impacts");
   }, [navigateForward, setSelection]);
   const openLegendImpactCategory = useCallback((view: ImpactCategoryView, lineId: string) => {
-    navigateForward("menu");
     openImpactCategory(view, lineId);
-  }, [navigateForward, openImpactCategory]);
+  }, [openImpactCategory]);
   const legendProps = useMemo(() => ({
     expanded: legendExpanded,
     onToggleExpanded: () => setLegendExpanded((prev) => !prev),
@@ -1047,52 +1045,55 @@ export function LineWatchShell({
   const backTimeoutRef = useRef<number | null>(null);
 
   const handleSubmenuBack = useCallback(() => {
+    if (isGoingBack) return;
     consumeBrowserNavigationEntries();
     setNavDirection("back");
-    setIsGoingBack(true);
     if (backTimeoutRef.current) {
       window.clearTimeout(backTimeoutRef.current);
     }
-    backTimeoutRef.current = window.setTimeout(() => {
-      if (stationDrilldownOriginRef.current) {
-        const originStationId = stationDrilldownOriginRef.current;
+
+    const stationOriginId = stationDrilldownOriginRef.current;
+    const mobileFallback = activeView === "alerts"
+      || activeView === "delays"
+      || activeView === "reduced-speed-zones"
+      || activeView === "closures"
+      || activeView === "line-impacts"
+      || activeView === "accessibility-outages"
+      || activeView === "surface-notices"
+        ? "status"
+        : activeView === "commutes"
+          ? "map"
+          : "more";
+    const fallback: ActiveView = commutePathPreviewRef.current
+      ? "commutes"
+      : isMobile
+        ? mobileFallback
+        : "menu";
+    const previous = stationOriginId
+      ? { history: [] as ActiveView[], view: "map" as ActiveView }
+      : popViewHistory(viewHistoryRef.current, fallback);
+    const targetView: ActiveView = commutePathPreviewRef.current
+      ? "commutes"
+      : previous.view;
+    const returningToCommutesFromPreview = Boolean(commutePathPreviewRef.current) && targetView === "commutes";
+    const returningToSelectedMap = targetView === "map" && Boolean(selectionRef.current) && !stationOriginId;
+
+    const finishBackNavigation = () => {
+      backTimeoutRef.current = null;
+      if (stationOriginId) {
         stationDrilldownOriginRef.current = null;
         viewHistoryRef.current = [];
         activeViewRef.current = "map";
         setActiveView("map");
         setIsGoingBack(false);
+        selectionRef.current = null;
+        selectionBackBehaviorRef.current = "clear";
         setSelection(null);
         setAccessibilityOutageTarget(null);
-        selectedStationIdRef.current = originStationId;
-        setSelectedStationId(originStationId);
+        selectedStationIdRef.current = stationOriginId;
+        setSelectedStationId(stationOriginId);
         return;
       }
-      const mobileFallback = activeView === "alerts"
-        || activeView === "delays"
-        || activeView === "reduced-speed-zones"
-        || activeView === "closures"
-        || activeView === "line-impacts"
-        || activeView === "accessibility-outages"
-        || activeView === "surface-notices"
-          ? "status"
-          : activeView === "commutes"
-            ? "map"
-            : "more";
-      const fallback: ActiveView = commutePathPreviewRef.current
-        ? "commutes"
-        : isMobile
-          ? mobileFallback
-          : "menu";
-      let previous = popViewHistory(viewHistoryRef.current, fallback);
-      while (previous.view === "map" && previous.history.length > 0 && !commutePathPreviewRef.current) {
-        previous = popViewHistory(previous.history, fallback);
-      }
-      const targetView: ActiveView = commutePathPreviewRef.current
-        ? "commutes"
-        : previous.view === "map"
-          ? fallback
-          : previous.view;
-      const returningToCommutesFromPreview = Boolean(commutePathPreviewRef.current) && targetView === "commutes";
       if (returningToCommutesFromPreview) {
         if (commutePathPreviewRef.current) {
           setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
@@ -1108,10 +1109,27 @@ export function LineWatchShell({
       activeViewRef.current = targetView;
       setActiveView(targetView);
       setIsGoingBack(false);
-      setSelection(null);
+      if (!returningToSelectedMap) {
+        selectionRef.current = null;
+        selectionBackBehaviorRef.current = "clear";
+        setSelection(null);
+      }
       setAccessibilityOutageTarget(null);
-    }, reducedMotion ? 0 : 380);
-  }, [activeView, consumeBrowserNavigationEntries, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setSelectedStationId, setSelection]);
+    };
+
+    // A mobile panel-to-panel Back only swaps the keyed content so the shared
+    // sheet does not dismiss and immediately re-enter between nested views.
+    if (reducedMotion || (isMobile && targetView !== "map")) {
+      finishBackNavigation();
+      return;
+    }
+
+    setIsGoingBack(true);
+    backTimeoutRef.current = window.setTimeout(
+      finishBackNavigation,
+      isMobile ? 240 : 380,
+    );
+  }, [activeView, consumeBrowserNavigationEntries, isGoingBack, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setSelectedStationId, setSelection]);
 
   useEffect(() => {
     selectedStationIdRef.current = selectedStationId;
@@ -1204,10 +1222,12 @@ export function LineWatchShell({
             setAccessibilityOutageTarget(null);
             return;
           }
-          restorePreviousView();
-          selectionRef.current = null;
-          selectionBackBehaviorRef.current = "clear";
-          setSelection(null);
+          const restoredView = restorePreviousView();
+          if (restoredView !== "map") {
+            selectionRef.current = null;
+            selectionBackBehaviorRef.current = "clear";
+            setSelection(null);
+          }
           setAccessibilityOutageTarget(null);
           return;
         }
@@ -2861,9 +2881,7 @@ export function LineWatchShell({
       selectionBackBehaviorRef.current = "clear";
     } else {
       selectionBackBehaviorRef.current = "restore-view";
-      if (currentView !== "map") {
-        viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, targetView);
-      }
+      viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, targetView);
     }
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
@@ -4688,7 +4706,7 @@ export function LineWatchShell({
           detent={mobileInspectorDetent}
           onChangeDetent={setMobileInspectorDetent}
           onUnfocus={handleClearMobileImpactSelection}
-          onViewFullDetails={() => setActiveView(viewForImpactSelection(selection))}
+          onViewFullDetails={() => navigateForward(viewForImpactSelection(selection))}
           onSelectImpact={handleMapSelectImpact}
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
