@@ -21,14 +21,14 @@ class AlertHistoryServiceTest {
     private final AlertHistoryService service = new AlertHistoryService(repository, clock);
 
     @Test
-    void todayStartsAtTorontoMidnightAndIncludesClearanceDetails() {
+    void todayStartsAtTorontoMidnightAndIncludesLifecycleDetailsFromBeforeToday() {
         when(repository.findLifecycleRows(
             OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
             OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
             300
         )).thenReturn(List.of(
             row(2L, "ttc-route-1", false, "cleared", "2026-06-23T12:20:00-04:00"),
-            row(1L, "ttc-route-1", true, "opened", "2026-06-23T12:05:00-04:00")
+            row(1L, "ttc-route-1", true, "opened", "2026-06-22T12:05:00-04:00")
         ));
 
         AlertHistoryResponses.AlertHistoryResponse response = service.history("today", 300);
@@ -46,9 +46,9 @@ class AlertHistoryServiceTest {
             assertThat(incident.cause()).isEqualTo("Mechanical Problem");
             assertThat(incident.source()).isEqualTo("TTC Live Alerts");
             assertThat(incident.status()).isEqualTo("cleared");
-            assertThat(incident.firstSeenAt()).isEqualTo(OffsetDateTime.parse("2026-06-23T12:05:00-04:00"));
+            assertThat(incident.firstSeenAt()).isEqualTo(OffsetDateTime.parse("2026-06-22T12:05:00-04:00"));
             assertThat(incident.clearedAt()).isEqualTo(OffsetDateTime.parse("2026-06-23T12:20:00-04:00"));
-            assertThat(incident.durationMinutes()).isEqualTo(15L);
+            assertThat(incident.durationMinutes()).isEqualTo(1_455L);
             assertThat(incident.events()).extracting(AlertHistoryResponses.AlertHistoryEventDto::state)
                 .containsExactly("cleared", "opened");
         });

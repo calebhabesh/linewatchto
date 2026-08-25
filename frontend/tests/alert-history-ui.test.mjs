@@ -131,12 +131,13 @@ describe("alert history timeline UI", () => {
     assert.doesNotMatch(timelineSource, /formatRelativeImpactTime/);
   });
 
-  it("emphasizes time and expands lifecycle details by default", () => {
+  it("emphasizes time and keeps lifecycle details permanently visible", () => {
     assert.match(timelineSource, /formatAlertHistoryDuration\(incident\.durationMinutes\)/);
     assert.match(timelineSource, /primary \? " alert-history-primary-time"/);
-    assert.match(timelineSource, /useState\(true\)/);
-    assert.match(timelineSource, /open=\{lifecycleExpanded\}/);
-    assert.match(timelineSource, /<summary>Lifecycle Details<\/summary>/);
+    assert.match(timelineSource, /ClipboardList/);
+    assert.match(timelineSource, /className="alert-history-details-heading"/);
+    assert.doesNotMatch(timelineSource, /<details/);
+    assert.doesNotMatch(timelineSource, /lifecycleExpanded/);
     assert.match(cssSource, /\.alert-history-primary-time\s*\{[^}]*font-weight:\s*750;/s);
     assert.match(cssSource, /\.alert-history-duration\s*>\s*strong\s*\{[^}]*font-size:\s*0\.82rem;/s);
     assert.match(timelineSource, /className=\{`impact-timestamp/);
@@ -163,6 +164,15 @@ describe("alert history timeline UI", () => {
   it("title-cases lifecycle event labels", () => {
     assert.match(timelineSource, /formatHistoryStatusLabel\(event\.label\)/);
     assert.doesNotMatch(timelineSource, /<span>\{event\.label\}<\/span>/);
+  });
+
+  it("adds status-colored dots to lifecycle events", () => {
+    assert.match(timelineSource, /historyLifecycleTone\(event\.state\)/);
+    assert.match(timelineSource, /state === "cleared"/);
+    assert.match(timelineSource, /state === "opened"/);
+    assert.match(cssSource, /\.alert-history-lifecycle-event::before/);
+    assert.match(cssSource, /\.alert-history-lifecycle-opened::before/);
+    assert.match(cssSource, /\.alert-history-lifecycle-cleared::before/);
   });
 
   it("uses a plain inline checkmark for cleared history rows", () => {
@@ -219,7 +229,7 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /visibleItems\.slice\(0, visibleCount\)/);
     assert.match(timelineSource, /Show \{Math\.min\(HISTORY_PAGE_SIZE/);
     assert.match(timelineSource, /const HistoryIncident = memo/);
-    assert.match(timelineSource, /lifecycleExpanded \? \(/);
+    assert.match(timelineSource, /incident\.events\.map\(\(event\) =>/);
     assert.match(cssSource, /\.alert-history-item\s*\{[^}]*content-visibility:\s*auto;/s);
   });
 });

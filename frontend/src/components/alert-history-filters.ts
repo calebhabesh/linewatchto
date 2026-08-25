@@ -48,6 +48,8 @@ export type AlertHistoryFilterControls = {
   typeId?: string;
   searchQuery: string;
   sortBy?: string;
+  since?: string;
+  until?: string;
 };
 
 export const ALL_LINES_VALUE = "all";
@@ -101,7 +103,12 @@ export function filterAndSortAlertHistory(
   const typeFilter = controls.typeId ?? ALL_TYPES_VALUE;
 
   const filtered = incidents.flatMap((incident) => {
-    const displayEvent = selectDisplayEvent(incident, controls.lifecycleFilter);
+    const displayEvent = selectDisplayEvent(
+      incident,
+      controls.lifecycleFilter,
+      controls.since,
+      controls.until,
+    );
     if (!displayEvent) {
       return [];
     }
@@ -305,16 +312,29 @@ function getEventTimestamp(item: AlertHistoryViewItem): number {
 export function selectDisplayEvent(
   incident: AlertHistoryIncident,
   filter: AlertHistoryLifecycleFilter,
+  since?: string,
+  until?: string,
 ): AlertHistoryEvent | null {
+  const eventsInWindow = incident.events.filter((event) => eventFallsWithinWindow(event, since, until));
+
   if (filter === "clearances") {
-    return incident.events.find((event) => event.state === "cleared") ?? null;
+    return eventsInWindow.find((event) => event.state === "cleared") ?? null;
   }
 
   if (filter === "alerts") {
-    return incident.events.find((event) => event.state !== "cleared") ?? null;
+    return eventsInWindow.find((event) => event.state !== "cleared") ?? null;
   }
 
-  return incident.events[0] ?? null;
+  return eventsInWindow[0] ?? null;
+}
+
+function eventFallsWithinWindow(event: AlertHistoryEvent, since?: string, until?: string) {
+  if (!since || !until) return true;
+  const happenedAt = new Date(event.happenedAt).getTime();
+  const windowStart = new Date(since).getTime();
+  const windowEnd = new Date(until).getTime();
+  if ([happenedAt, windowStart, windowEnd].some(Number.isNaN)) return true;
+  return happenedAt >= windowStart && happenedAt < windowEnd;
 }
 
 export function buildAlertHistoryLineOptions(

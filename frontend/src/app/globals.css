@@ -22754,11 +22754,20 @@ img.transit-line-badge {
   padding-top: 0.42rem;
 }
 
-.alert-history-details summary {
-  cursor: pointer;
+.alert-history-details-heading {
+  align-items: center;
+  display: flex;
   font-size: 0.69rem;
   font-weight: 900;
+  gap: 0.3rem;
   letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.alert-history-details-heading svg {
+  flex: 0 0 auto;
+  height: 0.8125rem;
+  width: 0.8125rem;
 }
 
 .alert-history-details ol {
@@ -22771,8 +22780,32 @@ img.transit-line-badge {
 .alert-history-details li {
   align-items: baseline;
   display: flex;
-  justify-content: space-between;
   gap: 0.5rem;
+  justify-content: space-between;
+  padding-left: 0.85rem;
+  position: relative;
+}
+
+.alert-history-lifecycle-event::before {
+  background: rgb(37, 99, 235);
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+  content: "";
+  height: 0.35rem;
+  left: 0;
+  position: absolute;
+  top: 0.37rem;
+  width: 0.35rem;
+}
+
+.alert-history-lifecycle-opened::before {
+  background: rgb(217, 119, 6);
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.16);
+}
+
+.alert-history-lifecycle-cleared::before {
+  background: rgb(5, 150, 105);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.16);
 }
 
 .alert-history-details li span {

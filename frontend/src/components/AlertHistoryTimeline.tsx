@@ -8,6 +8,7 @@ import {
   ArrowUpNarrowWide,
   Check,
   ChevronDown,
+  ClipboardList,
   Clock3,
   Construction,
   History,
@@ -156,6 +157,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [history, setHistory] = useState<AlertHistoryIncident[]>([]);
+  const [historyWindow, setHistoryWindow] = useState({ since: "", until: "" });
   const [pagination, setPagination] = useState({ key: "", visibleCount: HISTORY_PAGE_SIZE });
   const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
   const lineDropdownRef = useRef<HTMLDivElement>(null);
@@ -189,6 +191,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
     getAlertHistory(period, network).then((result) => {
       if (cancelled) return;
       setHistory(result.data.incidents);
+      setHistoryWindow({ since: result.data.since, until: result.data.until });
       setSource(result.source);
       setLoadedQuery(requestedQuery);
     });
@@ -224,7 +227,9 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
     typeId: selectedTypeId,
     searchQuery: deferredSearchQuery,
     sortBy: selectedSortBy,
-  }, searchIndex), [deferredSearchQuery, filter, history, searchIndex, selectedLineId, selectedTypeId, selectedSortBy]);
+    since: historyWindow.since,
+    until: historyWindow.until,
+  }, searchIndex), [deferredSearchQuery, filter, history, historyWindow, searchIndex, selectedLineId, selectedTypeId, selectedSortBy]);
 
   const resultSetKey = [
     network,
@@ -508,7 +513,6 @@ const HistoryIncident = memo(function HistoryIncident({
   displayEvent,
   cleared,
 }: AlertHistoryViewItem) {
-  const [lifecycleExpanded, setLifecycleExpanded] = useState(true);
   const time = displayEvent?.happenedAt ?? incident.clearedAt ?? incident.firstSeenAt ?? "";
   const title = compactHistoryTitle(incident);
   const statusLabel = cleared ? "Cleared" : formatHistoryStatusLabel(displayEvent?.label);
@@ -561,27 +565,33 @@ const HistoryIncident = memo(function HistoryIncident({
             </span>
           ) : null}
         </div>
-        <details
-          className="alert-history-details"
-          open={lifecycleExpanded}
-          onToggle={(event) => setLifecycleExpanded(event.currentTarget.open)}
-        >
-          <summary>Lifecycle Details</summary>
-          {lifecycleExpanded ? (
-            <ol>
-              {incident.events.map((event) => (
-                <li key={event.id}>
-                  <span>{formatHistoryStatusLabel(event.label)}</span>
-                  <HistoryTimestamp timestamp={event.happenedAt} />
-                </li>
-              ))}
-            </ol>
-          ) : null}
-        </details>
+        <div className="alert-history-details">
+          <h4 className="alert-history-details-heading">
+            <ClipboardList size={13} aria-hidden="true" />
+            Lifecycle Details
+          </h4>
+          <ol>
+            {incident.events.map((event) => (
+              <li
+                key={event.id}
+                className={`alert-history-lifecycle-event alert-history-lifecycle-${historyLifecycleTone(event.state)}`}
+              >
+                <span>{formatHistoryStatusLabel(event.label)}</span>
+                <HistoryTimestamp timestamp={event.happenedAt} />
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     </li>
   );
 });
+
+function historyLifecycleTone(state: string) {
+  if (state === "cleared") return "cleared";
+  if (state === "opened") return "opened";
+  return "updated";
+}
 
 function HistoryAlertType({ eventType }: { eventType: string }) {
   const normalizedType = eventType.trim().toLowerCase();

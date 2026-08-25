@@ -213,6 +213,16 @@ describe("alert history filtering", () => {
     assert.equal(selected?.label, "Service restored");
   });
 
+  it("uses the selected period for matching while retaining the full lifecycle", () => {
+    const since = "2026-06-23T12:10:00-04:00";
+    const until = "2026-06-23T12:30:00-04:00";
+
+    assert.equal(selectDisplayEvent(clearedLine2Incident, "all", since, until)?.state, "cleared");
+    assert.equal(selectDisplayEvent(clearedLine2Incident, "clearances", since, until)?.state, "cleared");
+    assert.equal(selectDisplayEvent(clearedLine2Incident, "alerts", since, until), null);
+    assert.equal(clearedLine2Incident.events.length, 2);
+  });
+
   it("filters search text across incident and lifecycle event fields", () => {
     const visible = filterAndSortAlertHistory(
       [clearedLine2Incident, activeLine5Incident],

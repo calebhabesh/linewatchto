@@ -48,20 +48,32 @@ public class AlertHistoryRepository {
                        ) as previous_active
                 from snapshots s
                 left join transit_lines l on l.id = s.line_id
+            ),
+            window_rows as (
+                select alert_id, snapshot_time, id
+                from classified
+                where snapshot_time >= :since and snapshot_time < :until
+                order by snapshot_time desc, id desc
+                limit :limit
+            ),
+            matching_alerts as (
+                select alert_id, max(snapshot_time) as matching_time
+                from window_rows
+                group by alert_id
             )
-            select id, alert_id, source_id, line_id, line_number, line_name,
-                   title, description, snapshot_time, active, source_updated_at,
-                   event_type, source_alert_type, impact_kind, start_station_id,
-                   end_station_id, direction, cause, cause_description,
+            select c.id, c.alert_id, c.source_id, c.line_id, c.line_number, c.line_name,
+                   c.title, c.description, c.snapshot_time, c.active, c.source_updated_at,
+                   c.event_type, c.source_alert_type, c.impact_kind, c.start_station_id,
+                   c.end_station_id, c.direction, c.cause, c.cause_description,
                    case
-                       when active = false then 'cleared'
-                       when previous_active is null or previous_active = false then 'opened'
+                       when c.active = false then 'cleared'
+                       when c.previous_active is null or c.previous_active = false then 'opened'
                        else 'updated'
                    end as lifecycle_state
-            from classified
-            where snapshot_time >= :since and snapshot_time < :until
-            order by snapshot_time desc, id desc
-            limit :limit
+            from classified c
+            join matching_alerts m on m.alert_id = c.alert_id
+            where c.snapshot_time < :until
+            order by m.matching_time desc, c.snapshot_time desc, c.id desc
             """, new MapSqlParameterSource()
                 .addValue("since", since)
                 .addValue("until", until)
@@ -98,22 +110,34 @@ public class AlertHistoryRepository {
                        ) as previous_active
                 from regional_alert_snapshots s
                 left join regional_alerts a on a.id = s.alert_id
+            ),
+            window_rows as (
+                select alert_id, snapshot_time, id
+                from classified
+                where snapshot_time >= :since and snapshot_time < :until
+                order by snapshot_time desc, id desc
+                limit :limit
+            ),
+            matching_alerts as (
+                select alert_id, max(snapshot_time) as matching_time
+                from window_rows
+                group by alert_id
             )
-            select id, alert_id, source_id, line_id,
+            select c.id, c.alert_id, c.source_id, c.line_id,
                    null::varchar as line_number, null::varchar as line_name,
-                   title, description, snapshot_time, active, source_updated_at,
-                   impact_kind as event_type, source_system as source_alert_type,
-                   impact_kind, start_station_id, end_station_id,
-                   null::varchar as direction, cause, null::varchar as cause_description,
+                   c.title, c.description, c.snapshot_time, c.active, c.source_updated_at,
+                   c.impact_kind as event_type, c.source_system as source_alert_type,
+                   c.impact_kind, c.start_station_id, c.end_station_id,
+                   null::varchar as direction, c.cause, null::varchar as cause_description,
                    case
-                       when active = false then 'cleared'
-                       when previous_active is null or previous_active = false then 'opened'
+                       when c.active = false then 'cleared'
+                       when c.previous_active is null or c.previous_active = false then 'opened'
                        else 'updated'
                    end as lifecycle_state
-            from classified
-            where snapshot_time >= :since and snapshot_time < :until
-            order by snapshot_time desc, id desc
-            limit :limit
+            from classified c
+            join matching_alerts m on m.alert_id = c.alert_id
+            where c.snapshot_time < :until
+            order by m.matching_time desc, c.snapshot_time desc, c.id desc
             """, new MapSqlParameterSource()
                 .addValue("since", since)
                 .addValue("until", until)
