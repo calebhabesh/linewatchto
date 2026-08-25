@@ -40,6 +40,7 @@ export function ConstellationBackground({
     let frameId: number | null = null;
     let nodes: Node[] = [];
     let isMobile = false;
+    let lifecycleForeground = document.visibilityState !== "hidden";
     const pointer = { x: Number.POSITIVE_INFINITY, y: Number.POSITIVE_INFINITY };
 
     const createNodes = () => {
@@ -77,7 +78,7 @@ export function ConstellationBackground({
 
     const draw = () => {
       frameId = null;
-      if (document.visibilityState === "hidden") return;
+      if (!lifecycleForeground) return;
 
       // Clear in physical backing-store coordinates. This remains correct if
       // the device pixel ratio changed while the PWA was suspended.
@@ -147,19 +148,21 @@ export function ConstellationBackground({
 
     const start = () => {
       stop();
-      if (document.visibilityState === "hidden") return;
+      if (!lifecycleForeground) return;
       draw();
     };
 
     const handleResize = () => {
-      if (document.visibilityState === "hidden") return;
+      if (!lifecycleForeground) return;
       stop();
       resetCanvas(true);
       start();
     };
 
     const resetAfterResume = () => {
-      if (document.visibilityState !== "visible") return;
+      // pageshow/focus can precede visibilityState becoming "visible" in an
+      // iOS standalone PWA, so treat those lifecycle events as authoritative.
+      lifecycleForeground = true;
       stop();
       resetCanvas(false);
       start();
@@ -167,10 +170,16 @@ export function ConstellationBackground({
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
+        lifecycleForeground = false;
         stop();
         return;
       }
       resetAfterResume();
+    };
+
+    const handlePageHide = () => {
+      lifecycleForeground = false;
+      stop();
     };
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -181,13 +190,22 @@ export function ConstellationBackground({
       pointer.x = Number.POSITIVE_INFINITY;
       pointer.y = Number.POSITIVE_INFINITY;
     };
+    const recoverAfterPointerDown = () => {
+      // A pointer event proves the document is foregrounded even if WebKit
+      // omitted pageshow/focus and visibilityState is temporarily stale.
+      if (!interactive || frameId !== null) return;
+      resetAfterResume();
+    };
 
     resetCanvas(true);
     start();
     window.addEventListener("resize", handleResize);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("pagehide", stop);
+    document.addEventListener("resume", resetAfterResume);
+    window.addEventListener("pagehide", handlePageHide);
     window.addEventListener("pageshow", resetAfterResume);
+    window.addEventListener("focus", resetAfterResume);
+    window.addEventListener("pointerdown", recoverAfterPointerDown, { passive: true });
     if (interactive) {
       window.addEventListener("pointermove", handlePointerMove, { passive: true });
       document.documentElement.addEventListener("pointerleave", handlePointerLeave);
@@ -197,8 +215,11 @@ export function ConstellationBackground({
       stop();
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pagehide", stop);
+      document.removeEventListener("resume", resetAfterResume);
+      window.removeEventListener("pagehide", handlePageHide);
       window.removeEventListener("pageshow", resetAfterResume);
+      window.removeEventListener("focus", resetAfterResume);
+      window.removeEventListener("pointerdown", recoverAfterPointerDown);
       window.removeEventListener("pointermove", handlePointerMove);
       document.documentElement.removeEventListener("pointerleave", handlePointerLeave);
     };

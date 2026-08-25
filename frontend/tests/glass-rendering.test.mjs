@@ -83,15 +83,20 @@ describe("frosted glass rendering", () => {
     assert.match(constellationSource, /context\.setTransform\(1, 0, 0, 1, 0, 0\);\s*context\.clearRect\(0, 0, canvas\.width, canvas\.height\)/s);
     assert.match(constellationSource, /const stop = \(\) => \{[\s\S]*?cancelAnimationFrame\(frameId\)/);
     assert.match(constellationSource, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
-    assert.match(constellationSource, /window\.addEventListener\("pagehide", stop\)/);
+    assert.match(constellationSource, /window\.addEventListener\("pagehide", handlePageHide\)/);
     assert.match(constellationSource, /window\.addEventListener\("pageshow", resetAfterResume\)/);
+    assert.match(constellationSource, /window\.addEventListener\("focus", resetAfterResume\)/);
+    assert.match(constellationSource, /document\.addEventListener\("resume", resetAfterResume\)/);
+    assert.match(constellationSource, /lifecycleForeground = true;\s*stop\(\);\s*resetCanvas\(false\);\s*start\(\)/s);
     assert.match(constellationSource, /resetAfterResume[\s\S]*?resetCanvas\(false\);\s*start\(\)/);
   });
 
   it("shares foreground visibility with map animation owners", () => {
     assert.match(pageVisibilitySource, /document\.addEventListener\("visibilitychange", synchronizeVisibility\)/);
     assert.match(pageVisibilitySource, /window\.addEventListener\("pagehide", handlePageHide\)/);
-    assert.match(pageVisibilitySource, /window\.addEventListener\("pageshow", synchronizeVisibility\)/);
+    assert.match(pageVisibilitySource, /window\.addEventListener\("pageshow", handleForeground\)/);
+    assert.match(pageVisibilitySource, /window\.addEventListener\("focus", handleForeground\)/);
+    assert.match(pageVisibilitySource, /document\.addEventListener\("resume", handleForeground\)/);
   });
 
   it("does not use live backdrop blur on interactive panels", () => {

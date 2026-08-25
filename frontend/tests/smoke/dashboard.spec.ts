@@ -229,6 +229,53 @@ test.beforeEach(async ({ page }) => {
   }, { disclaimerKey: disclaimerStorageKey, welcomeKey: welcomeStorageKey });
 });
 
+test("foreground recovery restarts map and constellation animation with stale visibility state", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  const chevrons = page.locator(".rsz-chevron");
+  const constellation = page.locator(".constellation-background-canvas");
+  await expect(chevrons.first()).toBeAttached();
+  await expect(constellation).toBeVisible();
+  const chevronTransforms = () => chevrons.evaluateAll((paths) => (
+    paths.map((path) => path.parentElement?.getAttribute("transform") ?? null)
+  ));
+
+  await page.evaluate(() => {
+    const lifecycleWindow = window as Window & { smokeVisibilityState?: DocumentVisibilityState };
+    lifecycleWindow.smokeVisibilityState = "hidden";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => lifecycleWindow.smokeVisibilityState,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }));
+  });
+
+  await page.waitForTimeout(100);
+  const pausedTransforms = await chevronTransforms();
+  await page.waitForTimeout(150);
+  expect(await chevronTransforms()).toEqual(pausedTransforms);
+
+  // Reproduce the iOS standalone-PWA race: pageshow arrives while the public
+  // visibilityState property still reports the pre-suspension hidden value.
+  await page.evaluate(() => {
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+  });
+
+  await expect.poll(async () => {
+    const first = await chevronTransforms();
+    await page.waitForTimeout(150);
+    return JSON.stringify(await chevronTransforms()) !== JSON.stringify(first);
+  }).toBe(true);
+
+  await expect.poll(async () => {
+    const first = await constellation.evaluate((canvas) => (canvas as HTMLCanvasElement).toDataURL());
+    await page.waitForTimeout(150);
+    return (await constellation.evaluate((canvas) => (canvas as HTMLCanvasElement).toDataURL())) !== first;
+  }).toBe(true);
+});
+
 test("introduces first-time riders before showing the unofficial-project notice", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   if (!isMobile) {
