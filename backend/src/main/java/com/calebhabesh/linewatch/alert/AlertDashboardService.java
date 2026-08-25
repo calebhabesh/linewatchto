@@ -1060,17 +1060,7 @@ public class AlertDashboardService {
             zone.affectedSegmentIds(),
             zone.sourceAlertIds(),
             zone.directionalDetails().stream()
-                .map(detail -> new DirectionalDetailDto(
-                    detail.sourceAlertId(),
-                    detail.displayDirection(),
-                    detail.location(),
-                    detail.description(),
-                    zone.sourceAlerts().stream()
-                        .filter(alert -> alert.getId().equals(detail.sourceAlertId()))
-                        .findFirst()
-                        .map(this::resolution)
-                        .orElse(null)
-                ))
+                .map(detail -> toDirectionalDetailDto(detail, zone.sourceAlerts()))
                 .toList(),
             sourceLabel(first, "TTC Live Alerts"),
             firstNonBlank(zone.sourceAlerts(), this::cause),
@@ -1080,6 +1070,25 @@ public class AlertDashboardService {
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getTrackPercent),
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getReducedSpeed),
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getAverageSpeed)
+        );
+    }
+
+    private DirectionalDetailDto toDirectionalDetailDto(
+        ReducedSpeedZoneProjector.DirectionalDetail detail,
+        List<AlertEntity> sourceAlerts
+    ) {
+        AlertEntity sourceAlert = sourceAlerts.stream()
+            .filter(alert -> alert.getId().equals(detail.sourceAlertId()))
+            .findFirst()
+            .orElse(null);
+        return new DirectionalDetailDto(
+            detail.sourceAlertId(),
+            detail.displayDirection(),
+            detail.location(),
+            detail.description(),
+            sourceAlert == null ? null : resolution(sourceAlert),
+            sourceAlert == null ? null : sourceAlert.getActivePeriodStart(),
+            sourceAlert == null ? null : sourceAlert.getSourceUpdatedAt()
         );
     }
 
@@ -1537,8 +1546,20 @@ public class AlertDashboardService {
         String displayDirection,
         String location,
         String description,
-        String resolution
-    ) {}
+        String resolution,
+        OffsetDateTime startedAt,
+        OffsetDateTime updatedAt
+    ) {
+        public DirectionalDetailDto(
+            String sourceAlertId,
+            String displayDirection,
+            String location,
+            String description,
+            String resolution
+        ) {
+            this(sourceAlertId, displayDirection, location, description, resolution, null, null);
+        }
+    }
 
     public record ReducedSpeedZoneDto(
         String id,

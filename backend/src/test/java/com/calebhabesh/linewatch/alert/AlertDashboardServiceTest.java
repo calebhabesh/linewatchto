@@ -442,6 +442,18 @@ class AlertDashboardServiceTest {
             assertThat(zone.directionalDetails())
                 .extracting(AlertDashboardService.DirectionalDetailDto::resolution)
                 .containsExactlyInAnyOrder("Mid-June", "Late June");
+            assertThat(zone.directionalDetails())
+                .extracting(AlertDashboardService.DirectionalDetailDto::startedAt)
+                .containsExactlyInAnyOrder(
+                    OffsetDateTime.parse("2026-06-01T11:30:00Z"),
+                    OffsetDateTime.parse("2026-06-01T11:40:00Z")
+                );
+            assertThat(zone.directionalDetails())
+                .extracting(AlertDashboardService.DirectionalDetailDto::updatedAt)
+                .containsExactlyInAnyOrder(
+                    OffsetDateTime.parse("2026-06-01T11:55:00Z"),
+                    OffsetDateTime.parse("2026-06-01T11:54:00Z")
+                );
             assertThat(zone.cause()).isEqualTo("Track issue");
             assertThat(zone.resolution()).isEqualTo("Multiple Dates");
             assertThat(zone.rszLength()).isEqualTo("300 metres");

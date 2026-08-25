@@ -14,6 +14,8 @@ import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { DirectionalZoneCount } from "./DirectionalZoneCount";
 import { reducedSpeedZoneResolutionEntries } from "../app/reduced-speed-zone-resolution";
 import { ReducedSpeedZoneResolutionBreakdown } from "./ReducedSpeedZoneResolutionBreakdown";
+import { reducedSpeedZoneTimingEntries } from "../app/reduced-speed-zone-timing";
+import { ReducedSpeedZoneTimingBreakdown } from "./ReducedSpeedZoneTimingBreakdown";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 
 export type MobileInspectorDetent = "map-focus" | "details-focus";
@@ -38,6 +40,8 @@ type SelectedImpactDetails = {
   startedAt?: string | null;
   updatedAt?: string | null;
   updatedAgo?: string | null;
+  startedValue?: ReactNode;
+  updatedValue?: ReactNode;
   cause?: string | null;
   resolution?: string | null;
   reason?: string | null;
@@ -182,6 +186,12 @@ export function getSelectedImpactDetails(
       startedAt: zone.startedAt,
       updatedAt: zone.updatedAt,
       updatedAgo: zone.updatedAgo,
+      startedValue: reducedSpeedZoneTimingEntries(zone, "startedAt").length > 0
+        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="startedAt" />
+        : undefined,
+      updatedValue: reducedSpeedZoneTimingEntries(zone, "updatedAt").length > 0
+        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
+        : undefined,
       cause: zone.cause,
       resolution: isGroupedZone ? null : zone.resolution,
       reason: zone.reason,
@@ -517,6 +527,8 @@ export function MobileImpactInspector({
             startedAt={details.startedAt}
             updatedAt={details.updatedAt}
             updatedAgo={details.updatedAgo}
+            startedValue={details.startedValue}
+            updatedValue={details.updatedValue}
             leadingRows={details.leadingRows}
             extraRows={[
               ...(details.relatedPlannedClosureId ? [{

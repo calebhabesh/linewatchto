@@ -1546,11 +1546,31 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
 
   await openServiceCategory(page, isMobile, /Reduced Speed Zone/);
   await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
-  await expect(page.getByText("Southbound", { exact: true })).toBeVisible();
+  await expect(page.getByText("Southbound", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Eglinton", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Davisville", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Track issue").first()).toBeVisible();
   await expect(page.getByText("Mid-June")).toBeVisible();
+
+  const groupedTimingCard = page.locator(".alert-card").filter({ hasText: "King" });
+  await expect(groupedTimingCard.locator(".rsz-timing-breakdown")).toHaveCount(2);
+  await expect(groupedTimingCard.locator(".rsz-timing-row")).toHaveCount(4);
+  await expect(groupedTimingCard.locator('time[datetime="2026-06-03T09:00:00-04:00"]')).toBeVisible();
+  await expect(groupedTimingCard.locator('time[datetime="2026-06-03T09:30:00-04:00"]')).toBeVisible();
+  await expect(groupedTimingCard.locator('time[datetime="2026-06-03T10:00:00-04:00"]')).toBeVisible();
+  await expect(groupedTimingCard.locator('time[datetime="2026-06-03T10:30:00-04:00"]')).toBeVisible();
+  const startedTimingRows = groupedTimingCard.locator(".rsz-timing-breakdown").first().locator(".rsz-timing-row");
+  const startedRowTops = await startedTimingRows.evaluateAll((rows) =>
+    rows.map((row) => row.getBoundingClientRect().top),
+  );
+  expect(startedRowTops[1]).toBeGreaterThan(startedRowTops[0]);
+  const timingCountColor = await groupedTimingCard.locator(".rsz-timing-count").first().evaluate(
+    (element) => getComputedStyle(element).color,
+  );
+  const zoneCountColor = await groupedTimingCard.locator(".rsz-zone-count-label-total").evaluate(
+    (element) => getComputedStyle(element).color,
+  );
+  expect(timingCountColor).toBe(zoneCountColor);
 
   await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "Show on Map" }).click();
   await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeAttached();

@@ -38,6 +38,8 @@ export type DirectionalDetail = {
   location: string;
   description: string;
   resolution?: string | null;
+  startedAt?: string | null;
+  updatedAt?: string | null;
 };
 
 export type ReducedSpeedZone = {

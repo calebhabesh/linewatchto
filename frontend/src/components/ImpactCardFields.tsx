@@ -208,6 +208,8 @@ export function MetadataGrid({
   startedAt,
   updatedAt,
   updatedAgo,
+  startedValue,
+  updatedValue,
   leadingRows,
   extraRows,
   trailingRows,
@@ -220,6 +222,8 @@ export function MetadataGrid({
   startedAt?: string | null;
   updatedAt?: string | null;
   updatedAgo?: string | null;
+  startedValue?: ReactNode;
+  updatedValue?: ReactNode;
   leadingRows?: Array<{ label: string; value?: string | null }>;
   extraRows?: Array<{ label: string; labelSuffix?: ReactNode; value?: ReactNode }>;
   trailingRows?: Array<{ label: string; value?: ReactNode }>;
@@ -242,14 +246,14 @@ export function MetadataGrid({
     causeValue ? ["Cause", causeValue, null] as const : null,
     resolutionValue ? ["Est. Resolution", resolutionValue, null] as const : null,
     ...renderedExtraRows,
-    ["Started", <ImpactTimestamp key="started" timestamp={startedAt} />, null] as const,
+    ["Started", startedValue ?? <ImpactTimestamp key="started" timestamp={startedAt} />, null] as const,
     [
       "Updated",
-      updatedAt
+      updatedValue ?? (updatedAt
         ? <ImpactTimestamp key="updated" timestamp={updatedAt} />
         : updatedAgo
           ? formatElapsed(updatedAgo)
-          : <ImpactTimestamp key="updated" timestamp={updatedAt} />,
+          : <ImpactTimestamp key="updated" timestamp={updatedAt} />),
       null,
     ] as const,
     ...renderedTrailingRows,

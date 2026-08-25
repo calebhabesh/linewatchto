@@ -18,6 +18,8 @@ import { useImpactListView } from "../hooks/useImpactListView";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { reducedSpeedZoneResolutionEntries, reducedSpeedZoneResolutionText } from "../app/reduced-speed-zone-resolution";
 import { ReducedSpeedZoneResolutionBreakdown } from "./ReducedSpeedZoneResolutionBreakdown";
+import { reducedSpeedZoneTimingEntries } from "../app/reduced-speed-zone-timing";
+import { ReducedSpeedZoneTimingBreakdown } from "./ReducedSpeedZoneTimingBreakdown";
 
 const formatSpeed = (val: string | null | undefined): string | null => {
   if (!val) return null;
@@ -153,6 +155,8 @@ export function ReducedSpeedZonesPanel({
             const resolutionEntries = reducedSpeedZoneResolutionEntries(zone);
             const isGroupedZone = zonesAtLocation > 1;
             const showResolutionBreakdown = zonesAtLocation > 1 && resolutionEntries.length > 0;
+            const showStartedBreakdown = reducedSpeedZoneTimingEntries(zone, "startedAt").length > 0;
+            const showUpdatedBreakdown = reducedSpeedZoneTimingEntries(zone, "updatedAt").length > 0;
             const isActive = selection?.kind === "reduced-speed-zone" && selection.id === zone.id;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: "reduced-speed-zone", id: zone.id, segmentIds: zone.affectedSegmentIds ?? [] },
@@ -171,8 +175,20 @@ export function ReducedSpeedZonesPanel({
                   facts={[
                     { column: 1, label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) || "Not reported" },
                     ...(zonesAtLocation > 1 ? [{ column: 2, label: "Zone Count", value: zonesAtLocation }] : []),
-                    { column: 3, label: "Started", value: <CompactImpactTimeValue timestamp={zone.startedAt} /> },
-                    { column: 4, label: "Updated", value: <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} /> },
+                    {
+                      column: 3,
+                      label: "Started",
+                      value: showStartedBreakdown
+                        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="startedAt" />
+                        : <CompactImpactTimeValue timestamp={zone.startedAt} />,
+                    },
+                    {
+                      column: 4,
+                      label: "Updated",
+                      value: showUpdatedBreakdown
+                        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
+                        : <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} />,
+                    },
                     { column: 5, label: "Est. Resolution", value: reducedSpeedZoneResolutionText(zone) },
                   ]}
                   active={isActive}
@@ -221,6 +237,12 @@ export function ReducedSpeedZonesPanel({
                       startedAt={zone.startedAt}
                       updatedAt={zone.updatedAt}
                       updatedAgo={zone.updatedAgo} 
+                      startedValue={showStartedBreakdown
+                        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="startedAt" />
+                        : undefined}
+                      updatedValue={showUpdatedBreakdown
+                        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
+                        : undefined}
                       extraRows={[
                         { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
                         {

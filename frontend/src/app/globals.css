@@ -8978,6 +8978,34 @@ img.transit-line-badge {
   white-space: nowrap;
 }
 
+.rsz-timing-breakdown {
+  align-items: flex-start;
+  display: inline-grid;
+  grid-auto-flow: row;
+  grid-template-columns: minmax(0, max-content);
+  gap: 2px;
+  max-width: 100%;
+  width: max-content;
+}
+
+.rsz-timing-row {
+  align-items: center;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: max-content max-content max-content;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.rsz-timing-count {
+  color: #806f47;
+}
+
+.dark .rsz-timing-count,
+.high-contrast .rsz-timing-count {
+  color: #b8a66f;
+}
+
 .impact-metadata-grid dd {
   color: var(--text);
   font-size: 0.78rem;
