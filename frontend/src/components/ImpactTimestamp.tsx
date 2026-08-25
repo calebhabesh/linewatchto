@@ -14,7 +14,12 @@ export function ImpactTimestamp({ timestamp }: { timestamp?: string | null }) {
   if (!timestamp) return <>Not reported</>;
 
   return (
-    <time dateTime={timestamp} title={formatFullImpactTimestamp(timestamp)} suppressHydrationWarning>
+    <time
+      className="impact-timestamp"
+      dateTime={timestamp}
+      title={formatFullImpactTimestamp(timestamp)}
+      suppressHydrationWarning
+    >
       {formatImpactTimestamp(timestamp)}
     </time>
   );

@@ -81,11 +81,10 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /CompactImpactLocation/);
     assert.match(timelineSource, /<CompactImpactLocation location=\{incident\.location\}/);
     assert.match(cssSource, /\.compact-impact-location__arrow\s*\{[^}]*display:\s*block;[^}]*height:\s*0\.75rem;[^}]*width:\s*1\.25rem;/s);
-    assert.match(timelineSource, /min-h-6 max-w-full min-w-0 items-center gap-1\.5 text-\[11px\] font-black/);
-    assert.match(timelineSource, /alert-history-line-identity/);
+    assert.match(timelineSource, /className="alert-history-line-badge"/);
+    assert.match(timelineSource, /alert-history-line-name min-w-0 truncate/);
     assert.match(timelineSource, /alert-history-fact-grid/);
     assert.match(timelineSource, /alert-history-status-label/);
-    assert.match(cssSource, /\.alert-history-line-identity/);
     assert.match(cssSource, /\.alert-history-fact-grid/);
     assert.match(cssSource, /\.alert-history-status-label/);
     assert.match(timelineSource, /alert-history-fact-location/);
@@ -93,11 +92,10 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-fact-location\s*>\s*strong\s*\{[^}]*white-space:\s*normal;/s);
     assert.doesNotMatch(timelineSource, /alert-history-line-number/);
     assert.doesNotMatch(cssSource, /\.alert-history-line-number/);
-    assert.doesNotMatch(cssSource, /\.alert-history-line-identity\s*\{[^}]*box-shadow/s);
   });
 
   it("keeps line and status pills at matching heights", () => {
-    assert.match(timelineSource, /min-h-6/);
+    assert.match(timelineSource, /size=\{24\}/);
     assert.match(cssSource, /\.alert-history-status-label\s*\{[^}]*min-height:\s*1\.5rem;/s);
   });
 
@@ -131,6 +129,40 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /formatFullImpactTimestamp/);
     assert.match(timelineSource, /function HistoryTimestamp/);
     assert.doesNotMatch(timelineSource, /formatRelativeImpactTime/);
+  });
+
+  it("emphasizes time and expands lifecycle details by default", () => {
+    assert.match(timelineSource, /formatAlertHistoryDuration\(incident\.durationMinutes\)/);
+    assert.match(timelineSource, /primary \? " alert-history-primary-time"/);
+    assert.match(timelineSource, /useState\(true\)/);
+    assert.match(timelineSource, /open=\{lifecycleExpanded\}/);
+    assert.match(timelineSource, /<summary>Lifecycle Details<\/summary>/);
+    assert.match(cssSource, /\.alert-history-primary-time\s*\{[^}]*font-weight:\s*750;/s);
+    assert.match(cssSource, /\.alert-history-duration\s*>\s*strong\s*\{[^}]*font-size:\s*0\.82rem;/s);
+    assert.match(timelineSource, /className=\{`impact-timestamp/);
+    assert.match(cssSource, /\.impact-timestamp\s*\{[^}]*font-variant-numeric:\s*tabular-nums;[^}]*font-weight:\s*850;/s);
+  });
+
+  it("keeps the timestamp on the line axis and places badges below the line name", () => {
+    assert.match(timelineSource, /alert-history-heading-top[\s\S]*?HistoryLineIdentity incident=\{incident\}[\s\S]*?HistoryTimestamp timestamp=\{time\} primary[\s\S]*?alert-history-heading-badges/);
+    assert.match(timelineSource, /alert-history-heading-top[\s\S]*?flexDirection: "row"[\s\S]*?flexWrap: "nowrap"/);
+    assert.match(cssSource, /\.alert-history-heading-top\s*\{[^}]*display:\s*flex;[^}]*flex-flow:\s*row nowrap;/s);
+    assert.match(cssSource, /\.alert-history-line-identity\s*\{[^}]*align-items:\s*center;[^}]*display:\s*flex;/s);
+    assert.doesNotMatch(cssSource, /\.alert-history-primary-time\s*\{[^}]*(?:background|border|border-radius|padding):/s);
+    assert.doesNotMatch(timelineSource, /<span className="alert-history-primary-time">/);
+  });
+
+  it("gives the line identity and primary timestamp clear header emphasis", () => {
+    assert.match(timelineSource, /primary \? <Clock3 size=\{13\}/);
+    assert.match(cssSource, /\.alert-history-line-name\s*\{[^}]*font-size:\s*0\.94rem;[^}]*font-weight:\s*900;[^}]*line-height:\s*1\.25;/s);
+    assert.match(cssSource, /\.alert-history-line-badge\s*\{[^}]*flex:\s*0 0 auto;/s);
+    assert.match(cssSource, /\.alert-history-primary-time\s*\{[^}]*align-self:\s*center;[^}]*font-size:\s*0\.8rem;[^}]*line-height:\s*1;[^}]*margin-left:\s*auto;/s);
+    assert.match(cssSource, /\.alert-history-primary-time svg\s*\{[^}]*height:\s*0\.8125rem;[^}]*width:\s*0\.8125rem;/s);
+  });
+
+  it("title-cases lifecycle event labels", () => {
+    assert.match(timelineSource, /formatHistoryStatusLabel\(event\.label\)/);
+    assert.doesNotMatch(timelineSource, /<span>\{event\.label\}<\/span>/);
   });
 
   it("uses a plain inline checkmark for cleared history rows", () => {

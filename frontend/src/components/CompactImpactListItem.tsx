@@ -16,7 +16,11 @@ export function CompactImpactTimeValue({
   fallback?: string | null;
 }) {
   if (timestamp) return <ImpactTimestamp timestamp={timestamp} />;
-  return <>{fallback?.replace(/^Updated\s+/i, "") || "Not reported"}</>;
+  return (
+    <span className="impact-timestamp">
+      {fallback?.replace(/^Updated\s+/i, "") || "Not reported"}
+    </span>
+  );
 }
 
 type Props = {

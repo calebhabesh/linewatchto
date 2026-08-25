@@ -23,6 +23,7 @@ import {
   type AlertHistoryIncident,
   type AlertHistoryPeriod,
 } from "../app/alert-history-data";
+import { formatAlertHistoryDuration } from "../app/alert-history-time";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
 import type { NetworkId } from "../app/regional-data";
@@ -507,7 +508,7 @@ const HistoryIncident = memo(function HistoryIncident({
   displayEvent,
   cleared,
 }: AlertHistoryViewItem) {
-  const [lifecycleExpanded, setLifecycleExpanded] = useState(false);
+  const [lifecycleExpanded, setLifecycleExpanded] = useState(true);
   const time = displayEvent?.happenedAt ?? incident.clearedAt ?? incident.firstSeenAt ?? "";
   const title = compactHistoryTitle(incident);
   const statusLabel = cleared ? "Cleared" : formatHistoryStatusLabel(displayEvent?.label);
@@ -521,15 +522,20 @@ const HistoryIncident = memo(function HistoryIncident({
     <li className={`alert-history-item ${cleared ? "alert-history-event-cleared" : "alert-history-event-active"}`}>
       <div className="alert-history-content">
         <div className="alert-history-card-heading">
-          <div className="alert-history-line-status">
+          <div
+            className="alert-history-heading-top"
+            style={{ alignItems: "center", display: "flex", flexDirection: "row", flexWrap: "nowrap", justifyContent: "space-between", width: "100%" }}
+          >
             <HistoryLineIdentity incident={incident} />
+            {time ? <HistoryTimestamp timestamp={time} primary /> : null}
+          </div>
+          <div className="alert-history-heading-badges">
             <HistoryAlertType eventType={incident.eventType} />
             <span className="alert-history-status-label">
               {cleared ? <Check size={12} aria-hidden="true" /> : <AlertTriangle size={13} aria-hidden="true" />}
               {statusLabel}
             </span>
           </div>
-          {time ? <HistoryTimestamp timestamp={time} /> : null}
         </div>
         <strong className="alert-history-title">{title}</strong>
         <div className="alert-history-fact-grid" aria-label="Alert summary">
@@ -550,21 +556,22 @@ const HistoryIncident = memo(function HistoryIncident({
               <span>Duration</span>
               <strong>
                 <Clock3 size={13} aria-hidden="true" />
-                {incident.durationMinutes} min
+                {formatAlertHistoryDuration(incident.durationMinutes)}
               </strong>
             </span>
           ) : null}
         </div>
         <details
           className="alert-history-details"
+          open={lifecycleExpanded}
           onToggle={(event) => setLifecycleExpanded(event.currentTarget.open)}
         >
-          <summary>Lifecycle details</summary>
+          <summary>Lifecycle Details</summary>
           {lifecycleExpanded ? (
             <ol>
               {incident.events.map((event) => (
                 <li key={event.id}>
-                  <span>{event.label}</span>
+                  <span>{formatHistoryStatusLabel(event.label)}</span>
                   <HistoryTimestamp timestamp={event.happenedAt} />
                 </li>
               ))}
@@ -596,24 +603,44 @@ function historyAlertTypeTone(eventType: string) {
   return "other";
 }
 
-function HistoryTimestamp({ timestamp }: { timestamp: string }) {
+function HistoryTimestamp({ timestamp, primary = false }: { timestamp: string; primary?: boolean }) {
   return (
-    <time dateTime={timestamp} title={formatFullImpactTimestamp(timestamp)} suppressHydrationWarning>
+    <time
+      className={`impact-timestamp${primary ? " alert-history-primary-time" : ""}`}
+      dateTime={timestamp}
+      title={formatFullImpactTimestamp(timestamp)}
+      suppressHydrationWarning
+    >
+      {primary ? <Clock3 size={13} aria-hidden="true" /> : null}
       {formatImpactTimestamp(timestamp)}
     </time>
   );
 }
 
 function HistoryLineIdentity({ incident }: { incident: AlertHistoryIncident }) {
-  if (!incident.lineId || !incident.lineNumber) {
-    return <span className="alert-history-line-identity unknown">Line unavailable</span>;
-  }
-
+  const hasLine = Boolean(incident.lineId && incident.lineNumber);
   return (
-    <span className="alert-history-line-identity inline-flex min-h-6 max-w-full min-w-0 items-center gap-1.5 text-[11px] font-black" aria-label={lineLabel(incident)}>
-      <TransitLineBadge lineId={incident.lineId} lineNumber={incident.lineNumber} lineName={incident.lineName ?? undefined} size={24} decorative />
-      <span className="alert-history-line-name min-w-0 truncate">{incident.lineName ?? `Line ${incident.lineNumber}`}</span>
-    </span>
+    <div
+      className={`alert-history-line-identity${hasLine ? "" : " unknown"}`}
+      style={{ alignItems: "center", display: "flex", flexDirection: "row", flexWrap: "nowrap" }}
+    >
+      {hasLine ? (
+        <TransitLineBadge
+          lineId={incident.lineId!}
+          lineNumber={incident.lineNumber!}
+          lineName={incident.lineName ?? undefined}
+          size={24}
+          className="alert-history-line-badge"
+          decorative
+        />
+      ) : null}
+      <span
+        className={`alert-history-line-name min-w-0 truncate${hasLine ? "" : " unknown"}`}
+        aria-label={lineLabel(incident)}
+      >
+        {hasLine ? incident.lineName ?? `Line ${incident.lineNumber}` : "Line unavailable"}
+      </span>
+    </div>
   );
 }
 
