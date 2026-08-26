@@ -282,6 +282,22 @@ export type ReliabilitySnapshot = {
     confidence: "low" | "medium" | "high";
   }[];
   breakdown?: AlertTypeBreakdownItem[];
+  trainCancellations?: {
+    cancellations: number;
+    scheduleMatchedCancellations: number;
+    sourceLabeledCancellations: number;
+    observationMinutes: number;
+    coveragePercentage: number;
+    confidence: "low" | "medium" | "high";
+    message: string;
+    corridors: {
+      id: string;
+      number: string;
+      label: string;
+      cancellations: number;
+      scheduleMatchedCancellations: number;
+    }[];
+  } | null;
 };
 
 export type IngestionHealthItem = {

@@ -74,6 +74,7 @@ describe("notification settings navigation", () => {
 
   it("surfaces recent push delivery diagnostics from More instead of notification settings", () => {
     assert.match(moreSheetSource, /PushDeliveryDiagnosticsPanel/);
+    assert.doesNotMatch(moreSheetSource, /currentNetwork === "ttc" \? <div className="mobile-more-section">[\s\S]*?<PushDeliveryDiagnosticsPanel/);
     assert.match(diagnosticsPanelSource, /Notification Diagnostics/);
     assert.match(diagnosticsPanelSource, /getPushDeliveryDiagnostics/);
     assert.match(diagnosticsPanelSource, /getPushDevices/);

@@ -5,8 +5,10 @@ import {
   emptyRegionalArrivalSnapshot,
   formatRegionalArrivalSourceSummary,
   formatRegionalArrivalClockTime,
+  formatRegionalArrivalDelay,
   formatRegionalDestinationName,
   getRegionalArrivalMinutes,
+  getRegionalArrivalDelayMinutes,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
@@ -15,6 +17,7 @@ import {
   REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS,
   regionalArrivalMinuteLabel,
   regionalArrivalTimeDisplay,
+  shouldShowRegionalArrivalDelay,
   shouldUseDetailedRegionalArrivalCountdown,
 } from "../src/app/regional-arrivals.ts";
 
@@ -110,6 +113,53 @@ describe("regional station arrivals adapter", () => {
     );
     assert.equal(formatRegionalArrivalSourceSummary([scheduled]), "Metrolinx published schedule");
     assert.equal(formatRegionalArrivalSourceSummary([]), "Metrolinx regional arrivals");
+  });
+
+  it("labels only source-backed live arrivals that are at least one minute late", () => {
+    assert.equal(
+      formatRegionalArrivalDelay({ status: "live", delayMinutes: 27 }),
+      "27 Min Late",
+    );
+    assert.equal(getRegionalArrivalDelayMinutes({ status: "live", delayMinutes: 3.9 }), 3);
+    assert.equal(formatRegionalArrivalDelay({ status: "live", delayMinutes: 0 }), null);
+    assert.equal(formatRegionalArrivalDelay({ status: "scheduled", delayMinutes: 27 }), null);
+  });
+
+  it("waits until a live regional train is within 30 minutes before surfacing its delay", () => {
+    const now = new Date("2026-07-29T12:00:00-04:00");
+    const delayed = {
+      status: "live",
+      delayMinutes: 12,
+      minutes: 60,
+      predictedAt: "2026-07-29T13:00:00-04:00",
+    };
+
+    assert.equal(shouldShowRegionalArrivalDelay(delayed, now), false);
+    assert.equal(shouldShowRegionalArrivalDelay({
+      ...delayed,
+      minutes: 30,
+      predictedAt: "2026-07-29T12:30:00-04:00",
+    }, now), true);
+    assert.equal(shouldShowRegionalArrivalDelay({
+      ...delayed,
+      delayMinutes: 41,
+      minutes: 2,
+      predictedAt: "2026-07-29T12:02:00-04:00",
+    }, now), true);
+  });
+
+  it("treats GO and UP predictions within five minutes of schedule as on time", () => {
+    const now = new Date("2026-07-29T12:00:00-04:00");
+    const arrival = {
+      status: "live",
+      delayMinutes: 1,
+      minutes: 10,
+      predictedAt: "2026-07-29T12:10:00-04:00",
+    };
+
+    assert.equal(shouldShowRegionalArrivalDelay(arrival, now), false);
+    assert.equal(shouldShowRegionalArrivalDelay({ ...arrival, delayMinutes: 5 }, now), false);
+    assert.equal(shouldShowRegionalArrivalDelay({ ...arrival, delayMinutes: 6 }, now), true);
   });
 
   it("evaluates due and soon arrival thresholds based on predicted time or minute count", () => {

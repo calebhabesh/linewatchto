@@ -1,6 +1,6 @@
 # Agent Guide for LineWatchTO
 
-Last updated: 2026-08-13
+Last updated: 2026-08-26
 
 This repository contains LineWatchTO, an unofficial transit reliability dashboard for TTC subway/LRT and GO/UP rail. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface.
 
@@ -238,7 +238,7 @@ The backend now owns:
 
 - Opt-in scheduled polling for the official TTC Live Alerts feed.
 - Opt-in backend-only polling of five Metrolinx GO/UP rider-alert collections plus GO Train Exceptions and GO GTFS-RT TripUpdates, with separate source-scoped alert and operational staging, reviewed normalization of supported rail alerts, per-collection run health, freshness gating, and `/api/health/regional-ingestion`.
-- Freshness-gated, exact-static-schedule matching for structured GO operational cancellations and stop changes through `/api/regional/trip-changes`, plus source-labeled structured rider-alert train cancellations. Only schedule-backed cancellations annotate arrivals or match My Commutes. Cancellations remain outside regional dashboard impacts, maps, status, delay counts, reliability, and travel-time estimates, but can generate separately filtered corridor or exact route/time-matched My Commutes notifications.
+- Freshness-gated, exact-static-schedule matching for structured GO operational cancellations and stop changes through `/api/regional/trip-changes`, plus source-labeled structured rider-alert train cancellations. Only schedule-backed cancellations annotate arrivals or match My Commutes. Distinct observed train cancellations are recorded as a separate coverage-labeled 30-day Reliability Analytics insight; they remain outside regional reliability incidents and duration metrics, dashboard impacts, maps, status, delay counts, and travel-time estimates, but can generate separately filtered corridor or exact route/time-matched My Commutes notifications.
 - Raw staging for route and accessibility alert records.
 - Supported subway/LRT delay, suspension, and planned-closure normalization.
 - Persisted route-alert impact kind so ordinary delays are not grouped as Reduced Speed Zones.

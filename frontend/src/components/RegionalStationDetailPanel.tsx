@@ -29,6 +29,7 @@ import {
   REGIONAL_ARRIVAL_COUNTDOWN_TICK_MS,
   preserveRegionalArrivalsOnRefresh,
   regionalArrivalTimeDisplay,
+  shouldShowRegionalArrivalDelay,
   shouldUseDetailedRegionalArrivalCountdown,
   type RegionalArrivalDataResult,
 } from "../app/regional-arrivals";
@@ -63,6 +64,7 @@ import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
 import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
 import { StationLineDirectionIndicator } from "./StationLineDirectionIndicator";
+import { RegionalArrivalDelayBadge } from "./RegionalArrivalDelayBadge";
 
 type Props = {
   station: StationSummary;
@@ -1037,8 +1039,10 @@ export function RegionalStationDetailPanel({
                                                 {platform.label}
                                               </h4>
                                               <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                                                {platform.arrivals.some((arrival) => arrival.status === "live" && arrival.delayMinutes > 0)
+                                                {platform.arrivals.some((arrival) => shouldShowRegionalArrivalDelay(arrival, arrivalTick))
                                                   ? "Delayed estimate"
+                                                  : platform.arrivals.some((arrival) => arrival.status === "live" && arrival.delayMinutes > 0)
+                                                    ? "Live estimates"
                                                   : platform.arrivals.some((arrival) => arrival.status === "live")
                                                     ? "On schedule"
                                                     : "Scheduled timetable"}
@@ -1053,6 +1057,8 @@ export function RegionalStationDetailPanel({
                                                   tripChanges.changes,
                                                   station.id,
                                                 );
+                                                const delayed = shouldShowRegionalArrivalDelay(arrival, arrivalTick)
+                                                  && !tripChange;
                                                 const detailedCountdown = index === 0
                                                   && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
                                                 const timeDisplay = regionalArrivalTimeDisplay(
@@ -1088,6 +1094,8 @@ export function RegionalStationDetailPanel({
                                                           ? "border-blue-500/60 bg-blue-500/10 text-blue-900 dark:text-blue-50"
                                                         : due
                                                           ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
+                                                          : delayed
+                                                            ? "border-orange-400/60 bg-orange-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(251,146,60,0.12)] dark:border-orange-400/45 dark:bg-orange-400/10 dark:text-white"
                                                           : soon
                                                             ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
                                                             : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
@@ -1097,24 +1105,36 @@ export function RegionalStationDetailPanel({
                                                       status={arrival.status}
                                                       isDue={due || tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"}
                                                     />
+                                                    {delayed ? (
+                                                      <RegionalArrivalDelayBadge arrival={arrival} now={arrivalTick} isDue={due} />
+                                                    ) : null}
                                                     <strong className={isCountdown
                                                       ? "whitespace-nowrap text-base font-black leading-none tracking-tight tabular-nums"
                                                       : "text-base font-black leading-none tracking-tight"}
                                                     >
                                                       {tripChange ? regionalTripChangeLabel(tripChange.kind) : timeDisplay.primary}
                                                     </strong>
-                                                    <span
-                                                      className={
+                                                    <span className="mt-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold tabular-nums">
+                                                      {delayed && scheduledClockTime ? (
+                                                        <span className={due
+                                                          ? "whitespace-nowrap text-red-100/55 line-through decoration-current"
+                                                          : "whitespace-nowrap text-slate-500/75 line-through decoration-current dark:text-slate-500"}
+                                                        >
+                                                          {scheduledClockTime}
+                                                        </span>
+                                                      ) : null}
+                                                      <span className={[
+                                                        "whitespace-nowrap",
                                                         due
-                                                          ? "mt-1.5 text-xs font-semibold text-red-100/80"
+                                                          ? "text-red-100/80"
                                                           : soon
-                                                            ? "mt-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
-                                                            : "mt-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400"
-                                                      }
-                                                    >
-                                                      {tripChange
-                                                        ? `Train ${cleanRegionalTripNumber(arrival.tripNumber) || arrival.tripNumber}`
-                                                        : timeDisplay.secondary}
+                                                            ? "text-emerald-700 dark:text-emerald-300"
+                                                            : "text-slate-500 dark:text-slate-400"
+                                                      ].join(" ")}>
+                                                        {tripChange
+                                                          ? `Train ${cleanRegionalTripNumber(arrival.tripNumber) || arrival.tripNumber}`
+                                                          : timeDisplay.secondary}
+                                                      </span>
                                                     </span>
                                                     {tripChange ? (
                                                       <span className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-85">

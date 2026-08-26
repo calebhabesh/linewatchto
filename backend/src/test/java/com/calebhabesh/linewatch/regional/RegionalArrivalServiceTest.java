@@ -39,6 +39,7 @@ class RegionalArrivalServiceTest {
         assertThat(response.arrivals()).extracting(RegionalArrivalResponses.ArrivalResponse::lineId)
             .containsExactly("regional-up", "regional-ki");
         assertThat(response.arrivals().getFirst().minutes()).isEqualTo(5);
+        assertThat(response.arrivals().getFirst().delayMinutes()).isEqualTo(1);
         verify(client).fetchGoNextService("BL");
         verify(client).fetchUpTripUpdates("BL");
     }

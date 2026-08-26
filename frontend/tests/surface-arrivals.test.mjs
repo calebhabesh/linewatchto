@@ -6,6 +6,7 @@ import {
   filterActiveSurfaceArrivals,
   formatSurfaceArrivalClockTime,
   formatSurfaceArrivalTileLabel,
+  getSurfaceArrivalDelayMinutes,
   getSurfaceArrivalGroupBayKey,
   getSurfaceArrivals,
   groupSurfaceArrivals,
@@ -48,6 +49,9 @@ describe("surface station arrivals", () => {
     assert.match(section, /<Bus size=\{20\}[\s\S]*?<span[^>]*>Surface Connections<\/span>/);
     assert.match(section, /<Bus size=\{18\}[\s\S]*?<strong[^>]*>[\s\S]*?Surface Connections/);
     assert.match(section, /ArrivalLinePinButton/);
+    assert.match(section, /getSurfaceArrivalDelayMinutes/);
+    assert.match(section, /<ArrivalDelayBadge delayMinutes=\{delayMinutes\}/);
+    assert.match(section, /scheduledClockTime/);
     assert.match(section, /station-arrival-line-divider/);
     assert.match(section, /data-pinned-route/);
     assert.equal(SURFACE_ARRIVAL_COUNTDOWN_TICK_MS, 3000);
@@ -234,6 +238,34 @@ describe("surface station arrivals", () => {
   it("updates minute labels from the absolute prediction time", () => {
     assert.equal(surfaceArrivalLabel(row(), Date.parse("2026-08-14T12:01:00Z")), "4 min");
     assert.equal(surfaceArrivalLabel(row(), Date.parse("2026-08-14T12:05:00Z")), "Due");
+  });
+
+  it("shows source-backed surface delays only inside the 30-minute arrival window", () => {
+    const now = Date.parse("2026-08-14T12:00:00Z");
+    assert.equal(getSurfaceArrivalDelayMinutes(row({
+      predictedAt: "2026-08-14T12:20:00Z",
+      scheduledAt: "2026-08-14T12:14:00Z",
+    }), now), 6);
+    assert.equal(getSurfaceArrivalDelayMinutes(row({
+      predictedAt: "2026-08-14T12:20:00Z",
+      scheduledAt: "2026-08-14T12:19:00Z",
+    }), now), null);
+    assert.equal(getSurfaceArrivalDelayMinutes(row({
+      predictedAt: "2026-08-14T13:00:00Z",
+      scheduledAt: "2026-08-14T12:45:00Z",
+    }), now), null);
+    assert.equal(getSurfaceArrivalDelayMinutes(row({ status: "scheduled" }), now), null);
+    assert.equal(getSurfaceArrivalDelayMinutes(row({ scheduledAt: null }), now), null);
+    assert.equal(getSurfaceArrivalDelayMinutes(row({
+      agency: "GO Transit",
+      predictedAt: "2026-08-14T12:20:00Z",
+      scheduledAt: "2026-08-14T12:05:00Z",
+    }), now), null);
+    assert.equal(getSurfaceArrivalDelayMinutes(row({
+      agency: "GO Transit",
+      predictedAt: "2026-08-14T12:20:00Z",
+      scheduledAt: "2026-08-14T12:04:00Z",
+    }), now), 16);
   });
 
   it("distinguishes mixed GO Bus data from TTC live estimates", () => {

@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RegionalTripChangeService {
@@ -38,6 +39,7 @@ public class RegionalTripChangeService {
     private final RegionalAlertStore alertStore;
     private final RegionalGtfsScheduleRepository scheduleRepository;
     private final RegionalIngestionFreshness freshness;
+    private final RegionalTrainCancellationHistoryStore cancellationHistoryStore;
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final MetrolinxProperties properties;
@@ -47,6 +49,7 @@ public class RegionalTripChangeService {
         RegionalAlertStore alertStore,
         RegionalGtfsScheduleRepository scheduleRepository,
         RegionalIngestionFreshness freshness,
+        RegionalTrainCancellationHistoryStore cancellationHistoryStore,
         ObjectMapper objectMapper,
         Clock clock,
         MetrolinxProperties properties
@@ -55,6 +58,7 @@ public class RegionalTripChangeService {
         this.alertStore = alertStore;
         this.scheduleRepository = scheduleRepository;
         this.freshness = freshness;
+        this.cancellationHistoryStore = cancellationHistoryStore;
         this.objectMapper = objectMapper;
         this.clock = clock;
         this.properties = properties;
@@ -66,18 +70,10 @@ public class RegionalTripChangeService {
             return new RegionalTripChangeResponses.Response(now, false, SOURCE, null, 0, List.of());
         }
 
-        List<OperationalRecord> records = operationalRepository.findActiveRecords(now.minus(properties.getMaxDashboardAge()));
-        List<StoredClassification> cancellationNotices = alertStore.findActiveClassifications(
-            "trip-cancellation", now.minus(properties.getMaxDashboardAge())
-        );
-        Map<String, Accumulator> changes = new LinkedHashMap<>();
-        for (OperationalRecord record : records) {
-            parse(record, now).forEach(candidate -> merge(changes, candidate));
-        }
-        for (StoredClassification notice : cancellationNotices) {
-            parseCancellationNotice(notice, now).forEach(candidate -> merge(changes, candidate));
-        }
-        suppressChangesDuplicatedByCancellation(changes);
+        CurrentChanges current = currentChanges(now);
+        Map<String, Accumulator> changes = current.changes();
+        List<OperationalRecord> records = current.records();
+        List<StoredClassification> cancellationNotices = current.cancellationNotices();
 
         String stationFilter = normalize(stationId);
         String search = normalize(query);
@@ -100,6 +96,32 @@ public class RegionalTripChangeService {
             .filter(java.util.Objects::nonNull).max(OffsetDateTime::compareTo).orElse(null);
         OffsetDateTime updatedAt = latest(operationalUpdatedAt, noticeUpdatedAt);
         return new RegionalTripChangeResponses.Response(now, true, SOURCE, updatedAt, matching.size(), visible);
+    }
+
+    @Transactional
+    public void recordCurrentCancellations() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        List<TripChange> cancellations = currentChanges(now).changes().values().stream()
+            .map(Accumulator::response)
+            .filter(change -> "cancellation".equals(change.kind()))
+            .toList();
+        cancellationHistoryStore.record(cancellations, now);
+    }
+
+    private CurrentChanges currentChanges(OffsetDateTime now) {
+        List<OperationalRecord> records = operationalRepository.findActiveRecords(now.minus(properties.getMaxDashboardAge()));
+        List<StoredClassification> cancellationNotices = alertStore.findActiveClassifications(
+            "trip-cancellation", now.minus(properties.getMaxDashboardAge())
+        );
+        Map<String, Accumulator> changes = new LinkedHashMap<>();
+        for (OperationalRecord record : records) {
+            parse(record, now).forEach(candidate -> merge(changes, candidate));
+        }
+        for (StoredClassification notice : cancellationNotices) {
+            parseCancellationNotice(notice, now).forEach(candidate -> merge(changes, candidate));
+        }
+        suppressChangesDuplicatedByCancellation(changes);
+        return new CurrentChanges(changes, records, cancellationNotices);
     }
 
     private List<Candidate> parseCancellationNotice(StoredClassification stored, OffsetDateTime now) {
@@ -442,6 +464,12 @@ public class RegionalTripChangeService {
         String cause,
         List<String> sourceSystems,
         List<AffectedStop> affectedStops
+    ) {}
+
+    private record CurrentChanges(
+        Map<String, Accumulator> changes,
+        List<OperationalRecord> records,
+        List<StoredClassification> cancellationNotices
     ) {}
 
     private static final class Accumulator {

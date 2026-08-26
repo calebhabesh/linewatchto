@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ class RegionalTripChangeServiceTest {
     private RegionalAlertStore alertStore;
     private RegionalGtfsScheduleRepository scheduleRepository;
     private RegionalIngestionFreshness freshness;
+    private RegionalTrainCancellationHistoryStore cancellationHistoryStore;
     private RegionalTripChangeService service;
 
     @BeforeEach
@@ -31,6 +33,7 @@ class RegionalTripChangeServiceTest {
         alertStore = mock(RegionalAlertStore.class);
         scheduleRepository = mock(RegionalGtfsScheduleRepository.class);
         freshness = mock(RegionalIngestionFreshness.class);
+        cancellationHistoryStore = mock(RegionalTrainCancellationHistoryStore.class);
         when(freshness.isFresh()).thenReturn(true);
         when(alertStore.findActiveClassifications(eq("trip-cancellation"), any())).thenReturn(List.of());
         service = new RegionalTripChangeService(
@@ -38,6 +41,7 @@ class RegionalTripChangeServiceTest {
             alertStore,
             scheduleRepository,
             freshness,
+            cancellationHistoryStore,
             new ObjectMapper().findAndRegisterModules(),
             CLOCK,
             new MetrolinxProperties()
@@ -190,6 +194,37 @@ class RegionalTripChangeServiceTest {
 
         assertThat(response.fresh()).isFalse();
         assertThat(response.changes()).isEmpty();
+    }
+
+    @Test
+    void recordsDeduplicatedCurrentCancellationsForReliabilityHistory() {
+        OffsetDateTime observedAt = OffsetDateTime.parse("2026-07-31T15:58:00Z");
+        when(operationalRepository.findActiveRecords(any())).thenReturn(List.of(
+            record(MetrolinxSourceSystem.GO_TRAIN_EXCEPTIONS, "681", observedAt, """
+                {"TripNumber":"681","ServiceDate":"2026-07-31","IsCancelled":true}
+                """),
+            record(MetrolinxSourceSystem.GO_GTFS_TRIP_UPDATES, "MI100", observedAt, """
+                {"id":"MI100","trip_update":{"trip":{"trip_id":"MI100","start_date":"20260731","schedule_relationship":"CANCELED"}}}
+                """)
+        ));
+        when(scheduleRepository.findActiveTrip(eq("681"), eq(LocalDate.parse("2026-07-31"))))
+            .thenReturn(schedule("MI100", "681"));
+        when(scheduleRepository.findActiveTrip(eq("MI100"), eq(LocalDate.parse("2026-07-31"))))
+            .thenReturn(schedule("MI100", "681"));
+
+        service.recordCurrentCancellations();
+
+        org.mockito.ArgumentCaptor<List<RegionalTripChangeResponses.TripChange>> changes =
+            org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(cancellationHistoryStore).record(changes.capture(), eq(OffsetDateTime.now(CLOCK)));
+        assertThat(changes.getValue()).singleElement().satisfies(change -> {
+            assertThat(change.kind()).isEqualTo("cancellation");
+            assertThat(change.tripNumber()).isEqualTo("681");
+            assertThat(change.sourceSystems()).containsExactlyInAnyOrder(
+                MetrolinxSourceSystem.GO_TRAIN_EXCEPTIONS,
+                MetrolinxSourceSystem.GO_GTFS_TRIP_UPDATES
+            );
+        });
     }
 
     private RegionalTripChangeOperationalRepository.OperationalRecord record(

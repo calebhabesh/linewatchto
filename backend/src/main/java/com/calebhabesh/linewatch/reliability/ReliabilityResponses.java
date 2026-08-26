@@ -22,7 +22,8 @@ public final class ReliabilityResponses {
         double scheduleCoveragePercentage,
         String message,
         List<ReliabilityMetric> metrics,
-        List<AlertTypeBreakdown> breakdown
+        List<AlertTypeBreakdown> breakdown,
+        TrainCancellationSummary trainCancellations
     ) {}
 
     public record ReliabilityMetric(
@@ -45,5 +46,24 @@ public final class ReliabilityResponses {
         long incidents,
         long incidentDisruptionMinutes,
         double percentage
+    ) {}
+
+    public record TrainCancellationSummary(
+        long cancellations,
+        long scheduleMatchedCancellations,
+        long sourceLabeledCancellations,
+        long observationMinutes,
+        double coveragePercentage,
+        String confidence,
+        String message,
+        List<TrainCancellationMetric> corridors
+    ) {}
+
+    public record TrainCancellationMetric(
+        String id,
+        String number,
+        String label,
+        long cancellations,
+        long scheduleMatchedCancellations
     ) {}
 }

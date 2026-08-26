@@ -1285,6 +1285,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(stationPanel.getByText("7 min", { exact: true })).toBeVisible();
   await expect(stationPanel.getByRole("heading", { name: "Platform 11" })).toBeVisible();
   await expect(stationPanel.getByText("Delayed estimate", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("6 Min Late", { exact: true })).toBeVisible();
 });
 
 test("keeps transformed regional junction selection aligned with its station dots", async ({ page, request, isMobile }) => {
@@ -4357,6 +4358,7 @@ test("My Stations shows regional disruptions, accessibility outages, and arrival
   await expect(pickeringRow.getByText("Active Disruptions", { exact: true })).toBeVisible();
   await expect(pickeringRow.getByText("Metrolinx GO Next Service", { exact: true })).toBeVisible();
   await expect(pickeringRow.getByText("7 min", { exact: true })).toBeVisible();
+  await expect(pickeringRow.getByText("6 Min Late", { exact: true })).toBeVisible();
   await pickeringRow.getByText("Active Disruptions", { exact: true }).click();
   await expect(pickeringRow.getByText(/Delay/).first()).toBeVisible();
 

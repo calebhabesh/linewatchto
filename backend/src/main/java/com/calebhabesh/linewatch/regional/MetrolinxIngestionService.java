@@ -11,6 +11,7 @@ public class MetrolinxIngestionService {
     private final MetrolinxAlertNormalizer normalizer;
     private final RegionalFeedApplicationService applicationService;
     private final RegionalIngestionRunService runService;
+    private final RegionalTripChangeService tripChangeService;
     private final DashboardCacheService cache;
 
     public MetrolinxIngestionService(
@@ -18,12 +19,14 @@ public class MetrolinxIngestionService {
         MetrolinxAlertNormalizer normalizer,
         RegionalFeedApplicationService applicationService,
         RegionalIngestionRunService runService,
+        RegionalTripChangeService tripChangeService,
         DashboardCacheService cache
     ) {
         this.client = client;
         this.normalizer = normalizer;
         this.applicationService = applicationService;
         this.runService = runService;
+        this.tripChangeService = tripChangeService;
         this.cache = cache;
     }
 
@@ -34,6 +37,7 @@ public class MetrolinxIngestionService {
             List<RegionalAlertClassification> classifications = normalizer.classify(feed);
             List<RegionalNormalizedAlert> alerts = normalizer.normalize(feed, classifications);
             FeedApplicationCounts counts = applicationService.apply(feed, alerts, classifications);
+            tripChangeService.recordCurrentCancellations();
             runService.succeed(runId, counts, feed);
             cache.evictDashboard();
             return counts;

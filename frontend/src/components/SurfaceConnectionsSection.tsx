@@ -8,6 +8,7 @@ import {
   filterActiveSurfaceArrivals,
   formatSurfaceArrivalClockTime,
   formatSurfaceArrivalTileLabel,
+  getSurfaceArrivalDelayMinutes,
   getSurfaceArrivalGroupBayKey,
   getSurfaceArrivals,
   groupSurfaceArrivals,
@@ -24,6 +25,7 @@ import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { LiveSignalIcon } from "./LiveSignalIcon";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
+import { ArrivalDelayBadge } from "./ArrivalDelayBadge";
 
 const REFRESH_MS = 15_000;
 
@@ -137,6 +139,9 @@ function SurfaceRouteCard({
             const detailedCountdown = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
             const due = isSurfaceArrivalDue(arrival, tick);
             const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
+            const scheduledClockTime = formatSurfaceArrivalClockTime(arrival.scheduledAt);
+            const delayMinutes = getSurfaceArrivalDelayMinutes(arrival, tick);
+            const delayed = delayMinutes !== null;
             const isCountdown = detailedCountdown && !due;
             const arrivalLabelClassName = isCountdown
               ? "whitespace-nowrap text-base sm:text-lg font-black leading-none tracking-tight tabular-nums"
@@ -145,6 +150,8 @@ function SurfaceRouteCard({
               "relative flex min-h-[68px] sm:min-h-[72px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
+                : delayed
+                  ? "border-orange-400/60 bg-orange-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(251,146,60,0.12)] dark:border-orange-400/45 dark:bg-orange-400/10 dark:text-white"
                 : detailedCountdown
                   ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
                   : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
@@ -157,18 +164,28 @@ function SurfaceRouteCard({
                 className={arrivalTileClassName}
               >
                 <ArrivalTileSourceIndicator status={arrival.status} isDue={due} size={12} />
+                {delayMinutes !== null ? (
+                  <ArrivalDelayBadge delayMinutes={delayMinutes} isDue={due} />
+                ) : null}
                 <strong className={arrivalLabelClassName}>
                   {formatSurfaceArrivalTileLabel(arrival, { detailedCountdown, now: tick })}
                 </strong>
                 {clockTime && (
-                  <span
-                    className={
-                      due
-                        ? "mt-1.5 text-xs font-semibold text-red-100/80"
-                        : "mt-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400"
-                    }
-                  >
-                    {clockTime}
+                  <span className="mt-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold tabular-nums">
+                    {delayed && scheduledClockTime ? (
+                      <span className={due
+                        ? "whitespace-nowrap text-red-100/55 line-through decoration-current"
+                        : "whitespace-nowrap text-slate-500/75 line-through decoration-current dark:text-slate-500"}
+                      >
+                        {scheduledClockTime}
+                      </span>
+                    ) : null}
+                    <span className={due
+                      ? "whitespace-nowrap text-red-100/80"
+                      : "whitespace-nowrap text-slate-500 dark:text-slate-400"}
+                    >
+                      {clockTime}
+                    </span>
                   </span>
                 )}
               </div>
@@ -287,10 +304,15 @@ function SurfaceCompactRouteRow({
             const detailed = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
             const due = isSurfaceArrivalDue(arrival, tick);
             const clockTime = formatSurfaceArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
+            const scheduledClockTime = formatSurfaceArrivalClockTime(arrival.scheduledAt);
+            const delayMinutes = getSurfaceArrivalDelayMinutes(arrival, tick);
+            const delayed = delayMinutes !== null;
             const arrivalTileClassName = [
               "relative flex min-h-[64px] sm:min-h-[68px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-2 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
+                : delayed
+                  ? "border-orange-400/60 bg-orange-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(251,146,60,0.12)] dark:border-orange-400/45 dark:bg-orange-400/10 dark:text-white is-delayed"
                 : detailed
                   ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon is-detailed"
                   : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
@@ -303,6 +325,9 @@ function SurfaceCompactRouteRow({
                 className={arrivalTileClassName}
               >
                 <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
+                {delayMinutes !== null ? (
+                  <ArrivalDelayBadge delayMinutes={delayMinutes} isDue={due} isCompact />
+                ) : null}
                 <strong
                   className={detailed && !due
                     ? "mt-1.5 whitespace-nowrap text-[13px] sm:text-sm font-black leading-none tracking-tight tabular-nums"
@@ -311,14 +336,21 @@ function SurfaceCompactRouteRow({
                   {formatSurfaceArrivalTileLabel(arrival, { detailedCountdown: detailed, now: tick })}
                 </strong>
                 {clockTime && (
-                  <span
-                    className={
-                      due
-                        ? "mt-0.5 text-[10px] font-semibold text-red-100/80"
-                        : "mt-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400"
-                    }
-                  >
-                    {clockTime}
+                  <span className="mt-0.5 flex items-center justify-center gap-1 text-[9px] sm:text-[10px] font-semibold tabular-nums">
+                    {delayed && scheduledClockTime ? (
+                      <span className={due
+                        ? "whitespace-nowrap text-red-100/55 line-through decoration-current"
+                        : "whitespace-nowrap text-slate-500/75 line-through decoration-current dark:text-slate-500"}
+                      >
+                        {scheduledClockTime}
+                      </span>
+                    ) : null}
+                    <span className={due
+                      ? "whitespace-nowrap text-red-100/80"
+                      : "whitespace-nowrap text-slate-500 dark:text-slate-400"}
+                    >
+                      {clockTime}
+                    </span>
                   </span>
                 )}
               </div>

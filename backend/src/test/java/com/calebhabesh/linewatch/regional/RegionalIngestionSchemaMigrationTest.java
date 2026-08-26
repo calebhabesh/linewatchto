@@ -54,5 +54,17 @@ class RegionalIngestionSchemaMigrationTest {
         );
         assertThat(activePeriodBasisMigration).contains("active_period_basis varchar(32) not null");
         assertThat(activePeriodBasisMigration).contains("default 'source-active-period'");
+
+        String cancellationHistoryMigration = new String(
+            getClass().getResourceAsStream(
+                "/db/migration/V75__regional_train_cancellation_history.sql"
+            ).readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        assertThat(cancellationHistoryMigration).contains("create table regional_train_cancellations");
+        assertThat(cancellationHistoryMigration)
+            .contains("unique (service_date, line_id, trip_number)");
+        assertThat(cancellationHistoryMigration)
+            .contains("create table regional_train_cancellation_tracking");
     }
 }

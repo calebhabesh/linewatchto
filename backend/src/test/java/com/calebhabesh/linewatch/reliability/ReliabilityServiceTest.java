@@ -29,7 +29,8 @@ class ReliabilityServiceTest {
                 new ReliabilityRepository.BreakdownRow("delay", 6, 120L),
                 new ReliabilityRepository.BreakdownRow("reduced_speed_zone", 2, 190L)
             ),
-            42_768L, 99.0, "published TTC GTFS schedules", true, 100.0
+            42_768L, 99.0, "published TTC GTFS schedules", true, 100.0,
+            ReliabilityRepository.CancellationAggregation.unavailable()
         ));
 
         ReliabilityResponses.ReliabilityResponse response = service.lines("ttc");
@@ -59,7 +60,11 @@ class ReliabilityServiceTest {
                 30L, 300L, 36L, 10.0
             )),
             List.of(new ReliabilityRepository.BreakdownRow("delay", 2, 36L)),
-            20_000L, 46.3, "published GO/UP GTFS train schedules", true, 90.0
+            20_000L, 46.3, "published GO/UP GTFS train schedules", true, 90.0,
+            new ReliabilityRepository.CancellationAggregation(
+                3, 2, 18_000L, 41.7,
+                List.of(new ReliabilityRepository.CancellationRow("regional-le", 3, 2))
+            )
         ));
 
         ReliabilityResponses.ReliabilityResponse response = service.lines("regional");
@@ -73,6 +78,13 @@ class ReliabilityServiceTest {
         assertThat(response.metrics()).hasSize(1);
         assertThat(response.breakdown()).hasSize(1);
         assertThat(response.message()).contains("100% does not mean the entire corridor was disrupted");
+        assertThat(response.trainCancellations().cancellations()).isEqualTo(3);
+        assertThat(response.trainCancellations().scheduleMatchedCancellations()).isEqualTo(2);
+        assertThat(response.trainCancellations().sourceLabeledCancellations()).isEqualTo(1);
+        assertThat(response.trainCancellations().corridors()).singleElement().satisfies(corridor -> {
+            assertThat(corridor.number()).isEqualTo("LE");
+            assertThat(corridor.label()).isEqualTo("Lakeshore East");
+        });
     }
 
     @Test
@@ -81,7 +93,8 @@ class ReliabilityServiceTest {
             Mockito.eq("ttc"), Mockito.isNull(), Mockito.any(), Mockito.any()
         )).thenReturn(new ReliabilityRepository.ReliabilityAggregation(
             List.of(), List.of(), 42_768L, 99.0,
-            "published TTC GTFS schedules", true, 80.0
+            "published TTC GTFS schedules", true, 80.0,
+            ReliabilityRepository.CancellationAggregation.unavailable()
         ));
 
         ReliabilityResponses.ReliabilityResponse response = service.lines("ttc");
@@ -98,7 +111,8 @@ class ReliabilityServiceTest {
             Mockito.eq("regional"), Mockito.isNull(), Mockito.any(), Mockito.any()
         )).thenReturn(new ReliabilityRepository.ReliabilityAggregation(
             List.of(), List.of(), 30_000L, 69.4,
-            "published schedule coverage unavailable", false, 0.0
+            "published schedule coverage unavailable", false, 0.0,
+            ReliabilityRepository.CancellationAggregation.unavailable()
         ));
 
         ReliabilityResponses.ReliabilityResponse response = service.lines("regional");

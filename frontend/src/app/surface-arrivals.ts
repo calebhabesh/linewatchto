@@ -59,6 +59,9 @@ export type SurfaceRouteDetails = {
 export const SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
 export const SURFACE_DUE_EXPIRY_SECONDS = 90;
 export const SURFACE_ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
+export const SURFACE_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES = 30;
+export const TTC_SURFACE_ARRIVAL_DELAY_MINIMUM_MINUTES = 5;
+export const GO_BUS_ARRIVAL_DELAY_MINIMUM_MINUTES = 15;
 
 type FetchOptions = {
   fetcher?: typeof fetch;
@@ -501,6 +504,25 @@ export function surfaceArrivalMinutes(
   return Number.isNaN(predictedAt)
     ? arrival.minutes
     : Math.max(0, Math.ceil((predictedAt - nowMs) / 60_000));
+}
+
+export function getSurfaceArrivalDelayMinutes(
+  arrival: Pick<SurfaceArrival, "agency" | "minutes" | "predictedAt" | "scheduledAt" | "status">,
+  now: number | Date = Date.now(),
+): number | null {
+  if (arrival.status !== "live" || !arrival.scheduledAt) return null;
+  const predictedAt = Date.parse(arrival.predictedAt);
+  const scheduledAt = Date.parse(arrival.scheduledAt);
+  if (Number.isNaN(predictedAt) || Number.isNaN(scheduledAt)) return null;
+
+  const delayMinutes = Math.trunc((predictedAt - scheduledAt) / 60_000);
+  const minimumDelayMinutes = arrival.agency === "GO Transit"
+    ? GO_BUS_ARRIVAL_DELAY_MINIMUM_MINUTES
+    : TTC_SURFACE_ARRIVAL_DELAY_MINIMUM_MINUTES;
+  if (delayMinutes <= minimumDelayMinutes) return null;
+  return surfaceArrivalMinutes(arrival, now) <= SURFACE_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES
+    ? delayMinutes
+    : null;
 }
 
 export function surfaceArrivalLabel(

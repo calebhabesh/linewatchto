@@ -615,6 +615,16 @@ export const regionalDashboardData: DashboardData = {
     scheduleCoveragePercentage: 0,
     message: "Regional reliability requires retained alert lifecycles, successful polling coverage, and published GO/UP train schedules.",
     metrics: [],
+    trainCancellations: {
+      cancellations: 0,
+      scheduleMatchedCancellations: 0,
+      sourceLabeledCancellations: 0,
+      observationMinutes: 0,
+      coveragePercentage: 0,
+      confidence: "low",
+      message: "Train cancellation history will appear after regional trip-change observations are recorded.",
+      corridors: [],
+    },
   },
   ttcPerformance: {
     status: "disabled",

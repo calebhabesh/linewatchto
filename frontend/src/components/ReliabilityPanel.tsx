@@ -11,7 +11,8 @@ import {
   X, 
   Bus, 
   Accessibility,
-  PieChart 
+  PieChart,
+  TrainFront
 } from "lucide-react";
 import type { AlertTypeBreakdownItem } from "../app/linewatch-data";
 
@@ -523,6 +524,72 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
 
           <AlertTypeBreakdownChart breakdown={reliability.breakdown} networkId={networkId} />
         </div>
+
+        {networkId === "regional" && reliability.trainCancellations ? (
+          <>
+            <hr className="border-black/10 dark:border-white/10 my-2" />
+            <div className="flex flex-col gap-2 min-w-0">
+              <div className="min-w-0">
+                <h3 className="text-[15px] font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <TrainFront className="w-4 h-4 text-rose-500 shrink-0" />
+                  Train Cancellations · Rolling 30 Day Basis
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
+                  Source: Recorded GO Trip Changes · {reliability.trainCancellations.coveragePercentage.toFixed(1)}% polling coverage since tracking began · {formatReliabilityTitleCase(`${reliability.trainCancellations.confidence} confidence`)}
+                </p>
+              </div>
+
+              <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2 overflow-hidden">
+                <div className="flex items-center justify-between gap-3 min-w-0">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Distinct Cancelled Trains Observed</span>
+                  <strong className="font-mono tabular-nums text-base text-slate-900 dark:text-white shrink-0">
+                    {reliability.trainCancellations.cancellations}
+                  </strong>
+                </div>
+                <div className="grid grid-cols-2 gap-2 border-t border-black/[0.05] dark:border-white/[0.05] pt-2 text-[11px]">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-slate-500 dark:text-slate-400">Exact Schedule Matches</span>
+                    <strong className="font-mono tabular-nums text-slate-800 dark:text-slate-200">
+                      {reliability.trainCancellations.scheduleMatchedCancellations}
+                    </strong>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-slate-500 dark:text-slate-400">Source-Labeled Unmatched</span>
+                    <strong className="font-mono tabular-nums text-slate-800 dark:text-slate-200">
+                      {reliability.trainCancellations.sourceLabeledCancellations}
+                    </strong>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 break-words leading-relaxed">
+                  {reliability.trainCancellations.message}
+                </p>
+              </div>
+
+              {reliability.trainCancellations.corridors.map((corridor) => {
+                const details = getMetricDetails(corridor.id, corridor.label);
+                const sourceLabeled = Math.max(0, corridor.cancellations - corridor.scheduleMatchedCancellations);
+                return (
+                  <div key={corridor.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2 overflow-hidden">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {details.icon}
+                        <strong className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {corridor.number ? `${corridor.number} · ` : ""}{details.label}
+                        </strong>
+                      </div>
+                      <strong className="font-mono tabular-nums text-sm text-slate-900 dark:text-white shrink-0">
+                        {corridor.cancellations}
+                      </strong>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 pl-8">
+                      {corridor.scheduleMatchedCancellations} schedule matched{sourceLabeled > 0 ? ` · ${sourceLabeled} source-labeled unmatched` : ""}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
 
         {networkId === "ttc" && <hr className="border-black/10 dark:border-white/10 my-2" />}
 

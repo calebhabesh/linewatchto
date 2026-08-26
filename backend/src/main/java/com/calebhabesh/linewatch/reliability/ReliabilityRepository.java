@@ -88,6 +88,9 @@ public class ReliabilityRepository {
         long rollingMinutes = Math.max(1, Math.round(Duration.between(since, until).toSeconds() / 60.0));
         long observedMinutes = ReliabilityIntervalCalculator.minutes(observationWindows);
         double coveragePercentage = Math.min(100.0, Math.round(observedMinutes * 1000.0 / rollingMinutes) / 10.0);
+        CancellationAggregation cancellations = "regional".equals(networkId)
+            ? regionalCancellations(stationId, since, until, observationWindows, rollingMinutes)
+            : CancellationAggregation.unavailable();
         return new ReliabilityAggregation(
             rows,
             breakdown,
@@ -95,7 +98,64 @@ public class ReliabilityRepository {
             coveragePercentage,
             serviceWindowResult.basis(),
             serviceWindowResult.scheduleBacked(),
-            serviceWindowResult.coveragePercentage()
+            serviceWindowResult.coveragePercentage(),
+            cancellations
+        );
+    }
+
+    private CancellationAggregation regionalCancellations(
+        String stationId,
+        OffsetDateTime since,
+        OffsetDateTime until,
+        List<TimeRange> observationWindows,
+        long rollingMinutes
+    ) {
+        OffsetDateTime trackingStartedAt = jdbc.queryForObject("""
+            select min(started_at)
+            from regional_train_cancellation_tracking
+            where id = 1 and started_at < :until
+            """, new MapSqlParameterSource("until", until), OffsetDateTime.class);
+        if (trackingStartedAt == null) return CancellationAggregation.unavailable();
+
+        OffsetDateTime trackingStart = later(trackingStartedAt, since);
+        List<TimeRange> trackedObservationWindows = trackingStart.isBefore(until)
+            ? ReliabilityIntervalCalculator.intersect(
+                observationWindows,
+                List.of(new TimeRange(trackingStart, until))
+            )
+            : List.of();
+        long trackedObservationMinutes = ReliabilityIntervalCalculator.minutes(trackedObservationWindows);
+        double trackingCoverage = Math.min(100.0,
+            Math.round(trackedObservationMinutes * 1000.0 / rollingMinutes) / 10.0);
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("since", since)
+            .addValue("until", until);
+        if (stationId != null) params.addValue("stationId", stationId);
+        String stationFilter = stationId == null
+            ? ""
+            : " and jsonb_exists(cancellation.station_ids, :stationId) ";
+        List<CancellationRow> rows = jdbc.query("""
+            select cancellation.line_id,
+                   count(*) cancellations,
+                   count(*) filter (where cancellation.schedule_matched) schedule_matched_cancellations
+            from regional_train_cancellations cancellation
+            where coalesce(cancellation.scheduled_start_at, cancellation.first_seen_at) >= :since
+              and coalesce(cancellation.scheduled_start_at, cancellation.first_seen_at) < :until
+              """ + stationFilter + """
+            group by cancellation.line_id
+            order by cancellations desc, cancellation.line_id
+            """, params, (rs, row) -> new CancellationRow(
+                rs.getString("line_id"),
+                rs.getLong("cancellations"),
+                rs.getLong("schedule_matched_cancellations")
+            ));
+        return new CancellationAggregation(
+            rows.stream().mapToLong(CancellationRow::cancellations).sum(),
+            rows.stream().mapToLong(CancellationRow::scheduleMatchedCancellations).sum(),
+            trackedObservationMinutes,
+            trackingCoverage,
+            rows
         );
     }
 
@@ -632,7 +692,8 @@ public class ReliabilityRepository {
         double coveragePercentage,
         String serviceWindowBasis,
         boolean scheduleBacked,
-        double scheduleCoveragePercentage
+        double scheduleCoveragePercentage,
+        CancellationAggregation cancellations
     ) {}
 
     public record AggregateRow(
@@ -649,6 +710,24 @@ public class ReliabilityRepository {
     ) {}
 
     public record BreakdownRow(String impactKind, long incidents, long incidentMinutes) {}
+
+    public record CancellationAggregation(
+        long cancellations,
+        long scheduleMatchedCancellations,
+        long observationMinutes,
+        double coveragePercentage,
+        List<CancellationRow> rows
+    ) {
+        static CancellationAggregation unavailable() {
+            return new CancellationAggregation(0, 0, 0, 0.0, List.of());
+        }
+    }
+
+    public record CancellationRow(
+        String lineId,
+        long cancellations,
+        long scheduleMatchedCancellations
+    ) {}
 
     private record RawEpisode(
         String alertId,

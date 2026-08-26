@@ -433,6 +433,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalStationDetailSource, /groupRegionalStationArrivals/);
     assert.match(regionalStationDetailSource, /data-regional-arrival-direction/);
     assert.match(regionalStationDetailSource, /data-regional-arrival-platform/);
+    assert.match(regionalStationDetailSource, /<RegionalArrivalDelayBadge arrival=\{arrival\}/);
     assert.match(regionalStationDetailSource, /regionalArrivalTimeDisplay/);
     assert.match(regionalStationDetailSource, /shouldUseDetailedRegionalArrivalCountdown/);
     assert.match(regionalStationDetailSource, /detailedCountdown/);

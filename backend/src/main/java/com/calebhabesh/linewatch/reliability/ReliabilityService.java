@@ -3,6 +3,8 @@ package com.calebhabesh.linewatch.reliability;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import com.calebhabesh.linewatch.reliability.ReliabilityResponses.ReliabilityMetric;
 import com.calebhabesh.linewatch.reliability.ReliabilityResponses.ReliabilityResponse;
+import com.calebhabesh.linewatch.reliability.ReliabilityResponses.TrainCancellationMetric;
+import com.calebhabesh.linewatch.reliability.ReliabilityResponses.TrainCancellationSummary;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -48,6 +50,9 @@ public class ReliabilityService {
             .map(row -> metric(networkId, row, confidence))
             .toList();
         List<ReliabilityResponses.AlertTypeBreakdown> breakdown = breakdown(aggregation.breakdown());
+        TrainCancellationSummary trainCancellations = "regional".equals(networkId)
+            ? trainCancellations(aggregation.cancellations())
+            : null;
         String coverage = coverageLabel(networkId, aggregation);
         String message = aggregation.coveragePercentage() == 0
             ? "No retained alert lifecycle history is available yet."
@@ -58,7 +63,38 @@ public class ReliabilityService {
             observedDays, aggregation.observationMinutes(), aggregation.coveragePercentage(),
             confidence, coverage, aggregation.serviceWindowBasis(), aggregation.scheduleBacked(),
             aggregation.scheduleCoveragePercentage(),
-            message, metrics, breakdown
+            message, metrics, breakdown, trainCancellations
+        );
+    }
+
+    private TrainCancellationSummary trainCancellations(
+        ReliabilityRepository.CancellationAggregation aggregation
+    ) {
+        String cancellationConfidence = confidence(aggregation.coveragePercentage());
+        List<TrainCancellationMetric> corridors = aggregation.rows().stream()
+            .map(row -> {
+                RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(row.lineId()).orElse(null);
+                return new TrainCancellationMetric(
+                    row.lineId(),
+                    route == null ? "GO" : route.number(),
+                    route == null ? row.lineId() : route.name(),
+                    row.cancellations(),
+                    row.scheduleMatchedCancellations()
+                );
+            })
+            .toList();
+        String message = aggregation.coveragePercentage() == 0
+            ? "Train cancellation history will appear after regional trip-change observations are recorded."
+            : "Distinct source-identified train cancellations observed by LineWatchTO. Exact schedule matches and source-labeled unmatched cancellations are counted; cancellations remain separate from corridor alert durations and status.";
+        return new TrainCancellationSummary(
+            aggregation.cancellations(),
+            aggregation.scheduleMatchedCancellations(),
+            Math.max(0, aggregation.cancellations() - aggregation.scheduleMatchedCancellations()),
+            aggregation.observationMinutes(),
+            aggregation.coveragePercentage(),
+            cancellationConfidence,
+            message,
+            corridors
         );
     }
 

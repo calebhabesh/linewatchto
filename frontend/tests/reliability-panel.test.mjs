@@ -44,6 +44,11 @@ describe("official TTC performance panel source", () => {
     assert.match(source, /id\.startsWith\("regional-"\)/);
     assert.match(source, /reliability\.serviceWindowBasis/);
     assert.match(source, /item\.serviceImpactPercentage/);
+    assert.match(source, /Train Cancellations · Rolling 30 Day Basis/);
+    assert.match(source, /Distinct Cancelled Trains Observed/);
+    assert.match(source, /Exact Schedule Matches/);
+    assert.match(source, /Source-Labeled Unmatched/);
+    assert.match(source, /reliability\.trainCancellations\.corridors/);
   });
 
   it("keeps Reliability Analytics accessible in both TTC and GO/UP modes", () => {

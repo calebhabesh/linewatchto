@@ -969,6 +969,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
               <li>Only the applicable published daily service span when schedule coverage is available.</li>
               <li>Planned closures only during their applicable active windows.</li>
               <li>Unique service-impact time separately from additive incident-hours, so overlapping incidents are not hidden.</li>
+              {!ttc ? <li>Distinct observed train cancellations as a separate count, with exact schedule matches distinguished from source-labeled unmatched notices.</li> : null}
             </ul>
           </section>
           <section className={`${styles.section} ${styles.cardTopAccent}`}>
@@ -993,7 +994,7 @@ export function ReliabilityGuidePage({ networkSlug }: { networkSlug: TransitGuid
             <ul className={styles.plainList}>
               <li>Accessibility outages and surface service notices.</li>
               <li>Station arrivals and estimated schematic train markers.</li>
-              {!ttc ? <li>Train cancellations and operational trip changes, which remain separate from corridor status and reliability incidents.</li> : null}
+              {!ttc ? <li>Train cancellations and other operational trip changes from reliability incidents, corridor status, and duration calculations; only the separate cancellation insight counts them.</li> : null}
               <li>Any claim that a whole line or corridor was disrupted when an alert affected only part of it.</li>
             </ul>
           </section>

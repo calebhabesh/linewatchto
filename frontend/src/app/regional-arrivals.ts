@@ -87,6 +87,36 @@ export function formatRegionalArrivalSourceSummary(
   return "Metrolinx regional arrivals";
 }
 
+export function getRegionalArrivalDelayMinutes(
+  arrival: Pick<RegionalArrival, "delayMinutes" | "status">,
+): number | null {
+  if (arrival.status !== "live" || !Number.isFinite(arrival.delayMinutes)) {
+    return null;
+  }
+  const delayMinutes = Math.trunc(arrival.delayMinutes);
+  return delayMinutes > 0 ? delayMinutes : null;
+}
+
+export function formatRegionalArrivalDelay(
+  arrival: Pick<RegionalArrival, "delayMinutes" | "status">,
+): string | null {
+  const delayMinutes = getRegionalArrivalDelayMinutes(arrival);
+  return delayMinutes === null ? null : `${delayMinutes} Min Late`;
+}
+
+export const REGIONAL_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES = 30;
+export const REGIONAL_ARRIVAL_DELAY_MINIMUM_MINUTES = 5;
+
+export function shouldShowRegionalArrivalDelay(
+  arrival: Pick<RegionalArrival, "delayMinutes" | "minutes" | "predictedAt" | "status">,
+  now: Date | number = Date.now(),
+): boolean {
+  const delayMinutes = getRegionalArrivalDelayMinutes(arrival);
+  return delayMinutes !== null
+    && delayMinutes > REGIONAL_ARRIVAL_DELAY_MINIMUM_MINUTES
+    && getRegionalArrivalMinutes(arrival, now) <= REGIONAL_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES;
+}
+
 export type RegionalArrivalPlatformGroup = {
   key: string;
   label: string;
