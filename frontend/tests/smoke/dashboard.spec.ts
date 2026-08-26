@@ -1808,7 +1808,7 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   const target = page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" });
   await expect(target).toBeVisible();
   await expect(target).toHaveClass("map-segment-hit-target");
-  await expect(target).toHaveCSS("stroke-width", "96px");
+  await expect(target).toHaveCSS("stroke-width", isMobile ? "144px" : "96px");
   await page.waitForTimeout(900);
 
   const mapElement = page.locator(".ttc-map-stage").first();

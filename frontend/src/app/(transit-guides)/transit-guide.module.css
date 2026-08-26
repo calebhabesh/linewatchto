@@ -104,8 +104,10 @@
 }
 
 .nav a:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(56, 189, 248, 0.12);
   color: #ffffff;
+  border: 1px solid rgba(129, 201, 255, 0.55);
+  box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.32);
 }
 
 .nav a:focus-visible,

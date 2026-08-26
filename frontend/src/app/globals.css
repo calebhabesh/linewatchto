@@ -3378,8 +3378,8 @@ body {
   --mobile-chrome-btn-bg: rgba(15, 23, 42, 0.06);
   --mobile-chrome-btn-border: rgba(15, 23, 42, 0.08);
   --mobile-chrome-btn-active-bg: rgba(15, 23, 42, 0.12);
-  --mobile-chrome-nav-active-bg: rgba(15, 23, 42, 0.08);
-  --mobile-chrome-nav-active-border: rgba(15, 23, 42, 0.12);
+  --mobile-chrome-nav-active-bg: rgba(56, 189, 248, 0.09);
+  --mobile-chrome-nav-active-border: rgba(56, 189, 248, 0.45);
   --mobile-scroll-indicator-thumb: #7d828c;
   --mobile-scroll-indicator-thumb-hover: #575d68;
 }
@@ -3412,8 +3412,8 @@ body {
   --mobile-chrome-btn-bg: rgba(255, 255, 255, 0.08);
   --mobile-chrome-btn-border: rgba(255, 255, 255, 0.12);
   --mobile-chrome-btn-active-bg: rgba(255, 255, 255, 0.16);
-  --mobile-chrome-nav-active-bg: rgba(255, 255, 255, 0.14);
-  --mobile-chrome-nav-active-border: rgba(255, 255, 255, 0.12);
+  --mobile-chrome-nav-active-bg: rgba(56, 189, 248, 0.10);
+  --mobile-chrome-nav-active-border: rgba(129, 201, 255, 0.50);
   --mobile-scroll-indicator-thumb: #6e7789;
   --mobile-scroll-indicator-thumb-hover: #aeb8ca;
 }
@@ -6437,7 +6437,7 @@ button {
 
 @media (pointer: coarse) {
   .map-segment-hit-target {
-    stroke-width: 96px;
+    stroke-width: 144px;
   }
 }
 
@@ -8505,8 +8505,8 @@ img.transit-line-badge {
   .station-hit-target,
   .station-hit-target:hover,
   .station-hit-target:focus-visible {
-    /* Prioritize station selection where coarse-pointer targets overlap disruption corridors. */
-    stroke-width: 72px;
+    /* Balanced station touch target without drowning out adjacent disruption corridors. */
+    stroke-width: 32px;
   }
 }
 
@@ -17112,7 +17112,9 @@ img.transit-line-badge {
     background: var(--mobile-chrome-nav-active-bg);
     border: 1px solid var(--mobile-chrome-nav-active-border);
     border-radius: 999px;
-    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    box-shadow:
+      inset 0 0 8px rgba(56, 189, 248, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.70);
     content: "";
     height: calc(100% - 8px);
     left: 6px;
@@ -17120,7 +17122,7 @@ img.transit-line-badge {
     position: absolute;
     top: 4px;
     transform: translate3d(0, 0, 0);
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease;
     width: calc((100% - 20px) / 5);
     will-change: transform;
   }
@@ -17141,18 +17143,50 @@ img.transit-line-badge {
     transform: translate3d(calc(400% + 8px), 0, 0);
   }
 
+  /* Inward-only blue accent glow on hover for the currently selected nav entry */
+  .mobile-bottom-nav:hover::before,
+  .mobile-bottom-nav:has(.mobile-bottom-nav-item:hover)::before,
+  .mobile-bottom-nav:has(.mobile-bottom-nav-item:focus-visible)::before {
+    background: rgba(56, 189, 248, 0.13);
+    border-color: rgba(56, 189, 248, 0.70);
+    box-shadow:
+      inset 0 0 10px rgba(56, 189, 248, 0.36),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
   .dark .mobile-bottom-nav {
     border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .dark .mobile-bottom-nav::before {
+    background: rgba(56, 189, 248, 0.10);
+    border: 1px solid rgba(129, 201, 255, 0.50);
+    box-shadow:
+      inset 0 0 8px rgba(56, 189, 248, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  .dark .mobile-bottom-nav:hover::before,
+  .dark .mobile-bottom-nav:has(.mobile-bottom-nav-item:hover)::before,
+  .dark .mobile-bottom-nav:has(.mobile-bottom-nav-item:focus-visible)::before {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(129, 201, 255, 0.78);
+    box-shadow:
+      inset 0 0 10px rgba(56, 189, 248, 0.40),
+      inset 0 1px 0 rgba(255, 255, 255, 0.26);
   }
 
   .high-contrast .mobile-bottom-nav {
     border: 1px solid #ffffff;
   }
 
-  .high-contrast .mobile-bottom-nav::before {
+  .high-contrast .mobile-bottom-nav::before,
+  .high-contrast .mobile-bottom-nav:hover::before,
+  .high-contrast .mobile-bottom-nav:has(.mobile-bottom-nav-item:hover)::before,
+  .high-contrast .mobile-bottom-nav:has(.mobile-bottom-nav-item:focus-visible)::before {
     background: #ffffff;
     border-color: #ffffff;
-    box-shadow: none;
+    box-shadow: 0 0 0 2px #ffffff;
   }
 
   .high-contrast .mobile-bottom-nav-item[data-active="true"] {
@@ -17189,6 +17223,10 @@ img.transit-line-badge {
   .mobile-bottom-nav-item[data-active="true"] {
     background: transparent;
     border-color: transparent;
+    color: var(--mobile-chrome-text);
+  }
+
+  .mobile-bottom-nav-item:hover:not([data-active="true"]) {
     color: var(--mobile-chrome-text);
   }
 

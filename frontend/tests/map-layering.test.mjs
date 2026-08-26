@@ -121,8 +121,8 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /@media \(pointer:\s*coarse\) \{[\s\S]*?\.station-hit-target,[\s\S]*?stroke-width:\s*72px;/,
-      "touch pointers should prioritize stations where their screen-space targets overlap disruption corridors",
+      /@media \(pointer:\s*coarse\) \{[\s\S]*?\.station-hit-target,[\s\S]*?stroke-width:\s*32px;/,
+      "touch pointers should balance station targets without drowning out adjacent disruption corridors",
     );
   });
 
@@ -159,7 +159,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*96px;/s);
     assert.match(
       globalCss,
-      /@media \(pointer:\s*coarse\)[\s\S]*?\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*96px;/,
+      /@media \(pointer:\s*coarse\)[\s\S]*?\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*144px;/,
     );
   });
 
