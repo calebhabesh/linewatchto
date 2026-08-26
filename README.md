@@ -267,6 +267,10 @@ scripts/prod-backup-postgres.sh
 scripts/prod-deploy.sh <full-git-sha>
 ```
 
+The backup helper writes and verifies the new compressed dump before removing
+older production dumps. It retains only the latest successful pre-deployment
+backup, and a failed backup leaves the previous recovery point untouched.
+
 Routine production Compose commands:
 
 ```bash

@@ -386,6 +386,111 @@ EOF
   assert_contains "$(cat "$log")" "--project-name linewatch-override"
 }
 
+make_fake_backup_docker() {
+  local path="$1"
+
+  cat > "$path" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${FAKE_BACKUP_FAIL:-false}" == "true" ]]; then
+  printf 'incomplete dump\n'
+  exit 23
+fi
+printf '%s\n' '-- PostgreSQL database dump complete'
+EOF
+  chmod +x "$path"
+}
+
+test_backup_keeps_only_latest_verified_dump() {
+  local temp_dir
+  local backup_dir
+  local prod_env
+  local release_env
+  local fake_docker
+  local old_backup
+  local output
+  local backups
+
+  temp_dir="$(mktemp -d "$TEST_TMP/backup-success.XXXXXX")"
+  backup_dir="$temp_dir/backups"
+  prod_env="$temp_dir/.env.production"
+  release_env="$temp_dir/.env.release"
+  fake_docker="$temp_dir/docker"
+  old_backup="$backup_dir/linewatch-postgres-20000101T000000Z.sql.gz"
+
+  mkdir "$backup_dir"
+  printf 'POSTGRES_PASSWORD=test\n' > "$prod_env"
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA"
+  make_fake_backup_docker "$fake_docker"
+  printf 'old dump\n' | gzip > "$old_backup"
+
+  output="$(
+    DOCKER_BIN="$fake_docker" \
+    LINEWATCH_BACKUP_DIR="$backup_dir" \
+    LINEWATCH_PROD_ENV_FILE="$prod_env" \
+    LINEWATCH_RELEASE_ENV_FILE="$release_env" \
+      "$ROOT_DIR/scripts/prod-backup-postgres.sh"
+  )"
+
+  gzip -t "$output"
+  assert_contains "$(gzip -dc "$output")" "PostgreSQL database dump complete"
+  [[ ! -e "$old_backup" ]] || fail "expected the older backup to be removed"
+
+  shopt -s nullglob
+  backups=("$backup_dir"/linewatch-postgres-*.sql.gz)
+  shopt -u nullglob
+  assert_equals "${#backups[@]}" "1"
+}
+
+test_failed_backup_preserves_previous_dump() {
+  local temp_dir
+  local backup_dir
+  local prod_env
+  local release_env
+  local fake_docker
+  local old_backup
+  local output
+  local status
+  local backups
+  local temporary_files
+
+  temp_dir="$(mktemp -d "$TEST_TMP/backup-failure.XXXXXX")"
+  backup_dir="$temp_dir/backups"
+  prod_env="$temp_dir/.env.production"
+  release_env="$temp_dir/.env.release"
+  fake_docker="$temp_dir/docker"
+  old_backup="$backup_dir/linewatch-postgres-20000101T000000Z.sql.gz"
+
+  mkdir "$backup_dir"
+  printf 'POSTGRES_PASSWORD=test\n' > "$prod_env"
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA"
+  make_fake_backup_docker "$fake_docker"
+  printf 'old dump\n' | gzip > "$old_backup"
+
+  set +e
+  output="$(
+    FAKE_BACKUP_FAIL=true \
+    DOCKER_BIN="$fake_docker" \
+    LINEWATCH_BACKUP_DIR="$backup_dir" \
+    LINEWATCH_PROD_ENV_FILE="$prod_env" \
+    LINEWATCH_RELEASE_ENV_FILE="$release_env" \
+      "$ROOT_DIR/scripts/prod-backup-postgres.sh" 2>&1
+  )"
+  status=$?
+  set -e
+
+  assert_equals "$status" "23"
+  gzip -t "$old_backup"
+
+  shopt -s nullglob
+  backups=("$backup_dir"/linewatch-postgres-*.sql.gz)
+  temporary_files=("$backup_dir"/.linewatch-postgres-*.tmp.*)
+  shopt -u nullglob
+  assert_equals "${#backups[@]}" "1"
+  assert_equals "${backups[0]}" "$old_backup"
+  assert_equals "${#temporary_files[@]}" "0"
+}
+
 make_fake_deploy_docker() {
   local path="$1"
 
@@ -569,6 +674,8 @@ run_test "release env writes reject empty output paths" test_rejects_empty_relea
 run_test "release builds require a clean Git worktree" test_requires_clean_git_worktree
 run_test "build script targets ARM64 registry images" test_build_script_targets_arm64_registry_images
 run_test "Compose wrapper loads both env files" test_compose_wrapper_loads_runtime_and_release_env
+run_test "backup retains only the latest verified dump" test_backup_keeps_only_latest_verified_dump
+run_test "failed backup preserves the previous dump" test_failed_backup_preserves_previous_dump
 run_test "deploy promotes a healthy candidate" test_deploy_promotes_release_after_healthy_start
 run_test "deploy retains the previous tag on failure" test_deploy_keeps_previous_release_after_failed_start
 run_test "deploy retains the previous tag when Caddy recreation fails" test_deploy_keeps_previous_release_when_caddy_recreate_fails
