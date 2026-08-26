@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   emptyRegionalArrivalSnapshot,
+  formatRegionalArrivalCoachCount,
   formatRegionalArrivalSourceSummary,
   formatRegionalArrivalClockTime,
   formatRegionalArrivalDelay,
@@ -43,6 +44,7 @@ describe("regional station arrivals adapter", () => {
           delayMinutes: 3,
           platform: "11",
           tripNumber: "3775",
+          coachCount: 12,
           source: "Metrolinx GO Next Service",
           status: "live",
         }],
@@ -53,6 +55,7 @@ describe("regional station arrivals adapter", () => {
     assert.equal(result.data.availability, "available");
     assert.equal(result.data.arrivals[0].platform, "11");
     assert.equal(result.data.arrivals[0].delayMinutes, 3);
+    assert.equal(result.data.arrivals[0].coachCount, 12);
   });
 
   it("preserves the last backend regional snapshot through a transient browser request failure", () => {
@@ -123,6 +126,13 @@ describe("regional station arrivals adapter", () => {
     assert.equal(getRegionalArrivalDelayMinutes({ status: "live", delayMinutes: 3.9 }), 3);
     assert.equal(formatRegionalArrivalDelay({ status: "live", delayMinutes: 0 }), null);
     assert.equal(formatRegionalArrivalDelay({ status: "scheduled", delayMinutes: 27 }), null);
+  });
+
+  it("formats only valid positive coach counts", () => {
+    assert.equal(formatRegionalArrivalCoachCount({ coachCount: 12 }), "Coaches: 12");
+    assert.equal(formatRegionalArrivalCoachCount({ coachCount: null }), null);
+    assert.equal(formatRegionalArrivalCoachCount({ coachCount: 0 }), null);
+    assert.equal(formatRegionalArrivalCoachCount({ coachCount: 10.5 }), null);
   });
 
   it("waits until a live regional train is within 30 minutes before surfacing its delay", () => {

@@ -1038,6 +1038,7 @@ const server = createServer(async (request, response) => {
         delayMinutes: 6,
         platform: "11",
         tripNumber: "3775",
+        coachCount: 12,
         source: "Metrolinx GO Next Service",
         status: "live",
       }],

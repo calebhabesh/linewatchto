@@ -24,6 +24,7 @@ public class MetrolinxArrivalClient {
     static final String GO_SOURCE = "Metrolinx GO Next Service";
     static final String UP_SOURCE = "Metrolinx UP Express GTFS-RT Trip Updates";
     private static final String GO_NEXT_SERVICE_PATH = "api/V1/Stop/NextService/";
+    private static final String GO_TRAINS_PATH = "api/V1/ServiceataGlance/Trains/All";
     static final String UP_TRIP_UPDATES_PATH = "api/V1/UP/Gtfs/Feed/TripUpdates";
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
     private static final DateTimeFormatter METROLINX_DATE_TIME =
@@ -93,6 +94,34 @@ public class MetrolinxArrivalClient {
         return new RegionalArrivalFeed(
             parseTimestamp(root.path("Metadata").path("TimeStamp").asText("")),
             List.copyOf(arrivals)
+        );
+    }
+
+    public GoTrainCoachCountFeed fetchGoTrainCoachCounts() {
+        JsonNode root = fetch(GO_TRAINS_PATH, "GO in-service train coach counts");
+        String errorCode = root.path("Metadata").path("ErrorCode").asText("");
+        if (!"200".equals(errorCode)) {
+            throw new MetrolinxClientException("Metrolinx GO train coach-count response was unsuccessful");
+        }
+
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        List<String> ambiguousTrips = new ArrayList<>();
+        for (JsonNode row : arrayOrSingleton(root.path("Trips").path("Trip"))) {
+            String tripNumber = row.path("TripNumber").asText("").trim();
+            Integer coachCount = positiveInteger(row.path("Cars").asText(""));
+            if (tripNumber.isEmpty() || coachCount == null) {
+                continue;
+            }
+            Integer existing = counts.putIfAbsent(normalize(tripNumber), coachCount);
+            if (existing != null && !existing.equals(coachCount)) {
+                counts.remove(normalize(tripNumber));
+                ambiguousTrips.add(normalize(tripNumber));
+            }
+        }
+        ambiguousTrips.forEach(counts::remove);
+        return new GoTrainCoachCountFeed(
+            parseTimestamp(root.path("Metadata").path("TimeStamp").asText("")),
+            Map.copyOf(counts)
         );
     }
 
@@ -223,6 +252,21 @@ public class MetrolinxArrivalClient {
         List<JsonNode> values = new ArrayList<>();
         node.forEach(values::add);
         return values;
+    }
+
+    private List<JsonNode> arrayOrSingleton(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) return List.of();
+        if (!node.isArray()) return node.isObject() ? List.of(node) : List.of();
+        return array(node);
+    }
+
+    private Integer positiveInteger(String value) {
+        try {
+            int parsed = Integer.parseInt(value == null ? "" : value.trim());
+            return parsed > 0 ? parsed : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private OffsetDateTime parseTimestamp(String value) {

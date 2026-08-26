@@ -45,6 +45,69 @@ class RegionalArrivalServiceTest {
     }
 
     @Test
+    void addsOnlyFreshExactlyMatchedGoCoachCounts() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:43Z");
+        when(client.fetchGoNextService("ML")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of(
+            regionalLiveArrival(
+                "regional-mi", "Union Station", "2026-07-28T20:10:00Z",
+                "2026-07-28T20:09:00Z", "MI100"
+            ),
+            regionalLiveArrival(
+                "regional-mi", "Milton GO", "2026-07-28T20:20:00Z",
+                "2026-07-28T20:20:00Z", "MI201"
+            )
+        )));
+        when(client.fetchGoTrainCoachCounts()).thenReturn(new GoTrainCoachCountFeed(
+            updatedAt,
+            java.util.Map.of("MI100", 12, "UNRELATED", 6)
+        ));
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        when(scheduled.arrivals("milton", List.of("regional-mi"))).thenReturn(List.of());
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("milton");
+
+        assertThat(response.arrivals())
+            .extracting(
+                RegionalArrivalResponses.ArrivalResponse::tripNumber,
+                RegionalArrivalResponses.ArrivalResponse::coachCount
+            )
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("MI100", 12),
+                org.assertj.core.groups.Tuple.tuple("MI201", null)
+            );
+    }
+
+    @Test
+    void suppressesStaleGoCoachCounts() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setMaxSourceAge(Duration.ofMinutes(5));
+        OffsetDateTime arrivalUpdatedAt = OffsetDateTime.parse("2026-07-28T19:47:43Z");
+        when(client.fetchGoNextService("ML")).thenReturn(new RegionalArrivalFeed(arrivalUpdatedAt, List.of(
+            regionalLiveArrival(
+                "regional-mi", "Union Station", "2026-07-28T20:10:00Z",
+                "2026-07-28T20:09:00Z", "MI100"
+            )
+        )));
+        when(client.fetchGoTrainCoachCounts()).thenReturn(new GoTrainCoachCountFeed(
+            OffsetDateTime.parse("2026-07-28T19:42:59Z"),
+            java.util.Map.of("MI100", 12)
+        ));
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        when(scheduled.arrivals("milton", List.of("regional-mi"))).thenReturn(List.of());
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        assertThat(service.arrivals("milton").arrivals()).singleElement()
+            .extracting(RegionalArrivalResponses.ArrivalResponse::coachCount)
+            .isNull();
+    }
+
+    @Test
     void retainsGoArrivalsThroughPartialAndFailedRefreshesThenExpiresToSchedule() {
         MutableClock clock = new MutableClock(Instant.parse("2026-07-28T19:48:00Z"));
         MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);

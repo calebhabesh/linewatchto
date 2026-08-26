@@ -30,6 +30,7 @@ public final class RegionalArrivalResponses {
         int delayMinutes,
         String platform,
         String tripNumber,
+        Integer coachCount,
         String source,
         String status
     ) {

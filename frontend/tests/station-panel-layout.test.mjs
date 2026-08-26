@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
+const myStationsPanelSource = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const surfaceConnectionsSource = readFileSync(new URL("../src/components/SurfaceConnectionsSection.tsx", import.meta.url), "utf8");
 const stationConnectionsSource = readFileSync(new URL("../src/components/StationConnectionBadges.tsx", import.meta.url), "utf8");
 const arrivalPinSource = readFileSync(new URL("../src/components/ArrivalLinePinButton.tsx", import.meta.url), "utf8");
@@ -13,6 +14,15 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("station detail panel layout", () => {
+  it("reserves a bottom-right corner for regional arrival coach counts", () => {
+    assert.match(regionalPanelSource, /data-regional-arrival-coach-count/);
+    assert.match(regionalPanelSource, /absolute bottom-1\.5 right-1\.5/);
+    assert.match(myStationsPanelSource, /data-regional-arrival-coach-count/);
+    assert.match(myStationsPanelSource, /absolute bottom-1\.5 right-1\.5/);
+    assert.match(regionalPanelSource, /coachCountLabel[\s\S]*?pb-6/);
+    assert.match(myStationsPanelSource, /coachCountLabel[\s\S]*?pb-6/);
+  });
+
   it("only lets a delayed panel close clear the station that started closing", () => {
     assert.match(
       shellSource,

@@ -43,6 +43,11 @@ public class RegionalArrivalService {
         OffsetDateTime cacheUntil
     ) {}
 
+    private record CachedCoachCounts(
+        OffsetDateTime expiresAt,
+        GoTrainCoachCountFeed feed
+    ) {}
+
     private final MetrolinxArrivalClient client;
     private final RegionalScheduledArrivalProvider scheduledProvider;
     private final RegionalArrivalProperties properties;
@@ -51,6 +56,8 @@ public class RegionalArrivalService {
     private final Map<String, Object> refreshLocks = new ConcurrentHashMap<>();
     private final Map<RealtimeDirectionKey, RetainedRealtimeDirection> retainedRealtimeDirections =
         new ConcurrentHashMap<>();
+    private final Object coachCountRefreshLock = new Object();
+    private volatile CachedCoachCounts cachedCoachCounts;
 
     public RegionalArrivalService(
         MetrolinxArrivalClient client,
@@ -107,8 +114,10 @@ public class RegionalArrivalService {
         List<RegionalArrivalFeed> feeds = new ArrayList<>();
         int requestedFeeds = 0;
         int failedFeeds = 0;
+        boolean requestsGo = properties.isEnabled()
+            && station.lineIds().stream().anyMatch(lineId -> !"regional-up".equals(lineId));
 
-        if (properties.isEnabled() && station.lineIds().stream().anyMatch(lineId -> !"regional-up".equals(lineId))) {
+        if (requestsGo) {
             requestedFeeds++;
             try {
                 feeds.add(client.fetchGoNextService(stopCode));
@@ -156,6 +165,7 @@ public class RegionalArrivalService {
                 .thenComparing(RegionalArrivalRecord::tripNumber))
             .toList();
         List<RegionalArrivalRecord> bounded = boundPerDirection(station.id(), visible);
+        Map<String, Integer> coachCounts = requestsGo ? goCoachCounts(now) : Map.of();
         OffsetDateTime sourceUpdatedAt = java.util.Optional.ofNullable(realtime.latestSourceUpdatedAt())
             .or(() -> scheduledProvider.latestImportedAt(station.lineIds()))
             .orElse(null);
@@ -186,7 +196,7 @@ public class RegionalArrivalService {
         return new RefreshResult(
             new RegionalArrivalResponses.SnapshotResponse(
                 station.id(), station.name(), availability, now, sourceUpdatedAt, source, message,
-                bounded.stream().map(arrival -> response(arrival, now)).toList()
+                bounded.stream().map(arrival -> response(arrival, now, coachCounts)).toList()
             ),
             realtime.cacheUntil()
         );
@@ -446,6 +456,47 @@ public class RegionalArrivalService {
         return age.isNegative() || age.compareTo(properties.getMaxSourceAge()) <= 0;
     }
 
+    private Map<String, Integer> goCoachCounts(OffsetDateTime now) {
+        CachedCoachCounts cached = cachedCoachCounts;
+        if (cached != null && cached.expiresAt().isAfter(now)) {
+            return freshCoachCounts(cached.feed(), now);
+        }
+
+        synchronized (coachCountRefreshLock) {
+            cached = cachedCoachCounts;
+            if (cached != null && cached.expiresAt().isAfter(now)) {
+                return freshCoachCounts(cached.feed(), now);
+            }
+            try {
+                GoTrainCoachCountFeed feed = client.fetchGoTrainCoachCounts();
+                cachedCoachCounts = new CachedCoachCounts(
+                    now.plus(nonNegative(properties.getCacheTtl())),
+                    feed
+                );
+                return freshCoachCounts(feed, now);
+            } catch (MetrolinxClientException ignored) {
+                if (cached != null) {
+                    Map<String, Integer> lastGood = freshCoachCounts(cached.feed(), now);
+                    if (!lastGood.isEmpty()) {
+                        return lastGood;
+                    }
+                }
+                cachedCoachCounts = new CachedCoachCounts(
+                    now.plus(nonNegative(properties.getCacheTtl())),
+                    new GoTrainCoachCountFeed(null, Map.of())
+                );
+                return Map.of();
+            }
+        }
+    }
+
+    private Map<String, Integer> freshCoachCounts(GoTrainCoachCountFeed feed, OffsetDateTime now) {
+        if (feed == null || feed.sourceUpdatedAt() == null) return Map.of();
+        Duration age = Duration.between(feed.sourceUpdatedAt(), now);
+        if (!age.isNegative() && age.compareTo(properties.getMaxSourceAge()) > 0) return Map.of();
+        return feed.coachCountsByTripNumber();
+    }
+
     private List<RegionalArrivalRecord> boundPerDirection(
         String stationId,
         List<RegionalArrivalRecord> arrivals
@@ -467,7 +518,11 @@ public class RegionalArrivalService {
         return List.copyOf(result);
     }
 
-    private RegionalArrivalResponses.ArrivalResponse response(RegionalArrivalRecord arrival, OffsetDateTime now) {
+    private RegionalArrivalResponses.ArrivalResponse response(
+        RegionalArrivalRecord arrival,
+        OffsetDateTime now,
+        Map<String, Integer> coachCounts
+    ) {
         RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(arrival.lineId()).orElseThrow();
         int minutes = Math.max(0, (int) Math.ceil(Duration.between(now, arrival.predictedAt()).toSeconds() / 60.0));
         int delayMinutes = Math.max(0, (int) ChronoUnit.MINUTES.between(
@@ -476,8 +531,13 @@ public class RegionalArrivalService {
         return new RegionalArrivalResponses.ArrivalResponse(
             route.id(), route.number(), route.name(), arrival.direction(), minutes,
             arrival.predictedAt(), arrival.scheduledAt(), delayMinutes, arrival.platform(),
-            arrival.tripNumber(), arrival.source(), arrival.status()
+            arrival.tripNumber(), coachCounts.get(normalizeTripNumber(arrival.tripNumber())),
+            arrival.source(), arrival.status()
         );
+    }
+
+    private String normalizeTripNumber(String value) {
+        return value == null ? "" : value.trim().toUpperCase(Locale.CANADA);
     }
 
     private RegionalArrivalResponses.SnapshotResponse unavailable(

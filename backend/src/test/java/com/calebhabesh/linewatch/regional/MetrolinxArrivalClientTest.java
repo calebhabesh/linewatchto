@@ -62,6 +62,29 @@ class MetrolinxArrivalClientTest {
     }
 
     @Test
+    void normalizesCoachCountsForUnambiguousInServiceTrips() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceataGlance/Trains/All?key=" + KEY))
+            .andRespond(withSuccess("""
+                {"Metadata":{"TimeStamp":"2026-07-28 15:47:43","ErrorCode":"200","ErrorMessage":"OK"},
+                 "Trips":{"Trip":[
+                   {"Cars":"12","TripNumber":"3775"},
+                   {"Cars":"6","TripNumber":"6313"},
+                   {"Cars":"unknown","TripNumber":"6315"},
+                   {"Cars":"10","TripNumber":"6919"},
+                   {"Cars":"12","TripNumber":"6919"}
+                 ]}}
+                """, MediaType.APPLICATION_JSON));
+
+        GoTrainCoachCountFeed feed = client.fetchGoTrainCoachCounts();
+
+        assertThat(feed.sourceUpdatedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T15:47:43-04:00"));
+        assertThat(feed.coachCountsByTripNumber()).containsExactlyInAnyOrderEntriesOf(
+            java.util.Map.of("3775", 12, "6313", 6)
+        );
+        server.verify();
+    }
+
+    @Test
     void normalizesGoBusRowsWithOptionalPublishedBayAndScheduledFallback() {
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Stop/NextService/BE?key=" + KEY))
             .andRespond(withSuccess("""

@@ -4349,6 +4349,8 @@ test("My Stations shows regional disruptions, accessibility outages, and arrival
 
   await page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]').press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
+  await expect(stationPanel.getByText("6 Min Late", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("Coaches: 12", { exact: true })).toBeVisible();
   await stationPanel.getByRole("button", { name: "Save Pickering to My Stations" }).click();
   const saveNotice = page.getByRole("status").filter({ hasText: "Pickering added to" });
   await saveNotice.getByRole("button", { name: "My Stations" }).click();
@@ -4359,6 +4361,7 @@ test("My Stations shows regional disruptions, accessibility outages, and arrival
   await expect(pickeringRow.getByText("Metrolinx GO Next Service", { exact: true })).toBeVisible();
   await expect(pickeringRow.getByText("7 min", { exact: true })).toBeVisible();
   await expect(pickeringRow.getByText("6 Min Late", { exact: true })).toBeVisible();
+  await expect(pickeringRow.getByText("Coaches: 12", { exact: true })).toBeVisible();
   await pickeringRow.getByText("Active Disruptions", { exact: true }).click();
   await expect(pickeringRow.getByText(/Delay/).first()).toBeVisible();
 

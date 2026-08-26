@@ -22,6 +22,7 @@ import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelec
 import { DataProvider, useDashboardData, type DashboardData } from "../app/DataContext";
 import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId, type RegionalRouteCode } from "../app/regional-data";
 import {
+  formatRegionalArrivalCoachCount,
   formatRegionalArrivalClockTime,
   formatRegionalDestinationName,
   getRegionalStationArrivals,
@@ -630,9 +631,16 @@ function SavedStationRow({
                                     && !group.isTerminating
                                     && `To ${destinationName}`.toLowerCase() !== group.destinationLabel.trim().toLowerCase(),
                                   );
+                                  const coachCountLabel = formatRegionalArrivalCoachCount(arrival);
                                   const arrivalTileClassName = [
                                     "relative flex flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 text-center transition-colors",
-                                    showTileDestination ? "min-h-[66px] sm:min-h-[72px] pb-2" : "min-h-[64px] sm:min-h-[68px] pb-2",
+                                    coachCountLabel
+                                      ? showTileDestination
+                                        ? "min-h-[82px] sm:min-h-[88px] pb-6"
+                                        : "min-h-[78px] sm:min-h-[84px] pb-6"
+                                      : showTileDestination
+                                        ? "min-h-[66px] sm:min-h-[72px] pb-2"
+                                        : "min-h-[64px] sm:min-h-[68px] pb-2",
                                     due
                                       ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                       : delayed
@@ -689,6 +697,14 @@ function SavedStationRow({
                                           title={`To ${destinationName}`}
                                         >
                                           To {destinationName}
+                                        </span>
+                                      ) : null}
+                                      {coachCountLabel ? (
+                                        <span
+                                          data-regional-arrival-coach-count
+                                          className="absolute bottom-1.5 right-1.5 whitespace-nowrap text-[8px] sm:text-[9px] font-extrabold leading-none tracking-tight opacity-75"
+                                        >
+                                          {coachCountLabel}
                                         </span>
                                       ) : null}
                                     </div>

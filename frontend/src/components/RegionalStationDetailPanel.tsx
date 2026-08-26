@@ -19,6 +19,7 @@ import {
 } from "../app/regional-data";
 import {
   emptyRegionalArrivalSnapshot,
+  formatRegionalArrivalCoachCount,
   formatRegionalArrivalClockTime,
   formatRegionalArrivalSourceSummary,
   formatRegionalDestinationName,
@@ -1080,6 +1081,7 @@ export function RegionalStationDetailPanel({
                                                   && !group.isTerminating
                                                   && `To ${destinationName}`.toLowerCase() !== group.destinationLabel.trim().toLowerCase(),
                                                 );
+                                                const coachCountLabel = formatRegionalArrivalCoachCount(arrival);
                                                 return (
                                                   <div
                                                     key={`${arrival.tripNumber}:${arrival.predictedAt}`}
@@ -1087,7 +1089,13 @@ export function RegionalStationDetailPanel({
                                                     data-regional-arrival-due={due ? "true" : "false"}
                                                     className={[
                                                       "relative flex flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 text-center transition-colors",
-                                                      showTileDestination ? "min-h-[78px] sm:min-h-[82px] pb-2" : "min-h-[74px] sm:min-h-[78px] pb-1.5",
+                                                      coachCountLabel
+                                                        ? showTileDestination
+                                                          ? "min-h-[92px] sm:min-h-[96px] pb-6"
+                                                          : "min-h-[86px] sm:min-h-[90px] pb-6"
+                                                        : showTileDestination
+                                                          ? "min-h-[78px] sm:min-h-[82px] pb-2"
+                                                          : "min-h-[74px] sm:min-h-[78px] pb-1.5",
                                                       tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"
                                                         ? "border-red-500/70 bg-red-500/15 text-red-900 shadow-[0_0_0_1px_rgba(239,68,68,0.16)] dark:text-red-50"
                                                         : tripChange?.kind === "added-stop"
@@ -1161,6 +1169,14 @@ export function RegionalStationDetailPanel({
                                                         title={`To ${destinationName}`}
                                                       >
                                                         To {destinationName}
+                                                      </span>
+                                                    ) : null}
+                                                    {coachCountLabel ? (
+                                                      <span
+                                                        data-regional-arrival-coach-count
+                                                        className="absolute bottom-1.5 right-1.5 whitespace-nowrap text-[9px] font-extrabold leading-none tracking-tight opacity-75"
+                                                      >
+                                                        {coachCountLabel}
                                                       </span>
                                                     ) : null}
                                                   </div>

@@ -21,6 +21,7 @@ export type RegionalArrival = {
   delayMinutes: number;
   platform: string;
   tripNumber: string;
+  coachCount: number | null;
   source: string;
   status: "live" | "scheduled";
 };
@@ -102,6 +103,15 @@ export function formatRegionalArrivalDelay(
 ): string | null {
   const delayMinutes = getRegionalArrivalDelayMinutes(arrival);
   return delayMinutes === null ? null : `${delayMinutes} Min Late`;
+}
+
+export function formatRegionalArrivalCoachCount(
+  arrival: Pick<RegionalArrival, "coachCount">,
+): string | null {
+  if (!Number.isInteger(arrival.coachCount) || (arrival.coachCount ?? 0) <= 0) {
+    return null;
+  }
+  return `Coaches: ${arrival.coachCount}`;
 }
 
 export const REGIONAL_ARRIVAL_DELAY_DISPLAY_WINDOW_MINUTES = 30;
