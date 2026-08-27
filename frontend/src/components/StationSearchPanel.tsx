@@ -200,6 +200,8 @@ function StationButton({
   authenticated,
   onToggleSaved,
   onRequestSignIn,
+  activeLineId,
+  activeFilters,
 }: {
   station: StationSummary;
   networkId: NetworkId;
@@ -213,10 +215,16 @@ function StationButton({
   authenticated: boolean;
   onToggleSaved: (stationId: string, networkId: NetworkId) => void;
   onRequestSignIn: () => void;
+  activeLineId?: string | null;
+  activeFilters?: StationAmenityFilter;
 }) {
-  const lines = station.lineIds
+  const allLines = station.lineIds
     .map((lineId) => lineById(lineId))
     .filter((line): line is StationSearchLine => Boolean(line));
+
+  const displayLines = activeLineId
+    ? allLines.filter((line) => line.id !== activeLineId)
+    : allLines;
 
   const isWheelchair = station.wheelchairAccessible ?? isStationWheelchairAccessible(station.id, station.lineIds, networkId);
   const hasElevator = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds, networkId);
@@ -226,6 +234,19 @@ function StationButton({
   const hasBicycleRepair = station.hasBicycleRepair ?? isStationBicycleRepairAvailable(station.id, networkId);
   const hasBikeShare = station.hasBikeShare ?? isStationBikeShareAvailable(station.id, networkId);
   const hasPpudo = station.hasPpudo ?? isStationPpudoAvailable(station.id, networkId);
+
+  const hasFilterActive = hasActiveAmenityFilters(activeFilters ?? {});
+
+  const showWheelchair = hasFilterActive ? Boolean(activeFilters?.wheelchair && isWheelchair) : isWheelchair;
+  const showElevator = hasFilterActive ? Boolean(activeFilters?.elevator && hasElevator) : false;
+  const showWashroom = hasFilterActive ? Boolean(activeFilters?.washroom && hasWashroom) : false;
+  const showParking = hasFilterActive ? Boolean(activeFilters?.parking && hasParking) : false;
+  const showBicycleLockup = hasFilterActive ? Boolean(activeFilters?.bicycleLockup && hasBicycleLockup) : false;
+  const showBicycleRepair = hasFilterActive ? Boolean(activeFilters?.bicycleRepair && hasBicycleRepair) : false;
+  const showBikeShare = hasFilterActive ? Boolean(activeFilters?.bikeShare && hasBikeShare) : false;
+  const showPpudo = hasFilterActive ? Boolean(activeFilters?.ppudo && hasPpudo) : false;
+
+  const hasVisibleAmenities = showWheelchair || showElevator || showWashroom || showParking || showBicycleLockup || showBicycleRepair || showBikeShare || showPpudo;
 
   let accessibilityLabel = "";
   if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
@@ -248,105 +269,84 @@ function StationButton({
         aria-current={selected ? "true" : undefined}
         aria-label={`${station.name} ${networkId === "ttc" ? "TTC" : "GO and UP"} station search result${accessibilityLabel}`}
       >
-      <span className="min-w-0">
-          <span className="flex items-center gap-1.5 flex-wrap">
-            <span className="station-search-station-name !inline-block">{station.name}</span>
-          {isWheelchair && (
-            <span className="inline-flex items-center justify-center shrink-0" title="Wheelchair accessible">
-              <Image
-                src="/assets/linewatch/accessible.svg"
-                alt="Wheelchair accessible"
-                width={14}
-                height={14}
-                className="h-[14px] w-[14px] rounded-[2px] drop-shadow-[0_0_1px_rgba(0,130,201,0.22)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.3)]"
-              />
-            </span>
-          )}
-          {hasElevator && (
-            <span className="inline-flex items-center justify-center shrink-0" title="Elevator available">
-              <Image
-                src="/assets/linewatch/outages/elevator.svg"
-                alt="Elevator available"
-                width={14}
-                height={14}
-                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,130,201,0.22)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.3)]"
-              />
-            </span>
-          )}
-          {hasWashroom && (
-            <span className="inline-flex items-center justify-center shrink-0" title="Washrooms available">
-              <Image
-                src="/assets/linewatch/washroom.svg"
-                alt="Washrooms available"
-                width={14}
-                height={14}
-                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,0,0,0.22)]"
-              />
-            </span>
-          )}
-          {hasParking && (
-            <span className="inline-flex items-center justify-center shrink-0" title="Parking available">
-              <Image
-                src="/assets/linewatch/parking.svg"
-                alt="Parking available"
-                width={14}
-                height={14}
-                className="h-[14px] w-[14px] rounded-full drop-shadow-[0_0_1px_rgba(33,178,82,0.3)]"
-              />
-            </span>
-          )}
-          {hasBicycleLockup && (
-            <span className="inline-flex items-center justify-center shrink-0" title="Bicycle lock-up available">
-              <Image
-                src="/assets/linewatch/bicycle-lockup.svg"
-                alt="Bicycle lock-up available"
-                width={14}
-                height={14}
-                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,0,0,0.22)]"
-              />
-            </span>
-          )}
-          {hasBicycleRepair && (
-            <span className="inline-flex items-center justify-center shrink-0" title="Bicycle repair stand available">
-              <Image
-                src="/assets/linewatch/bicycle-repair.svg"
-                alt="Bicycle repair stand available"
-                width={14}
-                height={14}
-                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,0,0,0.22)]"
-              />
-            </span>
-          )}
-          {hasBikeShare && (
-            <span className="inline-flex items-center justify-center shrink-0" title="Bike Share Toronto available">
-              <Image
-                src="/assets/linewatch/bike-share-toronto.svg"
-                alt="Bike Share Toronto available"
-                width={14}
-                height={14}
-                className="h-[14px] w-[14px] rounded-full drop-shadow-[0_0_1px_rgba(0,100,75,0.3)]"
-              />
-            </span>
-          )}
-          {hasPpudo && (
-            <span className="inline-flex items-center justify-center shrink-0" title="Passenger pick-up / drop-off available">
-              <Image
-                src="/assets/linewatch/passenger-pick-up.svg"
-                alt="Passenger pick-up / drop-off available"
-                width={14}
-                height={14}
-                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,0,0,0.22)]"
-              />
+        <span className="min-w-0 flex flex-col justify-center">
+          <span className="station-search-station-name">{station.name}</span>
+          {hasVisibleAmenities && (
+            <span className="station-search-amenities flex items-center gap-1.5 flex-wrap mt-0.5">
+              {!hasFilterActive && showWheelchair && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400" title="Wheelchair accessible">
+                  <Image
+                    src="/assets/linewatch/accessible.svg"
+                    alt=""
+                    width={13}
+                    height={13}
+                    className="h-[13px] w-[13px] rounded-[2px] opacity-80 drop-shadow-[0_0_1px_rgba(0,130,201,0.22)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.3)]"
+                    aria-hidden="true"
+                  />
+                  <span>Accessible</span>
+                </span>
+              )}
+              {hasFilterActive && showWheelchair && (
+                <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-500/20" title="Wheelchair accessible">
+                  <Image src="/assets/linewatch/accessible.svg" alt="" width={12} height={12} className="h-3 w-3 rounded-[2px] shrink-0" aria-hidden="true" />
+                  <span>Accessible</span>
+                </span>
+              )}
+              {hasFilterActive && showElevator && (
+                <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-600 dark:text-sky-400 border border-sky-500/20" title="Elevator available">
+                  <Image src="/assets/linewatch/outages/elevator.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span>Elevator</span>
+                </span>
+              )}
+              {hasFilterActive && showWashroom && (
+                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-400/20" title="Washrooms available">
+                  <Image src="/assets/linewatch/washroom.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span>Washrooms</span>
+                </span>
+              )}
+              {hasFilterActive && showParking && (
+                <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title="Parking available">
+                  <Image src="/assets/linewatch/parking.svg" alt="" width={12} height={12} className="h-3 w-3 rounded-full shrink-0" aria-hidden="true" />
+                  <span>Parking</span>
+                </span>
+              )}
+              {hasFilterActive && showBicycleLockup && (
+                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-400/20" title="Bicycle lock-up available">
+                  <Image src="/assets/linewatch/bicycle-lockup.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span>Bike Lock-up</span>
+                </span>
+              )}
+              {hasFilterActive && showBicycleRepair && (
+                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-400/20" title="Bicycle repair stand available">
+                  <Image src="/assets/linewatch/bicycle-repair.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span>Bike Repair</span>
+                </span>
+              )}
+              {hasFilterActive && showBikeShare && (
+                <span className="inline-flex items-center gap-1 rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] font-bold text-teal-600 dark:text-teal-400 border border-teal-500/20" title="Bike Share Toronto available">
+                  <Image src="/assets/linewatch/bike-share-toronto.svg" alt="" width={12} height={12} className="h-3 w-3 rounded-full shrink-0" aria-hidden="true" />
+                  <span>Bike Share</span>
+                </span>
+              )}
+              {hasFilterActive && showPpudo && (
+                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-400/20" title="Passenger pick-up / drop-off available">
+                  <Image src="/assets/linewatch/passenger-pick-up.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span>Pick-up / Drop-off</span>
+                </span>
+              )}
             </span>
           )}
         </span>
-        <StationMetaFlags station={station} impactKinds={impactKinds} />
-      </span>
-      <span className="station-search-line-badges" aria-hidden="true">
-        {lines.map((line) => (
-          <StationLineBadge key={line.id} line={line} />
-        ))}
-      </span>
+        <span className="station-search-end flex items-center gap-2 shrink-0 justify-end" aria-hidden="true">
+          <StationMetaFlags station={station} impactKinds={impactKinds} />
+          {displayLines.length > 0 && (
+            <span className="station-search-line-badges">
+              {displayLines.map((line) => (
+                <StationLineBadge key={line.id} line={line} />
+              ))}
+            </span>
+          )}
+        </span>
       </button>
       <button
         type="button"
@@ -1040,6 +1040,7 @@ export function StationSearchPanel({
                                 authenticated={authenticated}
                                 onToggleSaved={onToggleSavedStation}
                                 onRequestSignIn={onRequestSignIn}
+                                activeFilters={amenityFilters}
                               />
                             );
                           })}
@@ -1080,6 +1081,7 @@ export function StationSearchPanel({
                                 authenticated={authenticated}
                                 onToggleSaved={onToggleSavedStation}
                                 onRequestSignIn={onRequestSignIn}
+                                activeFilters={amenityFilters}
                               />
                             );
                           })}
@@ -1294,6 +1296,8 @@ export function StationSearchPanel({
                         authenticated={authenticated}
                         onToggleSaved={onToggleSavedStation}
                         onRequestSignIn={onRequestSignIn}
+                        activeLineId={activeLineGroup.line.id}
+                        activeFilters={amenityFilters}
                       />
                     ))}
                   </div>

@@ -93,4 +93,19 @@ describe("unified search alert group headings", () => {
       /\.station-search-mobile-back\s*\{[^}]*margin-top:\s*12px\s*!important;[^}]*margin-bottom:\s*12px\s*!important;/s,
     );
   });
+
+  it("places station amenities under station text and positions alert/outage flags to the left of transit line badges", () => {
+    assert.match(
+      searchPanelSource,
+      /<span className="station-search-station-name">\{station\.name\}<\/span>\s*\{hasVisibleAmenities && \(\s*<span className="station-search-amenities/,
+    );
+    assert.match(
+      searchPanelSource,
+      /<span className="station-search-end[^"]*" aria-hidden="true">\s*<StationMetaFlags station=\{station\} impactKinds=\{impactKinds\} \/>\s*\{displayLines\.length > 0 && \(\s*<span className="station-search-line-badges">/,
+    );
+    assert.match(
+      globalCss,
+      /\.station-search-end\s*\{[^}]*display:\s*inline-flex;[^}]*align-items:\s*center;[^}]*gap:\s*8px;[^}]*justify-content:\s*flex-end;/s,
+    );
+  });
 });

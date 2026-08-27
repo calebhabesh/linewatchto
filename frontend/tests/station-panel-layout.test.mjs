@@ -393,5 +393,6 @@ describe("station detail panel layout", () => {
   it("renders a space-efficient 2-column grid that displays full readable badge text for search amenity chips", () => {
     assert.match(globalCss, /\.station-search-amenity-chips\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);[^}]*gap:\s*6px;/s);
     assert.match(globalCss, /\.station-search-amenity-chip span:not\(\.station-search-amenity-chip-count\)\s*\{[^}]*white-space:\s*nowrap;/s);
+    assert.match(globalCss, /\.station-search-panel\[data-expanded="true"\] \.station-search-amenity-chips\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s);
   });
 });

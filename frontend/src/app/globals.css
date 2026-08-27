@@ -10343,8 +10343,10 @@ img.transit-line-badge {
   gap: 6px;
 }
 
-.station-search-panel[data-expanded="true"] .station-search-amenity-chips {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+@media (min-width: 768px) {
+  .station-search-panel[data-expanded="true"] .station-search-amenity-chips {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .station-search-amenity-chip {
@@ -10367,8 +10369,8 @@ img.transit-line-badge {
 
 .station-search-amenity-chip span:not(.station-search-amenity-chip-count) {
   white-space: nowrap;
-  overflow: visible;
-  text-overflow: clip;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -11901,6 +11903,14 @@ img.transit-line-badge {
   color: rgb(110, 231, 183);
 }
 
+.station-search-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
 .station-search-line-badges,
 .station-search-flags {
   display: inline-flex;
@@ -11923,7 +11933,7 @@ img.transit-line-badge {
 }
 
 .station-search-flags {
-  margin-top: 5px;
+  margin-top: 0;
 }
 
 .station-impact-type-badges {
@@ -18924,6 +18934,10 @@ img.transit-line-badge {
   .station-search-amenity-toolbar {
     margin-bottom: 0;
     padding-bottom: 8px;
+  }
+
+  .station-search-panel[data-expanded="true"] .station-search-amenity-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .station-search-browse-container {
