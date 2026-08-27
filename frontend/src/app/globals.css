@@ -11831,8 +11831,15 @@ img.transit-line-badge {
   background: rgba(30, 58, 138, 0.42);
 }
 
+.station-search-station-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .station-search-station-name {
-  display: block;
+  display: inline;
   overflow-wrap: anywhere;
   font-size: 14px;
   font-weight: 900;

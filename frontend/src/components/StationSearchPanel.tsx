@@ -134,8 +134,8 @@ function lineById(lineId: string) {
   return stationSearchLineById(lineId);
 }
 
-function StationLineBadge({ line }: { line: StationSearchLine }) {
-  return <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={24} />;
+function StationLineBadge({ line, size = 18 }: { line: StationSearchLine; size?: number }) {
+  return <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={size} />;
 }
 
 function GlobalDestinationBadge({ view }: { view: GlobalDestinationView }) {
@@ -270,7 +270,16 @@ function StationButton({
         aria-label={`${station.name} ${networkId === "ttc" ? "TTC" : "GO and UP"} station search result${accessibilityLabel}`}
       >
         <span className="min-w-0 flex flex-col justify-center">
-          <span className="station-search-station-name">{station.name}</span>
+          <span className="station-search-station-header flex items-center gap-1.5 flex-wrap">
+            <span className="station-search-station-name">{station.name}</span>
+            {displayLines.length > 0 && (
+              <span className="station-search-line-badges inline-flex items-center gap-1 shrink-0">
+                {displayLines.map((line) => (
+                  <StationLineBadge key={line.id} line={line} size={18} />
+                ))}
+              </span>
+            )}
+          </span>
           {hasVisibleAmenities && (
             <span className="station-search-amenities flex items-center gap-1.5 flex-wrap mt-0.5">
               {!hasFilterActive && showWheelchair && (
@@ -339,13 +348,6 @@ function StationButton({
         </span>
         <span className="station-search-end flex items-center gap-2 shrink-0 justify-end" aria-hidden="true">
           <StationMetaFlags station={station} impactKinds={impactKinds} />
-          {displayLines.length > 0 && (
-            <span className="station-search-line-badges">
-              {displayLines.map((line) => (
-                <StationLineBadge key={line.id} line={line} />
-              ))}
-            </span>
-          )}
         </span>
       </button>
       <button

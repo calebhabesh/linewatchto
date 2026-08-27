@@ -94,14 +94,18 @@ describe("unified search alert group headings", () => {
     );
   });
 
-  it("places station amenities under station text and positions alert/outage flags to the left of transit line badges", () => {
+  it("places connecting transit line badges beside station text and positions alert/outage flags on the right", () => {
     assert.match(
       searchPanelSource,
-      /<span className="station-search-station-name">\{station\.name\}<\/span>\s*\{hasVisibleAmenities && \(\s*<span className="station-search-amenities/,
+      /<span className="station-search-station-header[^"]*">\s*<span className="station-search-station-name">\{station\.name\}<\/span>\s*\{displayLines\.length > 0 && \(\s*<span className="station-search-line-badges/,
     );
     assert.match(
       searchPanelSource,
-      /<span className="station-search-end[^"]*" aria-hidden="true">\s*<StationMetaFlags station=\{station\} impactKinds=\{impactKinds\} \/>\s*\{displayLines\.length > 0 && \(\s*<span className="station-search-line-badges">/,
+      /<span className="station-search-end[^"]*" aria-hidden="true">\s*<StationMetaFlags station=\{station\} impactKinds=\{impactKinds\} \/>\s*<\/span>/,
+    );
+    assert.match(
+      globalCss,
+      /\.station-search-station-header\s*\{[^}]*display:\s*inline-flex;[^}]*align-items:\s*center;[^}]*gap:\s*6px;/s,
     );
     assert.match(
       globalCss,
