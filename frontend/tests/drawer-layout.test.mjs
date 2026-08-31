@@ -10,6 +10,7 @@ const delaysPanelSource = readFileSync(new URL("../src/components/DelaysPanel.ts
 const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCardFields.tsx", import.meta.url), "utf8");
 const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
+const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
 const lineImpactsSource = readFileSync(new URL("../src/components/LineImpactsPanel.tsx", import.meta.url), "utf8");
@@ -70,6 +71,44 @@ describe("floating menu layout", () => {
     assert.match(reducedSpeedZonesSource, /useState\(initialLineId \?\? "all"\)/);
     assert.match(plannedClosuresSource, /useState\(initialLineId \?\? "all"\)/);
     assert.match(shellSource, /activeView !== "alerts"[\s\S]*setImpactListLaunch\(\(current\) => current\.lineId === null \? current : \{ \.\.\.current, lineId: null \}\)/);
+  });
+
+  it("gives the mobile map legend compact impact signals and line-level navigation", () => {
+    assert.match(mobileLegendSource, /useDashboardData\(\)/);
+    assert.match(mobileLegendSource, /mobile-legend-route-badge/);
+    assert.match(mobileLegendSource, /service-tone-\$\{line\.tone\}/);
+    assert.match(mobileLegendSource, /Service by line/);
+    assert.match(mobileLegendSource, /View all service impacts for \$\{line\.name\}/);
+    assert.match(mobileLegendSource, /onLineClick\?\.\(line\.dataLineId\)/);
+    assert.match(mobileLegendSource, /ResizeObserver\(publishHeight\)/);
+    assert.match(mobileLegendSource, /--mobile-map-legend-height/);
+    assert.match(shellSource, /setLegendExpanded\(false\);[\s\S]*openLineImpacts\(lineId\)/);
+    assert.match(globalCss, /\.mobile-legend-line-list\s*\{[^}]*overflow-y:\s*auto/s);
+    assert.match(globalCss, /\.mobile-legend-line-row\s*\{[^}]*min-height:\s*42px/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge\.service-tone-affected\s*\{[^}]*#ff334f/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge\.service-tone-good\s*\{[^}]*#22e37b/s);
+    assert.match(globalCss, /\.mobile-legend-pill\s*\{[^}]*width:\s*36px !important[^}]*max-width:\s*36px/s);
+    assert.match(globalCss, /\.mobile-legend-collapsed-toggle\s*\{[^}]*width:\s*34px/s);
+    assert.match(mobileLegendSource, /transitLineBadgeColors\(lineId\)/);
+    assert.match(mobileLegendSource, /mobile-legend-route-badge--ttc/);
+    assert.match(globalCss, /--mobile-legend-expanded-width:\s*min\(\s*212px/s);
+    assert.match(globalCss, /\.mobile-legend-collapsed-toggle\s*\{[^}]*padding:\s*8px 5px/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--compact\s*\{[^}]*--mobile-legend-outline-width:\s*1\.75px[^}]*height:\s*24px[^}]*width:\s*24px/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--expanded\s*\{[^}]*--mobile-legend-outline-width:\s*1\.75px[^}]*height:\s*24px[^}]*width:\s*24px/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge\s*\{[^}]*animation:\s*mobile-legend-badge-pulse 3\.8s[^}]*box-sizing:\s*border-box/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--regional > img\.transit-line-badge\s*\{[^}]*border-radius:\s*10% !important[^}]*outline:\s*var\(--mobile-legend-outline-width\) solid var\(--mobile-legend-ring-color\)[^}]*outline-offset:\s*0/s);
+    assert.match(globalCss, /@keyframes mobile-legend-badge-pulse/);
+    assert.match(globalCss, /\.mobile-legend-route-badge--ttc\s*\{[^}]*mobile-legend-badge-beam 16s[^}]*linear-gradient\(var\(--mobile-legend-badge-fill-color\)[^}]*conic-gradient\([^}]*from var\(--mobile-legend-beam-angle\)[^}]*border-box[^}]*border:\s*var\(--mobile-legend-outline-width\) solid transparent/s);
+    assert.match(globalCss, /@keyframes mobile-legend-badge-beam\s*\{[^}]*--mobile-legend-beam-angle:\s*360deg/s);
+    assert.match(globalCss, /\.mobile-legend-heading > span\s*\{[^}]*white-space:\s*nowrap/s);
+    assert.match(globalCss, /\.mobile-legend-heading\s*\{[^}]*padding:\s*0 9px/s);
+    assert.match(globalCss, /\.mobile-legend-collapse\s*\{[^}]*width:\s*15px/s);
+    assert.match(globalCss, /\.mobile-legend-line-row\s*\{[^}]*grid-template-columns:\s*24px minmax\(0, 1fr\) auto 15px[^}]*padding:\s*0 9px/s);
+    assert.match(globalCss, /\.mobile-legend-line-name\s*\{[^}]*font-size:\s*11px[^}]*margin-left:\s*4px/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge \.mobile-legend-route-number\s*\{[^}]*font-variant-numeric:\s*lining-nums tabular-nums[^}]*height:\s*100%[^}]*justify-content:\s*center[^}]*text-align:\s*center[^}]*transform:\s*translateY\(-1px\)[^}]*width:\s*100%/s);
+    assert.match(globalCss, /\.mobile-legend-line-status > strong\.service-tone-affected\s*\{[^}]*color:\s*#ef4444/s);
+    assert.match(globalCss, /--mobile-legend-expanded-width:\s*min\([\s\S]*var\(--mobile-top-action-cluster-width\)/);
+    assert.match(globalCss, /\.mobile-train-toggle--legend-expanded\s*\{[^}]*pointer-events:\s*none !important/s);
   });
 
   it("keeps the desktop panel chrome stable while animating keyed view content", () => {

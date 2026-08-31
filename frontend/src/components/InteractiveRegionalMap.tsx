@@ -4479,7 +4479,7 @@ function InteractiveRegionalMapComponent({
     );
     const height = compact
       ? Math.min(380, 56 + badge.impacts.length * 64)
-      : Math.min(440, 68 + badge.impacts.length * 76);
+      : Math.min(440, 68 + badge.impacts.length * 88);
     const markerCenter = {
       x: logicalMarkerRect.x + logicalMarkerRect.width / 2,
       y: logicalMarkerRect.y + logicalMarkerRect.height / 2,

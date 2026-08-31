@@ -3045,7 +3045,7 @@ function overlapChooserSize(impactCount: number, viewportWidth = OVERLAP_CHOOSER
     width: Math.max(240, Math.min(maximumWidth, viewportWidth - horizontalMargin)),
     height: isMobile
       ? Math.min(380, 56 + impactCount * 64)
-      : Math.min(440, 68 + impactCount * 76),
+      : Math.min(440, 68 + impactCount * 88),
   };
 }
 
@@ -4930,7 +4930,10 @@ function OverlapChooser({
                 </span>
                 <span className="overlap-chooser-choice-copy">
                   <strong>{overlapChooserTypeLabel(impact.kind, details)}</strong>
-                  <span>{formatOverlapChooserLocation(details, badge.label)}</span>
+                  {impact.kind === "planned-closure" && details?.closureDateLabel ? (
+                    <span className="overlap-chooser-choice-date">{details.closureDateLabel}</span>
+                  ) : null}
+                  <span className="overlap-chooser-choice-location">{formatOverlapChooserLocation(details, badge.label)}</span>
                 </span>
               </button>
             );

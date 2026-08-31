@@ -952,11 +952,15 @@ export function LineWatchShell({
   const legendProps = useMemo(() => ({
     expanded: legendExpanded,
     onToggleExpanded: () => setLegendExpanded((prev) => !prev),
+    onLineClick: (lineId: string) => {
+      setLegendExpanded(false);
+      openLineImpacts(lineId);
+    },
     onAlertClick: (lineId: string) => openLegendImpactCategory("alerts", lineId),
     onDelayClick: (lineId: string) => openLegendImpactCategory("delays", lineId),
     onReducedSpeedZoneClick: (lineId: string) => openLegendImpactCategory("reduced-speed-zones", lineId),
     onClosureClick: (lineId: string) => openLegendImpactCategory("closures", lineId),
-  }), [legendExpanded, openLegendImpactCategory]);
+  }), [legendExpanded, openLegendImpactCategory, openLineImpacts]);
   const [ttcStationSummaries, setTtcStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
   const stationCatalogs = useMemo(
     () => ({
@@ -4524,6 +4528,8 @@ export function LineWatchShell({
               : ""
           } ${estimatedTrainsEnabled ? "active" : ""} ${
             estimatedTrainDisplayPending ? "mobile-train-toggle--loading" : ""
+          } ${
+            legendExpanded ? "mobile-train-toggle--legend-expanded" : ""
           }`}
           data-map-chooser-keepout
           aria-pressed={estimatedTrainsEnabled}

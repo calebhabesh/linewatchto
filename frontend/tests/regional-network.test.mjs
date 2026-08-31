@@ -122,12 +122,14 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.subway-closing-soon-chip,[\s\S]*\.go-up-closed-peek-chip\s*\{[\s\S]*overflow:\s*hidden\s*!important/);
     assert.match(globalsCss, /\.subway-closed-peek-text\s*\{[\s\S]*overflow:\s*hidden\s*!important/);
     assert.match(mobileLegendSource, /mobile-legend-pill--regional/);
-    assert.match(mobileLegendSource, /expanded \? "gap-2" : "w-full justify-center gap-0"/);
-    assert.match(mobileLegendSource, /"w-0 max-w-0 opacity-0 translate-x-1 pointer-events-none"/);
-    assert.match(mobileLegendSource, /size=\{20\}/);
-    assert.match(mobileLegendSource, /isRegional[\s\S]*?\?\s*"w-\[40px\]/);
-    assert.match(mobileLegendSource, /name:\s*"Union Pearson Express"/);
-    assert.doesNotMatch(mobileLegendSource, /compactText/);
+    assert.match(mobileLegendSource, /mobile-legend-compact-row/);
+    assert.match(mobileLegendSource, /mobile-legend-line-list/);
+    assert.match(mobileLegendSource, /mobile-legend-route-badge--regional/);
+    assert.match(mobileLegendSource, /<TransitLineBadge/);
+    assert.match(mobileLegendSource, /size=\{24\}/);
+    assert.match(mobileLegendSource, /name:\s*"UP Express"/);
+    assert.match(globalsCss, /\.mobile-legend-pill--regional\s*\{[^}]*max-width:\s*36px/);
+    assert.match(globalsCss, /\.mobile-legend-line-list\s*\{[^}]*overflow-y:\s*auto/s);
     assert.match(
       globalsCss,
       /\.mobile-legend-pill--regional\.mobile-legend-pill--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)/,
@@ -142,11 +144,11 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(
       globalsCss,
-      /\.linewatch-shell\[data-network="regional"\] \.mobile-train-toggle,[\s\S]*\.mobile-train-toggle--regional\s*\{[\s\S]*220px \+ 12px\)/,
+      /\.linewatch-shell\[data-network="regional"\] \.mobile-train-toggle,[\s\S]*\.mobile-train-toggle--regional\s*\{[\s\S]*var\(--mobile-map-legend-height, 220px\) \+ 12px\)/,
     );
     assert.match(
       globalsCss,
-      /\.linewatch-shell\[data-network="regional"\] \.mobile-train-toggle--announcement,[\s\S]*\.mobile-train-toggle--regional\.mobile-train-toggle--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)[\s\S]*220px \+ 12px\)/,
+      /\.linewatch-shell\[data-network="regional"\] \.mobile-train-toggle--announcement,[\s\S]*\.mobile-train-toggle--regional\.mobile-train-toggle--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)[\s\S]*var\(--mobile-map-legend-height, 220px\) \+ 12px\)/,
     );
   });
 
@@ -874,6 +876,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\}/);
     assert.match(overlapChooserSource, /<strong>Choose Alert<\/strong>/);
     assert.match(overlapChooserSource, /data-overlap-choice-id=\{impact\.cardId\}/);
+    assert.match(overlapChooserSource, /details\?\.closureDateLabel/);
+    assert.match(overlapChooserSource, /overlap-chooser-choice-date/);
+    assert.match(regionalMapSource, /Math\.min\(440, 68 \+ badge\.impacts\.length \* 88\)/);
     assert.match(regionalMapSource, /visibleMapChooserKeepouts\(\)/);
     assert.match(regionalMapSource, /observeMapChooserKeepouts/);
     assert.match(regionalMapSource, /uiKeepoutBoxes/);

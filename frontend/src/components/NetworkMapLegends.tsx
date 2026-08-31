@@ -11,6 +11,7 @@ export type NetworkMapLegendProps = {
   onDelayClick: (lineId: string) => void;
   onReducedSpeedZoneClick: (lineId: string) => void;
   onClosureClick: (lineId: string) => void;
+  onLineClick: (lineId: string) => void;
 };
 
 export function NetworkMapLegend({
@@ -22,6 +23,7 @@ export function NetworkMapLegend({
   onDelayClick,
   onReducedSpeedZoneClick,
   onClosureClick,
+  onLineClick,
 }: NetworkMapLegendProps) {
   const isRegional = mode === "regional";
   return (
@@ -44,6 +46,7 @@ export function NetworkMapLegend({
         closingSoon={closingSoon}
         expanded={expanded}
         onToggleExpanded={onToggleExpanded}
+        onLineClick={onLineClick}
       />
     </>
   );

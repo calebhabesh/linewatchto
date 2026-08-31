@@ -689,6 +689,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
     assert.match(interactiveMapSource, /const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
+    assert.match(interactiveMapSource, /Math\.min\(440, 68 \+ impactCount \* 88\)/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-choice\s*\{[^}]*min-height:\s*82px;/);
     assert.match(interactiveMapSource, /protectedBoxesForImpacts\([\s\S]*?group\.impacts,[\s\S]*?collisionBoxesByImpact/);
@@ -730,6 +731,9 @@ describe("asset-backed map layering", () => {
     );
     assert.match(interactiveMapSource, /details\.displayDirection/);
     assert.match(interactiveMapSource, /return "Planned Closure"/);
+    assert.match(interactiveMapSource, /details\?\.closureDateLabel/);
+    assert.match(interactiveMapSource, /overlap-chooser-choice-date/);
+    assert.match(globalCss, /\.overlap-chooser-choice-date\s*\{[^}]*color:\s*#3b82f6;[^}]*font-size:\s*11px;/s);
     assert.doesNotMatch(interactiveMapSource, /overlap-chooser-choice-action/);
     assert.doesNotMatch(interactiveMapSource, /details\?\.title \?\? labelForImpactKind/);
     assert.match(globalCss, /\.overlap-chooser-surface/);
@@ -739,7 +743,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /opacity:\s*1;\s*transform:\s*scale\(1\);/);
     assert.match(globalCss, /\.overlap-chooser-header-count/);
     assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border-left-width:\s*2px;/s);
-    assert.match(globalCss, /\.overlap-chooser-list\s*\{[^}]*margin-right:\s*-6px;[^}]*padding-right:\s*6px;/s);
+    assert.match(globalCss, /\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;[^}]*margin-right:\s*-6px;[^}]*padding-right:\s*6px;/s);
     assert.match(globalCss, /\.overlap-chooser-choice\.reduced-speed-zone\s*\{[^}]*rgba\(245,\s*158,\s*11,\s*0\.42\)/s);
     assert.match(globalCss, /\.motion-paused \.overlap-chooser-surface/);
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-choice-copy strong\s*\{[^}]*font-size:\s*15px;/s);

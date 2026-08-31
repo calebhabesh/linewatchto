@@ -2736,6 +2736,44 @@ test("LineLegend clicks open a temporary line-focused view without highlighting 
   await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("all");
 });
 
+test("mobile map legend summarizes line impacts and opens the all-types line view", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only legend interaction");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const legendToggle = page.getByRole("button", { name: "Transit line legend" });
+  await expect(legendToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".mobile-legend-route-badge.service-tone-affected").first()).toBeVisible();
+  await expect(page.locator(".mobile-legend-route-badge.service-tone-good").first()).toBeVisible();
+  await expect.poll(async () => {
+    const [legendBox, trainBox] = await Promise.all([
+      page.locator(".mobile-legend-pill").boundingBox(),
+      page.locator(".mobile-train-toggle").boundingBox(),
+    ]);
+    return legendBox && trainBox ? Math.round(trainBox.y - (legendBox.y + legendBox.height)) : null;
+  }).toBeGreaterThanOrEqual(7);
+  await legendToggle.click();
+
+  await expect(page.getByText("Service by line", { exact: true })).toBeVisible();
+  await expect.poll(async () => {
+    const [legendBox, themeBox] = await Promise.all([
+      page.locator(".mobile-legend-pill").boundingBox(),
+      page.locator(".theme-toggle-btn:visible").boundingBox(),
+    ]);
+    return legendBox && themeBox ? Math.round(themeBox.x - (legendBox.x + legendBox.width)) : null;
+  }).toBeGreaterThanOrEqual(7);
+  const lineButton = page.getByRole("button", { name: /View all service impacts for Yonge-University:/ });
+  await expect(lineButton).toBeVisible();
+  await expect(lineButton.locator(".mobile-legend-route-badge.service-tone-affected")).toBeVisible();
+  await expect(lineButton.locator(".mobile-legend-line-status > strong.service-tone-affected")).toBeVisible();
+  await lineButton.click();
+
+  await expect(page.getByRole("heading", { name: /Yonge-University/ })).toBeVisible();
+  await expect(page.getByRole("group", { name: /Filter .*Yonge-University impacts by alert type/ })).toBeVisible();
+  await expect(page.getByText("Service by line", { exact: true })).toHaveCount(0);
+});
+
 test("Line Status opens an all-types line submenu on desktop and mobile", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   if (isMobile) {
@@ -3031,6 +3069,8 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapChooser.getByText("Active Closure", { exact: true })).toHaveCount(0);
   await expect(overlapChooser.getByText("Planned Closure", { exact: true })).toBeVisible();
   await expect(overlapChooser.getByText("Line 1: Stub Station to Stub Terminal (Northbound & Southbound)")).toHaveCount(3);
+  await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"] .overlap-chooser-choice-date'))
+    .toHaveText("Thu, Jul 23 – Fri, Jul 24");
   await expect(overlapChooser.locator(".overlap-chooser-choice-action")).toHaveCount(0);
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"]').first()).toHaveCSS("border-left-width", "2px");
   if (!isMobile) {

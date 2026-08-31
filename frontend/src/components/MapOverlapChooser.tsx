@@ -264,7 +264,10 @@ export function MapOverlapChooser({
                 </span>
                 <span className="overlap-chooser-choice-copy">
                   <strong>{typeLabel(impact.kind, details)}</strong>
-                  <span>{formatLocation(details, label)}</span>
+                  {impact.kind === "planned-closure" && details?.closureDateLabel ? (
+                    <span className="overlap-chooser-choice-date">{details.closureDateLabel}</span>
+                  ) : null}
+                  <span className="overlap-chooser-choice-location">{formatLocation(details, label)}</span>
                 </span>
               </button>
             );

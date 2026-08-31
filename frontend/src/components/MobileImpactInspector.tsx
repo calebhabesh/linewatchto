@@ -37,6 +37,7 @@ type SelectedImpactDetails = {
   nightly?: boolean;
   activeNow?: boolean;
   window?: string;
+  closureDateLabel?: string;
   startedAt?: string | null;
   updatedAt?: string | null;
   updatedAgo?: string | null;
@@ -252,6 +253,9 @@ export function getSelectedImpactDetails(
       nightly: closure?.nightly,
       activeNow: true,
       window: closure?.window,
+      closureDateLabel: closure?.windowDates
+        ? formatClosureScheduleValue(closure.windowDates)
+        : undefined,
       startedAt: activeClosure.startedAt,
       updatedAt: activeClosure.updatedAt,
       updatedAgo: activeClosure.updatedAgo,
@@ -324,6 +328,9 @@ export function getSelectedImpactDetails(
     nightly: closure.nightly,
     activeNow: closure.activeNow,
     window: closure.window,
+    closureDateLabel: closure.windowDates
+      ? formatClosureScheduleValue(closure.windowDates)
+      : undefined,
     startedAt: closure.startedAt,
     updatedAt: closure.updatedAt,
     updatedAgo: closure.updatedAgo,
