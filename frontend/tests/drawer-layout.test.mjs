@@ -93,19 +93,21 @@ describe("floating menu layout", () => {
     assert.match(mobileLegendSource, /mobile-legend-route-badge--ttc/);
     assert.match(globalCss, /--mobile-legend-expanded-width:\s*min\(\s*212px/s);
     assert.match(globalCss, /\.mobile-legend-collapsed-toggle\s*\{[^}]*padding:\s*8px 5px/s);
-    assert.match(globalCss, /\.mobile-legend-route-badge--compact\s*\{[^}]*--mobile-legend-outline-width:\s*1\.75px[^}]*height:\s*24px[^}]*width:\s*24px/s);
-    assert.match(globalCss, /\.mobile-legend-route-badge--expanded\s*\{[^}]*--mobile-legend-outline-width:\s*1\.75px[^}]*height:\s*24px[^}]*width:\s*24px/s);
-    assert.match(globalCss, /\.mobile-legend-route-badge\s*\{[^}]*animation:\s*mobile-legend-badge-pulse 3\.8s[^}]*box-sizing:\s*border-box/s);
-    assert.match(globalCss, /\.mobile-legend-route-badge--regional > img\.transit-line-badge\s*\{[^}]*border-radius:\s*10% !important[^}]*outline:\s*var\(--mobile-legend-outline-width\) solid var\(--mobile-legend-ring-color\)[^}]*outline-offset:\s*0/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--compact\s*\{[^}]*--mobile-legend-outline-width:\s*2\.25px[^}]*height:\s*24px[^}]*width:\s*24px/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--expanded\s*\{[^}]*--mobile-legend-outline-width:\s*2\.25px[^}]*height:\s*24px[^}]*width:\s*24px/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--regional\s*\{[^}]*background:\s*linear-gradient\(var\(--mobile-legend-ring-color\)[^}]*border:\s*var\(--mobile-legend-outline-width\) solid transparent[^}]*border-radius:\s*5px !important[^}]*height:\s*24px !important[^}]*width:\s*24px !important/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--regional\.service-tone-affected\s*\{[^}]*mobile-legend-badge-beam 16s[^}]*conic-gradient\([^}]*from var\(--mobile-legend-beam-angle\)[^}]*border-box/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--regional > img\.transit-line-badge\s*\{[^}]*border-radius:\s*3px !important[^}]*height:\s*100% !important[^}]*outline:\s*none !important[^}]*width:\s*100% !important/s);
     assert.match(globalCss, /@keyframes mobile-legend-badge-pulse/);
-    assert.match(globalCss, /\.mobile-legend-route-badge--ttc\s*\{[^}]*mobile-legend-badge-beam 16s[^}]*linear-gradient\(var\(--mobile-legend-badge-fill-color\)[^}]*conic-gradient\([^}]*from var\(--mobile-legend-beam-angle\)[^}]*border-box[^}]*border:\s*var\(--mobile-legend-outline-width\) solid transparent/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--ttc\s*\{[^}]*linear-gradient\(var\(--mobile-legend-badge-fill-color\)[^}]*linear-gradient\(var\(--mobile-legend-ring-color\)[^}]*border-box[^}]*border:\s*var\(--mobile-legend-outline-width\) solid transparent/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--ttc\.service-tone-affected\s*\{[^}]*mobile-legend-badge-beam 16s[^}]*linear-gradient\(var\(--mobile-legend-badge-fill-color\)[^}]*conic-gradient\([^}]*from var\(--mobile-legend-beam-angle\)[^}]*border-box/s);
     assert.match(globalCss, /@keyframes mobile-legend-badge-beam\s*\{[^}]*--mobile-legend-beam-angle:\s*360deg/s);
     assert.match(globalCss, /\.mobile-legend-heading > span\s*\{[^}]*white-space:\s*nowrap/s);
     assert.match(globalCss, /\.mobile-legend-heading\s*\{[^}]*padding:\s*0 9px/s);
     assert.match(globalCss, /\.mobile-legend-collapse\s*\{[^}]*width:\s*15px/s);
     assert.match(globalCss, /\.mobile-legend-line-row\s*\{[^}]*grid-template-columns:\s*24px minmax\(0, 1fr\) auto 15px[^}]*padding:\s*0 9px/s);
     assert.match(globalCss, /\.mobile-legend-line-name\s*\{[^}]*font-size:\s*11px[^}]*margin-left:\s*4px/s);
-    assert.match(globalCss, /\.mobile-legend-route-badge \.mobile-legend-route-number\s*\{[^}]*font-variant-numeric:\s*lining-nums tabular-nums[^}]*height:\s*100%[^}]*justify-content:\s*center[^}]*text-align:\s*center[^}]*transform:\s*translateY\(-1px\)[^}]*width:\s*100%/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge \.mobile-legend-route-number\s*\{[^}]*font-variant-numeric:\s*lining-nums tabular-nums[^}]*height:\s*100%[^}]*justify-content:\s*center[^}]*text-align:\s*center[^}]*width:\s*100%/s);
     assert.match(globalCss, /\.mobile-legend-line-status > strong\.service-tone-affected\s*\{[^}]*color:\s*#ef4444/s);
     assert.match(globalCss, /--mobile-legend-expanded-width:\s*min\([\s\S]*var\(--mobile-top-action-cluster-width\)/);
     assert.match(globalCss, /\.mobile-train-toggle--legend-expanded\s*\{[^}]*pointer-events:\s*none !important/s);
@@ -345,7 +347,7 @@ describe("floating menu layout", () => {
   });
 
   it("uses larger lettering inside fixed-size GO and UP legend badges", () => {
-    assert.match(lineLegendSource, /h-\[52px\] w-\[52px\][^"\n]*text-\[26px\]/);
+    assert.match(lineLegendSource, /h-\[44px\] w-\[44px\][^"\n]*text-\[22px\]/);
     assert.match(lineLegendSource, /backgroundColor: LINE_COLORS\[line\.id\]/);
   });
 

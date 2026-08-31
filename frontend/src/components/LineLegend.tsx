@@ -247,7 +247,7 @@ export function LineLegend({
 
         {isRegional ? (
           <span
-            className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[5px] text-[26px] font-extrabold leading-none text-white opacity-95"
+            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[4px] text-[22px] font-extrabold leading-none text-white opacity-95"
             style={{ backgroundColor: LINE_COLORS[line.id] ?? "#64748b" }}
             aria-hidden="true"
           >

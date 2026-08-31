@@ -11,7 +11,7 @@ export function ImpactTimestamp({ timestamp }: { timestamp?: string | null }) {
     return () => window.clearInterval(timer);
   }, []);
 
-  if (!timestamp) return <>Not reported</>;
+  if (!timestamp) return <>Not Reported</>;
 
   return (
     <time

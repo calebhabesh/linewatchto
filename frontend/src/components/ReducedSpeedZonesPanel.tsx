@@ -173,7 +173,7 @@ export function ReducedSpeedZonesPanel({
                   location={zone.location}
                   direction={zone.displayDirection}
                   facts={[
-                    { column: 1, label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) || "Not reported" },
+                    { column: 1, label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) || "Not Reported" },
                     ...(zonesAtLocation > 1 ? [{ column: 2, label: "Zone Count", value: zonesAtLocation }] : []),
                     {
                       column: 3,

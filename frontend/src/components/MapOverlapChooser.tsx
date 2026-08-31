@@ -213,6 +213,7 @@ export function MapOverlapChooser({
         ref={surfaceRef}
         className="overlap-chooser-surface"
         data-overlap-chooser
+        data-map-wheel-scroll-region
         role="dialog"
         aria-label={`Choose Alert on ${label}`}
         onClick={(event) => event.stopPropagation()}

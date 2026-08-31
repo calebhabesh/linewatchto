@@ -6,6 +6,7 @@ const transitMapSource = readFileSync(new URL("../src/app/transit-map.tsx", impo
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const interactiveRegionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
 const plannedClosureIconSource = readFileSync(new URL("../src/components/PlannedClosureIcon.tsx", import.meta.url), "utf8");
@@ -351,21 +352,30 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.rsz-chevron-lanes\s*\{[^}]*overflow:\s*visible;/s);
   });
 
-  it("rotates delay hourglass glyphs with the sampled path tangent", () => {
-    const laneStart = interactiveMapSource.indexOf("function AnimatedHourglassLane(");
-    const laneEnd = interactiveMapSource.indexOf("function OverlaySegment(", laneStart);
+  it("moves alert glyphs with native SVG motion instead of per-frame JavaScript geometry reads", () => {
+    const laneStart = interactiveMapSource.indexOf("function MotionGlyphLane(");
+    const laneEnd = interactiveMapSource.indexOf("function SuspensionNoEntryGlyph(", laneStart);
     const laneBlock = interactiveMapSource.slice(laneStart, laneEnd);
 
-    assert.ok(laneStart > -1, "AnimatedHourglassLane must exist");
-    assert.ok(laneEnd > laneStart, "AnimatedHourglassLane block must end before OverlaySegment");
-    assert.doesNotMatch(
-      laneBlock,
-      /Math\.abs\(i\)\s*%\s*2\s*===\s*0\s*\?\s*""\s*:\s*` rotate\(\$\{angle\}\)`/,
-    );
+    assert.ok(laneStart > -1, "MotionGlyphLane must exist");
+    assert.ok(laneEnd > laneStart, "MotionGlyphLane block must include the moving alert glyphs");
+    assert.match(laneBlock, /<animateMotion/);
+    assert.match(laneBlock, /rotate=\{shouldRotate \? \(direction === "reverse" \? "auto-reverse" : "auto"\) : "0"\}/);
+    assert.match(interactiveMapSource, /function measureMotionLane/);
+    assert.match(interactiveMapSource, /const sampleCount = Math\.max\(2, Math\.ceil\(length \/ 12\)\)/);
+    assert.doesNotMatch(laneBlock, /requestAnimationFrame|setAttribute\(\s*"transform"/);
+  });
+
+  it("freezes continuous map decoration when a snapshot has many overlay layers", () => {
+    assert.match(interactiveMapSource, /const MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS = 8/);
     assert.match(
-      laneBlock,
-      /`translate\(\$\{p\.x \+ offsetX\} \$\{p\.y \+ offsetY\}\) rotate\(\$\{angle\}\)`/,
+      interactiveMapSource,
+      /const overlayPulseMotionPaused = mapEffectMotionPaused[\s\S]*renderedImpactLayers\.length \+ plannedPreviewLayers\.length[\s\S]*MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS/,
     );
+    assert.match(interactiveMapSource, /data-map-overlay-motion-paused=\{overlayPulseMotionPaused \? "true" : "false"\}/);
+    assert.match(interactiveMapSource, /reducedMotion=\{mapEffectMotionPaused\}/);
+    assert.match(globalCss, /\[data-map-overlay-motion-paused="true"\] \.asset-alert-path-glow,[\s\S]*?animation:\s*none !important;[\s\S]*?transition:\s*none !important;/);
+    assert.match(globalCss, /\.asset-alert-path-glow:not\(\.commute-path-preview-glow\)\s*\{[^}]*display:\s*none !important;[^}]*animation:\s*none !important;[^}]*filter:\s*none !important;/s);
   });
 
   it("keeps all pulse and glow animations on one shared phase", () => {
@@ -385,7 +395,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /animation\.currentTime = pulsePhaseMs/);
     assert.match(interactiveMapSource, /animation\.startTime = pulseCycleStartMs/);
     assert.match(interactiveMapSource, /requestAnimationFrame\(synchronizePulseAnimations\)/);
-    assert.match(interactiveMapSource, /\}, \[loadState, pulseSyncSignature\]\);/);
+    assert.match(interactiveMapSource, /\}, \[loadState, overlayPulseMotionPaused, pulseSyncSignature\]\);/);
     assert.match(globalCss, /\.asset-alert-path\.delay-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.asset-alert-path\.suspension-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s);
@@ -413,10 +423,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /AnimatedSuspensionLane/);
     assert.match(interactiveMapSource, /circle cx="12" cy="12" r="10\.5"/);
     assert.match(interactiveMapSource, /stroke="#ffffff"/);
-    assert.match(laneBlock, /data-suspension-symbol=\{isNoEntry \? "no-entry" : "direction-arrow"\}/);
-    assert.match(laneBlock, /const shouldRotate = group\.dataset\.suspensionSymbol !== "no-entry";/);
-    assert.match(laneBlock, /shouldRotate\s*\?\s*`translate\(\$\{p\.x \+ offsetX\} \$\{p\.y \+ offsetY\}\) rotate\(\$\{resolvedAngle\}\)`/);
-    assert.match(laneBlock, /:\s*`translate\(\$\{p\.x \+ offsetX\} \$\{p\.y \+ offsetY\}\)`/);
+    assert.match(laneBlock, /rotateGlyph=\{\(index\) => index % 2 !== 0\}/);
+    assert.match(laneBlock, /renderGlyph=\{\(index\) => index % 2 === 0 \? \(/);
+    assert.match(laneBlock, /<SuspensionNoEntryGlyph \/>/);
+    assert.match(laneBlock, /d="M -14 -14 L 10 0 L -14 14"/);
   });
 
   it("renders bidirectional suspension marks as evenly spaced no-entry icons", () => {
@@ -641,6 +651,8 @@ describe("asset-backed map layering", () => {
   it("expands every overlap badge into an explicit in-map impact chooser", () => {
     assert.match(interactiveMapSource, /expandedOverlapBadgeId/);
     assert.match(interactiveMapSource, /data-overlap-chooser/);
+    assert.match(interactiveMapSource, /data-map-wheel-scroll-region/);
+    assert.match(overlapChooserSource, /data-map-wheel-scroll-region/);
     assert.match(interactiveMapSource, /data-overlap-choice-kind=\{impact\.kind\}/);
     assert.match(interactiveMapSource, /data-overlap-choice-id=\{impact\.cardId\}/);
     assert.match(overlapIndicatorSource, /aria-expanded=\{isOpen\}/);

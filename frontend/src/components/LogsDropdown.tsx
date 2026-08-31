@@ -262,7 +262,7 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
                     <dt className="text-slate-500 dark:text-slate-400">Last completed</dt>
                     <dd className="text-right font-semibold">{completedAt ? formatImpactTimestamp(completedAt) : "Not available"}</dd>
                     <dt className="text-slate-500 dark:text-slate-400">Source updated</dt>
-                    <dd className="text-right font-semibold">{sourceUpdatedAt ? formatImpactTimestamp(sourceUpdatedAt) : "Not reported"}</dd>
+                    <dd className="text-right font-semibold">{sourceUpdatedAt ? formatImpactTimestamp(sourceUpdatedAt) : "Not Reported"}</dd>
                   </dl>
                 </section>
 

@@ -18,7 +18,7 @@ export function CompactImpactTimeValue({
   if (timestamp) return <ImpactTimestamp timestamp={timestamp} />;
   return (
     <span className="impact-timestamp">
-      {fallback?.replace(/^Updated\s+/i, "") || "Not reported"}
+      {fallback?.replace(/^Updated\s+/i, "") || "Not Reported"}
     </span>
   );
 }

@@ -107,6 +107,7 @@ import {
   observeMapChooserKeepouts,
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
+import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
 
 const SVG_TO_RENDERED_MAP_SCALE = 4500 / 8250;
 const DESKTOP_MAP_HORIZONTAL_INSET_RATIO = 0.025;
@@ -130,6 +131,10 @@ type RetainedLayer<T> = {
 // is 2.4 seconds. Use the full cycle when phase-locking layers mounted by
 // separate dashboard snapshots.
 const MAP_PULSE_CYCLE_MS = 2400;
+// Synchronized blur and pulse effects scale with every additional disruption.
+// Dense snapshots keep their directional glyph motion but drop those ambient
+// effects so alerts remain readable and map interaction stays responsive.
+const MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS = 8;
 const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
   "map-overlay-rail-pulse",
@@ -695,6 +700,7 @@ function InteractiveTtcMapComponent({
     const el = containerRef.current;
     if (!el) return;
     const preventScroll = (e: WheelEvent) => {
+      if (isMapWheelScrollRegionTarget(e.target)) return;
       e.preventDefault();
     };
     el.addEventListener("wheel", preventScroll, { passive: false });
@@ -1346,6 +1352,10 @@ function InteractiveTtcMapComponent({
     useCallback(({ segment, impact }) => `${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}`, []),
   );
 
+  const overlayPulseMotionPaused = mapEffectMotionPaused
+    || renderedImpactLayers.length + plannedPreviewLayers.length
+      > MAX_CONTINUOUSLY_ANIMATED_OVERLAY_LAYERS;
+
   const selectedImpactEmphasis = useMemo<SelectedImpactEmphasisLayer | null>(() => {
     if (!selection) return null;
 
@@ -1501,6 +1511,10 @@ function InteractiveTtcMapComponent({
   useLayoutEffect(() => {
     const mapRoot = mapRootRef.current;
     if (!mapRoot) return;
+    if (overlayPulseMotionPaused) {
+      mapRoot.style.setProperty("--map-pulse-offset", "0ms");
+      return;
+    }
     const synchronizePulseAnimations = () => {
       const pulseClockMs = Number(document.timeline.currentTime ?? performance.now());
       const pulsePhaseMs = pulseClockMs % MAP_PULSE_CYCLE_MS;
@@ -1529,7 +1543,7 @@ function InteractiveTtcMapComponent({
       window.cancelAnimationFrame(pulseFrame);
       if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
     };
-  }, [loadState, pulseSyncSignature]);
+  }, [loadState, overlayPulseMotionPaused, pulseSyncSignature]);
 
   const collisionBoxesByImpact = useMemo(() => {
     const boxesByImpact = new Map<string, SvgBounds[]>();
@@ -1971,6 +1985,7 @@ function InteractiveTtcMapComponent({
         data-map-pan-zoom-viewport
         data-map-camera-moving="false"
         data-map-gesture-active="false"
+        data-map-overlay-motion-paused={overlayPulseMotionPaused ? "true" : "false"}
         data-map-zoom-active="false"
         className={`relative w-full h-full overflow-hidden select-none touch-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
@@ -4020,6 +4035,163 @@ function labelForSegments(segments: RenderedNetworkSegment[]): string {
   return `${first.label} through ${last.label}`;
 }
 
+type MotionLaneMetrics = {
+  count: number;
+  durationSeconds: number;
+  motionPathD: string;
+  staticFrames: Array<{
+    x: number;
+    y: number;
+    rotation: number;
+  }>;
+};
+
+function measureMotionLane(
+  pathD: string,
+  requestedStep: number,
+  normalOffset: number,
+  direction: "forward" | "reverse",
+): MotionLaneMetrics | null {
+  if (typeof document === "undefined") return null;
+
+  try {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathD);
+    const length = path.getTotalLength();
+    if (length <= 0) return null;
+
+    const count = Math.max(1, Math.floor(length / requestedStep));
+    const step = length / count;
+    const staticFrames = Array.from({ length: count }, (_, index) => {
+      const distance = direction === "forward"
+        ? index * step
+        : length - index * step;
+      const frame = extrapolatedPathFrame(path, length, distance);
+      if (!frame) return { x: 0, y: 0, rotation: 0 };
+
+      const angle = Math.atan2(frame.tangent.y, frame.tangent.x);
+      return {
+        x: frame.point.x - normalOffset * Math.sin(angle),
+        y: frame.point.y + normalOffset * Math.cos(angle),
+        rotation: angle * (180 / Math.PI) + (direction === "reverse" ? 180 : 0),
+      };
+    });
+    let motionPathD = pathD;
+
+    if (normalOffset !== 0) {
+      // SVG animateMotion does not have a perpendicular-offset primitive.
+      // Resolve the two bidirectional lanes once when their path changes,
+      // rather than re-sampling every glyph on every animation frame.
+      const sampleCount = Math.max(2, Math.ceil(length / 12));
+      const points = Array.from({ length: sampleCount + 1 }, (_, index) => {
+        const distance = length * index / sampleCount;
+        const frame = extrapolatedPathFrame(path, length, distance);
+        if (!frame) return null;
+        const angle = Math.atan2(frame.tangent.y, frame.tangent.x);
+        return {
+          x: frame.point.x - normalOffset * Math.sin(angle),
+          y: frame.point.y + normalOffset * Math.cos(angle),
+        };
+      }).filter((point): point is MapPoint => Boolean(point));
+
+      if (points.length >= 2) {
+        motionPathD = points
+          .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+          .join(" ");
+      }
+    }
+
+    return {
+      count,
+      durationSeconds: Math.max(4, (length / 80) * 6),
+      motionPathD,
+      staticFrames,
+    };
+  } catch (error) {
+    console.error("Error creating SVG motion path:", error);
+    return null;
+  }
+}
+
+function staticMotionGlyphTransform(
+  metrics: MotionLaneMetrics,
+  index: number,
+  rotate: boolean,
+): string {
+  const frame = metrics.staticFrames[index];
+  if (!frame) return "";
+  return rotate
+    ? `translate(${frame.x} ${frame.y}) rotate(${frame.rotation})`
+    : `translate(${frame.x} ${frame.y})`;
+}
+
+function MotionGlyphLane({
+  pathD,
+  step,
+  direction,
+  travelDirection,
+  reducedMotion,
+  renderGlyph,
+  rotateGlyph = true,
+}: {
+  pathD: string;
+  step: number;
+  direction: "forward" | "reverse";
+  travelDirection: string;
+  reducedMotion: boolean;
+  renderGlyph: (index: number) => React.ReactNode;
+  rotateGlyph?: boolean | ((index: number) => boolean);
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(handle);
+  }, []);
+
+  const normalOffset = travelDirection === "bidirectional"
+    ? direction === "reverse" ? 18 : -18
+    : 0;
+  const metrics = useMemo(
+    () => mounted ? measureMotionLane(pathD, step, normalOffset, direction) : null,
+    [direction, mounted, normalOffset, pathD, step],
+  );
+
+  if (!metrics) return null;
+
+  return (
+    <g data-motion-glyph-lane>
+      {Array.from({ length: metrics.count }, (_, index) => {
+        const shouldRotate = typeof rotateGlyph === "function" ? rotateGlyph(index) : rotateGlyph;
+        const staticTransform = reducedMotion
+          ? staticMotionGlyphTransform(metrics, index, shouldRotate)
+          : undefined;
+        return (
+          <g
+            key={index}
+            data-index={index}
+            transform={staticTransform}
+          >
+            {!reducedMotion ? (
+              <animateMotion
+                begin={`${-(metrics.durationSeconds * index / metrics.count)}s`}
+                calcMode="linear"
+                dur={`${metrics.durationSeconds}s`}
+                keyPoints={direction === "reverse" ? "1;0" : "0;1"}
+                keyTimes="0;1"
+                path={metrics.motionPathD}
+                repeatCount="indefinite"
+                rotate={shouldRotate ? (direction === "reverse" ? "auto-reverse" : "auto") : "0"}
+              />
+            ) : null}
+            {renderGlyph(index)}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 function AnimatedChevronLane({
   pathD,
   step,
@@ -4033,144 +4205,21 @@ function AnimatedChevronLane({
   travelDirection: string;
   reducedMotion: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
-  const containerRef = useRef<SVGGElement>(null);
-  const pathRef = useRef<SVGPathElement | null>(null);
-
-  useEffect(() => {
-    const handle = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(handle);
-  }, []);
-
-  const { length, count, stepVal } = useMemo(() => {
-    if (typeof document === "undefined") return { length: 0, count: 0, stepVal: step };
-    try {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathD);
-      const len = path.getTotalLength();
-      if (len <= 0) return { length: 0, count: 0, stepVal: step };
-      const cnt = Math.max(1, Math.floor(len / step));
-      const s = len / cnt;
-      return { length: len, count: cnt, stepVal: s };
-    } catch (e) {
-      console.error("Error creating SVG path for measurement:", e);
-      return { length: 0, count: 0, stepVal: step };
-    }
-  }, [pathD, step]);
-
-  useEffect(() => {
-    if (!mounted || typeof document === "undefined") return;
-    try {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathD);
-      pathRef.current = path;
-    } catch (e) {
-      console.error("Error setting path reference:", e);
-    }
-  }, [pathD, mounted]);
-
-  const indices = useMemo(() => {
-    const arr: number[] = [];
-    if (count <= 0) return arr;
-    for (let i = -1; i <= count + 1; i++) {
-      arr.push(i);
-    }
-    return arr;
-  }, [count]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const path = pathRef.current;
-    if (!mounted || !container || !path || length <= 0 || indices.length === 0) return;
-
-    const childGroups = Array.from(container.children) as SVGGElement[];
-    if (childGroups.length === 0) return;
-
-    let animationFrameId: number;
-    const duration = (stepVal / 80) * 6000; // restore travel speed base to 6000ms
-
-    const applyPhase = (phase: number) => {
-      const dy = travelDirection === "bidirectional" ? (direction === "reverse" ? 18 : -18) : 0;
-
-      childGroups.forEach((group) => {
-        const idxAttr = group.getAttribute("data-index");
-        if (!idxAttr) return;
-        const i = parseInt(idxAttr, 10);
-
-        let dist = 0;
-        if (direction === "forward") {
-          dist = i * stepVal + phase;
-        } else {
-          dist = (count - i) * stepVal - phase;
-        }
-
-        // Hide if outside range with a buffer
-        if (dist < -10 || dist > length + 10) {
-          group.setAttribute("display", "none");
-          return;
-        } else {
-          group.removeAttribute("display");
-        }
-
-        try {
-          const frame = extrapolatedPathFrame(path, length, dist);
-          if (!frame) return;
-          const p = frame.point;
-          let angle = Math.atan2(frame.tangent.y, frame.tangent.x) * (180 / Math.PI);
-
-          if (direction === "reverse") {
-            angle += 180;
-          }
-
-          const angleForward = direction === "reverse" ? angle - 180 : angle;
-          const angleForwardRad = (angleForward * Math.PI) / 180;
-          const offsetX = -dy * Math.sin(angleForwardRad);
-          const offsetY = dy * Math.cos(angleForwardRad);
-
-          group.setAttribute(
-            "transform",
-            `translate(${p.x + offsetX} ${p.y + offsetY}) rotate(${angle})`
-          );
-        } catch {
-          // Safe fallback
-        }
-      });
-    };
-
-    const update = () => {
-      if (reducedMotion) {
-        applyPhase(0);
-        return;
-      }
-
-      const elapsed = performance.now();
-      const phase = ((elapsed / duration) % 1) * stepVal;
-      applyPhase(phase);
-
-      animationFrameId = requestAnimationFrame(update);
-    };
-
-    animationFrameId = requestAnimationFrame(update);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [mounted, length, count, stepVal, direction, travelDirection, reducedMotion, indices]);
-
-  if (!mounted || count <= 0) return null;
-
   return (
-    <g ref={containerRef}>
-      {indices.map((i) => (
-        <g key={i} data-index={i}>
-          <path
-            d="M -12 -10 L 8 0 L -12 10"
-            className="rsz-chevron"
-            aria-hidden="true"
-          />
-        </g>
-      ))}
-    </g>
+    <MotionGlyphLane
+      pathD={pathD}
+      step={step}
+      direction={direction}
+      travelDirection={travelDirection}
+      reducedMotion={reducedMotion}
+      renderGlyph={() => (
+        <path
+          d="M -12 -10 L 8 0 L -12 10"
+          className="rsz-chevron"
+          aria-hidden="true"
+        />
+      )}
+    />
   );
 }
 
@@ -4187,173 +4236,29 @@ function AnimatedSuspensionLane({
   travelDirection: string;
   reducedMotion: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
-  const containerRef = useRef<SVGGElement>(null);
-  const pathRef = useRef<SVGPathElement | null>(null);
-
-  useEffect(() => {
-    const handle = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(handle);
-  }, []);
-
-  const { length, count, stepVal } = useMemo(() => {
-    if (typeof document === "undefined") return { length: 0, count: 0, stepVal: step };
-    try {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathD);
-      const len = path.getTotalLength();
-      if (len <= 0) return { length: 0, count: 0, stepVal: step };
-      const cnt = Math.max(1, Math.floor(len / step));
-      const s = len / cnt;
-      return { length: len, count: cnt, stepVal: s };
-    } catch (e) {
-      console.error("Error creating SVG path for measurement:", e);
-      return { length: 0, count: 0, stepVal: step };
-    }
-  }, [pathD, step]);
-
-  useEffect(() => {
-    if (!mounted || typeof document === "undefined") return;
-    try {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathD);
-      pathRef.current = path;
-    } catch (e) {
-      console.error("Error setting path reference:", e);
-    }
-  }, [pathD, mounted]);
-
-  const indices = useMemo(() => {
-    const arr: number[] = [];
-    if (count <= 0) return arr;
-    for (let i = -2; i <= count + 2; i++) {
-      arr.push(i);
-    }
-    return arr;
-  }, [count]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const path = pathRef.current;
-    if (!mounted || !container || !path || length <= 0 || indices.length === 0) return;
-
-    const childGroups = Array.from(container.children) as SVGGElement[];
-    if (childGroups.length === 0) return;
-
-    let animationFrameId: number;
-    const duration = (stepVal / 80) * 12000;
-    const startTime = performance.now();
-
-    const applyPhase = (phase: number) => {
-      const dy = travelDirection === "bidirectional" ? (direction === "reverse" ? 18 : -18) : 0;
-
-      childGroups.forEach((group) => {
-        const idxAttr = group.getAttribute("data-index");
-        if (!idxAttr) return;
-        const i = parseInt(idxAttr, 10);
-
-        let dist = 0;
-        if (direction === "forward") {
-          dist = i * stepVal + phase;
-        } else {
-          dist = (count - i) * stepVal - phase;
-        }
-
-        if (dist < -70 || dist > length + 70) {
-          group.setAttribute("display", "none");
-          return;
-        } else {
-          group.removeAttribute("display");
-        }
-
-        try {
-          const frame = extrapolatedPathFrame(path, length, dist);
-          if (!frame) return;
-          const p = frame.point;
-          const angle = Math.atan2(frame.tangent.y, frame.tangent.x) * (180 / Math.PI);
-
-          const angleForward = direction === "reverse" ? angle - 180 : angle;
-          const angleForwardRad = (angleForward * Math.PI) / 180;
-          const offsetX = -dy * Math.sin(angleForwardRad);
-          const offsetY = dy * Math.cos(angleForwardRad);
-
-          let resolvedAngle = angle;
-          if (direction === "reverse") {
-            resolvedAngle += 180;
-          }
-
-          const shouldRotate = group.dataset.suspensionSymbol !== "no-entry";
-          group.setAttribute(
-            "transform",
-            shouldRotate
-              ? `translate(${p.x + offsetX} ${p.y + offsetY}) rotate(${resolvedAngle})`
-              : `translate(${p.x + offsetX} ${p.y + offsetY})`
-          );
-
-          let opacity = 1.0;
-          const fadeZone = 50;
-          if (dist < 0) {
-            opacity = 0;
-          } else if (dist < fadeZone) {
-            opacity = dist / fadeZone;
-          } else if (dist > length) {
-            opacity = 0;
-          } else if (dist > length - fadeZone) {
-            opacity = (length - dist) / fadeZone;
-          }
-          group.style.opacity = opacity.toString();
-        } catch {
-          // Safe fallback
-        }
-      });
-    };
-
-    const update = () => {
-      if (reducedMotion) {
-        applyPhase(0);
-        return;
-      }
-
-      const elapsed = performance.now() - startTime;
-      const phase = ((elapsed / duration) % 1) * (2 * stepVal);
-      applyPhase(phase);
-
-      animationFrameId = requestAnimationFrame(update);
-    };
-
-    animationFrameId = requestAnimationFrame(update);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [mounted, length, count, stepVal, direction, travelDirection, reducedMotion, indices]);
-
-  if (!mounted || count <= 0) return null;
-
   return (
-    <g ref={containerRef}>
-      {indices.map((i) => {
-        const isNoEntry = Math.abs(i) % 2 === 0;
-        return (
-          <g key={i} data-index={i} data-suspension-symbol={isNoEntry ? "no-entry" : "direction-arrow"}>
-            {isNoEntry ? (
-              <SuspensionNoEntryGlyph />
-            ) : (
-              <g transform="scale(1.1)">
-                <path
-                  d="M -14 -14 L 10 0 L -14 14"
-                  stroke="#ffffff"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-              </g>
-            )}
-          </g>
-        );
-      })}
-    </g>
+    <MotionGlyphLane
+      pathD={pathD}
+      step={step}
+      direction={direction}
+      travelDirection={travelDirection}
+      reducedMotion={reducedMotion}
+      rotateGlyph={(index) => index % 2 !== 0}
+      renderGlyph={(index) => index % 2 === 0 ? (
+        <SuspensionNoEntryGlyph />
+      ) : (
+        <g transform="scale(1.1)">
+          <path
+            d="M -14 -14 L 10 0 L -14 14"
+            stroke="#ffffff"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </g>
+      )}
+    />
   );
 }
 
@@ -4428,141 +4333,18 @@ function AnimatedHourglassLane({
   reducedMotion: boolean;
   onlyHourglasses?: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
-  const containerRef = useRef<SVGGElement>(null);
-  const pathRef = useRef<SVGPathElement | null>(null);
-
-  useEffect(() => {
-    const handle = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(handle);
-  }, []);
-
-  const { length, count, stepVal } = useMemo(() => {
-    if (typeof document === "undefined") return { length: 0, count: 0, stepVal: step };
-    try {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathD);
-      const len = path.getTotalLength();
-      if (len <= 0) return { length: 0, count: 0, stepVal: step };
-      const cnt = Math.max(1, Math.floor(len / step));
-      const s = len / cnt;
-      return { length: len, count: cnt, stepVal: s };
-    } catch (e) {
-      console.error("Error creating SVG path for measurement:", e);
-      return { length: 0, count: 0, stepVal: step };
-    }
-  }, [pathD, step]);
-
-  useEffect(() => {
-    if (!mounted || typeof document === "undefined") return;
-    try {
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathD);
-      pathRef.current = path;
-    } catch (e) {
-      console.error("Error setting path reference:", e);
-    }
-  }, [pathD, mounted]);
-
-  const indices = useMemo(() => {
-    const arr: number[] = [];
-    if (count <= 0) return arr;
-    for (let i = -2; i <= count + 2; i++) {
-      arr.push(i);
-    }
-    return arr;
-  }, [count]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const path = pathRef.current;
-    if (!mounted || !container || !path || length <= 0 || indices.length === 0) return;
-
-    const childGroups = Array.from(container.children) as SVGGElement[];
-    if (childGroups.length === 0) return;
-
-    let animationFrameId: number;
-    const duration = (stepVal / 80) * 12000; // Double duration since the repeating unit (hourglass + arrow) spans 2 steps
-
-    const applyPhase = (phase: number) => {
-      const dy = travelDirection === "bidirectional" ? (direction === "reverse" ? 18 : -18) : 0;
-
-      childGroups.forEach((group) => {
-        const idxAttr = group.getAttribute("data-index");
-        if (!idxAttr) return;
-        const i = parseInt(idxAttr, 10);
-
-        let dist = 0;
-        if (direction === "forward") {
-          dist = i * stepVal + phase;
-        } else {
-          dist = (count - i) * stepVal - phase;
-        }
-
-        if (dist < -10 || dist > length + 10) {
-          group.setAttribute("display", "none");
-          return;
-        } else {
-          group.removeAttribute("display");
-        }
-
-        try {
-          const frame = extrapolatedPathFrame(path, length, dist);
-          if (!frame) return;
-          const p = frame.point;
-          let angle = Math.atan2(frame.tangent.y, frame.tangent.x) * (180 / Math.PI);
-
-          if (direction === "reverse") {
-            angle += 180;
-          }
-
-          const angleForward = direction === "reverse" ? angle - 180 : angle;
-          const angleForwardRad = (angleForward * Math.PI) / 180;
-          const offsetX = -dy * Math.sin(angleForwardRad);
-          const offsetY = dy * Math.cos(angleForwardRad);
-
-          group.setAttribute(
-            "transform",
-            `translate(${p.x + offsetX} ${p.y + offsetY}) rotate(${angle})`
-          );
-        } catch {
-          // Safe fallback
-        }
-      });
-    };
-
-    const update = () => {
-      if (reducedMotion) {
-        applyPhase(0);
-        return;
-      }
-
-      const elapsed = performance.now();
-      const phase = ((elapsed / duration) % 1) * (2 * stepVal);
-      applyPhase(phase);
-
-      animationFrameId = requestAnimationFrame(update);
-    };
-
-    animationFrameId = requestAnimationFrame(update);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [mounted, length, count, stepVal, direction, travelDirection, reducedMotion, indices]);
-
-  if (!mounted || count <= 0) return null;
-
   return (
-    <g ref={containerRef}>
-      {indices.map((i) => {
-        const isHourglass = Math.abs(i) % 2 === 0;
+    <MotionGlyphLane
+      pathD={pathD}
+      step={step}
+      direction={direction}
+      travelDirection={travelDirection}
+      reducedMotion={reducedMotion}
+      renderGlyph={(index) => {
+        const isHourglass = index % 2 === 0;
         if (!isHourglass && onlyHourglasses) return null;
-
-        return (
-          <g key={i} data-index={i}>
-            {isHourglass ? (
-              <g transform="scale(0.09) translate(-550, -512)" className="delay-hourglass">
+        return isHourglass ? (
+          <g transform="scale(0.09) translate(-550, -512)" className="delay-hourglass">
                 <path
                   d="M576 512c0 190.72 448 345.6-25.6 345.6s-25.6-154.88-25.6-345.6-448-345.6 25.6-345.6 25.6 154.88 25.6 345.6z"
                   fill="#F7E6A3"
@@ -4589,24 +4371,22 @@ function AnimatedHourglassLane({
                 />
                 <path d="M307.2 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
                 <path d="M768 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
-              </g>
-            ) : (
-              <g transform="scale(1.1)">
-                <path
-                  d="M -12 -10 L 8 0 L -12 10"
-                  fill="none"
-                  stroke="#ffffff"
-                  strokeWidth={3.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                />
-              </g>
-            )}
+          </g>
+        ) : (
+          <g transform="scale(1.1)">
+            <path
+              d="M -12 -10 L 8 0 L -12 10"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={3.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            />
           </g>
         );
-      })}
-    </g>
+      }}
+    />
   );
 }
 
@@ -4879,6 +4659,7 @@ function OverlapChooser({
         ref={surfaceRef}
         className="overlap-chooser-surface"
         data-overlap-chooser
+        data-map-wheel-scroll-region
         role="dialog"
         aria-label={`Choose Alert on ${badge.label}`}
         onClick={(event) => event.stopPropagation()}

@@ -238,7 +238,13 @@ test("foreground recovery restarts map and constellation animation with stale vi
   await expect(chevrons.first()).toBeAttached();
   await expect(constellation).toBeVisible();
   const chevronTransforms = () => chevrons.evaluateAll((paths) => (
-    paths.map((path) => path.parentElement?.getAttribute("transform") ?? null)
+    paths.map((path) => {
+      const matrix = (path.parentElement as SVGGElement | null)?.getCTM();
+      return matrix
+        ? [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f]
+            .map((value) => Number(value.toFixed(3)))
+        : null;
+    })
   ));
 
   await page.evaluate(() => {

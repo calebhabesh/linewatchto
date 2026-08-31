@@ -37,6 +37,7 @@ import {
   MapOverlapChooser,
   type MapOverlapChooserLayout,
 } from "./MapOverlapChooser";
+import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
 import {
   alignedOverlapBadgePositionCandidates,
   hasOverlappingImpacts,
@@ -4100,6 +4101,7 @@ function InteractiveRegionalMapComponent({
   }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
+    if (isMapWheelScrollRegionTarget(event.target)) return;
     event.preventDefault();
     const viewport = viewportRef.current;
     if (!viewport) return;

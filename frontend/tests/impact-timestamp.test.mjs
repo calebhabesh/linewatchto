@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { formatImpactTimestamp, formatOperationalDateTime, formatRelativeImpactTime } from "../src/app/impact-time.ts";
@@ -104,4 +105,13 @@ describe("impact timestamp formatting", () => {
       "2 months ago",
     );
   });
+
+  it("uses Title Case 'Not Reported' for missing impact timestamps", () => {
+    const timestampSource = readFileSync(new URL("../src/components/ImpactTimestamp.tsx", import.meta.url), "utf8");
+    const compactItemSource = readFileSync(new URL("../src/components/CompactImpactListItem.tsx", import.meta.url), "utf8");
+
+    assert.match(timestampSource, /<>Not Reported<\/>/);
+    assert.match(compactItemSource, /"Not Reported"/);
+  });
 });
+

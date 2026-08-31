@@ -6232,6 +6232,14 @@ button {
   animation-delay: var(--map-pulse-offset);
 }
 
+/* The blurred route aura obscures adjacent station and alert detail when
+   impacts cluster. Keep the crisp rail and hover boundary, but omit the halo. */
+.asset-alert-path-glow:not(.commute-path-preview-glow) {
+  display: none !important;
+  animation: none !important;
+  filter: none !important;
+}
+
 @keyframes aura-pulse {
   0% {
     opacity: 0.25;
@@ -6306,6 +6314,21 @@ button {
 .motion-paused .delay-static-path,
 .motion-paused .commute-path-preview-glow {
   animation: none !important;
+}
+
+/* Keep high-alert snapshots responsive. The paths and semantic patterns stay
+   visible, while their continuous idle motion yields to map interaction. */
+[data-map-overlay-motion-paused="true"] .asset-alert-path-glow,
+[data-map-overlay-motion-paused="true"] .asset-alert-path.planned-preview,
+[data-map-overlay-motion-paused="true"] .asset-alert-path.delay-candy,
+[data-map-overlay-motion-paused="true"] .asset-alert-path.suspension-candy,
+[data-map-overlay-motion-paused="true"] .asset-alert-path.delay-static-base,
+[data-map-overlay-motion-paused="true"] .delay-static-path,
+[data-map-overlay-motion-paused="true"] .station-impact-ring,
+[data-map-overlay-motion-paused="true"] .station-impact-dot-red-glow,
+[data-map-overlay-motion-paused="true"] .station-impact-dot-red-ping {
+  animation: none !important;
+  transition: none !important;
 }
 
 .motion-paused .asset-alert-path-glow {
@@ -21774,18 +21797,28 @@ img.transit-line-badge {
   }
 
   .mobile-legend-route-badge--compact {
-    --mobile-legend-outline-width: 1.75px;
+    --mobile-legend-outline-width: 2.25px;
     height: 24px;
     width: 24px;
   }
 
   .mobile-legend-route-badge--expanded {
-    --mobile-legend-outline-width: 1.75px;
+    --mobile-legend-outline-width: 2.25px;
     height: 24px;
     width: 24px;
   }
 
   .mobile-legend-route-badge--ttc {
+    background:
+      linear-gradient(var(--mobile-legend-badge-fill-color), var(--mobile-legend-badge-fill-color)) padding-box,
+      linear-gradient(var(--mobile-legend-ring-color), var(--mobile-legend-ring-color)) border-box;
+    border: var(--mobile-legend-outline-width) solid transparent;
+    font-family: var(--font-subway), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .mobile-legend-route-badge--ttc.service-tone-affected {
     animation:
       mobile-legend-badge-pulse 3.8s ease-in-out infinite,
       mobile-legend-badge-beam 16s linear infinite;
@@ -21799,10 +21832,6 @@ img.transit-line-badge {
         color-mix(in srgb, var(--mobile-legend-ring-color) 55%, #ffffff) 350deg,
         var(--mobile-legend-ring-color) 358deg 360deg
       ) border-box;
-    border: var(--mobile-legend-outline-width) solid transparent;
-    font-family: var(--font-subway), ui-sans-serif, system-ui, sans-serif;
-    font-weight: 900;
-    line-height: 1;
   }
 
   .mobile-legend-route-badge .mobile-legend-route-number {
@@ -21815,7 +21844,6 @@ img.transit-line-badge {
     line-height: 1;
     position: relative;
     text-align: center;
-    transform: translateY(-1px);
     width: 100%;
     z-index: 1;
   }
@@ -21829,14 +21857,34 @@ img.transit-line-badge {
   }
 
   .mobile-legend-route-badge--regional {
-    border-radius: 10% !important;
+    background: linear-gradient(var(--mobile-legend-ring-color), var(--mobile-legend-ring-color)) border-box;
+    border: var(--mobile-legend-outline-width) solid transparent;
+    border-radius: 5px !important;
+    height: 24px !important;
+    overflow: hidden;
+    width: 24px !important;
+  }
+
+  .mobile-legend-route-badge--regional.service-tone-affected {
+    animation:
+      mobile-legend-badge-pulse 3.8s ease-in-out infinite,
+      mobile-legend-badge-beam 16s linear infinite;
+    background:
+      conic-gradient(
+        from var(--mobile-legend-beam-angle),
+        var(--mobile-legend-ring-color) 0deg 326deg,
+        color-mix(in srgb, var(--mobile-legend-ring-color) 55%, #ffffff) 334deg,
+        #ffffff 342deg,
+        color-mix(in srgb, var(--mobile-legend-ring-color) 55%, #ffffff) 350deg,
+        var(--mobile-legend-ring-color) 358deg 360deg
+      ) border-box;
   }
 
   .mobile-legend-route-badge--regional > img.transit-line-badge {
-    border-radius: 10% !important;
+    border-radius: 3px !important;
+    display: block;
     height: 100% !important;
-    outline: var(--mobile-legend-outline-width) solid var(--mobile-legend-ring-color);
-    outline-offset: 0;
+    outline: none !important;
     width: 100% !important;
   }
 
@@ -21864,9 +21912,12 @@ img.transit-line-badge {
   .mobile-legend-heading {
     align-items: center;
     border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+    box-sizing: border-box;
     display: flex;
     flex: 0 0 38px;
+    height: 38px;
     justify-content: space-between;
+    min-height: 38px;
     min-width: var(--mobile-legend-expanded-width);
     padding: 0 9px;
   }
@@ -21877,10 +21928,13 @@ img.transit-line-badge {
   }
 
   .mobile-legend-heading > span {
+    align-items: center;
+    display: flex;
     font-family: ui-sans-serif, system-ui, sans-serif;
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.08em;
+    line-height: 1;
     text-transform: uppercase;
     white-space: nowrap;
   }
@@ -22018,20 +22072,26 @@ img.transit-line-badge {
       transition-delay: 0ms !important;
     }
 
-    .mobile-legend-route-badge {
+    .mobile-legend-route-badge,
+    .mobile-legend-route-badge--ttc.service-tone-affected,
+    .mobile-legend-route-badge--regional.service-tone-affected {
       animation: none;
     }
 
-    .mobile-legend-route-badge--ttc {
+    .mobile-legend-route-badge--ttc,
+    .mobile-legend-route-badge--regional {
       --mobile-legend-beam-angle: 25deg;
     }
   }
 
-  .motion-paused .mobile-legend-route-badge {
+  .motion-paused .mobile-legend-route-badge,
+  .motion-paused .mobile-legend-route-badge--ttc.service-tone-affected,
+  .motion-paused .mobile-legend-route-badge--regional.service-tone-affected {
     animation: none;
   }
 
-  .motion-paused .mobile-legend-route-badge--ttc {
+  .motion-paused .mobile-legend-route-badge--ttc,
+  .motion-paused .mobile-legend-route-badge--regional {
     --mobile-legend-beam-angle: 25deg;
   }
 

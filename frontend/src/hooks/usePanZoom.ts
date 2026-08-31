@@ -25,6 +25,7 @@ import {
   type PanZoomTransform,
   type ViewportInsets,
 } from "./panZoomMath";
+import { isMapWheelScrollRegionTarget } from "../components/map-wheel-events";
 
 type UsePanZoomOptions = {
   reducedMotion?: boolean;
@@ -670,6 +671,7 @@ export function usePanZoom({
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
+    if (isMapWheelScrollRegionTarget(e.target)) return;
     e.preventDefault();
     cameraAdjustedByUserRef.current = true;
 

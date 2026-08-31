@@ -184,6 +184,19 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(wheelHandler, /commitTransform\(/);
   });
 
+  it("lets overlap chooser content consume wheel scrolling before either map zooms", () => {
+    const ttcWheelHandler = hookSource.match(
+      /const handleWheel = useCallback\(([\s\S]*?)\n  \}, \[[\s\S]*?\n  \]\);/,
+    )?.[1] ?? "";
+    const regionalWheelHandler = regionalMapSource.match(
+      /const onWheel = useCallback\(([\s\S]*?)\n  \}, \[[^\]]*\]\);/,
+    )?.[1] ?? "";
+
+    assert.match(ttcWheelHandler, /if \(isMapWheelScrollRegionTarget\(e\.target\)\) return;[\s\S]*e\.preventDefault\(\)/);
+    assert.match(regionalWheelHandler, /if \(isMapWheelScrollRegionTarget\(event\.target\)\) return;[\s\S]*event\.preventDefault\(\)/);
+    assert.match(mapSource, /const preventScroll = \(e: WheelEvent\) => \{[\s\S]*isMapWheelScrollRegionTarget\(e\.target\)[\s\S]*e\.preventDefault\(\)/);
+  });
+
   it("commits programmatic transforms to the ref synchronously", () => {
     assert.match(hookSource, /function commitTransform|const commitTransform = useCallback/);
     assert.match(hookSource, /const snapped = snapTransform\(next\)/);
