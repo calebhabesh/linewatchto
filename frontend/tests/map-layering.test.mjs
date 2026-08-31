@@ -375,6 +375,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /data-map-overlay-motion-paused=\{overlayPulseMotionPaused \? "true" : "false"\}/);
     assert.match(interactiveMapSource, /reducedMotion=\{mapEffectMotionPaused\}/);
     assert.match(globalCss, /\[data-map-overlay-motion-paused="true"\] \.asset-alert-path-glow,[\s\S]*?animation:\s*none !important;[\s\S]*?transition:\s*none !important;/);
+    const denseMotionBlock = globalCss.match(
+      /\/\* Keep high-alert snapshots responsive[\s\S]*?\n\}/,
+    )?.[0] ?? "";
+    assert.doesNotMatch(denseMotionBlock, /station-impact-(?:ring|dot-red-glow|dot-red-ping)/);
     assert.match(globalCss, /\.asset-alert-path-glow:not\(\.commute-path-preview-glow\)\s*\{[^}]*display:\s*none !important;[^}]*animation:\s*none !important;[^}]*filter:\s*none !important;/s);
   });
 

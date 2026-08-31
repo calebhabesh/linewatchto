@@ -80,6 +80,19 @@ export type StationImpact = {
   source: string;
 };
 
+export type StationNotice = {
+  id: string;
+  category: "construction" | "service-change" | "facility" | "other";
+  title: string;
+  summary: string;
+  sourceUrl: string;
+  effectiveStart?: string | null;
+  effectiveEnd?: string | null;
+  sourceUpdatedAt?: string | null;
+  lastVerifiedAt: string;
+  source: string;
+};
+
 export type StationArrival = {
   lineId: string;
   direction: string;
@@ -107,6 +120,7 @@ export type StationDetail = {
   lines: StationLine[];
   access: StationAccess;
   impacts: StationImpact[];
+  notices?: StationNotice[];
   arrivals: StationArrival[];
   arrivalsSource: string;
   arrivalContext: StationArrivalContext;
@@ -1919,6 +1933,7 @@ function toFallbackStationDetail(station: StationSummary): StationDetail {
       outages: [],
     },
     impacts: [],
+    notices: [],
     arrivals: lines.flatMap(toFallbackArrivals),
     arrivalsSource: "Demo estimates",
     arrivalContext: {

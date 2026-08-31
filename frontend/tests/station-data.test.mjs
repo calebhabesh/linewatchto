@@ -71,6 +71,20 @@ describe("station data adapter", () => {
             lines: [],
             access: { status: "normal", summary: "No active outages", outages: [] },
             impacts: [],
+            notices: [
+              {
+                id: "ttc-station-notice-warden-terminal-closure",
+                category: "construction",
+                title: "Warden Station bus terminal closure",
+                summary: "The bus terminal is closed for construction.",
+                sourceUrl: "https://www.ttc.ca/riding-the-ttc/Updates/Warden-Station-bus-terminal-closure",
+                effectiveStart: "2025-01-05",
+                effectiveEnd: null,
+                sourceUpdatedAt: null,
+                lastVerifiedAt: "2026-08-31T12:00:00-04:00",
+                source: "TTC station information",
+              },
+            ],
             arrivals: [],
             arrivalsSource: "TTC scheduled service",
             arrivalContext: { status: "scheduled", message: "Schedule active", scheduleMayBeDisrupted: false },
@@ -84,6 +98,8 @@ describe("station data adapter", () => {
 
     assert.equal(response.source, "backend");
     assert.equal(response.data.id, "union");
+    assert.equal(response.data.notices.length, 1);
+    assert.equal(response.data.notices[0].category, "construction");
     assert.deepEqual(requests[0], ["/api/stations/union", { cache: "no-store" }]);
   });
 
@@ -158,6 +174,7 @@ describe("station data adapter", () => {
   it("does not invent active station impacts in fallback mode", () => {
     assert.ok(fallbackStationSummaries.stations.every((station) => !station.hasActiveImpact));
     assert.ok(Object.values(fallbackStationDetails).every((station) => station.impacts.length === 0));
+    assert.ok(Object.values(fallbackStationDetails).every((station) => station.notices.length === 0));
   });
 
   it("provides zero accessibility outage counts in fallback summary mode", () => {

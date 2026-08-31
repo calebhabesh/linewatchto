@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowDownToLine, ArrowRight, BadgeInfo, Bus, CalendarCheck2, ChevronDown, ConciergeBell, Construction, GitMerge, Layers, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowDownToLine, ArrowRight, BadgeInfo, Bus, CalendarCheck2, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, Layers, Train } from "lucide-react";
 import Image from "next/image";
 import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
@@ -272,6 +272,27 @@ function stationImpactButtonClassName(tone: StationImpactDetailsTarget["tone"]) 
   return `${base} border-[#FEEC41]/35 bg-[#FEEC41]/10 hover:bg-[#FEEC41]/20 hover:border-[#FEEC41]/65`;
 }
 
+function stationNoticeCategoryLabel(category: string) {
+  switch (category) {
+    case "construction": return "Construction";
+    case "service-change": return "Service Change";
+    case "facility": return "Facility";
+    default: return "Notice";
+  }
+}
+
+function formatStationNoticeDate(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value.length === 10 ? `${value}T12:00:00Z` : value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("en-CA", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "America/Toronto",
+  }).format(date);
+}
+
 function arrivalSourceBadgeClassName(label: string) {
   const base = "inline-flex h-[22px] shrink-0 items-center rounded border px-2 text-[10.5px] font-black uppercase tracking-wide leading-none";
   if (label === "Live") {
@@ -308,6 +329,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const distinctImpacts = station
     ? distinctStationImpacts(station.impacts, { activeAlerts, delays, reducedSpeedZones, plannedClosures })
     : [];
+  const stationNotices = station?.notices ?? [];
   const hasArrivalCountdownTicker = station?.arrivals.some(
     (arrival) => arrival.status !== "unavailable" && arrival.predictedAt
   ) ?? false;
@@ -341,6 +363,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const connections = station ? ttcStationConnections(station.id) : [];
 
   const accessibilityDetailsRef = useRef<HTMLDetailsElement>(null);
+  const noticesDetailsRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -445,6 +468,15 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       shortLabel: "Buses",
       icon: <Bus size={13} aria-hidden="true" />,
     });
+    if (stationNotices.length > 0) {
+      navItems.push({
+        id: "notices",
+        label: "Station Notices",
+        shortLabel: "Notices",
+        icon: <FileText size={13} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />,
+        count: stationNotices.length,
+      });
+    }
     navItems.push({
       id: "station-impacts",
       label: "Station Impacts",
@@ -503,6 +535,17 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
         detailsElement.classList.remove("collapsing");
       }, 150);
     }
+  };
+
+  const handleNoticesSummaryClick = (e: React.MouseEvent<HTMLElement>) => {
+    const detailsElement = noticesDetailsRef.current;
+    if (!detailsElement || !detailsElement.open) return;
+    e.preventDefault();
+    detailsElement.classList.add("collapsing");
+    window.setTimeout(() => {
+      detailsElement.open = false;
+      detailsElement.classList.remove("collapsing");
+    }, reducedMotion ? 0 : 150);
   };
 
   const [isClosing, setIsClosing] = useState(false);
@@ -1093,6 +1136,83 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	          })()}
 
               <SurfaceConnectionsSection networkId="ttc" stationId={station.id} />
+
+              {stationNotices.length > 0 && (
+                <details
+                  ref={noticesDetailsRef}
+                  className="station-notices-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                  data-station-section="notices"
+                  aria-label="TTC station notices"
+                >
+                  <summary
+                    onClick={handleNoticesSummaryClick}
+                    className="station-notices-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white"
+                  >
+                    <div className="station-subsection-header flex min-w-0 items-center gap-2.5">
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+                      <FileText size={20} className="shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                      <span className="min-w-0 truncate">Station Notices</span>
+                      <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                        {stationNotices.length}
+                      </span>
+                    </div>
+                    <ChevronDown
+                      size={18}
+                      aria-hidden="true"
+                      className="station-notices-chevron shrink-0 text-slate-500 dark:text-slate-300"
+                    />
+                  </summary>
+                  <div className="station-notices-content-wrapper">
+                    <div className="station-notices-content pt-3 flex flex-col gap-2.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Reviewed TTC station information
+                      </p>
+                      {stationNotices.map((notice) => {
+                        const effectiveStart = formatStationNoticeDate(notice.effectiveStart);
+                        const effectiveEnd = formatStationNoticeDate(notice.effectiveEnd);
+                        const verified = formatStationNoticeDate(notice.lastVerifiedAt);
+                        return (
+                          <article
+                            key={notice.id}
+                            className="flex flex-col gap-2.5 rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300">
+                                {stationNoticeCategoryLabel(notice.category)}
+                              </span>
+                              {(effectiveStart || effectiveEnd) && (
+                                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                  {effectiveStart && effectiveEnd
+                                    ? `${effectiveStart}–${effectiveEnd}`
+                                    : effectiveStart
+                                      ? `Effective ${effectiveStart}`
+                                      : `Until ${effectiveEnd}`}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <strong className="block font-bold text-slate-900 dark:text-white">{notice.title}</strong>
+                              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">{notice.summary}</p>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/5 pt-2 text-[11px] text-slate-500 dark:border-white/5 dark:text-slate-400">
+                              <span>{notice.source}</span>
+                              {verified && <span>Verified {verified}</span>}
+                            </div>
+                            <a
+                              href={notice.sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex w-fit items-center gap-1 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              TTC details <ExternalLink size={12} aria-hidden="true" />
+                            </a>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </details>
+              )}
 
 	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
 	            <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">

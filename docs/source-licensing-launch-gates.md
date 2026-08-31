@@ -1,6 +1,6 @@
 # Source Licensing and Naming Launch Gates
 
-Last reviewed: 2026-08-13
+Last reviewed: 2026-08-31
 
 LineWatchTO is an unofficial, independent project. Technical readiness does not by itself authorize public use of a source, name, map, or mark.
 
@@ -25,6 +25,7 @@ That statement applies only to identified City of Toronto open-data inputs, incl
 Public launch remains blocked until the project owner records appropriate written confirmation for:
 
 - TTC Live Alerts use and normalized republication;
+- TTC website monitoring and reviewed republication of station-page notices;
 - the adapted TTC map asset;
 - Metrolinx API source use under the registered agreement; and
 - rider-facing use of GO, GO Transit, and UP Express names or marks.

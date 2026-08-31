@@ -5,11 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import com.calebhabesh.linewatch.arrival.ArrivalPrediction;
 import com.calebhabesh.linewatch.arrival.ArrivalService;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.stationnotice.TtcStationNotice;
+import com.calebhabesh.linewatch.stationnotice.TtcStationNoticeService;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -42,9 +47,16 @@ class StationServiceTest {
     private ArrivalService arrivalService;
     @Mock
     private AlertDashboardService alertDashboardService;
+    @Mock
+    private TtcStationNoticeService stationNoticeService;
 
     @InjectMocks
     private StationService stationService;
+
+    @BeforeEach
+    void defaultNoReviewedStationNotices() {
+        lenient().when(stationNoticeService.currentForStation(any())).thenReturn(List.of());
+    }
 
     @Test
     void stationSummariesIncludeLineIdsAccessStatusAndActiveImpactFlag() {
@@ -112,7 +124,7 @@ class StationServiceTest {
     }
 
     @Test
-    void stationDetailIncludesLinesAccessImpactsArrivalsAndDisclaimer() {
+    void stationDetailKeepsReviewedNoticesSeparateFromServiceImpactsAndArrivals() {
         StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null, true, false, true, true, true, false);
         TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
         StationLineEntity stationLine = new StationLineEntity(
@@ -144,6 +156,19 @@ class StationServiceTest {
         when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
             new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo", "2 min")
         ));
+        when(stationNoticeService.currentForStation("union")).thenReturn(List.of(new TtcStationNotice(
+            "ttc-station-notice-union",
+            "union",
+            "construction",
+            "Union Station construction notice",
+            "Use the signed temporary path through the station.",
+            "https://www.ttc.ca/subway-stations/union-station",
+            LocalDate.parse("2026-08-01"),
+            null,
+            null,
+            OffsetDateTime.parse("2026-08-31T09:00:00-04:00"),
+            "TTC station information"
+        )));
 
         StationResponses.StationDetailResponse response = stationService.stationDetail("union");
 
@@ -159,6 +184,12 @@ class StationServiceTest {
         assertThat(response.hasPpudo()).isFalse();
         assertThat(response.access().status()).isEqualTo("normal");
         assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id).containsExactly("impact-union-weekend");
+        assertThat(response.notices()).extracting(StationResponses.StationNoticeResponse::id)
+            .containsExactly("ttc-station-notice-union");
+        assertThat(response.impacts()).noneMatch(impactResponse ->
+            impactResponse.id().equals(response.notices().getFirst().id())
+        );
+        assertThat(response.notices().getFirst().effectiveStart()).isEqualTo(LocalDate.parse("2026-08-01"));
         assertThat(response.arrivals()).isNotEmpty();
         assertThat(response.arrivals().getFirst().label()).isEqualTo("2 min");
         assertThat(response.arrivalsSource()).isEqualTo("Demo estimates");

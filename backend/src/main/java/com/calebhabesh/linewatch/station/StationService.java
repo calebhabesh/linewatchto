@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import com.calebhabesh.linewatch.arrival.ArrivalPrediction;
 import com.calebhabesh.linewatch.arrival.ArrivalService;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.stationnotice.TtcStationNoticeService;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -39,6 +40,7 @@ public class StationService {
     private final IngestionFreshness ingestionFreshness;
     private final ArrivalService arrivalService;
     private final AlertDashboardService alertDashboardService;
+    private final TtcStationNoticeService stationNoticeService;
 
     public StationService(
         StationRepository stationRepository,
@@ -49,7 +51,8 @@ public class StationService {
         StationLiveReadRepository liveReadRepository,
         IngestionFreshness ingestionFreshness,
         ArrivalService arrivalService,
-        AlertDashboardService alertDashboardService
+        AlertDashboardService alertDashboardService,
+        TtcStationNoticeService stationNoticeService
     ) {
         this.stationRepository = stationRepository;
         this.transitLineRepository = transitLineRepository;
@@ -60,6 +63,7 @@ public class StationService {
         this.ingestionFreshness = ingestionFreshness;
         this.arrivalService = arrivalService;
         this.alertDashboardService = alertDashboardService;
+        this.stationNoticeService = stationNoticeService;
     }
 
     public StationResponses.StationListResponse stationSummaries() {
@@ -216,6 +220,21 @@ public class StationService {
 
         String arrivalsSource = arrivalSourceFor(predictions);
 
+        List<StationResponses.StationNoticeResponse> notices = stationNoticeService.currentForStation(id).stream()
+            .map(notice -> new StationResponses.StationNoticeResponse(
+                notice.id(),
+                notice.category(),
+                notice.title(),
+                notice.summary(),
+                notice.sourceUrl(),
+                notice.effectiveStart(),
+                notice.effectiveEnd(),
+                notice.sourceUpdatedAt(),
+                notice.lastVerifiedAt(),
+                notice.source()
+            ))
+            .toList();
+
         return new StationResponses.StationDetailResponse(
             station.getId(),
             station.getName(),
@@ -225,6 +244,7 @@ public class StationService {
             lines,
             access,
             impacts,
+            notices,
             arrivals,
             arrivalsSource,
             toArrivalContext(impacts),

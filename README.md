@@ -53,6 +53,8 @@ Implemented now:
 - Reviewed line-specific wheelchair and elevator metadata for every mapped Line 1, 2, 4, 5, and 6 stop, including distinct Spadina Line 1 and Line 2 values.
 - Authored wheelchair and elevator icons in station detail panels.
 - Fresh directly linked TTC station alerts and elevator/escalator outage rows when ingestion is current.
+- Reviewed TTC station notices appear only on affected station details. The seeded Warden notice is source-labeled and links to TTC; fallback fixtures do not invent station notices.
+- An independently opt-in TTC station-page monitor discovers mapped pages through TTC's sitemap, uses sitemap `lastmod` values for daily changed-page checks, rate-limits requests, forces a weekly full reconciliation, and stages additions, changes, and removals for human review. Detection never publishes or deactivates a rider-facing notice automatically.
 - Source-labeled station arrivals. The default provider uses TTC scheduled service when a merged GTFS schedule import is active. The opt-in `live` provider polls TTC GTFS-RT Subway Trip Updates, maps `stop_id` values through the active static GTFS import, and falls back to scheduled rows when the live feed is stale, missing a direction, or missing a line. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 - Independently opt-in surface connections inside mapped station details. TTC mode polls the TTC bus and streetcar GTFS-RT Trip Updates feeds once on the backend, indexes predictions through published static-GTFS `parent_station` links, and displays route, destination, countdown, and a bay/platform only when TTC supplies one in the stop name. GO/UP mode reads GO Bus rows from Metrolinx Next Service for the reviewed mapped station code and likewise treats bay/platform as optional. Surface routes, vehicles, alerts, and proximity-inferred stops remain off both schematic maps.
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
@@ -643,6 +645,7 @@ Health endpoint:
 ```bash
 curl http://localhost:8080/api/health
 curl http://localhost:8080/api/health/schedule
+curl http://localhost:8080/api/health/station-notices
 curl http://localhost:8080/api/health/regional-ingestion
 curl http://localhost:8080/api/health/regional-schedule
 ```
@@ -673,10 +676,13 @@ SERVER_ADDRESS=127.0.0.1 LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=true mvn -f bac
 
 `LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE` controls how long a successful poll can drive visible dashboard data. The default is `PT10M`; when that window expires, `/api/status`, `/api/alerts`, and `/api/map` stop using old active alert rows.
 
-Inspect its latest poll result:
+TTC's documented alert feeds do not reliably carry long-running station construction notices such as the Warden bus-terminal closure. LineWatchTO therefore keeps rider-facing station notices in a reviewed table rather than treating station-page HTML as a live alert feed. Set `LINEWATCH_STATION_NOTICES_MONITOR_ENABLED=true` only after approving TTC website monitoring for the target environment. The monitor fetches the sitemap once per day, normally fetches only mapped station pages whose `lastmod` changed, waits one second between page requests, and rechecks all mapped pages every seven days in case TTC omitted a `lastmod` update. Per-run page and response limits prevent an unexpected sitemap expansion from creating unbounded work. HTML candidates stay internal with `pending`, `approved`, or `ignored` review state; even a detected removal leaves the last reviewed public notice unchanged until a person verifies it. `/api/health/station-notices` exposes safe counters and the pending-review count, not retained page text or low-level errors. A complete weekly pass is roughly one small request per mapped station, not continuous polling.
+
+Inspect the latest TTC alert-ingestion and station-notice monitor results independently:
 
 ```bash
 curl http://localhost:8080/api/health/ingestion
+curl http://localhost:8080/api/health/station-notices
 ```
 
 Official TTC.ca performance metrics are intentionally fetched slowly because the TTC homepage is not an API and appears to update on a daily cadence. `LINEWATCH_PERFORMANCE_TTC_REFRESH_INTERVAL` defaults to `PT24H`, `LINEWATCH_PERFORMANCE_TTC_MAX_AGE` defaults to `PT48H`, and `LINEWATCH_CACHE_DASHBOARD_PERFORMANCE_TTL` defaults to `PT6H`. Reliability aggregates use the shared fail-open Redis cache with `LINEWATCH_CACHE_DASHBOARD_RELIABILITY_TTL` defaulting to `PT1M`; successful alert ingestion evicts those entries before their TTL when the underlying history changes.
@@ -842,6 +848,7 @@ Current backend scope:
 | `GET` | `/api/health` | Backend service health. |
 | `GET` | `/api/health/ingestion` | Latest TTC Live Alerts poll status and record counts. |
 | `GET` | `/api/health/schedule` | Active TTC GTFS schedule import, refresh, service-date, and station-line mapping coverage. |
+| `GET` | `/api/health/station-notices` | TTC station-page monitor state, bounded run counts, failures, and pending human-review count; no retained notice text. |
 | `GET` | `/api/health/regional-ingestion` | Metrolinx configuration, latest poll outcome, dashboard freshness, and per-collection completeness, record counts, and source timestamps. |
 | `GET` | `/api/health/regional-schedule` | Active GO/UP static-GTFS imports, mapped station-corridor coverage, and configured future-lookahead coverage. |
 | `GET` | `/api/diagnostics/capabilities` | Non-secret runtime capability flags; currently reports whether the non-production retained-alert viewer is enabled. Responses are never cached. |
@@ -857,7 +864,7 @@ Current backend scope:
 | `GET` | `/api/status` | Line status derived from fresh normalized alerts, otherwise no stale live impacts. |
 | `GET` | `/api/alerts?type=live\|delay\|planned\|slowdown` | Fresh normalized suspension/active alert cards, ordinary delay cards, planned closures, and Reduced Speed Zone groups. |
 | `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
-| `GET` | `/api/stations/{id}` | Station detail with reviewed facilities, source-labeled arrivals (demo/unavailable/live), and fresh directly linked TTC outage/alert rows when ingestion is current. |
+| `GET` | `/api/stations/{id}` | Station detail with reviewed facilities and station notices, source-labeled arrivals (demo/unavailable/live), and fresh directly linked TTC outage/alert rows when ingestion is current. |
 | `GET` | `/api/stations/{id}/surface-connections` | Freshness-gated TTC bus/streetcar predictions for static-GTFS parent-linked stops, with optional published bay/platform. |
 | `GET` | `/api/account/commutes` | Signed-in saved commutes with default route path, per-leg impact matching, standard-vs-impacted travel-time estimate ranges, and per-route notification rules. |
 | `POST` | `/api/account/commutes` | Create a signed-in saved commute and optional notification rule, then return the computed route, impact summary, travel-time estimate, and rule. |
@@ -975,6 +982,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 - Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available, then seeded per-segment fallback travel times, with deterministic topology fallback weights only as a last resort. Return trips are computed as a separate monitored leg when enabled, and directional service impacts only count when they match the commute leg direction or are bidirectional. Extra-time estimates are bounded heuristics over the matched dashboard-visible impacts: delays and Reduced Speed Zones can produce a range, while suspensions and closures are marked unreliable instead of inventing a detour duration. This is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
 - Saved-commute push notifications are derived from the same network-scoped dashboard-visible impact matching and each saved route's notification rule. Regional delivery additionally requires fresh successful Metrolinx ingestion. They should not be described as comprehensive TTC or Metrolinx alerts, all-map alerts, email alerts, alternate-route recommendations, or guaranteed delivery.
 - Accessibility outages use fresh TTC Live Alerts rows in TTC mode and fresh mapped Metrolinx amenity records in GO/UP mode. Surface notices use fresh TTC Live Alerts rows plus filtered TTC GTFS-RT bus/streetcar service-alert records, and disappear when ingestion is stale. They are source-labeled, but do not affect segment highlights, current line status, saved-commute impacts, reliability ratings, or push notifications.
+- Reviewed TTC station notices are a separate station-detail-only source. They do not affect alerts, map overlays, status, accessibility, My Commutes, reliability, or push notifications, and the optional webpage monitor must not be described as an official or complete station-notice API.
 - This app is unofficial, is not affiliated with TTC or Metrolinx, and should not be treated as the sole source of truth for transit service.
 
 ## Verification Baseline

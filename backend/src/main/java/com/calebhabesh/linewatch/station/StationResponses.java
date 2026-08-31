@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.station;
 
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 public final class StationResponses {
@@ -80,6 +81,7 @@ public final class StationResponses {
         List<StationLineResponse> lines,
         StationAccessResponse access,
         List<StationImpactResponse> impacts,
+        List<StationNoticeResponse> notices,
         List<StationArrivalResponse> arrivals,
         String arrivalsSource,
         StationArrivalContextResponse arrivalContext,
@@ -91,6 +93,20 @@ public final class StationResponses {
         boolean hasBicycleRepair,
         boolean hasBikeShare,
         boolean hasPpudo
+    ) {
+    }
+
+    public record StationNoticeResponse(
+        String id,
+        String category,
+        String title,
+        String summary,
+        String sourceUrl,
+        LocalDate effectiveStart,
+        LocalDate effectiveEnd,
+        OffsetDateTime sourceUpdatedAt,
+        OffsetDateTime lastVerifiedAt,
+        String source
     ) {
     }
 

@@ -6316,17 +6316,14 @@ button {
   animation: none !important;
 }
 
-/* Keep high-alert snapshots responsive. The paths and semantic patterns stay
-   visible, while their continuous idle motion yields to map interaction. */
+/* Keep high-alert snapshots responsive by pausing continuous corridor pulses.
+   Station beacons and directional glyph motion remain active. */
 [data-map-overlay-motion-paused="true"] .asset-alert-path-glow,
 [data-map-overlay-motion-paused="true"] .asset-alert-path.planned-preview,
 [data-map-overlay-motion-paused="true"] .asset-alert-path.delay-candy,
 [data-map-overlay-motion-paused="true"] .asset-alert-path.suspension-candy,
 [data-map-overlay-motion-paused="true"] .asset-alert-path.delay-static-base,
-[data-map-overlay-motion-paused="true"] .delay-static-path,
-[data-map-overlay-motion-paused="true"] .station-impact-ring,
-[data-map-overlay-motion-paused="true"] .station-impact-dot-red-glow,
-[data-map-overlay-motion-paused="true"] .station-impact-dot-red-ping {
+[data-map-overlay-motion-paused="true"] .delay-static-path {
   animation: none !important;
   transition: none !important;
 }

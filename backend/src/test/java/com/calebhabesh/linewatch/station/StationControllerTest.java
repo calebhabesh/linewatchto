@@ -55,7 +55,7 @@ class StationControllerTest {
 
     private static final class StubStationService extends StationService {
         StubStationService() {
-            super(null, null, null, null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null, null, null, null);
         }
 
         @Override
@@ -133,6 +133,7 @@ class StationControllerTest {
                     null,
                     "Planned TTC closure fixture"
                 )),
+                List.of(),
                 List.of(new StationResponses.StationArrivalResponse(
                     "line-1",
                     "Northbound",

@@ -612,6 +612,20 @@ export const stationDetailResponse = {
       source: "TTC Live Alerts",
     },
   ],
+  notices: [
+    {
+      id: "stub-station-construction-notice",
+      category: "construction",
+      title: "Stub Station bus terminal construction",
+      summary: "Buses use temporary stops while the station terminal is under construction.",
+      sourceUrl: "https://www.ttc.ca/subway-stations/stub-station",
+      effectiveStart: "2026-01-05",
+      effectiveEnd: null,
+      sourceUpdatedAt: "2026-06-01T09:00:00-04:00",
+      lastVerifiedAt: "2026-06-04T08:00:00-04:00",
+      source: "TTC station information",
+    },
+  ],
   arrivals: [
     {
       lineId: "line-1",

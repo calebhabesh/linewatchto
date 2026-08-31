@@ -482,6 +482,25 @@ test("mapped station details expose compact source-honest surface connections", 
   await expect(surface.getByText("Live", { exact: true })).toBeVisible();
 });
 
+test("mapped station details expose reviewed TTC station notices", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
+
+  const panel = page.getByRole("complementary", { name: "Stub Station station details" });
+  await panel.locator('[data-station-nav-target="notices"]').click();
+  const notices = panel.locator('[data-station-section="notices"]');
+  await expect(notices).toBeVisible();
+  await expect(notices).toHaveAttribute("open", "");
+  await expect(notices.getByText("Reviewed TTC station information")).toBeVisible();
+  await expect(notices.getByText("Stub Station bus terminal construction")).toBeVisible();
+  await expect(notices.getByText(/temporary stops/)).toBeVisible();
+  await expect(notices.getByRole("link", { name: "TTC details" })).toHaveAttribute(
+    "href",
+    "https://www.ttc.ca/subway-stations/stub-station",
+  );
+});
+
 test("switches the complete dashboard to the fixture-backed regional network", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "network selection is desktop-only");
   await setStubMode(request, "seeded");
