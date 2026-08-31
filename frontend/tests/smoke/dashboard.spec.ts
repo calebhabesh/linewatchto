@@ -2972,7 +2972,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   await expect(activeClosureCard.getByText("Closure dates", { exact: true })).toBeVisible();
   await expect(activeClosureCard.getByText("Mon, Jul 20 – Wed, Jul 22", { exact: true })).toBeVisible();
   await expect(activeClosureCard.getByText("Current window", { exact: true })).toBeVisible();
-  await expect(activeClosureCard.getByText("Wed 11:59 PM – Thu 3:30 AM", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Wed, Jul 22 · 11:59 PM – Thu 3:30 AM", { exact: true })).toBeVisible();
   await expect.poll(async () => activeClosureCard.locator(".planned-closure-schedule dd").evaluateAll((values) =>
     values.every((value) => value.scrollWidth <= value.clientWidth),
   )).toBe(true);

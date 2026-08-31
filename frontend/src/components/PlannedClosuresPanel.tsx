@@ -32,9 +32,21 @@ interface Props {
 }
 
 function formatClosureScheduleValue(value: string) {
-  return value
+  const normalized = value
     .replace(/\s*[–—]\s*/g, " – ")
     .replace(/\s+-\s+/g, " – ");
+
+  return normalized
+    .split(" – ")
+    .map((part) =>
+      part
+        .replace(/([A-Za-z]{3},?)\s+([A-Za-z]{3})\s+(\d{1,2})/g, "$1\u00A0$2\u00A0$3")
+        .replace(/([A-Za-z]{3})\s+(\d{1,2})/g, "$1\u00A0$2")
+        .replace(/·\s+/g, "·\u00A0")
+        .replace(/([A-Za-z]{3})\s+(\d{1,2}:\d{2})/g, "$1\u00A0$2")
+        .replace(/(\d{1,2}:\d{2})\s+([AP]M)/g, "$1\u00A0$2")
+    )
+    .join(" – ");
 }
 
 export function PlannedClosuresPanel({

@@ -21824,9 +21824,9 @@ img.transit-line-badge {
       conic-gradient(
         from var(--mobile-legend-beam-angle),
         var(--mobile-legend-ring-color) 0deg 326deg,
-        color-mix(in srgb, var(--mobile-legend-ring-color) 55%, #ffffff) 334deg,
-        #ffffff 342deg,
-        color-mix(in srgb, var(--mobile-legend-ring-color) 55%, #ffffff) 350deg,
+        #ff667d 334deg,
+        #ffa0b4 342deg,
+        #ff667d 350deg,
         var(--mobile-legend-ring-color) 358deg 360deg
       ) border-box;
   }
@@ -21870,9 +21870,9 @@ img.transit-line-badge {
       conic-gradient(
         from var(--mobile-legend-beam-angle),
         var(--mobile-legend-ring-color) 0deg 326deg,
-        color-mix(in srgb, var(--mobile-legend-ring-color) 55%, #ffffff) 334deg,
-        #ffffff 342deg,
-        color-mix(in srgb, var(--mobile-legend-ring-color) 55%, #ffffff) 350deg,
+        #ff667d 334deg,
+        #ffa0b4 342deg,
+        #ff667d 350deg,
         var(--mobile-legend-ring-color) 358deg 360deg
       ) border-box;
   }

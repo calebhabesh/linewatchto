@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,7 +38,11 @@ public class AlertDashboardService {
     private static final String PLANNED_CLOSURE_KIND = "planned-closure";
 
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
-    private static final DateTimeFormatter WINDOW_FORMATTER =
+    private static final DateTimeFormatter WINDOW_DATE_TIME_FORMATTER =
+        DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter WINDOW_DATE_TIME_WITH_YEAR_FORMATTER =
+        DateTimeFormatter.ofPattern("EEE, MMM d, uuuu · h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter WINDOW_DAY_TIME_FORMATTER =
         DateTimeFormatter.ofPattern("EEE h:mm a", Locale.ENGLISH);
     private static final DateTimeFormatter WINDOW_HOURS_FORMATTER =
         DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
@@ -1256,15 +1261,44 @@ public class AlertDashboardService {
         if (startsAt == null && endsAt == null) {
             return "Timing TBD";
         }
+        int currentTorontoYear = OffsetDateTime.now(clock).atZoneSameInstant(TORONTO_ZONE).getYear();
         if (startsAt == null) {
-            return "Until " + WINDOW_FORMATTER.format(endsAt.atZoneSameInstant(TORONTO_ZONE));
+            ZonedDateTime endZdt = endsAt.atZoneSameInstant(TORONTO_ZONE);
+            DateTimeFormatter formatter = endZdt.getYear() == currentTorontoYear
+                ? WINDOW_DATE_TIME_FORMATTER
+                : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
+            return "Until " + formatter.format(endZdt);
         }
         if (endsAt == null) {
-            return "From " + WINDOW_FORMATTER.format(startsAt.atZoneSameInstant(TORONTO_ZONE));
+            ZonedDateTime startZdt = startsAt.atZoneSameInstant(TORONTO_ZONE);
+            DateTimeFormatter formatter = startZdt.getYear() == currentTorontoYear
+                ? WINDOW_DATE_TIME_FORMATTER
+                : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
+            return "From " + formatter.format(startZdt);
         }
-        return WINDOW_FORMATTER.format(startsAt.atZoneSameInstant(TORONTO_ZONE))
-            + " - "
-            + WINDOW_FORMATTER.format(endsAt.atZoneSameInstant(TORONTO_ZONE));
+
+        ZonedDateTime startZdt = startsAt.atZoneSameInstant(TORONTO_ZONE);
+        ZonedDateTime endZdt = endsAt.atZoneSameInstant(TORONTO_ZONE);
+        LocalDate startDate = startZdt.toLocalDate();
+        LocalDate endDate = endZdt.toLocalDate();
+
+        DateTimeFormatter startFormatter = startZdt.getYear() == currentTorontoYear
+            ? WINDOW_DATE_TIME_FORMATTER
+            : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
+
+        if (startDate.equals(endDate)) {
+            return startFormatter.format(startZdt) + " – " + WINDOW_HOURS_FORMATTER.format(endZdt);
+        }
+
+        if (endDate.equals(startDate.plusDays(1))
+            && Duration.between(startsAt, endsAt).compareTo(MAX_SINGLE_CLOSURE_WINDOW) <= 0) {
+            return startFormatter.format(startZdt) + " – " + WINDOW_DAY_TIME_FORMATTER.format(endZdt);
+        }
+
+        DateTimeFormatter endFormatter = endZdt.getYear() == currentTorontoYear
+            ? WINDOW_DATE_TIME_FORMATTER
+            : WINDOW_DATE_TIME_WITH_YEAR_FORMATTER;
+        return startFormatter.format(startZdt) + " – " + endFormatter.format(endZdt);
     }
 
     private Comparator<ActiveAlertDto> activeAlertComparator(List<LineSegmentEntity> segments) {

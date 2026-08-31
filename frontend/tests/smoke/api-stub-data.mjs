@@ -450,7 +450,7 @@ export const plannedClosuresResponse = [
     nightly: true,
     windowHours: "11:59 PM – 3:30 AM",
     windowDates: "Mon, Jul 20 – Wed, Jul 22",
-    activeWindowLabel: "Wed 11:59 PM - Thu 3:30 AM",
+    activeWindowLabel: "Wed, Jul 22 · 11:59 PM – Thu 3:30 AM",
     nextWindowLabel: null,
   },
   {
@@ -473,7 +473,7 @@ export const plannedClosuresResponse = [
     windowHours: "11:00 PM – 2:00 AM",
     windowDates: "Thu, Jul 23 – Fri, Jul 24",
     activeWindowLabel: null,
-    nextWindowLabel: "Tomorrow 11:00 PM - Fri 2:00 AM",
+    nextWindowLabel: "Thu, Jul 23 · 11:00 PM – Fri 2:00 AM",
   },
 ];
 
@@ -499,7 +499,7 @@ export const mapAuthoritativePlannedClosuresResponse = [
     windowHours: "11:00 PM – 2:00 AM",
     windowDates: "Thu, Jul 23 – Fri, Jul 24",
     activeWindowLabel: null,
-    nextWindowLabel: "Tomorrow 11:00 PM - Fri 2:00 AM",
+    nextWindowLabel: "Thu, Jul 23 · 11:00 PM – Fri 2:00 AM",
   },
 ];
 

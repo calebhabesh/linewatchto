@@ -547,7 +547,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.lineId()).isEqualTo("line-2");
             assertThat(dto.lineNumber()).isEqualTo("2");
             assertThat(dto.location()).isEqualTo("Jane to Ossington");
-            assertThat(dto.window()).isEqualTo("Sat 12:00 AM - Mon 5:00 AM");
+            assertThat(dto.window()).isEqualTo("Sat, Jun 6 · 12:00 AM – Mon, Jun 8 · 5:00 AM");
             assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-06-06T04:00:00Z"));
             assertThat(dto.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:45:00Z"));
             assertThat(dto.previewSegmentIds()).containsExactly("line-2-jane-ossington");
@@ -684,6 +684,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.timingStatus()).isEqualTo("upcoming");
             assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-02T03:59:00Z"));
             assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-02T07:30:00Z"));
+            assertThat(dto.nextWindowLabel()).isEqualTo("Mon, Jun 1 · 11:59 PM – Tue 3:30 AM");
         });
     }
 
@@ -1045,7 +1046,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.id()).isEqualTo("ttc-route-synthetic-continuous-closure");
             assertThat(dto.activeNow()).isTrue();
             assertThat(dto.timingStatus()).isEqualTo("active-now");
-            assertThat(dto.window()).isEqualTo("Fri 11:59 PM - Mon 3:30 AM");
+            assertThat(dto.window()).isEqualTo("Fri, Aug 14 · 11:59 PM – Mon, Aug 17 · 3:30 AM");
         });
         assertThat(weekendService.activeAlerts()).singleElement().satisfies(dto -> {
             assertThat(dto.id()).isEqualTo("ttc-route-synthetic-continuous-closure");
@@ -2277,6 +2278,66 @@ class AlertDashboardServiceTest {
             null,
             null
         );
+    }
+
+    @Test
+    void windowFormatsSameDayClosureWithLeadingDateAndClosingHours() {
+        String window = ReflectionTestUtils.invokeMethod(
+            service,
+            "window",
+            OffsetDateTime.parse("2026-09-19T13:00:00Z"), // 9:00 AM Toronto EDT
+            OffsetDateTime.parse("2026-09-19T18:00:00Z")  // 2:00 PM Toronto EDT
+        );
+        assertThat(window).isEqualTo("Sat, Sep 19 · 9:00 AM – 2:00 PM");
+    }
+
+    @Test
+    void windowFormatsOvernightNightlyClosureWithLeadingDateAndFollowingDayTime() {
+        String window = ReflectionTestUtils.invokeMethod(
+            service,
+            "window",
+            OffsetDateTime.parse("2026-09-15T03:59:00Z"), // Mon Sep 14, 11:59 PM Toronto EDT
+            OffsetDateTime.parse("2026-09-15T10:00:00Z")  // Tue Sep 15, 6:00 AM Toronto EDT
+        );
+        assertThat(window).isEqualTo("Mon, Sep 14 · 11:59 PM – Tue 6:00 AM");
+    }
+
+    @Test
+    void windowFormatsMultiDayWeekendClosureWithBothDates() {
+        String window = ReflectionTestUtils.invokeMethod(
+            service,
+            "window",
+            OffsetDateTime.parse("2026-09-19T10:00:00Z"), // Sat Sep 19, 6:00 AM Toronto EDT
+            OffsetDateTime.parse("2026-09-21T03:59:00Z")  // Sun Sep 20, 11:59 PM Toronto EDT
+        );
+        assertThat(window).isEqualTo("Sat, Sep 19 · 6:00 AM – Sun, Sep 20 · 11:59 PM");
+    }
+
+    @Test
+    void windowFormatsSingleBoundWindows() {
+        String until = ReflectionTestUtils.invokeMethod(
+            service,
+            "window",
+            null,
+            OffsetDateTime.parse("2026-09-15T10:00:00Z")
+        );
+        assertThat(until).isEqualTo("Until Tue, Sep 15 · 6:00 AM");
+
+        String from = ReflectionTestUtils.invokeMethod(
+            service,
+            "window",
+            OffsetDateTime.parse("2026-09-15T03:59:00Z"),
+            null
+        );
+        assertThat(from).isEqualTo("From Mon, Sep 14 · 11:59 PM");
+
+        String tbd = ReflectionTestUtils.invokeMethod(
+            service,
+            "window",
+            null,
+            null
+        );
+        assertThat(tbd).isEqualTo("Timing TBD");
     }
 
     private static final class MutableClock extends Clock {
