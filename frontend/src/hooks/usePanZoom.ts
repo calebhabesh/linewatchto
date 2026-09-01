@@ -58,7 +58,6 @@ export function usePanZoom({
 }: UsePanZoomOptions = {}) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
   const [recenterFeedbackKey, setRecenterFeedbackKey] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
   const initialEntranceTimeoutRef = useRef<number | null>(null);
@@ -156,6 +155,12 @@ export function usePanZoom({
     isGestureActiveRef.current = active;
     if (containerRef.current) {
       containerRef.current.dataset.mapGestureActive = active ? "true" : "false";
+    }
+  }, []);
+
+  const setPointerDragging = useCallback((active: boolean) => {
+    if (containerRef.current) {
+      containerRef.current.dataset.mapPointerDragging = active ? "true" : "false";
     }
   }, []);
 
@@ -574,7 +579,7 @@ export function usePanZoom({
       suppressMapClickRef.current = true;
       captureActivePointers(e.currentTarget);
       if (dragPointerTypeRef.current === "mouse") {
-        setIsDragging(true);
+        setPointerDragging(true);
       }
     }
 
@@ -599,7 +604,7 @@ export function usePanZoom({
         dragRafRef.current = null;
       });
     }
-  }, [applyPinchGesture, captureActivePointers, pointerPointFromEvent, writeMapTransform]);
+  }, [applyPinchGesture, captureActivePointers, pointerPointFromEvent, setPointerDragging, writeMapTransform]);
 
   const finishPointerInteraction = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (dragRafRef.current !== null) {
@@ -644,14 +649,14 @@ export function usePanZoom({
     }
 
     setUserGestureMotion(false);
+    setPointerDragging(false);
     activeDragPointerIdRef.current = null;
     activePointersRef.current.clear();
     pointerStartPointsRef.current.clear();
     dragPointerTypeRef.current = null;
-    setIsDragging(false);
     restoreIdleMapTransition();
     setTransform({ ...transformRef.current });
-  }, [commitTransformRef, restoreIdleMapTransition, setUserGestureMotion]);
+  }, [commitTransformRef, restoreIdleMapTransition, setPointerDragging, setUserGestureMotion]);
 
   const handlePointerUp = useCallback((e: PointerEvent<HTMLDivElement>) => {
     finishPointerInteraction(e);
@@ -971,7 +976,6 @@ export function usePanZoom({
   return {
     transform,
     relativeScale,
-    isDragging,
     isGestureActive,
     recenterFeedbackKey,
     containerRef,

@@ -826,7 +826,7 @@ class PushNotificationServiceTest {
         PushResponses.PushRecipientDiagnosticResponse androidRecipient = notification.recipients().getFirst();
         assertThat(androidRecipient.status()).isEqualTo("not-attempted");
         assertThat(androidRecipient.reasonCode()).isEqualTo("subscription-registered-after-event");
-        assertThat(androidRecipient.reason()).isEqualTo("Device was registered after this notification was created.");
+        assertThat(androidRecipient.reason()).isEqualTo("Device was enabled after this notification became eligible.");
         assertThat(androidRecipient.delivery()).isNull();
         PushResponses.PushRecipientDiagnosticResponse iosRecipient = notification.recipients().get(1);
         assertThat(iosRecipient.status()).isEqualTo("attempted");

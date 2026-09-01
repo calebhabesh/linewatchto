@@ -813,13 +813,14 @@ public class PushNotificationService {
                 "Notification creation time was not recorded."
             );
         }
+        Instant eventTriggeredAt = event.deliveryEligibilityAt();
         Instant enabledAt = subscription.getEnabledAt();
         Instant createdAt = subscription.getCreatedAt();
-        if ((enabledAt != null && eventCreatedAt.isBefore(enabledAt))
-            || (createdAt != null && eventCreatedAt.isBefore(createdAt))) {
+        if ((enabledAt != null && eventTriggeredAt.isBefore(enabledAt))
+            || (createdAt != null && eventTriggeredAt.isBefore(createdAt))) {
             return new RecipientReason(
                 "subscription-registered-after-event",
-                "Device was registered after this notification was created."
+                "Device was enabled after this notification became eligible."
             );
         }
         if (!subscription.isEnabled()) {

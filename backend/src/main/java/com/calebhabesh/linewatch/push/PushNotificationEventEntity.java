@@ -47,6 +47,8 @@ public class PushNotificationEventEntity {
     private String url;
     @Column(name = "created_at")
     private Instant createdAt;
+    @Column(name = "triggered_at")
+    private Instant triggeredAt;
     @Column(name = "delivery_allowed")
     private boolean deliveryAllowed;
 
@@ -83,6 +85,7 @@ public class PushNotificationEventEntity {
         this.sourceEventAt = notification.sourceEventAt();
         this.url = candidate.url();
         this.createdAt = now;
+        this.triggeredAt = now;
         this.deliveryAllowed = candidate.deliveryAllowed();
     }
 
@@ -97,11 +100,24 @@ public class PushNotificationEventEntity {
         PushNotificationFormatter formatter,
         Instant now
     ) {
+        return create(id, candidate, sourceEventAt, formatter, now, now);
+    }
+
+    public static PushNotificationEventEntity create(
+        String id,
+        PushNotificationCandidate candidate,
+        Instant sourceEventAt,
+        PushNotificationFormatter formatter,
+        Instant triggeredAt,
+        Instant now
+    ) {
         FormattedPushNotification notification = candidate.notification();
         if (sourceEventAt != null && !sourceEventAt.equals(candidate.sourceEventAt())) {
             notification = formatter.withSourceEventAt(notification, sourceEventAt);
         }
-        return new PushNotificationEventEntity(id, candidate, notification, now);
+        PushNotificationEventEntity event = new PushNotificationEventEntity(id, candidate, notification, now);
+        event.triggeredAt = triggeredAt == null ? now : triggeredAt;
+        return event;
     }
 
     public static PushNotificationEventEntity cleared(
@@ -161,6 +177,7 @@ public class PushNotificationEventEntity {
         event.sourceEventAt = notification.sourceEventAt();
         event.url = "/";
         event.createdAt = now;
+        event.triggeredAt = activeEvent.deliveryEligibilityAt();
         event.deliveryAllowed = deliveryAllowed;
         return event;
     }
@@ -218,6 +235,7 @@ public class PushNotificationEventEntity {
         event.sourceEventAt = notification.sourceEventAt();
         event.url = "/";
         event.createdAt = now;
+        event.triggeredAt = observation.getObservedAt() == null ? now : observation.getObservedAt();
         event.deliveryAllowed = true;
         return event;
     }
@@ -251,6 +269,7 @@ public class PushNotificationEventEntity {
         event.sourceEventAt = now;
         event.url = "/?panel=account";
         event.createdAt = now;
+        event.triggeredAt = now;
         event.deliveryAllowed = true;
         return event;
     }
@@ -281,5 +300,10 @@ public class PushNotificationEventEntity {
     public Instant getSourceEventAt() { return sourceEventAt; }
     public String getUrl() { return url; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getTriggeredAt() { return triggeredAt; }
     public boolean isDeliveryAllowed() { return deliveryAllowed; }
+
+    public Instant deliveryEligibilityAt() {
+        return triggeredAt == null ? createdAt : triggeredAt;
+    }
 }

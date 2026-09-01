@@ -510,6 +510,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   backface-visibility: hidden;
 }
 
+[data-map-pan-zoom-viewport][data-map-pointer-dragging="true"] {
+  cursor: grabbing;
+}
+
 .raster-map-plane--background { z-index: 0; }
 .raster-map-dynamic-plane { z-index: 1; }
 .raster-map-plane--foreground { z-index: 2; }
@@ -572,7 +576,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .raster-station-label-text-hover {
   pointer-events: none;
   filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 58%));
-  transition: filter 180ms ease-in-out;
+  transition: filter 70ms ease-out;
 }
 
 /* Static authored artwork no longer paints after its raster planes decode.
@@ -976,7 +980,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-station-hover-indicator,
 .regional-station-selected-indicator {
   opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  transition: opacity 70ms ease-out;
 }
 
 .regional-station-selected-indicator {
@@ -990,7 +994,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   fill: transparent !important;
   stroke: transparent !important;
   stroke-width: 0 !important;
-  transition: fill 0.2s ease-in-out, stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
+  transition: fill 70ms ease-out, stroke 70ms ease-out, stroke-width 70ms ease-out;
 }
 
 .regional-station-hit-target:hover + .regional-station-hover-indicator,
@@ -1077,20 +1081,72 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-impact-hover-foreground {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 70ms ease-out,
+    visibility 0s linear 70ms;
 }
 
 .regional-impact-hover-foreground[data-regional-impact-hovered="true"] {
-  display: inline;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
 }
 
+.ttc-impact-hover-foreground-layer,
+.ttc-impact-hover-foreground {
+  pointer-events: none;
+}
+
+.ttc-impact-hover-foreground {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 70ms ease-out,
+    visibility 0s linear 70ms;
+}
+
+.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.ttc-impact-hover-outline,
+.ttc-impact-hover-rail {
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ttc-impact-hover-outline {
+  stroke: var(--station-selection-accent);
+  stroke-width: 124px;
+}
+
+.ttc-impact-hover-rail {
+  stroke-width: 102px;
+}
+
+.ttc-impact-hover-rail.suspension { stroke: #ef4444; }
+.ttc-impact-hover-rail.delay-static { stroke: #0ea5e9; }
+.ttc-impact-hover-rail.reduced-speed-zone { stroke: #f59e0b; }
+.ttc-impact-hover-rail.planned-preview { stroke: var(--planned-preview-rail); }
+
 .regional-station-impact-hover-foreground {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 70ms ease-out,
+    visibility 0s linear 70ms;
 }
 
 .regional-station-impact-hover-foreground[data-regional-impact-hovered="true"] {
-  display: inline;
-  animation: hover-priority-boundary-in 180ms ease-out both;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .regional-impact-path,
@@ -6233,8 +6289,9 @@ button {
 }
 
 /* The blurred route aura obscures adjacent station and alert detail when
-   impacts cluster. Keep the crisp rail and hover boundary, but omit the halo. */
-.asset-alert-path-glow:not(.commute-path-preview-glow) {
+   impacts cluster. Keep the crisp rail, active selection, and hover boundary,
+   but omit the ambient halo. */
+.asset-alert-path-glow:not(.map-selection-attention):not(.interactive-glow):not(.commute-path-preview-glow) {
   display: none !important;
   animation: none !important;
   filter: none !important;
@@ -6394,7 +6451,7 @@ button {
   stroke: rgba(59, 130, 246, 0.75);
 }
 
-.interactive-glow {
+.interactive-glow:not(.map-selection-attention) {
   opacity: 0;
   animation: none !important;
 }
@@ -6747,8 +6804,8 @@ button {
   transform-box: fill-box;
   transform-origin: center;
   transition:
-    opacity 160ms ease-out,
-    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 70ms ease-out,
+    transform 80ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .overlap-indicator.open {
@@ -7104,7 +7161,7 @@ button {
   fill: rgba(255, 255, 255, 0.94);
   stroke: rgba(15, 23, 42, 0.28);
   stroke-width: 4;
-  transition: stroke-width 0.2s ease, stroke 0.2s ease, fill 0.2s ease;
+  transition: stroke-width 70ms ease-out, stroke 70ms ease-out, fill 70ms ease-out;
 }
 
 .dark .overlap-indicator-pill,
@@ -8506,9 +8563,7 @@ img.transit-line-badge {
   pointer-events: none;
   transform-box: fill-box;
   transform-origin: center;
-  transition:
-    filter 280ms ease-in-out,
-    transform 280ms ease-in-out;
+  transition: transform 80ms ease-out;
 }
 
 .station-label-hover-effect-active,
@@ -8516,7 +8571,7 @@ img.transit-line-badge {
 .station-label-hover-effect:has(.regional-station-label-hovered) {
   filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
   transform: scale(1.045);
-  transition-delay: 60ms;
+  transition-delay: 0ms;
 }
 
 .motion-paused .station-label-hover-effect {
@@ -8566,13 +8621,19 @@ img.transit-line-badge {
   pointer-events: none;
   stroke: transparent;
   stroke-width: 0;
-  transition: fill 0.2s ease-in-out, stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
+  transition: fill 70ms ease-out, stroke 70ms ease-out, stroke-width 70ms ease-out;
 }
 
 .station-hover-indicator.active {
   fill: rgb(var(--station-selection-accent-rgb) / 30%);
   stroke: var(--station-selection-accent);
   stroke-width: 10;
+}
+
+.station-hover-indicator[data-station-hover-selected="true"] {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 0;
 }
 
 .station-hit-target.multi-anchor:hover,
@@ -8636,9 +8697,19 @@ img.transit-line-badge {
 
 .station-impact-hover-priority {
   fill: rgb(var(--station-selection-accent-rgb) / 18%);
+  opacity: 0;
+  visibility: hidden;
   stroke: var(--station-selection-accent);
   stroke-width: 9;
-  filter: drop-shadow(0 0 8px rgb(var(--station-selection-accent-rgb) / 90%));
+  transition:
+    opacity 70ms ease-out,
+    visibility 0s linear 70ms;
+}
+
+.station-impact-hover-priority[data-ttc-impact-hovered="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .high-contrast .station-impact-hover-priority {
@@ -21107,7 +21178,6 @@ img.transit-line-badge {
 
 /* ============================================================
    Direct pan and user-zoom overlay simplification
-   Freeze animated effects at their current frame without dropping glows
    ============================================================ */
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path-glow:not(.map-selection-attention),
 :is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow:not(.map-selection-attention),
@@ -21147,9 +21217,60 @@ img.transit-line-badge {
   stroke-width: 138;
 }
 
-/* Programmatic camera flights, including Center, follow the same visual
-   contract as direct pan and zoom: freeze pulse motion at the current frame,
-   but retain every authored glow while the camera settles. */
+/* Camera input takes priority over decorative paint. Removing blur/drop-shadow
+   sampling and transient hover planes while the stage moves keeps Chromium's
+   compositor work bounded without hiding the service-impact rails themselves. */
+:is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
+  .asset-alert-path-glow,
+  .interactive-glow,
+  .station-impact-ring,
+  .station-impact-dot-red-glow,
+  .station-impact-dot-red-ping,
+  .station-impact-dot-red-beacon,
+  .station-selected-indicator,
+  .station-selection-flash,
+  .station-commute-green-flash,
+  .commute-path-preview-glow,
+  .regional-impact-aura,
+  .regional-impact-glow,
+  .regional-impact-interactive-glow,
+  .regional-station-impact-ring,
+  .regional-station-impact-beacon-group,
+  .regional-station-top-selection,
+  .estimated-train-marker
+) {
+  filter: none !important;
+}
+
+:is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
+  .asset-alert-path-glow:not(.map-selection-attention),
+  .station-impact-dot-red-ping,
+  .station-impact-dot-red-beacon,
+  .commute-path-preview-glow,
+  .regional-impact-aura,
+  .regional-impact-glow:not(.map-selection-attention),
+  .regional-station-impact-beacon-group
+) {
+  opacity: 0 !important;
+}
+
+:is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
+  .ttc-impact-hover-foreground,
+  .station-impact-hover-priority,
+  .station-hover-indicator,
+  .raster-station-label-text-hover,
+  .regional-impact-hover-foreground,
+  .regional-station-impact-hover-foreground,
+  .regional-station-hover-indicator
+) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: none !important;
+}
+
+/* Programmatic camera flights freeze pulse motion while preserving selection
+   emphasis. Unlike direct input, these short flights do not compete with a
+   stream of pointer frames. */
 [data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention),
 [data-map-camera-moving="true"] .interactive-glow:not(.map-selection-attention),
 [data-map-camera-moving="true"] .asset-alert-path.delay-candy,
@@ -21166,6 +21287,20 @@ img.transit-line-badge {
 [data-map-camera-moving="true"] .commute-path-preview-glow,
 [data-map-camera-moving="true"] .commute-path-preview-path {
   animation-play-state: paused !important;
+  transition: none !important;
+}
+
+:is([data-map-camera-moving="true"], [data-regional-map-camera-moving="true"]) :is(
+  .ttc-impact-hover-foreground,
+  .station-impact-hover-priority,
+  .station-hover-indicator,
+  .raster-station-label-text-hover,
+  .regional-impact-hover-foreground,
+  .regional-station-impact-hover-foreground,
+  .regional-station-hover-indicator
+) {
+  opacity: 0 !important;
+  visibility: hidden !important;
   transition: none !important;
 }
 

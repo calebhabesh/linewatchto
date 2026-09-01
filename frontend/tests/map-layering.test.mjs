@@ -93,7 +93,7 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("gives regional station names the TTC hover glow and gradual reveal", () => {
+  it("gives regional station names the TTC hover glow with a bounded fast reveal", () => {
     assert.match(interactiveRegionalMapSource, /dataset\.regionalStationLabelFor = stationId/);
     assert.match(interactiveRegionalMapSource, /raster-station-label-text-hover/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-station-label-hover-clone/);
@@ -109,8 +109,10 @@ describe("asset-backed map layering", () => {
       globalCss,
       /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*filter:\s*drop-shadow\(0 0 6px[^}]*transform:\s*scale\(1\.045\);/s,
     );
-    assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*transition:[^}]*filter 280ms ease-in-out[^}]*transform 280ms ease-in-out/s);
-    assert.match(globalCss, /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*transition-delay:\s*60ms;/s);
+    assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*transition:\s*transform 80ms ease-out;/s);
+    assert.match(globalCss, /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*transition-delay:\s*0ms;/s);
+    assert.match(interactiveRegionalMapSource, /bounds:\s*\{[\s\S]*?Math\.min\(\.\.\.corners/);
+    assert.match(interactiveRegionalMapSource, /x=\{hoveredStationLabel\.bounds\.x\}/);
     assert.doesNotMatch(globalCss, /@keyframes station-label-selection-(?:intro|breathe)/);
   });
 
@@ -140,7 +142,8 @@ describe("asset-backed map layering", () => {
       interactiveMapSource,
       /const hoverRadius = hasMultipleVisualAnchors \? 42 : isLarge \? 78 : 46;/,
     );
-    assert.match(interactiveMapSource, /className=\{`station-hover-indicator/);
+    assert.match(interactiveMapSource, /className="station-hover-indicator"/);
+    assert.match(interactiveMapSource, /setTtcStationHovered\(mapRootRef\.current, station\.id, true\)/);
     assert.match(interactiveMapSource, /r=\{hoverRadius\}/);
     assert.match(
       globalCss,
@@ -246,28 +249,24 @@ describe("asset-backed map layering", () => {
   });
 
   it("repaints the mouse-hover highlight above overlapping disruption corridors", () => {
-    assert.match(interactiveMapSource, /const \[hoveredOverlayHighlight, setHoveredOverlayHighlight\]/);
-    assert.match(interactiveMapSource, /const \[hoveredOverlayForeground, setHoveredOverlayForeground\]/);
-    assert.match(interactiveMapSource, /onHoverHighlightChange=\{setHoveredOverlayHighlight\}/);
+    assert.doesNotMatch(interactiveMapSource, /hoveredOverlayHighlight|hoveredOverlayForeground/);
+    assert.match(interactiveMapSource, /function setTtcImpactHovered/);
+    assert.match(interactiveMapSource, /foreground\.dataset\.ttcImpactHovered = "true"/);
     assert.match(
       interactiveMapSource,
-      /<g aria-hidden="true" className="hover-priority-overlay">[\s\S]*?data-hover-foreground-impact[\s\S]*?<OverlaySegment[\s\S]*?hover-priority-glow[\s\S]*?hover-priority-boundary[\s\S]*?Top Layer: custom-map station labels/,
+      /className="ttc-impact-hover-foreground-layer"[\s\S]*?<TtcImpactHoverForeground[\s\S]*?aria-label="Disruption overlay interaction targets"/,
     );
     assert.match(
       interactiveMapSource,
-      /id=\{maskId\}[\s\S]*?stroke="white"[\s\S]*?style=\{\{ strokeWidth: 120 \}\}[\s\S]*?stroke="black"[\s\S]*?strokeWidth=\{102\}/,
+      /className=\{`ttc-impact-hover-outline \$\{visualState\}`\}[\s\S]*?className=\{`ttc-impact-hover-rail \$\{visualState\}`\}/,
     );
-    assert.match(interactiveMapSource, /mask=\{`url\(#\$\{maskId\}\)`\}/);
-    assert.match(
-      interactiveMapSource,
-      /className=\{`asset-alert-path-hover-boundary hover-priority-boundary \$\{highlight\.visualState\}`\}[\s\S]*?style=\{\{ strokeWidth: 120 \}\}/,
-    );
+    assert.doesNotMatch(interactiveMapSource, /hover-priority-boundary-ring-mask/);
     assert.match(interactiveMapSource, /event\.pointerType !== "mouse" \|\| exiting/);
     assert.match(
       globalCss,
-      /\.asset-alert-path-glow\.hover-priority-glow\s*\{[^}]*display:\s*block;[^}]*opacity:\s*0\.55;/s,
+      /\.ttc-impact-hover-foreground\[data-ttc-impact-hovered="true"\]\s*\{[^}]*opacity:\s*1;[^}]*visibility:\s*visible;/s,
     );
-    assert.match(globalCss, /@keyframes hover-priority-boundary-in/);
+    assert.match(globalCss, /\.ttc-impact-hover-outline\s*\{[^}]*stroke-width:\s*124px;/s);
   });
 
   it("renders animated visual effects for delays, closures, and station impacts", () => {
@@ -379,7 +378,7 @@ describe("asset-backed map layering", () => {
       /\/\* Keep high-alert snapshots responsive[\s\S]*?\n\}/,
     )?.[0] ?? "";
     assert.doesNotMatch(denseMotionBlock, /station-impact-(?:ring|dot-red-glow|dot-red-ping)/);
-    assert.match(globalCss, /\.asset-alert-path-glow:not\(\.commute-path-preview-glow\)\s*\{[^}]*display:\s*none !important;[^}]*animation:\s*none !important;[^}]*filter:\s*none !important;/s);
+    assert.match(globalCss, /\.asset-alert-path-glow:not\(\.map-selection-attention\):not\(\.interactive-glow\):not\(\.commute-path-preview-glow\)\s*\{[^}]*display:\s*none !important;[^}]*animation:\s*none !important;[^}]*filter:\s*none !important;/s);
   });
 
   it("keeps all pulse and glow animations on one shared phase", () => {
@@ -695,11 +694,11 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /boundedChooserViewportCandidates/);
     assert.doesNotMatch(interactiveMapSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
     assert.match(interactiveMapSource, /onHoverImpact/);
-    assert.match(interactiveMapSource, /data-hover-priority-impact=\{highlight\.key\}/);
+    assert.match(interactiveMapSource, /foreground\.dataset\.hoverPriorityImpact = activationKey/);
     assert.match(interactiveMapSource, /onPointerEnter=\{\(event\) => \{/);
     assert.doesNotMatch(interactiveMapSource, /onFocus=\{\(\) => onHoverImpact\(impact\)\}/);
-    assert.match(interactiveMapSource, /expandedOverlapBadgeId && !hoveredOverlapChooserImpact/);
-    assert.match(interactiveMapSource, /setHoveredOverlayForeground\(\{[\s\S]*?impact: renderedImpact\.impact/);
+    assert.match(interactiveMapSource, /setExternalImpactsHovered/);
+    assert.match(interactiveMapSource, /activationPrefix: "badge" \| "chooser"/);
     assert.match(interactiveMapSource, /const OVERLAP_CHOOSER_TARGET_GAP = 16;/);
     assert.match(interactiveMapSource, /const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;/);
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
@@ -848,7 +847,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.map-selection-attention\.selection-intro-complete\s*\{[^}]*animation-name:\s*var\(--selection-breathe-name\) !important;/s);
     assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
     assert.match(interactiveMapSource, /data-station-impact-selection-id=\{impact\.cardId\}/);
-    assert.match(interactiveMapSource, /data-station-impact-hover-id=\{impact\.cardId\}/);
+    assert.match(interactiveMapSource, /foreground\.dataset\.stationImpactHoverId = identity\.id/);
     assert.match(interactiveMapSource, /data-station-selection-foreground=\{station\.id\}/);
     assert.match(interactiveMapSource, /station-impact-hover-priority/);
     assert.match(

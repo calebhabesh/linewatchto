@@ -235,7 +235,7 @@ describe("mobile performance guardrails", () => {
     assert.match(panZoomSource, /e\.pointerType !== "mouse"/);
   });
 
-  it("pauses every overlay pulse without removing glows while map gestures are active", () => {
+  it("pauses overlay pulses and removes expensive gesture-time paint", () => {
     const interactionSelector = /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\)/;
     assert.match(globalCss, interactionSelector);
     assert.match(globalCss, /\) \.asset-alert-path-glow/);
@@ -246,9 +246,11 @@ describe("mobile performance guardrails", () => {
     assert.match(globalCss, /\) \.asset-alert-path\.planned-preview/);
     assert.match(globalCss, /animation-play-state:\s*paused\s*!important/);
     assert.match(globalCss, /transition:\s*none\s*!important/);
-    assert.doesNotMatch(
+    assert.match(
       globalCss,
-      /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)[^{]*\{[^}]*filter:\s*none\s*!important;/s,
+      /:is\(\[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) :is\([\s\S]*?filter:\s*none\s*!important;/s,
     );
+    assert.match(globalCss, /\.asset-alert-path-glow:not\(\.map-selection-attention\),[\s\S]*?opacity:\s*0\s*!important;/s);
+    assert.match(globalCss, /\.ttc-impact-hover-foreground,[\s\S]*?visibility:\s*hidden\s*!important;/s);
   });
 });

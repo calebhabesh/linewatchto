@@ -18,15 +18,15 @@ function pngDimensions(buffer) {
 describe("stable raster map renderer", () => {
   it("ships static artwork planes for every network, theme, and density", async () => {
     const expectedWidths = {
-      ttc: { mobile: 3000, desktop: 6750 },
-      regional: { mobile: 3200, desktop: 7109 },
+      ttc: { mobile: 3000, balanced: 4500, desktop: 6750 },
+      regional: { mobile: 3200, balanced: 4739, desktop: 7109 },
     };
 
     for (const network of ["ttc", "regional"]) {
       const planes = ["background", "foreground", "labels"];
       for (const plane of planes) {
         for (const theme of ["light", "dark", "high-contrast"]) {
-          for (const density of ["mobile", "desktop"]) {
+          for (const density of ["mobile", "balanced", "desktop"]) {
             const buffer = await readFile(`${assetRoot}/${network}-${plane}-${theme}-${density}.png`);
             const dimensions = pngDimensions(buffer);
             assert.equal(dimensions.width, expectedWidths[network][density]);
@@ -63,6 +63,9 @@ describe("stable raster map renderer", () => {
     assert.match(mobileHook, /export function mobilePerformanceModeMatches\(\)/);
     assert.match(ttc, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
     assert.match(regional, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
+    assert.match(ttc, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
+    assert.match(regional, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
+    assert.match(plane, /"mobile" \| "balanced" \| "desktop"/);
     assert.match(ttc, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(regional, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(ttc, /reducedMotion=\{mapEffectMotionPaused\}/);

@@ -262,7 +262,13 @@ function normalizedRegionalStationLabel(value: string) {
 function regionalStationLabelHover(
   root: ParentNode,
   stationId: string | null,
-): { stationId: string; polygonPoints: string; center: SvgPoint; cutoutMarkup: string } | null {
+): {
+  stationId: string;
+  polygonPoints: string;
+  center: SvgPoint;
+  bounds: SvgBounds;
+  cutoutMarkup: string;
+} | null {
   if (!stationId) return null;
   const label = root.querySelector<SVGGraphicsElement>(
     `#regional-station-labels-layer [data-regional-station-label-for="${CSS.escape(stationId)}"]`,
@@ -343,6 +349,14 @@ function regionalStationLabelHover(
     stationId,
     polygonPoints,
     cutoutMarkup: isolatedCutoutSource.outerHTML,
+    bounds: {
+      x: Math.min(...corners.map((point) => point.x)) - 20,
+      y: Math.min(...corners.map((point) => point.y)) - 20,
+      width: Math.max(...corners.map((point) => point.x))
+        - Math.min(...corners.map((point) => point.x)) + 40,
+      height: Math.max(...corners.map((point) => point.y))
+        - Math.min(...corners.map((point) => point.y)) + 40,
+    },
     center: {
       x: centerPoint.x,
       y: centerPoint.y,
@@ -842,6 +856,7 @@ function regionalImpactGroup(
 }
 
 type SvgPoint = { x: number; y: number };
+type SvgBounds = SvgPoint & { width: number; height: number };
 type RegionalTrainMarkerFrame = { point: SvgPoint; angle: number };
 type RegionalTrainMarkerMotionRuntime = {
   marker: EstimatedTrainMarker;
@@ -2615,6 +2630,7 @@ function InteractiveRegionalMapComponent({
     stationId: string;
     polygonPoints: string;
     center: SvgPoint;
+    bounds: SvgBounds;
     cutoutMarkup: string;
   } | null>(null);
   const mapLabelFontReady = useMapLabelFontReady();
@@ -2630,7 +2646,7 @@ function InteractiveRegionalMapComponent({
   // shell effect would start decoding all three desktop planes on phones.
   const rasterDensity = useMobileRendering
     ? "mobile"
-    : "desktop";
+    : "balanced";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
   const markRasterPlaneReady = useCallback((plane: string) => {
     setReadyRasterPlanes((current) => {
@@ -4690,10 +4706,10 @@ function InteractiveRegionalMapComponent({
                   <mask
                     id="regional-hovered-station-target-mask"
                     maskUnits="userSpaceOnUse"
-                    x="-200"
-                    y="-200"
-                    width="17036.959"
-                    height="9031.6719"
+                    x={hoveredStationLabel.bounds.x}
+                    y={hoveredStationLabel.bounds.y}
+                    width={hoveredStationLabel.bounds.width}
+                    height={hoveredStationLabel.bounds.height}
                   >
                     <g
                       filter="url(#regional-hovered-label-target-alpha)"
@@ -4703,10 +4719,10 @@ function InteractiveRegionalMapComponent({
                   <mask
                     id="regional-hovered-station-label-mask"
                     maskUnits="userSpaceOnUse"
-                    x="-200"
-                    y="-200"
-                    width="17036.959"
-                    height="9031.6719"
+                    x={hoveredStationLabel.bounds.x}
+                    y={hoveredStationLabel.bounds.y}
+                    width={hoveredStationLabel.bounds.width}
+                    height={hoveredStationLabel.bounds.height}
                   >
                     <g mask="url(#regional-hovered-station-target-mask)">
                       <image

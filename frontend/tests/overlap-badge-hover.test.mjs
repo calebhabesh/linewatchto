@@ -13,10 +13,13 @@ const overlapIndicatorSource = readFileSync(
 
 describe("desktop overlap badge hover", () => {
   it("emphasizes every segment and station impact represented by the hovered badge", () => {
-    assert.match(mapSource, /hoveredOverlapBadge\.impacts\.flatMap/);
-    assert.match(mapSource, /activeHoverForegrounds\.map/);
-    assert.match(mapSource, /activeHoverHighlights\.map/);
-    assert.match(mapSource, /hoveredOverlapStationImpactKeys\.has/);
+    assert.match(mapSource, /const setExternalImpactsHovered = useCallback/);
+    assert.match(mapSource, /for \(const impact of impacts\)/);
+    assert.match(mapSource, /externallyHoveredImpactKeysRef\.current\.add\(impactKey\)/);
+    assert.match(mapSource, /setLinkedImpactHover\(\{[\s\S]*?kind: impact\.kind,[\s\S]*?id: impact\.cardId/);
+    assert.match(mapSource, /className="ttc-impact-hover-foreground-layer"/);
+    assert.match(mapSource, /className="station-impact-hover-priority"/);
+    assert.doesNotMatch(mapSource, /activeHoverForegrounds\.map|activeHoverHighlights\.map/);
   });
 
   it("activates only for mouse pointers while retaining keyboard focus feedback", () => {
@@ -37,7 +40,7 @@ describe("desktop overlap badge hover", () => {
       overlapIndicatorSource,
       /if \(!open && window\.matchMedia\("\(hover: hover\) and \(pointer: fine\)"\)\.matches/,
     );
-    assert.match(mapSource, /expandedOverlapBadgeId && !hoveredOverlapChooserImpact\s*\?\s*\[\]/);
+    assert.match(mapSource, /clearMapHover\(\);\s*setExpandedOverlapBadgeId\(badge\.segmentId\)/);
     assert.doesNotMatch(
       mapSource,
       /className=\{`overlap-chooser-choice \$\{impact\.kind\}`\}[\s\S]*?onFocus=\{\(\) => onHoverImpact\(impact\)\}/,

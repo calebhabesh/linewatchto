@@ -11,6 +11,8 @@ import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
@@ -31,6 +33,8 @@ public class PushNotificationDispatchService {
     private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofSeconds(30);
     private static final Duration CLEARED_DELIVERY_RETRY_WINDOW = Duration.ofHours(24);
     private static final int CLEARED_DELIVERY_RETRY_LIMIT = 25;
+    private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
+    private static final LocalTime PLANNED_CLOSURE_MORNING = LocalTime.of(6, 0);
     private static final List<String> CLEARED_RETRY_CATEGORIES = List.of(
         "saved-commute-current",
         "saved-commute-impact",
@@ -820,6 +824,9 @@ public class PushNotificationDispatchService {
         if (previousPlannedEvent.isPresent() && !sourceUpdatedAfter(candidate, previousPlannedEvent.orElseThrow())) {
             return;
         }
+        if (previousPlannedEvent.isEmpty() && hasEquivalentPlannedEventWithLegacyIdentity(candidate)) {
+            return;
+        }
         Instant now = clock.instant();
         List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdAndEnabledTrue(candidate.accountId());
         if (subscriptions.isEmpty()) {
@@ -830,6 +837,7 @@ public class PushNotificationDispatchService {
             candidate,
             sourceEventAtForDelivery(candidate),
             formatter,
+            notificationTriggeredAt(candidate, now),
             now
         ));
         sendEventToSubscriptions(event, subscriptions, now);
@@ -842,6 +850,37 @@ public class PushNotificationDispatchService {
         return eventRepository.findFirstByAccountIdAndNotificationKeyAndReminderBucketOrderByCreatedAtDesc(
             candidate.accountId(), candidate.notificationKey(), candidate.reminderBucket()
         );
+    }
+
+    private boolean hasEquivalentPlannedEventWithLegacyIdentity(PushNotificationCandidate candidate) {
+        if (!"planned-closure".equals(candidate.eventType()) || candidate.sourceEventAt() == null) {
+            return false;
+        }
+        return eventRepository
+            .findByAccountIdAndCategoryAndLineIdAndEventTypeAndReminderBucketAndSourceEventAtOrderByCreatedAtDesc(
+                candidate.accountId(),
+                candidate.category(),
+                candidate.lineId(),
+                candidate.eventType(),
+                candidate.reminderBucket(),
+                candidate.sourceEventAt()
+            )
+            .stream()
+            .filter(event -> same(event.getCommuteId(), candidate.commuteId()))
+            .filter(event -> same(event.getLegId(), candidate.legId()))
+            .anyMatch(event -> equivalentPlannedAnnouncement(event, candidate));
+    }
+
+    private boolean equivalentPlannedAnnouncement(
+        PushNotificationEventEntity previous,
+        PushNotificationCandidate candidate
+    ) {
+        return same(previous.getTitle(), candidate.title())
+            && same(previous.getBody(), candidate.body())
+            && same(previous.getNotificationSubject(), candidate.notificationSubject())
+            && same(previous.getEventLocation(), candidate.eventLocation())
+            && same(previous.getDisplayDirection(), candidate.displayDirection())
+            && same(previous.getScopeLabel(), candidate.scopeLabel());
     }
 
     private boolean sourceUpdatedAfter(
@@ -858,6 +897,42 @@ public class PushNotificationDispatchService {
             return candidate.sourceEventAt();
         }
         return sourceOpenedAt(candidate.sourceIncidentKey(), candidate.notificationKey(), candidate.sourceEventAt());
+    }
+
+    private Instant notificationTriggeredAt(PushNotificationCandidate candidate, Instant now) {
+        if (!"planned-closure".equals(candidate.eventType())) {
+            return now;
+        }
+        Instant triggeredAt = switch (candidate.reminderBucket()) {
+            case "closure-24h" -> laterOf(
+                candidate.sourceUpdatedAt(),
+                candidate.sourceEventAt() == null
+                    ? null
+                    : candidate.sourceEventAt().minus(Duration.ofHours(24))
+            );
+            case "closure-morning" -> laterOf(
+                candidate.sourceUpdatedAt(),
+                candidate.sourceEventAt() == null
+                    ? null
+                    : candidate.sourceEventAt()
+                        .atZone(TORONTO_ZONE)
+                        .toLocalDate()
+                        .atTime(PLANNED_CLOSURE_MORNING)
+                        .atZone(TORONTO_ZONE)
+                        .toInstant()
+            );
+            default -> candidate.sourceUpdatedAt();
+        };
+        if (triggeredAt == null || triggeredAt.isAfter(now)) {
+            return now;
+        }
+        return triggeredAt;
+    }
+
+    private Instant laterOf(Instant first, Instant second) {
+        if (first == null) return second;
+        if (second == null) return first;
+        return first.isAfter(second) ? first : second;
     }
 
     private void retryEventToIncompleteSubscriptions(PushNotificationEventEntity event, Instant now) {
@@ -985,18 +1060,15 @@ public class PushNotificationDispatchService {
     }
 
     private boolean subscriptionEnabledForEvent(PushSubscriptionEntity subscription, PushNotificationEventEntity event) {
-        Instant eventCreatedAt = event.getCreatedAt();
-        if (eventCreatedAt == null) {
+        Instant eventTriggeredAt = event.deliveryEligibilityAt();
+        if (eventTriggeredAt == null) {
             return false;
-        }
-        if (ACTIVE_STATE.equals(event.getNotificationState())) {
-            return true;
         }
         Instant enabledAt = subscription.getEnabledAt();
         if (enabledAt == null) {
             return true;
         }
-        return !eventCreatedAt.isBefore(enabledAt);
+        return !eventTriggeredAt.isBefore(enabledAt);
     }
 
     static String topicFor(String notificationKey) {

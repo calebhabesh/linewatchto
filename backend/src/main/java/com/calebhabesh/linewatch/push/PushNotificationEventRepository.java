@@ -17,6 +17,15 @@ public interface PushNotificationEventRepository extends JpaRepository<PushNotif
         String reminderBucket
     );
 
+    List<PushNotificationEventEntity> findByAccountIdAndCategoryAndLineIdAndEventTypeAndReminderBucketAndSourceEventAtOrderByCreatedAtDesc(
+        String accountId,
+        String category,
+        String lineId,
+        String eventType,
+        String reminderBucket,
+        Instant sourceEventAt
+    );
+
     boolean existsByNotificationKeyAndNotificationState(String notificationKey, String notificationState);
 
     boolean existsByAccountIdAndCategoryAndNotificationKeyStartingWithAndCreatedAtAfter(

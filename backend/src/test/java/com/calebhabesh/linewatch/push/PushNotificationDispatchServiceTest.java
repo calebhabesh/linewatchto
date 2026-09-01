@@ -606,7 +606,8 @@ class PushNotificationDispatchServiceTest {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
         PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
             "push_subscription_1", account, "https://fcm.googleapis.com/fcm/send/subscription",
-            "endpoint-hash", "p256dh-key", "auth-secret", "Chrome Android", clock.instant()
+            "endpoint-hash", "p256dh-key", "auth-secret", "Chrome Android",
+            Instant.parse("2026-06-05T14:30:00Z")
         );
         PushNotificationCandidate previousCandidate = withSourceUpdatedAt(candidate(
             null, null, "line-2", "2", "line-planned", "planned-closure", "closure-morning",
@@ -643,6 +644,159 @@ class PushNotificationDispatchServiceTest {
 
         verify(eventRepository).save(any(PushNotificationEventEntity.class));
         verify(webPushClient).send(eq(subscription), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void plannedClosureIdentityMigrationDoesNotReannounceEquivalentClosure() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationCandidate legacyCandidate = withSourceUpdatedAt(candidate(
+            null, null, "line-2", "2", "line-planned", "planned-closure", "closure-morning",
+            "line-planned|line-2|planned-closure|ttc-route-legacy",
+            "legacy-dedupe",
+            "Jane to Ossington", null, null, Instant.parse("2026-06-05T23:59:00Z"),
+            "/?panel=closures"
+        ), Instant.parse("2026-06-05T14:40:00Z"));
+        PushNotificationEventEntity legacyEvent = PushNotificationEventEntity.create(
+            "push_event_legacy", legacyCandidate, Instant.parse("2026-06-05T14:50:00Z")
+        );
+        PushNotificationCandidate stableIdentityCandidate = withSourceUpdatedAt(candidate(
+            null, null, "line-2", "2", "line-planned", "planned-closure", "closure-morning",
+            "line-planned|line-2|planned-closure|planned-closure-stable",
+            "stable-identity-dedupe",
+            "Jane to Ossington", null, null, Instant.parse("2026-06-05T23:59:00Z"),
+            "/?panel=closures&impactId=current-source-id"
+        ), Instant.parse("2026-06-05T14:55:00Z"));
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
+        when(preferenceService.allows(preferences, stableIdentityCandidate)).thenReturn(true);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        when(planner.candidatesFor(any())).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-2")))
+            .thenReturn(List.of(stableIdentityCandidate));
+        when(eventRepository.existsByDedupeKey(stableIdentityCandidate.dedupeKey())).thenReturn(false);
+        when(eventRepository.findByAccountIdAndCategoryAndLineIdAndEventTypeAndReminderBucketAndSourceEventAtOrderByCreatedAtDesc(
+            "user_1", "line-planned", "line-2", "planned-closure", "closure-morning",
+            Instant.parse("2026-06-05T23:59:00Z")
+        )).thenReturn(List.of(legacyEvent));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void plannedClosureEnteringNewReminderBucketStillCreatesNotification() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1", account, "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash", "p256dh-key", "auth-secret", "Chrome Android",
+            Instant.parse("2026-06-04T14:00:00Z")
+        );
+        PushNotificationCandidate reminderCandidate = withSourceUpdatedAt(candidate(
+            null, null, "line-2", "2", "line-planned", "planned-closure", "closure-24h",
+            "line-planned|line-2|planned-closure|planned-closure-stable",
+            "closure-24h-dedupe",
+            "Jane to Ossington", null, null, Instant.parse("2026-06-05T23:59:00Z"),
+            "/?panel=closures"
+        ), Instant.parse("2026-06-05T14:40:00Z"));
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
+        when(preferenceService.allows(preferences, reminderCandidate)).thenReturn(true);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        when(planner.candidatesFor(any())).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-2")))
+            .thenReturn(List.of(reminderCandidate));
+        when(eventRepository.existsByDedupeKey(reminderCandidate.dedupeKey())).thenReturn(false);
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(webPushClient.send(eq(subscription), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient).send(eq(subscription), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void restoredSubscriptionSilentlyBaselinesPreviouslyAnnouncedPlannedClosure() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity restoredSubscription = PushSubscriptionEntity.create(
+            "push_subscription_restored", account, "https://fcm.googleapis.com/fcm/send/restored",
+            "endpoint-hash", "p256dh-key", "auth-secret", "Mobile Safari iOS",
+            Instant.parse("2026-06-05T14:59:00Z")
+        );
+        PushNotificationCandidate existingClosure = withSourceUpdatedAt(candidate(
+            null, null, "line-2", "2", "line-planned", "planned-closure", "on-change",
+            "line-planned|line-2|planned-closure|planned-closure-stable",
+            "existing-closure-dedupe",
+            "Jane to Ossington", null, null, Instant.parse("2026-06-06T03:59:00Z"),
+            "/?panel=closures"
+        ), Instant.parse("2026-06-05T14:00:00Z"));
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
+        when(preferenceService.allows(preferences, existingClosure)).thenReturn(true);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        when(planner.candidatesFor(any())).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-2")))
+            .thenReturn(List.of(existingClosure));
+        when(eventRepository.existsByDedupeKey(existingClosure.dedupeKey())).thenReturn(false);
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1"))
+            .thenReturn(List.of(restoredSubscription));
+
+        service.evaluateSavedCommuteNotifications();
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getTriggeredAt()).isEqualTo(Instant.parse("2026-06-05T14:00:00Z"));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository, never()).save(any(PushNotificationDeliveryEntity.class));
+    }
+
+    @Test
+    void restoredSubscriptionSilentlyBaselinesPlannedReminderWhoseBucketAlreadyOpened() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity restoredSubscription = PushSubscriptionEntity.create(
+            "push_subscription_restored", account, "https://fcm.googleapis.com/fcm/send/restored",
+            "endpoint-hash", "p256dh-key", "auth-secret", "Mobile Safari iOS",
+            Instant.parse("2026-06-05T14:59:00Z")
+        );
+        PushNotificationCandidate existingReminder = withSourceUpdatedAt(candidate(
+            null, null, "line-2", "2", "line-planned", "planned-closure", "closure-24h",
+            "line-planned|line-2|planned-closure|planned-closure-stable",
+            "existing-reminder-dedupe",
+            "Jane to Ossington", null, null, Instant.parse("2026-06-05T23:59:00Z"),
+            "/?panel=closures"
+        ), Instant.parse("2026-06-05T14:00:00Z"));
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
+        when(preferenceService.allows(preferences, existingReminder)).thenReturn(true);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        when(planner.candidatesFor(any())).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-2")))
+            .thenReturn(List.of(existingReminder));
+        when(eventRepository.existsByDedupeKey(existingReminder.dedupeKey())).thenReturn(false);
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1"))
+            .thenReturn(List.of(restoredSubscription));
+
+        service.evaluateSavedCommuteNotifications();
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getTriggeredAt()).isEqualTo(Instant.parse("2026-06-05T14:00:00Z"));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository, never()).save(any(PushNotificationDeliveryEntity.class));
     }
 
     @Test
@@ -756,7 +910,7 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
-    void retriesStillCurrentActiveEventToSubscriptionEnabledAfterEventWasCreated() {
+    void doesNotReplayStillCurrentActiveEventToSubscriptionEnabledAfterEventWasCreated() {
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_1",
             account,
@@ -809,17 +963,10 @@ class PushNotificationDispatchServiceTest {
         when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(newlyEnabledSubscription));
         when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_1", "push_subscription_1"))
             .thenReturn(Optional.empty());
-        when(webPushClient.send(eq(newlyEnabledSubscription), anyString(), any(WebPushPayload.class)))
-            .thenReturn(PushDeliveryResult.accepted(202));
-
         service.evaluateSavedCommuteNotifications();
 
-        verify(webPushClient).send(eq(newlyEnabledSubscription), anyString(), any(WebPushPayload.class));
-        verify(deliveryRepository).save(argThat(delivery ->
-            delivery.getEvent() == existingEvent
-                && delivery.getSubscription() == newlyEnabledSubscription
-                && "accepted".equals(delivery.getStatus())
-        ));
+        verify(webPushClient, never()).send(eq(newlyEnabledSubscription), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository, never()).save(argThat(delivery -> delivery.getEvent() == existingEvent));
     }
 
     @Test
@@ -865,7 +1012,7 @@ class PushNotificationDispatchServiceTest {
             "p256dh-key",
             "auth-secret",
             "Chrome Android",
-            Instant.parse("2026-06-05T14:45:00Z")
+            Instant.parse("2026-06-05T14:30:00Z")
         );
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
@@ -1773,7 +1920,7 @@ class PushNotificationDispatchServiceTest {
             "p256dh-key",
             "auth-secret",
             "Chrome Android Pixel 6a",
-            Instant.parse("2026-06-05T14:40:00Z")
+            Instant.parse("2026-06-05T14:20:00Z")
         );
         PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
             "push_subscription_ios",
@@ -1783,7 +1930,7 @@ class PushNotificationDispatchServiceTest {
             "p256dh-key",
             "auth-secret",
             "Mobile Safari iOS",
-            Instant.parse("2026-06-05T14:40:00Z")
+            Instant.parse("2026-06-05T14:20:00Z")
         );
         PushNotificationCandidate activeCandidate = candidate(
             null, null, "line-5", "5", "line-current", "suspension", "on-change",

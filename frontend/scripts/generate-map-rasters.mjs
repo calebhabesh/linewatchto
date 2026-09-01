@@ -16,7 +16,7 @@ const maps = [
     id: "ttc",
     source: join(assetDirectory, "ttc-subway-map-custom.svg"),
     renderedSize: { width: 4500, height: 2181.8 },
-    widths: { mobile: 3000, desktop: 6750 },
+    widths: { mobile: 3000, balanced: 4500, desktop: 6750 },
     backgroundCss: `
       #ttc-station-labels-layer,
       #ttc-stations-layer,
@@ -75,7 +75,7 @@ const maps = [
     source: join(assetDirectory, "regional-rail-map.svg"),
     renderedSize: { width: 4739.2821, height: 2616.8174 },
     labelsRenderedSize: { width: 17036.959, height: 9031.6719 },
-    widths: { mobile: 3200, desktop: 7109 },
+    widths: { mobile: 3200, balanced: 4739, desktop: 7109 },
     backgroundCss: `
       #Layer_x0020_1 > * { opacity: 0 !important; }
       #regional-lines-layer { opacity: 1 !important; }
@@ -109,6 +109,13 @@ const maps = [
 ];
 
 const themes = ["light", "dark", "high-contrast"];
+const requestedDensity = process.argv
+  .find((argument) => argument.startsWith("--density="))
+  ?.slice("--density=".length);
+
+if (requestedDensity && !["mobile", "balanced", "desktop"].includes(requestedDensity)) {
+  throw new Error(`Unknown map raster density: ${requestedDensity}`);
+}
 
 function withRasterStyle(source, css, renderedSize) {
   const normalizedPage = source
@@ -153,6 +160,7 @@ async function main() {
             ? source.replaceAll("stroke:#000000", "stroke:#ffffff")
             : source;
           for (const [density, width] of Object.entries(map.widths)) {
+            if (requestedDensity && density !== requestedDensity) continue;
             const planeCss = plane === "background"
               ? map.backgroundCss
               : plane === "labels"

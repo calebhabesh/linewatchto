@@ -127,6 +127,77 @@ type RetainedLayer<T> = {
   exiting: boolean;
 };
 
+type TtcImpactHoverIdentity = {
+  kind: MapImpactKind;
+  id: string;
+  segmentId?: string;
+  activationKey?: string;
+};
+
+function setTtcImpactHovered(
+  root: HTMLElement,
+  identity: TtcImpactHoverIdentity,
+  hovered: boolean,
+) {
+  root.querySelectorAll<SVGElement>(
+    "[data-ttc-hover-impact-kind][data-ttc-hover-impact-id]",
+  ).forEach((foreground) => {
+    if (
+      foreground.dataset.ttcHoverImpactKind !== identity.kind
+      || foreground.dataset.ttcHoverImpactId !== identity.id
+    ) return;
+
+    const foregroundSegmentId = foreground.dataset.ttcHoverSegmentId;
+    if (
+      identity.segmentId
+      && foregroundSegmentId
+      && foregroundSegmentId !== identity.segmentId
+    ) return;
+
+    if (hovered) {
+      const activationKey = identity.activationKey
+        ?? `${identity.kind}:${identity.id}:${identity.segmentId ?? "all"}`;
+      foreground.dataset.ttcImpactHovered = "true";
+      foreground.dataset.hoverPriorityImpact = activationKey;
+      if (foreground.classList.contains("ttc-impact-hover-foreground")) {
+        foreground.dataset.hoverForegroundImpact = activationKey;
+      }
+      if (foreground.classList.contains("station-impact-hover-priority")) {
+        foreground.dataset.stationImpactHoverId = identity.id;
+      }
+      return;
+    }
+
+    foreground.removeAttribute("data-ttc-impact-hovered");
+    foreground.removeAttribute("data-hover-priority-impact");
+    foreground.removeAttribute("data-hover-foreground-impact");
+    foreground.removeAttribute("data-station-impact-hover-id");
+  });
+}
+
+function clearTtcTransientHover(root: HTMLElement | null) {
+  if (!root) return;
+  root.querySelectorAll<SVGElement>("[data-ttc-impact-hovered='true']")
+    .forEach((foreground) => {
+      foreground.removeAttribute("data-ttc-impact-hovered");
+      foreground.removeAttribute("data-hover-priority-impact");
+      foreground.removeAttribute("data-hover-foreground-impact");
+      foreground.removeAttribute("data-station-impact-hover-id");
+    });
+  root.querySelectorAll<SVGElement>(".station-hover-indicator.active")
+    .forEach((indicator) => indicator.classList.remove("active"));
+}
+
+function setTtcStationHovered(root: HTMLElement | null, stationId: string, hovered: boolean) {
+  if (!root) return;
+  root.querySelectorAll<SVGElement>(
+    `.station-hover-indicator[data-station-hover-id="${CSS.escape(stationId)}"]`,
+  ).forEach((indicator) => {
+    const stationSelected = indicator.dataset.stationHoverSelected === "true";
+    indicator.classList.toggle("active", hovered && !stationSelected);
+  });
+}
+
 // Pulse keyframes alternate over 1.2 seconds, so their complete visual cycle
 // is 2.4 seconds. Use the full cycle when phase-locking layers mounted by
 // separate dashboard snapshots.
@@ -394,13 +465,7 @@ function InteractiveTtcMapComponent({
     ttcMapMarkupCache.has(mapAsset.src) ? "ready" : "loading"
   ));
   const [geometryReady, setGeometryReady] = useState(false);
-  const [hoveredStationId, setHoveredStationId] = useState<string | null>(null);
   const [hoveredStationLabelId, setHoveredStationLabelId] = useState<string | null>(null);
-  const [hoveredOverlayHighlight, setHoveredOverlayHighlight] = useState<HoveredOverlayHighlight | null>(null);
-  const [hoveredOverlayForeground, setHoveredOverlayForeground] = useState<HoveredOverlayForeground | null>(null);
-  const [hoveredStationImpact, setHoveredStationImpact] = useState<ImpactSelection>(null);
-  const [hoveredOverlapBadgeId, setHoveredOverlapBadgeId] = useState<string | null>(null);
-  const [hoveredOverlapChooserImpact, setHoveredOverlapChooserImpact] = useState<ImpactSelection>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const mapLabelFontReady = useMapLabelFontReady();
   const pageVisible = usePageVisibility();
@@ -413,7 +478,7 @@ function InteractiveTtcMapComponent({
   // much larger desktop planes during that first client render.
   const rasterDensity = useMobileRendering
     ? "mobile"
-    : "desktop";
+    : "balanced";
   const rasterVariantKey = `${rasterTheme}:${rasterDensity}`;
   const markRasterPlaneReady = useCallback((plane: string) => {
     setReadyRasterPlanes((current) => {
@@ -433,6 +498,9 @@ function InteractiveTtcMapComponent({
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const mapRootRef = useRef<HTMLDivElement>(null);
+  const hoveredMapImpactRef = useRef<TtcImpactHoverIdentity | null>(null);
+  const externallyHoveredImpactKeysRef = useRef(new Set<string>());
+  const chooserHoveredImpactRef = useRef<MapImpact | null>(null);
   const mapControlRailRef = useRef<HTMLDivElement>(null);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
@@ -449,6 +517,14 @@ function InteractiveTtcMapComponent({
   const hoveredLabelCenter = hoveredLabelPolygon ? {
     x: hoveredLabelPolygon.reduce((sum, point) => sum + point.x, 0) / hoveredLabelPolygon.length,
     y: hoveredLabelPolygon.reduce((sum, point) => sum + point.y, 0) / hoveredLabelPolygon.length,
+  } : null;
+  const hoveredLabelBounds = hoveredLabelPolygon ? {
+    x: Math.min(...hoveredLabelPolygon.map((point) => point.x)) - 16,
+    y: Math.min(...hoveredLabelPolygon.map((point) => point.y)) - 16,
+    width: Math.max(...hoveredLabelPolygon.map((point) => point.x))
+      - Math.min(...hoveredLabelPolygon.map((point) => point.x)) + 32,
+    height: Math.max(...hoveredLabelPolygon.map((point) => point.y))
+      - Math.min(...hoveredLabelPolygon.map((point) => point.y)) + 32,
   } : null;
   const measuredGeometrySignatureRef = useRef<string | null>(null);
   const measuredLabelGeometrySignatureRef = useRef<string | null>(null);
@@ -547,7 +623,6 @@ function InteractiveTtcMapComponent({
   const {
     transform,
     relativeScale,
-    isDragging,
     isGestureActive,
     recenterFeedbackKey,
     containerRef,
@@ -1786,60 +1861,6 @@ function InteractiveTtcMapComponent({
     stationOverlapBadges,
   ]);
   const expandedOverlapBadge = overlapBadges.find((badge) => badge.segmentId === expandedOverlapBadgeId) ?? null;
-  const hoveredOverlapBadge = overlapBadges.find((badge) => badge.segmentId === hoveredOverlapBadgeId) ?? null;
-  const hoveredOverlapForegrounds = useMemo<HoveredOverlayForeground[]>(() => {
-    if (!hoveredOverlapBadge) return [];
-
-    return hoveredOverlapBadge.impacts.flatMap((impact): HoveredOverlayForeground[] => {
-      const renderedImpact = renderedImpactLayers.find(({ impact: rendered }) =>
-        rendered.kind === impact.kind && rendered.cardId === impact.cardId,
-      );
-      if (renderedImpact) {
-        return [{
-          key: `badge:${hoveredOverlapBadge.segmentId}:${impact.kind}:${impact.cardId}`,
-          segment: renderedImpact.segment,
-          impact: renderedImpact.impact,
-          plannedClosure: null,
-        }];
-      }
-
-      const plannedPreview = impact.kind === "planned-closure"
-        ? plannedPreviewLayers.find(({ closure }) => closure.id === impact.cardId)
-        : null;
-      return plannedPreview ? [{
-        key: `badge:${hoveredOverlapBadge.segmentId}:${impact.kind}:${impact.cardId}`,
-        segment: plannedPreview.segment,
-        impact: null,
-        plannedClosure: plannedPreview.closure,
-      }] : [];
-    });
-  }, [hoveredOverlapBadge, plannedPreviewLayers, renderedImpactLayers]);
-  const hoveredOverlapHighlights = useMemo<HoveredOverlayHighlight[]>(() => (
-    hoveredOverlapForegrounds.map((foreground) => ({
-      key: foreground.key,
-      pathD: foreground.segment.pathD,
-      visualState: foreground.impact
-        ? visualStateForImpactKind(foreground.impact.kind)
-        : "planned-preview",
-    }))
-  ), [hoveredOverlapForegrounds]);
-  const hoveredOverlapStationImpactKeys = useMemo(() => new Set(
-    hoveredOverlapBadge?.impacts.map((impact) => `${impact.kind}:${impact.cardId}`) ?? [],
-  ), [hoveredOverlapBadge]);
-  const activeHoverForegrounds = hoveredOverlapBadge
-    ? hoveredOverlapForegrounds
-    : expandedOverlapBadgeId && !hoveredOverlapChooserImpact
-      ? []
-      : hoveredOverlayForeground
-      ? [hoveredOverlayForeground]
-      : [];
-  const activeHoverHighlights = hoveredOverlapBadge
-    ? hoveredOverlapHighlights
-    : expandedOverlapBadgeId && !hoveredOverlapChooserImpact
-      ? []
-      : hoveredOverlayHighlight
-      ? [hoveredOverlayHighlight]
-      : [];
   const expandedOverlapChooserLayout = expandedOverlapBadge
     ? overlapChooserScreenLayout(
       expandedOverlapBadge,
@@ -1849,53 +1870,78 @@ function InteractiveTtcMapComponent({
       overlayCollisionBoxes,
     )
     : null;
+
+  const setLinkedImpactHover = useCallback((
+    identity: TtcImpactHoverIdentity,
+    hovered: boolean,
+  ) => {
+    if (!mapRootRef.current) return;
+    setTtcImpactHovered(mapRootRef.current, identity, hovered);
+  }, []);
+
+  const setMapImpactHover = useCallback((nextImpact: TtcImpactHoverIdentity | null) => {
+    const previousImpact = hoveredMapImpactRef.current;
+    if (
+      previousImpact?.kind === nextImpact?.kind
+      && previousImpact?.id === nextImpact?.id
+      && previousImpact?.segmentId === nextImpact?.segmentId
+    ) return;
+
+    if (
+      previousImpact
+      && !externallyHoveredImpactKeysRef.current.has(`${previousImpact.kind}:${previousImpact.id}`)
+    ) {
+      setLinkedImpactHover(previousImpact, false);
+    }
+    hoveredMapImpactRef.current = nextImpact;
+    if (nextImpact) setLinkedImpactHover(nextImpact, true);
+  }, [setLinkedImpactHover]);
+
+  const setExternalImpactsHovered = useCallback((
+    impacts: MapImpact[],
+    hovered: boolean,
+    activationPrefix: "badge" | "chooser",
+    badgeId?: string,
+  ) => {
+    for (const impact of impacts) {
+      const impactKey = `${impact.kind}:${impact.cardId}`;
+      if (hovered) {
+        externallyHoveredImpactKeysRef.current.add(impactKey);
+        setLinkedImpactHover({
+          kind: impact.kind,
+          id: impact.cardId,
+          activationKey: `${activationPrefix}:${badgeId ? `${badgeId}:` : ""}${impactKey}`,
+        }, true);
+        continue;
+      }
+
+      externallyHoveredImpactKeysRef.current.delete(impactKey);
+      setLinkedImpactHover({ kind: impact.kind, id: impact.cardId }, false);
+      const mapImpact = hoveredMapImpactRef.current;
+      if (mapImpact?.kind === impact.kind && mapImpact.id === impact.cardId) {
+        setLinkedImpactHover(mapImpact, true);
+      }
+    }
+  }, [setLinkedImpactHover]);
+
+  const clearMapHover = useCallback(() => {
+    clearTtcTransientHover(mapRootRef.current);
+    hoveredMapImpactRef.current = null;
+    externallyHoveredImpactKeysRef.current.clear();
+    chooserHoveredImpactRef.current = null;
+    setHoveredStationLabelId(null);
+  }, []);
+
   const highlightOverlapChooserImpact = useCallback((impact: MapImpact | null) => {
-    if (!impact) {
-      setHoveredOverlapChooserImpact(null);
-      setHoveredOverlayHighlight(null);
-      setHoveredOverlayForeground(null);
-      setHoveredStationImpact(null);
-      return;
+    const previousImpact = chooserHoveredImpactRef.current;
+    if (previousImpact) {
+      setExternalImpactsHovered([previousImpact], false, "chooser");
     }
-
-    setHoveredOverlapChooserImpact({ kind: impact.kind, id: impact.cardId });
-    const stationImpact = stationNodeImpacts.find((candidate) =>
-      candidate.kind === impact.kind && candidate.cardId === impact.cardId,
-    );
-    setHoveredStationImpact(stationImpact ? { kind: impact.kind, id: impact.cardId } : null);
-    const renderedImpact = renderedImpactLayers.find(({ impact: rendered }) =>
-      rendered.kind === impact.kind && rendered.cardId === impact.cardId,
-    );
-    if (renderedImpact) {
-      setHoveredOverlayForeground({
-        key: `chooser:${impact.kind}:${impact.cardId}`,
-        segment: renderedImpact.segment,
-        impact: renderedImpact.impact,
-        plannedClosure: null,
-      });
-      setHoveredOverlayHighlight({
-        key: `chooser:${impact.kind}:${impact.cardId}`,
-        pathD: renderedImpact.segment.pathD,
-        visualState: visualStateForImpactKind(impact.kind),
-      });
-      return;
+    chooserHoveredImpactRef.current = impact;
+    if (impact) {
+      setExternalImpactsHovered([impact], true, "chooser");
     }
-
-    const plannedPreview = impact.kind === "planned-closure"
-      ? plannedPreviewLayers.find(({ closure }) => closure.id === impact.cardId)
-      : null;
-    setHoveredOverlayForeground(plannedPreview ? {
-      key: `chooser:${impact.kind}:${impact.cardId}`,
-      segment: plannedPreview.segment,
-      impact: null,
-      plannedClosure: plannedPreview.closure,
-    } : null);
-    setHoveredOverlayHighlight(plannedPreview ? {
-      key: `chooser:${impact.kind}:${impact.cardId}`,
-      pathD: plannedPreview.segment.pathD,
-      visualState: "planned-preview",
-    } : null);
-  }, [plannedPreviewLayers, renderedImpactLayers, stationNodeImpacts]);
+  }, [setExternalImpactsHovered]);
 
 
   return (
@@ -1985,17 +2031,22 @@ function InteractiveTtcMapComponent({
         data-map-pan-zoom-viewport
         data-map-camera-moving="false"
         data-map-gesture-active="false"
+        data-map-pointer-dragging="false"
         data-map-overlay-motion-paused={overlayPulseMotionPaused ? "true" : "false"}
         data-map-zoom-active="false"
-        className={`relative w-full h-full overflow-hidden select-none touch-none ${
-          isDragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
-        onPointerDown={handlePointerDown}
+        className="relative w-full h-full overflow-hidden select-none touch-none cursor-grab"
+        onPointerDown={(event) => {
+          clearMapHover();
+          handlePointerDown(event);
+        }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerCancel}
-        onWheel={handleWheel}
+        onWheel={(event) => {
+          if (!isMapWheelScrollRegionTarget(event.target)) clearMapHover();
+          handleWheel(event);
+        }}
         onClick={() => {
           if (shouldSuppressMapClick()) return;
           setExpandedOverlapBadgeId(null);
@@ -2127,7 +2178,6 @@ function InteractiveTtcMapComponent({
                         shouldSuppressMapClick={shouldSuppressMapClick}
                         reducedMotion={mapEffectMotionPaused}
                         exiting={exiting}
-                        onHoverHighlightChange={setHoveredOverlayHighlight}
                         renderInteractionTarget={false}
                       />
                     );
@@ -2152,7 +2202,6 @@ function InteractiveTtcMapComponent({
                         shouldSuppressMapClick={shouldSuppressMapClick}
                         reducedMotion={mapEffectMotionPaused}
                         exiting={exiting}
-                        onHoverHighlightChange={setHoveredOverlayHighlight}
                         renderInteractionTarget={false}
                       />
                     );
@@ -2183,7 +2232,6 @@ function InteractiveTtcMapComponent({
                           shouldSuppressMapClick={shouldSuppressMapClick}
                           reducedMotion={mapEffectMotionPaused}
                           idSuffix="-commute-focus"
-                          onHoverHighlightChange={setHoveredOverlayHighlight}
                           renderInteractionTarget={false}
                         />
                       </g>
@@ -2194,76 +2242,6 @@ function InteractiveTtcMapComponent({
                       />
                     )
                   ) : null}
-                </g>
-
-                <g aria-hidden="true" className="hover-priority-overlay">
-                  {activeHoverForegrounds.map((foreground) => (
-                    <g
-                      key={`${foreground.key}:foreground`}
-                      data-hover-foreground-impact={foreground.key}
-                    >
-                      <OverlaySegment
-                        segment={foreground.segment}
-                        impact={foreground.impact}
-                        plannedClosure={foreground.plannedClosure ?? undefined}
-                        selection={selection}
-                        selectedSegmentIds={selectedSegmentIds}
-                        onSelectImpact={onSelectImpact}
-                        shouldSuppressMapClick={shouldSuppressMapClick}
-                        reducedMotion={mapEffectMotionPaused}
-                        idSuffix="-chooser-foreground"
-                        renderInteractionTarget={false}
-                      />
-                    </g>
-                  ))}
-                  {activeHoverHighlights.map((highlight, index) => {
-                    const maskId = `hover-priority-boundary-ring-mask-${index}`;
-                    return (
-                      <g
-                        key={highlight.key}
-                        data-hover-priority-impact={highlight.key}
-                      >
-                      <defs>
-                        <mask
-                          id={maskId}
-                          maskUnits="userSpaceOnUse"
-                          x="0"
-                          y="0"
-                          width="8250"
-                          height="4000"
-                        >
-                          <rect width="8250" height="4000" fill="black" />
-                          <path
-                            d={highlight.pathD}
-                            fill="none"
-                            stroke="white"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            style={{ strokeWidth: 120 }}
-                          />
-                          <path
-                            d={highlight.pathD}
-                            fill="none"
-                            stroke="black"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={102}
-                          />
-                        </mask>
-                      </defs>
-                      <path
-                        className={`asset-alert-path-glow hover-priority-glow ${highlight.visualState}`}
-                        d={highlight.pathD}
-                      />
-                      <path
-                        className={`asset-alert-path-hover-boundary hover-priority-boundary ${highlight.visualState}`}
-                        d={highlight.pathD}
-                        mask={`url(#${maskId})`}
-                        style={{ strokeWidth: 120 }}
-                      />
-                      </g>
-                    );
-                  })}
                 </g>
 
                 {/* Top Layer: custom-map station labels, dots, badges, and connections */}
@@ -2299,7 +2277,7 @@ function InteractiveTtcMapComponent({
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
-              {hoveredStationLabelId && hoveredLabelPolygonPoints && hoveredLabelCenter ? (
+              {hoveredStationLabelId && hoveredLabelPolygonPoints && hoveredLabelCenter && hoveredLabelBounds ? (
                 <g
                   aria-hidden="true"
                   className="raster-station-label-text-hover"
@@ -2329,10 +2307,10 @@ function InteractiveTtcMapComponent({
                     <mask
                       id="ttc-hovered-station-target-mask"
                       maskUnits="userSpaceOnUse"
-                      x="0"
-                      y="0"
-                      width="8250"
-                      height="4000"
+                      x={hoveredLabelBounds.x}
+                      y={hoveredLabelBounds.y}
+                      width={hoveredLabelBounds.width}
+                      height={hoveredLabelBounds.height}
                     >
                       <use
                         href={`#station-label-${hoveredStationLabelId}`}
@@ -2343,10 +2321,10 @@ function InteractiveTtcMapComponent({
                     <mask
                       id="ttc-hovered-station-label-mask"
                       maskUnits="userSpaceOnUse"
-                      x="0"
-                      y="0"
-                      width="8250"
-                      height="4000"
+                      x={hoveredLabelBounds.x}
+                      y={hoveredLabelBounds.y}
+                      width={hoveredLabelBounds.width}
+                      height={hoveredLabelBounds.height}
                     >
                       <g mask="url(#ttc-hovered-station-target-mask)">
                         <image
@@ -2389,6 +2367,34 @@ function InteractiveTtcMapComponent({
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
+              <g
+                aria-hidden="true"
+                className="ttc-impact-hover-foreground-layer"
+                pointerEvents="none"
+              >
+                {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
+                  exiting ? null : (
+                    <TtcImpactHoverForeground
+                      key={`hover:${key}`}
+                      segment={segment}
+                      kind="planned-closure"
+                      impactId={closure.id}
+                      visualState="planned-preview"
+                    />
+                  )
+                ))}
+                {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => (
+                  exiting ? null : (
+                    <TtcImpactHoverForeground
+                      key={`hover:${key}`}
+                      segment={segment}
+                      kind={impact.kind}
+                      impactId={impact.cardId}
+                      visualState={visualStateForImpactKind(impact.kind)}
+                    />
+                  )
+                ))}
+              </g>
               <g aria-label="Disruption overlay interaction targets">
                 {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
                   <OverlayInteractionTarget
@@ -2400,7 +2406,7 @@ function InteractiveTtcMapComponent({
                     exiting={exiting}
                     onSelectImpact={onSelectImpact}
                     shouldSuppressMapClick={shouldSuppressMapClick}
-                    onHoverHighlightChange={setHoveredOverlayHighlight}
+                    onHoverChange={setMapImpactHover}
                   />
                 ))}
                 {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => (
@@ -2413,7 +2419,7 @@ function InteractiveTtcMapComponent({
                     exiting={exiting}
                     onSelectImpact={onSelectImpact}
                     shouldSuppressMapClick={shouldSuppressMapClick}
-                    onHoverHighlightChange={setHoveredOverlayHighlight}
+                    onHoverChange={setMapImpactHover}
                   />
                 ))}
               </g>
@@ -2431,26 +2437,22 @@ function InteractiveTtcMapComponent({
                   // two Spadina highlights remain visually distinct.
                   const hoverRadius = hasMultipleVisualAnchors ? 42 : isLarge ? 78 : 46;
                   const highlightRadius = hasMultipleVisualAnchors ? 33 : isLarge ? 48 : 38;
-                  const showStationHover =
-                    hoveredStationId === station.id &&
-                    hoveredStationLabelId !== station.id &&
-                    !selected;
                   return (
                     <g
                       key={station.id}
                       onPointerEnter={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        setHoveredStationId(station.id);
+                        setTtcStationHovered(mapRootRef.current, station.id, true);
                       }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        setHoveredStationId((current) => current === station.id ? null : current);
+                        setTtcStationHovered(mapRootRef.current, station.id, false);
                       }}
                       onFocus={() => {
-                        setHoveredStationId(station.id);
+                        setTtcStationHovered(mapRootRef.current, station.id, true);
                       }}
                       onBlur={() => {
-                        setHoveredStationId((current) => current === station.id ? null : current);
+                        setTtcStationHovered(mapRootRef.current, station.id, false);
                         setHoveredStationLabelId((current) => current === station.id ? null : current);
                       }}
                     >
@@ -2459,7 +2461,8 @@ function InteractiveTtcMapComponent({
                           <circle
                             data-station-hover-id={station.id}
                             data-station-anchor-id={anchorId}
-                            className={`station-hover-indicator ${showStationHover ? "active" : ""}`}
+                            data-station-hover-selected={selected ? "true" : "false"}
+                            className="station-hover-indicator"
                             cx={point.x}
                             cy={point.y}
                             r={hoverRadius}
@@ -2516,7 +2519,9 @@ function InteractiveTtcMapComponent({
                             onPointerUp={(event) => {
                               if (event.pointerType === "mouse" && event.button !== 0) return;
                               if (shouldSuppressMapClick()) return;
-                              if (hasMultipleVisualAnchors) setHoveredStationId(null);
+                              if (hasMultipleVisualAnchors) {
+                                setTtcStationHovered(mapRootRef.current, station.id, false);
+                              }
                               onSelectStationId(station.id);
                             }}
                             onClick={(event) => {
@@ -2525,14 +2530,18 @@ function InteractiveTtcMapComponent({
                               // transform is committed between pointerdown and click.
                               if (event.detail !== 0 || shouldSuppressMapClick()) return;
                               event.stopPropagation();
-                              if (hasMultipleVisualAnchors) setHoveredStationId(null);
+                              if (hasMultipleVisualAnchors) {
+                                setTtcStationHovered(mapRootRef.current, station.id, false);
+                              }
                               onSelectStationId(station.id);
                             }}
                             onKeyDown={(event) => {
                               if (anchorIndex !== 0) return;
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
-                                if (hasMultipleVisualAnchors) setHoveredStationId(null);
+                                if (hasMultipleVisualAnchors) {
+                                  setTtcStationHovered(mapRootRef.current, station.id, false);
+                                }
                                 onSelectStationId(station.id);
                               }
                             }}
@@ -2613,18 +2622,22 @@ function InteractiveTtcMapComponent({
                             }}
                             onPointerEnter={(event) => {
                               if (event.pointerType !== "mouse" || exiting) return;
-                              setHoveredStationImpact({ kind: impact.kind, id: impact.cardId });
+                              setMapImpactHover({
+                                kind: impact.kind,
+                                id: impact.cardId,
+                                activationKey: `station:${impact.kind}:${impact.cardId}`,
+                              });
                             }}
                             onPointerLeave={(event) => {
                               if (event.pointerType !== "mouse") return;
-                              setHoveredStationImpact((current) =>
-                                current?.kind === impact.kind && current.id === impact.cardId ? null : current,
-                              );
+                              setMapImpactHover(null);
                             }}
-                            onFocus={() => setHoveredStationImpact({ kind: impact.kind, id: impact.cardId })}
-                            onBlur={() => setHoveredStationImpact((current) =>
-                              current?.kind === impact.kind && current.id === impact.cardId ? null : current,
-                            )}
+                            onFocus={() => setMapImpactHover({
+                              kind: impact.kind,
+                              id: impact.cardId,
+                              activationKey: `station:${impact.kind}:${impact.cardId}`,
+                            })}
+                            onBlur={() => setMapImpactHover(null)}
                             pointerEvents={exiting ? "none" : "stroke"}
                             role="button"
                             tabIndex={exiting ? -1 : 0}
@@ -2674,17 +2687,15 @@ function InteractiveTtcMapComponent({
                       focusable="false"
                       onPointerEnter={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        setHoveredStationId(station.id);
+                        setTtcStationHovered(mapRootRef.current, station.id, false);
                         setHoveredStationLabelId(station.id);
                       }}
                       onPointerOver={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        setHoveredStationId((current) => current === station.id ? current : station.id);
                         setHoveredStationLabelId((current) => current === station.id ? current : station.id);
                       }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        setHoveredStationId((current) => current === station.id ? null : current);
                         setHoveredStationLabelId((current) => current === station.id ? null : current);
                       }}
                       onPointerDown={(event) => {
@@ -2771,12 +2782,6 @@ function InteractiveTtcMapComponent({
                   );
                   const isLarge = isStationVisuallyLarge(station);
                   const impactRingRadius = stationImpactRingRadius(isLarge);
-                  const hoverHighlighted = ((!expandedOverlapBadgeId
-                    && hoveredStationImpact?.kind === impact.kind
-                    && hoveredStationImpact.id === impact.cardId)
-                    || (hoveredOverlapChooserImpact?.kind === impact.kind
-                      && hoveredOverlapChooserImpact.id === impact.cardId))
-                    || hoveredOverlapStationImpactKeys.has(`${impact.kind}:${impact.cardId}`);
 
                   return (
                     <g key={`foreground:${key}`}>
@@ -2792,15 +2797,14 @@ function InteractiveTtcMapComponent({
                               r={impactRingRadius}
                             />
                           ) : null}
-                          {hoverHighlighted ? (
-                            <circle
-                              data-station-impact-hover-id={impact.cardId}
-                              className="station-impact-hover-priority"
-                              cx={point.x}
-                              cy={point.y}
-                              r={impactRingRadius + 5}
-                            />
-                          ) : null}
+                          <circle
+                            data-ttc-hover-impact-kind={impact.kind}
+                            data-ttc-hover-impact-id={impact.cardId}
+                            className="station-impact-hover-priority"
+                            cx={point.x}
+                            cy={point.y}
+                            r={impactRingRadius + 5}
+                          />
                         </g>
                       ))}
                     </g>
@@ -2817,14 +2821,14 @@ function InteractiveTtcMapComponent({
                       selection={selection}
                       isOpen={false}
                       onToggle={() => {
-                        setHoveredOverlayHighlight(null);
-                        setHoveredOverlayForeground(null);
-                        setHoveredStationImpact(null);
-                        setHoveredOverlapChooserImpact(null);
+                        clearMapHover();
                         setExpandedOverlapBadgeId(badge.segmentId);
                       }}
-                      onHoverChange={(hovered) => setHoveredOverlapBadgeId((current) =>
-                        hovered ? badge.segmentId : current === badge.segmentId ? null : current
+                      onHoverChange={(hovered) => setExternalImpactsHovered(
+                        badge.impacts,
+                        hovered,
+                        "badge",
+                        badge.segmentId,
                       )}
                       shouldSuppressMapClick={shouldSuppressMapClick}
                     />
@@ -2838,14 +2842,14 @@ function InteractiveTtcMapComponent({
                       selection={selection}
                       isOpen
                       onToggle={() => {
-                        setHoveredOverlayHighlight(null);
-                        setHoveredOverlayForeground(null);
-                        setHoveredStationImpact(null);
-                        setHoveredOverlapChooserImpact(null);
+                        clearMapHover();
                         setExpandedOverlapBadgeId(null);
                       }}
-                      onHoverChange={(hovered) => setHoveredOverlapBadgeId((current) =>
-                        hovered ? badge.segmentId : current === badge.segmentId ? null : current
+                      onHoverChange={(hovered) => setExternalImpactsHovered(
+                        badge.impacts,
+                        hovered,
+                        "badge",
+                        badge.segmentId,
                       )}
                       shouldSuppressMapClick={shouldSuppressMapClick}
                     />
@@ -2870,10 +2874,7 @@ function InteractiveTtcMapComponent({
             onSelectImpact={onSelectImpact}
             onHoverImpact={highlightOverlapChooserImpact}
             onClose={(restoreFocus) => {
-              setHoveredOverlayHighlight(null);
-              setHoveredOverlayForeground(null);
-              setHoveredStationImpact(null);
-              setHoveredOverlapChooserImpact(null);
+              clearMapHover();
               setExpandedOverlapBadgeId(null);
               if (!restoreFocus) return;
               window.requestAnimationFrame(() => {
@@ -2980,19 +2981,6 @@ type OverlayVisualState =
   | "delay-static"
   | "reduced-speed-zone"
   | "planned-preview";
-
-type HoveredOverlayHighlight = {
-  key: string;
-  pathD: string;
-  visualState: OverlayVisualState;
-};
-
-type HoveredOverlayForeground = {
-  key: string;
-  segment: RenderedNetworkSegment;
-  impact: MapImpact | null;
-  plannedClosure: PlannedClosure | null;
-};
 
 const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;
@@ -4809,6 +4797,36 @@ function CommutePathOverlay({
   );
 }
 
+function TtcImpactHoverForeground({
+  segment,
+  kind,
+  impactId,
+  visualState,
+}: {
+  segment: RenderedNetworkSegment;
+  kind: MapImpactKind;
+  impactId: string;
+  visualState: OverlayVisualState;
+}) {
+  return (
+    <g
+      className="ttc-impact-hover-foreground"
+      data-ttc-hover-impact-kind={kind}
+      data-ttc-hover-impact-id={impactId}
+      data-ttc-hover-segment-id={segment.id}
+    >
+      <path
+        className={`ttc-impact-hover-outline ${visualState}`}
+        d={segment.pathD}
+      />
+      <path
+        className={`ttc-impact-hover-rail ${visualState}`}
+        d={segment.pathD}
+      />
+    </g>
+  );
+}
+
 function OverlayInteractionTarget({
   segment,
   impact,
@@ -4817,7 +4835,7 @@ function OverlayInteractionTarget({
   exiting,
   onSelectImpact,
   shouldSuppressMapClick,
-  onHoverHighlightChange,
+  onHoverChange,
 }: {
   segment: RenderedNetworkSegment;
   impact: MapImpact | null;
@@ -4826,10 +4844,17 @@ function OverlayInteractionTarget({
   exiting?: boolean;
   onSelectImpact: (selection: ImpactSelection) => void;
   shouldSuppressMapClick: () => boolean;
-  onHoverHighlightChange: (highlight: HoveredOverlayHighlight | null) => void;
+  onHoverChange: (impact: TtcImpactHoverIdentity | null) => void;
 }) {
-  const visualState = impact ? visualStateForImpactKind(impact.kind) : "planned-preview";
-  const targetId = `${impact?.kind ?? "planned-closure"}:${impact?.cardId ?? plannedClosure?.id ?? "unknown"}:${segment.id}`;
+  const impactKind = impact?.kind ?? "planned-closure";
+  const impactId = impact?.cardId ?? plannedClosure?.id ?? "unknown";
+  const targetId = `${impactKind}:${impactId}:${segment.id}`;
+  const hoverIdentity: TtcImpactHoverIdentity = {
+    kind: impactKind,
+    id: impactId,
+    segmentId: segment.id,
+    activationKey: targetId,
+  };
   const ariaLabel = impact
     ? `${impact.kind}: ${segment.label}`
     : `${plannedClosure?.title ?? "Planned closure"}: ${segment.label}`;
@@ -4864,12 +4889,16 @@ function OverlayInteractionTarget({
       }}
       onPointerEnter={(event) => {
         if (event.pointerType !== "mouse" || exiting) return;
-        onHoverHighlightChange({ key: targetId, pathD: segment.pathD, visualState });
+        onHoverChange(hoverIdentity);
       }}
       onPointerLeave={(event) => {
         if (event.pointerType !== "mouse") return;
-        onHoverHighlightChange(null);
+        onHoverChange(null);
       }}
+      onFocus={() => {
+        if (!exiting) onHoverChange(hoverIdentity);
+      }}
+      onBlur={() => onHoverChange(null)}
       onPointerDown={(event) => {
         if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
         try {
@@ -4903,7 +4932,6 @@ function OverlaySegment({
   reducedMotion,
   exiting,
   idSuffix = "",
-  onHoverHighlightChange,
   renderInteractionTarget = true,
 }: {
   segment: RenderedNetworkSegment;
@@ -4916,7 +4944,6 @@ function OverlaySegment({
   reducedMotion: boolean;
   exiting?: boolean;
   idSuffix?: string;
-  onHoverHighlightChange?: (highlight: HoveredOverlayHighlight | null) => void;
   renderInteractionTarget?: boolean;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
@@ -4966,8 +4993,6 @@ function OverlaySegment({
 
   const chevronBg = RSZ_IMPACT_COLOR;
   const overlaySegmentId = `${segment.id}${idSuffix}`;
-  const hoverHighlightKey = `${impact?.kind ?? "planned-closure"}:${impact?.cardId ?? plannedClosure?.id ?? "unknown"}:${overlaySegmentId}`;
-
   const travelDirection = visualTravelDirection(segment);
   const renderForwardLane = travelDirection !== "reverse";
   const renderReverseLane = travelDirection !== "forward";
@@ -5009,18 +5034,6 @@ function OverlaySegment({
       className={`overlay-segment-group ${connectedClass} ${exiting ? "map-layer-exiting" : "map-layer-current"}`.trim()}
       data-map-impact-id={impact?.cardId ?? plannedClosure?.id}
       data-map-impact-kind={impact?.kind ?? "planned-closure"}
-      onPointerEnter={renderInteractionTarget ? (event) => {
-        if (event.pointerType !== "mouse" || exiting) return;
-        onHoverHighlightChange?.({
-          key: hoverHighlightKey,
-          pathD: segment.pathD,
-          visualState,
-        });
-      } : undefined}
-      onPointerLeave={renderInteractionTarget ? (event) => {
-        if (event.pointerType !== "mouse") return;
-        onHoverHighlightChange?.(null);
-      } : undefined}
       style={exiting ? { pointerEvents: "none" } : undefined}
     >
 

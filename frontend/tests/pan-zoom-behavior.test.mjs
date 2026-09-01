@@ -300,7 +300,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(regionalMapSource, /className="regional-map-stage relative"[\s\S]*?width:\s*`\$\{MAP_WIDTH\}px`[\s\S]*?height:\s*`\$\{MAP_HEIGHT\}px`/);
   });
 
-  it("pauses TTC effects without changing authored rendering hints during camera motion", () => {
+  it("pauses TTC effects during camera flights and removes expensive direct-input paint", () => {
     assert.match(mapSource, /data-map-camera-moving="false"/);
     assert.match(mapSource, /data-map-gesture-active="false"/);
     assert.match(mapSource, /data-map-zoom-active="false"/);
@@ -318,14 +318,14 @@ describe("pan zoom behavior guardrails", () => {
       globalCss.indexOf('/* ============================================================\n   Mobile map controls'),
     );
     assert.doesNotMatch(programmaticCameraRules, /filter:\s*none\s*!important/);
-    assert.doesNotMatch(programmaticCameraRules, /\.asset-alert-path-glow[^}]*opacity:\s*0\s*!important/s);
+    assert.doesNotMatch(programmaticCameraRules, /\.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?opacity:\s*0\s*!important/s);
     assert.match(
       globalCss,
       /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) \.asset-alert-path\.planned-preview,[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
     );
-    assert.doesNotMatch(
+    assert.match(
       globalCss,
-      /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)[^{]*\{[^}]*filter:\s*none\s*!important;/s,
+      /:is\(\[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) :is\([\s\S]*?\.asset-alert-path-glow,[\s\S]*?filter:\s*none\s*!important;/s,
     );
     assert.doesNotMatch(
       globalCss,
@@ -347,18 +347,19 @@ describe("pan zoom behavior guardrails", () => {
     );
     assert.doesNotMatch(directCameraRules, /\.ttc-svg-container[^}]*shape-rendering/);
     assert.doesNotMatch(directCameraRules, /#ttc-map-(?:base|foreground)-root/);
-    assert.doesNotMatch(
+    assert.match(
       globalCss,
-      /:is\(\.map-gesture-active, \[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)\s*\{[^}]*opacity:\s*0\s*!important;/s,
+      /:is\(\[data-map-gesture-active="true"\], \[data-map-zoom-active="true"\]\) :is\([\s\S]*?\.asset-alert-path-glow:not\(\.map-selection-attention\),[\s\S]*?opacity:\s*0\s*!important;/s,
     );
     assert.doesNotMatch(globalCss, /\[data-map-camera-moving="true"\] \.ttc-map-stage[^{]*\{[^}]*will-change:\s*transform/s);
   });
 
-  it("keeps TTC zoom glows visible while pausing overlay pulses", () => {
+  it("marks user zoom so expensive glows can be suppressed", () => {
     assert.match(hookSource, /setUserZoomMotion\(true\)/);
     assert.match(hookSource, /setUserZoomMotion\(false\)/);
     assert.match(hookSource, /const scheduleUserZoomMotionEnd = useCallback/);
     assert.match(globalCss, /\[data-map-zoom-active="true"\]/);
+    assert.match(globalCss, /\.raster-station-label-text-hover,[\s\S]*?visibility:\s*hidden\s*!important;/s);
   });
 
   it("does not toggle compositor promotion on the huge SVG map layer during gestures", () => {
@@ -452,12 +453,16 @@ describe("pan zoom behavior guardrails", () => {
 
   it("exposes gesture-active state imperatively without a gesture-boundary React render", () => {
     assert.doesNotMatch(hookSource, /const \[isGestureActive, setIsGestureActive\] = useState\(false\)/);
+    assert.doesNotMatch(hookSource, /const \[isDragging, setIsDragging\] = useState\(false\)/);
     assert.match(hookSource, /const setUserGestureMotion = useCallback/);
+    assert.match(hookSource, /const setPointerDragging = useCallback/);
     assert.match(hookSource, /dataset\.mapGestureActive = active \? "true" : "false"/);
+    assert.match(hookSource, /dataset\.mapPointerDragging = active \? "true" : "false"/);
     assert.match(hookSource, /setUserGestureMotion\(true\)/);
     assert.match(hookSource, /setUserGestureMotion\(false\)/);
     assert.match(hookSource, /isGestureActive,/);
     assert.match(mapSource, /data-map-gesture-active="false"/);
+    assert.match(mapSource, /data-map-pointer-dragging="false"/);
   });
 
   it("defers programmatic selected-target focus while the user is gesturing", () => {
