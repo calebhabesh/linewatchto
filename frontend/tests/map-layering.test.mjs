@@ -258,15 +258,24 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       interactiveMapSource,
-      /className=\{`ttc-impact-hover-outline \$\{visualState\}`\}[\s\S]*?className=\{`ttc-impact-hover-rail \$\{visualState\}`\}/,
+      /className="ttc-impact-hover-outline-mask-outer"[\s\S]*?className="ttc-impact-hover-outline-mask-cutout"[\s\S]*?className="ttc-impact-hover-outline-mask-divider"[\s\S]*?ttc-impact-hover-outline-core[\s\S]*?mask=\{`url\(#\$\{hoverOutlineMaskId\}\)`\}[\s\S]*?ttc-impact-hover-outline-edge[\s\S]*?mask=\{`url\(#\$\{hoverOuterOutlineMaskId\}\)`\}/,
     );
+    assert.match(
+      interactiveMapSource,
+      /className="ttc-impact-hover-outline-mask-outer"[\s\S]*?stroke="white"[\s\S]*?strokeWidth=\{118\}[\s\S]*?className="ttc-impact-hover-outline-mask-cutout"[\s\S]*?stroke="black"[\s\S]*?strokeWidth=\{96\}/,
+    );
+    assert.match(interactiveMapSource, /strokeWidth=\{118\}[\s\S]*?style=\{\{ strokeWidth:\s*118 \}\}[\s\S]*?strokeWidth=\{96\}[\s\S]*?style=\{\{ strokeWidth:\s*96 \}\}/);
     assert.doesNotMatch(interactiveMapSource, /hover-priority-boundary-ring-mask/);
     assert.match(interactiveMapSource, /event\.pointerType !== "mouse" \|\| exiting/);
     assert.match(
       globalCss,
       /\.ttc-impact-hover-foreground\[data-ttc-impact-hovered="true"\]\s*\{[^}]*opacity:\s*1;[^}]*visibility:\s*visible;/s,
     );
-    assert.match(globalCss, /\.ttc-impact-hover-outline\s*\{[^}]*stroke-width:\s*124px;/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-core\s*\{[^}]*stroke:\s*rgba\(15,\s*23,\s*42,\s*0\.98\);/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-edge\s*\{[^}]*stroke:\s*rgba\(248,\s*250,\s*252,\s*0\.98\);[^}]*filter:\s*drop-shadow\(0 0 4px/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-divider\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*108px;/s);
+    assert.match(globalCss, /\.ttc-impact-hover-outline-mask-cutout\s*\{[^}]*stroke:\s*black;[^}]*stroke-width:\s*96px;/s);
+    assert.doesNotMatch(interactiveMapSource, /ttc-impact-hover-rail/);
   });
 
   it("renders animated visual effects for delays, closures, and station impacts", () => {

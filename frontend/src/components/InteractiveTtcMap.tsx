@@ -4808,6 +4808,10 @@ function TtcImpactHoverForeground({
   impactId: string;
   visualState: OverlayVisualState;
 }) {
+  const hoverOutlineMaskId = `ttc-impact-hover-outline-${kind}-${impactId}-${segment.id}`
+    .replace(/[^a-zA-Z0-9_-]/g, "-");
+  const hoverOuterOutlineMaskId = `${hoverOutlineMaskId}-outer`;
+
   return (
     <g
       className="ttc-impact-hover-foreground"
@@ -4815,13 +4819,84 @@ function TtcImpactHoverForeground({
       data-ttc-hover-impact-id={impactId}
       data-ttc-hover-segment-id={segment.id}
     >
+      <defs>
+        <mask
+          id={hoverOutlineMaskId}
+          maskUnits="userSpaceOnUse"
+          x={MAP_VIEWBOX_BOUNDS.x}
+          y={MAP_VIEWBOX_BOUNDS.y}
+          width={MAP_VIEWBOX_BOUNDS.width}
+          height={MAP_VIEWBOX_BOUNDS.height}
+        >
+          <path
+            className="ttc-impact-hover-outline-mask-outer"
+            d={segment.pathD}
+            fill="none"
+            stroke="white"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={118}
+            style={{ strokeWidth: 118 }}
+          />
+          <path
+            className="ttc-impact-hover-outline-mask-cutout"
+            d={segment.pathD}
+            fill="none"
+            stroke="black"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={96}
+            style={{ strokeWidth: 96 }}
+          />
+        </mask>
+        <mask
+          id={hoverOuterOutlineMaskId}
+          maskUnits="userSpaceOnUse"
+          x={MAP_VIEWBOX_BOUNDS.x}
+          y={MAP_VIEWBOX_BOUNDS.y}
+          width={MAP_VIEWBOX_BOUNDS.width}
+          height={MAP_VIEWBOX_BOUNDS.height}
+        >
+          <path
+            className="ttc-impact-hover-outline-mask-outer"
+            d={segment.pathD}
+            fill="none"
+            stroke="white"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={118}
+            style={{ strokeWidth: 118 }}
+          />
+          <path
+            className="ttc-impact-hover-outline-mask-divider"
+            d={segment.pathD}
+            fill="none"
+            stroke="black"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={108}
+            style={{ strokeWidth: 108 }}
+          />
+        </mask>
+      </defs>
       <path
-        className={`ttc-impact-hover-outline ${visualState}`}
+        className={`ttc-impact-hover-outline ttc-impact-hover-outline-core ${visualState}`}
         d={segment.pathD}
+        mask={`url(#${hoverOutlineMaskId})`}
+        style={{
+          stroke: "rgba(15, 23, 42, 0.98)",
+          strokeWidth: 118,
+        }}
       />
       <path
-        className={`ttc-impact-hover-rail ${visualState}`}
+        className={`ttc-impact-hover-outline ttc-impact-hover-outline-edge ${visualState}`}
         d={segment.pathD}
+        mask={`url(#${hoverOuterOutlineMaskId})`}
+        style={{
+          filter: "drop-shadow(0 0 4px rgba(191, 219, 254, 0.62))",
+          stroke: "rgba(248, 250, 252, 0.98)",
+          strokeWidth: 118,
+        }}
       />
     </g>
   );

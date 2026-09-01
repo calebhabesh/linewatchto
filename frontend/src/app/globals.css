@@ -1114,7 +1114,9 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .ttc-impact-hover-outline,
-.ttc-impact-hover-rail {
+.ttc-impact-hover-outline-mask-outer,
+.ttc-impact-hover-outline-mask-cutout,
+.ttc-impact-hover-outline-mask-divider {
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
@@ -1122,18 +1124,32 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .ttc-impact-hover-outline {
-  stroke: var(--station-selection-accent);
-  stroke-width: 124px;
+  stroke-width: 118px;
 }
 
-.ttc-impact-hover-rail {
-  stroke-width: 102px;
+.ttc-impact-hover-outline-core {
+  stroke: rgba(15, 23, 42, 0.98);
 }
 
-.ttc-impact-hover-rail.suspension { stroke: #ef4444; }
-.ttc-impact-hover-rail.delay-static { stroke: #0ea5e9; }
-.ttc-impact-hover-rail.reduced-speed-zone { stroke: #f59e0b; }
-.ttc-impact-hover-rail.planned-preview { stroke: var(--planned-preview-rail); }
+.ttc-impact-hover-outline-edge {
+  stroke: rgba(248, 250, 252, 0.98);
+  filter: drop-shadow(0 0 4px rgba(191, 219, 254, 0.62));
+}
+
+.ttc-impact-hover-outline-mask-outer {
+  stroke: white;
+  stroke-width: 118px;
+}
+
+.ttc-impact-hover-outline-mask-cutout {
+  stroke: black;
+  stroke-width: 96px;
+}
+
+.ttc-impact-hover-outline-mask-divider {
+  stroke: black;
+  stroke-width: 108px;
+}
 
 .regional-station-impact-hover-foreground {
   opacity: 0;
