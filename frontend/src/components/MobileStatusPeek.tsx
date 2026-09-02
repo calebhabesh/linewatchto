@@ -119,7 +119,7 @@ export function MobileStatusPeek({
               }`}
               aria-hidden="true"
             >
-              <BellFilledIcon size={18} />
+              <BellFilledIcon size={20} />
             </span>
             {titleText}
           </span>
@@ -312,8 +312,8 @@ export function MobileStatusPeek({
           onClick={onRecenter}
           aria-label="Center map view"
         >
-          <Locate size={24} />
-          <span>Center<br />Map</span>
+          <Locate size={22} />
+          <span>Center</span>
         </button>
       )}
     </div>

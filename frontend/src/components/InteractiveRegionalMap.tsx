@@ -63,6 +63,7 @@ import {
   PAN_ZOOM_MIN_RELATIVE_SCALE,
   snapTransformToDevicePixels,
   transformForMapPointAtViewportPoint,
+  type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
@@ -74,7 +75,15 @@ import { observeMapChooserKeepouts, visibleMapChooserKeepouts } from "./map-choo
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
 const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0.025;
-const REGIONAL_MAP_MOBILE_INSET_RATIO = 0.05;
+const REGIONAL_MAP_MOBILE_INSET_RATIO = 0.025;
+// Custom regional map visible-art bounds, spanning from Kitchener/Stratford (x≈45.5px)
+// through x≈4450.8px to include Oshawa and the Cardinal North compass.
+const REGIONAL_MAP_CONTENT_BOUNDS: MapContentBounds = {
+  x: 45.54,
+  y: 34.96,
+  width: 4405.28,
+  height: 2550,
+};
 
 const REGIONAL_LARGE_TERMINAL_IDS = new Set([
   "union",
@@ -2926,7 +2935,7 @@ function InteractiveRegionalMapComponent({
     if (width <= 0 || height <= 0) return null;
     const horizontalInset = desktopMapTopInset > 0
       ? Math.min(64, Math.max(32, width * REGIONAL_MAP_HORIZONTAL_INSET_RATIO))
-      : width * REGIONAL_MAP_MOBILE_INSET_RATIO;
+      : Math.min(32, Math.max(12, width * REGIONAL_MAP_MOBILE_INSET_RATIO));
     const insets = desktopMapTopInset > 0
       ? {
           left: horizontalInset,
@@ -2937,13 +2946,13 @@ function InteractiveRegionalMapComponent({
       : {
           left: horizontalInset,
           right: horizontalInset,
-          top: height * REGIONAL_MAP_MOBILE_INSET_RATIO,
-          bottom: height * REGIONAL_MAP_MOBILE_INSET_RATIO,
+          top: height * 0.05,
+          bottom: height * 0.05,
         };
     const frame = computeBoundedMapFrame(
       width,
       height,
-      { x: 0, y: 0, width: MAP_WIDTH, height: MAP_HEIGHT },
+      REGIONAL_MAP_CONTENT_BOUNDS,
       insets,
     );
     const focus = computeInsetViewportFocus(width, height, insets);
@@ -4876,7 +4885,7 @@ function InteractiveRegionalMapComponent({
             <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
             <span className="map-control-recenter-desktop-label text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
           </button>
-          <span className="map-control-recenter-mobile-label">Center Map</span>
+          <span className="map-control-recenter-mobile-label">Center</span>
         </div>
 
         <div className="map-control-zoom-group flex flex-col items-center gap-1 sm:gap-2">

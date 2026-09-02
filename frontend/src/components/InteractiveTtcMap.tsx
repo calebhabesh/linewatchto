@@ -112,13 +112,16 @@ import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
 
 const SVG_TO_RENDERED_MAP_SCALE = 4500 / 8250;
 const DESKTOP_MAP_HORIZONTAL_INSET_RATIO = 0.025;
-// Custom-map visible-art bounds, extended through x=7900 to include the compass.
-const DESKTOP_MAP_CONTENT_BOUNDS: MapContentBounds = {
+const MOBILE_MAP_HORIZONTAL_INSET_RATIO = 0.025;
+// Custom-map visible-art bounds, spanning from the Humber College Line 6 badge (x=65)
+// through x=7925 to include the Kennedy label and Cardinal North compass.
+const TTC_MAP_CONTENT_BOUNDS: MapContentBounds = {
   x: 65 * SVG_TO_RENDERED_MAP_SCALE,
   y: 120 * SVG_TO_RENDERED_MAP_SCALE,
-  width: (7900 - 65) * SVG_TO_RENDERED_MAP_SCALE,
-  height: (3820 - 120) * SVG_TO_RENDERED_MAP_SCALE,
+  width: (7925 - 65) * SVG_TO_RENDERED_MAP_SCALE,
+  height: (3840 - 120) * SVG_TO_RENDERED_MAP_SCALE,
 };
+const DESKTOP_MAP_CONTENT_BOUNDS = TTC_MAP_CONTENT_BOUNDS;
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
 
@@ -615,11 +618,14 @@ function InteractiveTtcMapComponent({
     [stationCenterPoints],
   );
 
-  const defaultMapFrame = useMemo(() => desktopMapTopInset > 0 ? {
-    bounds: DESKTOP_MAP_CONTENT_BOUNDS,
+  const defaultMapFrame = useMemo(() => ({
+    bounds: TTC_MAP_CONTENT_BOUNDS,
     topInset: desktopMapTopInset,
-    horizontalInsetRatio: DESKTOP_MAP_HORIZONTAL_INSET_RATIO,
-  } : undefined, [desktopMapTopInset]);
+    horizontalInsetRatio: desktopMapTopInset > 0
+      ? DESKTOP_MAP_HORIZONTAL_INSET_RATIO
+      : MOBILE_MAP_HORIZONTAL_INSET_RATIO,
+    minHorizontalInset: desktopMapTopInset > 0 ? 32 : 12,
+  }), [desktopMapTopInset]);
 
   const {
     transform,
@@ -1981,7 +1987,7 @@ function InteractiveTtcMapComponent({
             <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
             <span className="map-control-recenter-desktop-label text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
           </button>
-          <span className="map-control-recenter-mobile-label">Center Map</span>
+          <span className="map-control-recenter-mobile-label">Center</span>
         </div>
 
         <div className="map-control-zoom-group">

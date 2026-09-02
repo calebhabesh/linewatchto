@@ -34,7 +34,9 @@ type UsePanZoomOptions = {
   defaultFrame?: {
     bounds: MapContentBounds;
     topInset: number;
+    bottomInset?: number;
     horizontalInsetRatio?: number;
+    minHorizontalInset?: number;
   };
   animateInitialEntrance?: boolean;
 };
@@ -96,9 +98,10 @@ export function usePanZoom({
 
   const defaultTransformForViewport = useCallback((width: number, height: number) => {
     if (defaultFrame) {
+      const minHorizontalInset = defaultFrame.minHorizontalInset ?? (width < 768 ? 12 : 32);
       const horizontalInset = defaultFrame.horizontalInsetRatio
-        ? Math.min(64, Math.max(32, width * defaultFrame.horizontalInsetRatio))
-        : 0;
+        ? Math.min(64, Math.max(minHorizontalInset, width * defaultFrame.horizontalInsetRatio))
+        : (width < 768 ? 12 : 0);
       return computeBoundedMapFrame(
         width,
         height,
@@ -107,6 +110,7 @@ export function usePanZoom({
           left: horizontalInset,
           right: horizontalInset,
           top: defaultFrame.topInset,
+          bottom: defaultFrame.bottomInset ?? 0,
         },
       );
     }
@@ -114,8 +118,9 @@ export function usePanZoom({
     const mapWidth = 4500;
     const mapHeight = 2181.82;
     const scale = computeMapFitScale(width, height, mapWidth, mapHeight);
+    const artworkCenterX = (65 + 7925) * (4500 / 8250) / 2;
     return {
-      x: width / 2 - (mapWidth / 2) * scale,
+      x: width / 2 - artworkCenterX * scale,
       y: height / 2 - (mapHeight * 0.435) * scale,
       scale,
     };

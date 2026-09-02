@@ -48,6 +48,64 @@ describe("pan zoom behavior guardrails", () => {
     assert.ok(artworkBottom <= 1163);
   });
 
+  it("centers mobile TTC artwork horizontally between the left and right viewport with equal padding", () => {
+    const scaleFactor = 4500 / 8250;
+    const ttcBounds = {
+      x: 65 * scaleFactor,
+      y: 120 * scaleFactor,
+      width: (7925 - 65) * scaleFactor,
+      height: (3840 - 120) * scaleFactor,
+    };
+    const mobileWidth = 390;
+    const mobileHeight = 844;
+    const horizontalInset = 12;
+    const frame = computeBoundedMapFrame(mobileWidth, mobileHeight, ttcBounds, {
+      left: horizontalInset,
+      right: horizontalInset,
+      top: 0,
+      bottom: 0,
+    });
+    const artworkLeft = frame.x + ttcBounds.x * frame.scale;
+    const artworkRight = frame.x + (ttcBounds.x + ttcBounds.width) * frame.scale;
+    const paddingLeft = artworkLeft;
+    const paddingRight = mobileWidth - artworkRight;
+
+    assert.ok(Math.abs(paddingLeft - paddingRight) < 1e-9);
+    assert.ok(Math.abs(paddingLeft - horizontalInset) < 1e-9);
+  });
+
+  it("centers mobile Regional artwork horizontally between the left and right viewport with equal padding", () => {
+    const regionalBounds = {
+      x: 45.54,
+      y: 34.96,
+      width: 4405.28,
+      height: 2550,
+    };
+    const mobileWidth = 390;
+    const mobileHeight = 844;
+    const horizontalInset = 12;
+    const insets = {
+      left: horizontalInset,
+      right: horizontalInset,
+      top: mobileHeight * 0.05,
+      bottom: mobileHeight * 0.05,
+    };
+    const frame = computeBoundedMapFrame(mobileWidth, mobileHeight, regionalBounds, insets);
+    const focus = computeInsetViewportFocus(mobileWidth, mobileHeight, insets);
+    const defaultFrameScale = 1.08;
+    const defaultFrame = {
+      x: focus.focusX - (focus.focusX - frame.x) * defaultFrameScale,
+      y: focus.focusY - (focus.focusY - frame.y) * defaultFrameScale,
+      scale: frame.scale * defaultFrameScale,
+    };
+    const artworkLeft = defaultFrame.x + regionalBounds.x * defaultFrame.scale;
+    const artworkRight = defaultFrame.x + (regionalBounds.x + regionalBounds.width) * defaultFrame.scale;
+    const paddingLeft = artworkLeft;
+    const paddingRight = mobileWidth - artworkRight;
+
+    assert.ok(Math.abs(paddingLeft - paddingRight) < 1e-9);
+  });
+
   it("keeps the cardinal north marker inside the transformed map layer", () => {
     assert.match(
       mapSource,

@@ -12,7 +12,8 @@ import {
   Bus, 
   Accessibility,
   PieChart,
-  TrainFront
+  TrainFront,
+  Info
 } from "lucide-react";
 import type { AlertTypeBreakdownItem } from "../app/linewatch-data";
 
@@ -434,19 +435,32 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
         )}
       </div>
       <div className="reliability-list min-w-0 max-w-full w-full p-3 flex flex-col gap-2 overflow-x-hidden">
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <div className="min-w-0">
+        <div className="flex flex-col gap-2 min-w-0">
+          <div className="min-w-0 flex flex-col gap-1.5">
             <h3 className="text-[15px] font-black text-slate-900 dark:text-white break-words">
               Observed Disruptions · Rolling 30 Day Basis
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
-              Source: {reliability.source.replace(/alert history/gi, "Alert History")} · {formatReliabilityRange(reliability.since, reliability.until)}
-            </p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 break-words">
-              Service window: {reliability.serviceWindowBasis} · {(reliability.scheduleCoveragePercentage ?? 0).toFixed(1)}% {networkId === "regional" ? "minimum date coverage" : "date coverage"}
-            </p>
+            <ul className="grid grid-cols-1 gap-1 text-[11px] text-slate-500 dark:text-slate-400 list-none p-0 m-0">
+              <li className="flex items-start gap-1.5 min-w-0">
+                <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
+                <span className="min-w-0 break-words leading-tight">
+                  <strong className="font-semibold text-slate-700 dark:text-slate-200">Source:</strong>{" "}
+                  {formatReliabilityTitleCase(reliability.source.replace(/alert history/gi, "Alert History"))} · {formatReliabilityRange(reliability.since, reliability.until)}
+                </span>
+              </li>
+              <li className="flex items-start gap-1.5 min-w-0">
+                <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
+                <span className="min-w-0 break-words leading-tight">
+                  <strong className="font-semibold text-slate-700 dark:text-slate-200">Service Window:</strong>{" "}
+                  {formatReliabilityTitleCase(reliability.serviceWindowBasis)} · {(reliability.scheduleCoveragePercentage ?? 0).toFixed(1)}% {networkId === "regional" ? "Minimum Date Coverage" : "Date Coverage"}
+                </span>
+              </li>
+            </ul>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 break-words leading-relaxed">{reliability.message}</p>
+          <div className="rounded-lg border border-purple-500/15 bg-purple-500/[0.03] dark:bg-purple-500/[0.05] px-2.5 py-1.5 flex items-start gap-2 text-[10.5px] sm:text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+            <Info className="w-3 h-3 text-purple-500 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <p className="min-w-0 flex-1 break-words">{reliability.message}</p>
+          </div>
           {reliability.metrics.length === 0 ? (
             <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
               <strong className="text-sm font-bold text-slate-800 dark:text-white">
@@ -457,9 +471,9 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
           ) : reliability.metrics.map((item) => {
             const details = getMetricDetails(item.id, item.label);
             return (
-              <div key={item.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col !gap-0 overflow-hidden">
+              <div key={item.id} className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2.5 overflow-hidden">
                 {/* Line Header */}
-                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-1 sm:gap-2 min-w-0 pb-2">
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-1 sm:gap-2 min-w-0 pb-1.5 border-b border-black/[0.05] dark:border-white/[0.05]">
                   <div className="flex min-w-0 items-center gap-2 flex-1 basis-full sm:basis-auto">
                     {details.icon}
                     <strong className="text-sm font-bold text-slate-900 dark:text-white truncate">
@@ -478,42 +492,85 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                   </div>
                 </div>
 
-                {/* Metric Rows */}
-                <div className="flex flex-col gap-1 text-xs sm:text-[12.5px] font-mono tabular-nums text-slate-600 dark:text-slate-300 border-t border-black/[0.05] dark:border-white/[0.05] pt-2">
-                  <div className="flex items-baseline justify-between gap-2 min-w-0">
-                    <span className="text-slate-500 dark:text-slate-400 font-normal shrink-0">
-                      Observed Service Time
-                    </span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                      {formatDisruptionDuration(item.observedServiceMinutes)}
-                    </span>
+                {/* Tier 1: Service Window & Wall-Clock Impact */}
+                <div className="rounded-md border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] p-2.5 flex flex-col gap-2 min-w-0">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
+                        {networkId === "regional" ? "Time With Any Alert on This Corridor" : "Time With Any Alert on This Line"}
+                      </span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight mt-0.5">
+                        Unique wall-clock disruption during scheduled service
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-sm font-black font-mono tabular-nums text-slate-900 dark:text-white">
+                        {item.serviceImpactPercentage.toFixed(1)}%
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-baseline justify-between gap-2 min-w-0">
-                    <span className="text-slate-500 dark:text-slate-400 font-normal min-w-0">
-                      {networkId === "regional" ? "Time With Any Alert on This Corridor" : "Time With Any Alert on This Line"}
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white text-right shrink-0">
-                      {formatDisruptionDuration(item.serviceImpactMinutes)} · {item.serviceImpactPercentage.toFixed(1)}%
-                    </span>
+                  {/* Proportion bar */}
+                  <div
+                    className="w-full h-1.5 rounded-full overflow-hidden bg-black/10 dark:bg-white/10"
+                    aria-hidden="true"
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-300 bg-amber-500 dark:bg-amber-400"
+                      style={{
+                        width: `${Math.min(100, Math.max(item.serviceImpactPercentage > 0 ? 1 : 0, item.serviceImpactPercentage))}%`,
+                      }}
+                    />
                   </div>
 
-                  <div className="flex items-baseline justify-between gap-2 min-w-0">
-                    <span className="text-slate-500 dark:text-slate-400 font-normal shrink-0">
+                  {/* Symmetric Service Impact Ratio */}
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-1 border-t border-black/[0.04] dark:border-white/[0.04] text-[11px]">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
+                        {formatDisruptionDuration(item.serviceImpactMinutes)}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
+                        Active Alert Time
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 font-medium shrink-0 px-1 select-none">
+                      of
+                    </span>
+                    <div className="flex flex-col min-w-0 text-right">
+                      <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
+                        {formatDisruptionDuration(item.observedServiceMinutes)}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
+                        Observed Service Time
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tier 2: Disruption Volume & Turnaround (2-Column Stat Grid) */}
+                <div className={`grid ${item.medianDurationMinutes != null ? "grid-cols-2" : "grid-cols-1"} gap-2 text-[11px]`}>
+                  <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
+                    <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
                       Incident-Hours
                     </span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
+                    <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 truncate">
                       {formatDisruptionDuration(item.incidentDisruptionMinutes)}
+                    </strong>
+                    <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight" title="Sum of durations across all concurrent alerts">
+                      Overlapping alerts sum
                     </span>
                   </div>
 
                   {item.medianDurationMinutes != null && (
-                    <div className="flex items-baseline justify-between gap-2 min-w-0">
-                      <span className="text-slate-500 dark:text-slate-400 font-normal shrink-0">
+                    <div className="flex flex-col rounded-md border border-black/[0.04] dark:border-white/[0.04] bg-white/60 dark:bg-black/20 p-2 min-w-0">
+                      <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
                         Median Completed Incident
                       </span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
+                      <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 truncate">
                         {formatDisruptionDuration(item.medianDurationMinutes)}
+                      </strong>
+                      <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
+                        Resolution turnaround
                       </span>
                     </div>
                   )}

@@ -1,30 +1,29 @@
 @import "tailwindcss" source("../");
 
 @theme {
-  --font-sans: var(--font-sans), Arial, Helvetica, sans-serif;
+  --font-sans: "Switzer", var(--font-inter), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-mono), monospace;
   --font-subway: "Tex Gyre Heros", "TeX Gyre Heros", "Toronto Subway", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-wordmark: var(--font-wordmark-family), Arial, Helvetica, sans-serif;
+  --font-wordmark: "Plein", var(--font-wordmark-family), Arial, Helvetica, sans-serif;
   --color-logo-blue: #81c9ff;
 }
 
-@property --mobile-legend-beam-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
+html {
+  font-size: 106.25%; /* Scales base from 16px to 17px to match Inter's optical x-height */
 }
 
-@keyframes mobile-legend-badge-beam {
-  to {
-    --mobile-legend-beam-angle: 360deg;
-  }
+html,
+body {
+  font-family: "Switzer", var(--font-inter), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .linewatch-wordmark {
-  font-family: var(--font-wordmark);
-  font-size: 1.3em;
+  font-family: "Plein", var(--font-wordmark), Arial, Helvetica, sans-serif;
+  font-size: 1.35em;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
   line-height: 1;
 }
 
@@ -95,6 +94,295 @@
 @font-face {
   font-family: "TeX Gyre Heros";
   src: url("/assets/fonts/texgyreheros-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* Local trial fonts from Fontshare */
+@font-face {
+  font-family: "Switzer";
+  src: url("/assets/fonts/switzer-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Switzer";
+  src: url("/assets/fonts/switzer-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Switzer";
+  src: url("/assets/fonts/switzer-semibold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Switzer";
+  src: url("/assets/fonts/switzer-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Satoshi";
+  src: url("/assets/fonts/satoshi-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/assets/fonts/satoshi-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/assets/fonts/satoshi-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Array";
+  src: url("/assets/fonts/array-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Array";
+  src: url("/assets/fonts/array-semibold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Array";
+  src: url("/assets/fonts/array-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Striper";
+  src: url("/assets/fonts/striper-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bespoke Stencil";
+  src: url("/assets/fonts/bespokestencil-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Bespoke Stencil";
+  src: url("/assets/fonts/bespokestencil-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Bespoke Stencil";
+  src: url("/assets/fonts/bespokestencil-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Bespoke Stencil";
+  src: url("/assets/fonts/bespokestencil-extrabold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Handjet";
+  src: url("/assets/fonts/handjet.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Clash Display";
+  src: url("/assets/fonts/clashdisplay-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Clash Display";
+  src: url("/assets/fonts/clashdisplay-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Clash Display";
+  src: url("/assets/fonts/clashdisplay-semibold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Clash Display";
+  src: url("/assets/fonts/clashdisplay-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ranade";
+  src: url("/assets/fonts/ranade-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Ranade";
+  src: url("/assets/fonts/ranade-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Ranade";
+  src: url("/assets/fonts/ranade-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Excon";
+  src: url("/assets/fonts/excon-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Excon";
+  src: url("/assets/fonts/excon-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Excon";
+  src: url("/assets/fonts/excon-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Excon";
+  src: url("/assets/fonts/excon-black.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Tanker";
+  src: url("/assets/fonts/tanker-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RX100";
+  src: url("/assets/fonts/rx100-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kola";
+  src: url("/assets/fonts/kola-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/assets/fonts/spacegrotesk.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plein";
+  src: url("/assets/fonts/plein-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plein";
+  src: url("/assets/fonts/plein-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plein";
+  src: url("/assets/fonts/plein-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plein";
+  src: url("/assets/fonts/plein-black.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "General Sans";
+  src: url("/assets/fonts/generalsans-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "General Sans";
+  src: url("/assets/fonts/generalsans-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "General Sans";
+  src: url("/assets/fonts/generalsans-semibold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "General Sans";
+  src: url("/assets/fonts/generalsans-bold.woff2") format("woff2");
   font-style: normal;
   font-weight: 700;
   font-display: swap;
@@ -1596,10 +1884,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 /* Desktop line legend route badge rings and squircles */
 .desktop-legend-route-badge {
-  --desktop-legend-outline-width: 2.75px;
+  --desktop-legend-outline-width: 4.5px;
   align-items: center;
   animation: desktop-legend-badge-pulse 3.8s ease-in-out infinite;
-  box-shadow: 0 0 3px color-mix(in srgb, var(--desktop-legend-ring-color) 32%, transparent);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--desktop-legend-ring-color) 40%, transparent);
   box-sizing: border-box;
   display: flex !important;
   height: 44px;
@@ -1625,22 +1913,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   line-height: 1;
 }
 
-.desktop-legend-route-badge--ttc.service-tone-affected {
-  animation:
-    desktop-legend-badge-pulse 3.8s ease-in-out infinite,
-    mobile-legend-badge-beam 10s linear infinite;
-  background:
-    linear-gradient(var(--desktop-legend-badge-fill-color), var(--desktop-legend-badge-fill-color)) padding-box,
-    conic-gradient(
-      from var(--mobile-legend-beam-angle, 0deg),
-      var(--desktop-legend-ring-color) 0deg 326deg,
-      #ff667d 334deg,
-      #ffa0b4 342deg,
-      #ff667d 350deg,
-      var(--desktop-legend-ring-color) 358deg 360deg
-    ) border-box;
-}
-
 .desktop-legend-route-badge .desktop-legend-route-number {
   align-items: center;
   color: var(--desktop-legend-badge-number-color) !important;
@@ -1654,7 +1926,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   position: relative;
   text-align: center;
   width: 100%;
-  z-index: 1;
+  z-index: 2;
 }
 
 .desktop-legend-route-badge--regional {
@@ -1662,21 +1934,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   border: var(--desktop-legend-outline-width) solid transparent;
   border-radius: 7px !important;
   overflow: hidden;
-}
-
-.desktop-legend-route-badge--regional.service-tone-affected {
-  animation:
-    desktop-legend-badge-pulse 3.8s ease-in-out infinite,
-    mobile-legend-badge-beam 10s linear infinite;
-  background:
-    conic-gradient(
-      from var(--mobile-legend-beam-angle, 0deg),
-      var(--desktop-legend-ring-color) 0deg 326deg,
-      #ff667d 334deg,
-      #ffa0b4 342deg,
-      #ff667d 350deg,
-      var(--desktop-legend-ring-color) 358deg 360deg
-    ) border-box;
 }
 
 .desktop-legend-route-badge--regional > span {
@@ -1690,6 +1947,22 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   --desktop-legend-ring-color: #ff334f;
 }
 
+/* Inner red light flash on the entire transit badge area inside the red ring */
+.desktop-legend-route-badge.service-tone-affected::after {
+  animation: legend-badge-inner-red-flash 3.8s ease-in-out infinite;
+  background: radial-gradient(circle at center, #ff758c 0%, #ff4a68 100%);
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.desktop-legend-route-badge--regional.service-tone-affected::after {
+  border-radius: 4px;
+}
+
 .desktop-legend-route-badge.service-tone-good {
   --desktop-legend-ring-color: #22e37b;
 }
@@ -1700,6 +1973,24 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   }
   50% {
     box-shadow: 0 0 6px color-mix(in srgb, var(--desktop-legend-ring-color) 58%, transparent);
+  }
+}
+
+@keyframes legend-badge-inner-red-flash {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.44;
+  }
+  50% {
+    opacity: 0.44;
+  }
+  85% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
@@ -3534,7 +3825,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   --visual-keyboard-inset: 0px;
   --mobile-chrome-background: rgb(14, 16, 22);
   --mobile-chrome-backdrop-filter: blur(18px) saturate(1.4);
-  --mobile-chrome-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 2px 8px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --mobile-chrome-shadow: 0 2px 6px rgba(0, 0, 0, 0.32), 0 10px 32px rgba(0, 0, 0, 0.48), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
   --impact-rsz: #F59E0B; 
   --impact-rsz-ink: #78350f;
   --impact-rsz-soft: rgba(245, 158, 11, 0.14);
@@ -3649,7 +3940,7 @@ body {
   --mobile-chrome-text: #0f172a;
   --mobile-chrome-text-muted: #475569;
   --mobile-chrome-text-quiet: #64748b;
-  --mobile-chrome-shadow: 0 8px 32px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --mobile-chrome-shadow: 0 2px 6px rgba(15, 23, 42, 0.06), 0 8px 28px rgba(15, 23, 42, 0.12), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 2px 0 rgba(15, 23, 42, 0.08);
   --mobile-chrome-btn-bg: rgba(15, 23, 42, 0.06);
   --mobile-chrome-btn-border: rgba(15, 23, 42, 0.08);
   --mobile-chrome-btn-active-bg: rgba(15, 23, 42, 0.12);
@@ -3657,6 +3948,7 @@ body {
   --mobile-chrome-nav-active-border: rgba(56, 189, 248, 0.45);
   --mobile-scroll-indicator-thumb: #7d828c;
   --mobile-scroll-indicator-thumb-hover: #575d68;
+  --mobile-card-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
 
 .linewatch-shell.dark {
@@ -3683,7 +3975,7 @@ body {
   --mobile-chrome-text: #f7f8fb;
   --mobile-chrome-text-muted: #aab1bd;
   --mobile-chrome-text-quiet: #747d8c;
-  --mobile-chrome-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 2px 8px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --mobile-chrome-shadow: 0 2px 6px rgba(0, 0, 0, 0.32), 0 10px 32px rgba(0, 0, 0, 0.48), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
   --mobile-chrome-btn-bg: rgba(255, 255, 255, 0.08);
   --mobile-chrome-btn-border: rgba(255, 255, 255, 0.12);
   --mobile-chrome-btn-active-bg: rgba(255, 255, 255, 0.16);
@@ -3691,6 +3983,7 @@ body {
   --mobile-chrome-nav-active-border: rgba(129, 201, 255, 0.50);
   --mobile-scroll-indicator-thumb: #6e7789;
   --mobile-scroll-indicator-thumb-hover: #aeb8ca;
+  --mobile-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
 }
 
 .linewatch-backdrop {
@@ -4374,6 +4667,7 @@ button {
   --mobile-chrome-nav-active-border: #ffffff;
   --mobile-scroll-indicator-thumb: #ffffff;
   --mobile-scroll-indicator-thumb-hover: #ffffff;
+  --mobile-card-shadow: none;
   background-color: #000000 !important;
   color: #ffffff !important;
 }
@@ -5723,11 +6017,18 @@ button {
   }
 
   .opening-disclaimer-panel {
+    border: none;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.44);
     box-sizing: border-box;
     max-height: calc(100dvh - 36px);
     overflow-x: hidden;
     overflow-y: auto;
     width: min(94vw, 380px);
+  }
+
+  .high-contrast .opening-disclaimer-panel,
+  .linewatch-shell.high-contrast .opening-disclaimer-panel {
+    border: 1px solid #ffffff;
   }
 
   .opening-disclaimer-content {
@@ -12621,6 +12922,9 @@ img.transit-line-badge {
 
 @media (max-width: 767px) {
   .station-detail-panel {
+    border: none !important;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.38);
     height: calc(var(--visual-viewport-height, 100dvh) * 0.92) !important;
     max-height: calc(var(--visual-viewport-height, 100dvh) * 0.92) !important;
     transform: translate3d(0, var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)), 0);
@@ -12630,6 +12934,11 @@ img.transit-line-badge {
     isolation: isolate;
     backface-visibility: hidden;
     overscroll-behavior-y: contain;
+  }
+
+  .high-contrast .station-detail-panel,
+  .linewatch-shell.high-contrast .station-detail-panel {
+    border: 1px solid #ffffff !important;
   }
 
   .station-detail-panel.station-detail-sheet-dragging {
@@ -13104,8 +13413,14 @@ img.transit-line-badge {
     padding-bottom: 1.5rem;
   }
   .account-dialog {
+    border: none;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.44);
     margin-top: auto;
     margin-bottom: auto;
+  }
+  .high-contrast .account-dialog,
+  .linewatch-shell.high-contrast .account-dialog {
+    border: 1px solid #ffffff;
   }
 }
 
@@ -17447,7 +17762,7 @@ img.transit-line-badge {
     background: var(--mobile-chrome-background);
     backdrop-filter: var(--mobile-chrome-backdrop-filter);
     -webkit-backdrop-filter: var(--mobile-chrome-backdrop-filter);
-    border: 1px solid rgba(15, 23, 42, 0.06);
+    border: none;
     border-radius: 999px;
     bottom: var(--mobile-bottom-nav-bottom-offset);
     box-shadow: var(--mobile-chrome-shadow);
@@ -17509,7 +17824,7 @@ img.transit-line-badge {
   }
 
   .dark .mobile-bottom-nav {
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: none;
   }
 
   .dark .mobile-bottom-nav::before {
@@ -17599,14 +17914,14 @@ img.transit-line-badge {
   }
 
   .mobile-bottom-nav-badge {
-    --overlapping-count-font-size: 7px;
+    --overlapping-count-font-size: 10.5px;
     align-items: center;
     background: #ef4444;
     border: 1px solid rgba(255, 255, 255, 0.86);
     border-radius: 999px;
     color: #ffffff;
     display: inline-flex;
-    font-size: 9px;
+    font-size: 10.5px;
     font-weight: 1000;
     height: 17px;
     justify-content: center;
@@ -17839,7 +18154,7 @@ img.transit-line-badge {
     background: var(--mobile-chrome-background);
     backdrop-filter: var(--mobile-chrome-backdrop-filter);
     -webkit-backdrop-filter: var(--mobile-chrome-backdrop-filter);
-    border: 1px solid var(--mobile-chrome-border);
+    border: none;
     border-radius: 8px;
     bottom: calc(var(--mobile-bottom-nav-occupied-height) + 10px);
     box-shadow: var(--mobile-chrome-shadow);
@@ -17854,6 +18169,11 @@ img.transit-line-badge {
     z-index: 42;
     justify-content: space-between;
     animation: floating-mobile-sheet-enter 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .high-contrast .mobile-status-peek,
+  .linewatch-shell.high-contrast .mobile-status-peek {
+    border: 1px solid var(--mobile-chrome-border);
   }
 
   .motion-paused .mobile-status-peek {
@@ -17882,8 +18202,12 @@ img.transit-line-badge {
   }
 
   .mobile-status-peek-title {
-    font-size: 14px;
+    align-items: center;
+    display: inline-flex;
+    font-size: 15.5px;
     font-weight: 950;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -17893,8 +18217,9 @@ img.transit-line-badge {
     color: #F8C300;
     display: inline-flex;
     align-items: center;
-    margin-left: -3px;
-    margin-right: 2px;
+    flex-shrink: 0;
+    margin-left: -2px;
+    margin-right: 4px;
     vertical-align: middle;
     position: relative;
     top: -1px;
@@ -18131,40 +18456,84 @@ img.transit-line-badge {
 
   .mobile-status-peek-recenter-btn {
     align-items: center;
-    background: var(--mobile-chrome-btn-bg);
-    border: 1px solid var(--mobile-chrome-btn-border);
-    border-radius: 8px;
-    color: var(--mobile-chrome-text);
+    background: rgba(56, 189, 248, 0.09) !important;
+    background-image: none !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    box-shadow: none !important;
+    color: #38bdf8;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     flex: 0 0 60px;
-    gap: 4px;
+    gap: 3px;
+    height: 60px;
     justify-content: center;
     min-width: 60px;
-    height: 60px;
-    padding: 6px;
-    transition: all 0.2s ease;
+    padding: 0;
+    padding-bottom: 3px;
+    transition: background-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
+    width: 60px;
+  }
+
+  .linewatch-shell:not(.dark) .mobile-status-peek-recenter-btn {
+    background: rgba(37, 99, 235, 0.08) !important;
+    background-image: none !important;
+  }
+
+  .mobile-status-peek-recenter-btn svg {
+    color: #ffffff;
+    stroke: #ffffff;
+    fill: #2563eb;
+    stroke-width: 2.2;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.5));
+    transition: transform 0.2s ease, filter 0.15s ease, fill 0.15s ease;
+  }
+
+  .linewatch-shell:not(.dark) .mobile-status-peek-recenter-btn svg {
+    color: #2563eb;
+    stroke: #2563eb;
+    fill: rgba(37, 99, 235, 0.25);
+    filter: none;
   }
 
   .mobile-status-peek-recenter-btn span {
     font-size: 9px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     text-align: center;
-    line-height: 1.35;
+    line-height: 1;
+    color: var(--mobile-chrome-text-muted);
   }
 
   .mobile-status-peek-recenter-btn:active {
-    background: var(--mobile-chrome-btn-active-bg);
-    transform: scale(0.95);
+    background: rgba(56, 189, 248, 0.18) !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    transform: scale(0.93);
   }
 
-  .high-contrast .mobile-status-peek-recenter-btn {
-    background: #ffffff;
-    color: #000000;
-    border-color: #ffffff;
+  .linewatch-shell:not(.dark) .mobile-status-peek-recenter-btn:active {
+    background: rgba(37, 99, 235, 0.16) !important;
+  }
+
+  .high-contrast .mobile-status-peek-recenter-btn,
+  .linewatch-shell.high-contrast .mobile-status-peek-recenter-btn {
+    background: #000000 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    border: 1px solid #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .high-contrast .mobile-status-peek-recenter-btn svg,
+  .linewatch-shell.high-contrast .mobile-status-peek-recenter-btn svg {
+    color: #ffffff;
+    stroke: #ffffff;
+    fill: #000000;
+    filter: none;
   }
 
   .mobile-status-sheet {
@@ -18240,15 +18609,16 @@ img.transit-line-badge {
   .mobile-status-actions button {
     align-items: center;
     background: var(--panel-soft);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--mobile-card-shadow);
     color: var(--text);
     display: flex;
     font-size: 11px;
-    font-weight: 900;
-    gap: 7px;
+    font-weight: 800;
+    gap: 8px;
     min-height: 48px;
-    padding: 8px;
+    padding: 10px 12px;
     justify-content: space-between;
     width: 100%;
     transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 120ms ease;
@@ -18267,40 +18637,51 @@ img.transit-line-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    font-size: 10.5px;
-    font-weight: 900;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 800;
     flex-shrink: 0;
-    padding: 0;
-    aspect-ratio: 1 / 1;
-    color: #000000 !important;
-    background: #ffffff !important;
-    border: 2px solid #000000 !important;
+    padding: 0 6px;
+    border: none !important;
     text-shadow: none;
     line-height: normal;
+    background: rgba(15, 23, 42, 0.07);
+    color: #475569;
+    transition: background-color 150ms ease, color 150ms ease;
   }
 
-  /* Outlines and glows for status action cards */
-  .mobile-status-btn-alerts {
-    border-color: rgba(239, 68, 68, 0.45) !important;
+  .mobile-status-btn-circle[data-count="positive"] {
+    background: rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+    font-weight: 900;
   }
 
-  .mobile-status-btn-delays {
-    border-color: rgba(254, 236, 65, 0.45) !important;
+  .dark .mobile-status-btn-circle {
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
   }
 
-  .mobile-status-btn-rsz {
-    border-color: var(--impact-rsz-border) !important;
+  .dark .mobile-status-btn-circle[data-count="positive"] {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    font-weight: 900;
   }
 
-  .mobile-status-btn-closures {
-    border-color: rgba(59, 130, 246, 0.45) !important;
+  .high-contrast .mobile-status-btn-circle,
+  .linewatch-shell.high-contrast .mobile-status-btn-circle {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ffffff !important;
   }
 
+  .mobile-status-btn-alerts,
+  .mobile-status-btn-delays,
+  .mobile-status-btn-rsz,
+  .mobile-status-btn-closures,
   .mobile-status-btn-trip-changes {
-    border-color: var(--trip-change-border) !important;
+    border: none !important;
   }
 
   .mobile-line-status-list {
@@ -18329,12 +18710,13 @@ img.transit-line-badge {
   .mobile-line-status-row {
     align-items: center;
     background: var(--panel-soft);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--mobile-card-shadow);
     display: flex;
     flex-wrap: wrap;
-    gap: 0px 10px;
-    padding: 9px 10px;
+    gap: 6px 10px;
+    padding: 10px;
   }
 
   .mobile-line-status-summary {
@@ -18417,55 +18799,81 @@ img.transit-line-badge {
   .mobile-line-status-impacts {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-left: 38px;
+    align-items: center;
+    gap: 5px;
+    margin-left: 32px;
     margin-top: -1px;
+    width: calc(100% - 32px);
   }
 
   .mobile-line-status-impact-label {
     display: inline-flex;
-    min-height: 32px;
+    min-height: 26px;
     align-items: center;
-    gap: 5px;
-    border: 1px solid;
-    border-radius: 6px;
-    padding: 5px 8px;
-    font-size: 10px;
-    font-weight: 800;
+    gap: 4px;
+    border: none !important;
+    border-radius: 8px;
+    padding: 3px 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    white-space: nowrap;
   }
 
-  .mobile-line-status-impact-label.mobile-line-status-btn-alerts { background: #fef2f2 !important; }
-  .mobile-line-status-impact-label.mobile-line-status-btn-delays { background: #fefce8 !important; }
-  .mobile-line-status-impact-label.mobile-line-status-btn-rsz { background: #fffbeb !important; }
-  .mobile-line-status-impact-label.mobile-line-status-btn-closures { background: #eff6ff !important; }
-  .dark .mobile-line-status-impact-label.mobile-line-status-btn-alerts { background: #2d1414 !important; }
-  .dark .mobile-line-status-impact-label.mobile-line-status-btn-delays { background: #2a2808 !important; }
-  .dark .mobile-line-status-impact-label.mobile-line-status-btn-rsz { background: #2a1f08 !important; }
-  .dark .mobile-line-status-impact-label.mobile-line-status-btn-closures { background: #0e1c30 !important; }
+  .mobile-line-status-impact-label.mobile-line-status-btn-alerts {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #dc2626 !important;
+  }
+  .mobile-line-status-impact-label.mobile-line-status-btn-delays {
+    background: rgba(234, 179, 8, 0.12) !important;
+    color: #b45309 !important;
+  }
+  .mobile-line-status-impact-label.mobile-line-status-btn-rsz {
+    background: rgba(245, 158, 11, 0.12) !important;
+    color: #b45309 !important;
+  }
+  .mobile-line-status-impact-label.mobile-line-status-btn-closures {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: #1d4ed8 !important;
+  }
+
+  .dark .mobile-line-status-impact-label.mobile-line-status-btn-alerts {
+    background: rgba(239, 68, 68, 0.18) !important;
+    color: #fca5a5 !important;
+  }
+  .dark .mobile-line-status-impact-label.mobile-line-status-btn-delays {
+    background: rgba(234, 179, 8, 0.18) !important;
+    color: #fef08a !important;
+  }
+  .dark .mobile-line-status-impact-label.mobile-line-status-btn-rsz {
+    background: rgba(245, 158, 11, 0.18) !important;
+    color: #fde68a !important;
+  }
+  .dark .mobile-line-status-impact-label.mobile-line-status-btn-closures {
+    background: rgba(59, 130, 246, 0.18) !important;
+    color: #bfdbfe !important;
+  }
+
+  .high-contrast .mobile-line-status-impact-label,
+  .linewatch-shell.high-contrast .mobile-line-status-impact-label {
+    background: #000000 !important;
+    border: 1px solid currentColor !important;
+  }
 
   .mobile-line-status-impacts button {
-    min-height: 32px;
-    padding: 5px 8px;
+    min-height: 28px;
+    padding: 4px 8px;
   }
 
   .mobile-line-status-impact-count {
     margin-right: 3.5px;
   }
 
-  .mobile-line-status-btn-alerts {
-    border-color: rgba(239, 68, 68, 0.45) !important;
-  }
-
-  .mobile-line-status-btn-delays {
-    border-color: rgba(254, 236, 65, 0.45) !important;
-  }
-
-  .mobile-line-status-btn-rsz {
-    border-color: var(--impact-rsz-border) !important;
-  }
-
+  .mobile-line-status-btn-alerts,
+  .mobile-line-status-btn-delays,
+  .mobile-line-status-btn-rsz,
   .mobile-line-status-btn-closures {
-    border-color: rgba(59, 130, 246, 0.45) !important;
+    border: none !important;
   }
 }
 
@@ -18496,11 +18904,10 @@ img.transit-line-badge {
 
   .mobile-more-section {
     border: none;
-    border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 10px;
+    gap: 8px;
+    padding: 0;
   }
 
   .mobile-more-section h3 {
@@ -18515,23 +18922,30 @@ img.transit-line-badge {
 
   .mobile-more-account {
     align-items: center;
-    background: var(--panel-soft);
-    border: none;
-    border-radius: 8px;
+    background: var(--light-container) !important;
+    border: none !important;
+    border-radius: 12px;
+    box-shadow: var(--mobile-card-shadow);
     color: var(--text);
     display: flex;
     font-size: 13px;
     font-weight: 850;
     gap: 9px;
-    min-height: 46px;
-    padding: 9px 10px;
+    min-height: 48px;
+    padding: 10px 14px;
     text-align: left;
+  }
+
+  .dark .mobile-more-account {
+    background: #151821 !important;
   }
 
   .mobile-more-row {
     align-items: center;
-    border: none;
-    border-radius: 8px;
+    background: var(--light-container) !important;
+    border: none !important;
+    border-radius: 12px;
+    box-shadow: var(--mobile-card-shadow);
     color: #334155; /* slate-700 */
     display: flex;
     font-family: inherit;
@@ -18539,10 +18953,10 @@ img.transit-line-badge {
     font-weight: 500;
     gap: 12px;
     line-height: 1.25rem;
-    min-height: 46px;
-    padding: 10px 12px;
+    min-height: 48px;
+    padding: 10px 14px;
     text-align: left;
-    transition: background-color 0.15s, color 0.15s;
+    transition: background-color 0.15s, color 0.15s, transform 0.12s;
     cursor: pointer;
   }
 
@@ -18551,12 +18965,22 @@ img.transit-line-badge {
     transition: color 0.15s;
   }
 
-  .mobile-more-row:hover,
+  @media (hover: hover) {
+    .mobile-more-row:hover {
+      background: #e2e8f0 !important;
+    }
+    .dark .mobile-more-row:hover {
+      background: #1e2433 !important;
+    }
+  }
+
   .mobile-more-row:active {
-    background: #f1f5f9 !important;
+    background: #cbd5e1 !important;
+    transform: scale(0.99);
   }
 
   .dark .mobile-more-row {
+    background: #151821 !important;
     color: #e2e8f0; /* slate-200 */
   }
 
@@ -18564,9 +18988,9 @@ img.transit-line-badge {
     color: #94a3b8; /* slate-400 */
   }
 
-  .dark .mobile-more-row:hover,
   .dark .mobile-more-row:active {
-    background: #1e293b !important;
+    background: #242b3d !important;
+    transform: scale(0.99);
   }
 
   .mobile-more-row.mobile-more-linked-status {
@@ -18588,12 +19012,12 @@ img.transit-line-badge {
 
   .mobile-more-row.mobile-more-install-row {
     background: rgba(250, 204, 21, 0.09) !important;
-    border: 1px solid rgba(250, 204, 21, 0.22) !important;
+    border: none !important;
   }
 
   .dark .mobile-more-row.mobile-more-install-row {
     background: rgba(250, 204, 21, 0.15) !important;
-    border: 1px solid rgba(250, 204, 21, 0.35) !important;
+    border: none !important;
   }
 
   .mobile-more-install-copy {
@@ -18615,14 +19039,99 @@ img.transit-line-badge {
     line-height: 1.25;
   }
 
-  .mobile-more-install-help {
-    background: var(--panel-soft);
-    border: 1px solid var(--border);
+  .default-map-mode-control.is-compact {
+    background: var(--light-container) !important;
+    border: none !important;
+    border-radius: 12px;
+    box-shadow: var(--mobile-card-shadow);
+    padding: 10px 14px;
+    margin: 0;
+  }
+
+  .dark .default-map-mode-control.is-compact {
+    background: #151821 !important;
+  }
+
+  .mobile-more-health-grid {
+    background: var(--light-container) !important;
+    border: none !important;
+    border-radius: 12px;
+    box-shadow: var(--mobile-card-shadow);
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+  }
+
+  .dark .mobile-more-health-grid {
+    background: #151821 !important;
+  }
+
+  .mobile-more-health-grid div {
+    background: rgba(15, 23, 42, 0.04) !important;
+    border: none !important;
     border-radius: 8px;
+  }
+
+  .dark .mobile-more-health-grid div {
+    background: rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .mobile-more-install-help {
+    background: var(--light-container) !important;
+    border: none !important;
+    border-radius: 12px;
+    box-shadow: var(--mobile-card-shadow);
     display: flex;
     flex-direction: column;
     gap: 3px;
-    padding: 9px 10px;
+    padding: 12px 14px;
+  }
+
+  .dark .mobile-more-install-help {
+    background: #151821 !important;
+  }
+
+  .push-diagnostics-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .push-diagnostics-panel {
+    background: var(--light-container) !important;
+    border: none !important;
+    border-radius: 12px;
+    box-shadow: var(--mobile-card-shadow);
+    padding: 14px;
+  }
+
+  .dark .push-diagnostics-panel {
+    background: #151821 !important;
+  }
+
+  .high-contrast .mobile-more-account,
+  .high-contrast .mobile-more-row,
+  .high-contrast .default-map-mode-control.is-compact,
+  .high-contrast .mobile-more-health-grid,
+  .high-contrast .mobile-more-install-help,
+  .high-contrast .push-diagnostics-panel,
+  .linewatch-shell.high-contrast .mobile-more-account,
+  .linewatch-shell.high-contrast .mobile-more-row,
+  .linewatch-shell.high-contrast .default-map-mode-control.is-compact,
+  .linewatch-shell.high-contrast .mobile-more-health-grid,
+  .linewatch-shell.high-contrast .mobile-more-install-help,
+  .linewatch-shell.high-contrast .push-diagnostics-panel {
+    background: #000000 !important;
+    border: 1px solid #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .high-contrast .mobile-more-health-grid div,
+  .linewatch-shell.high-contrast .mobile-more-health-grid div {
+    background: #000000 !important;
+    border: 1px solid #ffffff !important;
   }
 
   .mobile-more-install-help span {
@@ -18944,7 +19453,7 @@ img.transit-line-badge {
 
   .floating-panel-scroll {
     background: var(--panel);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: 8px;
     box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.38);
     gap: 0;
@@ -18955,10 +19464,17 @@ img.transit-line-badge {
 
   .floating-panel-shell[data-floating-panel="mobile-panel"] .floating-panel-scroll {
     background: var(--mobile-chrome-background);
-    border: 1px solid var(--mobile-chrome-border);
+    border: none;
     backdrop-filter: var(--mobile-chrome-backdrop-filter);
     -webkit-backdrop-filter: var(--mobile-chrome-backdrop-filter);
     box-shadow: var(--mobile-chrome-shadow);
+  }
+
+  .high-contrast .floating-panel-scroll,
+  .linewatch-shell.high-contrast .floating-panel-scroll,
+  .high-contrast .floating-panel-shell[data-floating-panel="mobile-panel"] .floating-panel-scroll,
+  .linewatch-shell.high-contrast .floating-panel-shell[data-floating-panel="mobile-panel"] .floating-panel-scroll {
+    border: 1px solid var(--mobile-chrome-border);
   }
 
   /* Panel child styling is defined globally */
@@ -19046,10 +19562,10 @@ img.transit-line-badge {
     --compact-network-option-height: 32px;
     --compact-network-glider-height: 32px;
     align-items: stretch;
-    background: var(--mobile-chrome-background);
-    border: 2px solid rgba(15, 23, 42, 0.28) !important;
+    background: var(--mobile-chrome-background) !important;
+    border: 2px solid rgba(15, 23, 42, 0.28);
     border-radius: clamp(8px, 3vw, 12px);
-    box-shadow: var(--mobile-chrome-shadow);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 3px rgba(0, 0, 0, 0.4);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -19058,15 +19574,58 @@ img.transit-line-badge {
   }
 
   .dark .network-selector--compact-vertical {
-    border-color: rgba(255, 255, 255, 0.32) !important;
+    border-color: rgba(255, 255, 255, 0.32);
   }
 
   .network-selector--compact-vertical[data-network="ttc"] {
-    border-color: rgba(239, 68, 68, 0.65) !important;
+    background: var(--mobile-chrome-background) !important;
+    border: 2px solid rgba(239, 68, 68, 0.75) !important;
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.32),
+      0 10px 32px rgba(0, 0, 0, 0.48),
+      0 0 10px rgba(239, 68, 68, 0.16),
+      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45) !important;
+  }
+
+  .linewatch-shell:not(.dark) .network-selector--compact-vertical[data-network="ttc"] {
+    background: var(--mobile-chrome-background) !important;
+    border: 2px solid rgba(239, 68, 68, 0.7) !important;
+    box-shadow:
+      0 2px 6px rgba(15, 23, 42, 0.06),
+      0 8px 28px rgba(15, 23, 42, 0.12),
+      0 0 8px rgba(239, 68, 68, 0.12),
+      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.75),
+      inset 0 -1px 2px 0 rgba(15, 23, 42, 0.08) !important;
   }
 
   .network-selector--compact-vertical[data-network="regional"] {
-    border-color: rgba(16, 185, 129, 0.65) !important;
+    background: var(--mobile-chrome-background) !important;
+    border: 2px solid rgba(16, 185, 129, 0.75) !important;
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.32),
+      0 10px 32px rgba(0, 0, 0, 0.48),
+      0 0 10px rgba(16, 185, 129, 0.16),
+      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45) !important;
+  }
+
+  .linewatch-shell:not(.dark) .network-selector--compact-vertical[data-network="regional"] {
+    background: var(--mobile-chrome-background) !important;
+    border: 2px solid rgba(16, 185, 129, 0.7) !important;
+    box-shadow:
+      0 2px 6px rgba(15, 23, 42, 0.06),
+      0 8px 28px rgba(15, 23, 42, 0.12),
+      0 0 8px rgba(16, 185, 129, 0.12),
+      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.75),
+      inset 0 -1px 2px 0 rgba(15, 23, 42, 0.08) !important;
+  }
+
+  .high-contrast .network-selector--compact-vertical,
+  .linewatch-shell.high-contrast .network-selector--compact-vertical {
+    border: 2px solid #ffffff !important;
+    background: #000000 !important;
+    box-shadow: none !important;
   }
 
   .network-selector--compact-vertical .network-selector-glider {
@@ -19370,6 +19929,93 @@ img.transit-line-badge {
     margin-top: 12px !important;
     margin-bottom: 12px !important;
   }
+
+  /* Mobile borderless cards & content containers (modern UX elevation) */
+  .alert-card,
+  .closure-card,
+  .compact-impact-list-item,
+  .commute-card {
+    border-top-color: transparent !important;
+    border-right-color: transparent !important;
+    border-bottom-color: transparent !important;
+    box-shadow: var(--mobile-card-shadow);
+  }
+
+  .station-detail-panel [data-station-section],
+  .station-detail-panel .station-notices-details,
+  .station-detail-panel .station-accessibility-details,
+  .station-detail-panel .station-connections-card,
+  .station-detail-panel .station-detail-loading,
+  .surface-notice-route-group,
+  .reliability-row,
+  .health-item,
+  .notification-settings-card,
+  .notification-event-type-grid,
+  .saved-commute-account-prompt,
+  .mobile-status-actions button,
+  .mobile-line-status-row,
+  .mobile-more-account,
+  .mobile-more-row,
+  .mobile-more-install-help {
+    border-color: transparent !important;
+    box-shadow: var(--mobile-card-shadow);
+  }
+
+  .station-detail-panel [data-station-section="station-impacts"] .border-l-2,
+  .station-detail-panel [data-station-section="station-impacts"] .border-l-4 {
+    border-top-color: transparent !important;
+    border-right-color: transparent !important;
+    border-bottom-color: transparent !important;
+  }
+
+  /* High-contrast preservation for mobile cards & containers */
+  .high-contrast .alert-card,
+  .linewatch-shell.high-contrast .alert-card,
+  .high-contrast .closure-card,
+  .linewatch-shell.high-contrast .closure-card,
+  .high-contrast .compact-impact-list-item,
+  .linewatch-shell.high-contrast .compact-impact-list-item,
+  .high-contrast .commute-card,
+  .linewatch-shell.high-contrast .commute-card {
+    border-top-color: #ffffff !important;
+    border-right-color: #ffffff !important;
+    border-bottom-color: #ffffff !important;
+  }
+
+  .high-contrast .station-detail-panel [data-station-section],
+  .linewatch-shell.high-contrast .station-detail-panel [data-station-section],
+  .high-contrast .station-detail-panel .station-notices-details,
+  .linewatch-shell.high-contrast .station-detail-panel .station-notices-details,
+  .high-contrast .station-detail-panel .station-accessibility-details,
+  .linewatch-shell.high-contrast .station-detail-panel .station-accessibility-details,
+  .high-contrast .station-detail-panel .station-connections-card,
+  .linewatch-shell.high-contrast .station-detail-panel .station-connections-card,
+  .high-contrast .station-detail-panel .station-detail-loading,
+  .linewatch-shell.high-contrast .station-detail-panel .station-detail-loading,
+  .high-contrast .surface-notice-route-group,
+  .linewatch-shell.high-contrast .surface-notice-route-group,
+  .high-contrast .reliability-row,
+  .linewatch-shell.high-contrast .reliability-row,
+  .high-contrast .health-item,
+  .linewatch-shell.high-contrast .health-item,
+  .high-contrast .notification-settings-card,
+  .linewatch-shell.high-contrast .notification-settings-card,
+  .high-contrast .notification-event-type-grid,
+  .linewatch-shell.high-contrast .notification-event-type-grid,
+  .high-contrast .saved-commute-account-prompt,
+  .linewatch-shell.high-contrast .saved-commute-account-prompt,
+  .high-contrast .mobile-status-actions button,
+  .linewatch-shell.high-contrast .mobile-status-actions button,
+  .high-contrast .mobile-line-status-row,
+  .linewatch-shell.high-contrast .mobile-line-status-row,
+  .high-contrast .mobile-more-account,
+  .linewatch-shell.high-contrast .mobile-more-account,
+  .high-contrast .mobile-more-row,
+  .linewatch-shell.high-contrast .mobile-more-row,
+  .high-contrast .mobile-more-install-help,
+  .linewatch-shell.high-contrast .mobile-more-install-help {
+    border-color: #ffffff !important;
+  }
 }
 
 /* Recenter button & label desktop defaults */
@@ -19410,7 +20056,7 @@ img.transit-line-badge {
   .map-control-rail .map-control-button {
     background-color: #ffffff !important;
     color: #0f172a !important;
-    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    border: none !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
     border-radius: 9999px !important;
     width: 48px !important;
@@ -19422,6 +20068,10 @@ img.transit-line-badge {
   }
   .map-control-rail .map-control-button svg {
     color: #0f172a !important;
+  }
+  .high-contrast .map-control-rail .map-control-button,
+  .linewatch-shell.high-contrast .map-control-rail .map-control-button {
+    border: 1px solid #ffffff !important;
   }
 
   /* Search UI flipping */
@@ -19939,13 +20589,19 @@ img.transit-line-badge {
 
   .mobile-impact-inspector {
     background: var(--panel);
-    border: 1px solid var(--border);
+    border: none;
+    box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.38);
     color: var(--text);
     display: flex;
     flex-direction: column;
     gap: 10px;
     height: var(--mobile-inspector-total-height);
     padding: 12px 12px calc(12px + var(--mobile-safe-bottom));
+  }
+
+  .high-contrast .mobile-impact-inspector,
+  .linewatch-shell.high-contrast .mobile-impact-inspector {
+    border: 1px solid #ffffff;
   }
 
   .linewatch-shell.mobile-map-inspector-impact.mobile-map-inspector-map-focus .mobile-impact-inspector {
@@ -20286,9 +20942,7 @@ img.transit-line-badge {
 }
 
 /* Opaque cards/buttons in Status and More mobile sheets */
-.mobile-status-actions button,
 .mobile-line-status-row,
-.mobile-line-status-impacts button,
 .mobile-more-account,
 .mobile-more-row,
 .mobile-more-health-grid div,
@@ -20303,9 +20957,7 @@ img.transit-line-badge {
   opacity: 1 !important;
 }
 
-.dark .mobile-status-actions button,
 .dark .mobile-line-status-row,
-.dark .mobile-line-status-impacts button,
 .dark .mobile-more-account,
 .dark .mobile-more-row,
 .dark .mobile-more-health-grid div,
@@ -20349,41 +21001,25 @@ img.transit-line-badge {
   background: #000000 !important;
 }
 
-/* Status categories retain their quiet, type-specific outlines. */
+/* Status action buttons & line status cards: borderless with subtle card elevation */
 .mobile-status-actions button,
 .mobile-line-status-row {
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border: none !important;
+  box-shadow: var(--mobile-card-shadow);
 }
 
 .dark .mobile-status-actions button,
 .dark .mobile-line-status-row {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: none !important;
+  box-shadow: var(--mobile-card-shadow);
 }
 
 .high-contrast .mobile-status-actions button,
-.high-contrast .mobile-line-status-row {
+.high-contrast .mobile-line-status-row,
+.linewatch-shell.high-contrast .mobile-status-actions button,
+.linewatch-shell.high-contrast .mobile-line-status-row {
   border: 1px solid #ffffff !important;
-}
-
-/* Outlines and glows for status action cards - more subtle */
-.mobile-status-actions button.mobile-status-btn-alerts {
-  border-color: rgba(239, 68, 68, 0.25) !important;
-}
-
-.mobile-status-actions button.mobile-status-btn-delays {
-  border-color: rgba(254, 236, 65, 0.25) !important;
-}
-
-.mobile-status-actions button.mobile-status-btn-rsz {
-  border-color: rgba(245, 158, 11, 0.25) !important;
-}
-
-.mobile-status-actions button.mobile-status-btn-closures {
-  border-color: rgba(59, 130, 246, 0.25) !important;
-}
-
-.mobile-status-actions button.mobile-status-btn-trip-changes {
-  border-color: rgba(245, 158, 11, 0.3) !important;
+  box-shadow: none !important;
 }
 
 /* Keep More-menu groupings legible in light mode, especially on mobile. */
@@ -20397,7 +21033,11 @@ img.transit-line-badge {
 .high-contrast .mobile-more-account,
 .high-contrast .mobile-more-row,
 .high-contrast .mobile-more-health-grid div,
-.high-contrast .mobile-more-install-help {
+.high-contrast .mobile-more-install-help,
+.linewatch-shell.high-contrast .mobile-more-account,
+.linewatch-shell.high-contrast .mobile-more-row,
+.linewatch-shell.high-contrast .mobile-more-health-grid div,
+.linewatch-shell.high-contrast .mobile-more-install-help {
   border: 1px solid #ffffff !important;
 }
 
@@ -21183,25 +21823,168 @@ img.transit-line-badge {
   }
 }
 
-/* Background tints for the different alert type buttons in the Status menu */
-.mobile-status-actions button.mobile-status-btn-alerts,
+/* Background tints for line status impact buttons */
 .mobile-line-status-impacts button.mobile-line-status-btn-alerts {
   background: #fef2f2 !important;
 }
-.mobile-status-actions button.mobile-status-btn-delays,
 .mobile-line-status-impacts button.mobile-line-status-btn-delays {
   background: #fefce8 !important;
 }
-.mobile-status-actions button.mobile-status-btn-rsz,
 .mobile-line-status-impacts button.mobile-line-status-btn-rsz {
   background: #fffbeb !important;
 }
-.mobile-status-actions button.mobile-status-btn-closures,
 .mobile-line-status-impacts button.mobile-line-status-btn-closures {
+  background: #eff6ff !important;
+}
+
+/* Category background tints for System Status action buttons */
+.mobile-status-actions button.mobile-status-btn-alerts {
+  background: #fef2f2 !important;
+}
+.mobile-status-actions button.mobile-status-btn-delays {
+  background: #fefce8 !important;
+}
+.mobile-status-actions button.mobile-status-btn-rsz {
+  background: #fffbeb !important;
+}
+.mobile-status-actions button.mobile-status-btn-closures {
   background: #eff6ff !important;
 }
 .mobile-status-actions button.mobile-status-btn-trip-changes {
   background: #fffbeb !important;
+}
+.mobile-status-actions button.mobile-status-btn-accessibility {
+  background: #faf5ff !important;
+}
+.mobile-status-actions button.mobile-status-btn-surface {
+  background: #f0fdf4 !important;
+}
+
+.dark .mobile-status-actions button.mobile-status-btn-alerts {
+  background: #2d1414 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-delays {
+  background: #2a2808 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-rsz {
+  background: #2a1f08 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-closures {
+  background: #0e1c30 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes {
+  background: #2a1f08 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility {
+  background: #20132c !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface {
+  background: #0f291e !important;
+}
+
+/* Hover and active states for mobile status action buttons */
+@media (hover: hover) {
+  .mobile-status-actions button.mobile-status-btn-alerts:hover {
+    background: #fee2e2 !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-delays:hover {
+    background: #fef9c3 !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-rsz:hover {
+    background: #fef3c7 !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-closures:hover {
+    background: #dbeafe !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
+    background: #fef3c7 !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-accessibility:hover {
+    background: #f3e8ff !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-surface:hover {
+    background: #dcfce7 !important;
+  }
+
+  .dark .mobile-status-actions button.mobile-status-btn-alerts:hover {
+    background: #3d1b1b !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-delays:hover {
+    background: #38360d !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-rsz:hover {
+    background: #38280d !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-closures:hover {
+    background: #132540 !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
+    background: #38280d !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-accessibility:hover {
+    background: #2e1b3f !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-surface:hover {
+    background: #163929 !important;
+  }
+}
+
+.mobile-status-actions button.mobile-status-btn-alerts:active {
+  background: #fecaca !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-delays:active {
+  background: #fef08a !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-rsz:active {
+  background: #fde68a !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-closures:active {
+  background: #bfdbfe !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-trip-changes:active {
+  background: #fde68a !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-accessibility:active {
+  background: #e9d5ff !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-surface:active {
+  background: #bbf7d0 !important;
+  transform: scale(0.98);
+}
+
+.dark .mobile-status-actions button.mobile-status-btn-alerts:active {
+  background: #4a2020 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-delays:active {
+  background: #474410 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-rsz:active {
+  background: #473410 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-closures:active {
+  background: #1a3254 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes:active {
+  background: #473410 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility:active {
+  background: #3b2352 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface:active {
+  background: #1e4734 !important;
+  transform: scale(0.98);
 }
 
 .trip-change-tone {
@@ -21261,129 +22044,90 @@ img.transit-line-badge {
   }
 }
 
-/* Hover and active states for light mode */
+/* Hover and active states for light mode line impacts */
 @media (hover: hover) {
-  .mobile-status-actions button.mobile-status-btn-alerts:hover,
   .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
     background: #fee2e2 !important;
   }
-  .mobile-status-actions button.mobile-status-btn-delays:hover,
   .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover {
     background: #fef9c3 !important;
   }
-  .mobile-status-actions button.mobile-status-btn-rsz:hover,
   .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover {
     background: #fef3c7 !important;
   }
-  .mobile-status-actions button.mobile-status-btn-closures:hover,
   .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
     background: #dbeafe !important;
   }
-  .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
-    background: #fef3c7 !important;
-  }
 }
-.mobile-status-actions button.mobile-status-btn-alerts:active,
 .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
   background: #fee2e2 !important;
 }
-.mobile-status-actions button.mobile-status-btn-delays:active,
 .mobile-line-status-impacts button.mobile-line-status-btn-delays:active {
   background: #fef9c3 !important;
 }
-.mobile-status-actions button.mobile-status-btn-rsz:active,
 .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active {
   background: #fef3c7 !important;
 }
-.mobile-status-actions button.mobile-status-btn-closures:active,
 .mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
   background: #dbeafe !important;
 }
-.mobile-status-actions button.mobile-status-btn-trip-changes:active {
-  background: #fef3c7 !important;
-}
 
-/* Dark mode tints */
-.dark .mobile-status-actions button.mobile-status-btn-alerts,
+/* Dark mode tints for line impacts */
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts {
   background: #2d1414 !important;
 }
-.dark .mobile-status-actions button.mobile-status-btn-delays,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays {
   background: #2a2808 !important;
 }
-.dark .mobile-status-actions button.mobile-status-btn-rsz,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz {
   background: #2a1f08 !important;
 }
-.dark .mobile-status-actions button.mobile-status-btn-closures,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures {
   background: #0e1c30 !important;
-}
-.dark .mobile-status-actions button.mobile-status-btn-trip-changes {
-  background: #2a1f08 !important;
 }
 
 .dark .trip-change-tone {
   color: #fbbf24;
 }
 
-/* Hover and active states for dark mode */
+/* Hover and active states for dark mode line impacts */
 @media (hover: hover) {
-  .dark .mobile-status-actions button.mobile-status-btn-alerts:hover,
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
     background: #3d1b1b !important;
   }
-  .dark .mobile-status-actions button.mobile-status-btn-delays:hover,
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover {
     background: #38360d !important;
   }
-  .dark .mobile-status-actions button.mobile-status-btn-rsz:hover,
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover {
     background: #38280d !important;
   }
-  .dark .mobile-status-actions button.mobile-status-btn-closures:hover,
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
     background: #132540 !important;
   }
-  .dark .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
-    background: #38280d !important;
-  }
 }
-.dark .mobile-status-actions button.mobile-status-btn-alerts:active,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
   background: #3d1b1b !important;
 }
-.dark .mobile-status-actions button.mobile-status-btn-delays:active,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:active {
   background: #38360d !important;
 }
-.dark .mobile-status-actions button.mobile-status-btn-rsz:active,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active {
   background: #38280d !important;
 }
-.dark .mobile-status-actions button.mobile-status-btn-closures:active,
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
   background: #132540 !important;
 }
-.dark .mobile-status-actions button.mobile-status-btn-trip-changes:active {
-  background: #38280d !important;
-}
 
-/* High-contrast mode borders matching the alert type */
-.high-contrast .mobile-status-actions button.mobile-status-btn-alerts,
+/* High-contrast mode borders matching the alert type for line impacts */
 .high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-alerts {
   border-color: #ff4545 !important;
 }
-.high-contrast .mobile-status-actions button.mobile-status-btn-delays,
 .high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-delays {
   border-color: #FEEC41 !important;
 }
-.high-contrast .mobile-status-actions button.mobile-status-btn-rsz,
 .high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-rsz {
   border-color: var(--impact-rsz) !important;
 }
-.high-contrast .mobile-status-actions button.mobile-status-btn-closures,
 .high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-closures {
   border-color: #4aa3ff !important;
 }
@@ -22165,35 +22909,19 @@ img.transit-line-badge {
     line-height: 1;
   }
 
-  .mobile-legend-route-badge--ttc.service-tone-affected {
-    animation:
-      mobile-legend-badge-pulse 3.8s ease-in-out infinite,
-      mobile-legend-badge-beam 16s linear infinite;
-    background:
-      linear-gradient(var(--mobile-legend-badge-fill-color), var(--mobile-legend-badge-fill-color)) padding-box,
-      conic-gradient(
-        from var(--mobile-legend-beam-angle),
-        var(--mobile-legend-ring-color) 0deg 326deg,
-        #ff667d 334deg,
-        #ffa0b4 342deg,
-        #ff667d 350deg,
-        var(--mobile-legend-ring-color) 358deg 360deg
-      ) border-box;
-  }
-
   .mobile-legend-route-badge .mobile-legend-route-number {
-    align-items: center;
-    color: var(--mobile-legend-badge-number-color) !important;
-    display: flex !important;
-    font-variant-numeric: lining-nums tabular-nums;
-    height: 100%;
-    justify-content: center;
-    line-height: 1;
-    position: relative;
-    text-align: center;
-    width: 100%;
-    z-index: 1;
-  }
+  align-items: center;
+  color: var(--mobile-legend-badge-number-color) !important;
+  display: flex !important;
+  font-variant-numeric: lining-nums tabular-nums;
+  height: 100%;
+  justify-content: center;
+  line-height: 1;
+  position: relative;
+  text-align: center;
+  width: 100%;
+  z-index: 2;
+}
 
   .mobile-legend-route-badge--compact .mobile-legend-route-number {
     font-size: 14px;
@@ -22212,21 +22940,6 @@ img.transit-line-badge {
     width: 24px !important;
   }
 
-  .mobile-legend-route-badge--regional.service-tone-affected {
-    animation:
-      mobile-legend-badge-pulse 3.8s ease-in-out infinite,
-      mobile-legend-badge-beam 16s linear infinite;
-    background:
-      conic-gradient(
-        from var(--mobile-legend-beam-angle),
-        var(--mobile-legend-ring-color) 0deg 326deg,
-        #ff667d 334deg,
-        #ffa0b4 342deg,
-        #ff667d 350deg,
-        var(--mobile-legend-ring-color) 358deg 360deg
-      ) border-box;
-  }
-
   .mobile-legend-route-badge--regional > img.transit-line-badge {
     border-radius: 3px !important;
     display: block;
@@ -22237,6 +22950,22 @@ img.transit-line-badge {
 
   .mobile-legend-route-badge.service-tone-affected {
     --mobile-legend-ring-color: #ff334f;
+  }
+
+  /* Inner red light flash on the entire transit badge area inside the red ring */
+  .mobile-legend-route-badge.service-tone-affected::after {
+    animation: legend-badge-inner-red-flash 3.8s ease-in-out infinite;
+    background: radial-gradient(circle at center, #ff758c 0%, #ff4a68 100%);
+    border-radius: inherit;
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 1;
+  }
+
+  .mobile-legend-route-badge--regional.service-tone-affected::after {
+    border-radius: 3px;
   }
 
   .mobile-legend-route-badge.service-tone-good {
@@ -22250,10 +22979,6 @@ img.transit-line-badge {
     50% {
       box-shadow: 0 0 5px color-mix(in srgb, var(--mobile-legend-ring-color) 58%, transparent);
     }
-  }
-
-  @keyframes mobile-legend-badge-beam {
-    to { --mobile-legend-beam-angle: 360deg; }
   }
 
   .mobile-legend-heading {
@@ -22420,36 +23145,18 @@ img.transit-line-badge {
     }
 
     .desktop-legend-route-badge,
-    .desktop-legend-route-badge--ttc.service-tone-affected,
-    .desktop-legend-route-badge--regional.service-tone-affected,
+    .desktop-legend-route-badge.service-tone-affected::after,
     .mobile-legend-route-badge,
-    .mobile-legend-route-badge--ttc.service-tone-affected,
-    .mobile-legend-route-badge--regional.service-tone-affected {
+    .mobile-legend-route-badge.service-tone-affected::after {
       animation: none;
-    }
-
-    .desktop-legend-route-badge--ttc,
-    .desktop-legend-route-badge--regional,
-    .mobile-legend-route-badge--ttc,
-    .mobile-legend-route-badge--regional {
-      --mobile-legend-beam-angle: 25deg;
     }
   }
 
   .motion-paused .desktop-legend-route-badge,
-  .motion-paused .desktop-legend-route-badge--ttc.service-tone-affected,
-  .motion-paused .desktop-legend-route-badge--regional.service-tone-affected,
+  .motion-paused .desktop-legend-route-badge.service-tone-affected::after,
   .motion-paused .mobile-legend-route-badge,
-  .motion-paused .mobile-legend-route-badge--ttc.service-tone-affected,
-  .motion-paused .mobile-legend-route-badge--regional.service-tone-affected {
+  .motion-paused .mobile-legend-route-badge.service-tone-affected::after {
     animation: none;
-  }
-
-  .motion-paused .desktop-legend-route-badge--ttc,
-  .motion-paused .desktop-legend-route-badge--regional,
-  .motion-paused .mobile-legend-route-badge--ttc,
-  .motion-paused .mobile-legend-route-badge--regional {
-    --mobile-legend-beam-angle: 25deg;
   }
 
   .mobile-legend-pill--announcement {
@@ -22539,45 +23246,6 @@ img.transit-line-badge {
   }
 }
 
-/* Accessibility Outages status button hover/active states */
-@media (hover: hover) {
-  .mobile-status-actions button.mobile-status-btn-accessibility:hover {
-    background: #e2e8f0 !important;
-  }
-}
-.mobile-status-actions button.mobile-status-btn-accessibility:active {
-  background: #e2e8f0 !important;
-}
-@media (hover: hover) {
-  .dark .mobile-status-actions button.mobile-status-btn-accessibility:hover {
-    background: #334155 !important;
-  }
-}
-.dark .mobile-status-actions button.mobile-status-btn-accessibility:active {
-  background: #334155 !important;
-}
-
-/* Surface Notices/Service Changes status button hover/active states */
-@media (hover: hover) {
-  .mobile-status-actions button.mobile-status-btn-surface:hover,
-  .mobile-status-actions button.mobile-status-btn-announcements:hover {
-    background: #e2e8f0 !important;
-  }
-}
-.mobile-status-actions button.mobile-status-btn-surface:active,
-.mobile-status-actions button.mobile-status-btn-announcements:active {
-  background: #e2e8f0 !important;
-}
-@media (hover: hover) {
-  .dark .mobile-status-actions button.mobile-status-btn-surface:hover,
-  .dark .mobile-status-actions button.mobile-status-btn-announcements:hover {
-    background: #334155 !important;
-  }
-}
-.dark .mobile-status-actions button.mobile-status-btn-surface:active,
-.dark .mobile-status-actions button.mobile-status-btn-announcements:active {
-  background: #334155 !important;
-}
 
 /* Thinner, stealthier scrollbar for menus */
 @supports not selector(::-webkit-scrollbar) {
@@ -24153,28 +24821,14 @@ img.transit-line-badge {
 }
 
 /* Subtle outlines for main map page elements */
-.mobile-legend-pill,
-.mobile-train-toggle,
-.mobile-alert-history-shortcut,
-.mobile-my-stations-shortcut,
 .alert-history-shortcut,
-.theme-toggle-btn,
-.rotate-map-btn,
-.site-guide-trigger,
 .menu-toggle-btn,
 .header-search-bar,
 .logs-trigger-btn {
   border: 1px solid rgba(15, 23, 42, 0.06) !important;
 }
 
-.dark .mobile-legend-pill,
-.dark .mobile-train-toggle,
-.dark .mobile-alert-history-shortcut,
-.dark .mobile-my-stations-shortcut,
 .dark .alert-history-shortcut,
-.dark .theme-toggle-btn,
-.dark .rotate-map-btn,
-.dark .site-guide-trigger,
 .dark .menu-toggle-btn,
 .dark .header-search-bar,
 .dark .logs-trigger-btn {
@@ -24280,11 +24934,81 @@ img.transit-line-badge {
   .theme-toggle-btn,
   .rotate-map-btn,
   .site-guide-trigger,
+  .dark .mobile-legend-pill,
+  .dark .mobile-train-toggle,
+  .dark .mobile-alert-history-shortcut,
+  .dark .mobile-my-stations-shortcut,
+  .dark .theme-toggle-btn,
+  .dark .rotate-map-btn,
+  .dark .site-guide-trigger,
+  .linewatch-shell.dark .mobile-legend-pill,
+  .linewatch-shell.dark .mobile-train-toggle,
+  .linewatch-shell.dark .mobile-alert-history-shortcut,
+  .linewatch-shell.dark .mobile-my-stations-shortcut,
+  .linewatch-shell.dark .theme-toggle-btn,
+  .linewatch-shell.dark .rotate-map-btn,
+  .linewatch-shell.dark .site-guide-trigger,
   .mobile-status-peek {
     background: var(--mobile-chrome-background) !important;
     backdrop-filter: var(--mobile-chrome-backdrop-filter) !important;
     -webkit-backdrop-filter: var(--mobile-chrome-backdrop-filter) !important;
     box-shadow: var(--mobile-chrome-shadow) !important;
+    border: none !important;
+  }
+
+  .high-contrast .mobile-legend-pill,
+  .high-contrast .mobile-train-toggle,
+  .high-contrast .mobile-alert-history-shortcut,
+  .high-contrast .mobile-my-stations-shortcut,
+  .high-contrast .theme-toggle-btn,
+  .high-contrast .rotate-map-btn,
+  .high-contrast .site-guide-trigger,
+  .linewatch-shell.high-contrast .mobile-legend-pill,
+  .linewatch-shell.high-contrast .mobile-train-toggle,
+  .linewatch-shell.high-contrast .mobile-alert-history-shortcut,
+  .linewatch-shell.high-contrast .mobile-my-stations-shortcut,
+  .linewatch-shell.high-contrast .theme-toggle-btn,
+  .linewatch-shell.high-contrast .rotate-map-btn,
+  .linewatch-shell.high-contrast .site-guide-trigger {
+    border: 1px solid #ffffff !important;
+  }
+
+  /* VisionOS subtle surface luminosity gradient for mobile floating buttons */
+  .mobile-legend-pill,
+  .mobile-train-toggle,
+  .mobile-alert-history-shortcut,
+  .mobile-my-stations-shortcut,
+  .theme-toggle-btn,
+  .rotate-map-btn,
+  .site-guide-trigger {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 50%, rgba(0, 0, 0, 0.16) 100%) !important;
+  }
+
+  .linewatch-shell:not(.dark) .mobile-legend-pill,
+  .linewatch-shell:not(.dark) .mobile-train-toggle,
+  .linewatch-shell:not(.dark) .mobile-alert-history-shortcut,
+  .linewatch-shell:not(.dark) .mobile-my-stations-shortcut,
+  .linewatch-shell:not(.dark) .theme-toggle-btn,
+  .linewatch-shell:not(.dark) .rotate-map-btn,
+  .linewatch-shell:not(.dark) .site-guide-trigger {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.2) 55%, rgba(15, 23, 42, 0.04) 100%) !important;
+  }
+
+  .high-contrast .mobile-legend-pill,
+  .high-contrast .mobile-train-toggle,
+  .high-contrast .mobile-alert-history-shortcut,
+  .high-contrast .mobile-my-stations-shortcut,
+  .high-contrast .theme-toggle-btn,
+  .high-contrast .rotate-map-btn,
+  .high-contrast .site-guide-trigger,
+  .linewatch-shell.high-contrast .mobile-legend-pill,
+  .linewatch-shell.high-contrast .mobile-train-toggle,
+  .linewatch-shell.high-contrast .mobile-alert-history-shortcut,
+  .linewatch-shell.high-contrast .mobile-my-stations-shortcut,
+  .linewatch-shell.high-contrast .theme-toggle-btn,
+  .linewatch-shell.high-contrast .rotate-map-btn,
+  .linewatch-shell.high-contrast .site-guide-trigger {
+    background-image: none !important;
   }
 
   /* Force text color matching the theme inside legend pill and rotate map button */
@@ -24294,7 +25018,7 @@ img.transit-line-badge {
     color: var(--mobile-chrome-text) !important;
   }
 
-  /* Handle active state for the buttons on mobile */
+  /* Handle active state for the buttons on mobile: tactile compression */
   .theme-toggle-btn:active,
   .mobile-train-toggle:active,
   .mobile-alert-history-shortcut:active,
@@ -24302,6 +25026,8 @@ img.transit-line-badge {
   .rotate-map-btn:active,
   .site-guide-trigger:active {
     background: var(--mobile-chrome-btn-active-bg) !important;
+    background-image: none !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
   }
 }
 
@@ -24421,7 +25147,7 @@ img.transit-line-badge {
   padding: 4px 1px !important;
   border-radius: 10px !important;
   cursor: pointer;
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border: none !important;
   transition: all 0.2s ease-in-out;
   background: var(--mobile-chrome-background) !important;
   color: var(--mobile-chrome-text) !important;
@@ -24555,7 +25281,7 @@ img.transit-line-badge {
 .mobile-my-stations-shortcut {
   align-items: center !important;
   background: var(--mobile-chrome-background) !important;
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border: none !important;
   border-radius: 10px !important;
   color: var(--mobile-chrome-text-muted) !important;
   cursor: pointer;
@@ -26128,7 +26854,7 @@ button:active .account-network-badge,
   }
 
   .mobile-status-peek-title {
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .mobile-status-peek-source,
@@ -26262,9 +26988,14 @@ button:active .account-network-badge,
     min-width: 20px;
   }
 
-  .mobile-line-status-list,
-  .mobile-line-status-impacts {
+  .mobile-line-status-list {
     gap: 6px;
+  }
+
+  .mobile-line-status-impacts {
+    gap: 5px;
+    margin-left: 28px;
+    width: calc(100% - 28px);
   }
 
   .mobile-line-status-row {

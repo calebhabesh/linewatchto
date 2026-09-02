@@ -96,12 +96,12 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.mobile-legend-route-badge--compact\s*\{[^}]*--mobile-legend-outline-width:\s*2\.25px[^}]*height:\s*24px[^}]*width:\s*24px/s);
     assert.match(globalCss, /\.mobile-legend-route-badge--expanded\s*\{[^}]*--mobile-legend-outline-width:\s*2\.25px[^}]*height:\s*24px[^}]*width:\s*24px/s);
     assert.match(globalCss, /\.mobile-legend-route-badge--regional\s*\{[^}]*background:\s*linear-gradient\(var\(--mobile-legend-ring-color\)[^}]*border:\s*var\(--mobile-legend-outline-width\) solid transparent[^}]*border-radius:\s*5px !important[^}]*height:\s*24px !important[^}]*width:\s*24px !important/s);
-    assert.match(globalCss, /\.mobile-legend-route-badge--regional\.service-tone-affected\s*\{[^}]*mobile-legend-badge-beam 16s[^}]*conic-gradient\([^}]*from var\(--mobile-legend-beam-angle\)[^}]*border-box/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge\.service-tone-affected::after\s*\{[^}]*legend-badge-inner-red-flash/s);
     assert.match(globalCss, /\.mobile-legend-route-badge--regional > img\.transit-line-badge\s*\{[^}]*border-radius:\s*3px !important[^}]*height:\s*100% !important[^}]*outline:\s*none !important[^}]*width:\s*100% !important/s);
     assert.match(globalCss, /@keyframes mobile-legend-badge-pulse/);
     assert.match(globalCss, /\.mobile-legend-route-badge--ttc\s*\{[^}]*linear-gradient\(var\(--mobile-legend-badge-fill-color\)[^}]*linear-gradient\(var\(--mobile-legend-ring-color\)[^}]*border-box[^}]*border:\s*var\(--mobile-legend-outline-width\) solid transparent/s);
-    assert.match(globalCss, /\.mobile-legend-route-badge--ttc\.service-tone-affected\s*\{[^}]*mobile-legend-badge-beam 16s[^}]*linear-gradient\(var\(--mobile-legend-badge-fill-color\)[^}]*conic-gradient\([^}]*from var\(--mobile-legend-beam-angle\)[^}]*border-box/s);
-    assert.match(globalCss, /@keyframes mobile-legend-badge-beam\s*\{[^}]*--mobile-legend-beam-angle:\s*360deg/s);
+    assert.match(globalCss, /\.mobile-legend-route-badge--regional\.service-tone-affected::after\s*\{[^}]*border-radius:\s*3px/s);
+    assert.match(globalCss, /@keyframes legend-badge-inner-red-flash\s*\{[^}]*opacity/s);
     assert.match(globalCss, /\.mobile-legend-heading > span\s*\{[^}]*white-space:\s*nowrap/s);
     assert.match(globalCss, /\.mobile-legend-heading\s*\{[^}]*padding:\s*0 9px/s);
     assert.match(globalCss, /\.mobile-legend-collapse\s*\{[^}]*width:\s*15px/s);

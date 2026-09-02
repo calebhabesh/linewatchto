@@ -372,4 +372,29 @@ describe("mobile bottom sheet UX", () => {
     assert.match(shellSource, /rotatedSelectionVisible && !mobileInspectorOpen/);
     assert.match(globalCss, /\.rotated-map-selection-card/);
   });
+
+  it("removes outlines around major containers on mobile while preserving high-contrast accessibility borders", () => {
+    assert.match(globalCss, /--mobile-card-shadow:\s*0 2px 8px rgba\(0,\s*0,\s*0,\s*0\.32\);/);
+    assert.match(globalCss, /\.mobile-bottom-nav\s*\{[^}]*border:\s*none;/s);
+    assert.match(globalCss, /\.dark \.mobile-bottom-nav\s*\{[^}]*border:\s*none;/s);
+    assert.match(globalCss, /\.high-contrast \.mobile-bottom-nav\s*\{[^}]*border:\s*1px solid #ffffff;/s);
+    assert.match(globalCss, /\.mobile-status-peek\s*\{[^}]*border:\s*none;/s);
+    assert.match(globalCss, /\.high-contrast \.mobile-status-peek,\s*\.linewatch-shell\.high-contrast \.mobile-status-peek\s*\{[^}]*border:\s*1px solid var\(--mobile-chrome-border\);/s);
+    assert.match(globalCss, /\.floating-panel-scroll\s*\{[^}]*border:\s*none;[^}]*box-shadow:\s*0 -18px 44px rgba\(0,\s*0,\s*0,\s*0\.38\);/s);
+    assert.match(globalCss, /\.station-detail-panel\s*\{[^}]*border:\s*none !important;/s);
+    assert.match(globalCss, /\.high-contrast \.station-detail-panel,\s*\.linewatch-shell\.high-contrast \.station-detail-panel\s*\{[^}]*border:\s*1px solid #ffffff !important;/s);
+    assert.match(globalCss, /\.alert-card,\s*\.closure-card,\s*\.compact-impact-list-item,\s*\.commute-card\s*\{[^}]*border-top-color:\s*transparent !important;[^}]*box-shadow:\s*var\(--mobile-card-shadow\);/s);
+    assert.match(globalCss, /\.high-contrast \.alert-card,\s*\.linewatch-shell\.high-contrast \.alert-card,\s*\.high-contrast \.closure-card/s);
+    assert.match(globalCss, /\.mobile-alert-history-shortcut,\s*\.mobile-my-stations-shortcut\s*\{[^}]*border:\s*none !important;/s);
+    assert.match(globalCss, /\.high-contrast \.mobile-alert-history-shortcut,[\s\S]*?\.high-contrast \.mobile-my-stations-shortcut[\s\S]*?\{[^}]*border:\s*1px solid #ffffff !important;/s);
+  });
+
+  it("modernizes System Status and More menu containers without segmented outlines", () => {
+    assert.match(globalCss, /\.mobile-status-actions button,[\s\S]*?\.mobile-line-status-row[\s\S]*?\{[\s\S]*?border:\s*none\s*!important;[\s\S]*?box-shadow:\s*var\(--mobile-card-shadow\);/);
+    assert.match(globalCss, /\.mobile-status-btn-circle\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.doesNotMatch(globalCss, /\.mobile-status-btn-circle\s*\{[^}]*border:\s*2px solid #000000/);
+    assert.match(globalCss, /\.dark \.mobile-status-actions button\.mobile-status-btn-alerts\s*\{[\s\S]*?background:\s*#2d1414\s*!important;/);
+    assert.match(globalCss, /\.mobile-more-row\s*\{[\s\S]*?border:\s*none\s*!important;[\s\S]*?border-radius:\s*12px;[\s\S]*?box-shadow:\s*var\(--mobile-card-shadow\);/);
+    assert.match(globalCss, /\.high-contrast \.mobile-more-row[\s\S]*?\{[\s\S]*?border:\s*1px solid #ffffff/);
+  });
 });
