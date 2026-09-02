@@ -84,13 +84,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   chip: {
-    minHeight: 36,
+    minHeight: 38,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     gap: 6,
   },
   label: {

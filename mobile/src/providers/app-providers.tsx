@@ -7,7 +7,13 @@ import { AppState, type AppStateStatus } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { AuthProvider } from "@/state/auth-provider";
+import { CommutesProvider } from "@/state/commutes-provider";
+import { ImpactSelectionProvider } from "@/state/impact-selection-provider";
 import { NetworkProvider } from "@/state/network-provider";
+import { PushNotificationsProvider } from "@/state/push-notifications-provider";
+import { SavedStationsProvider } from "@/state/saved-stations-provider";
+import { TrainMarkersProvider } from "@/state/train-markers-provider";
 import { ThemeProvider } from "@/theme/theme-provider";
 
 const persister = createAsyncStoragePersister({
@@ -56,7 +62,19 @@ export function AppProviders({ children }: PropsWithChildren) {
           }}
         >
           <ThemeProvider>
-            <NetworkProvider>{children}</NetworkProvider>
+            <AuthProvider>
+              <SavedStationsProvider>
+                <CommutesProvider>
+                  <PushNotificationsProvider>
+                    <NetworkProvider>
+                      <TrainMarkersProvider>
+                        <ImpactSelectionProvider>{children}</ImpactSelectionProvider>
+                      </TrainMarkersProvider>
+                    </NetworkProvider>
+                  </PushNotificationsProvider>
+                </CommutesProvider>
+              </SavedStationsProvider>
+            </AuthProvider>
           </ThemeProvider>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

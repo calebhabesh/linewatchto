@@ -10,6 +10,8 @@ import {
   useTtcStationDetail,
 } from "@/api/station-detail";
 import { StationDetailScreen } from "@/features/stations/station-detail-screen";
+import { AuthProvider } from "@/state/auth-provider";
+import { SavedStationsProvider } from "@/state/saved-stations-provider";
 import { ThemeProvider } from "@/theme/theme-provider";
 
 jest.mock("expo-router", () => ({
@@ -39,8 +41,38 @@ jest.mock("@/api/station-detail", () => ({
   useStationSurfaceConnections: jest.fn(),
 }));
 
+jest.mock("@/storage/session-token", () => ({
+  sessionTokenStore: {
+    get: jest.fn(),
+    set: jest.fn(),
+    clear: jest.fn(),
+  },
+}));
+
+jest.mock("@/api/auth", () => ({
+  fetchAuthConfig: jest.fn(),
+  fetchCurrentUser: jest.fn(),
+  login: jest.fn(),
+  register: jest.fn(),
+  demoLogin: jest.fn(),
+  devLogin: jest.fn(),
+  logout: jest.fn(),
+}));
+
+jest.mock("@/api/saved-stations");
+
+import * as authApi from "@/api/auth";
+import * as savedStationsApi from "@/api/saved-stations";
+import { sessionTokenStore } from "@/storage/session-token";
+
 function Wrapper({ children }: PropsWithChildren) {
-  return <ThemeProvider>{children}</ThemeProvider>;
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <SavedStationsProvider>{children}</SavedStationsProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
 }
 
 const mockTtcDetailData = {
@@ -240,6 +272,10 @@ const mockSurfaceConnections = {
 describe("StationDetailScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (sessionTokenStore.get as jest.MockedFunction<any>).mockResolvedValue(null);
+    (authApi.fetchAuthConfig as jest.MockedFunction<any>).mockResolvedValue({ googleSignInAvailable: false, googleClientId: "" });
+    (authApi.fetchCurrentUser as jest.MockedFunction<any>).mockResolvedValue({ authenticated: false, user: null });
+    (savedStationsApi.fetchSavedStations as jest.MockedFunction<any>).mockResolvedValue({ stations: [] });
     (useDashboard as jest.Mock).mockReturnValue({
       data: null,
       isPending: false,
@@ -295,8 +331,10 @@ describe("StationDetailScreen", () => {
 
     // Station Header & Badges
     expect(screen.getByText("Bloor-Yonge")).toBeTruthy();
-    expect(screen.getByText("Line 1")).toBeTruthy();
-    expect(screen.getByText("Line 2")).toBeTruthy();
+    expect(screen.getAllByTestId("line-badge-1").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Yonge-University")).toBeTruthy();
+    expect(screen.getAllByTestId("line-badge-2").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Bloor-Danforth")).toBeTruthy();
     expect(screen.getByText("INTERCHANGE")).toBeTruthy();
 
     // Facilities
@@ -384,7 +422,8 @@ describe("StationDetailScreen", () => {
 
     // Station Header
     expect(screen.getByText("Union Station")).toBeTruthy();
-    expect(screen.getByText("LW · Lakeshore West")).toBeTruthy();
+    expect(screen.getAllByTestId("line-badge-lw").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Lakeshore West")).toBeTruthy();
     expect(screen.getByText("INTERCHANGE")).toBeTruthy();
 
     // Train Arrivals
@@ -431,5 +470,21 @@ describe("StationDetailScreen", () => {
     expect(screen.getByText("Network connection lost")).toBeTruthy();
     fireEvent.press(screen.getByRole("button", { name: "Retry request" }));
     expect(handleRetry).toHaveBeenCalled();
+  });
+
+  it("renders save station button in header and allows toggling", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ network: "ttc", id: "bloor-yonge" });
+    (useTtcStationDetail as jest.Mock).mockReturnValue({
+      data: mockTtcDetailData,
+      isPending: false,
+      isRefetching: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    await render(<StationDetailScreen />, { wrapper: Wrapper });
+
+    expect(screen.getByTestId("station-detail-save-button")).toBeTruthy();
+    expect(screen.getByText("☆ Save")).toBeTruthy();
   });
 });

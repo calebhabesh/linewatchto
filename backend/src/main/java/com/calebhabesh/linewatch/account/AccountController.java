@@ -87,7 +87,7 @@ public class AccountController {
         @RequestParam(name = "state", required = false) String state,
         @RequestParam(name = "error", required = false) String error,
         @CookieValue(name = AuthCookieFactory.GOOGLE_OAUTH_COOKIE_NAME, required = false) String googleOAuthStateCookie,
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         HttpServletRequest httpRequest
     ) {
         rateLimiter.requireAuthAttempt("google-oauth-callback", clientAddressResolver.clientAddress(httpRequest));
@@ -126,7 +126,7 @@ public class AccountController {
 
     @PostMapping("/google/link")
     public ResponseEntity<AccountResponses.AuthResponse> linkGoogle(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody AccountService.GoogleLoginRequest request,
         HttpServletRequest httpRequest
     ) {
@@ -215,7 +215,7 @@ public class AccountController {
 
     @PostMapping("/logout")
     public ResponseEntity<AccountResponses.AuthResponse> logout(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody(required = false) AccountService.LogoutRequest request
     ) {
         disableCurrentPushEndpoint(rawSessionToken, request);
@@ -227,7 +227,7 @@ public class AccountController {
 
     @GetMapping("/me")
     public ResponseEntity<AccountResponses.AuthResponse> me(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+        @SessionToken String rawSessionToken
     ) {
         AccountResponses.AuthResponse response = accountService.currentUser(rawSessionToken);
         return ResponseEntity.ok(response);
@@ -242,7 +242,8 @@ public class AccountController {
     private ResponseEntity<AccountResponses.AuthResponse> authenticated(AccountResponses.AuthSession session) {
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, cookieFactory.sessionCookie(session.rawSessionToken(), accountService.sessionTtl()).toString())
-            .body(new AccountResponses.AuthResponse(true, session.user()));
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + session.rawSessionToken())
+            .body(new AccountResponses.AuthResponse(true, session.user(), session.rawSessionToken()));
     }
 
     private ResponseEntity<Void> redirect(String location, ResponseCookie... cookies) {

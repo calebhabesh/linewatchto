@@ -1,58 +1,59 @@
 # Mobile implementation handoff
 
-The `mobile/` scaffold owns the architectural decisions. Follow its boundaries rather than regenerating the Expo application or replacing its providers.
+The `mobile/` application owns the Expo, navigation, data, persistence, theme, and map-interaction architecture. Extend those seams rather than regenerating the app or replacing its providers.
 
-## Good Gemini 3.7 Flash slices
+## Completed Slices & Architecture
 
-Each slice below is intentionally bounded enough for a fast implementation model. Give Gemini one slice at a time, require it to inspect the referenced existing code first, and require all mobile checks after each slice.
+### Phase 1: Core Map, Interaction & Detail Foundations (Completed)
+1. **Reusable state components**: Loading, error, and empty states.
+2. **Service-impact filters**: Disruption filtering by severity/kind with cached-data detail routes.
+3. **Station catalog & detail**: Transit line badges, wheelchair accessibility status, dynamic arrivals, outages, and surface connection feeds.
+4. **Selective raster map planes**: Fast native asset loading with dark and high-contrast modes.
+5. **Clamped pan/zoom**: Smooth math-based pan, pinch, zoom, and reset interactions.
+6. **Typed impact selection**: Bi-directional map segment and station ring selection shared between schematic map and cards.
+7. **Contract coverage & smoke tests**: Deterministic component/schema contract tests and Maestro flows.
 
-### 1. Reusable empty/loading/error components
+### Phase 2: UI/UX Parity & Secondary Features (Completed)
+8. **Selected-impact preview sheet**: Compact PWA-like preview card above the status peek with dismiss and details routing.
+9. **Visual parity pass**: Standardized `ProductHeader`, dense section cards, uppercase source labels, and bottom-safe spacing.
+10. **Station catalog density & search polish**: Sticky search bar, clear button, line/corridor chips, result counts, and accessible targets.
+11. **Status grouping & planned-closure timeline**: Visual separation of active disruptions and planned closures with time buckets.
+12. **More tab & documentation**: Unofficial project disclaimers, open data attribution, derivative map acknowledgements, and external resource links.
+13. **Accessibility & compact device pass**: Large font scaling, 44dp hit targets, TalkBack/VoiceOver labels, and bottom-nav clearance.
+14. **Accessibility Outages Monitor**: Dedicated `/accessibility` route with elevator/escalator outages drilldown by line/station.
+15. **Service Notices & Changes**: Dedicated `/notices` route with surface detours, bus/streetcar notices, and regional trip changes.
+16. **30-Day Reliability Summaries**: Dedicated `/reliability` route with incident counts, median durations, and service impact time.
+17. **Schematic Train Markers**: Realtime subway train marker placements mapped to topology with operating-hours gating.
+18. **Cross-network consistency pass**: High-contrast theme persistence in AsyncStorage, responsive layouts, and unified visual language.
 
-Extract the repeated states in `dashboard-screen.tsx`, `alerts-screen.tsx`, and `stations-screen.tsx` into accessible components under `mobile/src/components/`. Preserve the existing source-honesty copy, 8px-or-less radii, theme tokens, and pull-to-refresh behavior. Add React Native Testing Library coverage.
+### Phase 3: Foundation-Gated Features (Completed)
+19. **Bearer-token backend transport & SecureStore auth**:
+    - Backend `@SessionToken` parameter resolver supporting `Authorization: Bearer <token>`, `X-Session-Token`, and cookie fallback with automatic renewal.
+    - Mobile `auth-provider.tsx` with `expo-secure-store` token persistence and sign-in / registration / demo / dev / sign-out flows.
+20. **My Stations Watchlist**:
+    - `saved-stations-provider.tsx` with optimistic updates, rollback, and sign-in prompts.
+    - `★ Saved` filter chip and bookmark buttons on station rows and station detail headers.
+21. **Native My Commutes (Fifth Tab: Commutes)**:
+    - Dedicated `commutes` bottom tab with `CommutesTabIcon`.
+    - `commutes-screen.tsx` with unauthenticated onboarding, authenticated commute cards, standard vs impacted travel times, matched disruption lists, outbound/return leg toggles, and creation modal.
+22. **Push notification preferences**:
+    - `push-notifications-provider.tsx` and `notifications-section.tsx` in More tab.
+    - Master switches for commute alerts and planned closures, closure reminder timing selectors (Smart, 24h Before, Day Of, Announce Only), 6 disruption type toggles, and rapid transit line / GO corridor subscription grid.
+23. **OAuth & Google Auth Seam**:
+    - `loginWithGoogle` and `linkGoogleAccount` methods with Google Linked account status badge and auth config awareness.
 
-### 2. Impact list filtering and details route
+---
 
-Add All, Suspensions, Delays, Reduced Speed Zones, and Planned Closures filters to the Alerts tab. Add a typed `/impact/[kind]/[id]` route that is populated only from the cached dashboard response. Preserve regional absence of Reduced Speed Zones and do not invent fields or source freshness. Add route/component tests.
-
-### 3. Station catalog navigation shell
-
-Make station rows pressable, add `/station/[network]/[id]`, and build the loading/error/layout shell. For TTC, define a runtime schema from the actual `StationController` response before rendering fields. For regional mode, do not pretend there is an equivalent aggregate station-detail endpoint: compose only independently available source-labeled endpoints. Poll only while the route is visible. Add a Maestro navigation assertion.
-
-### 4. Native raster map planes
-
-Copy only the authored `*-mobile.png` background, foreground, and label planes needed for TTC and regional dark/high-contrast modes into `mobile/assets/linewatch/`. Build a plane manifest, render only the current network/theme with `expo-image`, keep labels above dynamic overlays, and document asset provenance. Measure decoded dimensions and avoid loading both networks simultaneously. Do not modify the authored source assets.
-
-### 5. Map pan/pinch/reset controls
-
-Wrap `SchematicMap` with Gesture Handler/Reanimated transforms. Clamp scale and translation, support double-tap/reset, keep impact hit targets usable, honor reduced-motion once that preference exists, and preserve an accessible list alternative. Add pure transform/clamping tests; do not use exact-train-position language.
-
-### 6. Complete card-to-map selection
-
-Introduce one typed impact-selection context so a map path and its matching alert card open/focus the same item. Support segment and station-node impacts, planned-preview blue, ordinary delay orange, suspension red, and Reduced Speed Zone treatment. Do not flatten regional station-only impacts across a corridor.
-
-### 7. Mobile component and Maestro coverage
-
-Add deterministic mocked API tests for initial dashboard rendering, cached-refresh failure, source `live: false`, network switching, station filtering, and high-contrast persistence. Expand Maestro for launch, network switch, impact list, station search, and display preference. Keep fixtures under tests only and label any visible demo build.
-
-## Keep for a higher-judgment pass
-
-Do not delegate these as boilerplate without a dedicated design/review pass:
-
-- backend native bearer-token issuance and dual cookie/bearer authentication;
-- account deletion, OAuth audiences, Apple sign-in, and deep-link security;
-- native push installation schema, Expo receipt handling, lifecycle dedupe, and preference matching;
-- changes to freshness semantics or runtime API contracts;
-- source licensing/permission decisions and store privacy declarations;
-- any extraction of shared web/mobile packages or repository-wide workspace conversion.
-
-## Required checks per slice
+## Verification Commands
 
 ```bash
+# Mobile checks
 npm --prefix mobile run typecheck
 npm --prefix mobile run lint
 npm --prefix mobile test
 npm --prefix mobile run doctor
 npm --prefix mobile run export:android
-```
 
-Run the Maestro flow when a development build/emulator is available. If a slice changes the Spring API, also run `mvn -f backend/pom.xml test`.
+# Backend checks
+mvn -f backend/pom.xml test
+```

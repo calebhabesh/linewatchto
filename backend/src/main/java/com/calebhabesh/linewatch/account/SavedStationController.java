@@ -32,7 +32,7 @@ public class SavedStationController {
 
     @GetMapping
     public SavedStationResponses.SavedStationListResponse list(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+        @SessionToken String rawSessionToken
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         return savedStationService.list(account);
@@ -40,7 +40,7 @@ public class SavedStationController {
 
     @PutMapping("/{stationId}")
     public ResponseEntity<SavedStationResponses.SavedStationResponse> save(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @PathVariable String stationId,
         @RequestParam(defaultValue = "ttc") String network
     ) {
@@ -54,7 +54,7 @@ public class SavedStationController {
     @DeleteMapping("/{stationId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @PathVariable String stationId,
         @RequestParam(defaultValue = "ttc") String network
     ) {

@@ -12,7 +12,14 @@ export function LineStatusList({ lines }: { lines: LineStatus[] }) {
           key={line.id}
           accessible
           accessibilityLabel={`${line.name}: ${line.statusLabel}. ${line.summary}`}
-          style={[styles.card, { backgroundColor: theme.color.surface, borderColor: theme.color.border }]}
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.color.surface,
+              borderColor: theme.color.border,
+              borderLeftColor: statusColor(line.status, theme.line),
+            },
+          ]}
         >
           <View style={[styles.badge, { backgroundColor: line.color }]}>
             <Text style={styles.badgeText}>{line.number}</Text>
@@ -22,6 +29,7 @@ export function LineStatusList({ lines }: { lines: LineStatus[] }) {
               {line.name}
             </Text>
             <Text style={[styles.status, { color: statusColor(line.status, theme.line) }]}>{line.statusLabel}</Text>
+            <Text numberOfLines={2} style={[styles.summary, { color: theme.color.textQuiet }]}>{line.summary}</Text>
           </View>
         </View>
       ))}
@@ -40,8 +48,9 @@ const styles = StyleSheet.create({
   content: { gap: 8, paddingRight: 16 },
   card: {
     width: 186,
-    minHeight: 64,
+    minHeight: 86,
     borderWidth: 1,
+    borderLeftWidth: 3,
     borderRadius: 6,
     padding: 10,
     flexDirection: "row",
@@ -53,4 +62,5 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 3 },
   name: { fontSize: 13, fontWeight: "700" },
   status: { fontSize: 12, fontWeight: "800" },
+  summary: { fontSize: 9, lineHeight: 13 },
 });

@@ -5,7 +5,7 @@ import React from "react";
 import { RasterMapPlane } from "@/features/map/raster-map-plane";
 
 describe("RasterMapPlane Component", () => {
-  it("renders TTC dark background plane with expo-image Image", async () => {
+  it("renders TTC dark background plane with React Native Image", async () => {
     await render(
       <RasterMapPlane
         network="ttc"
@@ -35,7 +35,7 @@ describe("RasterMapPlane Component", () => {
     expect(image).toBeTruthy();
   });
 
-  it("applies default pointerEvents none and contentFit contain", async () => {
+  it("applies default pointerEvents none, resizeMode contain, and fadeDuration 0", async () => {
     await render(
       <RasterMapPlane
         network="ttc"
@@ -46,8 +46,7 @@ describe("RasterMapPlane Component", () => {
     );
 
     const image = screen.getByTestId("ttc-fg");
-    expect(image.props.pointerEvents).toBe("none");
-    expect(image.props.contentFit).toBe("contain");
-    expect(image.props.priority).toBe("high");
+    expect(image.props.resizeMode).toBe("contain");
+    expect(image.props.fadeDuration).toBe(0);
   });
 });

@@ -27,7 +27,7 @@ public class SavedCommuteController {
 
     @GetMapping
     public AccountResponses.SavedCommuteListResponse list(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+        @SessionToken String rawSessionToken
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         return savedCommuteService.list(account);
@@ -36,7 +36,7 @@ public class SavedCommuteController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AccountResponses.SavedCommuteResponse create(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody SavedCommuteService.CreateSavedCommuteRequest request
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -46,7 +46,7 @@ public class SavedCommuteController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @PathVariable String id
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -55,7 +55,7 @@ public class SavedCommuteController {
 
     @PatchMapping("/{id}/notification-rule")
     public AccountResponses.SavedCommuteResponse updateNotificationRule(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @PathVariable String id,
         @RequestBody SavedCommuteService.SavedCommuteNotificationRuleRequest request
     ) {
@@ -65,7 +65,7 @@ public class SavedCommuteController {
 
     @PatchMapping("/{id}")
     public AccountResponses.SavedCommuteResponse updateRoute(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @PathVariable String id,
         @RequestBody SavedCommuteService.UpdateSavedCommuteRequest request
     ) {

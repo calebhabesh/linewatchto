@@ -47,7 +47,7 @@ npm --prefix mobile run doctor
 npm --prefix mobile run export:android
 ```
 
-The Maestro smoke flow in `.maestro/dashboard-smoke.yml` requires an installed development build and emulator/device.
+The Maestro flows require an installed build and emulator/device. For a development build, connect it to the running Metro project once before invoking Maestro; the flows intentionally preserve app data so `launchApp` does not return to Expo's development-launcher screen. Preview/production smoke jobs may clear app data because their JavaScript bundle is embedded.
 
 ## Architecture boundaries
 
@@ -65,16 +65,18 @@ TanStack Query owns server state. React context owns small local preferences. Do
 
 Implemented here:
 
-- map-first tab shell and persistent TTC / GO & UP selection;
+- immersive PWA-spirit map shell with line/corridor rail, compact status peek, floating tab bar, and persistent TTC / GO & UP selection;
 - runtime validation of `GET /api/dashboard?network=ttc|regional`;
-- foreground-only 20-second refresh, pull-to-refresh, and a 30-minute persisted cache;
-- explicit unavailable, cached, and backend-provided source-live states;
-- line status cards and current/planned impact summaries;
-- an initial TTC `react-native-svg` segment renderer with impact selection;
-- regional renderer boundary without inventing geometry absent from the API;
-- station catalog/search shell;
-- dark/high-contrast tokens and accessibility labels;
+- foreground-only 20-second refresh, pull-to-refresh on list/detail surfaces, explicit map refresh, and a 30-minute persisted cache;
+- explicit unavailable, cached, and backend-provided source-live states in both map chrome and `DataStateBanner`;
+- map-rail and Status-tab line summaries plus distinct current/planned impact counts;
+- authored raster map planes with theme/network manifests;
+- map pan, pinch-to-zoom, and double-tap reset gesture controls with bounds clamping;
+- unified card-to-map selection across segment impacts and station-node rings, including a direct map-selection details action;
+- complete station catalog search, filtering, and cross-network station detail route (`/station/[network]/[id]`);
+- service impact categorization and detail route (`/impact/[kind]/[id]`);
+- dark/high-contrast tokens, display settings, and AsyncStorage persistence;
 - SecureStore adapter reserved for the future native bearer session;
-- unit/contract tests, CI export, EAS profiles, and Maestro smoke skeleton.
+- comprehensive deterministic unit/contract tests, CI export, EAS profiles, and expanded Maestro smoke suite.
 
-Not implemented yet: authored raster map planes, pan/pinch transforms, complete card-to-map selection, station detail endpoints, accounts, native bearer auth, My Stations, My Commutes, or native push. The SecureStore adapter does not imply the backend can issue bearer tokens today.
+Not implemented yet: backend native bearer-token issuance, account sync, My Stations, My Commutes, or native push notifications. The SecureStore adapter does not imply the backend can issue bearer tokens today.

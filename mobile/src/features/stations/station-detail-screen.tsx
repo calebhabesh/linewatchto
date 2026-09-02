@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDashboard } from "@/api/dashboard";
 import type { NetworkId } from "@/api/dashboard-schema";
@@ -24,6 +25,7 @@ import type {
 } from "@/api/station-detail-schema";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { LineBadge } from "@/components/line-badge";
 import { LoadingState } from "@/components/loading-state";
 import { Screen } from "@/components/screen";
 import {
@@ -32,6 +34,7 @@ import {
 } from "@/features/stations/regional-station-catalog";
 import { useAppActive } from "@/hooks/use-app-active";
 import { useScreenFocused } from "@/hooks/use-screen-focused";
+import { useSavedStations } from "@/state/saved-stations-provider";
 import { useTheme } from "@/theme/theme-provider";
 import type { Theme } from "@/theme/tokens";
 
@@ -45,6 +48,10 @@ export function StationDetailScreen() {
   const isPolling = isAppActive && isScreenFocused;
 
   const { theme } = useTheme();
+  const { isSaved, toggleSaved } = useSavedStations();
+  const saved = isSaved(stationId, network);
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(36, insets.bottom + 24);
 
   // TTC Data Queries
   const ttcQuery = useTtcStationDetail(network === "ttc" ? stationId : "", isPolling);
@@ -137,7 +144,7 @@ export function StationDetailScreen() {
   return (
     <Screen>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
         refreshControl={
           <RefreshControl
             colors={[theme.color.focus]}
@@ -188,18 +195,49 @@ export function StationDetailScreen() {
                 { backgroundColor: theme.color.surface, borderColor: theme.color.border },
               ]}
             >
-              <Text style={[styles.stationTitle, { color: theme.color.text }]}>
-                {ttcQuery.data.name}
-              </Text>
+              <View style={styles.stationTitleRow}>
+                <Text style={[styles.stationTitle, { color: theme.color.text, flex: 1 }]}>
+                  {ttcQuery.data.name}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    saved
+                      ? `Remove ${ttcQuery.data.name} from saved stations`
+                      : `Save ${ttcQuery.data.name} to saved stations`
+                  }
+                  hitSlop={8}
+                  onPress={() => void toggleSaved(stationId, network)}
+                  style={({ pressed }) => [
+                    styles.saveStationDetailButton,
+                    {
+                      backgroundColor: saved
+                        ? theme.color.focus
+                        : pressed
+                          ? theme.color.surfaceRaised
+                          : "transparent",
+                      borderColor: saved ? theme.color.focus : theme.color.border,
+                    },
+                  ]}
+                  testID="station-detail-save-button"
+                >
+                  <Text
+                    style={[
+                      styles.saveStationDetailText,
+                      { color: saved ? "#090909" : theme.color.text },
+                    ]}
+                  >
+                    {saved ? "★ Saved" : "☆ Save"}
+                  </Text>
+                </Pressable>
+              </View>
 
               {/* Line Badges */}
               <View style={styles.badgeRow}>
                 {ttcQuery.data.lines.map((line) => (
-                  <View
-                    key={line.id}
-                    style={[styles.lineBadge, { backgroundColor: line.color }]}
-                  >
-                    <Text style={styles.lineBadgeText}>Line {line.number}</Text>
+                  <View key={line.id} style={styles.badgeItem}>
+                    <LineBadge lineId={line.id} lineNumber={line.number} size={28} />
+                    <Text style={[styles.lineNameLabel, { color: theme.color.text }]}>{line.name}</Text>
                   </View>
                 ))}
                 {ttcQuery.data.interchange ? (
@@ -485,18 +523,49 @@ export function StationDetailScreen() {
                 { backgroundColor: theme.color.surface, borderColor: theme.color.border },
               ]}
             >
-              <Text style={[styles.stationTitle, { color: theme.color.text }]}>
-                {stationName}
-              </Text>
+              <View style={styles.stationTitleRow}>
+                <Text style={[styles.stationTitle, { color: theme.color.text, flex: 1 }]}>
+                  {stationName}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    saved
+                      ? `Remove ${stationName} from saved stations`
+                      : `Save ${stationName} to saved stations`
+                  }
+                  hitSlop={8}
+                  onPress={() => void toggleSaved(stationId, network)}
+                  style={({ pressed }) => [
+                    styles.saveStationDetailButton,
+                    {
+                      backgroundColor: saved
+                        ? theme.color.focus
+                        : pressed
+                          ? theme.color.surfaceRaised
+                          : "transparent",
+                      borderColor: saved ? theme.color.focus : theme.color.border,
+                    },
+                  ]}
+                  testID="station-detail-save-button"
+                >
+                  <Text
+                    style={[
+                      styles.saveStationDetailText,
+                      { color: saved ? "#090909" : theme.color.text },
+                    ]}
+                  >
+                    {saved ? "★ Saved" : "☆ Save"}
+                  </Text>
+                </Pressable>
+              </View>
 
               {/* Corridor Badges */}
               <View style={styles.badgeRow}>
                 {regionalLines.map((line) => (
-                  <View
-                    key={line.id}
-                    style={[styles.lineBadge, { backgroundColor: line.color }]}
-                  >
-                    <Text style={styles.lineBadgeText}>{line.number} · {line.name}</Text>
+                  <View key={line.id} style={styles.badgeItem}>
+                    <LineBadge lineId={line.id} lineNumber={line.number} size={28} />
+                    <Text style={[styles.lineNameLabel, { color: theme.color.text }]}>{line.name}</Text>
                   </View>
                 ))}
                 {regionalStation?.interchange ? (
@@ -691,6 +760,7 @@ function TtcArrivalRow({
       : "—";
 
   const clockTime = formatArrivalClockTime(arrival.predictedAt);
+  const isLive = arrival.status === "live";
 
   return (
     <View
@@ -700,13 +770,33 @@ function TtcArrivalRow({
       ]}
     >
       <View style={styles.arrivalInfo}>
-        <Text style={[styles.arrivalDirection, { color: theme.color.text }]}>
-          {arrival.direction}
-        </Text>
-        <View style={styles.arrivalMetaRow}>
-          <Text style={[styles.arrivalStatusTag, { color: theme.color.focus }]}>
-            {arrival.status.toUpperCase()}
+        <View style={styles.arrivalRouteRow}>
+          {arrival.lineId ? (
+            <LineBadge lineId={arrival.lineId} size={22} />
+          ) : null}
+          <Text style={[styles.arrivalDirection, { color: theme.color.text }]}>
+            {arrival.direction}
           </Text>
+        </View>
+        <View style={styles.arrivalMetaRow}>
+          <View
+            style={[
+              styles.arrivalStatusPill,
+              {
+                backgroundColor: isLive ? "rgba(98, 185, 238, 0.15)" : "rgba(255, 255, 255, 0.08)",
+                borderColor: isLive ? theme.color.focus : theme.color.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.arrivalStatusTag,
+                { color: isLive ? theme.color.focus : theme.color.textMuted },
+              ]}
+            >
+              {arrival.status.toUpperCase()}
+            </Text>
+          </View>
           {clockTime ? (
             <Text style={[styles.arrivalClock, { color: theme.color.textMuted }]}>
               · {clockTime}
@@ -738,6 +828,7 @@ function RegionalArrivalRow({
   const isDue = arrival.minutes <= 0;
   const minuteText = isDue ? "Due" : `${arrival.minutes} min`;
   const clockTime = formatArrivalClockTime(arrival.predictedAt || arrival.scheduledAt);
+  const isLive = arrival.status === "live";
 
   return (
     <View
@@ -748,9 +839,7 @@ function RegionalArrivalRow({
     >
       <View style={styles.arrivalInfo}>
         <View style={styles.arrivalRouteRow}>
-          <Text style={[styles.regionalLineCode, { color: theme.color.focus }]}>
-            {arrival.lineNumber}
-          </Text>
+          <LineBadge lineId={arrival.lineId} lineNumber={arrival.lineNumber} size={22} />
           <Text style={[styles.arrivalDirection, { color: theme.color.text }]}>
             {arrival.direction}
           </Text>
@@ -793,9 +882,24 @@ function RegionalArrivalRow({
         >
           {minuteText}
         </Text>
-        <Text style={[styles.arrivalSourceTag, { color: theme.color.textMuted }]}>
-          {arrival.status.toUpperCase()}
-        </Text>
+        <View
+          style={[
+            styles.arrivalStatusPill,
+            {
+              backgroundColor: isLive ? "rgba(98, 185, 238, 0.15)" : "rgba(255, 255, 255, 0.08)",
+              borderColor: isLive ? theme.color.focus : theme.color.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.arrivalStatusTag,
+              { color: isLive ? theme.color.focus : theme.color.textMuted },
+            ]}
+          >
+            {arrival.status.toUpperCase()}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -886,7 +990,7 @@ function SurfaceConnectionsBlock({
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 40, gap: 12 },
+  content: { padding: 16, gap: 12 },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -898,9 +1002,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     gap: 4,
+    minHeight: 44,
   },
   backArrow: { fontSize: 20, fontWeight: "700", lineHeight: 20 },
   backText: { fontSize: 13, fontWeight: "700" },
@@ -910,17 +1015,30 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
-  card: { borderWidth: 1, borderRadius: 6, padding: 16, gap: 10 },
-  stationTitle: { fontSize: 22, fontWeight: "900", lineHeight: 28 },
-  badgeRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
-  lineBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
+  card: { borderWidth: 1, borderRadius: 8, padding: 16, gap: 10 },
+  stationTitleRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
-  lineBadgeText: { color: "#090909", fontSize: 12, fontWeight: "800" },
+  stationTitle: { fontSize: 22, fontWeight: "900", lineHeight: 28 },
+  saveStationDetailButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 40,
+  },
+  saveStationDetailText: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
+  badgeItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  lineNameLabel: { fontSize: 13, fontWeight: "700" },
   interchangeBadge: {
     borderWidth: 1,
     paddingHorizontal: 8,
@@ -954,23 +1072,29 @@ const styles = StyleSheet.create({
   arrivalList: { gap: 8 },
   arrivalRow: {
     borderWidth: 1,
-    borderRadius: 6,
+    borderRadius: 8,
     padding: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  arrivalInfo: { flex: 1, gap: 2 },
-  arrivalRouteRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  arrivalInfo: { flex: 1, gap: 4 },
+  arrivalRouteRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   regionalLineCode: { fontSize: 12, fontWeight: "900" },
-  arrivalDirection: { fontSize: 14, fontWeight: "700" },
-  arrivalMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  arrivalStatusTag: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  arrivalDirection: { fontSize: 14, fontWeight: "800" },
+  arrivalMetaRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  arrivalStatusPill: {
+    borderWidth: 1,
+    borderRadius: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  arrivalStatusTag: { fontSize: 9, fontWeight: "800", letterSpacing: 0.5 },
   arrivalClock: { fontSize: 12 },
   platformText: { fontSize: 12 },
   coachText: { fontSize: 12 },
   delayBadgeText: { fontSize: 12, fontWeight: "700" },
-  arrivalTiming: { alignItems: "flex-end", gap: 2 },
+  arrivalTiming: { alignItems: "flex-end", gap: 4 },
   arrivalMinutes: { fontSize: 16, fontWeight: "900" },
   arrivalSourceTag: { fontSize: 9, fontWeight: "700", letterSpacing: 0.5 },
   impactList: { gap: 8 },
@@ -1045,3 +1169,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+

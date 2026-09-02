@@ -1,0 +1,29 @@
+appId: ca.linewatchto.app
+---
+- launchApp:
+    clearState: false
+
+# Assert initial TTC network on Dashboard
+- assertVisible: "LineWatchTO"
+- tapOn:
+    id: "network-ttc"
+- assertVisible: "TTC"
+
+# Switch to Regional mode (GO & UP)
+- tapOn:
+    id: "network-regional"
+- assertVisible: "GO & UP"
+
+# Navigate to Search tab and verify Regional stations
+- tapOn: "Search"
+- assertVisible: "Stations"
+- tapOn:
+    id: "network-ttc"
+- assertVisible: "TTC"
+- tapOn:
+    id: "network-regional"
+- assertVisible: "GO & UP"
+
+# Return to Map tab and verify network mode maintained
+- tapOn: "Map"
+- assertVisible: "GO & UP"

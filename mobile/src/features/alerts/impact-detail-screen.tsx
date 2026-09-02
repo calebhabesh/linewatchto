@@ -1,11 +1,14 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDashboard } from "@/api/dashboard";
+import { LineBadge } from "@/components/line-badge";
 import { Screen } from "@/components/screen";
 import { findImpactInDashboard } from "@/features/alerts/impact-types";
 import { useAppActive } from "@/hooks/use-app-active";
+import { useImpactSelection } from "@/state/impact-selection-provider";
 import { useNetwork } from "@/state/network-provider";
 import { useTheme } from "@/theme/theme-provider";
 
@@ -14,6 +17,8 @@ export function ImpactDetailScreen() {
   const { network } = useNetwork();
   const query = useDashboard(network, useAppActive());
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { setSelection } = useImpactSelection();
 
   const impact = useMemo(() => {
     if (!kind || !id) return null;
@@ -25,30 +30,31 @@ export function ImpactDetailScreen() {
     return query.data.status.lines.find((l) => l.id === impact.data.lineId) ?? null;
   }, [query.data, impact]);
 
-  const lineColor = line?.color ?? (impact ? theme.line[impact.tone] : theme.color.border);
-
   const kindLabel = useMemo(() => {
     if (!impact) return "";
     switch (impact.kind) {
       case "suspension":
-        return "SERVICE SUSPENSION";
+        return "ACTIVE ALERT";
       case "delay":
         return "SERVICE DELAY";
       case "reduced-speed-zone":
         return "REDUCED SPEED ZONE";
       case "planned-closure":
-        return "PLANNED CLOSURE";
+        return "activeNow" in impact.data && impact.data.activeNow ? "ACTIVE CLOSURE" : "PLANNED CLOSURE";
     }
   }, [impact]);
 
+  const bottomPadding = Math.max(36, insets.bottom + 24);
+
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}>
         {/* Top Navigation */}
         <View style={styles.navBar}>
           <Pressable
-            accessibilityRole="button"
+            accessibilityHint="Navigates back to the previous screen"
             accessibilityLabel="Go back"
+            accessibilityRole="button"
             onPress={() => router.back()}
             style={({ pressed }) => [
               styles.backButton,
@@ -83,17 +89,15 @@ export function ImpactDetailScreen() {
         ) : (
           <>
             {/* Main Header Card */}
-            <View style={[styles.card, { backgroundColor: theme.color.surface, borderColor: theme.color.border }]}>
+            <View style={[styles.card, { backgroundColor: theme.color.surface, borderColor: theme.color.border, borderLeftColor: theme.line[impact.tone], borderLeftWidth: 3.5 }]}>
               <View style={styles.headerRow}>
-                <View style={[styles.lineBadge, { backgroundColor: lineColor }]}>
-                  <Text style={styles.lineBadgeText}>{impact.data.lineNumber}</Text>
-                </View>
+                <LineBadge lineId={impact.data.lineId} lineNumber={impact.data.lineNumber} size={30} />
                 <View style={styles.headerInfo}>
                   <Text style={[styles.lineName, { color: theme.color.textMuted }]}>
-                    {line ? line.name : `Line ${impact.data.lineNumber}`}
+                    {line ? `${line.number} · ${line.name}` : `Line ${impact.data.lineNumber}`}
                   </Text>
-                  <View style={[styles.kindBadge, { backgroundColor: theme.line[impact.tone] }]}>
-                    <Text style={styles.kindBadgeText}>{kindLabel}</Text>
+                  <View style={[styles.kindBadge, { backgroundColor: `${theme.line[impact.tone]}22`, borderColor: theme.line[impact.tone] }]}>
+                    <Text style={[styles.kindBadgeText, { color: theme.line[impact.tone] }]}>{kindLabel}</Text>
                   </View>
                 </View>
               </View>
@@ -108,6 +112,30 @@ export function ImpactDetailScreen() {
                   Direction: {impact.data.displayDirection}
                 </Text>
               ) : null}
+
+              <Pressable
+                accessibilityLabel={`Show ${impact.data.title} on schematic map`}
+                accessibilityRole="button"
+                onPress={() => {
+                  setSelection({
+                    cardId: impact.data.id,
+                    kind: impact.kind,
+                    label: "window" in impact.data ? impact.data.window : impact.data.location,
+                    sourceNetwork: network,
+                  });
+                  router.replace("/(tabs)");
+                }}
+                style={({ pressed }) => [
+                  styles.viewOnMapButton,
+                  {
+                    backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surface,
+                    borderColor: theme.color.focus,
+                  },
+                ]}
+                testID="impact-view-on-map-button"
+              >
+                <Text style={[styles.viewOnMapText, { color: theme.color.focus }]}>🗺️ Highlight on map</Text>
+              </Pressable>
             </View>
 
             {/* Timing & Status Card */}
@@ -180,6 +208,42 @@ export function ImpactDetailScreen() {
               </View>
             </View>
 
+            {/* Related Planned Closure Link Card */}
+            {"relatedPlannedClosureId" in impact.data && typeof impact.data.relatedPlannedClosureId === "string" && impact.data.relatedPlannedClosureId ? (
+              <View style={[styles.card, { backgroundColor: theme.color.surface, borderColor: theme.line.planned, borderLeftWidth: 3.5, borderLeftColor: theme.line.planned }]}>
+                <Text style={[styles.sectionHeading, { color: theme.color.text }]}>Related Planned Closure</Text>
+                <Text style={[styles.description, { color: theme.color.textMuted }]}>
+                  This active alert corresponds to a scheduled planned closure window.
+                </Text>
+                <Pressable
+                  accessibilityHint="Navigates to the corresponding planned closure record"
+                  accessibilityLabel="View related planned closure"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    const closureId = "relatedPlannedClosureId" in impact.data ? impact.data.relatedPlannedClosureId : null;
+                    if (closureId) {
+                      router.push({
+                        pathname: "/impact/[kind]/[id]",
+                        params: { kind: "planned-closure", id: closureId },
+                      });
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.actionButton,
+                    {
+                      backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surface,
+                      borderColor: theme.line.planned,
+                    },
+                  ]}
+                  testID="view-related-planned-closure-button"
+                >
+                  <Text style={[styles.actionButtonText, { color: theme.line.planned }]}>
+                    View Scheduled Closure Details ›
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+
             {/* RSZ Metrics Card (TTC only) */}
             {impact.kind === "reduced-speed-zone" ? (
               <View style={[styles.card, { backgroundColor: theme.color.surface, borderColor: theme.color.border }]}>
@@ -245,35 +309,33 @@ export function ImpactDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 40, gap: 12 },
+  content: { padding: 16, gap: 12 },
   navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     gap: 4,
+    minHeight: 44,
   },
   backArrow: { fontSize: 20, fontWeight: "700", lineHeight: 20 },
   backText: { fontSize: 13, fontWeight: "700" },
   headerTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
-  card: { borderWidth: 1, borderRadius: 6, padding: 16, gap: 10 },
+  card: { borderWidth: 1, borderRadius: 8, padding: 16, gap: 10 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  lineBadge: {
-    minWidth: 32,
-    height: 32,
-    paddingHorizontal: 8,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  lineBadgeText: { color: "#090909", fontSize: 13, fontWeight: "900" },
   headerInfo: { flex: 1, gap: 4 },
   lineName: { fontSize: 13, fontWeight: "700" },
-  kindBadge: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  kindBadgeText: { color: "#ffffff", fontSize: 9, fontWeight: "900", letterSpacing: 0.6 },
+  kindBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  kindBadgeText: { fontSize: 9.5, fontWeight: "900", letterSpacing: 0.6 },
   title: { fontSize: 18, fontWeight: "900", lineHeight: 24 },
   location: { fontSize: 14, fontWeight: "600", lineHeight: 20 },
   metaText: { fontSize: 13 },
@@ -285,10 +347,22 @@ const styles = StyleSheet.create({
   detailBlock: { gap: 2, marginTop: 4 },
   detailLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
   detailText: { fontSize: 13, lineHeight: 18 },
-  notFoundCard: { borderWidth: 1, borderRadius: 6, padding: 20, gap: 10, alignItems: "center" },
+  notFoundCard: { borderWidth: 1, borderRadius: 8, padding: 20, gap: 10, alignItems: "center" },
   notFoundTitle: { fontSize: 16, fontWeight: "800", textAlign: "center" },
   notFoundCopy: { fontSize: 13, lineHeight: 19, textAlign: "center" },
-  actionButton: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 16, paddingVertical: 10, marginTop: 8 },
-  actionButtonText: { fontSize: 13, fontWeight: "700" },
+  actionButton: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 16, paddingVertical: 10, marginTop: 8, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  actionButtonText: { fontSize: 13, fontWeight: "800" },
+  viewOnMapButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 6,
+    minHeight: 44,
+  },
+  viewOnMapText: { fontSize: 13, fontWeight: "800" },
   disclaimer: { fontSize: 11, lineHeight: 16, textAlign: "center", marginTop: 4 },
 });

@@ -1,0 +1,21 @@
+appId: ca.linewatchto.app
+---
+- launchApp:
+    clearState: false
+
+# Navigate to More tab
+- tapOn: "More"
+- assertVisible: "More"
+- assertVisible: "Display"
+
+# Switch to High Contrast Mode
+- tapOn: "High contrast"
+- assertVisible: "High contrast"
+
+# Switch back to Dark Mode
+- tapOn: "Dark"
+- assertVisible: "Dark"
+
+# Navigate back to Map tab
+- tapOn: "Map"
+- assertVisible: "LineWatchTO"

@@ -61,10 +61,53 @@ describe("AlertCard", () => {
 
     expect(screen.getByText("No service between Bloor and Eglinton")).toBeTruthy();
     expect(screen.getByText("Bloor-Yonge to Eglinton")).toBeTruthy();
-    expect(screen.getByText("Source: TTC Live Alerts")).toBeTruthy();
+    expect(screen.getByText("SOURCE · TTC Live Alerts")).toBeTruthy();
     expect(screen.getByText("1")).toBeTruthy();
 
     fireEvent.press(screen.getByRole("button"));
+    expect(handlePress).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders selected state with SELECTED badge and accessible label", async () => {
+    await render(
+      <AlertCard
+        lineColor="#f8c300"
+        lineNumber="1"
+        location="Bloor-Yonge to Eglinton"
+        selected={true}
+        source="TTC Live Alerts"
+        testID="test-alert-card"
+        title="No service between Bloor and Eglinton"
+        tone="suspension"
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByText("SELECTED")).toBeTruthy();
+    expect(screen.getByTestId("test-alert-card")).toBeTruthy();
+  });
+
+  it("triggers both onSelect and onPress when pressed", async () => {
+    const handlePress = jest.fn();
+    const handleSelect = jest.fn();
+
+    await render(
+      <AlertCard
+        lineColor="#f59e0b"
+        lineNumber="1"
+        location="King to Queen"
+        onPress={handlePress}
+        onSelect={handleSelect}
+        source="TTC Track Operations"
+        title="Reduced speed zone southbound"
+        tone="reduced-speed-zone"
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByText("Reduced speed zone southbound")).toBeTruthy();
+    fireEvent.press(screen.getByRole("button"));
+    expect(handleSelect).toHaveBeenCalledTimes(1);
     expect(handlePress).toHaveBeenCalledTimes(1);
   });
 });

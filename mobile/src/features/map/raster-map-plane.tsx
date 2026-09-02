@@ -1,6 +1,11 @@
-import { Image, type ImageStyle } from "expo-image";
 import { memo } from "react";
-import { StyleSheet, type StyleProp } from "react-native";
+import {
+  Image,
+  StyleSheet,
+  type ImageSourcePropType,
+  type ImageStyle,
+  type StyleProp,
+} from "react-native";
 
 import {
   getMapPlaneSource,
@@ -31,20 +36,23 @@ export const RasterMapPlane = memo(function RasterMapPlane({
   testID,
 }: RasterMapPlaneProps) {
   const source = getMapPlaneSource(network, plane, theme);
+  const resizeMode =
+    contentFit === "fill"
+      ? "stretch"
+      : contentFit === "cover"
+        ? "cover"
+        : "contain";
 
   return (
     <Image
       accessible={false}
-      cachePolicy="memory-disk"
-      contentFit={contentFit}
+      fadeDuration={0}
       onError={onError}
       onLoad={onLoad}
-      pointerEvents="none"
-      priority="high"
-      source={source}
+      resizeMode={resizeMode}
+      source={source as ImageSourcePropType}
       style={[styles.plane, style]}
       testID={testID ?? `raster-plane-${network}-${plane}-${theme}`}
-      transition={0}
     />
   );
 });
@@ -54,5 +62,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     width: "100%",
     height: "100%",
+    pointerEvents: "none",
   },
 });

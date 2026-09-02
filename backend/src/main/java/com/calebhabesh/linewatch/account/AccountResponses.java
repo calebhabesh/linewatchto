@@ -9,7 +9,16 @@ public final class AccountResponses {
 
     public record UserResponse(String id, String email, String displayName, boolean demo, boolean googleLinked) {}
 
-    public record AuthResponse(boolean authenticated, UserResponse user) {}
+    public record AuthResponse(
+        boolean authenticated,
+        UserResponse user,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        String sessionToken
+    ) {
+        public AuthResponse(boolean authenticated, UserResponse user) {
+            this(authenticated, user, null);
+        }
+    }
 
     public record AuthSession(UserResponse user, String rawSessionToken, Instant expiresAt) {}
 

@@ -1,27 +1,28 @@
 package com.calebhabesh.linewatch.account;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.util.WebUtils;
 
 @Component
 public class AccountSessionCookieInterceptor implements HandlerInterceptor {
     private final AccountSessionRequestContext sessionContext;
     private final AuthCookieFactory cookieFactory;
     private final AccountService accountService;
+    private final SessionTokenResolver sessionTokenResolver;
 
     public AccountSessionCookieInterceptor(
         AccountSessionRequestContext sessionContext,
         AuthCookieFactory cookieFactory,
-        AccountService accountService
+        AccountService accountService,
+        SessionTokenResolver sessionTokenResolver
     ) {
         this.sessionContext = sessionContext;
         this.cookieFactory = cookieFactory;
         this.accountService = accountService;
+        this.sessionTokenResolver = sessionTokenResolver;
     }
 
     @Override
@@ -29,9 +30,9 @@ public class AccountSessionCookieInterceptor implements HandlerInterceptor {
         if (!requiresPreHandlerRenewal(request.getRequestURI())) {
             return true;
         }
-        Cookie sessionCookie = sessionCookie(request);
-        if (sessionCookie != null && accountService.renewSessionBeforeProtectedRequest(sessionCookie.getValue())) {
-            addRenewedCookie(response, sessionCookie.getValue());
+        String sessionToken = sessionTokenResolver.resolveSessionToken(request);
+        if (sessionToken != null && accountService.renewSessionBeforeProtectedRequest(sessionToken)) {
+            addRenewedCredentials(request, response, sessionToken);
         }
         return true;
     }
@@ -46,11 +47,11 @@ public class AccountSessionCookieInterceptor implements HandlerInterceptor {
         if (!sessionContext.shouldRenewCookie()) {
             return;
         }
-        Cookie sessionCookie = sessionCookie(request);
-        if (sessionCookie == null) {
+        String sessionToken = sessionTokenResolver.resolveSessionToken(request);
+        if (sessionToken == null) {
             return;
         }
-        addRenewedCookie(response, sessionCookie.getValue());
+        addRenewedCredentials(request, response, sessionToken);
     }
 
     private boolean requiresPreHandlerRenewal(String requestUri) {
@@ -59,18 +60,13 @@ public class AccountSessionCookieInterceptor implements HandlerInterceptor {
             || requestUri.equals("/api/auth/google/callback");
     }
 
-    private Cookie sessionCookie(HttpServletRequest request) {
-        Cookie cookie = WebUtils.getCookie(request, AuthCookieFactory.COOKIE_NAME);
-        if (cookie == null || cookie.getValue() == null || cookie.getValue().isBlank()) {
-            return null;
-        }
-        return cookie;
-    }
-
-    private void addRenewedCookie(HttpServletResponse response, String rawSessionToken) {
+    private void addRenewedCredentials(HttpServletRequest request, HttpServletResponse response, String rawSessionToken) {
         response.addHeader(
             HttpHeaders.SET_COOKIE,
             cookieFactory.sessionCookie(rawSessionToken, accountService.sessionTtl()).toString()
         );
+        if (sessionTokenResolver.isBearerAuth(request)) {
+            response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + rawSessionToken);
+        }
     }
 }

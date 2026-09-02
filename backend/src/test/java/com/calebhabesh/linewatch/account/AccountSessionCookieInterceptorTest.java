@@ -15,10 +15,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 class AccountSessionCookieInterceptorTest {
     private final AccountSessionRequestContext sessionContext = mock(AccountSessionRequestContext.class);
     private final AccountService accountService = mock(AccountService.class);
+    private final SessionTokenResolver sessionTokenResolver = new SessionTokenResolver();
     private final AccountSessionCookieInterceptor interceptor = new AccountSessionCookieInterceptor(
         sessionContext,
         new AuthCookieFactory(false),
-        accountService
+        accountService,
+        sessionTokenResolver
     );
 
     @Test
@@ -81,5 +83,19 @@ class AccountSessionCookieInterceptorTest {
         interceptor.postHandle(request, response, new Object(), null);
 
         assertThat(response.getHeader(HttpHeaders.SET_COOKIE)).isNull();
+    }
+
+    @Test
+    void preHandlerRenewsBearerTokenHeaderForBearerRequests() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/account/commutes");
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer raw-bearer-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        when(accountService.renewSessionBeforeProtectedRequest("raw-bearer-token")).thenReturn(true);
+        when(accountService.sessionTtl()).thenReturn(Duration.ofDays(365));
+
+        assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
+
+        assertThat(response.getHeader(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer raw-bearer-token");
+        verify(accountService).renewSessionBeforeProtectedRequest("raw-bearer-token");
     }
 }

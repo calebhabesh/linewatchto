@@ -1,4 +1,4 @@
-import type { ImageSource } from "expo-image";
+import type { ImageSourcePropType } from "react-native";
 
 import type { ThemeMode } from "@/theme/tokens";
 
@@ -8,27 +8,27 @@ export type MapPlaneTheme = ThemeMode;
 
 export const TTC_MAP_PLANES = {
   dark: {
-    background: require("../../../assets/linewatch/ttc-background-dark-mobile.png") as ImageSource,
-    foreground: require("../../../assets/linewatch/ttc-foreground-dark-mobile.png") as ImageSource,
-    labels: require("../../../assets/linewatch/ttc-labels-dark-mobile.png") as ImageSource,
+    background: require("../../../assets/linewatch/ttc-background-dark-mobile.png") as ImageSourcePropType,
+    foreground: require("../../../assets/linewatch/ttc-foreground-dark-mobile.png") as ImageSourcePropType,
+    labels: require("../../../assets/linewatch/ttc-labels-dark-mobile.png") as ImageSourcePropType,
   },
   "high-contrast": {
-    background: require("../../../assets/linewatch/ttc-background-high-contrast-mobile.png") as ImageSource,
-    foreground: require("../../../assets/linewatch/ttc-foreground-high-contrast-mobile.png") as ImageSource,
-    labels: require("../../../assets/linewatch/ttc-labels-high-contrast-mobile.png") as ImageSource,
+    background: require("../../../assets/linewatch/ttc-background-high-contrast-mobile.png") as ImageSourcePropType,
+    foreground: require("../../../assets/linewatch/ttc-foreground-high-contrast-mobile.png") as ImageSourcePropType,
+    labels: require("../../../assets/linewatch/ttc-labels-high-contrast-mobile.png") as ImageSourcePropType,
   },
 } as const;
 
 export const REGIONAL_MAP_PLANES = {
   dark: {
-    background: require("../../../assets/linewatch/regional-background-dark-mobile.png") as ImageSource,
-    foreground: require("../../../assets/linewatch/regional-foreground-dark-mobile.png") as ImageSource,
-    labels: require("../../../assets/linewatch/regional-labels-dark-mobile.png") as ImageSource,
+    background: require("../../../assets/linewatch/regional-background-dark-mobile.png") as ImageSourcePropType,
+    foreground: require("../../../assets/linewatch/regional-foreground-dark-mobile.png") as ImageSourcePropType,
+    labels: require("../../../assets/linewatch/regional-labels-dark-mobile.png") as ImageSourcePropType,
   },
   "high-contrast": {
-    background: require("../../../assets/linewatch/regional-background-high-contrast-mobile.png") as ImageSource,
-    foreground: require("../../../assets/linewatch/regional-foreground-high-contrast-mobile.png") as ImageSource,
-    labels: require("../../../assets/linewatch/regional-labels-high-contrast-mobile.png") as ImageSource,
+    background: require("../../../assets/linewatch/regional-background-high-contrast-mobile.png") as ImageSourcePropType,
+    foreground: require("../../../assets/linewatch/regional-foreground-high-contrast-mobile.png") as ImageSourcePropType,
+    labels: require("../../../assets/linewatch/regional-labels-high-contrast-mobile.png") as ImageSourcePropType,
   },
 } as const;
 
@@ -103,7 +103,7 @@ export function getMapPlaneSource(
   network: MapNetworkId,
   plane: MapPlaneKind,
   theme: MapPlaneTheme,
-): ImageSource {
+): ImageSourcePropType {
   if (network === "ttc") {
     const themeSources = TTC_MAP_PLANES[theme] ?? TTC_MAP_PLANES.dark;
     return themeSources[plane];

@@ -24,7 +24,7 @@ export const lineStatusSchema = z.object({
   updatedAgo: z.string(),
 });
 
-const mapImpactSchema = z.object({
+export const mapImpactSchema = z.object({
   kind: z.enum(["suspension", "delay", "reduced-speed-zone", "planned-closure"]),
   cardId: z.string(),
   travelDirection: z.enum(["forward", "reverse", "bidirectional"]),
@@ -58,7 +58,7 @@ export const stationSchema = z.object({
   interchange: z.boolean(),
 });
 
-const stationNodeImpactSchema = z.object({
+export const stationNodeImpactSchema = z.object({
   stationId: z.string(),
   kind: z.enum(["suspension", "delay", "reduced-speed-zone", "planned-closure"]),
   cardId: z.string(),
@@ -147,6 +147,8 @@ export type Dashboard = z.infer<typeof dashboardSchema>;
 export type LineStatus = z.infer<typeof lineStatusSchema>;
 export type NetworkSegment = z.infer<typeof networkSegmentSchema>;
 export type Station = z.infer<typeof stationSchema>;
+export type MapImpact = z.infer<typeof mapImpactSchema>;
+export type StationNodeImpact = z.infer<typeof stationNodeImpactSchema>;
 export type ActiveAlert = z.infer<typeof activeAlertSchema>;
 export type DelayAlert = z.infer<typeof delayAlertSchema>;
 export type ReducedSpeedZone = z.infer<typeof reducedSpeedZoneSchema>;

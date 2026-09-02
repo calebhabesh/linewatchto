@@ -1,48 +1,98 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { LineBadge } from "@/components/line-badge";
 import { useTheme } from "@/theme/theme-provider";
 
+export type AlertCardTone = "suspension" | "delay" | "planned" | "reduced-speed-zone";
+
 type Props = {
+  lineId?: string;
   lineNumber: string;
-  lineColor: string;
+  lineColor?: string;
   title: string;
   location: string;
   source: string;
-  tone: "suspension" | "delay" | "planned";
+  tone: AlertCardTone;
+  selected?: boolean;
   onPress?: () => void;
+  onSelect?: () => void;
+  testID?: string;
 };
 
-export function AlertCard({ lineNumber, lineColor, title, location, source, tone, onPress }: Props) {
+export function AlertCard({
+  lineId,
+  lineNumber,
+  lineColor: _lineColor,
+  title,
+  location,
+  source,
+  tone,
+  selected = false,
+  onPress,
+  onSelect,
+  testID,
+}: Props) {
   const { theme } = useTheme();
+
+  const toneColor =
+    tone === "reduced-speed-zone"
+      ? "#f59e0b"
+      : theme.line[tone] ?? theme.line.delay;
 
   const content = (
     <>
       <View style={styles.heading}>
-        <View style={[styles.lineBadge, { backgroundColor: lineColor }]}>
-          <Text style={styles.lineBadgeText}>{lineNumber}</Text>
+        <LineBadge lineId={lineId} lineNumber={lineNumber} size={28} />
+        <View style={styles.titleBlock}>
+          <Text style={[styles.kindLabel, { color: toneColor }]}>{toneLabel(tone)}</Text>
+          <Text style={[styles.title, { color: theme.color.text }]}>{title}</Text>
         </View>
-        <View style={[styles.tone, { backgroundColor: theme.line[tone] }]} />
-        <Text style={[styles.title, { color: theme.color.text }]}>{title}</Text>
+        {selected ? (
+          <View style={[styles.selectedBadge, { backgroundColor: theme.color.focus }]}>
+            <Text style={styles.selectedBadgeText}>SELECTED</Text>
+          </View>
+        ) : null}
         {onPress ? <Text style={[styles.chevron, { color: theme.color.textMuted }]}>›</Text> : null}
       </View>
-      <Text style={[styles.location, { color: theme.color.textMuted }]}>{location}</Text>
-      <Text style={[styles.source, { color: theme.color.textMuted }]}>Source: {source}</Text>
+      <View style={styles.locationRow}>
+        <View style={[styles.routeRule, { backgroundColor: toneColor }]} />
+        <Text style={[styles.location, { color: theme.color.textMuted }]}>{location}</Text>
+      </View>
+      <Text style={[styles.source, { color: theme.color.textQuiet }]}>SOURCE · {source}</Text>
     </>
   );
 
-  if (onPress) {
+  const baseBackgroundColor = selected ? theme.color.surfaceRaised : theme.color.surface;
+  const cardStyle = [
+    styles.card,
+    {
+      backgroundColor: baseBackgroundColor,
+      borderColor: selected ? theme.color.focus : theme.color.border,
+      borderWidth: selected ? 2 : 1,
+      borderLeftColor: toneColor,
+      borderLeftWidth: 3,
+    },
+  ];
+
+  const handlePress = () => {
+    onSelect?.();
+    onPress?.();
+  };
+
+  if (onPress || onSelect) {
     return (
       <Pressable
+        accessibilityLabel={`${title}, Line ${lineNumber}, ${location}${selected ? ", selected on map" : ""}`}
         accessibilityRole="button"
-        accessibilityLabel={`${title}, Line ${lineNumber}, ${location}`}
-        onPress={onPress}
+        accessibilityState={{ selected }}
+        onPress={handlePress}
         style={({ pressed }) => [
-          styles.card,
+          cardStyle,
           {
-            backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surface,
-            borderColor: theme.color.border,
+            backgroundColor: pressed ? theme.color.surfaceRaised : baseBackgroundColor,
           },
         ]}
+        testID={testID}
       >
         {content}
       </Pressable>
@@ -50,14 +100,21 @@ export function AlertCard({ lineNumber, lineColor, title, location, source, tone
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.color.surface, borderColor: theme.color.border }]}>
+    <View style={cardStyle} testID={testID}>
       {content}
     </View>
   );
 }
 
+function toneLabel(tone: AlertCardTone) {
+  if (tone === "suspension") return "ACTIVE ALERT";
+  if (tone === "planned") return "PLANNED CLOSURE";
+  if (tone === "reduced-speed-zone") return "REDUCED SPEED ZONE";
+  return "SERVICE DELAY";
+}
+
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 6, padding: 12, gap: 7 },
+  card: { borderRadius: 6, padding: 13, gap: 9 },
   heading: { flexDirection: "row", alignItems: "center", gap: 8 },
   lineBadge: {
     minWidth: 28,
@@ -68,9 +125,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   lineBadgeText: { color: "#090909", fontSize: 12, fontWeight: "900" },
-  tone: { width: 4, alignSelf: "stretch", borderRadius: 2 },
-  title: { flex: 1, fontSize: 15, lineHeight: 20, fontWeight: "800" },
+  titleBlock: { flex: 1, gap: 2 },
+  kindLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
+  title: { fontSize: 15, lineHeight: 20, fontWeight: "800" },
+  selectedBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  selectedBadgeText: {
+    fontSize: 9,
+    fontWeight: "900",
+    color: "#000000",
+    letterSpacing: 0.5,
+  },
   chevron: { fontSize: 18, fontWeight: "600", paddingLeft: 4 },
-  location: { fontSize: 13, lineHeight: 18 },
-  source: { fontSize: 11 },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  routeRule: { width: 18, height: 3, borderRadius: 2 },
+  location: { flex: 1, fontSize: 13, lineHeight: 18 },
+  source: { fontSize: 9, fontWeight: "800", letterSpacing: 0.45 },
 });

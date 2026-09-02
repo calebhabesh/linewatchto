@@ -65,7 +65,8 @@ class AccountSessionRenewalIntegrationTest {
     private final AccountSessionCookieInterceptor interceptor = new AccountSessionCookieInterceptor(
         sessionContext,
         cookieFactory,
-        accountService
+        accountService,
+        new SessionTokenResolver()
     );
 
     @BeforeEach
@@ -83,6 +84,7 @@ class AccountSessionRenewalIntegrationTest {
 
         MockMvc mvc = MockMvcBuilders.standaloneSetup(accountController())
             .addInterceptors(interceptor)
+            .setCustomArgumentResolvers(new SessionTokenArgumentResolver(new SessionTokenResolver()))
             .build();
 
         mvc.perform(get("/api/auth/me").cookie(new Cookie(AuthCookieFactory.COOKIE_NAME, "raw-token")))

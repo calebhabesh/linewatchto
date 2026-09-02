@@ -46,6 +46,21 @@ export function StationsTabIcon({ color, size = 20 }: TabIconProps) {
   );
 }
 
+export function CommutesTabIcon({ color, size = 20 }: TabIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="6" cy="19" r="3" stroke={color as string} strokeWidth={2} />
+      <Circle cx="18" cy="5" r="3" stroke={color as string} strokeWidth={2} />
+      <Path
+        d="M18 8a9 9 0 01-9 9H6"
+        stroke={color as string}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 export function MoreTabIcon({ color, size = 20 }: TabIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

@@ -5,6 +5,7 @@ import com.calebhabesh.linewatch.account.AccountException;
 import com.calebhabesh.linewatch.account.AccountService;
 import com.calebhabesh.linewatch.account.AuthCookieFactory;
 import com.calebhabesh.linewatch.account.AccountErrorResponse;
+import com.calebhabesh.linewatch.account.SessionToken;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -31,7 +32,7 @@ public class PushNotificationController {
 
     @GetMapping("/config")
     public PushResponses.PushConfigResponse config(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+        @SessionToken String rawSessionToken
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         return pushNotificationService.config(account);
@@ -39,7 +40,7 @@ public class PushNotificationController {
 
     @PutMapping("/subscription")
     public PushResponses.PushSubscriptionResponse saveSubscription(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody PushRequests.SaveSubscriptionRequest request
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -48,7 +49,7 @@ public class PushNotificationController {
 
     @PutMapping("/preferences")
     public PushResponses.PushPreferencesResponse updatePreferences(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody PushRequests.UpdatePushPreferencesRequest request
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -57,7 +58,7 @@ public class PushNotificationController {
 
     @PostMapping("/latest")
     public PushResponses.PendingPushNotificationResponse latest(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody PushRequests.SubscriptionEndpointRequest request
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -66,7 +67,7 @@ public class PushNotificationController {
 
     @PostMapping("/active")
     public PushResponses.ActivePushNotificationsResponse active(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody PushRequests.SubscriptionEndpointRequest request
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -75,7 +76,7 @@ public class PushNotificationController {
 
     @GetMapping("/diagnostics")
     public PushResponses.PushDeliveryDiagnosticsResponse diagnostics(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+        @SessionToken String rawSessionToken
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         return pushNotificationService.deliveryDiagnostics(account);
@@ -83,7 +84,7 @@ public class PushNotificationController {
 
     @GetMapping("/devices")
     public PushResponses.PushDevicesResponse devices(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+        @SessionToken String rawSessionToken
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         return pushNotificationService.devices(account);
@@ -92,7 +93,7 @@ public class PushNotificationController {
     @PostMapping("/devices/{subscriptionId}/disable")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void disableDevice(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @PathVariable String subscriptionId
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -101,7 +102,7 @@ public class PushNotificationController {
 
     @PostMapping("/devices/{subscriptionId}/test")
     public PushResponses.PushDeviceTestResponse testDevice(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @PathVariable String subscriptionId
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -111,7 +112,7 @@ public class PushNotificationController {
     @PostMapping("/client-event")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void recordClientEvent(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody PushRequests.ClientEventRequest request
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -129,7 +130,7 @@ public class PushNotificationController {
     @PostMapping("/displayed")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void markDisplayed(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody PushRequests.DisplayedNotificationRequest request
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
@@ -139,7 +140,7 @@ public class PushNotificationController {
     @PostMapping("/subscription/disable")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void disableSubscription(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @SessionToken String rawSessionToken,
         @RequestBody PushRequests.SubscriptionEndpointRequest request
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);

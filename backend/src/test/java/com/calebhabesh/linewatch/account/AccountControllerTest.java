@@ -70,7 +70,8 @@ class AccountControllerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user, "raw-token"));
+        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer raw-token");
         assertThat(response.getHeaders().getFirst("Set-Cookie"))
             .contains("linewatch_session=raw-token")
             .contains("HttpOnly")
@@ -193,7 +194,8 @@ class AccountControllerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user, "raw-token"));
+        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer raw-token");
         assertThat(response.getHeaders().getFirst(HttpHeaders.SET_COOKIE))
             .contains("linewatch_session=raw-token", "HttpOnly", "SameSite=Lax");
         verify(rateLimiter).requireAuthAttempt("email-verification-confirm", "203.0.113.17");
@@ -238,7 +240,8 @@ class AccountControllerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user, "raw-token"));
+        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer raw-token");
         assertThat(response.getHeaders().getFirst("Set-Cookie"))
             .contains("linewatch_session=raw-token")
             .contains("HttpOnly")
@@ -285,7 +288,8 @@ class AccountControllerTest {
         ResponseEntity<AccountResponses.AuthResponse> response = enabledController.dev(requestFrom("127.0.0.1"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user, "raw-token"));
+        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer raw-token");
         assertThat(response.getHeaders().getFirst("Set-Cookie"))
             .contains("linewatch_session=raw-token")
             .contains("HttpOnly")
@@ -307,7 +311,8 @@ class AccountControllerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user, "raw-token"));
+        assertThat(response.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer raw-token");
         assertThat(response.getHeaders().getFirst("Set-Cookie"))
             .contains("linewatch_session=raw-token")
             .contains("HttpOnly")
