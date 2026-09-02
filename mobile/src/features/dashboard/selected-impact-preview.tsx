@@ -190,14 +190,14 @@ function toneLabel(kind: ImpactKind, activeNow?: boolean): string {
   }
 }
 
-function toneColor(kind: ImpactKind, colors: typeof import("@/theme/tokens").themes.dark.line): string {
+function toneColor(kind: ImpactKind, colors: import("@/theme/tokens").ThemeLineColors): string {
   switch (kind) {
     case "suspension":
       return colors.suspension;
     case "delay":
       return colors.delay;
     case "reduced-speed-zone":
-      return "#f59e0b";
+      return colors.rsz ?? "#f59e0b";
     case "planned-closure":
       return colors.planned;
   }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 
 import {
+  applyElasticResistance,
   clamp,
   clampScale,
   clampTranslation,
@@ -28,17 +29,35 @@ describe("pan-zoom-math", () => {
     });
   });
 
+  describe("applyElasticResistance", () => {
+    it("returns original value when within min and max", () => {
+      expect(applyElasticResistance(3.0, 1.0, 6.0)).toBe(3.0);
+      expect(applyElasticResistance(1.0, 1.0, 6.0)).toBe(1.0);
+      expect(applyElasticResistance(6.0, 1.0, 6.0)).toBe(6.0);
+    });
+
+    it("applies resistance below min", () => {
+      // 0.5 is 0.5 below min 1.0 => 1.0 - 0.5 * 0.32 = 0.84
+      expect(applyElasticResistance(0.5, 1.0, 6.0, 0.32)).toBeCloseTo(0.84);
+    });
+
+    it("applies resistance above max", () => {
+      // 8.0 is 2.0 above max 6.0 => 6.0 + 2.0 * 0.32 = 6.64
+      expect(applyElasticResistance(8.0, 1.0, 6.0, 0.32)).toBeCloseTo(6.64);
+    });
+  });
+
   describe("clampScale", () => {
-    it("clamps scale within default min (1.0) and max (5.0)", () => {
+    it("clamps scale within default min (1.0) and max (6.0)", () => {
       expect(clampScale(0.5)).toBe(1.0);
       expect(clampScale(2.5)).toBe(2.5);
-      expect(clampScale(6.0)).toBe(5.0);
+      expect(clampScale(7.0)).toBe(6.0);
     });
 
     it("handles non-finite or negative values safely", () => {
       expect(clampScale(Number.NaN)).toBe(1.0);
       expect(clampScale(-2)).toBe(1.0);
-      expect(clampScale(Number.POSITIVE_INFINITY)).toBe(5.0);
+      expect(clampScale(Number.POSITIVE_INFINITY)).toBe(6.0);
     });
 
     it("respects custom minScale and maxScale", () => {
@@ -129,8 +148,8 @@ describe("pan-zoom-math", () => {
         stageHeight,
       );
 
-      expect(result.scale).toBe(5.0);
-      const { maxX, maxY } = computeMaxTranslation(5.0, stageWidth, stageHeight);
+      expect(result.scale).toBe(6.0);
+      const { maxX, maxY } = computeMaxTranslation(6.0, stageWidth, stageHeight);
       expect(result.translateX).toBe(maxX);
       expect(result.translateY).toBe(maxY);
     });

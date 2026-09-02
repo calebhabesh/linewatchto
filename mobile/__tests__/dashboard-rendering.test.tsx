@@ -75,8 +75,8 @@ describe("DashboardScreen Component Rendering & State Transitions", () => {
     it("renders the immersive product chrome and status peek", async () => {
       await render(<DashboardScreen />, { wrapper: Wrapper });
 
-      expect(screen.getByText("LineWatchTO")).toBeTruthy();
-      expect(screen.getByText("UNOFFICIAL · SERVICE MAP")).toBeTruthy();
+      expect(screen.getByTestId("map-top-chrome")).toBeTruthy();
+      expect(screen.getByTestId("map-line-rail")).toBeTruthy();
       expect(screen.getByTestId("map-status-peek")).toBeTruthy();
       expect(screen.getByTestId("center-map-button")).toBeTruthy();
       expect(screen.getByText("3 Current Impacts")).toBeTruthy();
@@ -225,7 +225,7 @@ describe("DashboardScreen Component Rendering & State Transitions", () => {
 
       await render(<DashboardScreen />, { wrapper: Wrapper });
 
-      expect(screen.getByText("0 Current Impacts")).toBeTruthy();
+      expect(screen.getByText("No Current Impacts")).toBeTruthy();
       expect(screen.getByText("No dashboard-visible disruptions")).toBeTruthy();
     });
   });

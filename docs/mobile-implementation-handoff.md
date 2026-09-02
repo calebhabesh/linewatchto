@@ -57,3 +57,9 @@ npm --prefix mobile run export:android
 # Backend checks
 mvn -f backend/pom.xml test
 ```
+
+## Next phase: PWA visual parity
+
+The feature slices above are functionally complete, but the native app still needs a structural visual-alignment phase. The implementation sequence, shared-shell architecture, screen acceptance matrix, and visual verification gates are defined in [`mobile-pwa-visual-parity-plan.md`](./mobile-pwa-visual-parity-plan.md).
+
+Do not treat the earlier “UI/UX Parity” slice label as proof of current visual parity. The next phase begins by replacing generic full-screen tab pages with the persistent map and floating-sheet composition used by the PWA.

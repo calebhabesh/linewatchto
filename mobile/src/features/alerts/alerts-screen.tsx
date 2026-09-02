@@ -75,21 +75,30 @@ export function AlertsScreen() {
     [network, setSelection],
   );
 
-  const renderImpactCard = (impact: ImpactItem) => (
-    <AlertCard
-      key={`${impact.kind}-${impact.data.id}`}
-      lineId={impact.data.lineId}
-      lineColor={lines.get(impact.data.lineId) ?? theme.line[impact.tone]}
-      lineNumber={impact.data.lineNumber}
-      location={"window" in impact.data ? impact.data.window : impact.data.location}
-      onPress={() => handleImpactPress(impact)}
-      selected={isSelected(impact.data.id)}
-      source={impact.data.source}
-      testID={`alert-card-${impact.data.id}`}
-      title={impact.data.title}
-      tone={impact.tone}
-    />
-  );
+  const renderImpactCard = (impact: ImpactItem) => {
+    const startedAt = "startedAt" in impact.data ? impact.data.startedAt : null;
+    const updatedAt = "updatedAt" in impact.data ? impact.data.updatedAt : null;
+    const shuttle = "shuttle" in impact.data ? Boolean(impact.data.shuttle) : false;
+
+    return (
+      <AlertCard
+        key={`${impact.kind}-${impact.data.id}`}
+        lineId={impact.data.lineId}
+        lineColor={lines.get(impact.data.lineId) ?? theme.line[impact.tone]}
+        lineNumber={impact.data.lineNumber}
+        location={"window" in impact.data ? impact.data.window : impact.data.location}
+        onPress={() => handleImpactPress(impact)}
+        selected={isSelected(impact.data.id)}
+        shuttle={shuttle}
+        source={impact.data.source}
+        startedAt={startedAt}
+        testID={`alert-card-${impact.data.id}`}
+        title={impact.data.title}
+        tone={impact.tone}
+        updatedAt={updatedAt}
+      />
+    );
+  };
 
   const bottomPadding = Math.max(100, insets.bottom + 80);
 

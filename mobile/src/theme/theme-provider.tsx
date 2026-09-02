@@ -17,11 +17,15 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   const [mode, setModeState] = useState<ThemeMode>("dark");
 
   useEffect(() => {
+    let active = true;
     void AsyncStorage.getItem(STORAGE_KEY).then((value) => {
-      if (value === "dark" || value === "high-contrast") {
+      if (active && (value === "dark" || value === "high-contrast")) {
         setModeState(value);
       }
     });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const value = useMemo<ThemeContextValue>(

@@ -37,7 +37,7 @@ export function LineStatusList({ lines }: { lines: LineStatus[] }) {
   );
 }
 
-function statusColor(status: LineStatus["status"], colors: typeof import("@/theme/tokens").themes.dark.line) {
+function statusColor(status: LineStatus["status"], colors: import("@/theme/tokens").ThemeLineColors) {
   if (status === "suspension") return colors.suspension;
   if (status === "delay") return colors.delay;
   if (status === "planned") return colors.planned;

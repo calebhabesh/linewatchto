@@ -485,6 +485,6 @@ describe("StationDetailScreen", () => {
     await render(<StationDetailScreen />, { wrapper: Wrapper });
 
     expect(screen.getByTestId("station-detail-save-button")).toBeTruthy();
-    expect(screen.getByText("☆ Save")).toBeTruthy();
+    expect(screen.getByText("Save")).toBeTruthy();
   });
 });

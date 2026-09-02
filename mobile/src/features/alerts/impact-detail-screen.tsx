@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDashboard } from "@/api/dashboard";
 import { LineBadge } from "@/components/line-badge";
+import { BackIcon, LocateIcon } from "@/components/operations-icons";
 import { Screen } from "@/components/screen";
 import { findImpactInDashboard } from "@/features/alerts/impact-types";
 import { useAppActive } from "@/hooks/use-app-active";
@@ -64,7 +65,7 @@ export function ImpactDetailScreen() {
               },
             ]}
           >
-            <Text style={[styles.backArrow, { color: theme.color.text }]}>‹</Text>
+            <BackIcon color={theme.color.text} size={16} />
             <Text style={[styles.backText, { color: theme.color.text }]}>Back</Text>
           </Pressable>
           <Text accessibilityRole="header" style={[styles.headerTitle, { color: theme.color.textMuted }]}>
@@ -104,7 +105,7 @@ export function ImpactDetailScreen() {
 
               <Text style={[styles.title, { color: theme.color.text }]}>{impact.data.title}</Text>
               <Text style={[styles.location, { color: theme.color.textMuted }]}>
-                📍 {impact.data.location}
+                {impact.data.location}
               </Text>
 
               {impact.data.displayDirection ? (
@@ -134,7 +135,8 @@ export function ImpactDetailScreen() {
                 ]}
                 testID="impact-view-on-map-button"
               >
-                <Text style={[styles.viewOnMapText, { color: theme.color.focus }]}>🗺️ Highlight on map</Text>
+                <LocateIcon color={theme.color.focus} size={16} />
+                <Text style={[styles.viewOnMapText, { color: theme.color.focus }]}>Highlight on map</Text>
               </Pressable>
             </View>
 

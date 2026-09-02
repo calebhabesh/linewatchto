@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/error-state";
 import { LineBadge } from "@/components/line-badge";
 import { LoadingState } from "@/components/loading-state";
 import { NetworkSwitcher } from "@/components/network-switcher";
+import { BackIcon } from "@/components/operations-icons";
 import { ProductHeader } from "@/components/product-header";
 import { Screen } from "@/components/screen";
 import { useAppActive } from "@/hooks/use-app-active";
@@ -73,7 +74,7 @@ export function AccessibilityOutagesScreen() {
             ]}
             testID="accessibility-back-button"
           >
-            <BackArrowIcon color={theme.color.text} />
+            <BackIcon color={theme.color.text} size={16} />
             <Text style={[styles.backText, { color: theme.color.text }]}>Back</Text>
           </Pressable>
         </View>

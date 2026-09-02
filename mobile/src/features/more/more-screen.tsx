@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
+import { ChevronRightIcon } from "@/components/operations-icons";
 import { ProductHeader } from "@/components/product-header";
 import { Screen } from "@/components/screen";
 import { aboutSections, externalResourceLinks } from "@/features/more/about-data";
@@ -99,7 +100,7 @@ export function MoreScreen() {
                   Live elevator & escalator disruptions grouped by line and station.
                 </Text>
               </View>
-              <Text style={[styles.navArrow, { color: theme.color.textQuiet }]}>›</Text>
+              <ChevronRightIcon color={theme.color.textQuiet} size={16} />
             </Pressable>
 
             <Pressable
@@ -122,7 +123,7 @@ export function MoreScreen() {
                   Surface detours, bus/streetcar notices, and GO trip changes.
                 </Text>
               </View>
-              <Text style={[styles.navArrow, { color: theme.color.textQuiet }]}>›</Text>
+              <ChevronRightIcon color={theme.color.textQuiet} size={16} />
             </Pressable>
 
             <Pressable
@@ -145,7 +146,7 @@ export function MoreScreen() {
                   30-day incident counts, median durations, and service impact time.
                 </Text>
               </View>
-              <Text style={[styles.navArrow, { color: theme.color.textQuiet }]}>›</Text>
+              <ChevronRightIcon color={theme.color.textQuiet} size={16} />
             </Pressable>
           </View>
         </View>

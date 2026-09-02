@@ -15,7 +15,9 @@ export type Point = {
 
 export const MAP_PAN_ZOOM_LIMITS = {
   minScale: 1.0,
-  maxScale: 5.0,
+  maxScale: 6.0,
+  elasticMinScale: 0.82,
+  elasticMaxScale: 7.0,
   doubleTapScale: 2.5,
   zoomStepRatio: 1.5,
   defaultScale: 1.0,
@@ -30,6 +32,25 @@ export function clamp(value: number, min: number, max: number): number {
   const upper = Math.max(min, max);
   const res = Math.min(Math.max(value, lower), upper);
   return Object.is(res, -0) ? 0 : res;
+}
+
+/**
+ * Applies smooth elastic rubber-band resistance when pulling beyond boundary limits.
+ */
+export function applyElasticResistance(
+  value: number,
+  min: number,
+  max: number,
+  resistanceFactor = 0.32,
+): number {
+  "worklet";
+  if (value < min) {
+    return min - (min - value) * resistanceFactor;
+  }
+  if (value > max) {
+    return max + (value - max) * resistanceFactor;
+  }
+  return value;
 }
 
 /**
@@ -75,7 +96,7 @@ export function computeMaxTranslation(
 }
 
 /**
- * Clamps translation coordinates within valid visible boundaries.
+ * Clamps translation coordinates within valid visible boundaries with optional overshoot allowance.
  */
 export function clampTranslation(
   translateX: number,

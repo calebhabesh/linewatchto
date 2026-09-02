@@ -23,10 +23,13 @@ import {
   type MapNetworkId,
 } from "./map-plane-manifest";
 import {
+  applyElasticResistance,
+  clamp,
   clampScale,
   clampTranslation,
   computeDoubleTapTransform,
   computeFocalZoomTransform,
+  computeMaxTranslation,
   computeResetTransform,
   computeStepZoomTransform,
   MAP_PAN_ZOOM_LIMITS,
@@ -83,6 +86,13 @@ export const SchematicMap = memo(function SchematicMap({
   const savedTranslateY = useSharedValue<number>(0);
   const stageWidth = useSharedValue<number>(0);
   const stageHeight = useSharedValue<number>(0);
+
+  // Pinch tracking shared values
+  const pinchStartScale = useSharedValue<number>(MAP_PAN_ZOOM_LIMITS.defaultScale);
+  const pinchStartTx = useSharedValue<number>(0);
+  const pinchStartTy = useSharedValue<number>(0);
+  const pinchPrevFocalX = useSharedValue<number>(0);
+  const pinchPrevFocalY = useSharedValue<number>(0);
 
   const prevNetworkRef = useRef(network);
   const previousResetNonce = useRef(resetNonce);
@@ -181,71 +191,127 @@ export const SchematicMap = memo(function SchematicMap({
 
   // Gesture definitions
   const pinchGesture = Gesture.Pinch()
-    .onStart(() => {
+    .onStart((e) => {
       "worklet";
-      savedScale.value = scale.value;
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
+      pinchStartScale.value = scale.value;
+      pinchStartTx.value = translateX.value;
+      pinchStartTy.value = translateY.value;
+      pinchPrevFocalX.value = e.focalX;
+      pinchPrevFocalY.value = e.focalY;
     })
-    .onUpdate((e) => {
+    .onChange((e) => {
       "worklet";
-      const rawScale = savedScale.value * e.scale;
-      const newScale = clampScale(rawScale);
+      if (stageWidth.value <= 0 || stageHeight.value <= 0) return;
 
-      if (stageWidth.value <= 0 || stageHeight.value <= 0) {
-        scale.value = newScale;
-        return;
-      }
-
-      const transform = computeFocalZoomTransform(
-        {
-          scale: savedScale.value,
-          translateX: savedTranslateX.value,
-          translateY: savedTranslateY.value,
-        },
-        { x: e.focalX, y: e.focalY },
-        newScale,
-        stageWidth.value,
-        stageHeight.value,
+      const rawScale = pinchStartScale.value * e.scale;
+      const effectiveScale = applyElasticResistance(
+        rawScale,
+        MAP_PAN_ZOOM_LIMITS.minScale,
+        MAP_PAN_ZOOM_LIMITS.maxScale,
+        0.35,
       );
 
-      scale.value = transform.scale;
-      translateX.value = transform.translateX;
-      translateY.value = transform.translateY;
+      const centerX = stageWidth.value / 2;
+      const centerY = stageHeight.value / 2;
+      const focalRelX = e.focalX - centerX;
+      const focalRelY = e.focalY - centerY;
+
+      const scaleRatio = effectiveScale / pinchStartScale.value;
+      let newTx = pinchStartTx.value + (focalRelX - pinchStartTx.value) * (1 - scaleRatio);
+      let newTy = pinchStartTy.value + (focalRelY - pinchStartTy.value) * (1 - scaleRatio);
+
+      // Add two-finger translation offset
+      const dfx = e.focalX - pinchPrevFocalX.value;
+      const dfy = e.focalY - pinchPrevFocalY.value;
+      newTx += dfx;
+      newTy += dfy;
+      pinchPrevFocalX.value = e.focalX;
+      pinchPrevFocalY.value = e.focalY;
+
+      scale.value = effectiveScale;
+      translateX.value = newTx;
+      translateY.value = newTy;
     })
     .onEnd(() => {
       "worklet";
-      savedScale.value = scale.value;
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
+      const targetScale = clamp(
+        scale.value,
+        MAP_PAN_ZOOM_LIMITS.minScale,
+        MAP_PAN_ZOOM_LIMITS.maxScale,
+      );
+      if (Math.abs(scale.value - targetScale) > 0.01) {
+        scale.value = withTiming(targetScale, { duration: 200 });
+      }
+
+      const { maxX, maxY } = computeMaxTranslation(
+        targetScale,
+        stageWidth.value,
+        stageHeight.value,
+      );
+      const clampedX = clamp(translateX.value, -maxX, maxX);
+      const clampedY = clamp(translateY.value, -maxY, maxY);
+
+      if (Math.abs(translateX.value - clampedX) > 1) {
+        translateX.value = withTiming(clampedX, { duration: 200 });
+      }
+      if (Math.abs(translateY.value - clampedY) > 1) {
+        translateY.value = withTiming(clampedY, { duration: 200 });
+      }
+
+      savedScale.value = targetScale;
+      savedTranslateX.value = clampedX;
+      savedTranslateY.value = clampedY;
     });
 
   const panGesture = Gesture.Pan()
-    .averageTouches(true)
-    .minDistance(8)
-    .onStart(() => {
+    .minPointers(1)
+    .maxPointers(1)
+    .minDistance(4)
+    .onChange((e) => {
       "worklet";
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
-    })
-    .onUpdate((e) => {
-      "worklet";
-      const newTx = savedTranslateX.value + e.translationX;
-      const newTy = savedTranslateY.value + e.translationY;
+      if (stageWidth.value <= 0 || stageHeight.value <= 0) return;
 
-      const clamped = clampTranslation(
-        newTx,
-        newTy,
+      const { maxX, maxY } = computeMaxTranslation(
         scale.value,
         stageWidth.value,
         stageHeight.value,
       );
 
-      translateX.value = clamped.translateX;
-      translateY.value = clamped.translateY;
+      let deltaX = e.changeX;
+      let deltaY = e.changeY;
+
+      if ((translateX.value > maxX && deltaX > 0) || (translateX.value < -maxX && deltaX < 0)) {
+        deltaX *= 0.35;
+      }
+      if ((translateY.value > maxY && deltaY > 0) || (translateY.value < -maxY && deltaY < 0)) {
+        deltaY *= 0.35;
+      }
+
+      translateX.value += deltaX;
+      translateY.value += deltaY;
     })
-    .onEnd(() => {
+    .onEnd((e) => {
       "worklet";
+      const { maxX, maxY } = computeMaxTranslation(
+        scale.value,
+        stageWidth.value,
+        stageHeight.value,
+      );
+
+      if (translateX.value < -maxX || translateX.value > maxX) {
+        translateX.value = withTiming(clamp(translateX.value, -maxX, maxX), { duration: 220 });
+      } else if (Math.abs(e.velocityX) > 150) {
+        const targetX = clamp(translateX.value + e.velocityX * 0.18, -maxX, maxX);
+        translateX.value = withTiming(targetX, { duration: 280 });
+      }
+
+      if (translateY.value < -maxY || translateY.value > maxY) {
+        translateY.value = withTiming(clamp(translateY.value, -maxY, maxY), { duration: 220 });
+      } else if (Math.abs(e.velocityY) > 150) {
+        const targetY = clamp(translateY.value + e.velocityY * 0.18, -maxY, maxY);
+        translateY.value = withTiming(targetY, { duration: 280 });
+      }
+
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
     });
@@ -266,20 +332,22 @@ export const SchematicMap = memo(function SchematicMap({
         stageHeight.value,
       );
 
-      if (reducedMotion) {
+      const duration = reducedMotion ? 0 : 250;
+      if (duration > 0) {
+        scale.value = withTiming(nextTransform.scale, { duration });
+        translateX.value = withTiming(nextTransform.translateX, { duration });
+        translateY.value = withTiming(nextTransform.translateY, { duration });
+      } else {
         scale.value = nextTransform.scale;
         translateX.value = nextTransform.translateX;
         translateY.value = nextTransform.translateY;
-      } else {
-        scale.value = withTiming(nextTransform.scale, { duration: 250 });
-        translateX.value = withTiming(nextTransform.translateX, { duration: 250 });
-        translateY.value = withTiming(nextTransform.translateY, { duration: 250 });
       }
 
       savedScale.value = nextTransform.scale;
       savedTranslateX.value = nextTransform.translateX;
       savedTranslateY.value = nextTransform.translateY;
     });
+
 
   const composedGesture = Gesture.Exclusive(
     doubleTapGesture,
@@ -637,7 +705,7 @@ function primaryImpact(segment: NetworkSegment) {
 
 export function impactColor(
   kind: ImpactKind | string,
-  colors: typeof import("@/theme/tokens").themes.dark.line,
+  colors: import("@/theme/tokens").ThemeLineColors,
 ): string {
   switch (kind) {
     case "suspension":
@@ -645,7 +713,7 @@ export function impactColor(
     case "planned-closure":
       return colors.planned;
     case "reduced-speed-zone":
-      return "#f59e0b";
+      return colors.rsz ?? "#f59e0b";
     case "delay":
     default:
       return colors.delay;

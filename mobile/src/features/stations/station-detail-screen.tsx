@@ -27,6 +27,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { LineBadge } from "@/components/line-badge";
 import { LoadingState } from "@/components/loading-state";
+import { BackIcon, BookmarkIcon } from "@/components/operations-icons";
 import { Screen } from "@/components/screen";
 import {
   formatArrivalClockTime,
@@ -168,7 +169,7 @@ export function StationDetailScreen() {
               },
             ]}
           >
-            <Text style={[styles.backArrow, { color: theme.color.text }]}>‹</Text>
+            <BackIcon color={theme.color.text} size={16} />
             <Text style={[styles.backText, { color: theme.color.text }]}>Back</Text>
           </Pressable>
           <Text
@@ -212,7 +213,7 @@ export function StationDetailScreen() {
                     styles.saveStationDetailButton,
                     {
                       backgroundColor: saved
-                        ? theme.color.focus
+                        ? `${theme.color.focus}20`
                         : pressed
                           ? theme.color.surfaceRaised
                           : "transparent",
@@ -221,13 +222,18 @@ export function StationDetailScreen() {
                   ]}
                   testID="station-detail-save-button"
                 >
+                  <BookmarkIcon
+                    color={saved ? theme.color.focus : theme.color.textMuted}
+                    filled={saved}
+                    size={16}
+                  />
                   <Text
                     style={[
                       styles.saveStationDetailText,
-                      { color: saved ? "#090909" : theme.color.text },
+                      { color: saved ? theme.color.focus : theme.color.text },
                     ]}
                   >
-                    {saved ? "★ Saved" : "☆ Save"}
+                    {saved ? "Saved" : "Save"}
                   </Text>
                 </Pressable>
               </View>

@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { LineBadge } from "@/components/line-badge";
 import { LoadingState } from "@/components/loading-state";
+import { BookmarkIcon, CloseIcon, SearchIcon } from "@/components/operations-icons";
 import { ProductHeader } from "@/components/product-header";
 import { Screen } from "@/components/screen";
 import { useAppActive } from "@/hooks/use-app-active";
@@ -32,7 +33,7 @@ import {
   TTC_LINE_FILTERS,
 } from "./station-catalog";
 
-const SAVED_FILTER = { id: "saved", label: "★ Saved", lineId: "saved" };
+const SAVED_FILTER = { id: "saved", label: "Saved", lineId: "saved" };
 
 export function StationsScreen() {
   const { network, setNetwork } = useNetwork();
@@ -118,7 +119,7 @@ export function StationsScreen() {
                 },
               ]}
             >
-              <Text style={[styles.searchIcon, { color: theme.color.textMuted }]}>🔍</Text>
+              <SearchIcon color={theme.color.textMuted} size={18} />
               <TextInput
                 accessibilityLabel="Search stations"
                 autoCapitalize="none"
@@ -141,7 +142,7 @@ export function StationsScreen() {
                   style={styles.clearButton}
                   testID="clear-station-search"
                 >
-                  <Text style={[styles.clearButtonText, { color: theme.color.textMuted }]}>✕</Text>
+                  <CloseIcon color={theme.color.textMuted} size={16} />
                 </Pressable>
               ) : null}
             </View>
@@ -172,6 +173,13 @@ export function StationsScreen() {
                     ]}
                     testID={`line-filter-${filter.id}`}
                   >
+                    {filter.id === "saved" ? (
+                      <BookmarkIcon
+                        color={isSelected ? "#090909" : theme.color.textMuted}
+                        filled={isSelected}
+                        size={14}
+                      />
+                    ) : null}
                     {"lineNumber" in filter && filter.lineNumber ? (
                       <View style={styles.chipBadge}>
                         <LineBadge
@@ -302,7 +310,7 @@ export function StationsScreen() {
                     styles.saveIconButton,
                     {
                       backgroundColor: saved
-                        ? theme.color.focus
+                        ? `${theme.color.focus}20`
                         : pressed
                           ? theme.color.surfaceRaised
                           : "transparent",
@@ -311,14 +319,11 @@ export function StationsScreen() {
                   ]}
                   testID={`save-station-button-${item.id}`}
                 >
-                  <Text
-                    style={[
-                      styles.saveIconText,
-                      { color: saved ? "#090909" : theme.color.textMuted },
-                    ]}
-                  >
-                    {saved ? "★" : "☆"}
-                  </Text>
+                  <BookmarkIcon
+                    color={saved ? theme.color.focus : theme.color.textMuted}
+                    filled={saved}
+                    size={16}
+                  />
                 </Pressable>
 
                 <Text style={[styles.chevron, { color: theme.color.textMuted }]}>›</Text>

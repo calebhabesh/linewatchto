@@ -58,7 +58,7 @@ describe("ImpactDetailScreen", () => {
     await render(<ImpactDetailScreen />, { wrapper: Wrapper });
 
     expect(screen.getByText("Line 1 Suspension")).toBeTruthy();
-    expect(screen.getByText("📍 Union to King")).toBeTruthy();
+    expect(screen.getByText("Union to King")).toBeTruthy();
     expect(screen.getByText("ACTIVE ALERT")).toBeTruthy();
     expect(screen.getByText("Shuttle buses requested / operating")).toBeTruthy();
     expect(screen.getByText("9:00 AM")).toBeTruthy();

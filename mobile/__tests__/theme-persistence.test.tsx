@@ -114,7 +114,7 @@ describe("Theme & Display Preference Persistence", () => {
   });
 
   it("verifies theme tokens maintain strict border and radius constraints", () => {
-    expect(themes.dark.color.background).toBe("#080506");
+    expect(themes.dark.color.background).toBe("#0d0808");
     expect(themes["high-contrast"].color.background).toBe("#000000");
 
     // Radius constraints: max 8px
