@@ -129,6 +129,7 @@ Data and infrastructure:
 ```text
 backend/   Spring Boot API, ingestion services, and backend tests
 frontend/  Next.js dashboard, typed fixtures, UI, and frontend checks
+mobile/    Expo/React Native Android and iOS prototype
 docs/      design specs and implementation plans
 ```
 
@@ -146,6 +147,17 @@ Install frontend dependencies:
 ```bash
 npm --prefix frontend install
 ```
+
+Install and verify the mobile prototype:
+
+```bash
+npm --prefix mobile ci
+npm --prefix mobile run typecheck
+npm --prefix mobile run lint
+npm --prefix mobile test
+```
+
+See [`mobile/README.md`](mobile/README.md) for Expo development-build, API URL, Android, and EAS setup.
 
 Copy the example environment file if you plan to run local infrastructure:
 

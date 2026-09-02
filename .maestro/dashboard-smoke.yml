@@ -1,0 +1,42 @@
+appId: ca.linewatchto.app
+---
+- launchApp
+- assertVisible: "LineWatchTO"
+- assertVisible: "TTC"
+- assertVisible: "GO & UP"
+
+# 1. Dashboard Tab & Network Switching
+- tapOn: "GO & UP"
+- assertVisible: "GO & UP"
+- tapOn: "TTC"
+- assertVisible: "TTC"
+
+# 2. Alerts Tab & Impact Navigation
+- tapOn: "Alerts"
+- assertVisible: "Alerts"
+- assertVisible: "All"
+
+# 3. Stations Catalog & Detail Navigation (Slice 3)
+- tapOn: "Stations"
+- assertVisible: "Stations"
+- assertVisible: "Search stations"
+- tapOn: "Search stations"
+- inputText: "Bloor"
+- assertVisible: "Bloor-Yonge"
+- tapOn: "Bloor-Yonge"
+
+# Assert Station Details Screen
+- assertVisible: "Station details"
+- assertVisible: "Bloor-Yonge"
+- assertVisible: "Subway & LRT Arrivals"
+- assertVisible: "Accessibility & Outages"
+
+# Navigate Back to Stations List
+- tapOn: "Go back"
+- assertVisible: "Stations"
+- assertVisible: "Search stations"
+
+# 4. More Tab Navigation
+- tapOn: "More"
+- assertVisible: "More"
+- assertVisible: "Display Theme"

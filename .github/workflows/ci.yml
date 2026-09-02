@@ -58,3 +58,34 @@ jobs:
         env:
           BACKEND_URL: http://127.0.0.1:8080
           NEXT_PUBLIC_LINEWATCH_API_BASE_URL: http://127.0.0.1:8080
+
+  mobile:
+    name: Mobile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        run: npm --prefix mobile ci
+
+      - name: Typecheck
+        run: npm --prefix mobile run typecheck
+
+      - name: Lint
+        run: npm --prefix mobile run lint
+
+      - name: Test
+        run: npm --prefix mobile test
+
+      - name: Export Android bundle
+        run: npm --prefix mobile run export:android
+        env:
+          EXPO_PUBLIC_LINEWATCH_API_BASE_URL: https://api.example.invalid

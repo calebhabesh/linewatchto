@@ -1,0 +1,12 @@
+appId: ca.linewatchto.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "LineWatchTO"
+- tapOn:
+    id: "network-regional"
+- assertVisible: "GO & UP"
+- tapOn: "Stations"
+- assertVisible: "Search stations"
+- tapOn: "More"
+- assertVisible: "Prototype foundation"

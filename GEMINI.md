@@ -11,6 +11,7 @@ The user-facing product name is **LineWatchTO**. The portfolio case-study name m
 The project is early but no longer an empty scaffold.
 
 - `frontend/` contains a Next.js App Router dashboard with SVG-backed TTC and GO/UP maps independently re-created by the developer in Inkscape, React-controlled alert overlays, active alerts, separate delay and Reduced Speed Zone submenus, upcoming closures, My Commutes impact cards, reliability summaries, display toggles, and a mobile bottom nav.
+- `mobile/` contains an Expo SDK 57 / React Native TypeScript prototype scaffold with Expo Router, development-build/EAS configuration, runtime-validated aggregate dashboard reads, foreground-aware polling, persisted query caching, dark/high-contrast tokens, a map-first native shell, an initial TTC SVG-path renderer, station search, a SecureStore session seam, Jest contract tests, and a Maestro smoke skeleton. It does not yet implement complete native map interaction, station details, accounts, My Stations, My Commutes, or native push.
 - `frontend/src/app/linewatch-data.ts` is the current typed fixture/API-shape seam.
 - `frontend/src/app/transit-map.tsx` loads the authored map asset and renders interactive overlay paths in the same SVG coordinate system.
 - `frontend/public/assets/linewatch/` contains the authored TTC and GO/UP map SVGs, line legend SVG icons, and station accessibility SVG icons. Both maps were independently re-created in Inkscape for optimized app rendering and data referencing/formatting as derivative replicas of referenced TTC and Metrolinx maps; they are not downloaded official map files.
@@ -87,6 +88,15 @@ Frontend:
 - Tailwind CSS is available, but plain CSS in `frontend/src/app/globals.css` is also used.
 - Node's built-in test runner is used for fixture tests.
 
+Mobile:
+
+- Expo SDK 57 with Continuous Native Generation.
+- React Native and TypeScript.
+- Expo Router.
+- TanStack Query with AsyncStorage persistence.
+- React Native SVG, Gesture Handler, and Reanimated.
+- Jest/React Native Testing Library and Maestro.
+
 Backend:
 
 - Java 21.
@@ -110,6 +120,7 @@ Infrastructure:
 ```text
 backend/        Spring Boot API, ingestion services, and backend tests
 frontend/       Next.js dashboard, fixtures, UI, and frontend checks
+mobile/         Expo/React Native Android and iOS prototype
 infra/          Production infrastructure image definitions
 docs/           Design specs and implementation plans
 AGENTS.md       Shared agent guidance
@@ -134,6 +145,16 @@ scripts/dev-live-frontend.sh
 scripts/dev-alert-scenario-frontend.sh all-alert-types
 scripts/dev-regional-alert-scenario-frontend.sh all-alert-types
 npm --prefix frontend run test:smoke
+```
+
+Mobile:
+
+```bash
+npm --prefix mobile run typecheck
+npm --prefix mobile run lint
+npm --prefix mobile test
+npm --prefix mobile run doctor
+npm --prefix mobile run export:android
 ```
 
 Backend:
@@ -190,6 +211,16 @@ For substantial frontend changes, also run:
 ```bash
 npm --prefix frontend run build
 npm --prefix frontend run test:smoke
+```
+
+For mobile changes, run:
+
+```bash
+npm --prefix mobile run typecheck
+npm --prefix mobile run lint
+npm --prefix mobile test
+npm --prefix mobile run doctor
+npm --prefix mobile run export:android
 ```
 
 For backend changes, run:

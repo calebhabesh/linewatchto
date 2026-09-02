@@ -22,6 +22,21 @@ frontend/.vercel/
 frontend/tsconfig.tsbuildinfo
 frontend/next-env.d.ts
 
+# Mobile / Expo / React Native
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/coverage/
+mobile/android/
+mobile/ios/
+mobile/*.jks
+mobile/*.p8
+mobile/*.p12
+mobile/*.key
+mobile/*.mobileprovision
+mobile/*.orig.*
+mobile/expo-env.d.ts
+
 
 # Logs
 *.log
