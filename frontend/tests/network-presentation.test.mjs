@@ -38,7 +38,7 @@ describe("cross-network presentation vocabulary", () => {
   });
 
   it("keeps network identity separate from shared status hierarchy", () => {
-    assert.equal(networkStatusKicker("ttc"), "Current TTC rapid transit");
+    assert.equal(networkStatusKicker("ttc"), "Current TTC Rapid Transit");
     assert.equal(networkStatusKicker("regional"), "GO & UP regional rail");
     assert.equal(clearServiceStatusLabel({ networkId: "ttc", dataSource: "backend" }), "Good Service");
     assert.equal(clearServiceStatusLabel({ networkId: "regional", dataSource: "fallback" }), "Demo Status Unavailable");

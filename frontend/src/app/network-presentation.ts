@@ -15,7 +15,7 @@ export function titleCasePollText(value: string): string {
 export function networkStatusKicker(networkId: NetworkId): string {
   return networkId === "regional"
     ? "GO & UP regional rail"
-    : "Current TTC rapid transit";
+    : "Current TTC Rapid Transit";
 }
 
 export function dashboardStatusSourceLabel(
