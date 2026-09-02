@@ -7,9 +7,15 @@ import { useTheme } from "@/theme/theme-provider";
 type Props = PropsWithChildren<{
   style?: ViewStyle;
   includeBottomInset?: boolean;
+  transparent?: boolean;
 }>;
 
-export function Screen({ children, style, includeBottomInset = false }: Props) {
+export function Screen({
+  children,
+  style,
+  includeBottomInset = false,
+  transparent = false,
+}: Props) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   return (
@@ -17,7 +23,7 @@ export function Screen({ children, style, includeBottomInset = false }: Props) {
       style={[
         styles.screen,
         {
-          backgroundColor: theme.color.background,
+          backgroundColor: transparent ? "transparent" : theme.color.background,
           paddingTop: insets.top,
           paddingBottom: includeBottomInset ? insets.bottom : 0,
         },

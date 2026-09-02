@@ -15,7 +15,10 @@ export function LoadingState({
   style,
   accessibilityLabel,
 }: LoadingStateProps) {
-  const { theme } = useTheme();
+  const { theme, mode } = useTheme();
+
+  const indicatorColor = mode === "high-contrast" ? "#ffffff" : theme.color.focus;
+  const textColor = mode === "high-contrast" ? "#ffffff" : theme.color.text;
 
   return (
     <View
@@ -25,9 +28,10 @@ export function LoadingState({
       accessibilityRole="progressbar"
       role="progressbar"
       style={[compact ? styles.compactContainer : styles.fullContainer, style]}
+      testID="loading-state"
     >
-      <ActivityIndicator color={theme.color.focus} size={compact ? "small" : "large"} />
-      <Text style={[compact ? styles.compactMessage : styles.fullMessage, { color: theme.color.text }]}>
+      <ActivityIndicator color={indicatorColor} size={compact ? "small" : "large"} />
+      <Text style={[compact ? styles.compactMessage : styles.fullMessage, { color: textColor }]}>
         {message}
       </Text>
     </View>
@@ -36,7 +40,7 @@ export function LoadingState({
 
 const styles = StyleSheet.create({
   fullContainer: {
-    minHeight: 240,
+    minHeight: 220,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
@@ -50,12 +54,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   fullMessage: {
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: "700",
     textAlign: "center",
   },
   compactMessage: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

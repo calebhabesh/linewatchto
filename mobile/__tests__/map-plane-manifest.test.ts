@@ -15,7 +15,7 @@ import {
 describe("Map Plane Manifest", () => {
   const networks: MapNetworkId[] = ["ttc", "regional"];
   const planes: MapPlaneKind[] = ["background", "foreground", "labels"];
-  const themes: MapPlaneTheme[] = ["dark", "high-contrast"];
+  const themes: MapPlaneTheme[] = ["dark", "light", "high-contrast"];
 
   it("exports valid plane assets for every network, plane kind, and theme", () => {
     for (const network of networks) {
@@ -87,5 +87,42 @@ describe("Map Plane Manifest", () => {
     expect(TTC_MAP_PLANES.dark.background).not.toEqual(REGIONAL_MAP_PLANES.dark.background);
     expect(TTC_MAP_PLANES.dark.foreground).not.toEqual(REGIONAL_MAP_PLANES.dark.foreground);
     expect(TTC_MAP_PLANES.dark.labels).not.toEqual(REGIONAL_MAP_PLANES.dark.labels);
+  });
+
+  describe("framing, operational center, and keepouts", () => {
+    it("defines TTC authored content bounds matching PWA artwork extent", () => {
+      const bounds = MAP_PLANE_MANIFEST.ttc.contentBounds;
+      expect(bounds.x).toBe(65);
+      expect(bounds.y).toBe(120);
+      expect(bounds.width).toBe(7835);
+      expect(bounds.height).toBe(3700);
+    });
+
+    it("identifies TTC downtown operational core in manifest", () => {
+      const core = MAP_PLANE_MANIFEST.ttc.operationalCenter;
+      expect(core.x).toBe(4350);
+      expect(core.y).toBe(2850);
+      expect(core.description).toContain("Bloor-Yonge");
+    });
+
+    it("defines TTC default framing with PWA golden vertical ratio 0.435", () => {
+      const framing = MAP_PLANE_MANIFEST.ttc.defaultFraming;
+      expect(framing.verticalCenterRatio).toBe(0.435);
+      expect(framing.horizontalInsetRatio).toBe(0.025);
+      expect(framing.minScale).toBe(1.0);
+      expect(framing.maxScale).toBe(6.0);
+    });
+
+    it("defines safe-area and chrome keepout defaults for TTC and Regional", () => {
+      const ttcKeepouts = MAP_PLANE_MANIFEST.ttc.defaultKeepouts;
+      expect(ttcKeepouts.top).toBe(96);
+      expect(ttcKeepouts.bottom).toBe(220);
+      expect(ttcKeepouts.left).toBe(44);
+      expect(ttcKeepouts.right).toBe(48);
+
+      const regionalKeepouts = MAP_PLANE_MANIFEST.regional.defaultKeepouts;
+      expect(regionalKeepouts.top).toBe(96);
+      expect(regionalKeepouts.bottom).toBe(220);
+    });
   });
 });

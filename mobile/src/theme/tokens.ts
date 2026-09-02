@@ -1,4 +1,4 @@
-export type ThemeMode = "dark" | "high-contrast";
+export type ThemeMode = "dark" | "light" | "high-contrast";
 
 const shared = {
   radius: {
@@ -41,14 +41,39 @@ export const themes = {
       chromeGlow: "rgba(56, 189, 248, 0.16)",
     },
   },
+  light: {
+    ...shared,
+    line: {
+      suspension: "#dc2626",
+      delay: "#d97706",
+      rsz: "#d97706",
+      planned: "#2563eb",
+      normal: "#16a34a",
+    },
+    color: {
+      background: "#f8fafc",
+      surface: "#ffffff",
+      surfacePanel: "rgba(255, 255, 255, 0.94)",
+      surfaceRaised: "#f1f5f9",
+      surfaceOverlay: "rgba(255, 255, 255, 0.98)",
+      chrome: "#ffffff",
+      border: "rgba(15, 23, 42, 0.12)",
+      borderStrong: "rgba(15, 23, 42, 0.22)",
+      text: "#0f172a",
+      textMuted: "#475569",
+      textQuiet: "#64748b",
+      focus: "#0284c7",
+      chromeGlow: "rgba(15, 23, 42, 0.08)",
+    },
+  },
   "high-contrast": {
     ...shared,
     line: {
-      suspension: "#ff0000",
-      delay: "#ffaa00",
-      rsz: "#ffaa00",
-      planned: "#38bdf8",
-      normal: "#00ff66",
+      suspension: "#ff2a2a",
+      delay: "#ffd400",
+      rsz: "#ffd400",
+      planned: "#4ab5ff",
+      normal: "#28ff80",
     },
     color: {
       background: "#000000",
@@ -61,7 +86,7 @@ export const themes = {
       borderStrong: "#ffffff",
       text: "#ffffff",
       textMuted: "#ffffff",
-      textQuiet: "#e6e6e6",
+      textQuiet: "#f0f0f0",
       focus: "#8dc7ff",
       chromeGlow: "#333333",
     },

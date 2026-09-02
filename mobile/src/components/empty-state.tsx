@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { StyleSheet, Text, View, type ViewStyle } from "react-native";
 
 import { useTheme } from "@/theme/theme-provider";
@@ -6,11 +7,21 @@ export interface EmptyStateProps {
   title: string;
   message?: string;
   compact?: boolean;
+  icon?: ReactNode;
   style?: ViewStyle;
 }
 
-export function EmptyState({ title, message, compact = false, style }: EmptyStateProps) {
-  const { theme } = useTheme();
+export function EmptyState({
+  title,
+  message,
+  compact = false,
+  icon,
+  style,
+}: EmptyStateProps) {
+  const { theme, mode } = useTheme();
+
+  const titleColor = mode === "high-contrast" ? "#ffffff" : theme.color.text;
+  const messageColor = mode === "high-contrast" ? "#ffffff" : theme.color.textMuted;
 
   if (compact) {
     return (
@@ -19,10 +30,14 @@ export function EmptyState({ title, message, compact = false, style }: EmptyStat
         accessibilityRole="summary"
         role="summary"
         style={[styles.compactContainer, style]}
+        testID="empty-state"
       >
-        <Text style={[styles.compactTitle, { color: theme.color.textMuted }]}>{title}</Text>
+        {icon ? <View style={styles.iconContainer}>{icon}</View> : null}
+        <Text style={[styles.compactTitle, { color: titleColor }]}>{title}</Text>
         {message ? (
-          <Text style={[styles.compactMessage, { color: theme.color.textMuted }]}>{message}</Text>
+          <Text style={[styles.compactMessage, { color: messageColor }]}>
+            {message}
+          </Text>
         ) : null}
       </View>
     );
@@ -36,16 +51,23 @@ export function EmptyState({ title, message, compact = false, style }: EmptyStat
       style={[
         styles.cardContainer,
         {
-          backgroundColor: theme.color.surface,
-          borderColor: theme.color.border,
+          backgroundColor:
+            mode === "high-contrast" ? "#000000" : theme.color.surface,
+          borderColor:
+            mode === "high-contrast" ? "#ffffff" : theme.color.border,
           borderRadius: theme.radius.medium,
+          borderWidth: mode === "high-contrast" ? 2 : 1,
         },
         style,
       ]}
+      testID="empty-state"
     >
-      <Text style={[styles.cardTitle, { color: theme.color.text }]}>{title}</Text>
+      {icon ? <View style={styles.iconContainer}>{icon}</View> : null}
+      <Text style={[styles.cardTitle, { color: titleColor }]}>{title}</Text>
       {message ? (
-        <Text style={[styles.cardMessage, { color: theme.color.textMuted }]}>{message}</Text>
+        <Text style={[styles.cardMessage, { color: messageColor }]}>
+          {message}
+        </Text>
       ) : null}
     </View>
   );
@@ -53,12 +75,14 @@ export function EmptyState({ title, message, compact = false, style }: EmptyStat
 
 const styles = StyleSheet.create({
   cardContainer: {
-    borderWidth: 1,
     padding: 16,
     gap: 6,
   },
+  iconContainer: {
+    marginBottom: 4,
+  },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
   },
   cardMessage: {
@@ -74,6 +98,7 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 13,
     lineHeight: 19,
+    fontWeight: "600",
     textAlign: "center",
   },
   compactMessage: {

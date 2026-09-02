@@ -13,7 +13,10 @@ export type OperationsSheetHeaderProps = {
   showDragHandle?: boolean;
   onBack?: () => void;
   onClose?: () => void;
+  backTestID?: string;
+  closeTestID?: string;
   rightAction?: ReactNode;
+  children?: ReactNode;
   testID?: string;
 };
 
@@ -25,7 +28,10 @@ export const OperationsSheetHeader = memo(function OperationsSheetHeader({
   showDragHandle = true,
   onBack,
   onClose,
+  backTestID,
+  closeTestID,
   rightAction,
+  children,
   testID = "operations-sheet-header",
 }: OperationsSheetHeaderProps) {
   const { theme } = useTheme();
@@ -33,7 +39,7 @@ export const OperationsSheetHeader = memo(function OperationsSheetHeader({
   return (
     <View style={[styles.container, { borderBottomColor: theme.color.border }]} testID={testID}>
       {showDragHandle ? (
-        <View style={styles.dragHandleContainer}>
+        <View style={styles.dragHandleContainer} testID={`${testID}-drag-handle`}>
           <View style={[styles.dragHandle, { backgroundColor: theme.color.borderStrong }]} />
         </View>
       ) : null}
@@ -47,12 +53,11 @@ export const OperationsSheetHeader = memo(function OperationsSheetHeader({
             style={({ pressed }) => [
               styles.navButton,
               {
-                backgroundColor: theme.color.surfaceRaised,
+                backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surfaceOverlay,
                 borderColor: theme.color.border,
-                opacity: pressed ? 0.7 : 1,
               },
             ]}
-            testID="sheet-header-back"
+            testID={backTestID ?? (testID !== "operations-sheet-header" ? `${testID}-back` : "sheet-header-back")}
           >
             <BackIcon color={theme.color.text} size={16} />
           </Pressable>
@@ -62,19 +67,37 @@ export const OperationsSheetHeader = memo(function OperationsSheetHeader({
 
         <View style={styles.titleColumn}>
           {eyebrow ? (
-            <Text style={[styles.eyebrow, { color: theme.color.focus }]}>{eyebrow}</Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.eyebrow, { color: theme.color.focus }]}
+              testID={`${testID}-eyebrow`}
+            >
+              {eyebrow}
+            </Text>
           ) : null}
-          <Text numberOfLines={1} style={[styles.title, { color: theme.color.text }]}>
+          <Text
+            numberOfLines={1}
+            style={[styles.title, { color: theme.color.text }]}
+            testID={`${testID}-title`}
+          >
             {title}
           </Text>
           {subtitle ? (
-            <Text numberOfLines={1} style={[styles.subtitle, { color: theme.color.textQuiet }]}>
+            <Text
+              numberOfLines={1}
+              style={[styles.subtitle, { color: theme.color.textQuiet }]}
+              testID={`${testID}-subtitle`}
+            >
               {subtitle}
             </Text>
           ) : null}
         </View>
 
-        {rightAction ? <View style={styles.rightSlot}>{rightAction}</View> : null}
+        {rightAction ? (
+          <View style={styles.rightSlot} testID={`${testID}-right-action`}>
+            {rightAction}
+          </View>
+        ) : null}
 
         {onClose ? (
           <Pressable
@@ -84,17 +107,18 @@ export const OperationsSheetHeader = memo(function OperationsSheetHeader({
             style={({ pressed }) => [
               styles.navButton,
               {
-                backgroundColor: theme.color.surfaceRaised,
+                backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surfaceOverlay,
                 borderColor: theme.color.border,
-                opacity: pressed ? 0.7 : 1,
               },
             ]}
-            testID="sheet-header-close"
+            testID={closeTestID ?? (testID !== "operations-sheet-header" ? `${testID}-close` : "sheet-header-close")}
           >
             <CloseIcon color={theme.color.text} size={16} />
           </Pressable>
         ) : null}
       </View>
+
+      {children ? <View style={styles.bottomSlot}>{children}</View> : null}
     </View>
   );
 });
@@ -135,19 +159,32 @@ const styles = StyleSheet.create({
   titleColumn: {
     flex: 1,
     justifyContent: "center",
+    minWidth: 0,
   },
   eyebrow: {
     ...typography.meta,
-    marginBottom: 1,
+    marginBottom: 2,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    fontWeight: "800",
   },
   title: {
     ...typography.sheetTitle,
+    fontWeight: "900",
+    fontSize: 18,
+    lineHeight: 22,
   },
   subtitle: {
     ...typography.meta,
-    marginTop: 1,
+    marginTop: 2,
   },
   rightSlot: {
     marginLeft: "auto",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  bottomSlot: {
+    marginTop: 8,
   },
 });

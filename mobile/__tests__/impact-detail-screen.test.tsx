@@ -107,4 +107,36 @@ describe("ImpactDetailScreen", () => {
     fireEvent.press(screen.getByLabelText("Go back"));
     expect(router.back).toHaveBeenCalledTimes(1);
   });
+
+  it("renders inside an OperationsSheet detail variant frame with 64% initial height and dismiss backdrop", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      kind: "suspension",
+      id: "alert-suspension-1",
+    });
+
+    await render(<ImpactDetailScreen />, { wrapper: Wrapper });
+
+    const sheet = screen.getByTestId("impact-detail-sheet");
+    expect(sheet).toBeTruthy();
+    expect(sheet.props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          left: 8,
+          right: 8,
+          borderRadius: 8,
+          borderWidth: 1,
+        }),
+        expect.objectContaining({
+          height: "64%",
+          maxHeight: "78%",
+        }),
+      ]),
+    );
+
+    // Tapping outside the detail sheet dismisses back
+    const backdrop = screen.getByTestId("impact-detail-sheet-backdrop");
+    expect(backdrop).toBeTruthy();
+    fireEvent.press(backdrop);
+    expect(router.back).toHaveBeenCalledTimes(1);
+  });
 });

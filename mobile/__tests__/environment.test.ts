@@ -1,4 +1,7 @@
-import { resolveApiConfiguration } from "@/config/environment";
+import {
+  resolveApiConfiguration,
+  shouldAutoLoginDevAccount,
+} from "@/config/environment";
 import { describe, expect, it } from "@jest/globals";
 
 describe("resolveApiConfiguration", () => {
@@ -21,5 +24,13 @@ describe("resolveApiConfiguration", () => {
       ok: false,
       message: "This build has no LineWatchTO API URL configured.",
     });
+  });
+});
+
+describe("shouldAutoLoginDevAccount", () => {
+  it("requires both an explicit opt-in and a development build", () => {
+    expect(shouldAutoLoginDevAccount("true", true)).toBe(true);
+    expect(shouldAutoLoginDevAccount("false", true)).toBe(false);
+    expect(shouldAutoLoginDevAccount("true", false)).toBe(false);
   });
 });

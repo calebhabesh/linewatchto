@@ -107,6 +107,40 @@ describe("AuthProvider", () => {
     expect(result.current.user?.email).toBe("login@example.com");
   });
 
+  it("automatically signs into the dev account when explicitly enabled", async () => {
+    const previousValue = process.env.EXPO_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN;
+    process.env.EXPO_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN = "true";
+    (sessionTokenStore.get as jest.MockedFunction<any>).mockResolvedValue(null);
+    (authApi.devLogin as jest.MockedFunction<any>).mockResolvedValue({
+      authenticated: true,
+      user: {
+        id: "user_dev",
+        email: "dev@linewatch.local",
+        displayName: "Dev Rider",
+        demo: false,
+        googleLinked: false,
+      },
+      sessionToken: "dev-token-123",
+    });
+
+    try {
+      const { result } = await renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.status).toBe("authenticated");
+      });
+      expect(authApi.devLogin).toHaveBeenCalledTimes(1);
+      expect(sessionTokenStore.set).toHaveBeenCalledWith("dev-token-123");
+      expect(result.current.user?.email).toBe("dev@linewatch.local");
+    } finally {
+      if (previousValue === undefined) {
+        delete process.env.EXPO_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN;
+      } else {
+        process.env.EXPO_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN = previousValue;
+      }
+    }
+  });
+
   it("handles demo login and logout", async () => {
     (sessionTokenStore.get as jest.MockedFunction<any>).mockResolvedValue(null);
     (authApi.demoLogin as jest.MockedFunction<any>).mockResolvedValue({

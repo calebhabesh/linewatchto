@@ -1,7 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, Text, View } from "react-native";
 
 import { useDashboard } from "@/api/dashboard";
 import { AlertCard } from "@/components/alert-card";
@@ -10,6 +9,8 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { LineStatusList } from "@/components/line-status-list";
 import { LoadingState } from "@/components/loading-state";
+import { OperationsSheet } from "@/components/operations-sheet";
+import { OperationsSheetScroll } from "@/components/operations-sheet-scroll";
 import { ProductHeader } from "@/components/product-header";
 import { Screen } from "@/components/screen";
 import { AlertFilterBar } from "@/features/alerts/alert-filter-bar";
@@ -28,7 +29,6 @@ export function AlertsScreen() {
   const { network, setNetwork } = useNetwork();
   const query = useDashboard(network, useAppActive());
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { isSelected, setSelection } = useImpactSelection();
   const [selectedFilter, setSelectedFilter] = useState<AlertFilter>("all");
 
@@ -100,21 +100,19 @@ export function AlertsScreen() {
     );
   };
 
-  const bottomPadding = Math.max(100, insets.bottom + 80);
-
   return (
-    <Screen>
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
-        refreshControl={
-          <RefreshControl
-            colors={[theme.color.focus]}
-            onRefresh={() => void query.refetch()}
-            refreshing={query.isRefetching}
-            tintColor={theme.color.focus}
-          />
-        }
+    <Screen transparent>
+      <OperationsSheet
+        onDismiss={() => router.push("/(tabs)")}
+        testID="alerts-operations-sheet"
+        variant="primary"
       >
+        <OperationsSheetScroll
+          contentContainerStyle={styles.content}
+          onRefresh={() => void query.refetch()}
+          refreshing={query.isRefetching}
+          testID="alerts-sheet-scroll"
+        >
         <ProductHeader
           eyebrow="NETWORK OPERATIONS"
           network={network}
@@ -277,13 +275,14 @@ export function AlertsScreen() {
             )}
           </View>
         ) : null}
-      </ScrollView>
+        </OperationsSheetScroll>
+      </OperationsSheet>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 14 },
+  content: { padding: 12, gap: 14, paddingBottom: 24 },
   statusSection: { gap: 8, marginTop: 2 },
   sectionHeading: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
   sectionTitle: { fontSize: 16, fontWeight: "900" },

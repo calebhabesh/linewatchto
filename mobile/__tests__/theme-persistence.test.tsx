@@ -115,12 +115,42 @@ describe("Theme & Display Preference Persistence", () => {
 
   it("verifies theme tokens maintain strict border and radius constraints", () => {
     expect(themes.dark.color.background).toBe("#0d0808");
+    expect(themes.light.color.background).toBe("#f8fafc");
     expect(themes["high-contrast"].color.background).toBe("#000000");
 
     // Radius constraints: max 8px
     expect(themes.dark.radius.small).toBeLessThanOrEqual(8);
     expect(themes.dark.radius.medium).toBeLessThanOrEqual(8);
+    expect(themes.light.radius.small).toBeLessThanOrEqual(8);
+    expect(themes.light.radius.medium).toBeLessThanOrEqual(8);
     expect(themes["high-contrast"].radius.small).toBeLessThanOrEqual(8);
     expect(themes["high-contrast"].radius.medium).toBeLessThanOrEqual(8);
+
+    // Dark semantic line colors match PWA
+    expect(themes.dark.line.suspension).toBe("#ff4545");
+    expect(themes.dark.line.delay).toBe("#ff9f1c");
+    expect(themes.dark.line.rsz).toBe("#f59e0b");
+    expect(themes.dark.line.planned).toBe("#4aa3ff");
+    expect(themes.dark.line.normal).toBe("#30d175");
+
+    // Light semantic line colors match PWA
+    expect(themes.light.line.suspension).toBe("#dc2626");
+    expect(themes.light.line.delay).toBe("#d97706");
+    expect(themes.light.line.rsz).toBe("#d97706");
+    expect(themes.light.line.planned).toBe("#2563eb");
+    expect(themes.light.line.normal).toBe("#16a34a");
+
+    // High contrast semantic line colors match PWA
+    expect(themes["high-contrast"].line.suspension).toBe("#ff2a2a");
+    expect(themes["high-contrast"].line.delay).toBe("#ffd400");
+    expect(themes["high-contrast"].line.rsz).toBe("#ffd400");
+    expect(themes["high-contrast"].line.planned).toBe("#4ab5ff");
+    expect(themes["high-contrast"].line.normal).toBe("#28ff80");
+
+    // Text quiet tokens
+    expect(themes.dark.color.textQuiet).toBe("#747d8c");
+    expect(themes.light.color.textQuiet).toBe("#64748b");
+    expect(themes["high-contrast"].color.textQuiet).toBe("#f0f0f0");
+    expect(themes.dark.color.focus).toBe("#38bdf8");
   });
 });

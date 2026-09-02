@@ -1,0 +1,82 @@
+appId: ca.linewatchto.app
+---
+- launchApp:
+    clearState: false
+
+# 1. Primary Tab: Map (TTC - Dark Mode)
+- assertVisible: "LineWatchTO"
+- takeScreenshot: "captures/before/01_map_ttc_dark"
+
+# 2. Primary Tab: Map (GO & UP Regional - Dark Mode)
+- tapOn:
+    id: "network-regional"
+- assertVisible: "GO & UP"
+- takeScreenshot: "captures/before/02_map_regional_dark"
+- tapOn:
+    id: "network-ttc"
+
+# 3. Primary Tab: Status (TTC - Dark Mode)
+- tapOn: "Status"
+- assertVisible: "Service impacts"
+- takeScreenshot: "captures/before/03_status_ttc_dark"
+
+# 4. Primary Tab: Status (Regional - Dark Mode)
+- tapOn:
+    id: "network-regional"
+- assertVisible: "GO & UP"
+- takeScreenshot: "captures/before/04_status_regional_dark"
+- tapOn:
+    id: "network-ttc"
+
+# 5. Primary Tab: Search (TTC - Dark Mode)
+- tapOn: "Search"
+- assertVisible: "Stations"
+- takeScreenshot: "captures/before/05_search_ttc_dark"
+
+# 6. Station Detail (TTC Bloor-Yonge - Dark Mode)
+- tapOn: "Search stations"
+- inputText: "Bloor"
+- assertVisible: "Bloor-Yonge"
+- tapOn: "Bloor-Yonge"
+- assertVisible: "Go back"
+- takeScreenshot: "captures/before/06_station_detail_ttc_bloor"
+- tapOn: "Go back"
+
+# 7. Primary Tab: Commutes (Signed Out - Dark Mode)
+- tapOn: "Commutes"
+- assertVisible: "My Commutes"
+- takeScreenshot: "captures/before/07_commutes_signed_out_dark"
+
+# 8. Primary Tab: More (Dark Mode)
+- tapOn: "More"
+- assertVisible: "Display"
+- takeScreenshot: "captures/before/08_more_sheet_dark"
+
+# 9. Tool Screen: Accessibility Outages
+- tapOn:
+    id: "tool-link-accessibility"
+- assertVisible: "Elevator & Escalator"
+- takeScreenshot: "captures/before/09_accessibility_outages_dark"
+- tapOn: "Back"
+
+# 10. Tool Screen: Reliability Analytics
+- tapOn:
+    id: "tool-link-reliability"
+- assertVisible: "Reliability"
+- takeScreenshot: "captures/before/10_reliability_analytics_dark"
+- tapOn: "Back"
+
+# 11. Tool Screen: Service Notices
+- tapOn:
+    id: "tool-link-notices"
+- assertVisible: "Notices"
+- takeScreenshot: "captures/before/11_service_notices_dark"
+- tapOn: "Back"
+
+# 12. High Contrast Mode Overview
+- tapOn: "High contrast"
+- assertVisible: "High contrast"
+- tapOn: "Map"
+- takeScreenshot: "captures/before/12_map_ttc_high_contrast"
+- tapOn: "More"
+- tapOn: "Dark"

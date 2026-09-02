@@ -54,7 +54,7 @@ describe("Compact-Device & Accessibility Audit (Slice 18)", () => {
       expect(refreshBtn).toBeTruthy();
 
       expect(screen.getByLabelText("Hide estimated train markers")).toBeTruthy();
-      expect(screen.getByLabelText("Enable high contrast")).toBeTruthy();
+      expect(screen.getByLabelText("Use light display")).toBeTruthy();
       expect(screen.getByLabelText("Refresh dashboard")).toBeTruthy();
     });
 

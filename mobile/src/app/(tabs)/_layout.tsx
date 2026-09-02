@@ -1,114 +1,45 @@
 import { Tabs } from "expo-router";
-import { Platform } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, View } from "react-native";
 
-import {
-  AlertsTabIcon,
-  CommutesTabIcon,
-  MapTabIcon,
-  MoreTabIcon,
-  StationsTabIcon,
-} from "@/components/tab-icons";
-import { useDashboard } from "@/api/dashboard";
-import { useNetwork } from "@/state/network-provider";
+import { MobileBottomNavBar } from "@/components/mobile-bottom-nav-bar";
+import { OperationsShell, ShellProvider } from "@/features/shell";
 import { useTheme } from "@/theme/theme-provider";
 
 export default function TabsLayout() {
   const { theme } = useTheme();
-  const { network } = useNetwork();
-  const { data: dashboard } = useDashboard(network, true);
-  const insets = useSafeAreaInsets();
-
-  const currentCount =
-    (dashboard?.activeAlerts.length ?? 0) +
-    (dashboard?.delays.length ?? 0) +
-    (dashboard?.reducedSpeedZones.length ?? 0);
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: theme.color.background },
-        tabBarActiveTintColor: theme.color.text,
-        tabBarInactiveTintColor: theme.color.textMuted,
-        tabBarActiveBackgroundColor: theme.color.chromeGlow,
-        tabBarHideOnKeyboard: true,
-        tabBarItemStyle: {
-          borderRadius: 24,
-          marginHorizontal: 2,
-          marginVertical: 6,
-        },
-        tabBarStyle: {
-          position: "absolute",
-          left: 14,
-          right: 14,
-          bottom: Math.max(10, insets.bottom),
-          height: 68,
-          paddingHorizontal: 5,
-          paddingBottom: 0,
-          backgroundColor: theme.color.surfaceOverlay,
-          borderColor: theme.color.borderStrong,
-          borderTopColor: theme.color.borderStrong,
-          borderWidth: 1,
-          borderTopWidth: 1,
-          borderRadius: 34,
-          elevation: 16,
-          shadowColor: "#000000",
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: Platform.OS === "ios" ? 0.5 : 0,
-          shadowRadius: 18,
-        },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: "800", letterSpacing: 0.15 },
-        tabBarIconStyle: { marginTop: 1 },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Map",
-          tabBarIcon: ({ color }) => <MapTabIcon color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="alerts"
-        options={{
-          title: "Status",
-          tabBarBadge: currentCount > 0 ? (currentCount > 99 ? "99+" : currentCount) : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: theme.line.suspension,
-            color: "#ffffff",
-            fontSize: 9,
-            fontWeight: "900",
-            minWidth: 18,
-            height: 18,
-            borderRadius: 9,
-            lineHeight: 16,
-            alignSelf: "center",
-          },
-          tabBarIcon: ({ color }) => <AlertsTabIcon color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="stations"
-        options={{
-          title: "Search",
-          tabBarIcon: ({ color }) => <StationsTabIcon color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="commutes"
-        options={{
-          title: "Commutes",
-          tabBarIcon: ({ color }) => <CommutesTabIcon color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="more"
-        options={{
-          title: "More",
-          tabBarIcon: ({ color }) => <MoreTabIcon color={color} />,
-        }}
-      />
-    </Tabs>
+    <ShellProvider>
+      <View
+        style={[styles.container, { backgroundColor: theme.color.background }]}
+        testID="tabs-shell-container"
+      >
+        {/* Layer 0: The persistent operations shell with the schematic map permanently mounted */}
+        <OperationsShell />
+
+        {/* Layer 1: Tab scenes rendered with transparent background so the map is never unmounted or hidden */}
+        <Tabs
+          tabBar={(props) => <MobileBottomNavBar {...props} />}
+          screenOptions={{
+            headerShown: false,
+            sceneStyle: { backgroundColor: "transparent" },
+            tabBarHideOnKeyboard: true,
+          }}
+        >
+          <Tabs.Screen name="index" options={{ title: "Map" }} />
+          <Tabs.Screen name="alerts" options={{ title: "Status" }} />
+          <Tabs.Screen name="stations" options={{ title: "Search" }} />
+          <Tabs.Screen name="commutes" options={{ title: "Commutes" }} />
+          <Tabs.Screen name="more" options={{ title: "More" }} />
+        </Tabs>
+      </View>
+    </ShellProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: "relative",
+  },
+});

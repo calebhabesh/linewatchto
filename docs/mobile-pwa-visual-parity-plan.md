@@ -256,6 +256,8 @@ Support font scaling. Use `maxFontSizeMultiplier` only where an individual badge
 
 Each slice should leave the app runnable and verified. Do not begin screen-by-screen pixel tuning before Slices 0–3 are stable.
 
+For controlled execution and approval one component at a time, use [`mobile-pwa-component-parity-checklist.md`](./mobile-pwa-component-parity-checklist.md). Its serial review queue, reference key, per-item evidence requirements, and prompt template are the enforcement layer for the broader slices below.
+
 ### Slice 0: Freeze the baseline and golden matrix
 
 Deliverables:

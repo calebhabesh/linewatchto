@@ -90,7 +90,10 @@ export function StationsScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
         data={filteredStations}
         keyExtractor={(station) => station.id}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled={true}
+        showsVerticalScrollIndicator={true}
         refreshControl={
           <RefreshControl
             colors={[theme.color.focus]}

@@ -21,18 +21,18 @@ import {
   getNetworkAspectRatio,
   getNetworkViewBox,
   type MapNetworkId,
+  type ViewportKeepouts,
 } from "./map-plane-manifest";
 import {
   applyElasticResistance,
   clamp,
-  clampScale,
-  clampTranslation,
+  computeDefaultMapTransform,
   computeDoubleTapTransform,
-  computeFocalZoomTransform,
   computeMaxTranslation,
-  computeResetTransform,
   computeStepZoomTransform,
+  isTransformAtDefault,
   MAP_PAN_ZOOM_LIMITS,
+  type MapTransform,
 } from "./pan-zoom-math";
 import { RasterMapPlane } from "./raster-map-plane";
 import { TrainMarkerLayer } from "./train-marker-layer";
@@ -42,6 +42,7 @@ export type Selection = ImpactSelection | null;
 export type SchematicMapProps = {
   dashboard: Dashboard;
   immersive?: boolean;
+  keepouts?: ViewportKeepouts;
   reducedMotion?: boolean;
   resetNonce?: number;
   selection?: Selection;
@@ -54,6 +55,7 @@ export type SchematicMapProps = {
 export const SchematicMap = memo(function SchematicMap({
   dashboard,
   immersive = false,
+  keepouts,
   reducedMotion: reducedMotionProp,
   resetNonce = 0,
   selection: selectionProp,
@@ -77,6 +79,11 @@ export const SchematicMap = memo(function SchematicMap({
   const viewBox = getNetworkViewBox(network);
   const aspectRatio = getNetworkAspectRatio(network);
 
+  const defaultTransform = useMemo(
+    () => computeDefaultMapTransform(stageDimensions.width, stageDimensions.height, network, { keepouts }),
+    [keepouts, network, stageDimensions.height, stageDimensions.width],
+  );
+
   // Shared values for Reanimated transform state
   const scale = useSharedValue<number>(MAP_PAN_ZOOM_LIMITS.defaultScale);
   const savedScale = useSharedValue<number>(MAP_PAN_ZOOM_LIMITS.defaultScale);
@@ -84,6 +91,8 @@ export const SchematicMap = memo(function SchematicMap({
   const savedTranslateX = useSharedValue<number>(0);
   const translateY = useSharedValue<number>(0);
   const savedTranslateY = useSharedValue<number>(0);
+  const defaultTx = useSharedValue<number>(0);
+  const defaultTy = useSharedValue<number>(0);
   const stageWidth = useSharedValue<number>(0);
   const stageHeight = useSharedValue<number>(0);
 
@@ -96,30 +105,53 @@ export const SchematicMap = memo(function SchematicMap({
 
   const prevNetworkRef = useRef(network);
   const previousResetNonce = useRef(resetNonce);
+  const hasInitializedCameraRef = useRef(false);
 
   // Reset transform and selection when network switches
   useEffect(() => {
     if (prevNetworkRef.current !== network) {
       prevNetworkRef.current = network;
-      scale.value = MAP_PAN_ZOOM_LIMITS.defaultScale;
-      savedScale.value = MAP_PAN_ZOOM_LIMITS.defaultScale;
-      translateX.value = 0;
-      savedTranslateX.value = 0;
-      translateY.value = 0;
-      savedTranslateY.value = 0;
+      const def = computeDefaultMapTransform(stageDimensions.width, stageDimensions.height, network, { keepouts });
+      defaultTx.value = def.translateX;
+      defaultTy.value = def.translateY;
+      scale.value = def.scale;
+      savedScale.value = def.scale;
+      translateX.value = def.translateX;
+      savedTranslateX.value = def.translateX;
+      translateY.value = def.translateY;
+      savedTranslateY.value = def.translateY;
       setIsZoomedOrPanned(false);
       setContextSelection(null);
       onSelectionChange?.(null);
     }
-  }, [network, onSelectionChange, savedScale, savedTranslateX, savedTranslateY, scale, setContextSelection, translateX, translateY]);
+  }, [
+    defaultTx,
+    defaultTy,
+    keepouts,
+    network,
+    onSelectionChange,
+    savedScale,
+    savedTranslateX,
+    savedTranslateY,
+    scale,
+    setContextSelection,
+    stageDimensions.height,
+    stageDimensions.width,
+    translateX,
+    translateY,
+  ]);
 
-  const updateZoomState = useCallback(() => {
-    const isAtDefault =
-      Math.abs(scale.value - MAP_PAN_ZOOM_LIMITS.defaultScale) < 0.05 &&
-      Math.abs(translateX.value) < 2 &&
-      Math.abs(translateY.value) < 2;
-    setIsZoomedOrPanned(!isAtDefault);
-  }, [scale, translateX, translateY]);
+  const updateZoomState = useCallback(
+    (targetDefault?: MapTransform) => {
+      const def = targetDefault ?? defaultTransform;
+      const isAtDefault = isTransformAtDefault(
+        { scale: scale.value, translateX: translateX.value, translateY: translateY.value },
+        def,
+      );
+      setIsZoomedOrPanned(!isAtDefault);
+    },
+    [defaultTransform, scale, translateX, translateY],
+  );
 
   const applyTransform = useCallback(
     (nextScale: number, nextTx: number, nextTy: number, animate = true) => {
@@ -139,19 +171,19 @@ export const SchematicMap = memo(function SchematicMap({
       savedTranslateX.value = nextTx;
       savedTranslateY.value = nextTy;
 
-      const isAtDefault =
-        Math.abs(nextScale - MAP_PAN_ZOOM_LIMITS.defaultScale) < 0.05 &&
-        Math.abs(nextTx) < 2 &&
-        Math.abs(nextTy) < 2;
+      const isAtDefault = isTransformAtDefault(
+        { scale: nextScale, translateX: nextTx, translateY: nextTy },
+        defaultTransform,
+      );
       setIsZoomedOrPanned(!isAtDefault);
     },
-    [reducedMotion, savedScale, savedTranslateX, savedTranslateY, scale, translateX, translateY],
+    [defaultTransform, reducedMotion, savedScale, savedTranslateX, savedTranslateY, scale, translateX, translateY],
   );
 
   const handleReset = useCallback(() => {
-    const reset = computeResetTransform();
-    applyTransform(reset.scale, reset.translateX, reset.translateY, true);
-  }, [applyTransform]);
+    const def = computeDefaultMapTransform(stageDimensions.width, stageDimensions.height, network, { keepouts });
+    applyTransform(def.scale, def.translateX, def.translateY, true);
+  }, [applyTransform, keepouts, network, stageDimensions.height, stageDimensions.width]);
 
   useEffect(() => {
     if (previousResetNonce.current === resetNonce) return;
@@ -166,9 +198,10 @@ export const SchematicMap = memo(function SchematicMap({
       MAP_PAN_ZOOM_LIMITS.zoomStepRatio,
       stageDimensions.width,
       stageDimensions.height,
+      { x: defaultTx.value, y: defaultTy.value },
     );
     applyTransform(next.scale, next.translateX, next.translateY, true);
-  }, [applyTransform, scale, stageDimensions.height, stageDimensions.width, translateX, translateY]);
+  }, [applyTransform, defaultTx, defaultTy, scale, stageDimensions.height, stageDimensions.width, translateX, translateY]);
 
   const handleZoomOut = useCallback(() => {
     if (stageDimensions.width <= 0 || stageDimensions.height <= 0) return;
@@ -177,9 +210,10 @@ export const SchematicMap = memo(function SchematicMap({
       1 / MAP_PAN_ZOOM_LIMITS.zoomStepRatio,
       stageDimensions.width,
       stageDimensions.height,
+      { x: defaultTx.value, y: defaultTy.value },
     );
     applyTransform(next.scale, next.translateX, next.translateY, true);
-  }, [applyTransform, scale, stageDimensions.height, stageDimensions.width, translateX, translateY]);
+  }, [applyTransform, defaultTx, defaultTy, scale, stageDimensions.height, stageDimensions.width, translateX, translateY]);
 
   const handleSelectImpact = useCallback(
     (nextSelection: Selection) => {
@@ -248,8 +282,13 @@ export const SchematicMap = memo(function SchematicMap({
         stageWidth.value,
         stageHeight.value,
       );
-      const clampedX = clamp(translateX.value, -maxX, maxX);
-      const clampedY = clamp(translateY.value, -maxY, maxY);
+      const minX = defaultTx.value - maxX;
+      const maxXBound = defaultTx.value + maxX;
+      const minY = defaultTy.value - maxY;
+      const maxYBound = defaultTy.value + maxY;
+
+      const clampedX = clamp(translateX.value, minX, maxXBound);
+      const clampedY = clamp(translateY.value, minY, maxYBound);
 
       if (Math.abs(translateX.value - clampedX) > 1) {
         translateX.value = withTiming(clampedX, { duration: 200 });
@@ -276,14 +315,18 @@ export const SchematicMap = memo(function SchematicMap({
         stageWidth.value,
         stageHeight.value,
       );
+      const minX = defaultTx.value - maxX;
+      const maxXBound = defaultTx.value + maxX;
+      const minY = defaultTy.value - maxY;
+      const maxYBound = defaultTy.value + maxY;
 
       let deltaX = e.changeX;
       let deltaY = e.changeY;
 
-      if ((translateX.value > maxX && deltaX > 0) || (translateX.value < -maxX && deltaX < 0)) {
+      if ((translateX.value > maxXBound && deltaX > 0) || (translateX.value < minX && deltaX < 0)) {
         deltaX *= 0.35;
       }
-      if ((translateY.value > maxY && deltaY > 0) || (translateY.value < -maxY && deltaY < 0)) {
+      if ((translateY.value > maxYBound && deltaY > 0) || (translateY.value < minY && deltaY < 0)) {
         deltaY *= 0.35;
       }
 
@@ -297,18 +340,22 @@ export const SchematicMap = memo(function SchematicMap({
         stageWidth.value,
         stageHeight.value,
       );
+      const minX = defaultTx.value - maxX;
+      const maxXBound = defaultTx.value + maxX;
+      const minY = defaultTy.value - maxY;
+      const maxYBound = defaultTy.value + maxY;
 
-      if (translateX.value < -maxX || translateX.value > maxX) {
-        translateX.value = withTiming(clamp(translateX.value, -maxX, maxX), { duration: 220 });
+      if (translateX.value < minX || translateX.value > maxXBound) {
+        translateX.value = withTiming(clamp(translateX.value, minX, maxXBound), { duration: 220 });
       } else if (Math.abs(e.velocityX) > 150) {
-        const targetX = clamp(translateX.value + e.velocityX * 0.18, -maxX, maxX);
+        const targetX = clamp(translateX.value + e.velocityX * 0.18, minX, maxXBound);
         translateX.value = withTiming(targetX, { duration: 280 });
       }
 
-      if (translateY.value < -maxY || translateY.value > maxY) {
-        translateY.value = withTiming(clamp(translateY.value, -maxY, maxY), { duration: 220 });
+      if (translateY.value < minY || translateY.value > maxYBound) {
+        translateY.value = withTiming(clamp(translateY.value, minY, maxYBound), { duration: 220 });
       } else if (Math.abs(e.velocityY) > 150) {
-        const targetY = clamp(translateY.value + e.velocityY * 0.18, -maxY, maxY);
+        const targetY = clamp(translateY.value + e.velocityY * 0.18, minY, maxYBound);
         translateY.value = withTiming(targetY, { duration: 280 });
       }
 
@@ -330,6 +377,12 @@ export const SchematicMap = memo(function SchematicMap({
         { x: e.x, y: e.y },
         stageWidth.value,
         stageHeight.value,
+        MAP_PAN_ZOOM_LIMITS.doubleTapScale,
+        {
+          scale: MAP_PAN_ZOOM_LIMITS.defaultScale,
+          translateX: defaultTx.value,
+          translateY: defaultTy.value,
+        },
       );
 
       const duration = reducedMotion ? 0 : 250;
@@ -409,7 +462,19 @@ export const SchematicMap = memo(function SchematicMap({
           setStageDimensions({ width, height });
           stageWidth.value = width;
           stageHeight.value = height;
-          updateZoomState();
+          const def = computeDefaultMapTransform(width, height, network, { keepouts });
+          defaultTx.value = def.translateX;
+          defaultTy.value = def.translateY;
+          if (!hasInitializedCameraRef.current) {
+            hasInitializedCameraRef.current = true;
+            scale.value = def.scale;
+            savedScale.value = def.scale;
+            translateX.value = def.translateX;
+            savedTranslateX.value = def.translateX;
+            translateY.value = def.translateY;
+            savedTranslateY.value = def.translateY;
+          }
+          updateZoomState(def);
         }}
         style={[styles.mapStage, immersive ? styles.mapStageImmersive : { aspectRatio }]}
         testID="map-stage"

@@ -487,4 +487,40 @@ describe("StationDetailScreen", () => {
     expect(screen.getByTestId("station-detail-save-button")).toBeTruthy();
     expect(screen.getByText("Save")).toBeTruthy();
   });
+
+  it("renders inside an OperationsSheet detail variant frame with 64% initial height and dismiss backdrop", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ network: "ttc", id: "bloor-yonge" });
+    (useTtcStationDetail as jest.Mock).mockReturnValue({
+      data: mockTtcDetailData,
+      isPending: false,
+      isRefetching: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    await render(<StationDetailScreen />, { wrapper: Wrapper });
+
+    const sheet = screen.getByTestId("station-detail-sheet");
+    expect(sheet).toBeTruthy();
+    expect(sheet.props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          left: 8,
+          right: 8,
+          borderRadius: 8,
+          borderWidth: 1,
+        }),
+        expect.objectContaining({
+          height: "64%",
+          maxHeight: "78%",
+        }),
+      ]),
+    );
+
+    // Tapping outside the detail sheet dismisses back
+    const backdrop = screen.getByTestId("station-detail-sheet-backdrop");
+    expect(backdrop).toBeTruthy();
+    fireEvent.press(backdrop);
+    expect(router.back).toHaveBeenCalled();
+  });
 });

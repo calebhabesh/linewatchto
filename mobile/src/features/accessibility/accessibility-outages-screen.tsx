@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import { useAccessibilityOutages, type AccessibilityAssetFilter } from "@/api/accessibility";
@@ -11,8 +11,9 @@ import { ErrorState } from "@/components/error-state";
 import { LineBadge } from "@/components/line-badge";
 import { LoadingState } from "@/components/loading-state";
 import { NetworkSwitcher } from "@/components/network-switcher";
-import { BackIcon } from "@/components/operations-icons";
-import { ProductHeader } from "@/components/product-header";
+import { OperationsSheet } from "@/components/operations-sheet";
+import { OperationsSheetHeader } from "@/components/operations-sheet-header";
+import { OperationsSheetScroll } from "@/components/operations-sheet-scroll";
 import { Screen } from "@/components/screen";
 import { useAppActive } from "@/hooks/use-app-active";
 import { useScreenFocused } from "@/hooks/use-screen-focused";
@@ -45,45 +46,30 @@ export function AccessibilityOutagesScreen() {
   ) ?? 0;
 
   return (
-    <Screen>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            colors={[theme.color.focus]}
-            onRefresh={() => {
-              void refetch();
-            }}
-            refreshing={isRefetching}
-            tintColor={theme.color.focus}
-          />
-        }
+    <Screen transparent>
+      <OperationsSheet
+        onDismiss={() => router.back()}
+        testID="accessibility-outages-sheet"
+        variant="tool"
       >
-        {/* Navigation Back & Header */}
-        <View style={styles.topRow}>
-          <Pressable
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.backButton,
-              {
-                backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surfaceOverlay,
-                borderColor: theme.color.border,
-              },
-            ]}
-            testID="accessibility-back-button"
-          >
-            <BackIcon color={theme.color.text} size={16} />
-            <Text style={[styles.backText, { color: theme.color.text }]}>Back</Text>
-          </Pressable>
-        </View>
-
-        <ProductHeader
+        <OperationsSheetHeader
+          backTestID="accessibility-back-button"
           eyebrow="FACILITY STATUS"
-          subtitle="Live elevator and escalator outages grouped by line/corridor and station."
+          onBack={() => router.back()}
+          onClose={() => router.push("/(tabs)")}
+          showDragHandle={true}
+          subtitle="Live elevator and escalator outages"
+          testID="accessibility-outages-header"
           title="Accessibility Outages"
         />
+        <OperationsSheetScroll
+          contentContainerStyle={styles.content}
+          onRefresh={() => {
+            void refetch();
+          }}
+          refreshing={isRefetching}
+          testID="accessibility-outages-scroll"
+        >
 
         {/* Controls: Network & Filter */}
         <View style={styles.controlsRow}>
@@ -167,7 +153,8 @@ export function AccessibilityOutagesScreen() {
             ))}
           </View>
         )}
-      </ScrollView>
+        </OperationsSheetScroll>
+      </OperationsSheet>
     </Screen>
   );
 }

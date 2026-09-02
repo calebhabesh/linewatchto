@@ -5,17 +5,23 @@ import type { Dashboard, LineStatus } from "@/api/dashboard-schema";
 import { NetworkSwitcher } from "@/components/network-switcher";
 import {
   AlertTriangleIcon,
+  ArrowRightIcon,
+  BellFilledIcon,
   BellIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   ClockIcon,
   ConstructionIcon,
+  DelayIcon,
   InfoIcon,
   LocateIcon,
+  MoonIcon,
+  PlannedClosureIcon,
   RefreshIcon,
-  ThemeToggleIcon,
+  SunIcon,
   TrainIcon,
 } from "@/components/operations-icons";
+import { SHELL_ELEVATION, SHELL_Z_INDEX } from "@/features/shell/shell-layout";
 import { useTheme } from "@/theme/theme-provider";
 import type { ThemeLineColors } from "@/theme/tokens";
 
@@ -137,9 +143,15 @@ export const MapTopChrome = memo(function MapTopChrome({
           />
         ) : null}
         <MapActionButton
-          accessibilityLabel={mode === "dark" ? "Enable high contrast" : "Use dark display"}
-          icon={<ThemeToggleIcon color={theme.color.text} size={18} />}
-          onPress={() => setMode(mode === "dark" ? "high-contrast" : "dark")}
+          accessibilityLabel={mode === "light" ? "Use dark display" : "Use light display"}
+          icon={
+            mode === "light" ? (
+              <MoonIcon color="#a855f7" size={18} />
+            ) : (
+              <SunIcon color="#eab308" size={18} />
+            )
+          }
+          onPress={() => setMode(mode === "light" ? "dark" : "light")}
           testID="toggle-theme-button"
         />
         <MapActionButton
@@ -247,7 +259,7 @@ export const MapStatusPeek = memo(function MapStatusPeek({
         testID="open-status-button"
       >
         <View style={styles.statusTitleRow}>
-          <BellIcon color={currentCount > 0 ? theme.line.delay : theme.color.textQuiet} size={16} />
+          <BellFilledIcon color={currentCount > 0 ? theme.line.delay : theme.color.textQuiet} size={16} />
           <Text style={[styles.statusTitle, { color: theme.color.text }]}>
             {currentCount > 0
               ? `${currentCount} Current Impact${currentCount === 1 ? "" : "s"}`
@@ -270,15 +282,15 @@ export const MapStatusPeek = memo(function MapStatusPeek({
             <CountChip
               count={activeCount}
               icon={<AlertTriangleIcon color={theme.line.suspension} size={12} />}
-              label="Active"
+              label={activeCount === 1 ? "Active Alert" : "Active Alerts"}
               tone="suspension"
             />
           ) : null}
           {delayCount > 0 ? (
             <CountChip
               count={delayCount}
-              icon={<ClockIcon color={theme.line.delay} size={12} />}
-              label="Delays"
+              icon={<DelayIcon color={theme.line.delay} size={12} />}
+              label={delayCount === 1 ? "Delay" : "Delays"}
               tone="delay"
             />
           ) : null}
@@ -286,15 +298,15 @@ export const MapStatusPeek = memo(function MapStatusPeek({
             <CountChip
               count={rszCount}
               icon={<ConstructionIcon color={theme.line.rsz} size={12} />}
-              label="RSZ"
+              label={rszCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
               tone="rsz"
             />
           ) : null}
           {closureCount > 0 ? (
             <CountChip
               count={closureCount}
-              icon={<InfoIcon color={theme.line.planned} size={12} />}
-              label="Closures"
+              icon={<PlannedClosureIcon color={theme.line.planned} size={12} />}
+              label={closureCount === 1 ? "Planned Closure" : "Planned Closures"}
               tone="planned"
             />
           ) : null}
@@ -356,7 +368,7 @@ function CountChip({
         {count > 0 ? `${count} ` : ""}
         {label}
       </Text>
-      <ChevronRightIcon color={color} size={11} />
+      <ArrowRightIcon color={color} size={11} strokeWidth={2.75} />
     </View>
   );
 }
@@ -444,7 +456,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 10,
     top: 12,
-    zIndex: 22,
+    zIndex: SHELL_Z_INDEX.chrome,
+    elevation: SHELL_ELEVATION.chrome,
     alignItems: "flex-end",
     gap: 8,
   },
@@ -464,7 +477,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 14,
     right: 14,
-    zIndex: 25,
+    zIndex: SHELL_Z_INDEX.statusPeek,
+    elevation: SHELL_ELEVATION.statusPeek,
     borderWidth: 1,
     borderRadius: 8,
     padding: 11,

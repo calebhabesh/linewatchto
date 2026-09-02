@@ -37,6 +37,13 @@ API URL behavior:
 - Preview and production builds must set `EXPO_PUBLIC_LINEWATCH_API_BASE_URL` in the matching EAS environment.
 - Do not embed a Cloudflare Access service token in the app.
 
+Account testing:
+
+- Start the backend with `scripts/dev-live-backend.sh`; this explicitly enables the otherwise-disabled local dev-account endpoint.
+- Set `EXPO_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN=true` in `mobile/.env.local` to sign into `dev@linewatch.local` automatically in a development build. Release builds ignore this setting.
+- The same persistent, non-demo developer persona is available from **More → Account → Dev Account** when automatic sign-in is disabled. Its bearer session token is stored in SecureStore and is sent to account-backed API requests.
+- A physical Android device connected over USB can reach a loopback-bound backend with `adb reverse tcp:8080 tcp:8080`. Without USB reverse, configure a LAN-reachable API URL and deliberately bind the backend to an appropriate development interface.
+
 ## Verification
 
 ```bash
@@ -76,7 +83,8 @@ Implemented here:
 - complete station catalog search, filtering, and cross-network station detail route (`/station/[network]/[id]`);
 - service impact categorization and detail route (`/impact/[kind]/[id]`);
 - dark/high-contrast tokens, display settings, and AsyncStorage persistence;
-- SecureStore adapter reserved for the future native bearer session;
+- native bearer-session authentication with opaque tokens stored in SecureStore, plus email/password, demo, and local dev-account sign-in;
+- account-backed My Stations, My Commutes, and notification-preference reads and mutations;
 - comprehensive deterministic unit/contract tests, CI export, EAS profiles, and expanded Maestro smoke suite.
 
-Not implemented yet: backend native bearer-token issuance, account sync, My Stations, My Commutes, or native push notifications. The SecureStore adapter does not imply the backend can issue bearer tokens today.
+Not implemented yet: native APNs/FCM push registration and delivery. The current notification screen manages backend Web Push preferences; it does not make the native app a push-notification endpoint.

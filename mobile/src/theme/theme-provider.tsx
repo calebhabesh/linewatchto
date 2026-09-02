@@ -19,7 +19,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let active = true;
     void AsyncStorage.getItem(STORAGE_KEY).then((value) => {
-      if (active && (value === "dark" || value === "high-contrast")) {
+      if (active && (value === "dark" || value === "light" || value === "high-contrast")) {
         setModeState(value);
       }
     });

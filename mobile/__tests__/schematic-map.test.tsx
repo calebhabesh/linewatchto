@@ -416,4 +416,25 @@ describe("SchematicMap Component", () => {
 
     expect(screen.getByTestId("schematic-map-ttc")).toBeTruthy();
   });
+
+  it("applies default TTC framing and accepts keepouts on layout", async () => {
+    await render(
+      <SchematicMap
+        dashboard={mockTtcDashboard}
+        immersive={true}
+        keepouts={{ top: 96, bottom: 220, left: 44, right: 48 }}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    const mapStage = screen.getByTestId("map-stage");
+    await act(async () => {
+      fireEvent(mapStage, "layout", {
+        nativeEvent: { layout: { width: 390, height: 844 } },
+      });
+    });
+
+    expect(screen.getByTestId("schematic-map-ttc")).toBeTruthy();
+    expect(screen.getByTestId("animated-map-canvas")).toBeTruthy();
+  });
 });

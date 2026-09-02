@@ -29,7 +29,13 @@ export function MoreScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled={true}
+        showsVerticalScrollIndicator={true}
+      >
         <ProductHeader
           eyebrow="LINEWATCHTO"
           subtitle="Account, display, data sources, and project documentation."
@@ -49,8 +55,9 @@ export function MoreScreen() {
             High contrast increases borders and foreground separation across the app.
           </Text>
           <View style={styles.row}>
-            {(["dark", "high-contrast"] as const).map((option) => {
+            {(["dark", "light", "high-contrast"] as const).map((option) => {
               const selected = mode === option;
+              const label = option === "dark" ? "Dark" : option === "light" ? "Light" : "High contrast";
               return (
                 <Pressable
                   key={option}
@@ -65,7 +72,7 @@ export function MoreScreen() {
                   testID={`theme-option-${option}`}
                 >
                   <Text style={[styles.choiceLabel, { color: theme.color.text }]}>
-                    {option === "dark" ? "Dark" : "High contrast"}
+                    {label}
                   </Text>
                 </Pressable>
               );

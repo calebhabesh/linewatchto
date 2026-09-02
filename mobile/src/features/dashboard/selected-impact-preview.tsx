@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { Dashboard } from "@/api/dashboard-schema";
 import { LineBadge } from "@/components/line-badge";
+import { SHELL_ELEVATION, SHELL_LAYOUT, SHELL_Z_INDEX } from "@/features/shell/shell-layout";
 import type { ImpactKind, ImpactSelection } from "@/state/impact-selection-provider";
 import { useTheme } from "@/theme/theme-provider";
 
@@ -321,16 +322,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 14,
     right: 14,
-    zIndex: 28,
+    zIndex: SHELL_Z_INDEX.statusPeek + 1,
+    elevation: SHELL_ELEVATION.statusPeek + 1,
     borderWidth: 1.5,
-    borderRadius: 10,
+    borderRadius: SHELL_LAYOUT.sheetCornerRadius,
     padding: 12,
     gap: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
-    elevation: 8,
   },
   headerRow: {
     flexDirection: "row",

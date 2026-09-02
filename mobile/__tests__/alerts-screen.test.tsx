@@ -88,4 +88,35 @@ describe("AlertsScreen", () => {
       params: { kind: "suspension", id: "alert-suspension-1" },
     });
   });
+
+  it("renders inside an OperationsSheet frame with 8dp radius, 8dp insets, and dismiss backdrop", async () => {
+    await render(<AlertsScreen />, { wrapper: Wrapper });
+
+    const sheet = screen.getByTestId("alerts-operations-sheet");
+    expect(sheet).toBeTruthy();
+    expect(sheet.props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          left: 8,
+          right: 8,
+          borderRadius: 8,
+          borderWidth: 1,
+        }),
+        expect.objectContaining({
+          maxHeight: "78%",
+        }),
+        expect.objectContaining({
+          zIndex: 40,
+          elevation: 18,
+          bottom: 84,
+        }),
+      ]),
+    );
+
+    // Tapping the backdrop outside the sheet dismisses back to the persistent map
+    const backdrop = screen.getByTestId("alerts-operations-sheet-backdrop");
+    expect(backdrop).toBeTruthy();
+    fireEvent.press(backdrop);
+    expect(router.push).toHaveBeenCalledWith("/(tabs)");
+  });
 });

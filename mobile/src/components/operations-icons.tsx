@@ -1,5 +1,38 @@
 import type { ColorValue } from "react-native";
-import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
+import {
+  Accessibility,
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  Bell,
+  Bookmark,
+  Bus,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Construction,
+  ExternalLink,
+  History,
+  Info,
+  Layers,
+  Locate,
+  Moon,
+  Pencil,
+  Plus,
+  RefreshCw,
+  RotateCw,
+  Search,
+  ShieldCheck,
+  Sun,
+  Train,
+  Trash2,
+  User,
+  X,
+} from "lucide-react-native";
 
 export interface IconProps {
   color?: ColorValue | string;
@@ -7,172 +40,243 @@ export interface IconProps {
 }
 
 export function CloseIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M18 6L6 18M6 6l12 12"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <X color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function BackIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M19 12H5M12 19l-7-7 7-7"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <ChevronLeft color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function ChevronRightIcon({ color = "#ffffff", size = 16 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M9 18l6-6-6-6"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <ChevronRight color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function ChevronDownIcon({ color = "#ffffff", size = 16 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M6 9l6 6 6-6"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <ChevronDown color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function ChevronUpIcon({ color = "#ffffff", size = 16 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M18 15l-6-6-6 6"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <ChevronUp color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function LocateIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="12" cy="12" r="7" stroke={color as string} strokeWidth={2} />
-      <Line x1="12" y1="2" x2="12" y2="5" stroke={color as string} strokeWidth={2} strokeLinecap="round" />
-      <Line x1="12" y1="19" x2="12" y2="22" stroke={color as string} strokeWidth={2} strokeLinecap="round" />
-      <Line x1="2" y1="12" x2="5" y2="12" stroke={color as string} strokeWidth={2} strokeLinecap="round" />
-      <Line x1="19" y1="12" x2="22" y2="12" stroke={color as string} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
-  );
+  return <Locate color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function RefreshIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M23 4v6h-6M1 20v-6h6"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <RefreshCw color={color as string} size={size} strokeWidth={2} />;
 }
 
-export function ThemeToggleIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="12" cy="12" r="9" stroke={color as string} strokeWidth={2} />
-      <Path d="M12 3a9 9 0 010 18z" fill={color as string} />
-    </Svg>
-  );
+export function SunIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Sun color={color as string} size={size} strokeWidth={2} fill={color as string} />;
+}
+
+export function MoonIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Moon color={color as string} size={size} strokeWidth={2} fill={color as string} />;
 }
 
 export function TrainIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x="4" y="3" width="16" height="15" rx="3" stroke={color as string} strokeWidth={2} />
-      <Path d="M4 11h16M9 3v8M15 3v8" stroke={color as string} strokeWidth={1.5} />
-      <Circle cx="8" cy="15" r="1.5" fill={color as string} />
-      <Circle cx="16" cy="15" r="1.5" fill={color as string} />
-      <Path d="M6 18l-2 3M18 18l2 3M8 21h8" stroke={color as string} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
-  );
+  return <Train color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function AlertTriangleIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path d="M12 9v4M12 17h.01" stroke={color as string} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
+  return <AlertTriangle color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function BellIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"
-        stroke={color as string}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <Bell color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function SearchIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="11" cy="11" r="8" stroke={color as string} strokeWidth={2} />
-      <Path d="M21 21l-4.35-4.35" stroke={color as string} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
-  );
+  return <Search color={color as string} size={size} strokeWidth={2} />;
 }
 
 export function BookmarkIcon({ color = "#ffffff", size = 18, filled = false }: IconProps & { filled?: boolean }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? (color as string) : "none"}>
+    <Bookmark
+      color={color as string}
+      size={size}
+      strokeWidth={2}
+      fill={filled ? (color as string) : "none"}
+    />
+  );
+}
+
+export function ConstructionIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Construction color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function InfoIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Info color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function CheckIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Check color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function ClockIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Clock color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function RotateIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <RotateCw color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function ExternalLinkIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <ExternalLink color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function AccessibilityIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Accessibility color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function BusIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Bus color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function UserIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <User color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function ActivityIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Activity color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function PlusIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Plus color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function EditIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Pencil color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function TrashIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Trash2 color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function ArrowRightIcon({
+  color = "#ffffff",
+  size = 16,
+  strokeWidth = 2.75,
+}: IconProps & { strokeWidth?: number }) {
+  return <ArrowRight color={color as string} size={size} strokeWidth={strokeWidth} />;
+}
+
+export function HistoryIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <History color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function LayersIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <Layers color={color as string} size={size} strokeWidth={2} />;
+}
+
+export function ShieldCheckIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return <ShieldCheck color={color as string} size={size} strokeWidth={2} />;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Canonical LineWatch-Authored Icons (Exact match to frontend components)    */
+/* -------------------------------------------------------------------------- */
+
+export function BellFilledIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"
+        d="M20 18H4l2-2V10a6 6 0 015-5.91V3a1 1 0 012 0V4.09a5.9 5.9 0 011.3.4A3.992 3.992 0 0018 10v6z"
+        fill={color as string}
+      />
+      <Path d="M10 20a2 2 0 004 0H10z" fill={color as string} />
+      <Circle cx={19} cy="5" r={2} fill={color as string} />
+    </Svg>
+  );
+}
+
+export function PlannedClosureIcon({
+  color = "#ffffff",
+  size = 18,
+  strokeWidth = 2,
+}: IconProps & { strokeWidth?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x={3}
+        y={5}
+        width={18}
+        height={16}
+        rx={3}
+        stroke={color as string}
+        strokeWidth={strokeWidth}
+      />
+      <Path
+        d="M3 9H21M12 12V15M12 18H12.01M7 3V5M17 3V5"
+        stroke={color as string}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function DelayIcon({
+  color = "#ffffff",
+  size = 18,
+  filled = true,
+}: IconProps & { filled?: boolean }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 4v2h2v4a7 7 0 003.4 6A7 7 0 009 22v4H7v2h18v-2h-2v-4a7 7 0 00-3.4-6A7 7 0 0023 10V6h2V4zm4 2h10v4c0 2.773-2.227 5-5 5s-5-2.227-5-5zm1.156 5c.446 1.723 1.98 3 3.844 3c1.863 0 3.398-1.277 3.844-3zM16 17c2.773 0 5 2.227 5 5v4h-1c0-2.21-1.79-4-4-4s-4 1.79-4 4h-1v-4c0-2.773 2.227-5 5-5z"
+        fill={color as string}
+        transform="translate(-0.8, -0.8) scale(0.8)"
+      />
+      <Circle
+        cx={18}
+        cy={18}
+        r={5.2}
+        fill={filled ? (color as string) : "none"}
+        stroke={color as string}
+        strokeWidth={filled ? 0 : 1.5}
+      />
+      {filled ? (
+        <>
+          <Path
+            d="M18 14.5v3.2"
+            stroke="#0d0808"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+          />
+          <Circle cx={18} cy={20.8} r={0.9} fill="#0d0808" />
+        </>
+      ) : (
+        <>
+          <Path
+            d="M18 14.5v3.2"
+            stroke={color as string}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+          />
+          <Circle cx={18} cy={20.8} r={0.9} fill={color as string} />
+        </>
+      )}
+    </Svg>
+  );
+}
+
+export function PhoneRotateLandscapeIcon({ color = "#ffffff", size = 20 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color as string}>
+      <Path d="M9 1H3a2 2 0 00-2 2v13a2 2 0 002 2h6a2 2 0 002-2V3a2 2 0 00-2-2m0 14H3V3h6v12m12-2h-8v2h8v6H9v-1H6v1a2 2 0 002 2h13a2 2 0 002-2v-6a2 2 0 00-2-2m2-3l-4-2l1.91-.91A7.516 7.516 0 0014 2.5V1a9 9 0 019 9z" />
+    </Svg>
+  );
+}
+
+export function ElevatorIcon({ color = "#ffffff", size = 18 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={4} y={2} width={16} height={20} rx={2} stroke={color as string} strokeWidth={2} />
+      <Path
+        d="M9 10l3-3 3 3M9 14l3 3 3-3"
         stroke={color as string}
         strokeWidth={2}
         strokeLinecap="round"
@@ -182,37 +286,18 @@ export function BookmarkIcon({ color = "#ffffff", size = 18, filled = false }: I
   );
 }
 
-export function ConstructionIcon({ color = "#ffffff", size = 18 }: IconProps) {
+export function EscalatorIcon({ color = "#ffffff", size = 18 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x="2" y="6" width="20" height="8" rx="1" stroke={color as string} strokeWidth={2} />
-      <Path d="M17 14v7M7 14v7M14 6l4 8M10 6l4 8M6 6l4 8" stroke={color as string} strokeWidth={1.5} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-export function InfoIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="12" cy="12" r="10" stroke={color as string} strokeWidth={2} />
-      <Path d="M12 16v-4M12 8h.01" stroke={color as string} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-export function CheckIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M20 6L9 17l-5-5" stroke={color as string} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-export function ClockIcon({ color = "#ffffff", size = 18 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="12" cy="12" r="10" stroke={color as string} strokeWidth={2} />
-      <Path d="M12 6v6l4 2" stroke={color as string} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="M4 19h4l8-14h4"
+        stroke={color as string}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={10} cy={7} r={2} fill={color as string} />
+      <Path d="M8 12l2-3 2 1" stroke={color as string} strokeWidth={1.5} strokeLinecap="round" />
     </Svg>
   );
 }

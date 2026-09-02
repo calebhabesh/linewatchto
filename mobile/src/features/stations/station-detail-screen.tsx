@@ -2,13 +2,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
 import {
   Pressable,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDashboard } from "@/api/dashboard";
 import type { NetworkId } from "@/api/dashboard-schema";
@@ -27,7 +24,10 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { LineBadge } from "@/components/line-badge";
 import { LoadingState } from "@/components/loading-state";
-import { BackIcon, BookmarkIcon } from "@/components/operations-icons";
+import { BookmarkIcon } from "@/components/operations-icons";
+import { OperationsSheet } from "@/components/operations-sheet";
+import { OperationsSheetHeader } from "@/components/operations-sheet-header";
+import { OperationsSheetScroll } from "@/components/operations-sheet-scroll";
 import { Screen } from "@/components/screen";
 import {
   formatArrivalClockTime,
@@ -51,8 +51,6 @@ export function StationDetailScreen() {
   const { theme } = useTheme();
   const { isSaved, toggleSaved } = useSavedStations();
   const saved = isSaved(stationId, network);
-  const insets = useSafeAreaInsets();
-  const bottomPadding = Math.max(36, insets.bottom + 24);
 
   // TTC Data Queries
   const ttcQuery = useTtcStationDetail(network === "ttc" ? stationId : "", isPolling);
@@ -143,43 +141,27 @@ export function StationDetailScreen() {
       : regionalArrivalsQuery.error ?? dashboardQuery.error;
 
   return (
-    <Screen>
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
-        refreshControl={
-          <RefreshControl
-            colors={[theme.color.focus]}
-            onRefresh={handleRefresh}
-            refreshing={isRefetching}
-            tintColor={theme.color.focus}
-          />
-        }
+    <Screen transparent>
+      <OperationsSheet
+        onDismiss={() => router.back()}
+        testID="station-detail-sheet"
+        variant="detail"
       >
-        {/* Top Navigation Bar */}
-        <View style={styles.navBar}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.backButton,
-              {
-                backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surface,
-                borderColor: theme.color.border,
-              },
-            ]}
-          >
-            <BackIcon color={theme.color.text} size={16} />
-            <Text style={[styles.backText, { color: theme.color.text }]}>Back</Text>
-          </Pressable>
-          <Text
-            accessibilityRole="header"
-            style={[styles.headerTitle, { color: theme.color.textMuted }]}
-          >
-            Station details
-          </Text>
-        </View>
-
+        <OperationsSheetHeader
+          eyebrow={network === "ttc" ? "TTC RAPID TRANSIT" : "GO / UP REGIONAL"}
+          onBack={() => router.back()}
+          onClose={() => router.push("/(tabs)")}
+          showDragHandle={true}
+          subtitle={network === "ttc" ? "Rapid transit station" : "Regional rail station"}
+          testID="station-detail-header"
+          title="Station details"
+        />
+        <OperationsSheetScroll
+          contentContainerStyle={styles.content}
+          onRefresh={handleRefresh}
+          refreshing={isRefetching}
+          testID="station-detail-scroll"
+        >
         {isInitialLoading ? (
           <LoadingState message="Loading station details…" />
         ) : error ? (
@@ -711,7 +693,8 @@ export function StationDetailScreen() {
             message="This station could not be found in the active catalog."
           />
         )}
-      </ScrollView>
+        </OperationsSheetScroll>
+      </OperationsSheet>
     </Screen>
   );
 }
@@ -996,7 +979,7 @@ function SurfaceConnectionsBlock({
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 12 },
+  content: { padding: 12, gap: 12, paddingBottom: 24 },
   navBar: {
     flexDirection: "row",
     alignItems: "center",

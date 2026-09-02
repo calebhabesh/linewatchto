@@ -42,3 +42,10 @@ export function resolveApiConfiguration(
     message: "This build has no LineWatchTO API URL configured.",
   };
 }
+
+export function shouldAutoLoginDevAccount(
+  configuredValue = process.env.EXPO_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN,
+  development = typeof __DEV__ !== "undefined" && __DEV__,
+): boolean {
+  return development && configuredValue === "true";
+}

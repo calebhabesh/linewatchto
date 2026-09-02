@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
-import { Keyboard, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
 import { useRegionalTripChanges, useSurfaceNotices } from "@/api/notices";
@@ -11,8 +11,9 @@ import { ErrorState } from "@/components/error-state";
 import { LineBadge } from "@/components/line-badge";
 import { LoadingState } from "@/components/loading-state";
 import { NetworkSwitcher } from "@/components/network-switcher";
-import { BackIcon } from "@/components/operations-icons";
-import { ProductHeader } from "@/components/product-header";
+import { OperationsSheet } from "@/components/operations-sheet";
+import { OperationsSheetHeader } from "@/components/operations-sheet-header";
+import { OperationsSheetScroll } from "@/components/operations-sheet-scroll";
 import { Screen } from "@/components/screen";
 import { useAppActive } from "@/hooks/use-app-active";
 import { useScreenFocused } from "@/hooks/use-screen-focused";
@@ -56,46 +57,30 @@ export function NoticesScreen() {
   const refetch = activeQuery.refetch;
 
   return (
-    <Screen>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            colors={[theme.color.focus]}
-            onRefresh={() => {
-              void refetch();
-            }}
-            refreshing={isRefetching}
-            tintColor={theme.color.focus}
-          />
-        }
+    <Screen transparent>
+      <OperationsSheet
+        onDismiss={() => router.back()}
+        testID="notices-sheet"
+        variant="tool"
       >
-        {/* Navigation Back & Header */}
-        <View style={styles.topRow}>
-          <Pressable
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.backButton,
-              {
-                backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surfaceOverlay,
-                borderColor: theme.color.border,
-              },
-            ]}
-            testID="notices-back-button"
-          >
-            <BackIcon color={theme.color.text} size={16} />
-            <Text style={[styles.backText, { color: theme.color.text }]}>Back</Text>
-          </Pressable>
-        </View>
-
-        <ProductHeader
+        <OperationsSheetHeader
+          backTestID="notices-back-button"
           eyebrow="SERVICE NOTICES & CHANGES"
-          subtitle="Surface detours, bus/streetcar notices, and regional trip changes."
+          onBack={() => router.back()}
+          onClose={() => router.push("/(tabs)")}
+          showDragHandle={true}
+          subtitle="Surface detours, bus/streetcar notices, and regional trip changes"
+          testID="notices-sheet-header"
           title="Service Notices"
         />
+        <OperationsSheetScroll
+          contentContainerStyle={styles.content}
+          onRefresh={() => {
+            void refetch();
+          }}
+          refreshing={isRefetching}
+          testID="notices-scroll"
+        >
 
         {/* Network Switcher */}
         <View style={styles.controlsRow}>
@@ -250,7 +235,8 @@ export function NoticesScreen() {
             source={noticesQuery.data?.source ?? "TTC GTFS-RT"}
           />
         )}
-      </ScrollView>
+        </OperationsSheetScroll>
+      </OperationsSheet>
     </Screen>
   );
 }

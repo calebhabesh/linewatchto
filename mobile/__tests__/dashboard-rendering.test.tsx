@@ -99,10 +99,10 @@ describe("DashboardScreen Component Rendering & State Transitions", () => {
     it("summarizes each impact class without duplicating Status cards over the map", async () => {
       await render(<DashboardScreen />, { wrapper: Wrapper });
 
-      expect(screen.getByText("1 Active")).toBeTruthy();
-      expect(screen.getByText("1 Delays")).toBeTruthy();
-      expect(screen.getByText("1 RSZ")).toBeTruthy();
-      expect(screen.getByText("1 Closures")).toBeTruthy();
+      expect(screen.getByText(/Active Alert/)).toBeTruthy();
+      expect(screen.getByText(/Delay/)).toBeTruthy();
+      expect(screen.getByText(/Reduced Speed Zone/)).toBeTruthy();
+      expect(screen.getByText(/Planned Closure/)).toBeTruthy();
       expect(screen.queryByText("Line 1 Suspension")).toBeNull();
     });
   });
@@ -133,7 +133,7 @@ describe("DashboardScreen Component Rendering & State Transitions", () => {
       await render(<DashboardScreen />, { wrapper: Wrapper });
 
       expect(screen.getByTestId("schematic-map-regional")).toBeTruthy();
-      expect(screen.queryByText(/RSZ/)).toBeNull();
+      expect(screen.queryByText(/Reduced Speed Zone/)).toBeNull();
       expect(screen.getByText("2 Current Impacts")).toBeTruthy();
     });
   });

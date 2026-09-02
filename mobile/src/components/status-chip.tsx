@@ -6,7 +6,7 @@ import { typography } from "@/theme/typography";
 
 export type StatusChipProps = {
   label: string;
-  kind?: "normal" | "delay" | "rsz" | "planned" | "suspension";
+  kind?: "normal" | "delay" | "rsz" | "reduced-speed-zone" | "planned" | "planned-closure" | "suspension";
   testID?: string;
 };
 
@@ -17,11 +17,13 @@ export const StatusChip = memo(function StatusChip({
 }: StatusChipProps) {
   const { theme } = useTheme();
 
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     normal: theme.line.normal,
     delay: theme.line.delay,
     rsz: theme.line.rsz,
+    "reduced-speed-zone": theme.line.rsz,
     planned: theme.line.planned,
+    "planned-closure": theme.line.planned,
     suspension: theme.line.suspension,
   };
 

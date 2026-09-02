@@ -29,6 +29,7 @@ import type {
   PasswordResetRequestResponse,
   User,
 } from "@/api/auth-schema";
+import { shouldAutoLoginDevAccount } from "@/config/environment";
 import { sessionTokenStore } from "@/storage/session-token";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -91,10 +92,26 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let active = true;
 
     void (async () => {
+      const autoLoginDevAccount = async () => {
+        if (!shouldAutoLoginDevAccount()) return false;
+
+        const response = await apiDevLogin();
+        if (!response.authenticated || !response.user || !response.sessionToken) return false;
+
+        await sessionTokenStore.set(response.sessionToken);
+        if (!active) return true;
+        setUser(response.user);
+        setSessionToken(response.sessionToken);
+        setStatus("authenticated");
+        return true;
+      };
+
       try {
         const storedToken = await sessionTokenStore.get();
         if (!active) return;
         if (!storedToken) {
+          if (await autoLoginDevAccount()) return;
+          if (!active) return;
           setStatus("unauthenticated");
           setUser(null);
           setSessionToken(null);
@@ -109,12 +126,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
         } else {
           await sessionTokenStore.clear();
           if (!active) return;
+          if (await autoLoginDevAccount()) return;
+          if (!active) return;
           setUser(null);
           setSessionToken(null);
           setStatus("unauthenticated");
         }
-      } catch {
+      } catch (error) {
         if (!active) return;
+        if (shouldAutoLoginDevAccount()) {
+          console.warn("LineWatchTO mobile dev account auto-login failed.", error);
+        }
         setStatus("unauthenticated");
         setUser(null);
         setSessionToken(null);

@@ -1,11 +1,13 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useDashboard } from "@/api/dashboard";
 import { LineBadge } from "@/components/line-badge";
-import { BackIcon, LocateIcon } from "@/components/operations-icons";
+import { LocateIcon } from "@/components/operations-icons";
+import { OperationsSheet } from "@/components/operations-sheet";
+import { OperationsSheetHeader } from "@/components/operations-sheet-header";
+import { OperationsSheetScroll } from "@/components/operations-sheet-scroll";
 import { Screen } from "@/components/screen";
 import { findImpactInDashboard } from "@/features/alerts/impact-types";
 import { useAppActive } from "@/hooks/use-app-active";
@@ -18,7 +20,6 @@ export function ImpactDetailScreen() {
   const { network } = useNetwork();
   const query = useDashboard(network, useAppActive());
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { setSelection } = useImpactSelection();
 
   const impact = useMemo(() => {
@@ -45,33 +46,26 @@ export function ImpactDetailScreen() {
     }
   }, [impact]);
 
-  const bottomPadding = Math.max(36, insets.bottom + 24);
-
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}>
-        {/* Top Navigation */}
-        <View style={styles.navBar}>
-          <Pressable
-            accessibilityHint="Navigates back to the previous screen"
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.backButton,
-              {
-                backgroundColor: pressed ? theme.color.surfaceRaised : theme.color.surface,
-                borderColor: theme.color.border,
-              },
-            ]}
-          >
-            <BackIcon color={theme.color.text} size={16} />
-            <Text style={[styles.backText, { color: theme.color.text }]}>Back</Text>
-          </Pressable>
-          <Text accessibilityRole="header" style={[styles.headerTitle, { color: theme.color.textMuted }]}>
-            Impact details
-          </Text>
-        </View>
+    <Screen transparent>
+      <OperationsSheet
+        onDismiss={() => router.back()}
+        testID="impact-detail-sheet"
+        variant="detail"
+      >
+        <OperationsSheetHeader
+          eyebrow="SERVICE IMPACT"
+          onBack={() => router.back()}
+          onClose={() => router.push("/(tabs)")}
+          showDragHandle={true}
+          subtitle={line ? line.name : "Rapid transit"}
+          testID="impact-detail-header"
+          title="Impact details"
+        />
+        <OperationsSheetScroll
+          contentContainerStyle={styles.content}
+          testID="impact-detail-scroll"
+        >
 
         {!impact ? (
           <View style={[styles.notFoundCard, { backgroundColor: theme.color.surface, borderColor: theme.color.border }]}>
@@ -305,13 +299,14 @@ export function ImpactDetailScreen() {
             </Text>
           </>
         )}
-      </ScrollView>
+        </OperationsSheetScroll>
+      </OperationsSheet>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 12 },
+  content: { padding: 12, gap: 12, paddingBottom: 24 },
   navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
   backButton: {
     flexDirection: "row",
