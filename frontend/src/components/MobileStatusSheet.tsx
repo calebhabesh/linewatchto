@@ -11,6 +11,7 @@ import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import {
   clearServiceStatusLabel,
   dashboardStatusSourceLabel,
+  networkStatusKicker,
 } from "../app/network-presentation";
 
 type StatusCategory = "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices" | "trip-changes";
@@ -37,6 +38,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
     <section className="mobile-status-sheet panel" aria-label="Current service status">
       <div className="mobile-sheet-heading">
         <div>
+          <p className="mobile-sheet-kicker">{networkStatusKicker(networkId)}</p>
           <h2>System Status</h2>
           <p>{sourceLabel}</p>
         </div>
