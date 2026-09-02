@@ -1707,6 +1707,25 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   pointer-events: none;
 }
 
+.legend-impact-count--regional {
+  top: -4px;
+  right: -4px;
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  min-height: 15px;
+  box-shadow: 0 0 0 1.25px rgb(255, 255, 255);
+}
+
+.legend-impact-count--regional[data-digit-count="multiple"] {
+  min-width: 20px;
+  width: 20px;
+}
+
+.dark .legend-impact-count--regional {
+  box-shadow: 0 0 0 1.25px rgb(18, 21, 28);
+}
+
 .dark .legend-impact-count {
   box-shadow: 0 0 0 2px rgb(18, 21, 28);
 }

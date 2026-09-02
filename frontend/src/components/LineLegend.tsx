@@ -7,7 +7,7 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { MapBadgeVectorLabel } from "./MapOverlapIndicator";
 import { transitLineBadgeColors } from "./TransitLineBadge";
 
-function LegendImpactCountBadge({ count }: { count: number }) {
+function LegendImpactCountBadge({ count, isRegional = false }: { count: number; isRegional?: boolean }) {
   const isMultiple = count >= 10;
   const viewBoxWidth = isMultiple ? 46 : 36;
   const viewBoxHeight = 36;
@@ -16,7 +16,7 @@ function LegendImpactCountBadge({ count }: { count: number }) {
 
   return (
     <span
-      className="legend-impact-count"
+      className={`legend-impact-count ${isRegional ? "legend-impact-count--regional" : ""}`}
       data-digit-count={isMultiple ? "multiple" : "single"}
       aria-hidden="true"
     >
@@ -118,7 +118,7 @@ export function LineLegend({
           aria-label={`View Alert for ${line.name}`}
         >
           <ImpactTypeIcon kind="suspension" size={isRegional ? 17 : 20} />
-          {alertCount > 1 && <LegendImpactCountBadge count={alertCount} />}
+          {alertCount > 1 && <LegendImpactCountBadge count={alertCount} isRegional={isRegional} />}
         </button>
       );
     }
@@ -138,7 +138,7 @@ export function LineLegend({
           aria-label={`View delay for ${line.name}`}
         >
           <ImpactTypeIcon kind="delay" size={isRegional ? 17 : 20} />
-          {delayCount > 1 && <LegendImpactCountBadge count={delayCount} />}
+          {delayCount > 1 && <LegendImpactCountBadge count={delayCount} isRegional={isRegional} />}
         </button>
       );
     }
@@ -158,7 +158,7 @@ export function LineLegend({
           aria-label={`View reduced speed zone for ${line.name}`}
         >
           <ImpactTypeIcon kind="reduced-speed-zone" size={isRegional ? 17 : 20} />
-          {rszCount > 1 && <LegendImpactCountBadge count={rszCount} />}
+          {rszCount > 1 && <LegendImpactCountBadge count={rszCount} isRegional={isRegional} />}
         </button>
       );
     }
@@ -178,7 +178,7 @@ export function LineLegend({
           aria-label={`View Closure for ${line.name}`}
         >
           <ImpactTypeIcon kind="planned-closure" size={isRegional ? 17 : 20} />
-          {closureCount > 1 && <LegendImpactCountBadge count={closureCount} />}
+          {closureCount > 1 && <LegendImpactCountBadge count={closureCount} isRegional={isRegional} />}
         </button>
       );
     }

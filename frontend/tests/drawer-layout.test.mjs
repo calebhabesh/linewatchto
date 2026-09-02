@@ -368,10 +368,11 @@ describe("floating menu layout", () => {
     assert.match(lineLegendSource, /desktop-legend-route-badge--ttc/);
     assert.match(lineLegendSource, /desktop-legend-route-badge--regional/);
     assert.match(lineLegendSource, /service-tone-\$\{tone\}/);
-    assert.match(lineLegendSource, /className="legend-impact-count"/);
+    assert.match(lineLegendSource, /legend-impact-count/);
     assert.match(globalCss, /\.desktop-legend-route-badge--ttc/);
     assert.match(globalCss, /\.desktop-legend-route-badge--regional/);
     assert.match(globalCss, /\.legend-impact-count/);
+    assert.match(globalCss, /\.legend-impact-count--regional/);
     assert.match(globalCss, /\.legend-impact-count-svg/);
   });
 
