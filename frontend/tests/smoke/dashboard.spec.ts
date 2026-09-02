@@ -826,7 +826,7 @@ test("mobile preserves status and station interaction language across network sw
   await expect(page.getByText("Regional Demo · Not Live", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Status", exact: true }).click();
   const statusSheet = page.getByRole("region", { name: "Current service status" });
-  await expect(statusSheet).toContainText("GO & UP regional rail");
+  await expect(statusSheet).toContainText("System Status");
   await expect(statusSheet).toContainText("Regional demo data — not live service information.");
   await expect(statusSheet.getByRole("button", { name: /Accessibility Outages/ })).toBeVisible();
   await expect(statusSheet.getByRole("button", { name: /Service Notices/ })).toBeVisible();
