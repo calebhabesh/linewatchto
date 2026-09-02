@@ -14,6 +14,12 @@
   initial-value: 0deg;
 }
 
+@keyframes mobile-legend-badge-beam {
+  to {
+    --mobile-legend-beam-angle: 360deg;
+  }
+}
+
 .linewatch-wordmark {
   font-family: var(--font-wordmark);
   font-size: 1.3em;
@@ -1592,7 +1598,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .desktop-legend-route-badge--ttc.service-tone-affected {
   animation:
     desktop-legend-badge-pulse 3.8s ease-in-out infinite,
-    mobile-legend-badge-beam 16s linear infinite;
+    mobile-legend-badge-beam 10s linear infinite;
   background:
     linear-gradient(var(--desktop-legend-badge-fill-color), var(--desktop-legend-badge-fill-color)) padding-box,
     conic-gradient(
@@ -1631,7 +1637,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .desktop-legend-route-badge--regional.service-tone-affected {
   animation:
     desktop-legend-badge-pulse 3.8s ease-in-out infinite,
-    mobile-legend-badge-beam 16s linear infinite;
+    mobile-legend-badge-beam 10s linear infinite;
   background:
     conic-gradient(
       from var(--mobile-legend-beam-angle, 0deg),
