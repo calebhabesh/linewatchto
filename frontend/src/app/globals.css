@@ -1563,6 +1563,148 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   transform-origin: bottom right;
 }
 
+/* Desktop line legend route badge rings and squircles */
+.desktop-legend-route-badge {
+  --desktop-legend-outline-width: 2.75px;
+  align-items: center;
+  animation: desktop-legend-badge-pulse 3.8s ease-in-out infinite;
+  box-shadow: 0 0 3px color-mix(in srgb, var(--desktop-legend-ring-color) 32%, transparent);
+  box-sizing: border-box;
+  display: flex !important;
+  height: 44px;
+  justify-content: center;
+  position: relative;
+  width: 44px;
+  flex: 0 0 44px;
+}
+
+.desktop-legend-route-badge--ttc {
+  background:
+    linear-gradient(var(--desktop-legend-badge-fill-color), var(--desktop-legend-badge-fill-color)) padding-box,
+    linear-gradient(var(--desktop-legend-ring-color), var(--desktop-legend-ring-color)) border-box;
+  border: var(--desktop-legend-outline-width) solid transparent;
+  border-radius: 999px;
+  font-family: var(--font-subway), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.desktop-legend-route-badge--ttc.service-tone-affected {
+  animation:
+    desktop-legend-badge-pulse 3.8s ease-in-out infinite,
+    mobile-legend-badge-beam 16s linear infinite;
+  background:
+    linear-gradient(var(--desktop-legend-badge-fill-color), var(--desktop-legend-badge-fill-color)) padding-box,
+    conic-gradient(
+      from var(--mobile-legend-beam-angle, 0deg),
+      var(--desktop-legend-ring-color) 0deg 326deg,
+      #ff667d 334deg,
+      #ffa0b4 342deg,
+      #ff667d 350deg,
+      var(--desktop-legend-ring-color) 358deg 360deg
+    ) border-box;
+}
+
+.desktop-legend-route-badge .desktop-legend-route-number {
+  align-items: center;
+  color: var(--desktop-legend-badge-number-color) !important;
+  display: flex !important;
+  font-size: 24px;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 900;
+  height: 100%;
+  justify-content: center;
+  line-height: 1;
+  position: relative;
+  text-align: center;
+  width: 100%;
+  z-index: 1;
+}
+
+.desktop-legend-route-badge--regional {
+  background: linear-gradient(var(--desktop-legend-ring-color), var(--desktop-legend-ring-color)) border-box;
+  border: var(--desktop-legend-outline-width) solid transparent;
+  border-radius: 7px !important;
+  overflow: hidden;
+}
+
+.desktop-legend-route-badge--regional.service-tone-affected {
+  animation:
+    desktop-legend-badge-pulse 3.8s ease-in-out infinite,
+    mobile-legend-badge-beam 16s linear infinite;
+  background:
+    conic-gradient(
+      from var(--mobile-legend-beam-angle, 0deg),
+      var(--desktop-legend-ring-color) 0deg 326deg,
+      #ff667d 334deg,
+      #ffa0b4 342deg,
+      #ff667d 350deg,
+      var(--desktop-legend-ring-color) 358deg 360deg
+    ) border-box;
+}
+
+.desktop-legend-route-badge--regional > span {
+  border-radius: 4px !important;
+  display: flex;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.desktop-legend-route-badge.service-tone-affected {
+  --desktop-legend-ring-color: #ff334f;
+}
+
+.desktop-legend-route-badge.service-tone-good {
+  --desktop-legend-ring-color: #22e37b;
+}
+
+@keyframes desktop-legend-badge-pulse {
+  0%, 100% {
+    box-shadow: 0 0 3px color-mix(in srgb, var(--desktop-legend-ring-color) 32%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 6px color-mix(in srgb, var(--desktop-legend-ring-color) 58%, transparent);
+  }
+}
+
+.legend-impact-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 999px;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgb(255, 255, 255);
+  pointer-events: none;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+}
+
+.legend-impact-count[data-digit-count="multiple"] {
+  min-width: 30px;
+  width: 30px;
+}
+
+.legend-impact-count-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.dark .legend-impact-count {
+  box-shadow: 0 0 0 2px rgb(18, 21, 28);
+}
+
 /* Account-backed station watchlist */
 .my-stations-panel {
   border: 1px solid rgba(15, 23, 42, 0.12);
@@ -3579,6 +3721,8 @@ button {
 }
 
 .overlapping-count-badge__text {
+  dominant-baseline: central;
+  text-anchor: middle;
   fill: currentColor;
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   font-size: var(--overlapping-count-font-size);
@@ -22220,24 +22364,34 @@ img.transit-line-badge {
       transition-delay: 0ms !important;
     }
 
+    .desktop-legend-route-badge,
+    .desktop-legend-route-badge--ttc.service-tone-affected,
+    .desktop-legend-route-badge--regional.service-tone-affected,
     .mobile-legend-route-badge,
     .mobile-legend-route-badge--ttc.service-tone-affected,
     .mobile-legend-route-badge--regional.service-tone-affected {
       animation: none;
     }
 
+    .desktop-legend-route-badge--ttc,
+    .desktop-legend-route-badge--regional,
     .mobile-legend-route-badge--ttc,
     .mobile-legend-route-badge--regional {
       --mobile-legend-beam-angle: 25deg;
     }
   }
 
+  .motion-paused .desktop-legend-route-badge,
+  .motion-paused .desktop-legend-route-badge--ttc.service-tone-affected,
+  .motion-paused .desktop-legend-route-badge--regional.service-tone-affected,
   .motion-paused .mobile-legend-route-badge,
   .motion-paused .mobile-legend-route-badge--ttc.service-tone-affected,
   .motion-paused .mobile-legend-route-badge--regional.service-tone-affected {
     animation: none;
   }
 
+  .motion-paused .desktop-legend-route-badge--ttc,
+  .motion-paused .desktop-legend-route-badge--regional,
   .motion-paused .mobile-legend-route-badge--ttc,
   .motion-paused .mobile-legend-route-badge--regional {
     --mobile-legend-beam-angle: 25deg;

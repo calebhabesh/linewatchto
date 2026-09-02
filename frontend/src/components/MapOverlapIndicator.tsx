@@ -121,7 +121,7 @@ function labelForImpactKind(kind: MapImpactKind): string {
   }
 }
 
-function MapBadgeVectorLabel({
+export function MapBadgeVectorLabel({
   label,
   targetHeight,
   maxWidth,

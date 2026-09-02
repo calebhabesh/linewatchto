@@ -1,9 +1,40 @@
 "use client";
 
-import React from "react";
+import React, { type CSSProperties } from "react";
 import { useDashboardData } from "../app/DataContext";
+import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
-import { TransitLineBadge } from "./TransitLineBadge";
+import { MapBadgeVectorLabel } from "./MapOverlapIndicator";
+import { transitLineBadgeColors } from "./TransitLineBadge";
+
+function LegendImpactCountBadge({ count }: { count: number }) {
+  const isMultiple = count >= 10;
+  const viewBoxWidth = isMultiple ? 46 : 36;
+  const viewBoxHeight = 36;
+  const halfWidth = viewBoxWidth / 2;
+  const halfHeight = viewBoxHeight / 2;
+
+  return (
+    <span
+      className="legend-impact-count"
+      data-digit-count={isMultiple ? "multiple" : "single"}
+      aria-hidden="true"
+    >
+      <svg
+        viewBox={`-${halfWidth} -${halfHeight} ${viewBoxWidth} ${viewBoxHeight}`}
+        className="legend-impact-count-svg"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <MapBadgeVectorLabel
+          label={String(count)}
+          targetHeight={17.5}
+          maxWidth={viewBoxWidth - 14}
+        />
+      </svg>
+    </span>
+  );
+}
 
 const TTC_LINES = [
   { id: "line-1", number: "1", name: "Line 1 Yonge-University" },
@@ -62,14 +93,17 @@ export function LineLegend({
         ? "regional-up"
         : `regional-${line.id.replace("go-", "")}`
       : line.id;
-    const alert = activeAlerts.find((a) => a.lineId === dataLineId);
-    const delay = delays.find((a) => a.lineId === dataLineId);
-    const rsz = isRegional ? undefined : reducedSpeedZones.find((a) => a.lineId === dataLineId);
-    const closure = plannedClosures.find((c) => c.lineId === dataLineId);
+    const alertCount = activeAlerts.filter((a) => a.lineId === dataLineId).length;
+    const delayCount = delays.filter((a) => a.lineId === dataLineId).length;
+    const rszCount = isRegional ? 0 : countReducedSpeedZones(reducedSpeedZones.filter((a) => a.lineId === dataLineId));
+    const closureCount = plannedClosures.filter((c) => c.lineId === dataLineId).length;
+
+    const totalImpactCount = alertCount + delayCount + rszCount + closureCount;
+    const tone = totalImpactCount > 0 ? "affected" : "good";
 
     const buttons: React.ReactNode[] = [];
 
-    if (alert) {
+    if (alertCount > 0) {
       buttons.push(
         <button
           key="alert"
@@ -77,18 +111,19 @@ export function LineLegend({
             e.stopPropagation();
             onAlertClick?.(dataLineId);
           }}
-          className={`pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all flex items-center justify-center ${
+          className={`pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all flex items-center justify-center relative ${
             isRegional ? "w-7 h-7 shrink-0" : "p-2"
           }`}
           title={`View Alert for ${line.name}`}
           aria-label={`View Alert for ${line.name}`}
         >
           <ImpactTypeIcon kind="suspension" size={isRegional ? 17 : 20} />
+          {alertCount > 1 && <LegendImpactCountBadge count={alertCount} />}
         </button>
       );
     }
 
-    if (delay) {
+    if (delayCount > 0) {
       buttons.push(
         <button
           key="delay"
@@ -96,18 +131,19 @@ export function LineLegend({
             e.stopPropagation();
             onDelayClick?.(dataLineId);
           }}
-          className={`legend-delay-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border hover:scale-110 transition-all flex items-center justify-center ${
+          className={`legend-delay-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border hover:scale-110 transition-all flex items-center justify-center relative ${
             isRegional ? "w-7 h-7 shrink-0" : "p-2"
           }`}
           title={`View delay for ${line.name}`}
           aria-label={`View delay for ${line.name}`}
         >
           <ImpactTypeIcon kind="delay" size={isRegional ? 17 : 20} />
+          {delayCount > 1 && <LegendImpactCountBadge count={delayCount} />}
         </button>
       );
     }
 
-    if (rsz) {
+    if (rszCount > 0) {
       buttons.push(
         <button
           key="rsz"
@@ -115,18 +151,19 @@ export function LineLegend({
             e.stopPropagation();
             onReducedSpeedZoneClick?.(dataLineId);
           }}
-          className={`legend-rsz-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border hover:scale-110 transition-all flex items-center justify-center ${
+          className={`legend-rsz-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border hover:scale-110 transition-all flex items-center justify-center relative ${
             isRegional ? "w-7 h-7 shrink-0" : "p-2"
           }`}
           title={`View reduced speed zone for ${line.name}`}
           aria-label={`View reduced speed zone for ${line.name}`}
         >
           <ImpactTypeIcon kind="reduced-speed-zone" size={isRegional ? 17 : 20} />
+          {rszCount > 1 && <LegendImpactCountBadge count={rszCount} />}
         </button>
       );
     }
 
-    if (closure) {
+    if (closureCount > 0) {
       buttons.push(
         <button
           key="closure"
@@ -134,13 +171,14 @@ export function LineLegend({
             e.stopPropagation();
             onClosureClick?.(dataLineId);
           }}
-          className={`pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all flex items-center justify-center ${
+          className={`pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all flex items-center justify-center relative ${
             isRegional ? "w-7 h-7 shrink-0" : "p-2"
           }`}
           title={`View Closure for ${line.name}`}
           aria-label={`View Closure for ${line.name}`}
         >
           <ImpactTypeIcon kind="planned-closure" size={isRegional ? 17 : 20} />
+          {closureCount > 1 && <LegendImpactCountBadge count={closureCount} />}
         </button>
       );
     }
@@ -198,6 +236,12 @@ export function LineLegend({
       );
     };
 
+    const ttcBadgeColors = transitLineBadgeColors(line.id);
+    const ttcBadgeStyle = {
+      "--desktop-legend-badge-fill-color": ttcBadgeColors.backgroundColor,
+      "--desktop-legend-badge-number-color": ttcBadgeColors.color,
+    } as CSSProperties;
+
     return (
       <div
         key={line.id}
@@ -247,19 +291,25 @@ export function LineLegend({
 
         {isRegional ? (
           <span
-            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[4px] text-[22px] font-extrabold leading-none text-white opacity-95"
-            style={{ backgroundColor: LINE_COLORS[line.id] ?? "#64748b" }}
+            className={`desktop-legend-route-badge desktop-legend-route-badge--regional service-tone-${tone} shrink-0`}
             aria-hidden="true"
           >
-            {line.number}
+            <span
+              className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[4px] text-[22px] font-extrabold leading-none text-white opacity-95"
+              style={{ backgroundColor: LINE_COLORS[line.id] ?? "#64748b" }}
+              aria-hidden="true"
+            >
+              {line.number}
+            </span>
           </span>
         ) : (
-          <TransitLineBadge
-            lineId={line.id}
-            lineNumber={line.number}
-            size={44}
-            className="opacity-95 shrink-0"
-          />
+          <span
+            className={`desktop-legend-route-badge desktop-legend-route-badge--ttc service-tone-${tone} opacity-95 shrink-0`}
+            style={ttcBadgeStyle}
+            aria-hidden="true"
+          >
+            <span className="desktop-legend-route-number">{line.number}</span>
+          </span>
         )}
         <span
           className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap ${
