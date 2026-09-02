@@ -8,7 +8,7 @@ describe("compact phone layout", () => {
   it("targets narrow phones and short mobile viewports without changing taller regular-width phones", () => {
     assert.match(
       globalCss,
-      /@media \(max-width: 400px\), \(orientation: landscape\) and \(max-width: 740px\) and \(max-height: 430px\)/,
+      /@media \(max-width: 400px\), \(orientation: landscape\) and \(max-height: 520px\)/,
     );
     assert.match(globalCss, /--mobile-bottom-nav-height:\s*64px/);
   });

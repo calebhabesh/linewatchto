@@ -78,7 +78,7 @@ import {
   type EstimatedTrainSnapshot,
 } from "../app/train-markers";
 import { useTorontoClock } from "../hooks/useTorontoClock";
-import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
+import { MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
 import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
@@ -666,7 +666,7 @@ export function LineWatchShell({
 
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
     const sync = () => setIsMobile(mediaQuery.matches);
     sync();
     mediaQuery.addEventListener("change", sync);
@@ -891,11 +891,24 @@ export function LineWatchShell({
   }, [activeView]);
 
   useEffect(() => {
-    if (!isMobile && mapPresentationMode !== "standard") {
+    const isPhysicalLandscape = typeof window !== "undefined" && window.matchMedia("(orientation: landscape) and (max-height: 520px)").matches;
+    if ((!isMobile || isPhysicalLandscape) && mapPresentationMode !== "standard") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMapPresentationMode("standard");
     }
   }, [isMobile, mapPresentationMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const orientationQuery = window.matchMedia("(orientation: landscape)");
+    const handleOrientationChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches && window.matchMedia("(max-height: 520px)").matches && mapPresentationMode !== "standard") {
+        setMapPresentationMode("standard");
+      }
+    };
+    orientationQuery.addEventListener("change", handleOrientationChange);
+    return () => orientationQuery.removeEventListener("change", handleOrientationChange);
+  }, [mapPresentationMode]);
 
   useEffect(() => {
     if (!isMobile) return;
@@ -3971,7 +3984,63 @@ export function LineWatchShell({
                       </span>
                     )}
                   </button> : null}
-               </div>
+                </div>
+
+                {/* Line Status */}
+                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+                  <div className="px-3 pt-2 pb-2 select-none">
+                    <div className="station-subsection-header flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
+                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Line Status</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {lineStatuses.map(l => {
+                      const hasAlert = activeAlerts.some(a => a.lineId === l.id);
+                      const hasDelay = delays.some(delay => delay.lineId === l.id);
+                      const hasRSZ = reducedSpeedZones.some(z => z.lineId === l.id);
+                      const hasClosure = plannedClosures.some(c => c.lineId === l.id);
+                      const isClear = !hasAlert && !hasDelay && !hasRSZ && !hasClosure;
+                      
+                      return (
+                        <button
+                          key={l.id}
+                          ref={registerMenuAction(actionIndex++)}
+                          role="menuitem"
+                          type="button"
+                          onClick={() => openLineImpacts(l.id)}
+                          aria-label={`View all service impacts for ${l.name}`}
+                          className="group/line-status flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm text-left hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors"
+                        >
+                           <TransitLineBadge lineId={l.id} lineNumber={l.number} lineName={l.name} size={24} className="flex-shrink-0" />
+                           <div className="flex min-w-0 flex-1 flex-col justify-center">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className="min-w-0 truncate text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
+                                <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                                  {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
+                                  {hasDelay && <DelayIcon size={14} className="delay-tone" /> /* /assets/linewatch/delay-icon.svg */}
+                                  {hasRSZ && <Construction size={14} className="rsz-tone" />}
+                                  {hasClosure && <PlannedClosureIcon size={14} className="text-blue-500 dark:text-blue-400" />}
+                                </div>
+                                {isClear && (
+                                  <CircleCheck
+                                    size={16}
+                                    strokeWidth={2.7}
+                                    className="ml-1 shrink-0 text-emerald-600 dark:text-emerald-400"
+                                    aria-label={clearServiceStatusLabel({
+                                      networkId: selectedNetwork,
+                                      dataSource: displayData.dataSource,
+                                    })}
+                                  />
+                                )}
+                              </div>
+                           </div>
+                           <ChevronRight size={19} strokeWidth={2.8} className="shrink-0 text-slate-500 dark:text-slate-300 transition-transform duration-200 ease-out group-hover/line-status:translate-x-[3px]" aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                {/* Notifications */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
@@ -4132,81 +4201,26 @@ export function LineWatchShell({
                  </a>
                </div>
 
-               {/* At-A-Glance Integrated Sub-panels */}
-               <div className="flex flex-col p-4 gap-4">
-                 <div className="flex flex-col gap-2">
-                    <div className="px-1 pb-2 select-none">
-                      <div className="station-subsection-header flex items-center gap-2">
-                        <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
-                        <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Line Status</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {lineStatuses.map(l => {
-                        const hasAlert = activeAlerts.some(a => a.lineId === l.id);
-                        const hasDelay = delays.some(delay => delay.lineId === l.id);
-                        const hasRSZ = reducedSpeedZones.some(z => z.lineId === l.id);
-                        const hasClosure = plannedClosures.some(c => c.lineId === l.id);
-                        const isClear = !hasAlert && !hasDelay && !hasRSZ && !hasClosure;
-                        
-                        return (
-                          <button
-                            key={l.id}
-                            type="button"
-                            onClick={() => openLineImpacts(l.id)}
-                            aria-label={`View all service impacts for ${l.name}`}
-                            className="group/line-status flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm text-left hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors"
-                          >
-                             <TransitLineBadge lineId={l.id} lineNumber={l.number} lineName={l.name} size={24} className="flex-shrink-0" />
-                             <div className="flex min-w-0 flex-1 flex-col justify-center">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <span className="min-w-0 truncate text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
-                                  <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                                    {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
-                                    {hasDelay && <DelayIcon size={14} className="delay-tone" /> /* /assets/linewatch/delay-icon.svg */}
-                                    {hasRSZ && <Construction size={14} className="rsz-tone" />}
-                                    {hasClosure && <PlannedClosureIcon size={14} className="text-blue-500 dark:text-blue-400" />}
-                                  </div>
-                                  {isClear && (
-                                    <CircleCheck
-                                      size={16}
-                                      strokeWidth={2.7}
-                                      className="ml-1 shrink-0 text-emerald-600 dark:text-emerald-400"
-                                      aria-label={clearServiceStatusLabel({
-                                        networkId: selectedNetwork,
-                                        dataSource: displayData.dataSource,
-                                      })}
-                                    />
-                                  )}
-                                </div>
-                             </div>
-                             <ChevronRight size={19} strokeWidth={2.8} className="shrink-0 text-slate-500 dark:text-slate-300 transition-transform duration-200 ease-out group-hover/line-status:translate-x-[3px]" aria-hidden="true" />
-                          </button>
-                        );
-                      })}
-                   </div>
+               {/* Ingestion Status */}
+               <div className="flex flex-col p-4">
+                 <div className="flex flex-wrap items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
+                   <ShieldCheck size={16} />
+                   <span className="text-[11px] font-bold uppercase tracking-wider">Ingestion Status</span>
                  </div>
-
-                 <div className="flex flex-col mt-2 pt-3 border-t border-black/10 dark:border-white/10">
-                     <div className="flex flex-wrap items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
-                       <ShieldCheck size={16} />
-                       <span className="text-[11px] font-bold uppercase tracking-wider">Ingestion Status</span>
+                 <div className="grid grid-cols-2 gap-2">
+                   {ingestionHealth.map((health, idx) => (
+                     <div key={idx} className="flex flex-col !bg-white dark:!bg-[#12151c] p-2 rounded-lg border border-black/5 dark:border-white/5">
+                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{health.label}</span>
+                       <span className="text-xs font-medium text-slate-800 dark:text-slate-300 leading-tight mt-1">{health.value}</span>
                      </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {ingestionHealth.map((health, idx) => (
-                        <div key={idx} className="flex flex-col !bg-white dark:!bg-[#12151c] p-2 rounded-lg border border-black/5 dark:border-white/5">
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{health.label}</span>
-                          <span className="text-xs font-medium text-slate-800 dark:text-slate-300 leading-tight mt-1">{health.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 text-center">
-                       <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 select-none" aria-label={`App version ${lineWatchAppVersionLabel}`}>
-                         {lineWatchAppVersionLabel}
-                       </span>
-                    </div>
+                   ))}
                  </div>
-                </div>
+                 <div className="mt-3 text-center">
+                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 select-none" aria-label={`App version ${lineWatchAppVersionLabel}`}>
+                      {lineWatchAppVersionLabel}
+                    </span>
+                 </div>
+               </div>
               </div>
             </div>
           <StationSearchPanel

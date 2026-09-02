@@ -23,6 +23,7 @@ import {
 import { useDashboardData } from "../app/DataContext";
 import { lineWatchBuildLabel } from "../app/app-build";
 import { readStoredSheetHeightRatio } from "../hooks/useMobileDraggableSheet";
+import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 
 import {
   MapOverlapIndicator,
@@ -111,8 +112,12 @@ const MAP_OVERLAY_PULSE_SCALE = 114 / 102;
 // narrower target lets the visible highlight grow into an inert strip and
 // then disappear while the pointer is still visibly over the overlay.
 const REGIONAL_IMPACT_HIT_TARGET_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 169;
-const REGIONAL_HIGHLIGHT_OUTLINE_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 38;
-const REGIONAL_HIGHLIGHT_INNER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH;
+// Match TTC's dual-keyline hover proportions at the regional map's larger SVG
+// scale. The inner cutout overlaps the resting rail slightly so antialiasing
+// cannot leave a seam between the impact artwork and its hover outline.
+const REGIONAL_HIGHLIGHT_OUTLINE_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 31;
+const REGIONAL_HIGHLIGHT_DIVIDER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 12;
+const REGIONAL_HIGHLIGHT_INNER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH - 12;
 const REGIONAL_DELAY_GLYPH_SPACING = 96;
 // TTC's lane advances 160 SVG units over 12 seconds. Regional authored map
 // units are about 175 / 102 larger for the equivalent corridor stroke.
@@ -2232,21 +2237,8 @@ function regionalSegmentHoverForeground(source: SVGElement, maskIndex: number) {
   if (boundary) {
     const sourceBoundary = source.querySelector<SVGPathElement>(".regional-impact-hover-boundary");
     const maskBounds = regionalHoverMaskBounds(sourceBoundary ?? source);
-    const maskId = `regional-hover-boundary-mask-${maskIndex}`;
-    const mask = boundary.ownerDocument.createElementNS(SVG_NAMESPACE, "mask");
-    mask.id = maskId;
-    mask.setAttribute("maskUnits", "userSpaceOnUse");
-    mask.setAttribute("x", String(maskBounds.x));
-    mask.setAttribute("y", String(maskBounds.y));
-    mask.setAttribute("width", String(maskBounds.width));
-    mask.setAttribute("height", String(maskBounds.height));
-
-    const background = boundary.ownerDocument.createElementNS(SVG_NAMESPACE, "rect");
-    background.setAttribute("x", String(maskBounds.x));
-    background.setAttribute("y", String(maskBounds.y));
-    background.setAttribute("width", String(maskBounds.width));
-    background.setAttribute("height", String(maskBounds.height));
-    background.setAttribute("fill", "black");
+    const coreMaskId = `regional-hover-boundary-mask-${maskIndex}`;
+    const edgeMaskId = `${coreMaskId}-outer`;
 
     const maskStroke = (color: "white" | "black", width: number) => {
       const path = boundary.cloneNode(false) as SVGPathElement;
@@ -2260,15 +2252,50 @@ function regionalSegmentHoverForeground(source: SVGElement, maskIndex: number) {
       path.setAttribute("stroke-linejoin", "round");
       return path;
     };
-    mask.append(
-      background,
-      maskStroke("white", REGIONAL_HIGHLIGHT_OUTLINE_WIDTH),
-      maskStroke("black", REGIONAL_HIGHLIGHT_INNER_WIDTH),
-    );
+    const hoverMask = (id: string, cutoutWidth: number) => {
+      const mask = boundary.ownerDocument.createElementNS(SVG_NAMESPACE, "mask");
+      mask.id = id;
+      mask.setAttribute("maskUnits", "userSpaceOnUse");
+      mask.setAttribute("x", String(maskBounds.x));
+      mask.setAttribute("y", String(maskBounds.y));
+      mask.setAttribute("width", String(maskBounds.width));
+      mask.setAttribute("height", String(maskBounds.height));
+
+      const background = boundary.ownerDocument.createElementNS(SVG_NAMESPACE, "rect");
+      background.setAttribute("x", String(maskBounds.x));
+      background.setAttribute("y", String(maskBounds.y));
+      background.setAttribute("width", String(maskBounds.width));
+      background.setAttribute("height", String(maskBounds.height));
+      background.setAttribute("fill", "black");
+      mask.append(
+        background,
+        maskStroke("white", REGIONAL_HIGHLIGHT_OUTLINE_WIDTH),
+        maskStroke("black", cutoutWidth),
+      );
+      return mask;
+    };
+
     const definitions = boundary.ownerDocument.createElementNS(SVG_NAMESPACE, "defs");
-    definitions.append(mask);
+    definitions.append(
+      hoverMask(coreMaskId, REGIONAL_HIGHLIGHT_INNER_WIDTH),
+      hoverMask(edgeMaskId, REGIONAL_HIGHLIGHT_DIVIDER_WIDTH),
+    );
     foreground.prepend(definitions);
-    boundary.setAttribute("mask", `url(#${maskId})`);
+
+    boundary.classList.add("regional-impact-hover-boundary-core");
+    boundary.setAttribute("mask", `url(#${coreMaskId})`);
+    boundary.style.setProperty("stroke", "rgba(15, 23, 42, 0.98)");
+    boundary.style.setProperty("stroke-width", String(REGIONAL_HIGHLIGHT_OUTLINE_WIDTH));
+
+    const edgeBoundary = boundary.cloneNode(false) as SVGPathElement;
+    removeDescendantIds(edgeBoundary);
+    edgeBoundary.classList.remove("regional-impact-hover-boundary-core");
+    edgeBoundary.classList.add("regional-impact-hover-boundary-edge");
+    edgeBoundary.setAttribute("mask", `url(#${edgeMaskId})`);
+    edgeBoundary.style.setProperty("stroke", "rgba(248, 250, 252, 0.98)");
+    edgeBoundary.style.setProperty("stroke-width", String(REGIONAL_HIGHLIGHT_OUTLINE_WIDTH));
+    edgeBoundary.style.setProperty("filter", "drop-shadow(0 0 7px rgba(191, 219, 254, 0.62))");
+    foreground.append(edgeBoundary);
   }
   foreground.setAttribute("aria-hidden", "true");
   foreground.setAttribute("pointer-events", "none");
@@ -3907,7 +3934,7 @@ function InteractiveRegionalMapComponent({
     const { width: logicalWidth, height: logicalHeight } = logicalViewportSize();
     if (logicalWidth <= 0 || logicalHeight <= 0) return false;
 
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const isMobile = typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
     const currentFitted = fittedCamera();
     const effectiveFitScale = currentFitted?.scale ?? fitScale ?? 0.35;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);

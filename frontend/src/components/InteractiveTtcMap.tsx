@@ -19,6 +19,7 @@ import {
   type PathFrame,
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
+import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import {
   clampPanZoomScale,
   clientRectToLogicalViewportBounds,
@@ -1001,7 +1002,7 @@ function InteractiveTtcMapComponent({
     const effectiveFitScale = liveFittedTransform.scale || fitScale || 1;
 
     const current = currentRenderedTransform() ?? { x: 0, y: 0, scale: effectiveFitScale };
-    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+    const isMobile = typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
     const preferredTargetScale = clampPanZoomScale(effectiveFitScale * (isMobile ? 3.8 : 1.8), effectiveFitScale);
     const focusPadding = isMobile ? 24 : 40;
     const selectionFocusInsets = {

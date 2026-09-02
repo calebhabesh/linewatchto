@@ -312,7 +312,7 @@ export function LineLegend({
           </span>
         )}
         <span
-          className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap ${
+          className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap leading-none ${
             isRegional ? "text-[24px]" : "text-[22px]"
           }`}
         >
@@ -327,7 +327,7 @@ export function LineLegend({
 
   const renderLimitedServiceItem = () => (
     <div key="limited-service" className="flex items-center gap-2.5 min-w-0">
-      <div className="w-[58px] shrink-0" aria-hidden="true" />
+      <div className="w-[58px] h-[58px] shrink-0" aria-hidden="true" />
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
         style={{
@@ -353,7 +353,7 @@ export function LineLegend({
           />
         </svg>
       </div>
-      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[24px]">
+      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[24px] leading-none">
         Limited Service
       </span>
     </div>
@@ -361,7 +361,7 @@ export function LineLegend({
 
   const renderRegularServiceItem = () => (
     <div key="regular-service" className="flex items-center gap-2.5 min-w-0">
-      <div className="w-[58px] shrink-0" aria-hidden="true" />
+      <div className="w-[58px] h-[58px] shrink-0" aria-hidden="true" />
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
         style={{
@@ -371,7 +371,7 @@ export function LineLegend({
         }}
         aria-hidden="true"
       />
-      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[24px]">
+      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[24px] leading-none">
         Regular Service
       </span>
     </div>

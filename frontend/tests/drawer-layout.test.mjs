@@ -376,6 +376,12 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.legend-impact-count-svg/);
   });
 
+  it("LineLegend stabilizes text baselines and isolates badge animations to prevent subpixel jitter", () => {
+    assert.match(lineLegendSource, /legend-line-name[^"\n]*leading-none/);
+    assert.match(globalCss, /\.legend-line-name\s*\{[^}]*transform:\s*translateZ\(0\);[^}]*backface-visibility:\s*hidden;/s);
+    assert.match(globalCss, /\.desktop-legend-route-badge\s*\{[^}]*transform:\s*translateZ\(0\);[^}]*backface-visibility:\s*hidden;[^}]*contain:\s*layout paint style;/s);
+  });
+
   it("Card actions are renamed properly", () => {
     assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
     assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);

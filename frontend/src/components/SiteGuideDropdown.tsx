@@ -23,6 +23,7 @@ import {
   X,
   ListFilter,
 } from "lucide-react";
+import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 
 const INFO_OVERLAY_ASSET_BASE = "/assets/linewatch/info-map-overlays/";
@@ -207,7 +208,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
   }, [isClosing, isOpen]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
     const sync = () => setIsMobile(mediaQuery.matches);
     sync();
     mediaQuery.addEventListener("change", sync);

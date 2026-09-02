@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
+import { MOBILE_VIEWPORT_QUERY } from "./useMobilePerformanceMode";
 
 export function useScrollSelectedImpactCard(
   selection: ImpactSelection,
@@ -35,7 +36,7 @@ export function useScrollSelectedImpactCard(
       const card = selectedCard();
       if (!card) return;
 
-      const isMobile = window.matchMedia("(max-width: 767px)").matches ||
+      const isMobile = window.matchMedia(MOBILE_VIEWPORT_QUERY).matches ||
         Boolean(card.closest(".mobile-view-content-wrapper"));
       const list = card.closest<HTMLElement>(".line-impact-panel-stack") ??
         card.closest<HTMLElement>(".alert-stack, .closure-stack");

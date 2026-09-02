@@ -24,6 +24,7 @@ import {
   type AccountCommuteTravelTimeEstimate,
   type SavedCommuteSort,
 } from "../app/account-data";
+import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import type { NetworkId } from "../app/regional-data";
 import type { StationSummary } from "../app/station-data";
 import {
@@ -1231,7 +1232,7 @@ export function SavedCommutesPanel({
   }, [activeView, focusedCommuteId, viewedCommuteId, sortedCommutes]);
 
   useEffect(() => {
-    if (!deletingCommuteId || !window.matchMedia("(max-width: 767px)").matches) return;
+    if (!deletingCommuteId || !window.matchMedia(MOBILE_VIEWPORT_QUERY).matches) return;
 
     const frame = window.requestAnimationFrame(() => {
       const confirmation = deleteConfirmationRef.current;

@@ -27,6 +27,7 @@ import {
   isVisualKeyboardOpen,
   type CommuteStationPopoverCoords,
 } from "./commute-station-popover";
+import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
@@ -229,7 +230,7 @@ export function SavedCommuteStationPicker({
   const isExpanded = Boolean(expandedLineId) && !query.trim();
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
     const sync = () => setMobileInline(mediaQuery.matches);
     sync();
     mediaQuery.addEventListener("change", sync);
@@ -239,7 +240,7 @@ export function SavedCommuteStationPicker({
   useEffect(() => {
     if (!open) return;
 
-    const mobileViewport = window.matchMedia("(max-width: 767px)").matches;
+    const mobileViewport = window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
     const focusTimer = mobileViewport
       ? null
       : window.setTimeout(() => inputRef.current?.focus(), 40);
@@ -280,7 +281,7 @@ export function SavedCommuteStationPicker({
           width: visualViewport?.width ?? window.innerWidth,
           height: visualViewport?.height ?? window.innerHeight,
         };
-        const mobileViewport = window.matchMedia("(max-width: 767px)").matches;
+        const mobileViewport = window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
         const scrollContainer = rootRef.current?.closest(".floating-panel-scroll");
         const containerRect = scrollContainer ? scrollContainer.getBoundingClientRect() : null;
         const mobileSearchActive = mobileViewport && (
