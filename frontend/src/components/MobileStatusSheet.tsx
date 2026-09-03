@@ -10,15 +10,14 @@ import type { NetworkId } from "../app/regional-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import {
   clearServiceStatusLabel,
-  dashboardStatusSourceLabel,
   networkStatusKicker,
 } from "../app/network-presentation";
 
 type StatusCategory = "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices" | "trip-changes";
 
 type Props = {
-  pollText: string;
-  dataSource: "backend" | "fallback";
+  pollText?: string;
+  dataSource?: "backend" | "fallback";
   onOpenCategory: (view: StatusCategory, lineId?: string) => void;
   onClose: () => void;
   accessibilityOutageCount?: number;
@@ -27,20 +26,21 @@ type Props = {
   networkId?: NetworkId;
 };
 
-export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, tripChangeCount = 0, networkId = "ttc" }: Props) {
+export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, tripChangeCount = 0, networkId = "ttc" }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, lineStatuses } = useDashboardData();
   const regional = networkId === "regional";
   const reducedSpeedZoneCount = countReducedSpeedZones(reducedSpeedZones);
   const presentationState = { networkId, dataSource } as const;
-  const sourceLabel = dashboardStatusSourceLabel(presentationState, pollText);
 
   return (
     <section className="mobile-status-sheet panel" aria-label="Current service status">
       <div className="mobile-sheet-heading">
         <div>
-          <p className="mobile-sheet-kicker">{networkStatusKicker(networkId)}</p>
-          <h2>System Status</h2>
-          <p className={sourceLabel.startsWith("Updated") ? "mobile-sheet-source--updated" : undefined}>{sourceLabel}</p>
+          <p className="mobile-sheet-kicker">
+            <span className="mobile-status-sheet-live-blip" aria-hidden="true" />
+            <span>{networkStatusKicker(networkId)}</span>
+          </p>
+          <h2 className="mobile-status-sheet-title">System Status</h2>
         </div>
         <button type="button" className="mobile-sheet-icon-button" onClick={onClose} aria-label="Close status">
           <X size={20} />

@@ -19444,9 +19444,10 @@ img.transit-line-badge {
   }
 
   .mobile-sheet-heading h2 {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 950;
-    line-height: 1.1;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
     margin: 2px 0;
   }
 
@@ -19463,12 +19464,31 @@ img.transit-line-badge {
   }
 
   .mobile-sheet-kicker {
+    align-items: center;
     color: var(--quiet) !important;
+    display: inline-flex;
     font-family: var(--font-wordmark);
     font-size: 13px !important;
     font-weight: 600 !important;
+    gap: 6.5px;
     letter-spacing: -0.01em !important;
+    line-height: 1.2;
     text-transform: none;
+  }
+
+  .mobile-status-sheet-live-blip {
+    animation: peek-live-pulse 3s ease-in-out infinite;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0.65);
+    display: inline-block;
+    flex-shrink: 0;
+    height: 6.5px;
+    width: 6.5px;
+  }
+
+  .motion-paused .mobile-status-sheet-live-blip {
+    animation: none !important;
   }
 
   .mobile-more-build-label {
@@ -29085,7 +29105,7 @@ button:active .account-network-badge,
   }
 
   .mobile-sheet-heading h2 {
-    font-size: 16px;
+    font-size: 20px;
   }
 
   .mobile-sheet-heading p,
@@ -29096,6 +29116,12 @@ button:active .account-network-badge,
 
   .mobile-sheet-kicker {
     font-size: 12px !important;
+    gap: 5.5px;
+  }
+
+  .mobile-status-sheet-live-blip {
+    height: 6px;
+    width: 6px;
   }
 
   .mobile-sheet-icon-button {
