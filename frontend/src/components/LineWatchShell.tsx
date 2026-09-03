@@ -956,6 +956,8 @@ export function LineWatchShell({
 
   const clock = useTorontoClock(generatedAt.time);
   const [recenterSignal, setRecenterSignal] = useState(0);
+  const [zoomInSignal, setZoomInSignal] = useState(0);
+  const [zoomOutSignal, setZoomOutSignal] = useState(0);
 
   const [closedMapPeek, setClosedMapPeek] = useState(false);
   const [closedScreenAcknowledged, setClosedScreenAcknowledged] = useState(false);
@@ -4528,6 +4530,8 @@ export function LineWatchShell({
           onToggleTheme={handleToggleTheme}
           layoutResetSignal={mapLayoutSignal}
           recenterSignal={recenterSignal}
+          zoomInSignal={zoomInSignal}
+          zoomOutSignal={zoomOutSignal}
           reducedMotion={reducedMotion}
           mobilePerformanceMode={mobileMapPerformanceMode}
           desktopMenuPinned={menuPinned}
@@ -4824,6 +4828,8 @@ export function LineWatchShell({
             navigateForward(view);
           }}
           onRecenter={() => setRecenterSignal((prev) => prev + 1)}
+          onZoomIn={() => setZoomInSignal((prev) => prev + 1)}
+          onZoomOut={() => setZoomOutSignal((prev) => prev + 1)}
         />
       ) : null}
 

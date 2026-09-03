@@ -45,16 +45,15 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusPeekSource, /aria-label="Open current service status"/);
     assert.match(globalCss, /\.mobile-status-peek/);
     assert.match(globalCss, /--mobile-bottom-nav-height/);
-    assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*gap:\s*4px/s);
-    assert.match(globalCss, /\.mobile-status-peek-alert-icon\s*\{[^}]*top:\s*-1px/s);
+    assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*gap:\s*6px/s);
+    assert.match(globalCss, /\.mobile-status-peek-alert-icon\s*\{[^}]*align-items:\s*center/s);
     assert.match(globalCss, /\.mobile-status-peek-source--updated\s*\{[^}]*margin-top:\s*0(?:px)?/s);
-    assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*flex:\s*1 1 0;[^}]*min-width:\s*0/s);
-    assert.match(globalCss, /\.mobile-status-peek-counts\s*\{[^}]*flex-wrap:\s*wrap;[^}]*max-width:\s*100%;[^}]*width:\s*100%/s);
-    assert.match(globalCss, /\.mobile-status-peek-count-badge\s*\{[^}]*flex:\s*0 0 auto/s);
-    assert.match(globalCss, /\.mobile-status-peek-recenter-btn\s*\{[^}]*flex:\s*0 0 60px/s);
-    assert.match(globalCss, /\.mobile-status-peek:is\(\[data-category-count="3"\], \[data-category-count="4"\]\)\s*\{[^}]*gap:\s*8px/s);
-    assert.match(globalCss, /\.mobile-status-peek:is\(\[data-category-count="3"\], \[data-category-count="4"\]\) \.mobile-status-peek-counts\s*\{[^}]*gap:\s*4px/s);
-    assert.match(globalCss, /\.mobile-status-peek:is\(\[data-category-count="3"\], \[data-category-count="4"\]\) \.mobile-status-peek-count-badge\s*\{[^}]*gap:\s*3px;[^}]*padding-inline:\s*7px/s);
+    assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*backdrop-filter:\s*blur\((?:6|10|12|16)px\)/s);
+    assert.match(globalCss, /\.mobile-status-peek-counts\s*\{[^}]*display:\s*grid/s);
+    assert.match(globalCss, /\.mobile-status-peek-count-badge\s*\{[^}]*display:\s*flex/s);
+    assert.match(globalCss, /\.mobile-map-recenter-btn\s*\{[^}]*width:\s*36px/s);
+    assert.match(globalCss, /\.mobile-map-zoom-capsule\s*\{[^}]*width:\s*36px/s);
+    assert.match(globalCss, /\.mobile-map-controls-group\s*\{[^}]*position:\s*fixed/s);
   });
 
   it("renders a mobile-specific status sheet that drills into existing alert categories", () => {
@@ -175,9 +174,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /border-radius:\s*8px 8px 0 0/);
     assert.match(globalCss, /--mobile-chrome-background:\s*rgb\(14,\s*16,\s*22\)/);
     assert.match(globalCss, /\.mobile-bottom-nav\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)/s);
-    assert.match(globalCss, /\.mobile-status-peek\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)/s);
     assert.match(globalCss, /\.floating-panel-shell\[data-floating-panel="mobile-panel"\]\s*\.floating-panel-scroll\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)/s);
-    assert.match(globalCss, /\.mobile-legend-pill,[\s\S]*\.theme-toggle-btn,[\s\S]*\.rotate-map-btn,[\s\S]*\.site-guide-trigger,[\s\S]*\.mobile-status-peek\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)\s*!important/s);
+    assert.match(globalCss, /\.mobile-legend-pill,[\s\S]*\.theme-toggle-btn,[\s\S]*\.rotate-map-btn,[\s\S]*\.site-guide-trigger\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)\s*!important/s);
   });
 
   it("keeps mobile list endings compact with a thumb-only scrollbar indicator", () => {
@@ -379,8 +377,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-bottom-nav\s*\{[^}]*border:\s*none;/s);
     assert.match(globalCss, /\.dark \.mobile-bottom-nav\s*\{[^}]*border:\s*none;/s);
     assert.match(globalCss, /\.high-contrast \.mobile-bottom-nav\s*\{[^}]*border:\s*1px solid #ffffff;/s);
-    assert.match(globalCss, /\.mobile-status-peek\s*\{[^}]*border:\s*none;/s);
-    assert.match(globalCss, /\.high-contrast \.mobile-status-peek,\s*\.linewatch-shell\.high-contrast \.mobile-status-peek\s*\{[^}]*border:\s*1px solid var\(--mobile-chrome-border\);/s);
+    assert.match(globalCss, /\.mobile-status-peek\s*\{[^}]*border:\s*none/s);
+    assert.match(globalCss, /\.high-contrast \.mobile-status-peek-count-badge,\s*\.linewatch-shell\.high-contrast \.mobile-status-peek-count-badge\s*\{[^}]*border:\s*1px solid #ffffff !important;/s);
     assert.match(globalCss, /\.floating-panel-scroll\s*\{[^}]*border:\s*none;[^}]*box-shadow:\s*0 -18px 44px rgba\(0,\s*0,\s*0,\s*0\.38\);/s);
     assert.match(globalCss, /\.station-detail-panel\s*\{[^}]*border:\s*none !important;/s);
     assert.match(globalCss, /\.high-contrast \.station-detail-panel,\s*\.linewatch-shell\.high-contrast \.station-detail-panel\s*\{[^}]*border:\s*1px solid #ffffff !important;/s);

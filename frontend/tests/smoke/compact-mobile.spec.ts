@@ -28,7 +28,7 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   expect(welcomeBounds!.x).toBeGreaterThanOrEqual(9);
   expect(welcomeBounds!.y).toBeGreaterThanOrEqual(9);
   expect(welcomeBounds!.x + welcomeBounds!.width).toBeLessThanOrEqual(366);
-  expect(welcomeBounds!.y + welcomeBounds!.height).toBeLessThanOrEqual(658);
+  expect(welcomeBounds!.y + welcomeBounds!.height).toBeLessThanOrEqual(659);
   await expect(welcome.locator(".opening-welcome-image-frame--mobile").first()).toHaveCSS("aspect-ratio", "4 / 3");
 
   await welcome.getByRole("button", { name: "Skip" }).click();
@@ -47,10 +47,10 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("height", "24px");
 
   const centerMapButton = page.getByRole("button", { name: "Center map view" });
-  await expect(centerMapButton).toHaveCSS("width", "60px");
-  await expect(centerMapButton).toHaveCSS("height", "60px");
-  await expect(centerMapButton.locator("svg")).toHaveCSS("width", "24px");
-  await expect(centerMapButton.locator("span")).toHaveCSS("font-size", "9px");
+  await expect(centerMapButton).toHaveCSS("width", "36px");
+  await expect(centerMapButton).toHaveCSS("height", "36px");
+  await expect(centerMapButton.locator("svg")).toHaveCSS("width", "18px");
+  await expect(centerMapButton.locator("span")).toHaveClass(/sr-only/);
   const mobileMapStage = page.locator(".ttc-map-stage");
   await centerMapButton.click();
   await expect(mobileMapStage).toHaveCSS("opacity", "1");
@@ -94,8 +94,8 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   const statusPeek = page.locator(".mobile-status-peek");
   const statusPeekBounds = await statusPeek.boundingBox();
   expect(statusPeekBounds).not.toBeNull();
-  expect(statusPeekBounds!.x).toBeGreaterThanOrEqual(44);
-  expect(statusPeekBounds!.x + statusPeekBounds!.width).toBeLessThanOrEqual(331);
+  expect(statusPeekBounds!.x).toBeGreaterThanOrEqual(9);
+  expect(statusPeekBounds!.x + statusPeekBounds!.width).toBeLessThanOrEqual(366);
 });
 
 test("mobile TTC recenter cycles keep one stable camera surface without compositor churn", async ({ page, request, isMobile }) => {
@@ -115,7 +115,6 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
   await expect(stage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(stage.locator(".raster-map-plane--labels")).toHaveCount(1);
   await expect(stage.locator(".overlay-segment-group").first()).toBeAttached();
-
   const cycleResults = await page.evaluate(async () => {
     const viewport = document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]");
     const originalStage = viewport?.querySelector<HTMLElement>(".ttc-map-stage");
@@ -635,7 +634,7 @@ test("393px-wide phones receive the compact map-control sizing", async ({ page, 
 
   await expect(page.locator(".rotate-map-btn span")).toHaveCSS("font-size", "8px");
   await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("width", "24px");
-  await expect(page.getByRole("button", { name: "Center map view" }).locator("svg")).toHaveCSS("width", "24px");
+  await expect(page.getByRole("button", { name: "Center map view" }).locator("svg")).toHaveCSS("width", "18px");
 });
 
 test("iPhone SE keeps the subway closed card contained and actionable", async ({ page, isMobile }) => {

@@ -1492,7 +1492,7 @@ export function SavedCommutesPanel({
             <div className="saved-commute-card-identity">
               <div className="min-w-0 flex-1">
                 <h3 className="min-w-0 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
-                  <Route size={15} aria-hidden="true" className="shrink-0 text-slate-500 dark:text-slate-400" />
+                  <Route size={15} aria-hidden="true" className="saved-commute-title-icon shrink-0 text-[#0284c7] dark:text-logo-blue" />
                   <span>{commute.label}</span>
                 </h3>
                 <div className="mt-1 flex items-center gap-1.5 flex-wrap">

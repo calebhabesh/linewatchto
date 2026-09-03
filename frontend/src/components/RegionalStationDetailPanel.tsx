@@ -95,17 +95,17 @@ type RegionalStationImpact = {
 const REGIONAL_ARRIVAL_REFRESH_MS = 15_000;
 
 function stationImpactCardClassName(tone: RegionalStationImpact["tone"]) {
-  const base = "flex flex-col gap-2.5 rounded-lg border border-black/10 bg-slate-50 p-3 text-sm border-l-2 dark:border-white/10 dark:bg-white/5 transition-all";
+  const base = "station-impact-card flex flex-col gap-2.5 rounded-lg p-3 text-sm transition-all";
   if (tone === "active") {
-    return `${base} suspension-card-border shadow-[inset_2px_0_6px_-2px_rgba(239,68,68,0.2)]`;
+    return `${base} suspension-card-border`;
   }
   if (tone === "planned") {
-    return `${base} planned-closure-card-border shadow-[inset_2px_0_6px_-2px_rgba(59,130,246,0.2)]`;
+    return `${base} planned-closure-card-border`;
   }
   if (tone === "reduced-speed-zone") {
-    return `${base} rsz-card-border shadow-[inset_2px_0_6px_-2px_rgba(245,158,11,0.2)]`;
+    return `${base} rsz-card-border`;
   }
-  return `${base} delay-card-border shadow-[inset_2px_0_6px_-2px_rgba(254,236,65,0.18)]`;
+  return `${base} delay-card-border`;
 }
 
 function stationImpactButtonClassName(tone: RegionalStationImpact["tone"]) {

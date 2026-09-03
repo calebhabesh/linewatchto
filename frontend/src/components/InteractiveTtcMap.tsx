@@ -423,6 +423,8 @@ function InteractiveTtcMapComponent({
   layoutResetSignal,
   entranceSignal,
   recenterSignal,
+  zoomInSignal,
+  zoomOutSignal,
   reducedMotion,
   mobilePerformanceMode = false,
   desktopMenuPinned = false,
@@ -447,6 +449,8 @@ function InteractiveTtcMapComponent({
   layoutResetSignal?: number;
   entranceSignal?: number;
   recenterSignal?: number;
+  zoomInSignal?: number;
+  zoomOutSignal?: number;
   reducedMotion: boolean;
   mobilePerformanceMode?: boolean;
   desktopMenuPinned?: boolean;
@@ -880,6 +884,28 @@ function InteractiveTtcMapComponent({
     lastRecenterSignalRef.current = recenterSignal;
     recenterWithFeedback();
   }, [recenterSignal, loadState, recenterWithFeedback]);
+
+  const lastZoomInSignalRef = useRef(zoomInSignal ?? 0);
+  useEffect(() => {
+    if (
+      zoomInSignal === undefined
+      || zoomInSignal === lastZoomInSignalRef.current
+      || loadState !== "ready"
+    ) return;
+    lastZoomInSignalRef.current = zoomInSignal;
+    zoomIn();
+  }, [zoomInSignal, loadState, zoomIn]);
+
+  const lastZoomOutSignalRef = useRef(zoomOutSignal ?? 0);
+  useEffect(() => {
+    if (
+      zoomOutSignal === undefined
+      || zoomOutSignal === lastZoomOutSignalRef.current
+      || loadState !== "ready"
+    ) return;
+    lastZoomOutSignalRef.current = zoomOutSignal;
+    zoomOut();
+  }, [zoomOutSignal, loadState, zoomOut]);
 
   const lastEntranceSignalRef = useRef(entranceSignal ?? 0);
 

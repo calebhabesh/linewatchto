@@ -90,11 +90,14 @@ export function ActiveAlertsPanel({
       case "suspension":
         return "suspension-card-border";
       case "planned":
-        return "suspension-card-border";
+        return "planned-closure-card-border";
       case "delay":
         return "delay-card-border";
+      case "rsz":
+      case "reduced-speed-zone":
+        return "rsz-card-border";
       default:
-        return "border-l-slate-500";
+        return "suspension-card-border";
     }
   };
 
@@ -209,10 +212,10 @@ export function ActiveAlertsPanel({
               <div
                 key={alert.id}
                 data-impact-card-id={alert.id}
-                className={`alert-card min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-2 ${getSeverityColor(
+                className={`alert-card min-w-0 w-full text-left p-3 rounded-lg ${getSeverityColor(
                   alert.severity
-                )} ${getSeverityShadow(alert.severity)} !bg-slate-50 dark:!bg-[#12151c] transition-all ${
-                  isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
+                )} transition-all ${
+                  isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
                 <div className="impact-card-heading has-status-badges flex items-start justify-between gap-3 w-full min-w-0">

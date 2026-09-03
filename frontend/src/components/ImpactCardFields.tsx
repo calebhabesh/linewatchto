@@ -42,8 +42,8 @@ export function lineColor(lineId: string) {
   }
 }
 
-export function LineBadge({ lineId, lineNumber }: { lineId: string; lineNumber: string }) {
-  return <TransitLineBadge lineId={lineId} lineNumber={lineNumber} size={28} className="impact-card-line-badge shrink-0" />;
+export function LineBadge({ lineId, lineNumber, size = 28 }: { lineId: string; lineNumber: string; size?: number }) {
+  return <TransitLineBadge lineId={lineId} lineNumber={lineNumber} size={size} className="impact-card-line-badge shrink-0" />;
 }
 
 export function RelatedPlannedClosureButton({ onClick }: { onClick: () => void }) {

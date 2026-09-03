@@ -2595,6 +2595,8 @@ function InteractiveRegionalMapComponent({
   mobilePerformanceMode = false,
   layoutResetSignal,
   recenterSignal,
+  zoomInSignal,
+  zoomOutSignal,
   isDark = true,
   highContrast = false,
   animateInitialEntrance = true,
@@ -2616,6 +2618,8 @@ function InteractiveRegionalMapComponent({
   mobilePerformanceMode?: boolean;
   layoutResetSignal?: number;
   recenterSignal?: number;
+  zoomInSignal?: number;
+  zoomOutSignal?: number;
   isDark?: boolean;
   highContrast?: boolean;
   animateInitialEntrance?: boolean;
@@ -4127,6 +4131,20 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(nextCamera);
     scheduleCameraCommit();
   }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
+
+  const lastZoomInSignalRef = useRef(zoomInSignal);
+  useEffect(() => {
+    if (zoomInSignal === undefined || zoomInSignal === lastZoomInSignalRef.current) return;
+    lastZoomInSignalRef.current = zoomInSignal;
+    zoomAtCenter(1.25);
+  }, [zoomAtCenter, zoomInSignal]);
+
+  const lastZoomOutSignalRef = useRef(zoomOutSignal);
+  useEffect(() => {
+    if (zoomOutSignal === undefined || zoomOutSignal === lastZoomOutSignalRef.current) return;
+    lastZoomOutSignalRef.current = zoomOutSignal;
+    zoomAtCenter(1 / 1.25);
+  }, [zoomAtCenter, zoomOutSignal]);
 
   const zoomToScale = useCallback((targetRelativeScale: number) => {
     const viewport = viewportRef.current;

@@ -33,6 +33,8 @@ export function NetworkMap({
           mobilePerformanceMode={props.mobilePerformanceMode}
           layoutResetSignal={props.layoutResetSignal}
           recenterSignal={props.recenterSignal}
+          zoomInSignal={props.zoomInSignal}
+          zoomOutSignal={props.zoomOutSignal}
           isDark={props.isDark}
           highContrast={props.highContrast}
           animateInitialEntrance={props.animateInitialEntrance}

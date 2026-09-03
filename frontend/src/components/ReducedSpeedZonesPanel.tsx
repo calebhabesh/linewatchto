@@ -201,17 +201,15 @@ export function ReducedSpeedZonesPanel({
               <div
                 key={zone.id}
                 data-impact-card-id={zone.id}
-                className={`alert-card rsz-card-border min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-2 shadow-[inset_2px_0_6px_-2px_rgba(245,158,11,0.2)] !bg-slate-50 dark:!bg-[#12151c] transition-all ${
-                  isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
+                className={`alert-card rsz-card-border min-w-0 w-full text-left p-3 rounded-lg transition-all ${
+                  isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
-                <div className="impact-card-heading flex items-start justify-between gap-3 w-full min-w-0">
+                <div className="impact-card-heading flex items-start justify-between gap-3 w-full min-w-0 pt-1.5 pl-1">
                   <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <LineBadge lineId={zone.lineId} lineNumber={zone.lineNumber} />
+                    <LineBadge lineId={zone.lineId} lineNumber={zone.lineNumber} size={34} />
                     {showImpactTypeIndicator ? <ImpactTypeIcon kind="reduced-speed-zone" size={17} className="line-impact-card-type-icon shrink-0" /> : null}
-                    <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
-                      {zone.title}
-                    </strong>
+                    <span className="sr-only min-w-0 whitespace-normal break-words">{zone.title}</span>
                   </div>
                 </div>
 

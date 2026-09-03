@@ -205,8 +205,8 @@ export function PlannedClosuresPanel({
               <div
                 key={closure.id}
                 data-impact-card-id={closure.id}
-                className={`closure-card planned-closure-card-border min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/10 dark:border-white/10 border-l-2 shadow-[inset_2px_0_6px_-2px_rgba(59,130,246,0.2)] transition-all ${
-                  isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
+                className={`closure-card planned-closure-card-border min-w-0 p-3 rounded-lg transition-all ${
+                  isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
                 <div className="impact-card-heading has-status-badges flex items-start justify-between gap-3 w-full min-w-0">
