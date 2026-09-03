@@ -48,6 +48,12 @@ describe("circular View on Map button", () => {
     // JumpToLocationIcon dual-tone icon: 4 corner L pieces in white, center pin in blue (#2563eb matching mobile status peek center button infill)
     assert.match(globalCss, /\.jump-to-corners path[\s\S]*?stroke:\s*#ffffff\s*!important/);
     assert.match(globalCss, /\.jump-to-pin[\s\S]*?color:\s*#2563eb/);
+
+    // Unfocus / is-active state: calm subdued royal blue with no neon glow aura
+    assert.match(globalCss, /\.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#2563eb\s*!important;/s);
+    assert.match(globalCss, /\.dark \.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#1d4ed8\s*!important;/s);
+    assert.match(globalCss, /\.impact-card-map-btn\.is-active \.jump-to-pin\s*\{[^}]*filter:\s*none\s*!important;/s);
+    assert.doesNotMatch(globalCss, /\.impact-card-map-btn\.is-active\s*\{[^}]*rgba\(56,\s*189,\s*248,\s*0\.45\)/s);
   });
 
   it("scales down the button slightly on mobile screens", () => {

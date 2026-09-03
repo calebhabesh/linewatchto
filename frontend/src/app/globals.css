@@ -2364,10 +2364,15 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 /* Active / Focused on map */
 .impact-card-map-btn.is-active {
-  background: #0284c7 !important;
+  background: #2563eb !important;
   border: none !important;
   color: #ffffff !important;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.45) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.20) !important;
+}
+
+.dark .impact-card-map-btn.is-active {
+  background: #1d4ed8 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
 }
 
 .impact-card-map-btn.is-active .jump-to-corners path {
@@ -2376,7 +2381,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 .impact-card-map-btn.is-active .jump-to-pin {
   color: #ffffff !important;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7)) !important;
+  filter: none !important;
 }
 
 .impact-card-map-btn.is-active span {
@@ -2384,7 +2389,12 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .impact-card-map-btn.is-active:hover {
-  background: #0369a1 !important;
+  background: #1d4ed8 !important;
+  border: none !important;
+}
+
+.dark .impact-card-map-btn.is-active:hover {
+  background: #2563eb !important;
   border: none !important;
 }
 
@@ -8010,6 +8020,7 @@ button {
   border-bottom-color: transparent !important;
   border-radius: 10px;
   color: inherit;
+  cursor: pointer;
   display: grid;
   gap: 10px;
   grid-template-columns: 44px minmax(0, 1fr);
@@ -8018,8 +8029,10 @@ button {
   text-align: left;
   transition:
     background-color 150ms ease,
+    background-image 150ms ease,
     box-shadow 150ms ease,
-    filter 150ms ease;
+    border-color 150ms ease,
+    transform 150ms ease;
 }
 
 .dark .overlap-chooser-choice {
@@ -8083,10 +8096,95 @@ button {
   background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 14px, transparent 30px), #12151c !important;
 }
 
+/* Evident, prominent hover and selection highlights */
 .overlap-chooser-choice:hover,
-.overlap-chooser-choice:focus-visible {
+.overlap-chooser-choice:focus-visible,
+.overlap-chooser-choice.selected {
   outline: none !important;
-  filter: brightness(1.08);
+}
+
+.overlap-chooser-choice.delay:hover,
+.overlap-chooser-choice.delay:focus-visible,
+.overlap-chooser-choice.delay.selected {
+  border-left-color: #fde047 !important;
+  box-shadow:
+    inset 3px 0 10px -1px rgba(254, 236, 65, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.16) 0%, rgba(254, 236, 65, 0.04) 30px, transparent 60px), #e8edf4 !important;
+}
+.dark .overlap-chooser-choice.delay:hover,
+.dark .overlap-chooser-choice.delay:focus-visible,
+.dark .overlap-chooser-choice.delay.selected {
+  border-left-color: #fef08a !important;
+  box-shadow:
+    inset 3px 0 12px -1px rgba(254, 236, 65, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.40) !important;
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.24) 0%, rgba(254, 236, 65, 0.08) 32px, transparent 68px), #232a38 !important;
+}
+
+.overlap-chooser-choice.planned-closure:hover,
+.overlap-chooser-choice.planned-closure:focus-visible,
+.overlap-chooser-choice.planned-closure.selected {
+  border-left-color: #3b82f6 !important;
+  box-shadow:
+    inset 3px 0 10px -1px rgba(59, 130, 246, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0.04) 30px, transparent 60px), #e8edf4 !important;
+}
+.dark .overlap-chooser-choice.planned-closure:hover,
+.dark .overlap-chooser-choice.planned-closure:focus-visible,
+.dark .overlap-chooser-choice.planned-closure.selected {
+  border-left-color: #60a5fa !important;
+  box-shadow:
+    inset 3px 0 12px -1px rgba(59, 130, 246, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.40) !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.08) 32px, transparent 68px), #232a38 !important;
+}
+
+.overlap-chooser-choice.suspension:hover,
+.overlap-chooser-choice.suspension:focus-visible,
+.overlap-chooser-choice.suspension.selected {
+  border-left-color: #ef4444 !important;
+  box-shadow:
+    inset 3px 0 10px -1px rgba(239, 68, 68, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.16) 0%, rgba(239, 68, 68, 0.04) 30px, transparent 60px), #e8edf4 !important;
+}
+.dark .overlap-chooser-choice.suspension:hover,
+.dark .overlap-chooser-choice.suspension:focus-visible,
+.dark .overlap-chooser-choice.suspension.selected {
+  border-left-color: #f87171 !important;
+  box-shadow:
+    inset 3px 0 12px -1px rgba(239, 68, 68, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.40) !important;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0.08) 32px, transparent 68px), #232a38 !important;
+}
+
+.overlap-chooser-choice.reduced-speed-zone:hover,
+.overlap-chooser-choice.reduced-speed-zone:focus-visible,
+.overlap-chooser-choice.reduced-speed-zone.selected {
+  border-left-color: #f59e0b !important;
+  box-shadow:
+    inset 3px 0 10px -1px rgba(245, 158, 11, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0.04) 30px, transparent 60px), #e8edf4 !important;
+}
+.dark .overlap-chooser-choice.reduced-speed-zone:hover,
+.dark .overlap-chooser-choice.reduced-speed-zone:focus-visible,
+.dark .overlap-chooser-choice.reduced-speed-zone.selected {
+  border-left-color: #fbbf24 !important;
+  box-shadow:
+    inset 3px 0 12px -1px rgba(245, 158, 11, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.40) !important;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.08) 32px, transparent 68px), #232a38 !important;
 }
 
 .overlap-chooser-choice:active {
@@ -8100,6 +8198,14 @@ button {
   box-shadow: none !important;
 }
 
+.high-contrast .overlap-chooser-choice:hover,
+.high-contrast .overlap-chooser-choice:focus-visible,
+.high-contrast .overlap-chooser-choice.selected {
+  background: #1e293b !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 2px #ffffff !important;
+}
+
 .overlap-chooser-choice-icon {
   align-items: center;
   background: #172033;
@@ -8108,7 +8214,15 @@ button {
   display: flex;
   height: 42px;
   justify-content: center;
+  transition: transform 150ms ease, filter 150ms ease;
   width: 42px;
+}
+
+.overlap-chooser-choice:hover .overlap-chooser-choice-icon,
+.overlap-chooser-choice:focus-visible .overlap-chooser-choice-icon,
+.overlap-chooser-choice.selected .overlap-chooser-choice-icon {
+  transform: scale(1.05);
+  filter: brightness(1.15);
 }
 
 .overlap-chooser-choice-icon.suspension {
