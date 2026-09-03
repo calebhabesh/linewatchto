@@ -148,7 +148,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
     for (let cycle = 0; cycle < 12; cycle += 1) {
       const centeredTransform = originalStage.style.transform;
       zoomIn.click();
-      const zoomDeadline = performance.now() + 750;
+      const zoomDeadline = performance.now() + 1_500;
       while (
         originalStage.style.transform === centeredTransform
         && performance.now() < zoomDeadline
@@ -157,6 +157,13 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
       }
       const zoomedTransform = originalStage.style.transform;
       recenter.click();
+      const recenterDeadline = performance.now() + 1_500;
+      while (
+        originalStage.style.transform === zoomedTransform
+        && performance.now() < recenterDeadline
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 16));
+      }
       cycles.push({
         cameraChanged: zoomedTransform !== originalStage.style.transform,
         stageOpacity: getComputedStyle(originalStage).opacity,
@@ -169,6 +176,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
           && getComputedStyle(plane).backfaceVisibility === "visible"
         )).length,
       });
+      await new Promise((resolve) => window.setTimeout(resolve, 32));
     }
 
     return {

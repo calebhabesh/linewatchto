@@ -746,7 +746,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /function continuousRegionalOverlayRunPath\(/);
     assert.match(regionalMapSource, /continuousRegionalOverlayRunPath\(documentNode, run\) \?\? run\.pathD/);
     assert.match(regionalMapSource, /regionalImpactPriority\(left\.impact\.kind\) - regionalImpactPriority\(right\.impact\.kind\)/);
-    assert.match(regionalMapSource, /case "delay":\s*return 0;[\s\S]*case "planned-closure":\s*return 2;[\s\S]*case "suspension":\s*return 3;/);
+    assert.match(regionalMapSource, /case "reduced-speed-zone":\s*return 0;[\s\S]*case "planned-closure":\s*return 1;[\s\S]*case "delay":\s*return 2;[\s\S]*case "suspension":\s*return 3;/);
+    assert.match(regionalMapSource, /const corridorWideAlerts = activeAlerts[\s\S]*regionalImpactPriority\(leftKind\) - regionalImpactPriority\(rightKind\)/);
     assert.match(regionalMapSource, /`\$\{REGIONAL_IMPACT_OVERLAY_WIDTH\}px`/);
     assert.doesNotMatch(regionalMapSource, /REGIONAL_IMPACT_OVERLAY_WIDTH - layerIndex/);
   });
@@ -985,7 +986,7 @@ describe("network-scoped regional dashboard", () => {
       /\.regional-map-stage > div > svg\s*\{[^}]*display:\s*block;[^}]*width:\s*100%;[^}]*height:\s*100%;/s,
     );
     assert.match(regionalMapSource, /const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0\.025/);
-    assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1\.04/);
+    assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0\.95/);
     assert.doesNotMatch(regionalMapSource, /REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO/);
     assert.match(regionalMapSource, /Math\.min\(64, Math\.max\(32, width \* REGIONAL_MAP_HORIZONTAL_INSET_RATIO\)\)/);
     assert.match(regionalMapSource, /left:\s*horizontalInset/);

@@ -7841,20 +7841,28 @@ button {
   isolation: isolate;
   position: absolute;
   z-index: 45;
+  height: fit-content !important;
+  max-height: calc(100vh - 32px);
+  pointer-events: none;
 }
 
 .overlap-chooser-surface {
-  background: rgba(255, 255, 255, 0.98);
-  border: 2px solid rgba(15, 23, 42, 0.24);
+  background: #ffffff !important;
+  border: none !important;
   border-radius: 16px;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 20px 48px rgba(15, 23, 42, 0.24);
   color: #0f172a;
   contain: paint layout style;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: fit-content;
+  max-height: 100%;
+  opacity: 1 !important;
   overflow: hidden;
   padding: 12px;
+  pointer-events: auto;
   transform-origin: center;
   will-change: transform, opacity;
   backface-visibility: hidden;
@@ -7877,15 +7885,18 @@ button {
 }
 
 .dark .overlap-chooser-surface {
-  background: rgba(12, 15, 21, 0.98);
-  border-color: rgba(255, 255, 255, 0.28);
-  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.58);
+  background: #0e1016 !important;
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 24px 56px rgba(0, 0, 0, 0.75);
   color: #f8fafc;
+  opacity: 1 !important;
 }
 
 .high-contrast .overlap-chooser-surface {
-  background: #000000;
-  border-color: #ffffff;
+  background: #000000 !important;
+  border: 2px solid #ffffff !important;
   box-shadow: 0 0 0 3px #000000, 0 0 0 5px #ffffff;
   color: #ffffff;
 }
@@ -7930,36 +7941,54 @@ button {
   line-height: 1.1;
 }
 
-.overlap-chooser-close {
+.overlap-chooser-close,
+.overlap-chooser-close-btn {
   align-items: center;
   background: rgba(15, 23, 42, 0.08);
-  border: 1px solid transparent;
+  border: none !important;
   border-radius: 50%;
+  color: inherit;
   display: flex;
-  flex: 0 0 38px;
-  height: 38px;
+  flex: 0 0 36px;
+  height: 36px;
   justify-content: center;
-  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
-  width: 38px;
+  transition: background-color 140ms ease, transform 140ms ease, filter 140ms ease;
+  width: 36px;
 }
 
-.dark .overlap-chooser-close {
-  background: rgba(255, 255, 255, 0.1);
+.dark .overlap-chooser-close,
+.dark .overlap-chooser-close-btn {
+  background: rgba(255, 255, 255, 0.10);
+  border: none !important;
+  color: #f8fafc;
 }
 
 .overlap-chooser-close:hover,
-.overlap-chooser-close:focus-visible {
-  background: rgba(59, 130, 246, 0.14);
-  border-color: #3b82f6;
-  outline: none;
+.overlap-chooser-close:focus-visible,
+.overlap-chooser-close-btn:hover,
+.overlap-chooser-close-btn:focus-visible {
+  background: rgba(15, 23, 42, 0.14);
+  outline: none !important;
+  filter: brightness(1.15);
 }
 
-.overlap-chooser-close:active {
+.dark .overlap-chooser-close:hover,
+.dark .overlap-chooser-close:focus-visible,
+.dark .overlap-chooser-close-btn:hover,
+.dark .overlap-chooser-close-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  outline: none !important;
+  filter: brightness(1.2);
+}
+
+.overlap-chooser-close:active,
+.overlap-chooser-close-btn:active {
   transform: scale(0.92);
 }
 
 .overlap-chooser-list {
   display: grid;
+  flex: 1 1 auto;
   gap: 6px;
   grid-auto-rows: max-content;
   margin-right: -6px;
@@ -7973,8 +8002,12 @@ button {
 .overlap-chooser-choice {
   align-items: center;
   background: rgba(15, 23, 42, 0.04);
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  border: none !important;
   border-left-width: 2px;
+  border-left-style: solid;
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
   border-radius: 10px;
   color: inherit;
   display: grid;
@@ -7985,35 +8018,86 @@ button {
   text-align: left;
   transition:
     background-color 150ms ease,
-    border-color 150ms ease;
+    box-shadow 150ms ease,
+    filter 150ms ease;
 }
 
 .dark .overlap-chooser-choice {
-  background: rgba(255, 255, 255, 0.055);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: #12151c;
 }
 
-.overlap-chooser-choice.suspension {
-  border-left-color: rgba(239, 68, 68, 0.42);
-}
-
-.overlap-chooser-choice.planned-closure {
-  border-left-color: rgba(59, 130, 246, 0.42);
-}
-
-.overlap-chooser-choice.delay {
-  border-left-color: rgba(234, 179, 8, 0.42);
-}
-
+.overlap-chooser-choice.rsz-card-border,
 .overlap-chooser-choice.reduced-speed-zone {
-  border-left-color: rgba(245, 158, 11, 0.42);
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(245, 158, 11, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(245, 158, 11, 0.20) !important;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.07) 0%, rgba(245, 158, 11, 0.02) 12px, transparent 24px), #f8fafc !important;
+  /* rgba(245, 158, 11, 0.42) */
+}
+.dark .overlap-chooser-choice.rsz-card-border,
+.dark .overlap-chooser-choice.reduced-speed-zone {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+.overlap-chooser-choice.delay-card-border,
+.overlap-chooser-choice.delay {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(254, 236, 65, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(254, 236, 65, 0.20) !important;
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.07) 0%, rgba(254, 236, 65, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .overlap-chooser-choice.delay-card-border,
+.dark .overlap-chooser-choice.delay {
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.11) 0%, rgba(254, 236, 65, 0.035) 14px, transparent 30px), #12151c !important;
+}
+
+.overlap-chooser-choice.suspension-card-border,
+.overlap-chooser-choice.suspension {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(239, 68, 68, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(239, 68, 68, 0.20) !important;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.07) 0%, rgba(239, 68, 68, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .overlap-chooser-choice.suspension-card-border,
+.dark .overlap-chooser-choice.suspension {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+.overlap-chooser-choice.planned-closure-card-border,
+.overlap-chooser-choice.planned-closure {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(59, 130, 246, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(59, 130, 246, 0.20) !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .overlap-chooser-choice.planned-closure-card-border,
+.dark .overlap-chooser-choice.planned-closure {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 14px, transparent 30px), #12151c !important;
 }
 
 .overlap-chooser-choice:hover,
 .overlap-chooser-choice:focus-visible {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: #60a5fa;
-  outline: none;
+  outline: none !important;
+  filter: brightness(1.08);
+}
+
+.overlap-chooser-choice:active {
+  transform: scale(0.985);
+}
+
+.high-contrast .overlap-chooser-choice {
+  border: 1px solid #ffffff !important;
+  border-left-width: 3px !important;
+  background: #000000 !important;
+  box-shadow: none !important;
 }
 
 .overlap-chooser-choice-icon {
@@ -8114,7 +8198,8 @@ button {
     font-size: 18px;
   }
 
-  .overlap-chooser-close {
+  .overlap-chooser-close,
+  .overlap-chooser-close-btn {
     flex-basis: 36px;
     height: 36px;
     width: 36px;

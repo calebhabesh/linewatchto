@@ -2468,6 +2468,54 @@ test("overlapping alert rails share one pulse cadence and size across both maps"
   expect(regionalPulse.delayWidth).toBe(regionalPulse.plannedWidth);
 });
 
+test("paints current delays above planned closures on both maps", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop SVG painter-order verification");
+  await setStubMode(request, "map-authoritative-overlap");
+  await page.goto("/");
+  await expect(page.getByTitle("Center view")).toBeVisible();
+
+  const ttcOverlays = page.locator('g[aria-label="Disruption overlays"]');
+  await expect(ttcOverlays.locator('[data-map-impact-id="stub-upcoming-closure-line-1"]'))
+    .toHaveCount(1);
+  await expect(ttcOverlays.locator('[data-map-impact-id="stub-delay-line-1-overlap"]'))
+    .toHaveCount(1);
+  const ttcDelayPaintsAfterPlanned = await ttcOverlays
+    .evaluate((root) => {
+      const planned = root.querySelector(
+        '[data-map-impact-id="stub-upcoming-closure-line-1"]',
+      );
+      const delay = root.querySelector('[data-map-impact-id="stub-delay-line-1-overlap"]');
+      if (!planned || !delay) return false;
+      return Boolean(planned.compareDocumentPosition(delay) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+  expect(ttcDelayPaintsAfterPlanned).toBe(true);
+
+  await setStubMode(request, "regional-live");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
+
+  const regionalMap = page.locator(".regional-map");
+  await expect(regionalMap.locator(
+    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"]',
+  )).toHaveCount(1);
+  await expect(regionalMap.locator(
+    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"]',
+  )).toHaveCount(1);
+  const regionalDelayPaintsAfterPlanned = await regionalMap.evaluate((root) => {
+    const planned = root.querySelector(
+      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"]',
+    );
+    const delay = root.querySelector(
+      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"]',
+    );
+    if (!planned || !delay) return false;
+    return Boolean(planned.compareDocumentPosition(delay) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(regionalDelayPaintsAfterPlanned).toBe(true);
+});
+
 test("mobile closing impact details preserves the focused map camera", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only impact camera behavior");
   await setStubMode(request, "seeded");

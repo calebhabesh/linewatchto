@@ -789,10 +789,17 @@ describe("map overlap badge grouping", () => {
         travelDirection: "bidirectional",
         sourceAlertIds: ["rsz-jane-runnymede"],
       },
+      {
+        kind: "planned-closure",
+        cardId: "closure-jane-runnymede",
+        travelDirection: "bidirectional",
+        sourceAlertIds: ["closure-jane-runnymede"],
+      },
     ]);
 
     assert.deepEqual(counts, [
       { kind: "delay", count: 2 },
+      { kind: "planned-closure", count: 1 },
       { kind: "reduced-speed-zone", count: 1 },
     ]);
   });

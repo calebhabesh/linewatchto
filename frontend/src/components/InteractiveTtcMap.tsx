@@ -510,7 +510,24 @@ function InteractiveTtcMapComponent({
   const externallyHoveredImpactKeysRef = useRef(new Set<string>());
   const chooserHoveredImpactRef = useRef<MapImpact | null>(null);
   const mapControlRailRef = useRef<HTMLDivElement>(null);
-  const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
+  const [desktopMapTopInset, setDesktopMapTopInset] = useState(() => {
+    if (typeof window === "undefined" || window.innerWidth < 768) return 0;
+    const rail = document.querySelector<HTMLElement>(".desktop-map-control-rail");
+    if (rail && window.getComputedStyle(rail).display !== "none") {
+      return Math.max(0, Math.round(rail.getBoundingClientRect().bottom));
+    }
+    const capsule = document.querySelector<HTMLElement>(".desktop-status-capsule");
+    return capsule ? Math.max(0, Math.round(capsule.getBoundingClientRect().bottom + 70)) : 156;
+  });
+  const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(() => {
+    if (typeof window === "undefined" || window.innerWidth < 768) return 0;
+    const badges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
+    return badges && window.getComputedStyle(badges).display !== "none"
+      ? Math.max(0, Math.round(window.innerHeight - badges.getBoundingClientRect().top))
+      : 0;
+  });
+  const desktopMapInsetsRef = useRef({ top: desktopMapTopInset, bottom: desktopMapBottomInset });
+  const lastFittedInsetsRef = useRef<{ top: number; bottom: number } | null>(null);
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
   const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
   const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
@@ -625,11 +642,12 @@ function InteractiveTtcMapComponent({
   const defaultMapFrame = useMemo(() => ({
     bounds: TTC_MAP_CONTENT_BOUNDS,
     topInset: desktopMapTopInset,
+    bottomInset: desktopMapBottomInset,
     horizontalInsetRatio: desktopMapTopInset > 0
       ? DESKTOP_MAP_HORIZONTAL_INSET_RATIO
       : MOBILE_MAP_HORIZONTAL_INSET_RATIO,
     minHorizontalInset: desktopMapTopInset > 0 ? 32 : 12,
-  }), [desktopMapTopInset]);
+  }), [desktopMapBottomInset, desktopMapTopInset]);
 
   const {
     transform,
@@ -682,28 +700,49 @@ function InteractiveTtcMapComponent({
     const rail = mapControlRailRef.current;
     if (!root || !rail) return;
 
-    const measureTopInset = () => {
+    const measureDesktopInsets = () => {
       const railStyle = window.getComputedStyle(rail);
-      if (railStyle.display === "none") {
+      if (railStyle.display === "none" || window.innerWidth < 768) {
         setDesktopMapTopInset(0);
+        setDesktopMapBottomInset(0);
         return;
       }
 
       const rootRect = root.getBoundingClientRect();
       const railRect = rail.getBoundingClientRect();
-      setDesktopMapTopInset(Math.max(0, Math.round(railRect.bottom - rootRect.top)));
+      const nextTopInset = Math.max(0, Math.round(railRect.bottom - rootRect.top));
+
+      const impactBadges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
+      let nextBottomInset = 0;
+      if (impactBadges) {
+        const badgesRect = impactBadges.getBoundingClientRect();
+        if (badgesRect.width > 0 && badgesRect.height > 0) {
+          nextBottomInset = Math.max(0, Math.round(rootRect.bottom - badgesRect.top));
+        }
+      }
+
+      const insetsChanged = desktopMapInsetsRef.current.top !== nextTopInset
+        || desktopMapInsetsRef.current.bottom !== nextBottomInset;
+      if (insetsChanged) {
+        desktopMapInsetsRef.current = { top: nextTopInset, bottom: nextBottomInset };
+        setDesktopMapTopInset(nextTopInset);
+        setDesktopMapBottomInset(nextBottomInset);
+        refitIfCameraUntouched();
+      }
     };
 
-    measureTopInset();
-    const observer = new ResizeObserver(measureTopInset);
+    measureDesktopInsets();
+    const observer = new ResizeObserver(measureDesktopInsets);
     observer.observe(root);
     observer.observe(rail);
-    window.addEventListener("resize", measureTopInset);
+    const impactBadges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
+    if (impactBadges) observer.observe(impactBadges);
+    window.addEventListener("resize", measureDesktopInsets);
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", measureTopInset);
+      window.removeEventListener("resize", measureDesktopInsets);
     };
-  }, []);
+  }, [refitIfCameraUntouched]);
 
   useEffect(() => {
     const viewport = containerRef.current;
@@ -828,9 +867,11 @@ function InteractiveTtcMapComponent({
           return;
         } else if (focusTargetKey === null) {
           initialCameraPositionedRef.current = true;
+          lastFittedInsetsRef.current = { top: desktopMapTopInset, bottom: desktopMapBottomInset };
           initializeCamera();
         } else {
           initialCameraPositionedRef.current = true;
+          lastFittedInsetsRef.current = { top: desktopMapTopInset, bottom: desktopMapBottomInset };
           moveToDefaultCamera(false, false);
         }
       } else if (attempts < 10) {
@@ -843,7 +884,16 @@ function InteractiveTtcMapComponent({
     return () => {
       if (retryTimer !== null) window.clearTimeout(retryTimer);
     };
-  }, [animateInitialEntrance, completeStagedEntrance, containerRef, deferInitialEntrance, focusTargetKey, geometryReady, initializeCamera, loadState, moveToDefaultCamera, rasterMapReady, stageInitialEntrance]);
+  }, [animateInitialEntrance, completeStagedEntrance, containerRef, deferInitialEntrance, desktopMapBottomInset, desktopMapTopInset, focusTargetKey, geometryReady, initializeCamera, loadState, moveToDefaultCamera, rasterMapReady, stageInitialEntrance]);
+
+  useEffect(() => {
+    if (!initialCameraPositionedRef.current) return;
+    const last = lastFittedInsetsRef.current;
+    if (!last || last.top !== desktopMapTopInset || last.bottom !== desktopMapBottomInset) {
+      lastFittedInsetsRef.current = { top: desktopMapTopInset, bottom: desktopMapBottomInset };
+      refitIfCameraUntouched();
+    }
+  }, [desktopMapBottomInset, desktopMapTopInset, refitIfCameraUntouched]);
 
   useEffect(() => {
     if (
@@ -3624,9 +3674,9 @@ function getImpactPriority(kind: MapImpactKind): number {
   switch (kind) {
     case "suspension":
       return 4;
-    case "planned-closure":
-      return 3;
     case "delay":
+      return 3;
+    case "planned-closure":
       return 2;
     case "reduced-speed-zone":
       return 1;
@@ -4597,11 +4647,16 @@ function OverlapChooser({
         height: layout.height,
       };
 
+  const animatedEntranceRef = useRef(false);
+
   useEffect(() => () => onHoverImpact(null), [onHoverImpact]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const focusFrame = window.requestAnimationFrame(() => firstChoiceRef.current?.focus({ preventScroll: true }));
-    if (reducedMotion) return;
+    if (reducedMotion || animatedEntranceRef.current) {
+      return () => window.cancelAnimationFrame(focusFrame);
+    }
+    animatedEntranceRef.current = true;
     const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
     const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
     const animation = surfaceRef.current?.animate([
@@ -4771,6 +4826,7 @@ function OverlapIndicatorMarker({
       selection={selection}
       isOpen={isOpen}
       collisionAvoided={badge.position.collisionAvoided}
+      isolatePointerDown
       onActivate={onToggle}
       onHoverChange={onHoverChange}
       shouldSuppressMapClick={shouldSuppressMapClick}

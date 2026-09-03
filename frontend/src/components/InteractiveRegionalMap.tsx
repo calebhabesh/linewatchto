@@ -76,13 +76,13 @@ const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
 const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0.025;
 const REGIONAL_MAP_MOBILE_INSET_RATIO = 0.025;
-// Custom regional map visible-art bounds, spanning from Kitchener/Stratford (x≈45.5px)
-// through x≈4450.8px to include Oshawa and the Cardinal North compass.
+// Custom regional map visible-art bounds, spanning from Kitchener/Stratford (x≈53.1px)
+// through x≈4673.5px to include Durham College Oshawa, VIA Rail badges, and the Cardinal North compass.
 const REGIONAL_MAP_CONTENT_BOUNDS: MapContentBounds = {
-  x: 45.54,
-  y: 34.96,
-  width: 4405.28,
-  height: 2550,
+  x: 53.08,
+  y: 110.78,
+  width: 4620.46,
+  height: 2395.26,
 };
 
 const REGIONAL_LARGE_TERMINAL_IDS = new Set([
@@ -105,10 +105,10 @@ const REGIONAL_LARGE_TERMINAL_IDS = new Set([
   "weston",
   "mount-dennis",
 ]);
-// The authored SVG is slightly wider than the camera canvas, leaving just over
-// 4% of vertical letterbox room in the fitted frame. Stay below that limit so
-// the tighter default never crosses the console or impact-badge bounds.
-const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1.04;
+// Default desktop regional frame zoomed out a smidgen to provide comfortable
+// breathing room around Allandale Waterfront text below the top console and
+// Hamilton station above the bottom alert badges.
+const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0.95;
 // Route-wide selections need breathing room beyond a technically exact fit so
 // station labels and the authored corridor shape do not crowd the visible map
 // space beside an open desktop panel. Short selections still use the preferred
@@ -249,11 +249,11 @@ function regionalImpactVisualState(kind: ImpactKind) {
 
 function regionalImpactPriority(kind: ImpactKind) {
   switch (kind) {
-    case "delay":
-      return 0;
     case "reduced-speed-zone":
-      return 1;
+      return 0;
     case "planned-closure":
+      return 1;
+    case "delay":
       return 2;
     case "suspension":
       return 3;
@@ -2664,8 +2664,20 @@ function InteractiveRegionalMapComponent({
   const [cameraReady, setCameraReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
-  const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
-  const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
+  const [desktopMapTopInset, setDesktopMapTopInset] = useState(() => {
+    if (typeof window === "undefined" || window.innerWidth < 768) return 0;
+    const capsule = document.querySelector<HTMLElement>(".desktop-status-capsule");
+    return capsule && window.getComputedStyle(capsule).display !== "none"
+      ? Math.max(0, Math.round(capsule.getBoundingClientRect().bottom))
+      : 0;
+  });
+  const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(() => {
+    if (typeof window === "undefined" || window.innerWidth < 768) return 0;
+    const badges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
+    return badges && window.getComputedStyle(badges).display !== "none"
+      ? Math.max(0, Math.round(window.innerHeight - badges.getBoundingClientRect().top))
+      : 0;
+  });
   const [hoveredStationLabel, setHoveredStationLabel] = useState<{
     stationId: string;
     polygonPoints: string;
@@ -2910,10 +2922,16 @@ function InteractiveRegionalMapComponent({
       const consoleRect = consoleCapsule.getBoundingClientRect();
       const badgesRect = impactBadges.getBoundingClientRect();
       const nextTopInset = consoleRect.width > 0 && consoleRect.height > 0
-        ? Math.min(viewportRect.height, Math.max(0, Math.round(consoleRect.bottom - viewportRect.top)))
+        ? Math.min(
+            viewportRect.height,
+            Math.max(0, Math.round(consoleRect.bottom - viewportRect.top)),
+          )
         : 0;
       const nextBottomInset = badgesRect.width > 0 && badgesRect.height > 0
-        ? Math.min(viewportRect.height - nextTopInset, Math.max(0, Math.round(viewportRect.bottom - badgesRect.top)))
+        ? Math.min(
+            viewportRect.height - nextTopInset,
+            Math.max(0, Math.round(viewportRect.bottom - badgesRect.top)),
+          )
         : 0;
       setDesktopMapTopInset((current) => current === nextTopInset ? current : nextTopInset);
       setDesktopMapBottomInset((current) => current === nextBottomInset ? current : nextBottomInset);
@@ -2993,6 +3011,11 @@ function InteractiveRegionalMapComponent({
     setCamera(fitted.camera);
   }, [clearProgrammaticAnimation, fittedCamera, setMapTransition, writeMapTransform]);
 
+  useEffect(() => {
+    if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
+    refitUntouchedNetwork();
+  }, [refitUntouchedNetwork]);
+
   const handleFitNetwork = useCallback(() => {
     cameraAdjustedByUserRef.current = false;
     const fitted = fittedCamera();
@@ -3042,6 +3065,17 @@ function InteractiveRegionalMapComponent({
     if (commutePathPreview) return `commute:${commutePathPreview.id}:${commutePathPreview.legId}`;
     return null;
   }, [commutePathPreview, selection, selectedStationId]);
+
+  const lastHandledLayoutResetSignalRef = useRef(0);
+
+  useEffect(() => {
+    if (!layoutResetSignal || !svgMarkup) return;
+    if (lastHandledLayoutResetSignalRef.current === layoutResetSignal) return;
+    lastHandledLayoutResetSignalRef.current = layoutResetSignal;
+    if (focusTargetKey) return;
+    const resetTimer = window.setTimeout(() => handleFitNetwork(), 320);
+    return () => window.clearTimeout(resetTimer);
+  }, [focusTargetKey, handleFitNetwork, layoutResetSignal, svgMarkup]);
 
   const initializeMapCamera = useCallback(() => {
     if (cameraInitializedRef.current || !svgMarkup) return;
@@ -3392,9 +3426,15 @@ function InteractiveRegionalMapComponent({
     stationImpactDirectionLayer.classList.add("regional-station-impact-direction-layer");
 
     const stationOnlyImpactIds = new Set(stationNodeImpacts.map((impact) => impact.cardId));
-    for (const alert of activeAlerts.filter(
-      (item) => item.affectedSegmentIds.length === 0 && !stationOnlyImpactIds.has(item.id)
-    )) {
+    const corridorWideAlerts = activeAlerts
+      .filter((item) => item.affectedSegmentIds.length === 0 && !stationOnlyImpactIds.has(item.id))
+      .sort((left, right) => {
+        const leftKind = left.severity === "planned" ? "planned-closure" : left.severity;
+        const rightKind = right.severity === "planned" ? "planned-closure" : right.severity;
+        return regionalImpactPriority(leftKind) - regionalImpactPriority(rightKind)
+          || left.id.localeCompare(right.id);
+      });
+    for (const alert of corridorWideAlerts) {
       const pathD = authoredRegionalCorridorPathData(documentNode, alert.lineId);
       if (!pathD) continue;
       const overlaySource = documentNode.createElementNS(SVG_NAMESPACE, "path");
@@ -4598,9 +4638,29 @@ function InteractiveRegionalMapComponent({
       alertCollisionBoxes,
       uiKeepoutBoxes,
     });
-    setOverlapChooserLayout(placement.layout);
-    setOverlapChooserSize(placement.size);
-    setOverlapChooserViewportSize(logicalViewportSize);
+    setOverlapChooserLayout((current) =>
+      current
+      && current.left === placement.layout.left
+      && current.top === placement.layout.top
+      && current.anchorOffsetX === placement.layout.anchorOffsetX
+      && current.anchorOffsetY === placement.layout.anchorOffsetY
+        ? current
+        : placement.layout
+    );
+    setOverlapChooserSize((current) =>
+      current
+      && current.width === placement.size.width
+      && current.height === placement.size.height
+        ? current
+        : placement.size
+    );
+    setOverlapChooserViewportSize((current) =>
+      current
+      && current.width === logicalViewportSize.width
+      && current.height === logicalViewportSize.height
+        ? current
+        : logicalViewportSize
+    );
     return true;
   }, [viewportOrientation]);
 

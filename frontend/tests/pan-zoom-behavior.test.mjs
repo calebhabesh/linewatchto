@@ -76,14 +76,14 @@ describe("pan zoom behavior guardrails", () => {
 
   it("centers mobile Regional artwork horizontally between the left and right viewport with equal padding", () => {
     const regionalBounds = {
-      x: 45.54,
-      y: 34.96,
-      width: 4405.28,
-      height: 2550,
+      x: 53.08,
+      y: 110.78,
+      width: 4620.46,
+      height: 2395.26,
     };
     const mobileWidth = 390;
     const mobileHeight = 844;
-    const horizontalInset = 12;
+    const horizontalInset = Math.min(32, Math.max(12, mobileWidth * 0.025));
     const insets = {
       left: horizontalInset,
       right: horizontalInset,
@@ -92,7 +92,7 @@ describe("pan zoom behavior guardrails", () => {
     };
     const frame = computeBoundedMapFrame(mobileWidth, mobileHeight, regionalBounds, insets);
     const focus = computeInsetViewportFocus(mobileWidth, mobileHeight, insets);
-    const defaultFrameScale = 1.08;
+    const defaultFrameScale = 1.0;
     const defaultFrame = {
       x: focus.focusX - (focus.focusX - frame.x) * defaultFrameScale,
       y: focus.focusY - (focus.focusY - frame.y) * defaultFrameScale,
@@ -104,6 +104,84 @@ describe("pan zoom behavior guardrails", () => {
     const paddingRight = mobileWidth - artworkRight;
 
     assert.ok(Math.abs(paddingLeft - paddingRight) < 1e-9);
+    assert.ok(paddingLeft >= 12);
+  });
+
+  it("centers desktop Regional artwork horizontally and vertically between the top console and bottom badges with equal padding", () => {
+    const regionalBounds = {
+      x: 53.08,
+      y: 110.78,
+      width: 4620.46,
+      height: 2395.26,
+    };
+    const desktopWidth = 1920;
+    const desktopHeight = 1080;
+    const desktopTopInset = 86; // console bottom
+    const desktopBottomInset = 90; // badges top
+    const horizontalInset = Math.min(64, Math.max(32, desktopWidth * 0.025));
+    const insets = {
+      left: horizontalInset,
+      right: horizontalInset,
+      top: desktopTopInset,
+      bottom: desktopBottomInset,
+    };
+    const frame = computeBoundedMapFrame(desktopWidth, desktopHeight, regionalBounds, insets);
+    const focus = computeInsetViewportFocus(desktopWidth, desktopHeight, insets);
+    const defaultFrameScale = 0.95;
+    const defaultFrame = {
+      x: focus.focusX - (focus.focusX - frame.x) * defaultFrameScale,
+      y: focus.focusY - (focus.focusY - frame.y) * defaultFrameScale,
+      scale: frame.scale * defaultFrameScale,
+    };
+    const artworkLeft = defaultFrame.x + regionalBounds.x * defaultFrame.scale;
+    const artworkRight = defaultFrame.x + (regionalBounds.x + regionalBounds.width) * defaultFrame.scale;
+    const paddingLeft = artworkLeft;
+    const paddingRight = desktopWidth - artworkRight;
+
+    const artworkTop = defaultFrame.y + regionalBounds.y * defaultFrame.scale;
+    const artworkBottom = defaultFrame.y + (regionalBounds.y + regionalBounds.height) * defaultFrame.scale;
+    const paddingTop = artworkTop - desktopTopInset;
+    const paddingBottom = (desktopHeight - desktopBottomInset) - artworkBottom;
+
+    assert.ok(Math.abs(paddingLeft - paddingRight) < 1e-9);
+    assert.ok(paddingLeft >= horizontalInset);
+    assert.ok(Math.abs(paddingTop - paddingBottom) < 1e-9);
+    assert.ok(paddingTop > 20); // Comfortable padding around Allandale Waterfront
+    assert.match(regionalMapSource, /x:\s*53\.08/);
+    assert.match(regionalMapSource, /y:\s*110\.78/);
+    assert.match(regionalMapSource, /width:\s*4620\.46/);
+    assert.match(regionalMapSource, /height:\s*2395\.26/);
+    assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0\.95/);
+    assert.match(regionalMapSource, /const REGIONAL_MAP_MOBILE_INSET_RATIO = 0\.025/);
+  });
+
+  it("centers desktop TTC artwork vertically between the center/magnify console and bottom badges with equal padding", () => {
+    const scaleFactor = 4500 / 8250;
+    const ttcBounds = {
+      x: 65 * scaleFactor,
+      y: 120 * scaleFactor,
+      width: (7925 - 65) * scaleFactor,
+      height: (3840 - 120) * scaleFactor,
+    };
+    const desktopWidth = 1920;
+    const desktopHeight = 1080;
+    const desktopTopInset = 140; // bottom of center/magnify console
+    const desktopBottomInset = 90; // top of alert badges
+    const horizontalInset = Math.min(64, Math.max(32, desktopWidth * 0.025));
+    const insets = {
+      left: horizontalInset,
+      right: horizontalInset,
+      top: desktopTopInset,
+      bottom: desktopBottomInset,
+    };
+    const frame = computeBoundedMapFrame(desktopWidth, desktopHeight, ttcBounds, insets);
+    const artworkTop = frame.y + ttcBounds.y * frame.scale;
+    const artworkBottom = frame.y + (ttcBounds.y + ttcBounds.height) * frame.scale;
+    const paddingTop = artworkTop - desktopTopInset;
+    const paddingBottom = (desktopHeight - desktopBottomInset) - artworkBottom;
+
+    assert.ok(Math.abs(paddingTop - paddingBottom) < 1e-9);
+    assert.match(mapSource, /desktopMapBottomInset/);
   });
 
   it("keeps the cardinal north marker inside the transformed map layer", () => {

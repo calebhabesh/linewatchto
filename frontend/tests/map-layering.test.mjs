@@ -472,12 +472,13 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(globalCss, /\.suspension-through-line-core/);
   });
 
-  it("prioritizes active disruption overlays by type and renders planned previews underneath", () => {
+  it("renders current delays above planned closures while keeping suspensions highest", () => {
     assert.match(interactiveMapSource, /function getImpactPriority\(/);
     assert.match(interactiveMapSource, /case "suspension":\s*return 4;/);
-    assert.match(interactiveMapSource, /case "planned-closure":\s*return 3;/);
-    assert.match(interactiveMapSource, /case "delay":\s*return 2;/);
+    assert.match(interactiveMapSource, /case "delay":\s*return 3;/);
+    assert.match(interactiveMapSource, /case "planned-closure":\s*return 2;/);
     assert.match(interactiveMapSource, /case "reduced-speed-zone":\s*return 1;/);
+    assert.match(overlapChooserSource, /case "suspension":\s*return 4;[\s\S]*case "delay":\s*return 3;[\s\S]*case "planned-closure":\s*return 2;/);
 
     assert.match(
       interactiveMapSource,
@@ -761,12 +762,16 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /overlap-chooser-choice-action/);
     assert.doesNotMatch(interactiveMapSource, /details\?\.title \?\? labelForImpactKind/);
     assert.match(globalCss, /\.overlap-chooser-surface/);
-    assert.match(globalCss, /\.overlap-chooser-portal\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*45;/s);
+    assert.match(globalCss, /\.overlap-chooser-surface\s*\{[^}]*border:\s*none\s*!important;[^}]*height:\s*fit-content;/s);
+    assert.match(globalCss, /\.overlap-chooser-portal\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*45;[^}]*height:\s*fit-content\s*!important;/s);
     assert.match(globalCss, /@keyframes overlap-chooser-enter/);
     assert.match(globalCss, /opacity:\s*0;\s*transform:\s*scale\(0\.96\);/);
     assert.match(globalCss, /opacity:\s*1;\s*transform:\s*scale\(1\);/);
     assert.match(globalCss, /\.overlap-chooser-header-count/);
     assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border-left-width:\s*2px;/s);
+    assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border:\s*none\s*!important;/s);
+    assert.match(globalCss, /\.overlap-chooser-choice\.delay\s*\{[^}]*border-left:\s*2px solid rgba\(254,\s*236,\s*65,\s*0\.85\)\s*!important;/s);
+    assert.match(globalCss, /\.overlap-chooser-choice\.planned-closure\s*\{[^}]*border-left:\s*2px solid rgba\(59,\s*130,\s*246,\s*0\.85\)\s*!important;/s);
     assert.match(globalCss, /\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;[^}]*margin-right:\s*-6px;[^}]*padding-right:\s*6px;/s);
     assert.match(globalCss, /\.overlap-chooser-choice\.reduced-speed-zone\s*\{[^}]*rgba\(245,\s*158,\s*11,\s*0\.42\)/s);
     assert.match(globalCss, /\.motion-paused \.overlap-chooser-surface/);

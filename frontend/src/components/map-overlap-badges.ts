@@ -557,9 +557,9 @@ function getImpactPriority(kind: MapImpactKind): number {
   switch (kind) {
     case "suspension":
       return 4;
-    case "planned-closure":
-      return 3;
     case "delay":
+      return 3;
+    case "planned-closure":
       return 2;
     case "reduced-speed-zone":
       return 1;

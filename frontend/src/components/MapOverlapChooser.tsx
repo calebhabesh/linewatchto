@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   type PointerEvent,
 } from "react";
@@ -27,9 +28,9 @@ function impactPriority(kind: MapImpactKind): number {
   switch (kind) {
     case "suspension":
       return 4;
-    case "planned-closure":
-      return 3;
     case "delay":
+      return 3;
+    case "planned-closure":
       return 2;
     case "reduced-speed-zone":
       return 1;
@@ -127,14 +128,17 @@ export function MapOverlapChooser({
         height: chooserSize.height,
       };
 
+  const animatedEntranceRef = useRef(false);
+
   useEffect(() => () => onHoverImpact(null), [onHoverImpact]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const focusFrame = window.requestAnimationFrame(() =>
       firstChoiceRef.current?.focus({ preventScroll: true }));
-    if (reducedMotion) {
+    if (reducedMotion || animatedEntranceRef.current) {
       return () => window.cancelAnimationFrame(focusFrame);
     }
+    animatedEntranceRef.current = true;
     const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
     const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
     const animation = surfaceRef.current?.animate([
