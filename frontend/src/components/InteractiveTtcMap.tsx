@@ -1984,7 +1984,7 @@ function InteractiveTtcMapComponent({
             title="Center view"
             aria-label="Center map view"
           >
-            <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <Locate size={22} className="map-control-recenter-icon" />
             <span className="map-control-recenter-desktop-label text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
           </button>
           <span className="map-control-recenter-mobile-label">Center</span>

@@ -207,4 +207,15 @@ describe("site guide dropdown", () => {
     assert.doesNotMatch(globalCss, /\.site-guide-install-asset-box/);
     assert.doesNotMatch(globalCss, /filter:\s*brightness\(0\)\s*invert\(1\)/);
   });
+
+  it("applies the hamburger flash pulse to the site guide icon itself and matches sibling button sizing", () => {
+    const guideSource = readFileSync(guideComponentUrl, "utf8");
+    assert.match(guideSource, /className="site-guide-trigger panel flex/);
+    assert.doesNotMatch(guideSource, /site-guide-trigger[^"]*menu-attention-beam/);
+    assert.match(guideSource, /data-menu-attention=\{/);
+    assert.match(guideSource, /width=\{24\}\s+height=\{24\}\s+className="site-guide-trigger-icon"/);
+    assert.match(globalCss, /\.site-guide-trigger:not\(\[data-menu-attention="false"\]\) \.site-guide-trigger-icon\s*\{[^}]*animation:\s*menu-border-pulse 2\.8s cubic-bezier/);
+    assert.doesNotMatch(globalCss, /smooth-breath/);
+    assert.doesNotMatch(globalCss, /animation:\s*smooth-breath/);
+  });
 });

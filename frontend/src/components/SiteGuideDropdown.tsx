@@ -244,6 +244,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
         aria-controls={panelId}
         aria-expanded={isOpen && !isClosing}
         aria-label="Open site guide"
+        data-menu-attention={(!isOpen || isClosing) ? "true" : "false"}
         onClick={() => {
           if (isOpen) {
             closeGuide();
@@ -258,8 +259,8 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
           src="/assets/linewatch/site-guide.svg"
           alt=""
           aria-hidden="true"
-          width={28}
-          height={28}
+          width={24}
+          height={24}
           className="site-guide-trigger-icon"
           priority
         />
