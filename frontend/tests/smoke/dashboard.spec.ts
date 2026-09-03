@@ -3177,6 +3177,79 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
 });
 
+test("opens the overlap chooser after completed and cancelled map gestures", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  if (isMobile) await page.setViewportSize({ width: 375, height: 667 });
+  await page.goto("/");
+
+  const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+  const overlapChooser = page.locator("[data-overlap-chooser]");
+  const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  await expect(overlapMarker).toBeVisible();
+  await expect(viewport).toBeVisible();
+
+  const viewportBox = await viewport.boundingBox();
+  expect(viewportBox).not.toBeNull();
+  const dragStart = {
+    x: viewportBox!.x + viewportBox!.width * 0.76,
+    y: viewportBox!.y + viewportBox!.height * 0.72,
+  };
+  const pointerType = isMobile ? "touch" : "mouse";
+
+  for (const finishEvent of ["pointerup", "pointercancel"] as const) {
+    const mapPointerId = finishEvent === "pointerup" ? 61 : 62;
+    await viewport.dispatchEvent("pointerdown", {
+      pointerId: mapPointerId,
+      pointerType,
+      button: 0,
+      buttons: 1,
+      isPrimary: true,
+      clientX: dragStart.x,
+      clientY: dragStart.y,
+    });
+    await viewport.dispatchEvent("pointermove", {
+      pointerId: mapPointerId,
+      pointerType,
+      button: 0,
+      buttons: 1,
+      isPrimary: true,
+      clientX: dragStart.x - 48,
+      clientY: dragStart.y - 32,
+    });
+    await viewport.dispatchEvent(finishEvent, {
+      pointerId: mapPointerId,
+      pointerType,
+      button: 0,
+      buttons: 0,
+      isPrimary: true,
+      clientX: dragStart.x - 48,
+      clientY: dragStart.y - 32,
+    });
+
+    const badgePointerId = mapPointerId + 10;
+    await overlapMarker.dispatchEvent("pointerdown", {
+      pointerId: badgePointerId,
+      pointerType,
+      button: 0,
+      buttons: 1,
+      isPrimary: true,
+    });
+    await overlapMarker.dispatchEvent("pointerup", {
+      pointerId: badgePointerId,
+      pointerType,
+      button: 0,
+      buttons: 0,
+      isPrimary: true,
+    });
+    await overlapMarker.dispatchEvent("click");
+
+    await expect(overlapChooser).toBeVisible();
+    await expect(overlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
+    await overlapChooser.getByRole("button", { name: "Close alert chooser" }).click();
+    await expect(overlapChooser).toHaveCount(0);
+  }
+});
+
 test("keeps the rotated alert chooser clear of Center and Exit controls", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "Rotated map controls are mobile-only");
   await setStubMode(request, "seeded");

@@ -242,8 +242,12 @@ export function MapOverlapIndicator({
       data-overlap-collision-avoided={collisionAvoided ? "true" : "false"}
       onPointerDown={isolatePointerDown ? (event) => event.stopPropagation() : undefined}
       onClick={(event) => {
-        if (shouldSuppressMapClick()) return;
         event.stopPropagation();
+        // An isolated pointer-down never starts the map's pan gesture, so a
+        // suppression flag left behind by an earlier drag must not veto this
+        // new badge activation. Non-isolated consumers still share the map's
+        // drag-versus-click guard.
+        if (!isolatePointerDown && shouldSuppressMapClick()) return;
         activate();
       }}
       transform={`translate(${position.x} ${position.y}) scale(${visualScale})`}

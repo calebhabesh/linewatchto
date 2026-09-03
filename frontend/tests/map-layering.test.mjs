@@ -574,6 +574,10 @@ describe("asset-backed map layering", () => {
     assert.match(overlapIndicatorSource, /data-overlap-kind-count=\{count\}/);
     assert.match(overlapIndicatorSource, /data-overlap-collision-avoided/);
     assert.match(overlapIndicatorSource, /onPointerDown=\{isolatePointerDown \? \(event\) => event\.stopPropagation\(\) : undefined\}/);
+    assert.match(
+      overlapIndicatorSource,
+      /onClick=\{\(event\) => \{\s*event\.stopPropagation\(\);[\s\S]*?if \(!isolatePointerDown && shouldSuppressMapClick\(\)\) return;[\s\S]*?activate\(\);/,
+    );
     assert.match(overlapIndicatorSource, /ImpactTypeIcon/);
     assert.match(overlapIndicatorSource, /OverlapKindIcon/);
     assert.match(overlapIndicatorSource, /OverlapKindCountBadge/);
