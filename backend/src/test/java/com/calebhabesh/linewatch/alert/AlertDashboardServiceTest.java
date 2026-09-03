@@ -684,7 +684,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.timingStatus()).isEqualTo("upcoming");
             assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-02T03:59:00Z"));
             assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-02T07:30:00Z"));
-            assertThat(dto.nextWindowLabel()).isEqualTo("Mon, Jun 1 · 11:59 PM – Tue 3:30 AM");
+            assertThat(dto.nextWindowLabel()).isEqualTo("Mon, Jun 1 · 11:59 PM – Tue, Jun 2 3:30 AM");
         });
     }
 
@@ -2299,7 +2299,7 @@ class AlertDashboardServiceTest {
             OffsetDateTime.parse("2026-09-15T03:59:00Z"), // Mon Sep 14, 11:59 PM Toronto EDT
             OffsetDateTime.parse("2026-09-15T10:00:00Z")  // Tue Sep 15, 6:00 AM Toronto EDT
         );
-        assertThat(window).isEqualTo("Mon, Sep 14 · 11:59 PM – Tue 6:00 AM");
+        assertThat(window).isEqualTo("Mon, Sep 14 · 11:59 PM – Tue, Sep 15 6:00 AM");
     }
 
     @Test

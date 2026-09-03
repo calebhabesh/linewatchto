@@ -211,7 +211,6 @@ export function renderClosureScheduleValue(value: ReactNode, isWindowField: bool
   return (
     <span className="closure-window-value">
       <span className="closure-window-date">{datePart}</span>
-      <span className="closure-window-bullet" aria-hidden="true"> · </span>
       <span className="closure-window-time">{timePart}</span>
     </span>
   );

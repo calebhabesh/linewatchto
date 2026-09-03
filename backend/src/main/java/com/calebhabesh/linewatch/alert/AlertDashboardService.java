@@ -43,7 +43,9 @@ public class AlertDashboardService {
     private static final DateTimeFormatter WINDOW_DATE_TIME_WITH_YEAR_FORMATTER =
         DateTimeFormatter.ofPattern("EEE, MMM d, uuuu · h:mm a", Locale.ENGLISH);
     private static final DateTimeFormatter WINDOW_DAY_TIME_FORMATTER =
-        DateTimeFormatter.ofPattern("EEE h:mm a", Locale.ENGLISH);
+        DateTimeFormatter.ofPattern("EEE, MMM d h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter WINDOW_DAY_TIME_WITH_YEAR_FORMATTER =
+        DateTimeFormatter.ofPattern("EEE, MMM d, uuuu h:mm a", Locale.ENGLISH);
     private static final DateTimeFormatter WINDOW_HOURS_FORMATTER =
         DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
     private static final DateTimeFormatter WINDOW_DATE_FORMATTER =
@@ -1292,7 +1294,10 @@ public class AlertDashboardService {
 
         if (endDate.equals(startDate.plusDays(1))
             && Duration.between(startsAt, endsAt).compareTo(MAX_SINGLE_CLOSURE_WINDOW) <= 0) {
-            return startFormatter.format(startZdt) + " – " + WINDOW_DAY_TIME_FORMATTER.format(endZdt);
+            DateTimeFormatter endDayTimeFormatter = endZdt.getYear() == currentTorontoYear
+                ? WINDOW_DAY_TIME_FORMATTER
+                : WINDOW_DAY_TIME_WITH_YEAR_FORMATTER;
+            return startFormatter.format(startZdt) + " – " + endDayTimeFormatter.format(endZdt);
         }
 
         DateTimeFormatter endFormatter = endZdt.getYear() == currentTorontoYear

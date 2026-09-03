@@ -8307,11 +8307,13 @@ button {
 }
 
 .impact-overlap-refs {
+  border: none !important;
   box-sizing: border-box;
   margin-left: 0;
   margin-right: 0;
   margin-inline: 0;
   max-width: 100%;
+  outline: none !important;
   width: 100%;
 }
 
@@ -10267,37 +10269,48 @@ img.transit-line-badge {
 }
 
 .impact-metadata-grid > .is-window-row {
-  grid-column: 1 / -1;
+  grid-column: 1 / -1 !important;
+  grid-column: span 2 / span 2 !important;
+}
+
+.planned-closure-metadata .is-window-row {
+  grid-column: 1 / -1 !important;
+  grid-column: span 2 / span 2 !important;
 }
 
 .closure-window-value {
   align-items: baseline;
-  column-gap: 6px;
+  column-gap: 0.28em;
   display: inline-flex;
-  flex-wrap: wrap;
-  row-gap: 2px;
+  flex-direction: row;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
 }
 
 .closure-window-date {
+  color: var(--text);
   font-weight: 850;
-  white-space: nowrap;
-}
-
-.closure-window-bullet {
-  color: var(--quiet);
-  font-weight: 500;
-  user-select: none;
+  line-height: 1.25;
+  white-space: nowrap !important;
 }
 
 .closure-window-time {
   color: var(--text);
   font-variant-numeric: tabular-nums;
   font-weight: 750;
+  line-height: 1.25;
+  white-space: nowrap !important;
 }
 
-@container impact-details (max-width: 24rem) {
+@media (max-width: 639px) {
   .closure-window-value {
-    column-gap: 4px;
+    column-gap: 0.25em;
+  }
+
+  .planned-closure-metadata .is-emphasized dd,
+  .impact-metadata-grid > .is-window-row dd {
+    font-size: 0.74rem !important;
+    letter-spacing: -0.015em;
   }
 }
 
@@ -15803,7 +15816,7 @@ img.transit-line-badge {
 .saved-commute-rule-summary {
   align-items: center;
   background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.18);
+  border: none !important;
   border-radius: 8px;
   display: flex;
   flex-direction: row;
@@ -15811,6 +15824,7 @@ img.transit-line-badge {
   justify-content: space-between;
   margin-top: 0.65rem;
   min-width: 0;
+  outline: none !important;
   padding: 0.55rem 1.1rem 0.55rem 0.6rem;
 }
 
@@ -16130,15 +16144,21 @@ img.transit-line-badge {
 }
 
 .dark .saved-commute-notification-summary,
-.dark .saved-commute-rule-summary,
 .high-contrast .saved-commute-notification-summary {
   background: rgba(16, 185, 129, 0.08);
   border-color: rgba(16, 185, 129, 0.22);
 }
 
+.dark .saved-commute-rule-summary {
+  background: rgba(16, 185, 129, 0.08);
+  border: none !important;
+  outline: none !important;
+}
+
 .high-contrast .saved-commute-rule-summary {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.64);
+  border: none !important;
+  outline: none !important;
 }
 
 .dark .saved-commute-notification-summary strong,
@@ -16853,28 +16873,26 @@ img.transit-line-badge {
 }
 
 .saved-commute-time-estimate {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: none !important;
   border-radius: 8px;
   display: grid;
   gap: 0.45rem;
   margin-top: 0.7rem;
+  outline: none !important;
   padding: 0.55rem 0.65rem;
 }
 
 .saved-commute-time-estimate.standard {
   background: rgba(48, 209, 117, 0.07);
-  border-color: rgba(48, 209, 117, 0.18);
 }
 
 .saved-commute-time-estimate.estimated {
   background: rgba(255, 159, 28, 0.08);
-  border-color: rgba(255, 159, 28, 0.22);
 }
 
 .saved-commute-time-estimate.unreliable,
 .saved-commute-time-estimate.unavailable {
   background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.22);
 }
 
 .saved-commute-time-estimate-heading {
@@ -17003,19 +17021,18 @@ img.transit-line-badge {
 
 .dark .saved-commute-time-estimate,
 .high-contrast .saved-commute-time-estimate {
-  border-color: rgba(255, 255, 255, 0.12);
+  border: none !important;
+  outline: none !important;
 }
 
 .dark .saved-commute-time-estimate.standard,
 .high-contrast .saved-commute-time-estimate.standard {
   background: rgba(48, 209, 117, 0.1);
-  border-color: rgba(48, 209, 117, 0.24);
 }
 
 .dark .saved-commute-time-estimate.estimated,
 .high-contrast .saved-commute-time-estimate.estimated {
   background: rgba(255, 159, 28, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .dark .saved-commute-time-estimate.unreliable,
@@ -17023,7 +17040,6 @@ img.transit-line-badge {
 .high-contrast .saved-commute-time-estimate.unreliable,
 .high-contrast .saved-commute-time-estimate.unavailable {
   background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.32);
 }
 
 .dark .saved-commute-time-estimate-heading,

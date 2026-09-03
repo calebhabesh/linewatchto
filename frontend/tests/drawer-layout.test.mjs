@@ -302,7 +302,7 @@ describe("floating menu layout", () => {
     assert.match(impactCardFieldsSource, /isWindowField \? " is-window-row" : ""/);
     assert.match(impactCardFieldsSource, /renderClosureScheduleValue/);
     assert.match(globalCss, /\.impact-metadata-grid > \.is-window-row\s*\{[^}]*grid-column:\s*1 \/ -1/s);
-    assert.match(globalCss, /\.closure-window-value\s*\{[^}]*display:\s*inline-flex;[^}]*flex-wrap:\s*wrap/s);
+    assert.match(globalCss, /\.closure-window-value\s*\{[^}]*display:\s*inline-flex;[^}]*white-space:\s*nowrap/s);
     assert.match(globalCss, /\.closure-window-date\s*\{[^}]*white-space:\s*nowrap/s);
     assert.match(globalCss, /\.closure-window-time\s*\{[^}]*font-variant-numeric:\s*tabular-nums/s);
   });
