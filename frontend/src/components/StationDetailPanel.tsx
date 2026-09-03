@@ -36,7 +36,7 @@ import {
 import { distinctStationImpacts } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
-import { TransitLineBadge } from "./TransitLineBadge";
+import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -560,18 +560,20 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   const handleCloseClick = () => {
     setIsClosing(true);
+    const duration = reducedMotion ? 0 : (typeof window !== "undefined" && window.innerWidth < 768) ? 240 : 380;
     closeTimeoutRef.current = window.setTimeout(() => {
       closeTimeoutRef.current = null;
       onClose();
       setIsClosing(false);
-    }, 380);
+    }, duration);
   };
 
   return (
     <aside
       ref={sheetRef}
       style={sheetStyle}
-      className={`station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
+      className={`station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg bg-white p-4 text-slate-900 shadow-2xl dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
+      data-closing={isClosing ? "true" : undefined}
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
       data-sheet-expanded={isExpanded ? "true" : undefined}
@@ -638,6 +640,50 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           )}
 
           <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 station-detail-scroll station-detail-section-stack">
+            {station && station.arrivalContext?.scheduleMayBeDisrupted && (
+              <div
+                className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"
+                data-station-disruption-warning
+              >
+                <div className="station-disruption-heading flex items-center gap-2 font-bold text-amber-700 dark:text-amber-400">
+                  <AlertCircle size={19} className="animate-terminating-blink shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span className="station-disruption-heading-text">Schedule May Be Disrupted:</span>
+                </div>
+                {distinctImpacts.length > 0 && (
+                  <div className="station-impact-jump-actions">
+                    {distinctImpacts.map((impact) => {
+                      const target = getStationImpactDetailsTarget(
+                        impact,
+                        activeAlerts,
+                        delays,
+                        reducedSpeedZones,
+                        plannedClosures
+                      );
+                      const targetLabel = target?.label ?? "Station Impact";
+
+                      return (
+                        <a
+                          key={impact.id}
+                          href={`#station-impact-${impact.id}`}
+                          onClick={(e) => handleJumpToStationImpact(impact.id, e)}
+                          aria-label={`Jump to station impact: ${targetLabel} - ${impact.title}`}
+                          title={`Jump to ${targetLabel}: ${impact.title}`}
+                          className="station-impact-jump-button"
+                        >
+                          <StationImpactDetailsIcon
+                            kind={target?.selection.kind ?? stationImpactKind(impact)}
+                            tone={target?.tone}
+                            size={17}
+                          />
+                          <span className="station-impact-jump-button-label">Press</span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {station && hasAccessibilityOutages && (
               <button
                 type="button"
@@ -875,45 +921,6 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   {formatArrivalSourceSummary(station.arrivals, station.arrivalsSource)}
                 </p>
-                {arrivalsDisrupted && station.arrivalContext && (
-                  <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs font-semibold dark:border-amber-500/30 dark:bg-amber-500/10">
-                    <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
-                      <AlertCircle size={15} className="animate-terminating-blink shrink-0 text-amber-600 dark:text-amber-400" />
-                      <span>Schedule May Be Disrupted:</span>
-                    </div>
-                    {distinctImpacts.length > 0 && (
-                      <div className="station-impact-jump-actions">
-                        {distinctImpacts.map((impact) => {
-                          const target = getStationImpactDetailsTarget(
-                            impact,
-                            activeAlerts,
-                            delays,
-                            reducedSpeedZones,
-                            plannedClosures
-                          );
-                          const targetLabel = target?.label ?? "Station Impact";
-
-                          return (
-                            <a
-                              key={impact.id}
-                              href={`#station-impact-${impact.id}`}
-                              onClick={(e) => handleJumpToStationImpact(impact.id, e)}
-                              aria-label={`Jump to station impact: ${targetLabel} - ${impact.title}`}
-                              title={`Jump to ${targetLabel}: ${impact.title}`}
-                              className="station-impact-jump-button"
-                            >
-                              <StationImpactDetailsIcon
-                                kind={target?.selection.kind ?? stationImpactKind(impact)}
-                                tone={target?.tone}
-                              />
-                              <span className="station-impact-jump-button-label">Press</span>
-                            </a>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
                 <div className="mt-3 flex flex-col gap-3">
                   {hasUnavailableArrivals ? (
                     <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
@@ -948,6 +955,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       const showLineDivider = sectionIndex > 0;
                       const isPinned = pinnedLineIds.includes(section.lineId);
                       const isHoveredPin = hoveredPinLineId === section.lineId;
+                      const lineBadgeColors = transitLineBadgeColors(section.lineId);
+                      const lineColor = lineBadgeColors.backgroundColor;
 
                       return (
                         <Fragment key={section.lineId}>
@@ -961,9 +970,13 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                           <div
                             data-arrival-line-section={section.lineId}
                             data-pinned-line={isPinned ? "true" : "false"}
-                            className="flex flex-col gap-2"
+                            className={`flex flex-col gap-2 rounded-lg px-1 py-1.5 transition-colors duration-200 ${
+                              isPinned
+                                ? "bg-amber-500/[0.08] dark:bg-amber-400/[0.07]"
+                                : "bg-transparent"
+                            }`}
                           >
-                            <div className="flex items-center justify-between px-1">
+                            <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <TransitLineBadge
                                   lineId={section.lineId}
@@ -975,6 +988,14 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                 <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
                                   {section.lineName ? `Line ${section.lineNumber} - ${section.lineName}` : `Line ${section.lineNumber}`}
                                 </span>
+                                {isPinned && (
+                                  <span
+                                    className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 shrink-0 select-none animate-in fade-in duration-200"
+                                    data-pinned-badge
+                                  >
+                                    Starred
+                                  </span>
+                                )}
                               </div>
                               <ArrivalLinePinButton
                                 pinned={isPinned}
@@ -985,8 +1006,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                 onToggle={() => togglePin(section.lineId)}
                               />
                             </div>
-                            <div className="flex flex-col gap-2">
-                              {section.groups.map((group) => {
+                            <div className="flex flex-col gap-2.5">
+                              {section.groups.map((group, groupIndex) => {
+                                const isFirst = groupIndex === 0;
+                                const isLast = groupIndex === section.groups.length - 1;
                                 const emptyLiveDirection = hasLiveArrivals && group.arrivals.length === 0;
                                 const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, { emptyLiveDirection });
                                 const groupSourceTitle = emptyLiveDirection
@@ -1001,76 +1024,87 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                     key={group.key}
                                     data-arrival-group={group.key}
                                     data-pinned-line={isPinned ? "true" : "false"}
-                                    className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
-                                      isPinned
-                                        ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
-                                        : isHoveredPin
-                                          ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]"
-                                          : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
-                                    }`}
+                                    className="relative flex flex-col gap-2 pl-7 pt-1 pb-1"
                                   >
-                                    <div className="flex min-w-0 items-center gap-3">
-                                      <TransitLineBadge
-                                        lineId={section.lineId}
-                                        lineNumber={section.lineNumber}
-                                        lineName={section.lineName}
-                                        size={27}
-                                        className="shrink-0"
+                                    {/* Track spine running continuously behind the platform stop node */}
+                                    <div
+                                      aria-hidden="true"
+                                      className="station-arrival-track-spine"
+                                      style={{
+                                        backgroundColor: lineColor,
+                                        left: "16px",
+                                        top: isFirst ? "-15px" : "-12px",
+                                        bottom: isLast ? "0px" : "-12px",
+                                        borderBottomLeftRadius: isLast ? "9999px" : "0",
+                                        borderBottomRightRadius: isLast ? "9999px" : "0",
+                                      }}
+                                    />
+
+                                    <div className="relative flex min-w-0 items-center justify-between gap-3">
+                                      {/* Platform stop node centered vertically with the direction text */}
+                                      <div
+                                        aria-hidden="true"
+                                        className="station-arrival-track-node"
+                                        style={{
+                                          left: "-12px",
+                                          top: "50%",
+                                          transform: "translate(-50%, -50%)",
+                                        }}
                                       />
-                                      {(() => {
-                                        const match = group.directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
-                                        if (match) {
-                                          const directionPart = match[1];
-                                          const destinationPart = `To ${match[2]}`;
+                                        {(() => {
+                                          const match = group.directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
+                                          if (match) {
+                                            const directionPart = match[1];
+                                            const destinationPart = `To ${match[2]}`;
+                                            return (
+                                              <div className="flex flex-col min-w-0 leading-tight">
+                                                <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                                  {directionPart}
+                                                </strong>
+                                                <span className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                  {destinationPart}
+                                                  {group.isTerminating && (
+                                                    <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                      <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                      Terminating
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              </div>
+                                            );
+                                          }
                                           return (
                                             <div className="flex flex-col min-w-0 leading-tight">
                                               <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                                {directionPart}
+                                                {group.directionLabel}
                                               </strong>
-                                              <span className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                {destinationPart}
-                                                {group.isTerminating && (
-                                                  <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                    <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                    Terminating
-                                                  </span>
-                                                )}
-                                              </span>
+                                              {group.isTerminating && (
+                                                <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                  <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                  Terminating
+                                                </span>
+                                              )}
                                             </div>
                                           );
-                                        }
-                                        return (
-                                          <div className="flex flex-col min-w-0 leading-tight">
-                                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                              {group.directionLabel}
-                                            </strong>
-                                            {group.isTerminating && (
-                                              <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                Terminating
-                                              </span>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-                                      <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
-                                        <span
-                                          className={arrivalSourceBadgeClassName(groupSourceLabel)}
-                                          data-arrival-source={groupSourceLabel.toLowerCase()}
-                                          title={groupSourceTitle}
-                                          aria-label={groupSourceTitle}
-                                        >
-                                          {groupSourceLabel}
-                                          {groupSourceLabel === "Live" ? (
-                                             <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
-                                          ) : groupSourceLabel === "Scheduled" ? (
-                                             <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
-                                          ) : groupSourceLabel === "Mixed" ? (
-                                             <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
-                                          ) : null}
-                                        </span>
+                                        })()}
+                                        <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
+                                          <span
+                                            className={arrivalSourceBadgeClassName(groupSourceLabel)}
+                                            data-arrival-source={groupSourceLabel.toLowerCase()}
+                                            title={groupSourceTitle}
+                                            aria-label={groupSourceTitle}
+                                          >
+                                            {groupSourceLabel}
+                                            {groupSourceLabel === "Live" ? (
+                                               <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
+                                            ) : groupSourceLabel === "Scheduled" ? (
+                                               <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
+                                            ) : groupSourceLabel === "Mixed" ? (
+                                               <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
+                                            ) : null}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
                                     {group.arrivals.length === 0 ? (
                                       <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
                                         {groupEmptyMessage}
@@ -1214,22 +1248,33 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 </details>
               )}
 
-	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-	            <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-	              <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-	              <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
-	              <span className="truncate">Station Impacts</span>
-	              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
-	                {distinctImpacts.length}
-	              </span>
-	            </h3>
-	            {distinctImpacts.length === 0 ? (
-	              <p className="my-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
-	                No active impacts for this station.
-	              </p>
-	            ) : (
-	              <div className="mt-2 flex flex-col gap-2">
-	                {distinctImpacts.map((impact) => {
+	          <details
+	            data-station-section="station-impacts"
+	            open={distinctImpacts.length > 0}
+	            className="station-impacts-details group rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+	          >
+	            <summary className="station-impacts-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
+	              <div className="station-subsection-header flex min-w-0 items-center gap-2.5">
+	                <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+	                <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
+	                <span className="truncate">Station Impacts</span>
+	                <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+	                  {distinctImpacts.length}
+	                </span>
+	              </div>
+	              <ChevronDown
+	                size={18}
+	                aria-hidden="true"
+	                className="station-impacts-chevron shrink-0 text-slate-500 dark:text-slate-300 transition-transform duration-200"
+	              />
+	            </summary>
+	            <div className="pt-3 flex flex-col gap-2">
+	              {distinctImpacts.length === 0 ? (
+	                <p className="py-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+	                  No active impacts for this station.
+	                </p>
+	              ) : (
+	                distinctImpacts.map((impact) => {
 	                  const detailsTarget = getStationImpactDetailsTarget(
 	                    impact,
 	                    activeAlerts,
@@ -1280,10 +1325,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                      </div>
 	                    </div>
 	                  );
-	                })}
-	              </div>
-	            )}
-	          </section>
+	                })
+	              )}
+	            </div>
+	          </details>
 
 	          <details ref={accessibilityDetailsRef} data-station-section="accessibility" className="station-accessibility-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
             <summary

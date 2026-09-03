@@ -201,7 +201,7 @@ export function ReducedSpeedZonesPanel({
               <div
                 key={zone.id}
                 data-impact-card-id={zone.id}
-                className={`alert-card rsz-card-border min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-4 !bg-slate-50 dark:!bg-[#12151c] transition-all ${
+                className={`alert-card rsz-card-border min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-2 shadow-[inset_2px_0_6px_-2px_rgba(245,158,11,0.2)] !bg-slate-50 dark:!bg-[#12151c] transition-all ${
                   isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
                 }`}
               >

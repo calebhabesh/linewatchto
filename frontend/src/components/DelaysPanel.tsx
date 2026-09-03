@@ -167,7 +167,7 @@ export function DelaysPanel({
               <article
                 key={delay.id}
                 data-impact-card-id={delay.id}
-                className={`alert-card delay-card-border min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-4 !bg-slate-50 dark:!bg-[#12151c] transition-all ${
+                className={`alert-card delay-card-border min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-2 shadow-[inset_2px_0_6px_-2px_rgba(254,236,65,0.18)] !bg-slate-50 dark:!bg-[#12151c] transition-all ${
                   isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
                 }`}
               >

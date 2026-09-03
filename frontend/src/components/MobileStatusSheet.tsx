@@ -40,7 +40,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
         <div>
           <p className="mobile-sheet-kicker">{networkStatusKicker(networkId)}</p>
           <h2>System Status</h2>
-          <p>{sourceLabel}</p>
+          <p className={sourceLabel.startsWith("Updated") ? "mobile-sheet-source--updated" : undefined}>{sourceLabel}</p>
         </div>
         <button type="button" className="mobile-sheet-icon-button" onClick={onClose} aria-label="Close status">
           <X size={20} />
@@ -71,7 +71,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             </span>
           </button>
           {!regional ? <button type="button" className="mobile-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones")} data-count={reducedSpeedZoneCount > 0 ? "positive" : "zero"}>
-            <Construction size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            <Construction size={16} className="rsz-tone shrink-0" />
             <span className="mobile-status-btn-text">Reduced Speed Zones</span>
             <span className="mobile-status-btn-circle" data-count={reducedSpeedZoneCount > 0 ? "positive" : "zero"}>
               {reducedSpeedZoneCount}

@@ -42,7 +42,7 @@ import {
 } from "../app/accessibility-outage-data";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
-import { TransitLineBadge } from "./TransitLineBadge";
+import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
@@ -392,7 +392,7 @@ function SavedStationRow({
   };
 
   return (
-    <article className={`my-stations-row saved-station-rich-row ${displayedDisruptionCount > 0 ? "is-affected" : "is-clear"}`}>
+    <article className={`my-stations-row min-w-0 max-w-full w-full rounded-lg !bg-slate-50 dark:!bg-[#12151c] p-0 saved-station-rich-row ${displayedDisruptionCount > 0 ? "is-affected" : "is-clear"}`}>
       <div className="saved-station-rich-heading">
         <button type="button" className="my-stations-row-main" onClick={onOpen}>
           <span className="my-stations-row-copy">
@@ -506,6 +506,7 @@ function SavedStationRow({
             <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
             <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
               <span className="flex items-center justify-start text-left gap-2 min-w-0 text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                <span className="w-1 h-3.5 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                 <Train size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Train Arrivals</strong>
               </span>
@@ -529,9 +530,22 @@ function SavedStationRow({
                   const showLineDivider = sectionIndex > 0;
                   const isPinned = pinnedLineIds.includes(section.lineId);
                   const isHoveredPin = hoveredPinLineId === section.lineId;
+                  const lineBadgeColors = transitLineBadgeColors(section.lineId);
+                  const lineColor = lineBadgeColors.backgroundColor;
 
                   return (
-                    <div key={section.lineId} className="saved-station-arrival-line-section" data-arrival-line-section={section.lineId} data-pinned-line={isPinned ? "true" : "false"}>
+                    <div
+                      key={section.lineId}
+                      className={`saved-station-arrival-line-section flex flex-col gap-2 rounded-lg px-1 py-1.5 transition-colors duration-200 ${
+                        isPinned
+                          ? "bg-amber-500/[0.08] dark:bg-amber-400/[0.07]"
+                          : isHoveredPin
+                            ? "bg-amber-500/[0.03] dark:bg-amber-400/[0.03]"
+                            : "bg-transparent"
+                      }`}
+                      data-arrival-line-section={section.lineId}
+                      data-pinned-line={isPinned ? "true" : "false"}
+                    >
                       {showLineDivider && (
                         <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                       )}
@@ -541,12 +555,20 @@ function SavedStationRow({
                             lineId={section.lineId}
                             lineNumber={section.lineNumber}
                             lineName={section.lineName}
-                            size={28}
+                            size={32}
                             className="shrink-0"
                           />
                           <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
                             {formatArrivalLineHeaderLabel(section.lineNumber, section.lineName)}
                           </span>
+                          {isPinned && (
+                            <span
+                              className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 shrink-0 select-none animate-in fade-in duration-200"
+                              data-pinned-badge
+                            >
+                              Starred
+                            </span>
+                          )}
                         </div>
                         <ArrivalLinePinButton
                           compact
@@ -558,8 +580,10 @@ function SavedStationRow({
                           onToggle={() => togglePin(section.lineId)}
                         />
                       </div>
-                      <div className="flex flex-col gap-1.5 mt-0.5">
-                        {section.groups.map((group) => {
+                      <div className="flex flex-col gap-2.5">
+                        {section.groups.map((group, groupIndex) => {
+                          const isFirst = groupIndex === 0;
+                          const isLast = groupIndex === section.groups.length - 1;
                           const arrivals = group.platforms
                             .flatMap((platform) => platform.arrivals)
                             .sort((left, right) => left.minutes - right.minutes)
@@ -569,21 +593,43 @@ function SavedStationRow({
                           const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
 
                           return (
-                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : isHoveredPin ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
-                              <div className="flex w-full min-w-0 max-w-full items-center gap-2">
-                                <TransitLineBadge
-                                  lineId={group.lineId}
-                                  lineNumber={group.lineNumber}
-                                  lineName={group.lineName}
-                                  size={22}
-                                  className="saved-station-arrival-line-badge shrink-0"
+                            <article
+                              key={group.key}
+                              data-regional-arrival-direction={group.directionLabel}
+                              data-pinned-line={isPinned ? "true" : "false"}
+                              className="relative flex flex-col gap-2 pl-7 pt-1 pb-1"
+                            >
+                              {/* Track spine running continuously behind the platform stop node */}
+                              <div
+                                aria-hidden="true"
+                                className="station-arrival-track-spine"
+                                style={{
+                                  backgroundColor: lineColor,
+                                  left: "16px",
+                                  top: isFirst ? "-15px" : "-12px",
+                                  bottom: isLast ? "0px" : "-12px",
+                                  borderBottomLeftRadius: isLast ? "9999px" : "0",
+                                  borderBottomRightRadius: isLast ? "9999px" : "0",
+                                }}
+                              />
+
+                              <div className="relative flex min-w-0 items-center justify-between gap-3">
+                                {/* Platform stop node centered vertically with the direction text */}
+                                <div
+                                  aria-hidden="true"
+                                  className="station-arrival-track-node"
+                                  style={{
+                                    left: "-12px",
+                                    top: "50%",
+                                    transform: "translate(-50%, -50%)",
+                                  }}
                                 />
-                                <div className="saved-station-arrival-direction min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, width: 0 }}>
+                                <div className="saved-station-arrival-direction min-w-0 flex-1 leading-tight">
                                   <strong className="block truncate text-xs sm:text-sm font-black text-slate-900 dark:text-white">
                                     {group.directionLabel}
                                   </strong>
                                   {group.destinationLabel ? (
-                                    <p className="saved-station-arrival-destination mt-0.5 flex flex-wrap items-center gap-1.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+                                    <span className="saved-station-arrival-destination flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                                       {group.destinationLabel}
                                       {group.isTerminating && (
                                         <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
@@ -591,10 +637,10 @@ function SavedStationRow({
                                           Terminating
                                         </span>
                                       )}
-                                    </p>
+                                    </span>
                                   ) : null}
                                 </div>
-                                <div className="flex shrink-0 items-center gap-1.5 self-center">
+                                <div className="ml-auto flex shrink-0 items-center gap-1.5 self-center">
                                   <span
                                     className={`saved-station-arrival-source ${regionalArrivalSourceBadgeClassName(sourceLabel)}`}
                                     data-arrival-source={sourceLabel.toLowerCase()}
@@ -610,6 +656,7 @@ function SavedStationRow({
                                   </span>
                                 </div>
                               </div>
+
                               <div className="saved-station-arrival-times mt-1.5 sm:mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
                                 {arrivals.map((arrival, index) => {
                                   const due = isRegionalArrivalDue(arrival, arrivalTick);
@@ -645,9 +692,9 @@ function SavedStationRow({
                                       ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
                                       : delayed
                                         ? "border-orange-400/60 bg-orange-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(251,146,60,0.12)] dark:border-orange-400/45 dark:bg-orange-400/10 dark:text-white is-delayed"
-                                      : soon
-                                        ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon"
-                                        : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                        : soon
+                                          ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon"
+                                          : "border-transparent bg-slate-950/[0.03] text-slate-900 dark:border-transparent dark:bg-[#0a0c10] dark:text-white shadow-xs",
                                   ].join(" ");
 
                                   return (
@@ -711,7 +758,7 @@ function SavedStationRow({
                                   );
                                 })}
                               </div>
-                            </div>
+                            </article>
                           );
                         })}
                       </div>
@@ -814,6 +861,7 @@ function SavedStationRow({
               <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
               <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
                 <span className="flex items-center justify-start text-left gap-2 min-w-0 text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                  <span className="w-1 h-3.5 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <Train size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                   <strong>{arrivalHeading}</strong>
                 </span>
@@ -828,138 +876,202 @@ function SavedStationRow({
               ) : (
                 <div className="saved-station-arrival-groups">
                   {arrivalLineSections.map((section, sectionIndex) => {
-                  const showLineDivider = sectionIndex > 0;
-                  const isPinned = pinnedLineIds.includes(section.lineId);
-                  const isHoveredPin = hoveredPinLineId === section.lineId;
+                    const showLineDivider = sectionIndex > 0;
+                    const isPinned = pinnedLineIds.includes(section.lineId);
+                    const isHoveredPin = hoveredPinLineId === section.lineId;
+                    const lineBadgeColors = transitLineBadgeColors(section.lineId);
+                    const lineColor = lineBadgeColors.backgroundColor;
 
-                  return (
-                    <div key={section.lineId} className="saved-station-arrival-line-section" data-arrival-line-section={section.lineId} data-pinned-line={isPinned ? "true" : "false"}>
-                      {showLineDivider && (
-                        <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
-                      )}
-                      <div className="saved-station-arrival-line-header flex items-center justify-between">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <TransitLineBadge
-                            lineId={section.lineId}
-                            lineNumber={section.lineNumber}
-                            lineName={section.lineName}
-                            size={28}
-                            className="shrink-0"
+                    return (
+                      <div
+                        key={section.lineId}
+                        className={`saved-station-arrival-line-section flex flex-col gap-2 rounded-lg px-1 py-1.5 transition-colors duration-200 ${
+                          isPinned
+                            ? "bg-amber-500/[0.08] dark:bg-amber-400/[0.07]"
+                            : isHoveredPin
+                              ? "bg-amber-500/[0.03] dark:bg-amber-400/[0.03]"
+                              : "bg-transparent"
+                        }`}
+                        data-arrival-line-section={section.lineId}
+                        data-pinned-line={isPinned ? "true" : "false"}
+                      >
+                        {showLineDivider && (
+                          <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
+                        )}
+                        <div className="saved-station-arrival-line-header flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <TransitLineBadge
+                              lineId={section.lineId}
+                              lineNumber={section.lineNumber}
+                              lineName={section.lineName}
+                              size={32}
+                              className="shrink-0"
+                            />
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                              {formatArrivalLineHeaderLabel(section.lineNumber, section.lineName)}
+                            </span>
+                            {isPinned && (
+                              <span
+                                className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 shrink-0 select-none animate-in fade-in duration-200"
+                                data-pinned-badge
+                              >
+                                Starred
+                              </span>
+                            )}
+                          </div>
+                          <ArrivalLinePinButton
+                            compact
+                            pinned={isPinned}
+                            hovered={isHoveredPin}
+                            onHoverChange={(hovered) => setHoveredPinLineId(hovered ? section.lineId : null)}
+                            lineLabel={`Line ${section.lineNumber}`}
+                            stationName={saved.station.name}
+                            onToggle={() => togglePin(section.lineId)}
                           />
-                          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
-                            {formatArrivalLineHeaderLabel(section.lineNumber, section.lineName)}
-                          </span>
                         </div>
-                        <ArrivalLinePinButton
-                          compact
-                          pinned={isPinned}
-                          hovered={isHoveredPin}
-                          onHoverChange={(hovered) => setHoveredPinLineId(hovered ? section.lineId : null)}
-                          lineLabel={`Line ${section.lineNumber}`}
-                          stationName={saved.station.name}
-                          onToggle={() => togglePin(section.lineId)}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1.5 mt-0.5">
-                        {section.groups.map((group) => {
-                          const arrivals = group.arrivals.slice(0, 3);
-                          const sourceLabel = formatArrivalSourceBadgeLabel(arrivals, {
-                            emptyLiveDirection: hasLiveArrivals && arrivals.length === 0,
-                          });
-                          const direction = formatCondensedArrivalDirection(group.directionLabel);
+                        <div className="flex flex-col gap-2.5">
+                          {section.groups.map((group, groupIndex) => {
+                            const isFirst = groupIndex === 0;
+                            const isLast = groupIndex === section.groups.length - 1;
+                            const arrivals = group.arrivals.slice(0, 3);
+                            const emptyLiveDirection = hasLiveArrivals && arrivals.length === 0;
+                            const sourceLabel = formatArrivalSourceBadgeLabel(arrivals, {
+                              emptyLiveDirection,
+                            });
+                            const direction = formatCondensedArrivalDirection(group.directionLabel);
 
-                          return (
-                            <div key={group.key} className={`saved-station-arrival-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${isPinned ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned" : isHoveredPin ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]" : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"}`}>
-                              <div className="flex w-full min-w-0 max-w-full items-center gap-2">
-                                <TransitLineBadge
-                                  lineId={group.lineId}
-                                  lineNumber={group.lineNumber}
-                                  lineName={group.line?.name}
-                                  size={22}
-                                  className="saved-station-arrival-line-badge"
+                            return (
+                              <div
+                                key={group.key}
+                                data-arrival-group={group.key}
+                                data-pinned-line={isPinned ? "true" : "false"}
+                                className="relative flex flex-col gap-2 pl-7 pt-1 pb-1"
+                              >
+                                {/* Track spine running continuously behind the platform stop node */}
+                                <div
+                                  aria-hidden="true"
+                                  className="station-arrival-track-spine"
+                                  style={{
+                                    backgroundColor: lineColor,
+                                    left: "16px",
+                                    top: isFirst ? "-15px" : "-12px",
+                                    bottom: isLast ? "0px" : "-12px",
+                                    borderBottomLeftRadius: isLast ? "9999px" : "0",
+                                    borderBottomRightRadius: isLast ? "9999px" : "0",
+                                  }}
                                 />
-                                <div className="saved-station-arrival-direction min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, width: 0 }}>
-                                  <strong className="block truncate text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                                    {direction.direction}
-                                  </strong>
-                                  {direction.destination ? (
-                                    <p className="saved-station-arrival-destination mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
-                                      {direction.destination}
-                                    </p>
-                                  ) : null}
-                                </div>
-                                <div className="flex shrink-0 items-center gap-1.5 self-center">
-                                  <span
-                                    className={`saved-station-arrival-source ${arrivalSourceBadgeClassName(sourceLabel)}`}
-                                    data-arrival-source={sourceLabel.toLowerCase()}
-                                  >
-                                    {sourceLabel}
-                                    {sourceLabel === "Live" ? (
-                                      <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
-                                    ) : sourceLabel === "Scheduled" ? (
-                                      <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
-                                    ) : sourceLabel === "Mixed" ? (
-                                      <Layers className="ml-1 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={10.5} aria-hidden="true" />
-                                    ) : null}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="saved-station-arrival-times mt-1.5 sm:mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
-                                {arrivals.length > 0
-                                  ? arrivals.map((arrival, index) => {
-                                      const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
-                                      const due = isArrivalDue(arrival, arrivalTick);
-                                      const clockTime = formatArrivalClockTime(arrival.predictedAt);
-                                      const arrivalTileClassName = [
-                                        "relative flex min-h-[64px] sm:min-h-[68px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-2 text-center transition-colors",
-                                        due
-                                          ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
-                                          : detailed
-                                            ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon is-detailed"
-                                            : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
-                                      ].join(" ");
 
-                                      return (
-                                        <div
-                                          key={`${arrival.predictedAt ?? arrival.label}-${index}`}
-                                          data-arrival-due={due ? "true" : "false"}
-                                          className={arrivalTileClassName}
-                                        >
-                                          <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
-                                          <strong
-                                            className={detailed && !due
-                                              ? "mt-1.5 whitespace-nowrap text-[13px] sm:text-sm font-black leading-none tracking-tight tabular-nums"
-                                              : "mt-1.5 text-sm sm:text-base font-black leading-none tracking-tight"}
-                                          >
-                                            {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
-                                          </strong>
-                                          {clockTime && (
-                                            <span
-                                              className={
-                                                due
-                                                  ? "mt-0.5 text-[10px] font-semibold text-red-100/80"
-                                                  : "mt-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400"
-                                              }
-                                            >
-                                              {clockTime}
+                                <div className="relative flex min-w-0 items-center justify-between gap-3">
+                                  {/* Platform stop node centered vertically with the direction text */}
+                                  <div
+                                    aria-hidden="true"
+                                    className="station-arrival-track-node"
+                                    style={{
+                                      left: "-12px",
+                                      top: "50%",
+                                      transform: "translate(-50%, -50%)",
+                                    }}
+                                  />
+                                  <div className="saved-station-arrival-direction min-w-0 flex-1 overflow-hidden">
+                                    <div className="flex flex-col min-w-0 leading-tight">
+                                      <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                        {direction.direction}
+                                      </strong>
+                                      {direction.destination ? (
+                                        <span className="saved-station-arrival-destination flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                          {direction.destination}
+                                          {group.isTerminating && (
+                                            <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                              <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                              Terminating
                                             </span>
                                           )}
-                                        </div>
-                                      );
-                                    })
-                                  : (
-                                    <div className="col-span-3 flex min-h-[56px] items-center justify-center rounded-md border border-dashed border-black/10 bg-slate-950/[0.02] text-xs font-semibold text-slate-500 dark:border-white/10 dark:bg-[#0f1117]/50 dark:text-slate-400">
-                                      <em>—</em>
+                                        </span>
+                                      ) : null}
                                     </div>
-                                  )}
+                                    <span className="sr-only">
+                                      <TransitLineBadge
+                                        lineId={group.lineId}
+                                        lineNumber={group.lineNumber}
+                                        lineName={group.line?.name}
+                                        size={22}
+                                        className="saved-station-arrival-line-badge"
+                                      />
+                                    </span>
+                                  </div>
+                                  <div className="ml-auto flex shrink-0 items-center gap-1.5 self-center">
+                                    <span
+                                      className={`saved-station-arrival-source ${arrivalSourceBadgeClassName(sourceLabel)}`}
+                                      data-arrival-source={sourceLabel.toLowerCase()}
+                                    >
+                                      {sourceLabel}
+                                      {sourceLabel === "Live" ? (
+                                        <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
+                                      ) : sourceLabel === "Scheduled" ? (
+                                        <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
+                                      ) : sourceLabel === "Mixed" ? (
+                                        <Layers className="ml-1 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={10.5} aria-hidden="true" />
+                                      ) : null}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="saved-station-arrival-times mt-1.5 sm:mt-2 grid w-full min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+                                  {arrivals.length > 0
+                                    ? arrivals.map((arrival, index) => {
+                                        const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
+                                        const due = isArrivalDue(arrival, arrivalTick);
+                                        const clockTime = formatArrivalClockTime(arrival.predictedAt);
+                                        const arrivalTileClassName = [
+                                          "relative flex min-h-[64px] sm:min-h-[68px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-2 text-center transition-colors",
+                                          due
+                                            ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)] is-due"
+                                            : detailed
+                                              ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon is-detailed"
+                                              : "border-transparent bg-slate-950/[0.03] text-slate-900 dark:border-transparent dark:bg-[#0a0c10] dark:text-white shadow-xs",
+                                        ].join(" ");
+
+                                        return (
+                                          <div
+                                            key={`${arrival.predictedAt ?? arrival.label}-${index}`}
+                                            data-arrival-due={due ? "true" : "false"}
+                                            className={arrivalTileClassName}
+                                          >
+                                            <ArrivalTileSourceIndicator status={arrival.status} isDue={due} isCompact />
+                                            <strong
+                                              className={detailed && !due
+                                                ? "mt-1.5 whitespace-nowrap text-[13px] sm:text-sm font-black leading-none tracking-tight tabular-nums"
+                                                : "mt-1.5 text-sm sm:text-base font-black leading-none tracking-tight"}
+                                            >
+                                              {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
+                                            </strong>
+                                            {clockTime && (
+                                              <span
+                                                className={
+                                                  due
+                                                    ? "mt-0.5 text-[10px] font-semibold text-red-100/80"
+                                                    : "mt-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400"
+                                                }
+                                              >
+                                                {clockTime}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })
+                                    : (
+                                      <div className="col-span-3 flex min-h-[56px] items-center justify-center rounded-md border border-dashed border-slate-300/40 bg-slate-950/[0.02] text-xs font-semibold text-slate-500 dark:border-white/5 dark:bg-[#0f1117]/50 dark:text-slate-400">
+                                        <em>—</em>
+                                      </div>
+                                    )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
           </section>
@@ -1206,8 +1318,8 @@ export function MyStationsPanel({
   }
 
   return (
-    <section className={`my-stations-panel${compactEmpty ? " my-stations-panel-empty" : ""} panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl`} aria-label="My Stations">
-      <div className="panel-heading my-stations-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
+    <section className={`my-stations-panel${compactEmpty ? " my-stations-panel-empty" : ""} panel min-w-0 border border-transparent rounded-lg shadow-xl`} aria-label="My Stations">
+      <div className="panel-heading my-stations-heading @container border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
         <div className="my-stations-title flex items-center gap-1 min-w-0">
           <button
             type="button"
@@ -1236,7 +1348,7 @@ export function MyStationsPanel({
         {accountState?.source === "unavailable" ? (
           <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
         ) : !authenticated ? (
-          <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
+          <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-transparent">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
                 <Bookmark className="w-4 h-4 text-sky-500 shrink-0" aria-hidden="true" />

@@ -521,7 +521,13 @@ const HistoryIncident = memo(function HistoryIncident({
   ].filter((fact): fact is { label: string; value: string } => Boolean(fact?.value));
 
   return (
-    <li className={`alert-history-item ${cleared ? "alert-history-event-cleared" : "alert-history-event-active"}`}>
+    <li
+      className={`alert-history-item ${
+        cleared
+          ? "alert-history-event-cleared"
+          : `alert-history-event-active alert-history-tone-${historyAlertTypeTone(incident.eventType)}`
+      } !bg-slate-50 dark:!bg-[#12151c] transition-all`}
+    >
       <div className="alert-history-content">
         <div className="alert-history-card-heading">
           <div

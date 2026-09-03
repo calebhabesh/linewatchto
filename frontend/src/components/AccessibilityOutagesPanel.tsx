@@ -172,7 +172,7 @@ export function AccessibilityOutagesPanel({
             {/* Elevator Entry */}
             <button
               onClick={() => setSelectedAssetType("elevator")}
-              className="w-full text-left p-3.5 rounded-lg border border-black/10 dark:border-white/10 bg-slate-50 hover:bg-slate-100 dark:bg-[#12151c] dark:hover:bg-[#181d26] transition-all flex flex-col gap-3 group relative cursor-pointer"
+              className="w-full text-left p-3.5 rounded-lg border border-transparent bg-slate-50 hover:bg-slate-100 dark:bg-[#12151c] dark:hover:bg-[#181d26] shadow-xs transition-all flex flex-col gap-3 group relative cursor-pointer"
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
@@ -221,7 +221,7 @@ export function AccessibilityOutagesPanel({
             {/* Escalator Entry */}
             <button
               onClick={() => setSelectedAssetType("escalator")}
-              className="w-full text-left p-3.5 rounded-lg border border-black/10 dark:border-white/10 bg-slate-50 hover:bg-slate-100 dark:bg-[#12151c] dark:hover:bg-[#181d26] transition-all flex flex-col gap-3 group relative cursor-pointer"
+              className="w-full text-left p-3.5 rounded-lg border border-transparent bg-slate-50 hover:bg-slate-100 dark:bg-[#12151c] dark:hover:bg-[#181d26] shadow-xs transition-all flex flex-col gap-3 group relative cursor-pointer"
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
@@ -278,11 +278,11 @@ export function AccessibilityOutagesPanel({
               filteredGroups.map((group) => (
                 <div
                   key={group.lineId}
-                  className="rounded-lg border border-black/10 dark:border-white/10 overflow-hidden"
+                  className="rounded-lg border border-transparent shadow-xs overflow-hidden"
                 >
                   {/* Line Header */}
                   <div
-                    className="px-3 py-2 flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-[#161a23] border-b border-black/10 dark:border-white/10 text-sm border-l-4"
+                    className="px-3 py-2 flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-[#161a23] border-b border-black/5 dark:border-white/5 text-sm border-l-2"
                     style={{ borderLeftColor: group.color }}
                   >
                     {lineBadge(group)}
@@ -290,7 +290,7 @@ export function AccessibilityOutagesPanel({
                   </div>
 
                   {/* Stations Accordeon */}
-                  <div className="divide-y divide-black/10 dark:divide-white/10 bg-slate-50/50 dark:bg-[#0c0f14]">
+                  <div className="divide-y divide-black/5 dark:divide-white/5 bg-slate-50/50 dark:bg-[#0c0f14]">
                     {group.stations.map((station) => {
                       const expandedKey = `${group.lineId}-${station.stationId}`;
                       const expanded = !!expandedStations[expandedKey];
@@ -327,7 +327,7 @@ export function AccessibilityOutagesPanel({
                                 {station.outages.map((outage) => (
                                   <div
                                     key={outage.id}
-                                    className="p-3 rounded border border-black/10 dark:border-white/10 bg-white dark:bg-[#161a23] border-l-4"
+                                    className="p-3 rounded border border-transparent bg-white dark:bg-[#161a23] border-l-2 shadow-xs"
                                     style={{ borderLeftColor: group.color }}
                                   >
                                     <h4 className="text-xs font-normal text-slate-900 dark:text-white mb-1">

@@ -3487,7 +3487,7 @@ export function LineWatchShell({
           <button
             ref={menuButtonRef}
             onClick={handleToggleMenu}
-            className={`menu-toggle-btn menu-attention-beam desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
+            className={`menu-toggle-btn menu-attention-beam desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
             aria-label={totalAlertCount > 0
               ? `Toggle menu, ${totalAlertCount} total ${totalAlertCount === 1 ? "alert" : "alerts"}`
               : "Toggle menu"}
@@ -3516,7 +3516,7 @@ export function LineWatchShell({
           {/* Header station search input — replaces the old static button */}
           <div
             ref={headerSearchBarRef}
-            className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] cursor-text outline-none"
+            className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] cursor-text outline-none"
             data-active={activeView === "search" ? "true" : undefined}
             onPointerDown={(event) => {
               if (event.button !== 0) return;
@@ -3854,7 +3854,7 @@ export function LineWatchShell({
                      <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Active Alerts
                    </div>
                    {activeAlerts.length > 0 && (
-                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
+                     <span className="desktop-menu-count-badge desktop-menu-count-alerts flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
                        {activeAlerts.length}
                      </span>
                    )}
@@ -3870,7 +3870,7 @@ export function LineWatchShell({
                      <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
                    </div>
                    {delays.length > 0 && (
-                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full delay-count-badge px-2 text-[11px] font-bold">
+                     <span className="desktop-menu-count-badge desktop-menu-count-delays flex h-6 min-w-[24px] items-center justify-center rounded-full delay-count-badge px-2 text-[11px] font-bold">
                        {delays.length}
                      </span>
                    )}
@@ -3886,7 +3886,7 @@ export function LineWatchShell({
                      <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
                    </div>
                    {reducedSpeedZones.length > 0 && (
-                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full rsz-count-badge px-2 text-[11px] font-bold">
+                     <span className="desktop-menu-count-badge desktop-menu-count-rsz flex h-6 min-w-[24px] items-center justify-center rounded-full rsz-count-badge px-2 text-[11px] font-bold">
                        {reducedSpeedZoneCount}
                      </span>
                    )}
@@ -3902,7 +3902,7 @@ export function LineWatchShell({
                      <PlannedClosureIcon size={18} className="text-slate-500 dark:text-slate-400" /> Planned Closures
                    </div>
                    {plannedClosures.length > 0 && (
-                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                     <span className="desktop-menu-count-badge desktop-menu-count-closures flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
                        {plannedClosures.length}
                      </span>
                    )}
@@ -3917,7 +3917,7 @@ export function LineWatchShell({
                      <Train size={18} className="text-slate-500 dark:text-slate-400" /> Trip Changes
                    </div>
                    {regionalTripChangeCount !== null && regionalTripChangeCount > 0 ? (
-                     <span className="trip-change-count-badge flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold">
+                     <span className="desktop-menu-count-badge desktop-menu-count-trip-changes trip-change-count-badge flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold">
                        {regionalTripChangeCount}
                      </span>
                    ) : null}
@@ -3947,7 +3947,7 @@ export function LineWatchShell({
                      Accessibility Outages
                    </div>
                    {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
-                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
+                     <span className="desktop-menu-count-badge desktop-menu-count-accessibility flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold">
                        {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
                      </span>
                    )}
@@ -3963,10 +3963,19 @@ export function LineWatchShell({
                      <Bus size={18} className="text-slate-500 dark:text-slate-400" /> {selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus Notices"}
                    </div>
                    {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
-                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                     <span className="desktop-menu-count-badge desktop-menu-count-surface flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold">
                        {surfaceNoticeCount}
                      </span>
                    )}
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => navigateForward("alert-history")}
+                   aria-current={activeView === "alert-history" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
                  </button>
                  {selectedNetwork === "ttc" ? <button
                     ref={registerMenuAction(actionIndex++)}
@@ -3979,7 +3988,7 @@ export function LineWatchShell({
                       <Megaphone size={18} className="text-slate-500 dark:text-slate-400" /> TTC Announcements
                     </div>
                     {announcementCount !== null && announcementCount > 0 && (
-                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-sky-500/20 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                      <span className="desktop-menu-count-badge desktop-menu-count-announcements flex h-6 min-w-[24px] items-center justify-center rounded-full bg-sky-500/20 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300">
                         {announcementCount}
                       </span>
                     )}
@@ -4010,7 +4019,7 @@ export function LineWatchShell({
                           type="button"
                           onClick={() => openLineImpacts(l.id)}
                           aria-label={`View all service impacts for ${l.name}`}
-                          className="group/line-status flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm text-left hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors"
+                          className="desktop-line-status-row group/line-status flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm text-left hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors"
                         >
                            <TransitLineBadge lineId={l.id} lineNumber={l.number} lineName={l.name} size={24} className="flex-shrink-0" />
                            <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -4058,15 +4067,6 @@ export function LineWatchShell({
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <Bell size={18} className="text-slate-500 dark:text-slate-400" /> Notifications
-                 </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => navigateForward("alert-history")}
-                   aria-current={activeView === "alert-history" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
                  </button>
                </div>
 
@@ -4389,7 +4389,7 @@ export function LineWatchShell({
           <button
             type="button"
             onClick={() => navigateForward("alert-history")}
-            className="alert-history-shortcut panel hidden md:flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+            className="alert-history-shortcut panel hidden md:flex items-center justify-center w-14 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
             aria-label="Open Alert History"
             title="Alert History"
           >
@@ -4397,7 +4397,7 @@ export function LineWatchShell({
           </button>
           <button
             onClick={handleToggleTheme}
-            className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+            className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
             aria-label="Toggle theme"
           >
             {isDark ? (
@@ -4408,7 +4408,7 @@ export function LineWatchShell({
           </button>
           <button
             onClick={handleOpenRotatedMap}
-            className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
+            className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
             aria-label="Rotate map"
           >
             <PhoneRotateLandscapeIcon size={20} />
@@ -4641,6 +4641,7 @@ export function LineWatchShell({
             <button
               type="button"
               className="desktop-status-chip desktop-status-chip--alerts"
+              data-count={activeAlerts.length === 0 ? "zero" : "positive"}
               onClick={() => openImpactCategory("alerts")}
               aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "active alert" : "active alerts"}`}
               title={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
@@ -4654,6 +4655,7 @@ export function LineWatchShell({
             <button
               type="button"
               className="desktop-status-chip desktop-status-chip--delays"
+              data-count={delays.length === 0 ? "zero" : "positive"}
               onClick={() => openImpactCategory("delays")}
               aria-label={`${delays.length} ${delays.length === 1 ? "delay" : "delays"}`}
               title={`${delays.length} ${delays.length === 1 ? "Delay" : "Delays"}`}
@@ -4664,9 +4666,24 @@ export function LineWatchShell({
               </span>
               <span className="desktop-status-chip-label">{delays.length === 1 ? "Delay" : "Delays"}</span>
             </button>
+            <button
+              type="button"
+              className="desktop-status-chip desktop-status-chip--closures"
+              data-count={plannedClosures.length === 0 ? "zero" : "positive"}
+              onClick={() => openImpactCategory("closures")}
+              aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned closure" : "planned closures"}`}
+              title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}`}
+            >
+              <PlannedClosureIcon size={18} aria-hidden="true" />
+              <span className="desktop-status-chip-count" data-digit-count={plannedClosures.length >= 10 ? "multiple" : "single"}>
+                <span className="desktop-status-chip-count-value">{plannedClosures.length}</span>
+              </span>
+              <span className="desktop-status-chip-label">{plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
+            </button>
             {selectedNetwork === "ttc" ? <button
               type="button"
               className="desktop-status-chip desktop-status-chip--reduced-speed-zone"
+              data-count={reducedSpeedZoneCount === 0 ? "zero" : "positive"}
               onClick={() => openImpactCategory("reduced-speed-zones")}
               aria-label={`${reducedSpeedZoneCount} ${reducedSpeedZoneCount === 1 ? "reduced speed zone" : "reduced speed zones"}`}
               title={`${reducedSpeedZoneCount} ${reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}`}
@@ -4679,22 +4696,10 @@ export function LineWatchShell({
                 {reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
               </span>
             </button> : null}
-            <button
-              type="button"
-              className="desktop-status-chip desktop-status-chip--closures"
-              onClick={() => openImpactCategory("closures")}
-              aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned closure" : "planned closures"}`}
-              title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}`}
-            >
-              <PlannedClosureIcon size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count" data-digit-count={plannedClosures.length >= 10 ? "multiple" : "single"}>
-                <span className="desktop-status-chip-count-value">{plannedClosures.length}</span>
-              </span>
-              <span className="desktop-status-chip-label">{plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
-            </button>
             {selectedNetwork === "regional" ? <button
               type="button"
               className="desktop-status-chip desktop-status-chip--trip-changes"
+              data-count={(regionalTripChangeCount ?? 0) === 0 ? "zero" : "positive"}
               onClick={openRegionalTripChanges}
               aria-label={`${regionalTripChangeCount ?? 0} ${(regionalTripChangeCount ?? 0) === 1 ? "trip change" : "trip changes"}`}
               title={`${regionalTripChangeCount ?? 0} ${(regionalTripChangeCount ?? 0) === 1 ? "Trip Change" : "Trip Changes"}`}

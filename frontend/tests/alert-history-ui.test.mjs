@@ -54,8 +54,8 @@ describe("alert history timeline UI", () => {
 
   it("offers Alert History in mobile and desktop menus for either map mode", () => {
     assert.doesNotMatch(moreSheetSource, /currentNetwork === "ttc" \? <div className="mobile-more-section">[\s\S]*?<h3>Notifications<\/h3>/);
-    assert.match(moreSheetSource, /<h3>Notifications<\/h3>[\s\S]*?Alert History/);
-    assert.match(shellSource, /<span[^>]*>Notifications<\/span>[\s\S]*?Alert History/);
+    assert.match(moreSheetSource, /My Stations[\s\S]*?Alert History/);
+    assert.match(shellSource, /Streetcar & Bus Notices[\s\S]*?Alert History/);
   });
 
   it("offers front-facing Alert History shortcuts without displacing the mobile edge shortcut", () => {

@@ -64,6 +64,24 @@ describe("desktop status capsule", () => {
     );
     assert.equal((shellSource.match(/data-digit-count=\{/g) ?? []).length, 5);
     assert.equal((shellSource.match(/desktop-status-chip-count-value/g) ?? []).length, 5);
+    assert.match(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.desktop-status-chip--alerts\s*\{[\s\S]*?background:\s*#2d1414\s*!important;/);
+    assert.match(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip--alerts \.desktop-status-chip-count\s*\{[\s\S]*?background:\s*rgba\(239,\s*68,\s*68,\s*0\.14\)\s*!important;/);
+    assert.match(globalCss, /\.dark \.desktop-header-impact-chips \.desktop-status-chip--alerts \.desktop-status-chip-count\s*\{[\s\S]*?background:\s*rgba\(239,\s*68,\s*68,\s*0\.28\)\s*!important;/);
+    assert.match(globalCss, /\.menu-toggle-btn,[\s\S]*?\.desktop-status-capsule,[\s\S]*?\.desktop-map-control-rail[\s\S]*?\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.alert-history-shortcut,[\s\S]*?\.dark \.logs-trigger-btn[\s\S]*?\{[\s\S]*?border:\s*none\s*!important;/);
+
+    const bottomChipsStart = shellSource.indexOf('className="desktop-status-chip-row desktop-header-impact-chips"');
+    const alertsChipIdx = shellSource.indexOf('desktop-status-chip--alerts', bottomChipsStart);
+    const delaysChipIdx = shellSource.indexOf('desktop-status-chip--delays', bottomChipsStart);
+    const closuresChipIdx = shellSource.indexOf('desktop-status-chip--closures', bottomChipsStart);
+    const rszChipIdx = shellSource.indexOf('desktop-status-chip--reduced-speed-zone', bottomChipsStart);
+    const tripChangesChipIdx = shellSource.indexOf('desktop-status-chip--trip-changes', bottomChipsStart);
+
+    assert.ok(alertsChipIdx < delaysChipIdx, "alerts chip must precede delays chip");
+    assert.ok(delaysChipIdx < closuresChipIdx, "delays chip must precede planned closures chip");
+    assert.ok(closuresChipIdx < rszChipIdx, "planned closures chip must precede reduced speed zones chip");
+    assert.ok(closuresChipIdx < tripChangesChipIdx, "planned closures chip must precede trip changes chip");
   });
 
   it("keeps the labeled estimated-train switch in the center status console", () => {

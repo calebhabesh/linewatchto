@@ -31,6 +31,16 @@ describe("Reduced Speed Zone amber color", () => {
     assert.match(stationDetailSource, /rsz-tone/);
     assert.doesNotMatch(rszPanelSource, /border-l-amber-500/);
     assert.doesNotMatch(rszPanelSource, /!bg-amber-50/);
+
+    // Desktop bottom-left chip and menu badge use canonical amber tokens
+    assert.match(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip--reduced-speed-zone \.desktop-status-chip-count\s*\{[\s\S]*?color:\s*var\(--impact-rsz-ink\)/);
+    assert.match(globalCss, /\.dark \.desktop-header-impact-chips \.desktop-status-chip--reduced-speed-zone \.desktop-status-chip-count\s*\{[\s\S]*?color:\s*var\(--impact-rsz\)/);
+    assert.match(globalCss, /\.desktop-status-chip--reduced-speed-zone\s*\{[\s\S]*?color:\s*var\(--impact-rsz-ink\)/);
+    assert.match(globalCss, /\.dark \.desktop-status-chip--reduced-speed-zone\s*\{[\s\S]*?color:\s*var\(--impact-rsz\)/);
+    assert.match(globalCss, /\.desktop-menu-count-badge\.desktop-menu-count-rsz\s*\{[\s\S]*?color:\s*var\(--impact-rsz-ink\)/);
+    assert.match(globalCss, /\.dark \.desktop-menu-count-badge\.desktop-menu-count-rsz\s*\{[\s\S]*?color:\s*var\(--impact-rsz\)/);
+    assert.match(globalCss, /\.mobile-status-actions button\.mobile-status-btn-rsz \.mobile-status-btn-circle\[data-count="positive"\]\s*\{[\s\S]*?color:\s*var\(--impact-rsz-ink\)/);
+    assert.match(globalCss, /\.dark \.mobile-status-actions button\.mobile-status-btn-rsz \.mobile-status-btn-circle\[data-count="positive"\]\s*\{[\s\S]*?color:\s*var\(--impact-rsz\)/);
   });
 
   it("stacks grouped directional zone counts as plain rows", () => {

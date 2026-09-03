@@ -53,7 +53,11 @@ describe("unified search alert group headings", () => {
     );
     assert.match(
       globalCss,
-      /\.station-search-stations-column-header\s*\{[^}]*margin-bottom:\s*10px;/s,
+      /\.station-search-stations-column-header\s*\{[^}]*margin-top:\s*10px;[^}]*margin-bottom:\s*10px;/s,
+    );
+    assert.match(
+      globalCss,
+      /@media \(max-width:\s*767px\)\s*\{[\s\S]*?\.station-search-stations-column-header\s*\{[^}]*margin-top:\s*0\s*!important;[^}]*margin-bottom:\s*12px\s*!important;/s,
     );
     assert.match(
       globalCss,
@@ -111,5 +115,39 @@ describe("unified search alert group headings", () => {
       globalCss,
       /\.station-search-end\s*\{[^}]*display:\s*inline-flex;[^}]*align-items:\s*center;[^}]*gap:\s*8px;[^}]*justify-content:\s*flex-end;/s,
     );
+  });
+
+  it("applies borderless tactile container styling across all search and mini-search containers", () => {
+    // Station search elements are borderless with tactile specular highlights
+    assert.match(globalCss, /\.station-search-station\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.station-search-station\s*\{[\s\S]*?box-shadow:\s*inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.85\)/);
+    assert.match(globalCss, /\.dark \.station-search-station\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-search-station\s*\{[\s\S]*?background:\s*#161a23\s*!important;/);
+
+    assert.match(globalCss, /\.station-search-bookmark\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-search-bookmark\s*\{[\s\S]*?border:\s*none\s*!important;/);
+
+    assert.match(globalCss, /\.station-search-amenity-chip\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-search-amenity-chip\s*\{[\s\S]*?border:\s*none\s*!important;/);
+
+    assert.match(globalCss, /\.station-search-line-trigger\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-search-line-trigger\s*\{[\s\S]*?border:\s*none\s*!important;/);
+
+    assert.match(globalCss, /\.station-search-input\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-search-input\s*\{[\s\S]*?border:\s*none\s*!important;/);
+
+    assert.match(globalCss, /\.global-search-category-shortcuts button,\s*\.global-search-browse-alerts button\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.global-search-impact-result\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.global-search-impact-result\s*\{[\s\S]*?border-left:\s*3px solid var\(--impact-accent/);
+
+    // Header container is completely opaque
+    assert.match(globalCss, /\.station-search-stations-column-header\s*\{[\s\S]*?opacity:\s*1\s*!important;/);
+    assert.match(globalCss, /\.dark \.global-search-network-heading,\s*\.dark \.station-search-stations-column-header\s*\{[\s\S]*?background:\s*#26171a\s*!important;/);
+    assert.match(globalCss, /\.dark \.global-search-network-heading,\s*\.dark \.station-search-stations-column-header\s*\{[\s\S]*?opacity:\s*1\s*!important;/);
+
+    // Mini-search commute station picker
+    assert.match(globalCss, /\.commute-station-trigger,\s*\.commute-station-search-row,\s*\.commute-station-popover\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.commute-station-line-trigger,\s*\.commute-station-option\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.commute-station-trigger,\s*\.dark \.commute-station-popover/);
   });
 });

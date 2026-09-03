@@ -242,6 +242,16 @@ export function MobileMoreSheet({
                   </span>
                 ) : null}
               </button>
+              <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
+                <History size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
+                Alert History
+              </button>
+              {currentNetwork === "ttc" ? (
+                <button type="button" className="mobile-more-row" onClick={onOpenAnnouncements}>
+                  <Megaphone size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
+                  TTC Announcements
+                </button>
+              ) : null}
             </>
           ) : (
             <>
@@ -284,6 +294,16 @@ export function MobileMoreSheet({
                   </span>
                 ) : null}
               </button>
+              <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
+                <History size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
+                Alert History
+              </button>
+              {currentNetwork === "ttc" ? (
+                <button type="button" className="mobile-more-row" onClick={onOpenAnnouncements}>
+                  <Megaphone size={18} className="text-slate-500 dark:text-slate-400" />
+                  TTC Announcements
+                </button>
+              ) : null}
             </>
           )}
           <DefaultMapModeControl
@@ -334,14 +354,6 @@ export function MobileMoreSheet({
               )}
             </div>
           </button>
-          <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
-            <History size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            Alert History
-          </button>
-          {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenAnnouncements}>
-            <Megaphone size={18} className="text-slate-500 dark:text-slate-400" />
-            TTC Announcements
-          </button> : null}
         </div>
 
         <div className="mobile-more-section">

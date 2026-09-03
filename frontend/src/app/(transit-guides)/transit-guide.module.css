@@ -75,8 +75,8 @@
 .brandWordmark {
   font-family: var(--font-wordmark), Arial, Helvetica, sans-serif;
   font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1;
   color: #ffffff;
 }
@@ -1167,8 +1167,8 @@
 .footerBrandWordmark {
   font-family: var(--font-wordmark), Arial, Helvetica, sans-serif;
   font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: #ffffff;
 }
 

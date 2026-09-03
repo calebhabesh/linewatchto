@@ -29,7 +29,7 @@ export function StationDetailHeader({
         <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Station
         </span>
-        <h2 className="mt-1 break-words text-3xl font-black text-slate-950 dark:text-white">
+        <h2 className="mt-0.5 break-words text-[32px] sm:text-4xl font-black tracking-tight leading-tight text-slate-950 dark:text-white">
           {stationName}
         </h2>
         {updating ? (

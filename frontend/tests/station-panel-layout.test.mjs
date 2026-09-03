@@ -33,6 +33,18 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /window\.clearTimeout\(closeTimeoutRef\.current\)/);
   });
 
+  it("uses matching tactile drop-and-scale close animations for station detail panels", () => {
+    assert.match(panelSource, /data-closing=\{isClosing \? "true" : undefined\}/);
+    assert.match(panelSource, /station-detail-closing/);
+    assert.match(regionalPanelSource, /data-closing=\{isClosing \? "true" : undefined\}/);
+    assert.match(regionalPanelSource, /station-detail-closing/);
+
+    assert.match(globalCss, /\.station-detail-panel\.station-detail-closing[\s\S]*?station-detail-exit-desktop/);
+    assert.match(globalCss, /@keyframes station-detail-exit-desktop\s*\{[\s\S]*?translateY\(-6px\) scale\(1\.008\)/);
+    assert.match(globalCss, /@keyframes station-detail-exit-desktop\s*\{[\s\S]*?translateY\(20px\) scale\(0\.94\)/);
+    assert.match(globalCss, /@keyframes station-detail-exit-mobile\s*\{[\s\S]*?translate3d\(0,\s*100%,\s*0\)/);
+  });
+
   it("uses a right dock on desktop and a bottom sheet on mobile", () => {
     assert.match(panelSource, /station-detail-panel/);
     assert.match(panelSource, /md:right-6/);
@@ -51,7 +63,11 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /<Train size=\{20\}/);
     assert.doesNotMatch(panelSource, /<Clock3 size=\{20\}/);
     assert.match(panelSource, /data-arrivals-subway-closed=\{subwayClosed \? "true" : undefined\}/);
-    assert.match(panelSource, /<AlertCircle[^>]*animate-terminating-blink[^>]*\/>[\s\S]*Schedule May Be Disrupted/);
+    assert.match(panelSource, /<AlertCircle[^>]*size=\{19\}[^>]*animate-terminating-blink[^>]*\/>[\s\S]*Schedule May Be Disrupted/);
+    assert.match(panelSource, /station-detail-disruption-card flex w-full flex-wrap items-center justify-start/);
+    assert.match(globalCss, /\.animate-terminating-blink\s*\{[^}]*animation:\s*terminating-blink 1\.8s/);
+    assert.match(globalCss, /\.station-access-outage-count\s*\{[^}]*--overlapping-count-font-size:\s*11px;/);
+    assert.match(globalCss, /\.station-search-outage-count\s*\{[^}]*--overlapping-count-font-size:\s*10px;/);
     assert.match(panelSource, /data-arrivals-disrupted/);
     assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
     assert.match(panelSource, /href=\{`#station-impact-\$\{impact\.id\}`\}/);
@@ -136,13 +152,16 @@ describe("station detail panel layout", () => {
   });
 
   it("surfaces accessibility outage counts near the top of the station panel", () => {
+    const disruptionIndex = panelSource.indexOf('data-station-disruption-warning');
     const outageSummaryIndex = panelSource.indexOf('data-station-access-outage-summary');
     const headerDetailsIndex = panelSource.indexOf('data-station-header-line-details');
     const arrivalsIndex = panelSource.indexOf('data-station-section="arrivals"');
 
+    assert.notEqual(disruptionIndex, -1);
     assert.notEqual(outageSummaryIndex, -1);
     assert.notEqual(headerDetailsIndex, -1);
-    assert.ok(headerDetailsIndex < outageSummaryIndex);
+    assert.ok(headerDetailsIndex < disruptionIndex);
+    assert.ok(disruptionIndex < outageSummaryIndex, "Schedule May Be Disrupted must be placed above Access Outages");
     assert.ok(outageSummaryIndex < arrivalsIndex);
     assert.match(panelSource, /StationAccessOutageBadge/);
     assert.match(panelSource, /formatStationOutageLabel\("elevator", elevatorOutagesCount\)/);
@@ -151,6 +170,37 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /station-access-outage-count/);
     assert.match(globalCss, /\.station-access-outage-badge\s*\{[^}]*width:\s*30px;[^}]*height:\s*30px;[^}]*flex:\s*0 0 30px;/s);
     assert.match(globalCss, /\.station-access-outage-count\s*\{[^}]*min-width:\s*16px;[^}]*height:\s*16px;[^}]*font-size:\s*8px;/s);
+  });
+
+  it("applies borderless tactile container styling across station submenu containers and controls", () => {
+    // Panel itself
+    assert.match(globalCss, /\.station-detail-panel\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.station-detail-panel\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-detail-panel\s*\{[\s\S]*?background:\s*#12151c\s*!important;/);
+
+    // Save & close buttons
+    assert.match(globalCss, /\.station-detail-save-control button,\s*\.station-detail-close-button\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-detail-save-control button,\s*\.dark \.station-detail-close-button\s*\{[\s\S]*?background:\s*#161a23\s*!important;/);
+
+    // Quick jump buttons
+    assert.match(globalCss, /\.station-submenu-nav-btn,\s*\.station-detail-panel \[data-station-submenu-nav\] button\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-submenu-nav-btn,\s*\.dark \.station-detail-panel \[data-station-submenu-nav\] button\s*\{[\s\S]*?background:\s*#161a23\s*!important;/);
+
+    // Section cards
+    assert.match(globalCss, /\.station-detail-panel \[data-station-section\][\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-detail-panel \[data-station-section\][\s\S]*?background:\s*#161a23\s*!important;/);
+
+    // Schedule May Be Disrupted card
+    assert.match(globalCss, /\.station-detail-disruption-card\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.station-detail-disruption-card\s*\{[\s\S]*?align-items:\s*center\s*!important;/);
+    assert.match(globalCss, /\.station-detail-disruption-card \.station-disruption-heading svg\s*\{[\s\S]*?transform:\s*translateY\(-1px\);/);
+    assert.match(globalCss, /\.station-impact-jump-button\s*\{[\s\S]*?padding:\s*4px 7px;/);
+    assert.match(globalCss, /\.station-impact-jump-button\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-impact-jump-button\s*\{[\s\S]*?background:\s*#161a23\s*!important;/);
+
+    // Connected Network rows
+    assert.match(globalCss, /\.station-connection-row\s*\{[\s\S]*?border:\s*none\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-connection-row\s*\{[\s\S]*?background:\s*#12151c\s*!important;/);
   });
 
   it("surfaces accessibility outage counts near the top of the regional station panel", () => {
@@ -276,8 +326,13 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /ChevronDown/);
     assert.match(panelSource, /station-accessibility-chevron/);
     assert.match(panelSource, /ml-auto/);
-    assert.match(panelSource, /formatImpactTimestamp/);
-    assert.doesNotMatch(panelSource, /formatRelativeImpactTime/);
+    assert.match(panelSource, /<details[^>]+data-station-section="station-impacts"[^>]*open=\{distinctImpacts\.length > 0\}/);
+    assert.match(panelSource, /station-impacts-chevron/);
+    assert.match(regionalPanelSource, /<details[^>]+data-station-section="station-impacts"[^>]*open=\{impacts\.length > 0\}/);
+    assert.match(regionalPanelSource, /station-impacts-chevron/);
+    assert.match(regionalPanelSource, /<details[^>]+data-station-section="trip-changes"[^>]*open=\{tripChanges\.changes\.length > 0\}/);
+    assert.match(regionalPanelSource, /station-trip-changes-chevron/);
+    assert.match(globalCss, /\.station-impacts-details\[open\] \.station-impacts-chevron\s*\{[^}]*transform:\s*rotate\(180deg\);/);
   });
 
   it("renders source-linked detail buttons for typed station impacts only", () => {

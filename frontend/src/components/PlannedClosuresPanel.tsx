@@ -204,7 +204,7 @@ export function PlannedClosuresPanel({
               <div
                 key={closure.id}
                 data-impact-card-id={closure.id}
-                className={`closure-card planned-closure-card-border min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/10 dark:border-white/10 border-l-4 transition-all ${
+                className={`closure-card planned-closure-card-border min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/10 dark:border-white/10 border-l-2 shadow-[inset_2px_0_6px_-2px_rgba(59,130,246,0.2)] transition-all ${
                   isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
                 }`}
               >
@@ -220,12 +220,12 @@ export function PlannedClosuresPanel({
                   </div>
                   <div className="impact-card-heading__badges flex flex-col items-end gap-1 shrink-0 mt-0.5">
                     {closure.nightly && (
-                      <span className="flex items-center gap-1 text-[10px] bg-slate-500/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded font-semibold uppercase">
+                      <span className="flex items-center gap-1 text-[10px] bg-slate-500/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-500/20 dark:border-white/15 px-1.5 py-0.5 rounded font-semibold uppercase">
                         Nightly
                       </span>
                     )}
                     {closure.shuttle && (
-                      <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold uppercase">
+                      <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-semibold uppercase">
                         <Bus size={10} />
                         Shuttle
                       </span>

@@ -342,7 +342,7 @@ export function SurfaceNoticesPanel({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-slate-400 dark:text-slate-500" />
             <input
               type="text"
-              className="submenu-search-input w-full pl-9 pr-4 h-10 rounded-lg border border-black/15 dark:border-white/15 bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="submenu-search-input w-full pl-9 pr-4 h-10 rounded-lg border border-transparent bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder={regionalContent === "trip-changes"
                 ? "Search train, corridor, or station"
                 : regional ? "Search line, station, or notice" : "Search route, stop, or notice"}
@@ -355,7 +355,7 @@ export function SurfaceNoticesPanel({
         {regional ? (
           <div className="px-3 pt-3 sm:px-4" role="group" aria-label="GO / UP notice content">
             <div
-              className="regional-notices-filter relative grid grid-cols-2 gap-1 rounded-lg border border-black/10 bg-slate-100 p-1 dark:border-white/10 dark:bg-white/5"
+              className="regional-notices-filter relative grid grid-cols-2 gap-1 rounded-lg border border-transparent bg-slate-100 p-1 dark:border-transparent dark:bg-white/5"
               data-content={regionalContent}
             >
               <div className="regional-notices-glider" aria-hidden="true" />
@@ -401,7 +401,7 @@ export function SurfaceNoticesPanel({
                   className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
                     active
                       ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
-                      : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
+                      : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-transparent shadow-xs hover:bg-slate-200 dark:hover:bg-white/10"
                   }`}
                 >
                   {label}
@@ -418,7 +418,7 @@ export function SurfaceNoticesPanel({
             className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
               category === "all"
                 ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
-                : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
+                : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-transparent shadow-xs hover:bg-slate-200 dark:hover:bg-white/10"
             }`}
           >
             All {totalCount > 0 && `(${totalCount})`}
@@ -433,7 +433,7 @@ export function SurfaceNoticesPanel({
                 className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
                   active
                     ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
-                    : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
+                    : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-transparent shadow-xs hover:bg-slate-200 dark:hover:bg-white/10"
                 }`}
               >
                 {getCategoryLabel(cat)} {count > 0 && `(${count})`}

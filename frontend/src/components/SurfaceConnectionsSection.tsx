@@ -36,6 +36,23 @@ type Props = {
   variant?: "station-detail" | "saved-station";
 };
 
+function arrivalSourceBadgeClassName(label: string) {
+  const base = "inline-flex h-[22px] shrink-0 items-center rounded border px-2 text-[10.5px] font-black uppercase tracking-wide leading-none";
+  if (label === "Live") {
+    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
+  }
+  if (label === "Scheduled") {
+    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
+  }
+  if (label === "Mixed") {
+    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
+  }
+  if (label === "No Service" || label === "None") {
+    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
+  }
+  return `${base} border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400`;
+}
+
 function SurfaceRouteCard({
   group,
   networkId,
@@ -67,58 +84,62 @@ function SurfaceRouteCard({
 
   return (
     <article
-      className={`rounded-md border p-2.5 shadow-sm transition-colors duration-150 ${
+      className={`flex flex-col gap-2 rounded-lg px-1 py-1.5 transition-colors duration-200 ${
         isPinned
-          ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
+          ? "bg-amber-500/[0.08] dark:bg-amber-400/[0.07]"
           : isHoveredPin
-            ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]"
-            : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+            ? "bg-amber-500/[0.03] dark:bg-amber-400/[0.03]"
+            : "bg-transparent"
       }`}
       data-surface-route={group.route}
       data-surface-mode={group.mode}
       data-pinned-route={isPinned ? "true" : "false"}
     >
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span
-          className={`inline-flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-black text-white ${
-            networkId === "regional" ? "bg-emerald-700" : "bg-red-600"
-          }`}
-        >
-          {group.route}
-        </span>
-        <div className="min-w-0 flex-1">
-          <strong className="block truncate text-sm font-black text-slate-900 dark:text-white">
-            {details.displayRouteName}
-          </strong>
-          {details.destinationTarget ? (
-            <p className="mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
-              {details.destinationTarget}
-            </p>
-          ) : null}
-          <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            {details.metaSubtitle}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5 self-center">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className={
-              groupSourceLabel === "Live"
-                ? "shrink-0 inline-flex items-center rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200"
-                : groupSourceLabel === "Scheduled"
-                  ? "shrink-0 inline-flex items-center rounded border border-slate-400/35 bg-slate-500/10 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-slate-600 dark:text-slate-300"
-                  : groupSourceLabel === "Mixed"
-                    ? "shrink-0 inline-flex items-center rounded border border-cyan-500/35 bg-cyan-500/10 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-cyan-700 dark:text-cyan-200"
-                    : "shrink-0 inline-flex items-center rounded border border-slate-400/30 bg-slate-500/5 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400"
-            }
+            className={`inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-black text-white shadow-sm ${
+              networkId === "regional" ? "bg-emerald-700" : "bg-red-600"
+            }`}
+          >
+            {group.route}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <strong className="block truncate text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                {details.displayRouteName}
+              </strong>
+              {isPinned && (
+                <span
+                  className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 shrink-0 select-none animate-in fade-in duration-200"
+                  data-pinned-badge
+                >
+                  Starred
+                </span>
+              )}
+            </div>
+            {details.destinationTarget ? (
+              <p className="mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+                {details.destinationTarget}
+              </p>
+            ) : null}
+            <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              {details.metaSubtitle}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 self-center">
+          <span
+            className={arrivalSourceBadgeClassName(groupSourceLabel)}
             data-arrival-source={groupSourceLabel.toLowerCase()}
           >
             {groupSourceLabel}
             {groupSourceLabel === "Live" ? (
-              <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={14.5} />
+              <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
             ) : groupSourceLabel === "Scheduled" ? (
-              <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={11} aria-hidden="true" />
+              <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
             ) : groupSourceLabel === "Mixed" ? (
-              <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={11} aria-hidden="true" />
+              <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
             ) : null}
           </span>
           <ArrivalLinePinButton
@@ -134,7 +155,7 @@ function SurfaceRouteCard({
       </div>
 
       {hasArrivals ? (
-        <div className="mt-2.5 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-3 gap-2">
           {group.arrivals.map((arrival, index) => {
             const detailedCountdown = index === 0 && shouldUseDetailedSurfaceArrivalCountdown(arrival, tick);
             const due = isSurfaceArrivalDue(arrival, tick);
@@ -147,7 +168,7 @@ function SurfaceRouteCard({
               ? "whitespace-nowrap text-base sm:text-lg font-black leading-none tracking-tight tabular-nums"
               : "text-base sm:text-lg font-black leading-none";
             const arrivalTileClassName = [
-              "relative flex min-h-[68px] sm:min-h-[72px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
+              "relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                 : delayed
@@ -242,10 +263,12 @@ function SurfaceCompactRouteRow({
 
   return (
     <article
-      className={`saved-station-arrival-group is-surface-group w-full min-w-0 max-w-full overflow-hidden rounded-md border px-2.5 pt-2 pb-1.5 shadow-sm transition-colors duration-150 ${
-        isPinned || isHoveredPin
-          ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08] is-pinned"
-          : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+      className={`saved-station-arrival-group is-surface-group w-full min-w-0 max-w-full overflow-hidden rounded-lg px-1 py-1.5 transition-colors duration-200 border-0 shadow-none ${
+        isPinned
+          ? "bg-amber-500/[0.08] dark:bg-amber-400/[0.07] is-pinned"
+          : isHoveredPin
+            ? "bg-amber-500/[0.03] dark:bg-amber-400/[0.03]"
+            : "bg-transparent"
       }`}
       data-surface-route={group.route}
       data-surface-mode={group.mode}
@@ -260,9 +283,19 @@ function SurfaceCompactRouteRow({
           {group.route}
         </span>
         <div className="saved-station-arrival-direction min-w-0 flex-1 overflow-hidden" style={{ minWidth: 0, width: 0 }}>
-          <strong className="block truncate text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-            {details.displayRouteName}
-          </strong>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <strong className="truncate text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+              {details.displayRouteName}
+            </strong>
+            {isPinned && (
+              <span
+                className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 shrink-0 select-none animate-in fade-in duration-200"
+                data-pinned-badge
+              >
+                Starred
+              </span>
+            )}
+          </div>
           {details.destinationTarget ? (
             <p className="saved-station-arrival-destination mt-0.5 truncate text-xs font-medium text-slate-600 dark:text-slate-300">
               {details.destinationTarget}
@@ -315,7 +348,7 @@ function SurfaceCompactRouteRow({
                   ? "border-orange-400/60 bg-orange-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(251,146,60,0.12)] dark:border-orange-400/45 dark:bg-orange-400/10 dark:text-white is-delayed"
                 : detailed
                   ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white is-soon is-detailed"
-                  : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                  : "border-transparent bg-slate-950/[0.03] text-slate-900 dark:border-transparent dark:bg-[#0a0c10] dark:text-white",
             ].join(" ");
 
             return (
@@ -626,22 +659,31 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                     />
                   )}
                   <div className="flex flex-col gap-2" data-surface-bay={baySection.bayKey}>
-                    {baySection.groups.map((group) => {
+                    {baySection.groups.map((group, groupIndex) => {
                       const isPinned = pinnedLineIds.includes(`surface:${group.route}`) || pinnedLineIds.includes(group.route);
                       const isHoveredPin = hoveredPinRoute === group.route;
+                      const showRouteDivider = groupIndex > 0;
 
                       return (
-                        <SurfaceRouteCard
-                          key={group.key}
-                          group={group}
-                          networkId={networkId}
-                          isPinned={isPinned}
-                          isHoveredPin={isHoveredPin}
-                          onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
-                          onTogglePin={() => togglePin(`surface:${group.route}`)}
-                          stationName={snapshot.stationName || "Station"}
-                          tick={tick}
-                        />
+                        <Fragment key={group.key}>
+                          {showRouteDivider && (
+                            <div
+                              aria-hidden="true"
+                              className="station-arrival-line-divider my-0.5 opacity-60"
+                              data-arrival-line-divider
+                            />
+                          )}
+                          <SurfaceRouteCard
+                            group={group}
+                            networkId={networkId}
+                            isPinned={isPinned}
+                            isHoveredPin={isHoveredPin}
+                            onHoverPinChange={(hovered) => setHoveredPinRoute(hovered ? group.route : null)}
+                            onTogglePin={() => togglePin(`surface:${group.route}`)}
+                            stationName={snapshot.stationName || "Station"}
+                            tick={tick}
+                          />
+                        </Fragment>
                       );
                     })}
                   </div>

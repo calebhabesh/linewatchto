@@ -22,17 +22,17 @@ export function StationLineDirectionIndicator({
   platformLabel,
   className = "",
 }: Props) {
-  const lineColor = transitLineBadgeColors(lineId).backgroundColor;
+  const lineColors = transitLineBadgeColors(lineId);
+  const lineColor = lineColors.backgroundColor;
+  const textColor = lineColors.color;
   const directions = parseDirections(platformLabel);
 
   return (
     <div
-      className={`station-line-directions inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide text-slate-900 dark:text-white shrink-0 text-right backdrop-blur-xs transition-all ${className}`.trim()}
+      className={`station-line-directions inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide shrink-0 text-right transition-all shadow-xs ${className}`.trim()}
       style={{
-        backgroundColor: `color-mix(in srgb, ${lineColor} 18%, transparent)`,
-        borderColor: `color-mix(in srgb, ${lineColor} 80%, transparent)`,
-        borderWidth: "1.5px",
-        borderStyle: "solid",
+        ["--line-direction-color" as string]: lineColor,
+        ["--line-direction-text" as string]: textColor,
       }}
       aria-label={platformLabel}
     >
@@ -40,7 +40,7 @@ export function StationLineDirectionIndicator({
         <Fragment key={`${direction}-${idx}`}>
           {idx > 0 && (
             <span
-              className="font-bold select-none leading-none text-slate-400 dark:text-white"
+              className="station-line-directions-divider font-bold select-none leading-none opacity-60"
               aria-hidden="true"
             >
               /

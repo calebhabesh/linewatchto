@@ -296,49 +296,49 @@ function StationButton({
                 </span>
               )}
               {hasFilterActive && showWheelchair && (
-                <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-500/20" title="Wheelchair accessible">
+                <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400" title="Wheelchair accessible">
                   <Image src="/assets/linewatch/accessible.svg" alt="" width={12} height={12} className="h-3 w-3 rounded-[2px] shrink-0" aria-hidden="true" />
                   <span>Accessible</span>
                 </span>
               )}
               {hasFilterActive && showElevator && (
-                <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-600 dark:text-sky-400 border border-sky-500/20" title="Elevator available">
+                <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-600 dark:text-sky-400" title="Elevator available">
                   <Image src="/assets/linewatch/outages/elevator.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
                   <span>Elevator</span>
                 </span>
               )}
               {hasFilterActive && showWashroom && (
-                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-400/20" title="Washrooms available">
+                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300" title="Washrooms available">
                   <Image src="/assets/linewatch/washroom.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
                   <span>Washrooms</span>
                 </span>
               )}
               {hasFilterActive && showParking && (
-                <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title="Parking available">
+                <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400" title="Parking available">
                   <Image src="/assets/linewatch/parking.svg" alt="" width={12} height={12} className="h-3 w-3 rounded-full shrink-0" aria-hidden="true" />
                   <span>Parking</span>
                 </span>
               )}
               {hasFilterActive && showBicycleLockup && (
-                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-400/20" title="Bicycle lock-up available">
+                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300" title="Bicycle lock-up available">
                   <Image src="/assets/linewatch/bicycle-lockup.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
                   <span>Bike Lock-up</span>
                 </span>
               )}
               {hasFilterActive && showBicycleRepair && (
-                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-400/20" title="Bicycle repair stand available">
+                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300" title="Bicycle repair stand available">
                   <Image src="/assets/linewatch/bicycle-repair.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
                   <span>Bike Repair</span>
                 </span>
               )}
               {hasFilterActive && showBikeShare && (
-                <span className="inline-flex items-center gap-1 rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] font-bold text-teal-600 dark:text-teal-400 border border-teal-500/20" title="Bike Share Toronto available">
+                <span className="inline-flex items-center gap-1 rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] font-bold text-teal-600 dark:text-teal-400" title="Bike Share Toronto available">
                   <Image src="/assets/linewatch/bike-share-toronto.svg" alt="" width={12} height={12} className="h-3 w-3 rounded-full shrink-0" aria-hidden="true" />
                   <span>Bike Share</span>
                 </span>
               )}
               {hasFilterActive && showPpudo && (
-                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-400/20" title="Passenger pick-up / drop-off available">
+                <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300" title="Passenger pick-up / drop-off available">
                   <Image src="/assets/linewatch/passenger-pick-up.svg" alt="" width={12} height={12} className="h-3 w-3 shrink-0" aria-hidden="true" />
                   <span>Pick-up / Drop-off</span>
                 </span>

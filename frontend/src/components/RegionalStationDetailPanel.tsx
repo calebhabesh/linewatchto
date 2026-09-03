@@ -50,7 +50,7 @@ import {
 import { StationDetailHeader } from "./StationDetailHeader";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
-import { TransitLineBadge } from "./TransitLineBadge";
+import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
 import { LiveSignalIcon } from "./LiveSignalIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
@@ -627,18 +627,20 @@ export function RegionalStationDetailPanel({
 
   const handleClose = () => {
     setIsClosing(true);
+    const duration = (typeof window !== "undefined" && window.innerWidth < 768) ? 240 : 380;
     closeTimeoutRef.current = window.setTimeout(() => {
       closeTimeoutRef.current = null;
       onClose();
       setIsClosing(false);
-    }, 380);
+    }, duration);
   };
 
   return (
     <aside
       ref={sheetRef}
       style={sheetStyle}
-      className={`regional-station-detail station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
+      className={`regional-station-detail station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg bg-white p-4 text-slate-900 shadow-2xl dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
+      data-closing={isClosing ? "true" : undefined}
       aria-live="polite"
       aria-label={`${station.name} regional station details`}
       data-sheet-expanded={isExpanded ? "true" : undefined}
@@ -931,6 +933,8 @@ export function RegionalStationDetailPanel({
                         const showLineDivider = sectionIndex > 0;
                         const isPinned = pinnedLineIds.includes(section.lineId);
                         const isHoveredPin = hoveredPinLineId === section.lineId;
+                        const lineBadgeColors = transitLineBadgeColors(section.lineId);
+                        const lineColor = lineBadgeColors.backgroundColor;
 
                         return (
                           <Fragment key={section.lineId}>
@@ -944,9 +948,13 @@ export function RegionalStationDetailPanel({
                             <div
                               data-arrival-line-section={section.lineId}
                               data-pinned-line={isPinned ? "true" : "false"}
-                              className="flex flex-col gap-2"
+                              className={`flex flex-col gap-2 rounded-lg px-1 py-1.5 transition-colors duration-200 ${
+                                isPinned
+                                  ? "bg-amber-500/[0.08] dark:bg-amber-400/[0.07]"
+                                  : "bg-transparent"
+                              }`}
                             >
-                              <div className="flex items-center justify-between px-1">
+                              <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                   <TransitLineBadge
                                     lineId={section.lineId}
@@ -958,6 +966,14 @@ export function RegionalStationDetailPanel({
                                   <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
                                     {section.lineName ?? section.lineNumber}
                                   </span>
+                                  {isPinned && (
+                                    <span
+                                      className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 shrink-0 select-none animate-in fade-in duration-200"
+                                      data-pinned-badge
+                                    >
+                                      Starred
+                                    </span>
+                                  )}
                                 </div>
                                 <ArrivalLinePinButton
                                   pinned={isPinned}
@@ -969,8 +985,10 @@ export function RegionalStationDetailPanel({
                                 />
                               </div>
 
-                              <div className="flex flex-col gap-2">
-                                {section.groups.map((group) => {
+                              <div className="flex flex-col gap-2.5">
+                                {section.groups.map((group, groupIndex) => {
+                                  const isFirst = groupIndex === 0;
+                                  const isLast = groupIndex === section.groups.length - 1;
                                   const allGroupArrivals = group.platforms.flatMap((platform) => platform.arrivals);
                                   const hasLive = allGroupArrivals.some((arrival) => arrival.status === "live");
                                   const hasScheduled = allGroupArrivals.some((arrival) => arrival.status === "scheduled");
@@ -985,54 +1003,65 @@ export function RegionalStationDetailPanel({
                                       key={group.key}
                                       data-regional-arrival-direction={group.directionLabel}
                                       data-pinned-line={isPinned ? "true" : "false"}
-                                      className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
-                                        isPinned
-                                          ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
-                                          : isHoveredPin
-                                            ? "border-amber-400/35 bg-amber-400/[0.02] dark:border-amber-400/30 dark:bg-amber-400/[0.03]"
-                                            : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
-                                      }`}
+                                      className="relative flex flex-col gap-2 pl-7 pt-1 pb-1"
                                     >
-                                      <div className="flex min-w-0 items-center gap-3">
-                                        <TransitLineBadge
-                                          lineId={section.lineId}
-                                          lineNumber={section.lineNumber}
-                                          lineName={section.lineName}
-                                          size={27}
-                                          className="shrink-0"
-                                        />
-                                        <div className="flex min-w-0 flex-col leading-tight">
-                                          <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                            {group.directionLabel}
-                                          </strong>
-                                          <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                            {group.destinationLabel}
-                                            {group.isTerminating && (
-                                              <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                Terminating
-                                              </span>
-                                            )}
-                                          </span>
-                                        </div>
-                                        <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
-                                          <span
-                                            className={regionalArrivalSourceBadgeClassName(statusLabel)}
-                                            data-arrival-source={statusLabel.toLowerCase()}
-                                          >
-                                            {statusLabel}
-                                            {statusLabel === "Live" ? (
-                                              <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
-                                            ) : statusLabel === "Scheduled" ? (
-                                              <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
-                                            ) : statusLabel === "Mixed" ? (
-                                              <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
-                                            ) : null}
-                                          </span>
-                                        </div>
-                                      </div>
+                                      {/* Track spine running continuously behind the platform stop node */}
+                                      <div
+                                        aria-hidden="true"
+                                        className="station-arrival-track-spine"
+                                        style={{
+                                          backgroundColor: lineColor,
+                                          left: "16px",
+                                          top: isFirst ? "-15px" : "-12px",
+                                          bottom: isLast ? "0px" : "-12px",
+                                          borderBottomLeftRadius: isLast ? "9999px" : "0",
+                                          borderBottomRightRadius: isLast ? "9999px" : "0",
+                                        }}
+                                      />
 
-                                      <div className="mt-3 flex flex-col gap-3">
+                                      <div className="relative flex min-w-0 items-center justify-between gap-3">
+                                        {/* Platform stop node centered vertically with the direction text */}
+                                        <div
+                                          aria-hidden="true"
+                                          className="station-arrival-track-node"
+                                          style={{
+                                            left: "-12px",
+                                            top: "50%",
+                                            transform: "translate(-50%, -50%)",
+                                          }}
+                                        />
+                                          <div className="flex min-w-0 flex-col leading-tight">
+                                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                              {group.directionLabel}
+                                            </strong>
+                                            <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                              {group.destinationLabel}
+                                              {group.isTerminating && (
+                                                <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                  <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                  Terminating
+                                                </span>
+                                              )}
+                                            </span>
+                                          </div>
+                                          <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
+                                            <span
+                                              className={regionalArrivalSourceBadgeClassName(statusLabel)}
+                                              data-arrival-source={statusLabel.toLowerCase()}
+                                            >
+                                              {statusLabel}
+                                              {statusLabel === "Live" ? (
+                                                <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
+                                              ) : statusLabel === "Scheduled" ? (
+                                                <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
+                                              ) : statusLabel === "Mixed" ? (
+                                                <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
+                                              ) : null}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        <div className="mt-2 flex flex-col gap-3">
                                         {group.platforms.map((platform) => (
                                           <div key={platform.key} data-regional-arrival-platform={platform.key}>
                                             <div className="mb-2 flex items-center justify-between gap-2">
@@ -1189,12 +1218,12 @@ export function RegionalStationDetailPanel({
                                     </article>
                                   );
                                 })}
-                              </div>
                             </div>
-                          </Fragment>
-                        );
-                      });
-                    })()}
+                          </div>
+                        </Fragment>
+                      );
+                    });
+                  })()}
                   </div>
                 ) : (
                   <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
@@ -1233,22 +1262,30 @@ export function RegionalStationDetailPanel({
 
               <SurfaceConnectionsSection networkId="regional" stationId={station.id} />
 
-              <section
-                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+              <details
+                className="station-impacts-details group rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="station-impacts"
                 aria-label="Station service impacts"
+                open={impacts.length > 0}
               >
-                <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-                  <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
-                  <span className="truncate">Station Impacts</span>
-                  <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
-                    {impacts.length}
-                  </span>
-                </h3>
-                {impacts.length > 0 ? (
-                  <div className="mt-2 flex flex-col gap-2">
-                    {impacts.map((impact) => (
+                <summary className="station-impacts-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
+                  <div className="station-subsection-header flex min-w-0 items-center gap-2.5">
+                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+                    <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
+                    <span className="truncate">Station Impacts</span>
+                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                      {impacts.length}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    size={18}
+                    aria-hidden="true"
+                    className="station-impacts-chevron shrink-0 text-slate-500 dark:text-slate-300 transition-transform duration-200"
+                  />
+                </summary>
+                <div className="pt-3 flex flex-col gap-2">
+                  {impacts.length > 0 ? (
+                    impacts.map((impact) => (
                       <div key={`${impact.kind}:${impact.id}`} className={stationImpactCardClassName(impact.tone)}>
                         <div className="flex items-center gap-2.5 text-sm font-bold text-slate-900 dark:text-white">
                           <RegionalStationImpactIcon impact={impact} />
@@ -1278,42 +1315,54 @@ export function RegionalStationDetailPanel({
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="my-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    No active impacts for this station.
-                  </p>
-                )}
-              </section>
-
-              {station.lineIds.some((lineId) => lineId !== "regional-up") ? <section
-                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
-                data-station-section="trip-changes"
-                aria-label="Upcoming GO train changes"
-              >
-                <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
-                  <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
-                  <AlertTriangle size={20} className="shrink-0 text-amber-500" />
-                  <span className="truncate">Upcoming Trip Changes</span>
-                  {!tripChangesLoading && (
-                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
-                      {tripChanges.changes.length}
-                    </span>
+                    ))
+                  ) : (
+                    <p className="py-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      No active impacts for this station.
+                    </p>
                   )}
-                </h3>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  GO operational feeds · published schedule matched
-                </p>
-                <div className="mt-2">
-                  <RegionalTripChangesList
-                    data={tripChanges}
-                    loading={tripChangesLoading}
-                    compact
-                    emptyLabel="No upcoming GO train changes matched to this station."
-                  />
                 </div>
-              </section> : null}
+              </details>
+
+              {station.lineIds.some((lineId) => lineId !== "regional-up") ? (
+                <details
+                  className="station-trip-changes-details station-impacts-details group rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                  data-station-section="trip-changes"
+                  aria-label="Upcoming GO train changes"
+                  open={tripChanges.changes.length > 0}
+                >
+                  <summary className="station-trip-changes-summary station-impacts-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
+                    <div className="station-subsection-header flex min-w-0 items-center gap-2.5">
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
+                      <AlertTriangle size={20} className="shrink-0 text-amber-500" />
+                      <span className="truncate">Upcoming Trip Changes</span>
+                      {!tripChangesLoading && (
+                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                          {tripChanges.changes.length}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown
+                      size={18}
+                      aria-hidden="true"
+                      className="station-trip-changes-chevron station-impacts-chevron shrink-0 text-slate-500 dark:text-slate-300 transition-transform duration-200"
+                    />
+                  </summary>
+                  <div className="pt-3 flex flex-col gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      GO operational feeds · published schedule matched
+                    </p>
+                    <div className="mt-1">
+                      <RegionalTripChangesList
+                        data={tripChanges}
+                        loading={tripChangesLoading}
+                        compact
+                        emptyLabel="No upcoming GO train changes matched to this station."
+                      />
+                    </div>
+                  </div>
+                </details>
+              ) : null}
 
               <details
                 ref={noticesDetailsRef}

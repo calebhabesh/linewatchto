@@ -71,7 +71,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusSheetSource, /<h3>Line Status<\/h3>/);
     assert.match(statusSheetSource, /lineClosures\.length === 1 \? "Planned Closure" : "Planned Closures"/);
     assert.match(statusSheetSource, /bg-logo-blue[^\n]*shadow-\[0_0_4px_rgba\(129,201,255,0\.35\)\]/);
-    assert.match(statusSheetSource, /className="mobile-line-status-impact-count"/);
+    assert.match(statusSheetSource, /className=\{sourceLabel\.startsWith\("Updated"\) \? "mobile-sheet-source--updated" : undefined\}/);
+    assert.match(globalCss, /\.mobile-sheet-source--updated\s*\{[^}]*color:\s*#4ade80\s*!important/s);
     assert.match(globalCss, /\.mobile-status-section-heading\s*\{[^}]*align-items:\s*center;[^}]*display:\s*flex;[^}]*gap:\s*8px/s);
     assert.match(globalCss, /\.mobile-line-status-copy\s*\{[^}]*align-items:\s*center;[^}]*display:\s*flex;[^}]*flex-direction:\s*row;/s);
     assert.match(globalCss, /\.mobile-line-status-impacts\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*wrap;/s);
@@ -134,12 +135,12 @@ describe("mobile bottom sheet UX", () => {
       "Notifications should appear before operational tools.",
     );
     assert.ok(
-      moreSheetSource.indexOf("<h3>Notifications</h3>") < moreSheetSource.indexOf("Alert History"),
-      "Alert History should live in Notifications.",
+      moreSheetSource.indexOf("My Stations") < moreSheetSource.indexOf("Alert History"),
+      "Alert History should appear after My Stations in Account.",
     );
     assert.ok(
-      moreSheetSource.indexOf("Alert History") < moreSheetSource.indexOf("<h3>Operations</h3>"),
-      "Alert History should appear before Operations.",
+      moreSheetSource.indexOf("Alert History") < moreSheetSource.indexOf("<h3>Notifications</h3>"),
+      "Alert History should appear before Notifications.",
     );
     assert.ok(
       moreSheetSource.indexOf("<h3>Operations</h3>") < moreSheetSource.indexOf("Reliability Analytics"),
@@ -396,5 +397,23 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.dark \.mobile-status-actions button\.mobile-status-btn-alerts\s*\{[\s\S]*?background:\s*#2d1414\s*!important;/);
     assert.match(globalCss, /\.mobile-more-row\s*\{[\s\S]*?border:\s*none\s*!important;[\s\S]*?border-radius:\s*12px;[\s\S]*?box-shadow:\s*var\(--mobile-card-shadow\);/);
     assert.match(globalCss, /\.high-contrast \.mobile-more-row[\s\S]*?\{[\s\S]*?border:\s*1px solid #ffffff/);
+    assert.match(globalCss, /\.mobile-status-content-scroll\s*\{[\s\S]*?margin-top:\s*-12px\s*!important;[\s\S]*?padding-top:\s*12px\s*!important;/);
+    assert.match(globalCss, /\.mobile-status-section-heading::before\s*\{[\s\S]*?height:\s*28px;/);
+    assert.match(globalCss, /\.dark \.mobile-status-actions button\.mobile-status-btn-alerts \.mobile-status-btn-circle\[data-count="positive"\]/);
+    assert.match(globalCss, /\.dark \.mobile-line-status-row[\s\S]*?inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.08\)/);
+
+    // Increased text size in alert containers and line status names
+    assert.match(globalCss, /\.mobile-status-btn-text\s*\{[\s\S]*?font-size:\s*13px;/);
+    assert.match(globalCss, /\.mobile-line-status-copy strong\s*\{[\s\S]*?font-size:\s*15\.5px;/);
+  });
+
+  it("extends contemporary tactile container styling to desktop line status, menu, and chrome", () => {
+    assert.match(shellSource, /desktop-line-status-row/);
+    assert.match(shellSource, /desktop-menu-count-badge/);
+    assert.match(globalCss, /\.desktop-line-status-row\s*\{[\s\S]*?box-shadow:\s*inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.85\)/);
+    assert.match(globalCss, /\.dark \.desktop-line-status-row\s*\{[\s\S]*?box-shadow:\s*inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.08\)/);
+    assert.match(globalCss, /\.desktop-menu-count-badge\s*\{[\s\S]*?box-shadow:\s*inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.15\);/);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.dark \.floating-panel-scroll\s*\{[\s\S]*?inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.08\)/);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.dark #linewatch-main-menu\s*\{[\s\S]*?inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.1\)/);
   });
 });

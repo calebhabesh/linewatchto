@@ -98,6 +98,18 @@ export function ActiveAlertsPanel({
     }
   };
 
+  const getSeverityShadow = (severity: string) => {
+    switch (severity) {
+      case "suspension":
+      case "planned":
+        return "shadow-[inset_2px_0_6px_-2px_rgba(239,68,68,0.2)]";
+      case "delay":
+        return "shadow-[inset_2px_0_6px_-2px_rgba(254,236,65,0.18)]";
+      default:
+        return "shadow-[inset_2px_0_6px_-2px_rgba(100,116,139,0.2)]";
+    }
+  };
+
   return (
     <section className={`panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl ${embedded ? "embedded-impact-panel" : ""}`}>
       <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
@@ -197,9 +209,9 @@ export function ActiveAlertsPanel({
               <div
                 key={alert.id}
                 data-impact-card-id={alert.id}
-                className={`alert-card min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-4 ${getSeverityColor(
+                className={`alert-card min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-2 ${getSeverityColor(
                   alert.severity
-                )} !bg-slate-50 dark:!bg-[#12151c] transition-all ${
+                )} ${getSeverityShadow(alert.severity)} !bg-slate-50 dark:!bg-[#12151c] transition-all ${
                   isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
                 }`}
               >

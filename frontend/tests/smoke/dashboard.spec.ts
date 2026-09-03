@@ -2670,7 +2670,7 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(page.getByText("Schedule May Be Disrupted")).toBeVisible();
   const arrivalsSection = page.locator('[data-arrivals-disrupted="true"]');
   await expect(arrivalsSection).toBeVisible();
-  await expect(arrivalsSection.getByRole("link", { name: /Jump to station impact:/ }).first()).toBeVisible();
+  await expect(stationPanel.getByRole("link", { name: /Jump to station impact:/ }).first()).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-group="line-1:Northbound to Finch"]')).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-group="line-1:Southbound to Union"]')).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-due="true"]')).toBeVisible();

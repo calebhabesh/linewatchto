@@ -51,7 +51,7 @@ export function RegionalTripChangesList({
         return (
           <article
             key={change.id}
-            className="rounded-lg border border-black/10 bg-white/80 p-3 shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+            className="rounded-lg border border-transparent bg-white/80 p-3 shadow-sm dark:border-transparent dark:bg-[#12151c]/80"
             data-trip-change-kind={change.kind}
           >
             <div className="flex items-start gap-2.5">

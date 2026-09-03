@@ -1485,7 +1485,7 @@ export function SavedCommutesPanel({
         key={commute.id}
         id={`commute-card-${commute.id}`}
         data-commute-card-id={commute.id}
-        className={`commute-card ${commuteTone(commute)} min-w-0 max-w-full w-full rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}
+        className={`commute-card ${commuteTone(commute)} min-w-0 max-w-full w-full rounded-lg border-2 border-transparent !bg-slate-50 p-3 dark:border-transparent dark:!bg-[#12151c]`}
       >
         <div className="min-w-0 max-w-full w-full">
           <div className="saved-commute-card-header">
@@ -1506,10 +1506,10 @@ export function SavedCommutesPanel({
               const ignoredImpactsCount = ignoredCurrentImpactCount(legs);
               const hasCurrentImpacts = currentImpactsCount > 0;
               const impactBgColor = hasCurrentImpacts
-                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60"
+                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-transparent"
                 : ignoredImpactsCount > 0
-                  ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700"
-                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60";
+                  ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-transparent"
+                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-transparent";
               const impactText = hasCurrentImpacts
                 ? `${currentImpactsCount} Impact${currentImpactsCount === 1 ? "" : "s"}`
                 : ignoredImpactsCount > 0
@@ -1854,8 +1854,8 @@ export function SavedCommutesPanel({
   }
 
   return (
-    <section className="commute-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
-      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
+    <section className="commute-panel min-w-0 border border-transparent rounded-lg shadow-xl">
+      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
         <div className="flex items-center gap-1 min-w-0">
           {onBack && (
             <button
@@ -1924,7 +1924,7 @@ export function SavedCommutesPanel({
         {accountState.source === "unavailable" ? (
           <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
         ) : !accountState.authenticated ? (
-          <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
+          <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-transparent">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
                 <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
