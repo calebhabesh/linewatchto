@@ -200,6 +200,23 @@ export function ImpactRouteHeader({
   );
 }
 
+export function renderClosureScheduleValue(value: ReactNode, isWindowField: boolean): ReactNode {
+  if (!isWindowField || typeof value !== "string" || !value.includes("·")) {
+    return value;
+  }
+  const dotIndex = value.indexOf("·");
+  const datePart = value.slice(0, dotIndex).trim();
+  const timePart = value.slice(dotIndex + 1).trim();
+
+  return (
+    <span className="closure-window-value">
+      <span className="closure-window-date">{datePart}</span>
+      <span className="closure-window-bullet" aria-hidden="true"> · </span>
+      <span className="closure-window-time">{timePart}</span>
+    </span>
+  );
+}
+
 export function MetadataGrid({
   cause,
   resolution,
@@ -224,7 +241,7 @@ export function MetadataGrid({
   updatedAgo?: string | null;
   startedValue?: ReactNode;
   updatedValue?: ReactNode;
-  leadingRows?: Array<{ label: string; value?: string | null }>;
+  leadingRows?: Array<{ label: string; value?: ReactNode }>;
   extraRows?: Array<{ label: string; labelSuffix?: ReactNode; value?: ReactNode }>;
   trailingRows?: Array<{ label: string; value?: ReactNode }>;
   className?: string;
@@ -232,7 +249,7 @@ export function MetadataGrid({
   const causeValue = formatCause(cause ?? reason);
   const resolutionValue = resolution ?? targetRemoval;
   const renderedLeadingRows = (leadingRows ?? [])
-    .filter((row) => row.value && row.value.trim().length > 0)
+    .filter((row) => row.value !== null && row.value !== undefined && (typeof row.value !== "string" || row.value.trim().length > 0))
     .map((row) => [row.label, row.value, null] as const);
   const renderedExtraRows = (extraRows ?? [])
     .filter((row) => row.value !== null && row.value !== undefined && row.value !== "")
@@ -263,19 +280,26 @@ export function MetadataGrid({
 
   return (
     <dl className={`impact-metadata-grid ${className}`.trim()}>
-      {rows.map(([label, value, labelSuffix], index) => (
-        <div key={label} className={index < renderedLeadingRows.length ? "is-emphasized"
-          : label === "Planned Closure"
-            ? "is-planned-closure-row"
-            : label === "Status"
-              ? "is-status-row"
-              : (label === "Started" && startedValue) || (label === "Updated" && updatedValue)
-                ? "has-directional-timing"
-              : undefined}>
-          <dt>{label}{labelSuffix}</dt>
-          <dd>{value}</dd>
-        </div>
-      ))}
+      {rows.map(([label, value, labelSuffix], index) => {
+        const isWindowField = label.toLowerCase().includes("window");
+        return (
+          <div
+            key={label}
+            className={index < renderedLeadingRows.length ? "is-emphasized" + (isWindowField ? " is-window-row" : "")
+              : label === "Planned Closure"
+                ? "is-planned-closure-row"
+                : label === "Status"
+                  ? "is-status-row"
+                  : (label === "Started" && startedValue) || (label === "Updated" && updatedValue)
+                    ? "has-directional-timing"
+                  : undefined
+            }
+          >
+            <dt>{label}{labelSuffix}</dt>
+            <dd>{renderClosureScheduleValue(value, isWindowField)}</dd>
+          </div>
+        );
+      })}
     </dl>
   );
 }
@@ -296,16 +320,20 @@ export function CardSource({ source }: { source: string }) {
 
 export function JumpToLocationIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg className={`jump-to-location-icon ${className}`.trim()} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       {/* focus corners */}
-      <path d="M4 8V5.5C4 4.67 4.67 4 5.5 4H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-      <path d="M16 4H18.5C19.33 4 20 4.67 20 5.5V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-      <path d="M20 16V18.5C20 19.33 19.33 20 18.5 20H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-      <path d="M8 20H5.5C4.67 20 4 19.33 4 18.5V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+      <g className="jump-to-corners">
+        <path d="M4 8V5.5C4 4.67 4.67 4 5.5 4H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M16 4H18.5C19.33 4 20 4.67 20 5.5V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M20 16V18.5C20 19.33 19.33 20 18.5 20H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8 20H5.5C4.67 20 4 19.33 4 18.5V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
 
       {/* map pin */}
-      <path d="M12 7.5C10.07 7.5 8.5 9.07 8.5 11C8.5 13.6 12 16.5 12 16.5C12 16.5 15.5 13.6 15.5 11C15.5 9.07 13.93 7.5 12 7.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-      <circle cx="12" cy="11" r="1.25" fill="currentColor"></circle>
+      <g className="jump-to-pin">
+        <path d="M12 7.5C10.07 7.5 8.5 9.07 8.5 11C8.5 13.6 12 16.5 12 16.5C12 16.5 15.5 13.6 15.5 11C15.5 9.07 13.93 7.5 12 7.5Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="12" cy="11" r="1.25" fill="currentColor" stroke="none" />
+      </g>
     </svg>
   );
 }

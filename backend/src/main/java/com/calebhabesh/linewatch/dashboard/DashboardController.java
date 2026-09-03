@@ -61,15 +61,20 @@ public class DashboardController {
     ) {
         String networkId = normalizeNetwork(network);
         if (RegionalNetworkCatalog.NETWORK_ID.equals(networkId)) {
+            Duration ttl = regionalDashboardService.remainingFreshness()
+                .map(remaining -> remaining.compareTo(cacheProperties.getFullDashboardTtl()) < 0
+                    ? remaining
+                    : cacheProperties.getFullDashboardTtl())
+                .orElse(cacheProperties.getFullDashboardTtl());
             return cache.getOrCompute(
                 "dashboard:full:regional",
                 new TypeReference<DashboardResponses.DashboardResponse>() {},
-                cacheProperties.getFullDashboardTtl(),
+                ttl,
                 regionalDashboardService::dashboard
             );
         }
 
-        Duration ttl = ingestionFreshness.remainingFreshness(ingestionRunStore.findLatest())
+        Duration ttl = ingestionFreshness.remainingFreshness(ingestionRunStore.findLatestSuccessful())
             .map(remaining -> remaining.compareTo(cacheProperties.getFullDashboardTtl()) < 0
                 ? remaining
                 : cacheProperties.getFullDashboardTtl())
@@ -84,19 +89,37 @@ public class DashboardController {
     }
 
     private DashboardResponses.DashboardResponse buildDashboard() {
+        StatusController.StatusResponse status = statusController.getStatus();
+        boolean live = status.generatedAt().live();
+        String availability = live ? ttcAvailability() : "unavailable";
         return new DashboardResponses.DashboardResponse(
             "ttc",
-            "available",
+            availability,
             List.of("ttc-live-alerts", "ttc-scheduled-service"),
-            "TTC dashboard data is freshness-gated; inspect status.generatedAt.live before making live claims.",
+            ttcMessage(availability),
             mapController.getMap(),
-            statusController.getStatus(),
+            status,
             alertDashboardService.activeAlerts(),
             alertDashboardService.delays(),
             alertDashboardService.reducedSpeedZones(),
             alertDashboardService.plannedClosures(),
             performanceController.performance()
         );
+    }
+
+    private String ttcAvailability() {
+        return ingestionRunStore.findLatest()
+            .filter(run -> "failed".equalsIgnoreCase(run.status()))
+            .map(ignored -> "degraded")
+            .orElse("available");
+    }
+
+    private String ttcMessage(String availability) {
+        return switch (availability) {
+            case "degraded" -> "The latest TTC refresh failed; LineWatchTO is retaining the last successful fresh snapshot.";
+            case "unavailable" -> "TTC service-alert data is unavailable because the last successful snapshot is missing or stale.";
+            default -> "Fresh TTC dashboard data loaded from the last successful ingestion snapshot.";
+        };
     }
 
     private String normalizeNetwork(String network) {

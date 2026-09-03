@@ -21,6 +21,8 @@ import type { NetworkId } from "./regional-data";
 export interface DashboardData {
   networkId: NetworkId;
   dataSource: "backend" | "fallback";
+  availability: "available" | "degraded" | "unavailable" | "fixture";
+  message: string;
   networkSegments: NetworkSegment[];
   stations: Station[];
   lineStatuses: LineStatus[];

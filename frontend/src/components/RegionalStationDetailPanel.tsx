@@ -954,14 +954,14 @@ export function RegionalStationDetailPanel({
                                   : "bg-transparent"
                               }`}
                             >
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between relative z-10">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                   <TransitLineBadge
                                     lineId={section.lineId}
                                     lineNumber={section.lineNumber}
                                     lineName={section.lineName}
                                     size={32}
-                                    className="shrink-0"
+                                    className="shrink-0 relative z-10"
                                   />
                                   <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
                                     {section.lineName ?? section.lineNumber}
@@ -1003,7 +1003,7 @@ export function RegionalStationDetailPanel({
                                       key={group.key}
                                       data-regional-arrival-direction={group.directionLabel}
                                       data-pinned-line={isPinned ? "true" : "false"}
-                                      className="relative flex flex-col gap-2 pl-7 pt-1 pb-1"
+                                      className="relative flex flex-col gap-2 pl-[32px] pt-1 pb-1"
                                     >
                                       {/* Track spine running continuously behind the platform stop node */}
                                       <div
@@ -1012,7 +1012,7 @@ export function RegionalStationDetailPanel({
                                         style={{
                                           backgroundColor: lineColor,
                                           left: "16px",
-                                          top: isFirst ? "-15px" : "-12px",
+                                          top: isFirst ? "-8px" : "-12px",
                                           bottom: isLast ? "0px" : "-12px",
                                           borderBottomLeftRadius: isLast ? "9999px" : "0",
                                           borderBottomRightRadius: isLast ? "9999px" : "0",
@@ -1020,31 +1020,31 @@ export function RegionalStationDetailPanel({
                                       />
 
                                       <div className="relative flex min-w-0 items-center justify-between gap-3">
-                                        {/* Platform stop node centered vertically with the direction text */}
+                                        {/* Platform stop node: absolute to outer row div (no overflow:hidden), left:-16px centers on spine at 32-16=16px from group edge, top:50% vertically centered to the text to the right */}
                                         <div
                                           aria-hidden="true"
                                           className="station-arrival-track-node"
                                           style={{
-                                            left: "-12px",
+                                            left: "-16px",
                                             top: "50%",
                                             transform: "translate(-50%, -50%)",
                                           }}
                                         />
-                                          <div className="flex min-w-0 flex-col leading-tight">
-                                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                              {group.directionLabel}
-                                            </strong>
-                                            <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                              {group.destinationLabel}
-                                              {group.isTerminating && (
-                                                <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                  <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                  Terminating
-                                                </span>
-                                              )}
-                                            </span>
-                                          </div>
-                                          <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
+                                        <div className="flex min-w-0 flex-col leading-tight">
+                                          <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                            {group.directionLabel}
+                                          </strong>
+                                          <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                            {group.destinationLabel}
+                                            {group.isTerminating && (
+                                              <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                Terminating
+                                              </span>
+                                            )}
+                                          </span>
+                                        </div>
+                                        <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
                                             <span
                                               className={regionalArrivalSourceBadgeClassName(statusLabel)}
                                               data-arrival-source={statusLabel.toLowerCase()}

@@ -49,13 +49,19 @@ public class RegionalDashboardService {
     }
 
     public DashboardResponses.DashboardResponse dashboard() {
-        Optional<IngestionRunSnapshot> latest = runStore.findLatest();
-        boolean fresh = freshness.remainingFreshness(latest).isPresent();
+        Optional<IngestionRunSnapshot> latestSuccessful = runStore.findLatestSuccessful();
+        Optional<IngestionRunSnapshot> latestAttempt = runStore.findLatest();
+        boolean fresh = freshness.remainingFreshness(latestSuccessful).isPresent();
+        String availability = fresh && latestAttempt
+            .filter(run -> "failed".equalsIgnoreCase(run.status()))
+            .isPresent()
+                ? "degraded"
+                : fresh ? "available" : "unavailable";
         List<RegionalNormalizedAlert> alerts = fresh ? alertStore.findActiveAlerts() : List.of();
-        OffsetDateTime sourceUpdatedAt = latest.map(IngestionRunSnapshot::sourceFeedUpdatedAt).orElse(null);
+        OffsetDateTime sourceUpdatedAt = latestSuccessful.map(IngestionRunSnapshot::sourceFeedUpdatedAt).orElse(null);
         return new DashboardResponses.DashboardResponse(
             RegionalNetworkCatalog.NETWORK_ID,
-            fresh ? "available" : "unavailable",
+            availability,
             List.of(
                 MetrolinxSourceSystem.GO_SERVICE_ALERTS,
                 MetrolinxSourceSystem.GO_INFORMATION_ALERTS,
@@ -63,15 +69,19 @@ public class RegionalDashboardService {
                 MetrolinxSourceSystem.GO_GTFS_ALERTS,
                 MetrolinxSourceSystem.UP_GTFS_ALERTS
             ),
-            message(fresh, latest),
+            message(availability, latestSuccessful),
             map(alerts),
-            status(alerts, sourceUpdatedAt, latest.orElse(null), fresh),
+            status(alerts, sourceUpdatedAt, latestSuccessful.orElse(null), fresh),
             activeAlerts(alerts),
             delays(alerts),
             List.of(),
             plannedClosures(alerts),
             unavailablePerformance()
         );
+    }
+
+    public Optional<Duration> remainingFreshness() {
+        return freshness.remainingFreshness(runStore.findLatestSuccessful());
     }
 
     private MapController.MapResponse map(List<RegionalNormalizedAlert> alerts) {
@@ -251,11 +261,14 @@ public class RegionalDashboardService {
             : SOURCE;
     }
 
-    private String message(boolean fresh, Optional<IngestionRunSnapshot> latest) {
-        if (fresh) return "Fresh purpose-built GO and UP rail status derived from the Metrolinx Open API.";
+    private String message(String availability, Optional<IngestionRunSnapshot> latestSuccessful) {
+        if ("degraded".equals(availability)) {
+            return "The latest Metrolinx refresh failed; LineWatchTO is retaining the last successful fresh snapshot.";
+        }
+        if ("available".equals(availability)) return "Fresh purpose-built GO and UP rail status derived from the Metrolinx Open API.";
         if (!properties.isEnabled()) return "Regional realtime ingestion is disabled; static catalog data is provided for interface use only.";
         if (!properties.isConfigured()) return "Regional realtime ingestion is enabled but the Metrolinx API key is not configured.";
-        if (latest.isEmpty()) return "Regional realtime ingestion has not completed successfully yet.";
+        if (latestSuccessful.isEmpty()) return "Regional realtime ingestion has not completed successfully yet.";
         return "The latest successful regional ingestion is stale; live impacts are suppressed.";
     }
 

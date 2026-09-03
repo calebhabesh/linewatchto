@@ -26,6 +26,14 @@ import {
   type StationNodeImpact
 } from "./linewatch-data";
 import type { DashboardData } from "./DataContext";
+import {
+  isDashboardApiResponse,
+  type DashboardApiResponse,
+} from "./dashboard-contract";
+import { dashboardDataFromApi } from "./dashboard-adapter";
+
+export { isDashboardApiResponse, type DashboardApiResponse } from "./dashboard-contract";
+export { dashboardDataFromApi } from "./dashboard-adapter";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
@@ -40,20 +48,6 @@ type StatusApiResponse = {
   lines: LineStatus[];
 };
 
-type DashboardApiResponse = {
-  networkId?: "ttc" | "regional";
-  availability?: "available" | "unavailable";
-  sourceSystems?: string[];
-  message?: string;
-  map: MapApiResponse;
-  status: StatusApiResponse;
-  activeAlerts: ActiveAlert[];
-  delays: DelayAlert[];
-  reducedSpeedZones: ReducedSpeedZone[];
-  plannedClosures: PlannedClosure[];
-  performance: TtcPerformanceSnapshot;
-};
-
 async function fetchSafe<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${BACKEND_URL}${path}`, { cache: "no-store", signal: AbortSignal.timeout(2000) });
@@ -64,32 +58,12 @@ async function fetchSafe<T>(path: string): Promise<T | null> {
   }
 }
 
-function fromBackendPayload(payload: DashboardApiResponse, reliability: ReliabilitySnapshot = fallbackReliability): DashboardData {
-  return {
-    networkId: "ttc",
-    dataSource: "backend",
-    networkSegments: payload.map.segments,
-    stations: payload.map.stations,
-    lineStatuses: payload.status.lines,
-    generatedAt: payload.status.generatedAt,
-    activeAlerts: payload.activeAlerts,
-    delays: payload.delays,
-    reducedSpeedZones: payload.reducedSpeedZones,
-    plannedClosures: payload.plannedClosures,
-    stationNodeImpacts: payload.map.stationNodeImpacts,
-    commuteImpacts,
-    reliabilitySummaries,
-    reliability,
-    ttcPerformance: payload.performance ?? fallbackPerformance,
-    ingestionHealth,
-    mapAsset
-  };
-}
-
 function fallbackDashboardData(): DashboardData {
   return {
     networkId: "ttc",
     dataSource: "fallback",
+    availability: "fixture",
+    message: "Backend unavailable. LineWatchTO is using its local fixture view.",
     networkSegments: fallbackSegments,
     stations: fallbackStations,
     lineStatuses: fallbackStatuses,
@@ -117,10 +91,10 @@ async function loadDashboardFromAggregate(): Promise<DashboardData | null> {
     fetchSafe<DashboardApiResponse>("/api/dashboard?network=ttc"),
     fetchSafe<ReliabilitySnapshot>("/api/reliability/lines?network=ttc"),
   ]);
-  if (!payload?.map || !payload.status || !payload.activeAlerts || !payload.delays || !payload.reducedSpeedZones || !payload.plannedClosures) {
+  if (!isDashboardApiResponse(payload)) {
     return null;
   }
-  return fromBackendPayload(payload, reliability ?? fallbackReliability);
+  return dashboardDataFromApi(payload, reliability ?? fallbackReliability);
 }
 
 async function loadDashboardFromLegacyEndpoints(): Promise<DashboardData | null> {
@@ -140,7 +114,7 @@ async function loadDashboardFromLegacyEndpoints(): Promise<DashboardData | null>
     return null;
   }
 
-  return fromBackendPayload({
+  return dashboardDataFromApi({
     map: mapData,
     status: statusData,
     activeAlerts,

@@ -54,9 +54,18 @@ class IngestionFreshnessTest {
     }
 
     @Test
-    void readsLatestRunWhenCheckingDashboardFreshness() {
+    void readsLatestSuccessfulRunWhenCheckingDashboardFreshness() {
         OffsetDateTime completedAt = OffsetDateTime.parse("2026-06-01T11:55:00Z");
-        when(store.findLatest()).thenReturn(Optional.of(run("success", completedAt)));
+        when(store.findLatestSuccessful()).thenReturn(Optional.of(run("success", completedAt)));
+
+        assertThat(freshness.isDashboardFresh()).isTrue();
+    }
+
+    @Test
+    void keepsDashboardFreshWhileANewerAttemptIsRunning() {
+        OffsetDateTime completedAt = OffsetDateTime.parse("2026-06-01T11:55:00Z");
+        when(store.findLatestSuccessful()).thenReturn(Optional.of(run("success", completedAt)));
+        when(store.findLatest()).thenReturn(Optional.of(run("running", null)));
 
         assertThat(freshness.isDashboardFresh()).isTrue();
     }
@@ -81,16 +90,19 @@ class IngestionFreshnessTest {
     }
 
     private IngestionRunSnapshot run(String status, OffsetDateTime completedAt) {
+        OffsetDateTime startedAt = completedAt == null
+            ? OffsetDateTime.parse("2026-06-01T11:59:59Z")
+            : completedAt.minusSeconds(3);
         return new IngestionRunSnapshot(
             1L,
             status,
-            completedAt.minusSeconds(3),
+            startedAt,
             completedAt,
             10,
             10,
             8,
             1,
-            completedAt.minusMinutes(1),
+            completedAt == null ? null : completedAt.minusMinutes(1),
             null
         );
     }

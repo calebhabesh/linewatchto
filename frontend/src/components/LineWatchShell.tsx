@@ -46,6 +46,8 @@ import { LogsDropdown } from "./LogsDropdown";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
+import { dashboardDataFromApi } from "../app/dashboard-adapter";
+import { getDashboardRefresh, retryDashboardRefresh } from "../app/dashboard-client";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import {
@@ -154,7 +156,6 @@ import {
   type RegionalDashboardApiResponse,
   type RegionalScenarioId,
 } from "../app/regional-data";
-import { apiUrl } from "../app/api-client";
 import { popViewHistory, pushViewHistory, resolveInAppBackAction } from "../app/view-navigation";
 
 
@@ -163,6 +164,7 @@ type ImpactCategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closure
 type AccountDialogMode = "auth-choice" | "login" | "register" | "verify-email" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 type EstimatedTrainRequestState = "idle" | "loading" | "ready" | "reconnecting";
+type DashboardRequestState = "ready" | "reconnecting";
 type SavedStationNotice = {
   message: string;
   linksToMyStations?: boolean;
@@ -306,6 +308,11 @@ export function LineWatchShell({
   const [defaultNetworkPreference, setDefaultNetworkPreference] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
   const [ttcData, setTtcData] = useState(initialData);
   const [regionalData, setRegionalData] = useState(regionalDashboardData);
+  const [dashboardRequestStates, setDashboardRequestStates] = useState<Record<NetworkId, DashboardRequestState>>({
+    ttc: "ready",
+    regional: "ready",
+  });
+  const dashboardRefreshInFlightRef = useRef<Record<NetworkId, boolean>>({ ttc: false, regional: false });
   const regionalScenarioActiveRef = useRef(false);
   const displayData = selectedNetwork === "regional" ? regionalData : ttcData;
   const networkTransitionTargetRef = useRef<NetworkId | null>(null);
@@ -355,44 +362,64 @@ export function LineWatchShell({
     });
   }, [initialData]);
 
-  const fetchRegionalDashboard = useCallback(async () => {
-    if (regionalScenarioActiveRef.current || document.visibilityState !== "visible") return;
+  const fetchDashboard = useCallback(async (networkId: NetworkId) => {
+    if (
+      document.visibilityState !== "visible"
+      || dashboardRefreshInFlightRef.current[networkId]
+      || (networkId === "regional" && regionalScenarioActiveRef.current)
+    ) return;
+
+    dashboardRefreshInFlightRef.current[networkId] = true;
     try {
-      const [response, reliabilityResponse] = await Promise.all([
-        fetch(apiUrl("/api/dashboard?network=regional"), {
-          cache: "no-store",
-          signal: AbortSignal.timeout(5000),
-        }),
-        fetch(apiUrl("/api/reliability/lines?network=regional"), {
-          cache: "no-store",
-          signal: AbortSignal.timeout(5000),
-        }),
-      ]);
-      if (!response.ok) throw new Error(`Regional dashboard request failed (${response.status})`);
-      const payload = await response.json() as RegionalDashboardApiResponse;
-      const reliability = reliabilityResponse.ok
-        ? await reliabilityResponse.json() as DashboardData["reliability"]
-        : regionalDashboardData.reliability;
-      setRegionalData(regionalDashboardDataFromApi(payload));
-      setRegionalData((current) => ({ ...current, reliability }));
+      const { payload, reliability } = await retryDashboardRefresh(
+        () => getDashboardRefresh(networkId),
+        () => setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" })),
+      );
+      if (networkId === "regional") {
+        setRegionalData((current) => regionalDashboardDataFromApi(
+          payload as RegionalDashboardApiResponse,
+          reliability ?? current.reliability,
+        ));
+      } else {
+        setTtcData((current) => dashboardDataFromApi(payload, reliability ?? current.reliability));
+      }
+      setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
     } catch {
-      setRegionalData(regionalDashboardData);
+      setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
+    } finally {
+      dashboardRefreshInFlightRef.current[networkId] = false;
     }
   }, []);
 
   useEffect(() => {
     if (selectedNetwork !== "regional" || regionalScenarioActiveRef.current) return;
-    void fetchRegionalDashboard();
-    const interval = window.setInterval(fetchRegionalDashboard, dashboardRefreshIntervalMs());
+    const refresh = () => { void fetchDashboard("regional"); };
+    refresh();
+    const interval = window.setInterval(refresh, dashboardRefreshIntervalMs());
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") void fetchRegionalDashboard();
+      if (document.visibilityState === "visible") refresh();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [fetchRegionalDashboard, selectedNetwork]);
+  }, [fetchDashboard, selectedNetwork]);
+
+  useEffect(() => {
+    if (selectedNetwork !== "ttc") return;
+    const refresh = () => { void fetchDashboard("ttc"); };
+    refresh();
+    const interval = window.setInterval(refresh, dashboardRefreshIntervalMs());
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchDashboard, selectedNetwork]);
 
   const {
     generatedAt,
@@ -410,6 +437,14 @@ export function LineWatchShell({
     + reducedSpeedZoneCount
     + plannedClosures.length;
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
+  const dashboardRequestState = dashboardRequestStates[selectedNetwork];
+  const dashboardAvailabilityNotice = dashboardRequestState === "reconnecting"
+    ? "Connection issue — showing the last dashboard update while LineWatchTO reconnects."
+    : displayData.availability === "degraded"
+      ? "Source refresh issue — showing the last successful fresh update."
+      : displayData.availability === "unavailable"
+        ? "Live service data is unavailable — showing the fallback dashboard."
+        : null;
   const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
   const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);
   const [reducedMotion, setReducedMotion] = useState(initialVisualPreferences.reducedMotion);
@@ -1537,7 +1572,7 @@ export function LineWatchShell({
 
     if (impactSelection) {
       // Notification URLs include their category panel as a fallback. A concrete
-      // impact should instead take the same focused map path as Show on Map, where
+      // impact should instead take the same focused map path as View on Map, where
       // mobile reserves a real viewport above the selected impact details.
       pushBrowserNavigationEntry();
       selectionBackBehaviorRef.current = "clear";
@@ -2422,7 +2457,6 @@ export function LineWatchShell({
         return;
       }
 
-      if (selectedNetwork === "ttc") router.refresh();
       fetchAccessibilityOutages();
       fetchSurfaceNoticesCount();
       fetchRegionalTripChangeCount();
@@ -2432,7 +2466,6 @@ export function LineWatchShell({
     const interval = window.setInterval(refreshDashboardData, dashboardRefreshIntervalMs());
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        if (selectedNetwork === "ttc") router.refresh();
         fetchAccessibilityOutages();
         fetchSurfaceNoticesCount();
         fetchRegionalTripChangeCount();
@@ -2446,7 +2479,7 @@ export function LineWatchShell({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [closedMapPeek, router, selectedNetwork, subwayOperatingState.status, regionalRailOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchRegionalTripChangeCount, fetchAnnouncementCount]);
+  }, [closedMapPeek, selectedNetwork, subwayOperatingState.status, regionalRailOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchRegionalTripChangeCount, fetchAnnouncementCount]);
 
 
   useEffect(() => {
@@ -3476,6 +3509,18 @@ export function LineWatchShell({
         </h1>
         {/* Background */}
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
+
+        {!showClosedScreen && dashboardAvailabilityNotice ? (
+          <div
+            className="dashboard-availability-notice"
+            data-state={dashboardRequestState === "reconnecting" ? "reconnecting" : displayData.availability}
+            role="status"
+            aria-live="polite"
+          >
+            <AlertTriangle size={15} aria-hidden="true" />
+            <span>{dashboardAvailabilityNotice}</span>
+          </div>
+        ) : null}
 
       {!showClosedScreen && (
       <header

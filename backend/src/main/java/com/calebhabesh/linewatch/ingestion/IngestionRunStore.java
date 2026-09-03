@@ -89,7 +89,7 @@ public class IngestionRunStore {
     }
 
     public Optional<IngestionRunSnapshot> findLatest() {
-        List<IngestionRunSnapshot> runs = jdbc.query("""
+        return findOne("""
             select id, status, started_at, completed_at, records_fetched, records_staged,
                    records_normalized, records_unmatched, source_feed_updated_at, error_message,
                    ttc_subway_closure_supplement_available,
@@ -98,7 +98,24 @@ public class IngestionRunStore {
             where run_type = 'alerts'
             order by started_at desc
             limit 1
-            """, (resultSet, rowNumber) -> new IngestionRunSnapshot(
+            """);
+    }
+
+    public Optional<IngestionRunSnapshot> findLatestSuccessful() {
+        return findOne("""
+            select id, status, started_at, completed_at, records_fetched, records_staged,
+                   records_normalized, records_unmatched, source_feed_updated_at, error_message,
+                   ttc_subway_closure_supplement_available,
+                   ttc_subway_closure_records_fetched
+            from ingestion_runs
+            where run_type = 'alerts' and status = 'success' and completed_at is not null
+            order by completed_at desc
+            limit 1
+            """);
+    }
+
+    private Optional<IngestionRunSnapshot> findOne(String sql) {
+        List<IngestionRunSnapshot> runs = jdbc.query(sql, (resultSet, rowNumber) -> new IngestionRunSnapshot(
                 resultSet.getLong("id"),
                 resultSet.getString("status"),
                 resultSet.getObject("started_at", OffsetDateTime.class),

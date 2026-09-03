@@ -976,14 +976,14 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                 : "bg-transparent"
                             }`}
                           >
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between relative z-10">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <TransitLineBadge
                                   lineId={section.lineId}
                                   lineNumber={section.lineNumber}
                                   lineName={section.lineName}
                                   size={32}
-                                  className="shrink-0"
+                                  className="shrink-0 relative z-10"
                                 />
                                 <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
                                   {section.lineName ? `Line ${section.lineNumber} - ${section.lineName}` : `Line ${section.lineNumber}`}
@@ -1024,7 +1024,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                     key={group.key}
                                     data-arrival-group={group.key}
                                     data-pinned-line={isPinned ? "true" : "false"}
-                                    className="relative flex flex-col gap-2 pl-7 pt-1 pb-1"
+                                    className="relative flex flex-col gap-2 pl-[32px] pt-1 pb-1"
                                   >
                                     {/* Track spine running continuously behind the platform stop node */}
                                     <div
@@ -1033,7 +1033,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                       style={{
                                         backgroundColor: lineColor,
                                         left: "16px",
-                                        top: isFirst ? "-15px" : "-12px",
+                                        top: isFirst ? "-8px" : "-12px",
                                         bottom: isLast ? "0px" : "-12px",
                                         borderBottomLeftRadius: isLast ? "9999px" : "0",
                                         borderBottomRightRadius: isLast ? "9999px" : "0",
@@ -1041,52 +1041,52 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                     />
 
                                     <div className="relative flex min-w-0 items-center justify-between gap-3">
-                                      {/* Platform stop node centered vertically with the direction text */}
+                                      {/* Platform stop node: absolute to outer row div (no overflow:hidden), left:-16px centers on spine at 32-16=16px from group edge, top:50% vertically centered to the text to the right */}
                                       <div
                                         aria-hidden="true"
                                         className="station-arrival-track-node"
                                         style={{
-                                          left: "-12px",
+                                          left: "-16px",
                                           top: "50%",
                                           transform: "translate(-50%, -50%)",
                                         }}
                                       />
-                                        {(() => {
-                                          const match = group.directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
-                                          if (match) {
-                                            const directionPart = match[1];
-                                            const destinationPart = `To ${match[2]}`;
-                                            return (
-                                              <div className="flex flex-col min-w-0 leading-tight">
-                                                <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                                  {directionPart}
-                                                </strong>
-                                                <span className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                  {destinationPart}
-                                                  {group.isTerminating && (
-                                                    <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                      <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                      Terminating
-                                                    </span>
-                                                  )}
-                                                </span>
-                                              </div>
-                                            );
-                                          }
+                                      {(() => {
+                                        const match = group.directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
+                                        if (match) {
+                                          const directionPart = match[1];
+                                          const destinationPart = `To ${match[2]}`;
                                           return (
                                             <div className="flex flex-col min-w-0 leading-tight">
                                               <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                                {group.directionLabel}
+                                                {directionPart}
                                               </strong>
-                                              {group.isTerminating && (
-                                                <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                  <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                  Terminating
-                                                </span>
-                                              )}
+                                              <span className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                {destinationPart}
+                                                {group.isTerminating && (
+                                                  <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                    <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                    Terminating
+                                                  </span>
+                                                )}
+                                              </span>
                                             </div>
                                           );
-                                        })()}
+                                        }
+                                        return (
+                                          <div className="flex flex-col min-w-0 leading-tight">
+                                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                              {group.directionLabel}
+                                            </strong>
+                                            {group.isTerminating && (
+                                              <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
+                                                Terminating
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
                                         <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
                                           <span
                                             className={arrivalSourceBadgeClassName(groupSourceLabel)}

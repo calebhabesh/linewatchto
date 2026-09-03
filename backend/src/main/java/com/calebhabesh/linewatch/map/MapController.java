@@ -61,7 +61,7 @@ public class MapController {
 
     @GetMapping
     public MapResponse getMap() {
-        Duration ttl = ingestionFreshness.remainingFreshness(ingestionRunStore.findLatest())
+        Duration ttl = ingestionFreshness.remainingFreshness(ingestionRunStore.findLatestSuccessful())
             .map(remaining -> remaining.compareTo(cacheProperties.getMapTtl()) < 0 ? remaining : cacheProperties.getMapTtl())
             .orElse(cacheProperties.getMapTtl());
         return cache.getOrCompute(

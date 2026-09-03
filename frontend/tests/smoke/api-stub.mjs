@@ -370,6 +370,36 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/dashboard" && url.searchParams.get("network") === "ttc") {
+    const authoritative = mode === "map-authoritative-overlap";
+    const map = authoritative ? mapAuthoritativeOverlapResponse : mapResponse;
+    sendJson(request, response, 200, {
+      networkId: "ttc",
+      availability: "available",
+      sourceSystems: ["TTC Live Alerts"],
+      message: "Fresh TTC smoke dashboard loaded.",
+      map: {
+        stations: map.stations,
+        segments: map.segments,
+        stationNodeImpacts: map.stationNodeImpacts ?? [],
+      },
+      status: {
+        ...statusResponse,
+        generatedAt: {
+          ...statusResponse.generatedAt,
+          live: true,
+          lastPoll: "TTC smoke poll",
+        },
+      },
+      activeAlerts: authoritative ? mapAuthoritativeActiveAlertsResponse : activeAlertsResponse,
+      delays: authoritative ? mapAuthoritativeDelaysResponse : delaysResponse,
+      reducedSpeedZones: authoritative ? mapAuthoritativeReducedSpeedZonesResponse : reducedSpeedZonesResponse,
+      plannedClosures: authoritative ? mapAuthoritativePlannedClosuresResponse : plannedClosuresResponse,
+      performance: null,
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/dashboard" && url.searchParams.get("network") === "regional") {
     if (mode !== "regional-live") {
       sendJson(request, response, 503, { error: "Regional smoke source unavailable" });

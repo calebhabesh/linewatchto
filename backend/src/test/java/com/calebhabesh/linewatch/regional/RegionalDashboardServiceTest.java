@@ -31,6 +31,7 @@ class RegionalDashboardServiceTest {
         properties.setApiKey("configured-test-key");
         service = new RegionalDashboardService(alertStore, runStore, freshness, properties, CLOCK);
         when(runStore.findLatest()).thenReturn(Optional.of(successfulRun()));
+        when(runStore.findLatestSuccessful()).thenReturn(Optional.of(successfulRun()));
     }
 
     @Test
@@ -119,6 +120,45 @@ class RegionalDashboardServiceTest {
         assertThat(dashboard.status().generatedAt().live()).isFalse();
         assertThat(dashboard.delays()).isEmpty();
         assertThat(dashboard.map().segments()).allSatisfy(segment -> assertThat(segment.overlay()).isEqualTo("clear"));
+    }
+
+    @Test
+    void retainsFreshSuccessfulSnapshotWhileTheNextPollIsRunning() {
+        IngestionRunSnapshot running = new IngestionRunSnapshot(
+            8L, "running", OffsetDateTime.parse("2026-07-28T18:14:58Z"), null,
+            0, 0, 0, 0, null, null
+        );
+        when(runStore.findLatest()).thenReturn(Optional.of(running));
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(
+            "regional-go-M1-ki", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M1", "regional-ki", "delay",
+            "Kitchener line service adjustment", "Trips are operating later than usual.", "Modified Trip",
+            OffsetDateTime.parse("2026-07-28T09:01:00-04:00"), null,
+            OffsetDateTime.parse("2026-07-28T14:12:32-04:00"),
+            List.of("bloor", "weston"), List.of("segment-ki-bloor-mount-dennis"), ""
+        )));
+
+        DashboardResponses.DashboardResponse dashboard = service.dashboard();
+
+        assertThat(dashboard.availability()).isEqualTo("available");
+        assertThat(dashboard.status().generatedAt().live()).isTrue();
+        assertThat(dashboard.delays()).hasSize(1);
+    }
+
+    @Test
+    void labelsFailedRefreshAsDegradedWhileRetainingFreshSnapshot() {
+        IngestionRunSnapshot failed = new IngestionRunSnapshot(
+            8L, "failed", OffsetDateTime.parse("2026-07-28T18:14:50Z"),
+            OffsetDateTime.parse("2026-07-28T18:14:59Z"), 0, 0, 0, 0, null, "timeout"
+        );
+        when(runStore.findLatest()).thenReturn(Optional.of(failed));
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+
+        DashboardResponses.DashboardResponse dashboard = service.dashboard();
+
+        assertThat(dashboard.availability()).isEqualTo("degraded");
+        assertThat(dashboard.status().generatedAt().live()).isTrue();
+        assertThat(dashboard.message()).contains("retaining the last successful fresh snapshot");
     }
 
     private IngestionRunSnapshot successfulRun() {

@@ -49,7 +49,7 @@ public class RegionalIngestionHealthController {
             "Metrolinx Open API",
             properties.isEnabled(),
             properties.isConfigured(),
-            freshness.remainingFreshness(latest).isPresent(),
+            freshness.isFresh(),
             run == null ? "not-run" : run.status(),
             run == null ? null : run.startedAt(),
             run == null ? null : run.completedAt(),

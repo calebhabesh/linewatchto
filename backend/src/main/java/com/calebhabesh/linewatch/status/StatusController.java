@@ -60,7 +60,7 @@ public class StatusController {
 
     @GetMapping
     public StatusResponse getStatus() {
-        Optional<IngestionRunSnapshot> latestRun = ingestionRunStore.findLatest();
+        Optional<IngestionRunSnapshot> latestRun = ingestionRunStore.findLatestSuccessful();
         Duration ttl = ingestionFreshness.remainingFreshness(latestRun)
             .map(remaining -> remaining.compareTo(cacheProperties.getStatusTtl()) < 0 ? remaining : cacheProperties.getStatusTtl())
             .orElse(cacheProperties.getStatusTtl());
@@ -73,7 +73,7 @@ public class StatusController {
     }
 
     private StatusResponse buildStatus() {
-        Optional<IngestionRunSnapshot> latestRun = ingestionRunStore.findLatest();
+        Optional<IngestionRunSnapshot> latestRun = ingestionRunStore.findLatestSuccessful();
         boolean dashboardLive = ingestionFreshness.isFresh(latestRun);
         List<AlertEntity> activeAlerts = dashboardLive
             ? alertRepository.findByActiveTrueAndType(AlertDashboardService.ACTIVE_ALERT_TYPE)

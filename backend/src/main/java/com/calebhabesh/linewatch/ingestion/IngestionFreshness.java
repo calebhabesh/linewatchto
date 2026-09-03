@@ -23,7 +23,7 @@ public class IngestionFreshness {
     }
 
     public boolean isDashboardFresh() {
-        return isFresh(store.findLatest());
+        return isFresh(store.findLatestSuccessful());
     }
 
     public boolean isFresh(Optional<IngestionRunSnapshot> latestRun) {

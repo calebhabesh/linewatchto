@@ -58,7 +58,7 @@ public class IngestionHealthController {
     private IngestionHealthResponse toResponse(IngestionRunSnapshot run) {
         return new IngestionHealthResponse(
             run.status(),
-            ingestionFreshness.isFresh(Optional.of(run)),
+            ingestionFreshness.isDashboardFresh(),
             run.startedAt(),
             run.completedAt(),
             run.recordsFetched(),

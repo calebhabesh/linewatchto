@@ -434,7 +434,7 @@ function SavedStationRow({
             onToggle={(event) => onDisruptionExpandedChange(event.currentTarget.open)}
           >
             <summary className="saved-commute-impact-summary saved-station-disruption-summary">
-              <span className="saved-commute-impact-summary-heading saved-station-disruption-heading">
+              <span className="saved-commute-impact-summary-heading saved-station-disruption-heading saved-station-section-title">
                 {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
                 <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
                 <span className="saved-commute-impact-total saved-station-disruption-total">{disruptionCount}</span>
@@ -505,7 +505,7 @@ function SavedStationRow({
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
             <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
             <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
-              <span className="flex items-center justify-start text-left gap-2 min-w-0 text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+              <span className="saved-station-section-title flex items-center justify-start text-left gap-2 min-w-0 font-extrabold text-slate-900 dark:text-white truncate">
                 <span className="w-1 h-3.5 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                 <Train size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Train Arrivals</strong>
@@ -549,14 +549,14 @@ function SavedStationRow({
                       {showLineDivider && (
                         <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                       )}
-                      <div className="saved-station-arrival-line-header flex items-center justify-between">
+                      <div className="saved-station-arrival-line-header relative z-10 flex items-center justify-between">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <TransitLineBadge
                             lineId={section.lineId}
                             lineNumber={section.lineNumber}
                             lineName={section.lineName}
                             size={32}
-                            className="shrink-0"
+                            className="shrink-0 relative z-10"
                           />
                           <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
                             {formatArrivalLineHeaderLabel(section.lineNumber, section.lineName)}
@@ -597,7 +597,7 @@ function SavedStationRow({
                               key={group.key}
                               data-regional-arrival-direction={group.directionLabel}
                               data-pinned-line={isPinned ? "true" : "false"}
-                              className="relative flex flex-col gap-2 pl-7 pt-1 pb-1"
+                              className="relative flex flex-col gap-2 pl-[32px] pt-1 pb-1"
                             >
                               {/* Track spine running continuously behind the platform stop node */}
                               <div
@@ -606,7 +606,7 @@ function SavedStationRow({
                                 style={{
                                   backgroundColor: lineColor,
                                   left: "16px",
-                                  top: isFirst ? "-15px" : "-12px",
+                                  top: isFirst ? "-8px" : "-12px",
                                   bottom: isLast ? "0px" : "-12px",
                                   borderBottomLeftRadius: isLast ? "9999px" : "0",
                                   borderBottomRightRadius: isLast ? "9999px" : "0",
@@ -614,12 +614,12 @@ function SavedStationRow({
                               />
 
                               <div className="relative flex min-w-0 items-center justify-between gap-3">
-                                {/* Platform stop node centered vertically with the direction text */}
+                                {/* Platform stop node: absolute to outer row div (no overflow:hidden), left:-16px centers on spine at 32-16=16px from group edge, top:50% vertically centered to the text to the right */}
                                 <div
                                   aria-hidden="true"
                                   className="station-arrival-track-node"
                                   style={{
-                                    left: "-12px",
+                                    left: "-16px",
                                     top: "50%",
                                     transform: "translate(-50%, -50%)",
                                   }}
@@ -786,7 +786,7 @@ function SavedStationRow({
             onToggle={(event) => onDisruptionExpandedChange(event.currentTarget.open)}
           >
             <summary className="saved-commute-impact-summary saved-station-disruption-summary">
-              <span className="saved-commute-impact-summary-heading saved-station-disruption-heading">
+              <span className="saved-commute-impact-summary-heading saved-station-disruption-heading saved-station-section-title">
                 {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
                 <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
                 <span className="saved-commute-impact-total saved-station-disruption-total">{disruptionCount}</span>
@@ -860,7 +860,7 @@ function SavedStationRow({
           <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
               <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
               <div className="saved-station-arrivals-heading flex flex-col items-start text-left gap-0.5 min-w-0">
-                <span className="flex items-center justify-start text-left gap-2 min-w-0 text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                <span className="saved-station-section-title flex items-center justify-start text-left gap-2 min-w-0 font-extrabold text-slate-900 dark:text-white truncate">
                   <span className="w-1 h-3.5 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                   <Train size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                   <strong>{arrivalHeading}</strong>
@@ -898,14 +898,14 @@ function SavedStationRow({
                         {showLineDivider && (
                           <div className="station-arrival-line-divider saved-station-line-divider" aria-hidden="true" />
                         )}
-                        <div className="saved-station-arrival-line-header flex items-center justify-between">
+                        <div className="saved-station-arrival-line-header relative z-10 flex items-center justify-between">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <TransitLineBadge
                               lineId={section.lineId}
                               lineNumber={section.lineNumber}
                               lineName={section.lineName}
                               size={32}
-                              className="shrink-0"
+                              className="shrink-0 relative z-10"
                             />
                             <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
                               {formatArrivalLineHeaderLabel(section.lineNumber, section.lineName)}
@@ -945,7 +945,7 @@ function SavedStationRow({
                                 key={group.key}
                                 data-arrival-group={group.key}
                                 data-pinned-line={isPinned ? "true" : "false"}
-                                className="relative flex flex-col gap-2 pl-7 pt-1 pb-1"
+                                className="relative flex flex-col gap-2 pl-[32px] pt-1 pb-1"
                               >
                                 {/* Track spine running continuously behind the platform stop node */}
                                 <div
@@ -954,7 +954,7 @@ function SavedStationRow({
                                   style={{
                                     backgroundColor: lineColor,
                                     left: "16px",
-                                    top: isFirst ? "-15px" : "-12px",
+                                    top: isFirst ? "-8px" : "-12px",
                                     bottom: isLast ? "0px" : "-12px",
                                     borderBottomLeftRadius: isLast ? "9999px" : "0",
                                     borderBottomRightRadius: isLast ? "9999px" : "0",
@@ -962,12 +962,12 @@ function SavedStationRow({
                                 />
 
                                 <div className="relative flex min-w-0 items-center justify-between gap-3">
-                                  {/* Platform stop node centered vertically with the direction text */}
+                                  {/* Platform stop node: absolute to outer row div (no overflow:hidden), left:-16px centers on spine at 32-16=16px from group edge, top:50% vertically centered to the text to the right */}
                                   <div
                                     aria-hidden="true"
                                     className="station-arrival-track-node"
                                     style={{
-                                      left: "-12px",
+                                      left: "-16px",
                                       top: "50%",
                                       transform: "translate(-50%, -50%)",
                                     }}
@@ -999,7 +999,7 @@ function SavedStationRow({
                                       />
                                     </span>
                                   </div>
-                                  <div className="ml-auto flex shrink-0 items-center gap-1.5 self-center">
+                                  <div className="ml-auto flex shrink-0 items-center gap-1.5 self-start pt-0.5">
                                     <span
                                       className={`saved-station-arrival-source ${arrivalSourceBadgeClassName(sourceLabel)}`}
                                       data-arrival-source={sourceLabel.toLowerCase()}

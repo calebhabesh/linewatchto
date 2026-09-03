@@ -588,6 +588,8 @@ export const regionalSegments: NetworkSegment[] = Object.entries(REGIONAL_ROUTE_
 export const regionalDashboardData: DashboardData = {
   networkId: "regional",
   dataSource: "fallback",
+  availability: "fixture",
+  message: "Regional realtime data is unavailable until Metrolinx ingestion is configured.",
   networkSegments: regionalSegments,
   stations: regionalStations,
   lineStatuses: regionalLineStatuses,
@@ -646,7 +648,7 @@ export const regionalDashboardData: DashboardData = {
 
 export type RegionalDashboardApiResponse = {
   networkId?: NetworkId;
-  availability?: "available" | "unavailable";
+  availability?: "available" | "degraded" | "unavailable";
   sourceSystems?: string[];
   message?: string;
   map: {
@@ -670,7 +672,7 @@ export function regionalDashboardDataFromApi(
   reliability: DashboardData["reliability"] = regionalDashboardData.reliability,
 ): DashboardData {
   const fresh = payload.networkId === "regional"
-    && payload.availability === "available"
+    && (payload.availability === "available" || payload.availability === "degraded")
     && payload.status?.generatedAt?.live === true
     && Array.isArray(payload.map?.segments)
     && payload.map.segments.length === regionalSegments.length;
@@ -678,6 +680,8 @@ export function regionalDashboardDataFromApi(
   if (!fresh) {
     const fallback = structuredClone(regionalDashboardData);
     const message = payload.message?.trim() || "Regional realtime data is unavailable.";
+    fallback.availability = "unavailable";
+    fallback.message = message;
     fallback.generatedAt = {
       time: "Unavailable",
       date: "Regional source unavailable",
@@ -696,6 +700,8 @@ export function regionalDashboardDataFromApi(
     ...regionalDashboardData,
     networkId: "regional",
     dataSource: "backend",
+    availability: payload.availability === "degraded" ? "degraded" : "available",
+    message: payload.message?.trim() || "Fresh regional data loaded.",
     networkSegments: payload.map.segments,
     stations: payload.map.stations,
     lineStatuses: payload.status.lines,

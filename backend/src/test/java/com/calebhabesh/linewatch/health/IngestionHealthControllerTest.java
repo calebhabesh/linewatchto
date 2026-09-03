@@ -60,10 +60,12 @@ class IngestionHealthControllerTest {
     @Test
     void reportsDashboardLiveAfterSuccessfulRun() {
         OffsetDateTime started = OffsetDateTime.parse("2026-06-01T11:58:00Z");
-        when(store.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        IngestionRunSnapshot successful = new IngestionRunSnapshot(
             42L, "success", started, started.plusSeconds(2),
             44, 44, 12, 3, started.minusMinutes(1), null, true, 1
-        )));
+        );
+        when(store.findLatest()).thenReturn(Optional.of(successful));
+        when(store.findLatestSuccessful()).thenReturn(Optional.of(successful));
 
         IngestionHealthController.IngestionHealthResponse response = controller.ingestion();
 
@@ -79,15 +81,37 @@ class IngestionHealthControllerTest {
     @Test
     void reportsDashboardNotLiveWhenSuccessfulRunIsStale() {
         OffsetDateTime started = OffsetDateTime.parse("2026-06-01T11:00:00Z");
-        when(store.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        IngestionRunSnapshot successful = new IngestionRunSnapshot(
             42L, "success", started, started.plusSeconds(2),
             44, 44, 12, 3, started.minusMinutes(1), null
-        )));
+        );
+        when(store.findLatest()).thenReturn(Optional.of(successful));
+        when(store.findLatestSuccessful()).thenReturn(Optional.of(successful));
 
         IngestionHealthController.IngestionHealthResponse response = controller.ingestion();
 
         assertThat(response.status()).isEqualTo("success");
         assertThat(response.dashboardLive()).isFalse();
+    }
+
+    @Test
+    void reportsFailedAttemptWhileLastSuccessfulSnapshotRemainsLive() {
+        OffsetDateTime successfulAt = OffsetDateTime.parse("2026-06-01T11:58:00Z");
+        IngestionRunSnapshot successful = new IngestionRunSnapshot(
+            41L, "success", successfulAt.minusSeconds(2), successfulAt,
+            44, 44, 12, 3, successfulAt.minusMinutes(1), null
+        );
+        IngestionRunSnapshot failed = new IngestionRunSnapshot(
+            42L, "failed", successfulAt.plusMinutes(1), successfulAt.plusMinutes(1).plusSeconds(8),
+            0, 0, 0, 0, null, "timeout"
+        );
+        when(store.findLatest()).thenReturn(Optional.of(failed));
+        when(store.findLatestSuccessful()).thenReturn(Optional.of(successful));
+
+        IngestionHealthController.IngestionHealthResponse response = controller.ingestion();
+
+        assertThat(response.status()).isEqualTo("failed");
+        assertThat(response.dashboardLive()).isTrue();
     }
 
     @Test

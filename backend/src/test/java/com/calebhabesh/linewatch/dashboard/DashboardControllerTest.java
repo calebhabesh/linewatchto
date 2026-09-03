@@ -107,7 +107,7 @@ class DashboardControllerTest {
     @Test
     void cachesAggregatePayloadWithFreshnessBoundedTtl() {
         OffsetDateTime started = OffsetDateTime.parse("2026-06-01T11:59:30Z");
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
             42L,
             "success",
             started,

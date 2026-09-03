@@ -70,7 +70,7 @@ class StatusControllerTest {
                 new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1)
         ));
         when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of());
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.empty());
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.empty());
 
         StatusController.StatusResponse response = controller.getStatus();
 
@@ -89,7 +89,7 @@ class StatusControllerTest {
                 alert("line-2", "suspension", "No service", "2026-06-01T11:50:00Z")
         ));
         OffsetDateTime completedAt = OffsetDateTime.parse("2026-06-01T11:59:00Z");
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 12L, "success", completedAt.minusSeconds(5), completedAt,
                 8, 8, 2, 0, completedAt.minusMinutes(1), null
         )));
@@ -114,7 +114,7 @@ class StatusControllerTest {
         when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of());
 
         OffsetDateTime completedAt = OffsetDateTime.parse("2026-06-01T11:59:00Z");
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 12L, "success", completedAt.minusSeconds(5), completedAt,
                 8, 8, 2, 0, completedAt.minusMinutes(1), null
         )));
@@ -169,7 +169,7 @@ class StatusControllerTest {
                 alert("line-2", "delay", "Old delay", "2026-06-01T11:00:00Z")
         ));
         OffsetDateTime completedAt = OffsetDateTime.parse("2026-06-01T11:45:00Z");
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 12L, "success", completedAt.minusSeconds(5), completedAt,
                 8, 8, 2, 0, completedAt.minusMinutes(1), null
         )));
@@ -186,39 +186,27 @@ class StatusControllerTest {
     }
 
     @Test
-    void formatsPollLabelsConcisely() {
+    void formatsSuccessfulPollLabelsConcisely() {
         when(repository.findAllByOrderBySortOrderAsc()).thenReturn(List.of());
         when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of());
 
-        // Failed
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
-                1L, "failed", null, null, 0, 0, 0, 0, null, null
-        )));
-        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("failed");
-
-        // Running
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
-                2L, "running", null, null, 0, 0, 0, 0, null, null
-        )));
-        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("running");
-
         // Succeeded just now
         OffsetDateTime now = OffsetDateTime.now(CLOCK);
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 3L, "success", now, now, 0, 0, 0, 0, null, null
         )));
         assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded just now");
 
         // Succeeded 2 hr ago
         OffsetDateTime twoHrAgo = now.minusHours(2);
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 4L, "success", twoHrAgo, twoHrAgo, 0, 0, 0, 0, null, null
         )));
         assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 2 hr ago");
 
         // Succeeded 3 days ago
         OffsetDateTime threeDaysAgo = now.minusDays(3);
-        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
                 5L, "success", threeDaysAgo, threeDaysAgo, 0, 0, 0, 0, null, null
         )));
         assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 3 days ago");

@@ -299,6 +299,12 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:\s*0 0 4px rgba\(129, 201, 255, 0\.35\)/s);
     assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dd\s*\{[^}]*font-size:\s*0\.84rem;[^}]*font-weight:\s*850/s);
     assert.match(globalCss, /data-active-view="closures"[^}]*\.panel-heading span\.whitespace-nowrap\s*\{[^}]*max-width:\s*none\s*!important;[^}]*overflow:\s*visible\s*!important/s);
+    assert.match(impactCardFieldsSource, /isWindowField \? " is-window-row" : ""/);
+    assert.match(impactCardFieldsSource, /renderClosureScheduleValue/);
+    assert.match(globalCss, /\.impact-metadata-grid > \.is-window-row\s*\{[^}]*grid-column:\s*1 \/ -1/s);
+    assert.match(globalCss, /\.closure-window-value\s*\{[^}]*display:\s*inline-flex;[^}]*flex-wrap:\s*wrap/s);
+    assert.match(globalCss, /\.closure-window-date\s*\{[^}]*white-space:\s*nowrap/s);
+    assert.match(globalCss, /\.closure-window-time\s*\{[^}]*font-variant-numeric:\s*tabular-nums/s);
   });
 
   it("keeps floating panels single-column even at desktop viewport widths", () => {
@@ -386,11 +392,11 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
     assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);
     assert.doesNotMatch(plannedClosuresSource, /Preview on Map|Hide Map Preview/);
-    assert.match(activeAlertsSource, /Show on Map/);
+    assert.match(activeAlertsSource, /View on Map/);
     assert.match(activeAlertsSource, /Unfocus/);
-    assert.match(reducedSpeedZonesSource, /Show on Map/);
+    assert.match(reducedSpeedZonesSource, /View on Map/);
     assert.match(reducedSpeedZonesSource, /Unfocus/);
-    assert.match(plannedClosuresSource, /Show on Map/);
+    assert.match(plannedClosuresSource, /View on Map/);
     assert.match(plannedClosuresSource, /Unfocus/);
     assert.match(shellSource, /MobileImpactInspector/);
     assert.match(shellSource, /mobileImpactInspectorOpen/);

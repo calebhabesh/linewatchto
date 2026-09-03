@@ -1657,7 +1657,7 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
       { start: "1", end: "-1" },
     ]);
 
-    await groupedTimingCard.getByRole("button", { name: "Show on Map" }).click();
+    await groupedTimingCard.getByRole("button", { name: "View on Map" }).click();
     const groupedTimingInspector = page.locator('[data-mobile-impact-inspector]');
     await expect(groupedTimingInspector).toBeVisible();
     const inspectorTimingColumns = await groupedTimingInspector.locator(".has-directional-timing").evaluateAll(
@@ -1674,7 +1674,7 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
     await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
   }
 
-  await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "Show on Map" }).click();
+  await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "View on Map" }).click();
   await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeAttached();
 
   if (isMobile) {
@@ -1909,7 +1909,7 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   await page
     .locator(".alert-card")
     .filter({ hasText: "Eglinton" })
-    .getByRole("button", { name: "Show on Map" })
+    .getByRole("button", { name: "View on Map" })
     .click();
 
   const mapFlash = page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]').first();
@@ -2875,6 +2875,41 @@ test("alert history renders one stable card per incident occurrence with its ful
   await expect(clearedIncident).toBeVisible();
 });
 
+test("retains the last dashboard snapshot while browser requests reconnect", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.addInitScript(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register = async () => {
+        throw new Error("Service worker disabled for dashboard request interception");
+      };
+    }
+  });
+  let dashboardUnavailable = false;
+  await page.route("**/api/dashboard*", async (route) => {
+    if (dashboardUnavailable) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "temporary brownout" }) });
+      return;
+    }
+    const response = await request.get(`${stubUrl}/api/dashboard?network=ttc`);
+    await route.fulfill({ response });
+  });
+  await page.goto("/");
+
+  const retainedOverlay = page.locator('[data-map-impact-id="stub-alert-line-1"]');
+  await expect(retainedOverlay).toBeAttached();
+
+  dashboardUnavailable = true;
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+
+  await expect(page.getByText(/Connection issue — showing the last dashboard update/)).toBeVisible();
+  await expect(retainedOverlay).toBeAttached();
+
+  dashboardUnavailable = false;
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect(page.getByText(/Connection issue — showing the last dashboard update/)).toHaveCount(0, { timeout: 8_000 });
+  await expect(retainedOverlay).toBeAttached();
+});
+
 test("renders fixture fallback when the dashboard API is unavailable", async ({ page, request, isMobile }) => {
   await setStubMode(request, "unavailable");
   await openDashboardMenu(page, isMobile);
@@ -2903,7 +2938,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   await expect(activeClosureChildCard.getByRole("term").filter({ hasText: "Planned Closure" })).toBeVisible();
   await expect(activeClosureChildCard.getByRole("button", { name: "View related planned closure details" })).toBeVisible();
 
-  await activeClosureChildCard.getByRole("button", { name: "Show on Map" }).click();
+  await activeClosureChildCard.getByRole("button", { name: "View on Map" }).click();
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
@@ -3513,7 +3548,7 @@ test("pinned desktop menu focuses impacts in the unobscured map area", async ({ 
   await expect(panel).toBeVisible();
 
   const delayCard = page.locator('[data-impact-card-id="stub-delay-line-4"]');
-  await delayCard.getByRole("button", { name: "Show on Map" }).click();
+  await delayCard.getByRole("button", { name: "View on Map" }).click();
   const highlight = page.locator('[data-map-highlight-id="stub-delay-line-4"]');
   await expect(highlight).toBeAttached();
   await page.waitForTimeout(900);
@@ -3602,7 +3637,7 @@ test("global search opens a condensed alert result in its detailed card and mobi
   await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
 
   if (isMobile) {
-    await delayCard.getByRole("button", { name: "Show on Map" }).click();
+    await delayCard.getByRole("button", { name: "View on Map" }).click();
     const inspector = page.locator("[data-mobile-impact-inspector]");
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Delay");
@@ -4580,7 +4615,7 @@ test("mobile Close uses the same sheet exit animation as Back", async ({ page, r
   expect(closeAnimation[0]).toBe("mobile-sheet-slide-down-exit");
 });
 
-test("mobile browser Back restores the path that launched Show on Map", async ({ page, request, isMobile }) => {
+test("mobile browser Back restores the path that launched View on Map", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only browser history behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
@@ -4591,7 +4626,7 @@ test("mobile browser Back restores the path that launched Show on Map", async ({
   await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Show on Map" }).first().click();
+  await page.getByRole("button", { name: "View on Map" }).first().click();
   await expect(page.locator("[data-mobile-impact-inspector]")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
 
@@ -4658,14 +4693,14 @@ test("desktop browser Back unfocuses an impact before leaving its submenu", asyn
   await openDashboardMenu(page, isMobile);
   await openServiceCategory(page, isMobile, /Delay/);
 
-  const showOnMap = page.getByRole("button", { name: "Show on Map" }).first();
+  const showOnMap = page.getByRole("button", { name: "View on Map" }).first();
   await showOnMap.click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Unfocus" }).first()).toBeVisible();
 
   await page.goBack();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Show on Map" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "View on Map" }).first()).toBeVisible();
 
   await page.goBack();
   await expect(page.getByRole("menu")).toBeVisible();

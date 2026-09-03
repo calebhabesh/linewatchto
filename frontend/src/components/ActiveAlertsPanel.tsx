@@ -269,15 +269,13 @@ export function ActiveAlertsPanel({
                   <button
                     type="button"
                     onClick={() => handleAlertClick(alert)}
-                    className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer shrink-0 ${
-                      isActive
-                        ? "bg-slate-600 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-500 dark:border-slate-600 dark:hover:bg-slate-400 shadow-[0_0_12px_rgba(100,116,139,0.3)]"
-                        : "bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700"
-                    }`}
+                    className={`impact-card-map-btn shrink-0 ${isActive ? "is-active" : ""}`}
+                    aria-label={`${isActive && !onFocusMap ? "Unfocus" : "View on map"}: ${alert.title}`}
+                    title={isActive && !onFocusMap ? "Unfocus" : "View on Map"}
                   >
                     <JumpToLocationIcon className="w-8 h-8" />
-                    <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
-                      {isActive && !onFocusMap ? "Unfocus" : "Show on Map"}
+                    <span>
+                      {isActive && !onFocusMap ? "Unfocus" : "View on Map"}
                     </span>
                   </button>
                 </div>

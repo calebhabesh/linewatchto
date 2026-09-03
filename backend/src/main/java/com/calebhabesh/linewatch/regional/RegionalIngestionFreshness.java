@@ -20,7 +20,7 @@ public class RegionalIngestionFreshness {
     }
 
     public boolean isFresh() {
-        return remainingFreshness(runStore.findLatest()).isPresent();
+        return remainingFreshness(runStore.findLatestSuccessful()).isPresent();
     }
 
     public Optional<Duration> remainingFreshness(Optional<IngestionRunSnapshot> snapshot) {

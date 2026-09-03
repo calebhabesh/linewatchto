@@ -43,6 +43,25 @@ class TtcSubwayClosureParserTest {
     }
 
     @Test
+    void ignoresEditorialUpdatePrefixWhenParsingRouteBounds() {
+        TtcAlertRecord record = parser.parse(
+            "updated-closure",
+            URI.create("https://www.ttc.ca/service-advisories/subway-service/updated-closure"),
+            page(
+                "Line 2 (Bloor-Danforth)",
+                "UPDATED - St George to Broadview stations – Nightly early closures starting at 11:59 p.m. – Monday, August 31 to Thursday, September 3",
+                "August 31, 2026",
+                "September 3, 2026",
+                "Subway service on Line 2 between St George and Broadview stations will end early at 11:59 p.m. for planned track work. Regular subway service will resume each morning at approximately 6 a.m."
+            )
+        ).record();
+
+        assertThat(record.stopStart()).isEqualTo("St George");
+        assertThat(record.stopEnd()).isEqualTo("Broadview");
+        assertThat(record.title()).contains("UPDATED - St George to Broadview");
+    }
+
+    @Test
     void parsesLateOpeningAsAServiceDayMorningClosure() {
         TtcAlertRecord record = parser.parse(
             "late-opening",

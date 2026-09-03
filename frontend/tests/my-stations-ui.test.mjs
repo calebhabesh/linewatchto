@@ -152,8 +152,8 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-rich-heading\s*\{[^}]*flex:\s*0 0 auto;[^}]*min-height:\s*68px;/s);
     assert.match(panel, /saved-station-rich-row \$\{displayedDisruptionCount > 0 \? "is-affected" : "is-clear"\}/);
     assert.match(styles, /\.saved-station-rich-row\s*\{[^}]*border-width:\s*2px;/s);
-    assert.match(styles, /\.saved-station-rich-row\.is-affected\s*\{[^}]*border-left:\s*3px solid var\(--warning\);/s);
-    assert.match(styles, /\.saved-station-rich-row\.is-clear\s*\{[^}]*border-left:\s*3px solid var\(--ok\);/s);
+    assert.match(styles, /\.saved-station-rich-row\.is-affected\s*\{[^}]*border-left:\s*2px solid var\(--warning\);/s);
+    assert.match(styles, /\.saved-station-rich-row\.is-clear\s*\{[^}]*border-left:\s*2px solid var\(--ok\);/s);
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-bookmark\s*\{[^}]*border-left-width:\s*2px;/s);
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-main\s*\{[^}]*padding-block:\s*8px;/s);
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-heading strong\s*\{[^}]*font-size:\s*25px;[^}]*font-weight:\s*750;[^}]*line-height:\s*1;/s);

@@ -36,6 +36,9 @@ public class TtcSubwayClosureParser {
     private static final Pattern SINGLE_STATION = Pattern.compile(
         "(?i)\\bat\\s+(.+?)\\s+stations?\\b"
     );
+    private static final Pattern EDITORIAL_UPDATE_PREFIX = Pattern.compile(
+        "(?i)^\\s*updated?\\s*[-–—:]\\s*"
+    );
     private static final Pattern CLOCK_TIME = Pattern.compile(
         "(?i)\\b(1[0-2]|0?[1-9])(?::([0-5][0-9]))?\\s*([ap])\\.?m\\.?\\b"
     );
@@ -180,18 +183,19 @@ public class TtcSubwayClosureParser {
     }
 
     private RouteBounds routeBounds(String advisoryTitle) {
-        Matcher toMatcher = BOUNDS.matcher(advisoryTitle);
+        String boundsTitle = EDITORIAL_UPDATE_PREFIX.matcher(advisoryTitle).replaceFirst("");
+        Matcher toMatcher = BOUNDS.matcher(boundsTitle);
         if (toMatcher.find()) {
             return new RouteBounds(clean(toMatcher.group(1)), clean(toMatcher.group(2)));
         }
-        Matcher betweenMatcher = BETWEEN_BOUNDS.matcher(advisoryTitle);
+        Matcher betweenMatcher = BETWEEN_BOUNDS.matcher(boundsTitle);
         if (betweenMatcher.find()) {
             return new RouteBounds(
                 clean(betweenMatcher.group(1)),
                 clean(betweenMatcher.group(2))
             );
         }
-        Matcher stationMatcher = SINGLE_STATION.matcher(advisoryTitle);
+        Matcher stationMatcher = SINGLE_STATION.matcher(boundsTitle);
         if (stationMatcher.find()) {
             String station = clean(stationMatcher.group(1));
             return new RouteBounds(station, station);

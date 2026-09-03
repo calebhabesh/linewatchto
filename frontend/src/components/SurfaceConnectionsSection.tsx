@@ -473,7 +473,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
         <summary className="surface-connections-summary block w-full min-w-0 max-w-full cursor-pointer list-none overflow-hidden">
           <div className="saved-station-arrivals-heading flex w-full min-w-0 max-w-full flex-col items-start text-left gap-0.5 overflow-hidden">
             <div className="flex items-center justify-between gap-2 w-full min-w-0 max-w-full">
-              <span className="flex items-center gap-2 min-w-0 max-w-full text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+              <span className="saved-station-section-title flex items-center gap-2 min-w-0 max-w-full font-extrabold text-slate-900 dark:text-white truncate">
                 <Bus size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Surface Connections</strong>
                 {!loading && (

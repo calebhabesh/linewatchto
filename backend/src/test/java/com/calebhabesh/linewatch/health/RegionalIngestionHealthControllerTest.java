@@ -28,7 +28,7 @@ class RegionalIngestionHealthControllerTest {
             42, "success", completedAt.minusSeconds(2), completedAt, 30, 30, 2, 28, completedAt, null
         );
         when(runStore.findLatest()).thenReturn(Optional.of(run));
-        when(freshness.remainingFreshness(Optional.of(run))).thenReturn(Optional.of(java.time.Duration.ofMinutes(8)));
+        when(freshness.isFresh()).thenReturn(true);
         when(runStore.findSourceStatuses(42)).thenReturn(List.of(
             new RegionalIngestionRunStore.SourceStatus(MetrolinxSourceSystem.GO_SERVICE_ALERTS, true, 2, completedAt.minusMinutes(1)),
             new RegionalIngestionRunStore.SourceStatus(MetrolinxSourceSystem.GO_MARKETING_ALERTS, false, 0, null),

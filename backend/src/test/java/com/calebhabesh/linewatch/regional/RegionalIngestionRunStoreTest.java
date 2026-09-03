@@ -2,8 +2,10 @@ package com.calebhabesh.linewatch.regional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -11,9 +13,29 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.RowMapper;
 
 class RegionalIngestionRunStoreTest {
+    @Test
+    void lastGoodLookupSkipsRunningAndFailedAttempts() {
+        NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
+        when(jdbc.query(
+            any(String.class),
+            any(MapSqlParameterSource.class),
+            any(RowMapper.class)
+        )).thenReturn(List.of());
+
+        new RegionalIngestionRunStore(jdbc).findLatestSuccessful();
+
+        verify(jdbc).query(
+            contains("status = 'success' and completed_at is not null"),
+            any(MapSqlParameterSource.class),
+            any(RowMapper.class)
+        );
+    }
+
     @Test
     void recordsCompletenessCountsAndSourceTimestampsForEveryKnownCollection() {
         NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
