@@ -608,16 +608,16 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           {station && (
             <div className="mt-2 flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0" data-station-header-line-details>
               {station.lines.map((line) => (
-                <div key={line.id} className="flex items-center justify-between gap-2.5 min-w-0">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div key={line.id} className="station-header-line-row flex items-center justify-between gap-2 sm:gap-2.5 min-w-0">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                     <TransitLineBadge
                       lineId={line.id}
                       lineNumber={line.number}
                       lineName={line.name}
                       size={40}
-                      className="shrink-0"
+                      className="station-header-line-badge shrink-0"
                     />
-                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    <span className="station-header-line-name text-[13px] sm:text-sm font-bold text-slate-900 dark:text-white leading-tight min-w-0 whitespace-normal break-words">
                       {line.name}
                     </span>
                   </div>

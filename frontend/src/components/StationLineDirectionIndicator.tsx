@@ -29,7 +29,7 @@ export function StationLineDirectionIndicator({
 
   return (
     <div
-      className={`station-line-directions inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide shrink-0 text-right transition-all shadow-xs ${className}`.trim()}
+      className={`station-line-directions inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-normal sm:tracking-wide shrink-0 text-right transition-all shadow-xs ${className}`.trim()}
       style={{
         ["--line-direction-color" as string]: lineColor,
         ["--line-direction-text" as string]: textColor,
@@ -46,7 +46,7 @@ export function StationLineDirectionIndicator({
               /
             </span>
           )}
-          <span className="leading-none">{direction}</span>
+          <span className="leading-none whitespace-nowrap">{direction}</span>
         </Fragment>
       ))}
     </div>

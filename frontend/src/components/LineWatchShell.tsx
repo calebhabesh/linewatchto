@@ -3512,18 +3512,6 @@ export function LineWatchShell({
         {/* Background */}
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
 
-        {!showClosedScreen && dashboardAvailabilityNotice ? (
-          <div
-            className="dashboard-availability-notice"
-            data-state={dashboardRequestState === "reconnecting" ? "reconnecting" : displayData.availability}
-            role="status"
-            aria-live="polite"
-          >
-            <AlertTriangle size={15} aria-hidden="true" />
-            <span>{dashboardAvailabilityNotice}</span>
-          </div>
-        ) : null}
-
       {!showClosedScreen && (
       <header
         className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start pointer-events-none"
@@ -5273,6 +5261,17 @@ export function LineWatchShell({
               )}
             </form>
           </section>
+        </div>
+      ) : null}
+      {!showClosedScreen && dashboardAvailabilityNotice ? (
+        <div
+          className={`dashboard-availability-notice ${isMobile && !showMobileStatusPeek ? "dashboard-availability-notice--mobile-hidden" : ""}`}
+          data-state={dashboardRequestState === "reconnecting" ? "reconnecting" : displayData.availability}
+          role="status"
+          aria-live="polite"
+        >
+          <AlertTriangle size={15} aria-hidden="true" />
+          <span>{dashboardAvailabilityNotice}</span>
         </div>
       ) : null}
       <OpeningDisclaimer

@@ -4323,21 +4323,21 @@ body {
 }
 
 .dashboard-availability-notice {
-  position: absolute;
-  top: calc(max(16px, var(--mobile-safe-top)) + 64px);
+  position: fixed;
+  bottom: 18px;
   left: 50%;
-  z-index: 46;
+  z-index: 70;
   display: flex;
   align-items: center;
   gap: 8px;
   width: max-content;
   max-width: min(540px, calc(100vw - 32px));
-  padding: 8px 12px;
+  padding: 10px 16px;
   border: 1px solid rgba(217, 119, 6, 0.35);
   border-radius: 999px;
   background: rgba(255, 251, 235, 0.96);
   color: #92400e;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 14px 48px rgba(0, 0, 0, 0.38);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.25;
@@ -4375,10 +4375,24 @@ body {
 
 @media (max-width: 640px) {
   .dashboard-availability-notice {
-    top: calc(max(10px, var(--mobile-safe-top)) + var(--mobile-top-chrome-height) + 10px);
-    max-width: calc(100vw - 24px);
+    bottom: calc(var(--mobile-bottom-nav-occupied-height, 88px) + 10px + var(--mobile-status-peek-actual-height, 116px) + 14px);
+    top: auto;
+    max-width: calc(100vw - 28px);
+    width: min(500px, calc(100vw - 28px));
     border-radius: 12px;
     font-size: 11px;
+    padding: 10px 14px;
+  }
+
+  .dashboard-availability-notice--mobile-hidden {
+    display: none !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .dashboard-availability-notice {
+    max-width: calc(100vw - 20px);
+    width: calc(100vw - 20px);
   }
 }
 
@@ -23717,6 +23731,35 @@ img.transit-line-badge {
   background: rgba(30, 58, 138, 0.35) !important;
 }
 
+/* Station Line Header Rows - prevents transit line name truncation on mobile */
+.station-header-line-row {
+  min-width: 0;
+  width: 100%;
+}
+
+.station-header-line-badge {
+  --transit-line-badge-size: 32px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  flex-shrink: 0 !important;
+}
+
+.station-header-line-name {
+  line-height: 1.22;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+@media (min-width: 640px) {
+  .station-header-line-badge {
+    --transit-line-badge-size: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+  }
+}
+
 /* Station Line Direction Badges - true transit line color pill matching line badges */
 .station-line-directions {
   border: none !important;
@@ -29127,6 +29170,23 @@ button:active .account-network-badge,
   .mobile-sheet-icon-button {
     height: 40px;
     width: 40px;
+  }
+
+  .station-header-line-badge {
+    --transit-line-badge-size: 28px !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+  }
+
+  .station-header-line-name {
+    font-size: 12.5px !important;
+  }
+
+  .station-line-directions {
+    padding: 2px 8px !important;
+    font-size: 10.5px !important;
+    gap: 4px !important;
   }
 
   .mobile-status-content-scroll,

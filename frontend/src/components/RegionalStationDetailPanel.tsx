@@ -690,16 +690,16 @@ export function RegionalStationDetailPanel({
               {routes.map((route) => {
                 const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
                 return (
-                  <div key={route.id} className="flex items-center justify-between gap-2.5 min-w-0">
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div key={route.id} className="station-header-line-row flex items-center justify-between gap-2 sm:gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                       <TransitLineBadge
                         lineId={route.id}
                         lineNumber={route.number}
                         lineName={route.name}
                         size={40}
-                        className="regional-route-pill shrink-0"
+                        className="regional-route-pill station-header-line-badge shrink-0"
                       />
-                      <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      <span className="station-header-line-name text-[13px] sm:text-sm font-bold text-slate-900 dark:text-white leading-tight min-w-0 whitespace-normal break-words">
                         {route.name}
                       </span>
                     </div>
