@@ -367,7 +367,7 @@
 ### S07 — Extract shell and desktop chrome
 
 - Status: completed
-- Commit: pending
+- Commit: aa2764b2
 - Scope: Extract shell container, desktop chrome, floating panels, and map controls from `globals.css` (1,189 lines total) into four dedicated stylesheets in `frontend/src/styles/shell/`: `dashboard-shell.css` (wordmark, shell custom property), `desktop-chrome.css` (network selector capsule and glider, top chrome elevation, desktop status capsule anchor and rows, live indicator dot, polling badge, train switch, impact status chips with all color/contrast modes, responsive breakpoints, main menu pin button), `floating-panels.css` (panel surface bases, mobile sheet icon button, floating panel shell, scroll frame, panel header, shared panel scrolling containers, enter keyframes, motion-paused, 640px and pinned-menu 768px overrides), and `map-controls.css` (regional map controls, desktop map control rail 1024px positioning, map control rail base and dark/high-contrast themes, dividers, button and slider controls, regional map rail, zoom group contents, and desktop recenter container and icon styles). Add relative imports `@import "../styles/shell/dashboard-shell.css";`, `@import "../styles/shell/desktop-chrome.css";`, `@import "../styles/shell/floating-panels.css";`, and `@import "../styles/shell/map-controls.css";` to `globals.css` lines 15-18. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
 - Files changed:
   - `frontend/src/styles/shell/dashboard-shell.css`
