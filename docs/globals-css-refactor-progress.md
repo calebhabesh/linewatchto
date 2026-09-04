@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11A
-- Last completed session: S11A
-- Next recommended session: S11B
+- Current session: S11B
+- Last completed session: S11B
+- Next recommended session: S11C
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 9,696 |
-| Total authored app CSS lines | 31,414 | 31,987 |
-| Total authored app CSS bytes | 784,128 | 815,150 |
-| Parsed rules | 4,221 | 1,372 |
-| Declarations | 14,093 | 4,143 |
-| !important | 2,356 | 849 |
+| Global entry lines | 30,011 | 9,571 |
+| Total authored app CSS lines | 31,414 | 32,041 |
+| Total authored app CSS bytes | 784,128 | 817,407 |
+| Parsed rules | 4,221 | 1,348 |
+| Declarations | 14,093 | 4,094 |
+| !important | 2,356 | 840 |
 | Class-substring selectors | 32 | 22 |
-| Production CSS bytes | 705,472 | 707,988 |
-| Production CSS gzip bytes | 108,667 | 106,466 |
+| Production CSS bytes | 705,472 | 708,268 |
+| Production CSS gzip bytes | 108,667 | 106,531 |
 
 
 
@@ -881,3 +881,44 @@
 - Risks or blockers:
   - None. S11A is fully completed and verified.
 - Next session: S11B — Extract accessibility outages and surface connection notices (`panels/accessibility-outages.css` and `panels/surface-notices.css` or combined notices stylesheet).
+
+### S11B — Extract Accessibility Outages & Surface Connection Notices
+
+- Status: completed
+- Commit: 7d8595a5
+- Scope: Extract accessibility outages accordion, rotation, reduced-motion overrides, surface notices panel body container, mobile panel scroll override, regional notices content filter and sliding glider, trip changes tones/count badges, and station trip changes accordion into two dedicated domain stylesheets: `frontend/src/styles/panels/accessibility-outages.css` (57 lines) and `frontend/src/styles/panels/surface-notices.css` (122 lines). Add relative imports `@import "../styles/panels/accessibility-outages.css";` and `@import "../styles/panels/surface-notices.css";` to `globals.css` immediately following `alerts.css`. Remove 127 lines across 7 blocks from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,144 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/panels/accessibility-outages.css`
+  - `frontend/src/styles/panels/surface-notices.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,144 tests across 135 suites, 0 failures in ~908ms; +2 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 1.95s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 9,696 to 9,571 (-125 lines, -1.3%); parsed rules -24; parsed declarations -49; `!important` -9; media queries -1; keyframe blocks steady at 49; class-substring selectors steady at 22; production chunk raw bytes 708,268; gzip bytes 106,531).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created two dedicated, modular stylesheets for clean architectural separation:
+    1. `frontend/src/styles/panels/accessibility-outages.css` (57 lines) isolating `.accessibility-accordion-wrapper` smooth height expansion/collapse, `.accessibility-accordion-chevron` rotation, and motion-paused/reduced-motion overrides.
+    2. `frontend/src/styles/panels/surface-notices.css` (122 lines) isolating `.surface-notices-body` container background across light, dark, and high-contrast themes, mobile sheet padding override (`.floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="surface-notices"]) .floating-panel-scroll`), `.regional-notices-filter` and animated sliding `.regional-notices-glider` across default, dark, motion-paused, and reduced-motion states, `.trip-change-tone` and `.trip-change-count-badge` status pills, and `.station-trip-changes-details` accordion chevrons.
+  - Removed 127 lines across 7 blocks from `globals.css`:
+    1. Station trip changes summary marker, chevron, and open rotation (lines 1266-1278 in original `globals.css`).
+    2. Surface notices body background for light, dark, and high-contrast modes (lines 2610-2624 in original `globals.css`).
+    3. Mobile floating panel scroll padding override for surface notices (lines 5296-5300 in original `globals.css`).
+    4. Trip change tone and count badge styles across light, dark, and high-contrast modes (lines 5910-5924 in original `globals.css`).
+    5. Regional notices filter and sliding glider positioning, theme backgrounds, data-content transforms, and motion pauses (lines 6316-6359 in original `globals.css`).
+    6. Dark mode trip change tone color override (lines 6402-6405 in original `globals.css`).
+    7. Accessibility outages accordion wrapper and chevron expansion/rotation (lines 9470-9500 in original `globals.css`).
+  - Preserved `.station-impacts-details` accordion and cross-component elevation lists (`.surface-notice-route-group`, `.mobile-status-actions button`, etc.) in `globals.css` for S11E / utilities.
+  - Preserved `.accessibility-outages-scroll` and `.surface-notices-scroll` in shared scrollbar lists and container navigation transition lists in `globals.css` for S11E / utilities.
+  - Maintained cascade hierarchy by importing `panels/accessibility-outages.css` and `panels/surface-notices.css` at lines 34-35 immediately following `panels/alerts.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of both new stylesheets in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11B is fully completed and verified.
+- Next session: S11C — Extract reliability and alert history (`panels/reliability.css` and `panels/alert-history.css`).
