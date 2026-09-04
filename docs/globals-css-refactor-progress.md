@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S15I
-- Last completed session: S15I
-- Next recommended session: S15J — Consolidate Remaining Panel Stylesheets (`panels/reliability.css`, `panels/surface-notices.css`, `panels/accessibility-outages.css`)
+- Current session: S15J
+- Last completed session: S15J
+- Next recommended session: S16A — Consolidate Map Stylesheets (`map/base-map.css`, `map/regional-map.css`, `map/station-markers.css`, `map/map-selection.css`, `map/commute-preview.css`, `map/train-markers.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and Chromium E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,039 |
-| Total authored app CSS bytes | 784,128 | 833,528 |
+| Total authored app CSS lines | 31,414 | 32,033 |
+| Total authored app CSS bytes | 784,128 | 833,269 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 702,773 |
-| Production CSS gzip bytes | 108,667 | 105,634 |
+| Production CSS bytes | 705,472 | 702,549 |
+| Production CSS gzip bytes | 108,667 | 105,605 |
 
 
 
@@ -2010,3 +2010,48 @@
 - Risks or blockers:
   - None. Alert history consolidation is verified cleanly across unit contracts, typecheck, lint, production build, smoke, visual regression, and targeted E2E lifecycle interactions.
 - Next session: S15J — Consolidate Remaining Panel Stylesheets (`panels/reliability.css`, `panels/surface-notices.css`, `panels/accessibility-outages.css`).
+
+### S15J — Consolidate Remaining Panel Stylesheets (2026-09-04)
+
+- Status: completed
+- Commit: 9710541c
+- Scope: Consolidate the remaining panel stylesheets (`panels/accessibility-outages.css`, `panels/surface-notices.css`, `panels/reliability.css`), eliminating dead overrides, shorthand border-radius properties, redundant box-sizing rules, and unnecessary `!important` declarations while strictly preserving panel layouts, transitions, badges, and responsive accommodations:
+  1. Accessibility Outages Panel (`panels/accessibility-outages.css`):
+     - Safely eliminated 2 `!important` declarations from `.motion-paused .accessibility-accordion-chevron, .motion-paused .accessibility-accordion-wrapper` and `@media (prefers-reduced-motion: reduce)` where specificity `(0,2,0)` and subsequent cascade order naturally override `transition`.
+  2. Surface Notices & Regional Trip Changes (`panels/surface-notices.css`):
+     - Shorthanded `border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;` to `border-radius: 0 0 8px 8px;` on `.surface-notices-body`.
+     - Safely eliminated `!important` on mobile sheet padding override (`padding: 0`), where mobile sheet layouts already establish matching zero padding.
+     - Removed redundant `!important` on `.regional-notices-filter` border-color and `.dark .regional-notices-glider` border.
+     - Safely eliminated 2 `!important` declarations on `.regional-notices-glider` motion accommodations (`.motion-paused` and reduced-motion media query).
+     - Removed 4 `!important` declarations from `.trip-change-count-badge` (background, color, border-color, and dark/high-contrast text color), aligning its pattern with `.rsz-count-badge` and allowing natural cascade inheritance.
+  3. Reliability Analytics Panel (`panels/reliability.css`):
+     - Unified shared sizing constraints (`min-width: 0; max-width: 100%; width: 100%;`) across `.analytics-panel` and `.health-panel`, eliminating the dead `grid-column: span 1` declaration that was immediately superseded by explicit grid columns.
+     - Removed redundant `box-sizing: border-box;` on `.reliability-row` (already handled globally by `reset.css`).
+  4. Cascade Debt:
+     - Eliminated 11 `!important` declarations total (2 in `accessibility-outages.css`, 9 in `surface-notices.css`).
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,099 to 2,088 (-11 declarations).
+- Files changed:
+  - `frontend/src/styles/panels/accessibility-outages.css`
+  - `frontend/src/styles/panels/surface-notices.css`
+  - `frontend/src/styles/panels/reliability.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.9s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 19.9s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`renders regional accessibility outages in the global and station views`, `shows official TTC performance metrics from backend`, `opens the dedicated regional Trip Changes entry`): Passed (5/5 passed, 1 skipped).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 32,039 to 32,033 (-6 lines); authored CSS bytes reduced from 833,528 to 833,269 (-259 B); graph `!important` declarations reduced from 2,099 to 2,088 (-11); production chunk raw bytes reduced from 702,773 to 702,549 (-224 B); production gzip bytes reduced from 105,634 to 105,605 (-29 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Safely eliminated all 9 `!important` declarations in `surface-notices.css` and both `!important` declarations in `accessibility-outages.css`, bringing both stylesheets to zero `!important` declarations.
+  - Aligned `.trip-change-count-badge` with the clean declaration style of `.rsz-count-badge` in `alerts.css`.
+  - Streamlined `.analytics-panel` and `.health-panel` by grouping their shared fluid width/min-width constraints and dropping superseded `grid-column: span 1`.
+- Risks or blockers:
+  - None. All panel stylesheets in `src/styles/panels/` are now consolidated and cleanly verified.
+- Next session: S16A — Consolidate Map Stylesheets (`map/base-map.css`, `map/regional-map.css`, `map/station-markers.css`, `map/map-selection.css`, `map/commute-preview.css`, `map/train-markers.css`).
