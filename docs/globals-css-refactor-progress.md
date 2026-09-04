@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S10E
-- Last completed session: S10E
-- Next recommended session: S11
+- Current session: S11A
+- Last completed session: S11A
+- Next recommended session: S11B
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 11,227 |
-| Total authored app CSS lines | 31,414 | 31,965 |
-| Total authored app CSS bytes | 784,128 | 813,160 |
-| Parsed rules | 4,221 | 1,597 |
-| Declarations | 14,093 | 4,893 |
-| !important | 2,356 | 955 |
+| Global entry lines | 30,011 | 9,696 |
+| Total authored app CSS lines | 31,414 | 31,987 |
+| Total authored app CSS bytes | 784,128 | 815,150 |
+| Parsed rules | 4,221 | 1,372 |
+| Declarations | 14,093 | 4,143 |
+| !important | 2,356 | 849 |
 | Class-substring selectors | 32 | 22 |
 | Production CSS bytes | 705,472 | 707,988 |
-| Production CSS gzip bytes | 108,667 | 106,516 |
+| Production CSS gzip bytes | 108,667 | 106,466 |
 
 
 
@@ -841,4 +841,43 @@
   - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `account/notification-settings.css` in the application stylesheet graph and validating selector matches.
 - Risks or blockers:
   - None. S10E is fully completed and verified.
-- Next session: S11 — Extract remaining panels and utilities (alerts, delays, reduced speed zones, closures, accessibility outages, surface notices, reliability, release notes, privacy, site guide, shared motion/scroll affordances).
+- Next session: S11A — Extract active alerts, delay submenus, Reduced Speed Zone lists, and planned closures (`panels/alerts.css`).
+
+### S11A — Extract Active Alerts, Delay Submenus, Reduced Speed Zones & Planned Closures
+
+- Status: completed
+- Commit: 5259aecc
+- Scope: Extract active alert cards, delay submenus, Reduced Speed Zone lists, planned closures, line impact panels, compact impact list items, impact list toolbars, station impact jump buttons, and empty stack states from `globals.css` into a dedicated domain stylesheet `frontend/src/styles/panels/alerts.css` (1,553 lines). Add relative import `@import "../styles/panels/alerts.css";` to `globals.css` at line 33 immediately following `notification-settings.css`. Remove 1,532 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,142 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/panels/alerts.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,142 tests across 135 suites, 0 failures in ~916ms; +1 test for new stylesheet).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 1.89s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 11,227 to 9,696 (-1,531 lines, -13.6%); parsed rules -225; parsed declarations -750; `!important` -106; media queries -9; keyframe blocks -1; class-substring selectors in `globals.css` steady at 22; production chunk raw bytes 707,988; gzip bytes 106,466 (-50 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated domain stylesheet `frontend/src/styles/panels/alerts.css` (1,553 lines) isolating circle "View on Map" buttons and dual-tone jump icons, alert/planned closure card shells, active/danger/warning card borders, preview buttons, impact card route bounds, direction, metadata grids, RSZ timing and resolution breakdowns, impact timestamps, related planned closure buttons and active status buttons, impact list toolbars, category filters, total count badges, line impact panel stacks, embedded impact panel sizing, search inputs, view toggles, compact impact list items, station impact jump buttons, pulse animation, status tones, count badges, card borders, legend buttons, and empty stack alignment overrides.
+  - Removed 1,532 lines across 8 contiguous blocks from `globals.css`:
+    1. Circle "View on Map" buttons and JumpToLocationIcon dual-tone styling (lines 500-703 in original `globals.css`).
+    2. Alert card, closure card base styling, active/danger/warning states, and preview button (lines 2806-2860 in original `globals.css`).
+    3. Impact card heading, route bounds, direction, metadata grid, RSZ breakdowns, impact timestamps, related planned closures, closure window formatting, and closure status buttons (lines 3427-3768 in original `globals.css`).
+    4. Impact list toolbar, category filters, total badge, line impact panel stack, embedded impact panel, search input, selects, view toggle, and compact impact list items (lines 4762-5428 in original `globals.css`).
+    5. Station impact jump actions, jump button states, and card highlight pulse animation (lines 5486-5601 in original `globals.css`).
+    6. RSZ, delay, suspension, and planned closure status tones, badges, card borders, and legend buttons (lines 5650-5766 in original `globals.css`).
+    7. Compact impact location arrow styling (lines 9503-9514 in original `globals.css`).
+    8. Empty state alignment overrides for alert and closure stacks (lines 10682-10700 in original `globals.css`).
+  - Preserved cross-component elevation lists (`.alert-card`, `.closure-card`, `.compact-impact-list-item`, `.commute-card`, etc.) and shared scrollbar lists (`.alert-stack::-webkit-scrollbar`, `.closure-stack::-webkit-scrollbar`) in `globals.css` for S11E / utilities.
+  - Preserved shared typography reset (`.panel-title-row span, .closure-heading p, ...`) and panel heading tone alignment (`.panel-heading h2 > .delay-tone, ...`) in `globals.css`.
+  - Maintained cascade hierarchy by importing `panels/alerts.css` at line 33 immediately following `account/notification-settings.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `panels/alerts.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11A is fully completed and verified.
+- Next session: S11B — Extract accessibility outages and surface connection notices (`panels/accessibility-outages.css` and `panels/surface-notices.css` or combined notices stylesheet).
