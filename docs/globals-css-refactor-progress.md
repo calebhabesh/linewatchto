@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11C
-- Last completed session: S11C
-- Next recommended session: S11D
+- Current session: S11D
+- Last completed session: S11D
+- Next recommended session: S11E
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 8,538 |
-| Total authored app CSS lines | 31,414 | 32,096 |
-| Total authored app CSS bytes | 784,128 | 819,423 |
-| Parsed rules | 4,221 | 1,196 |
-| Declarations | 14,093 | 3,569 |
-| !important | 2,356 | 820 |
+| Global entry lines | 30,011 | 6,689 |
+| Total authored app CSS lines | 31,414 | 32,139 |
+| Total authored app CSS bytes | 784,128 | 821,482 |
+| Parsed rules | 4,221 | 923 |
+| Declarations | 14,093 | 2,650 |
+| !important | 2,356 | 796 |
 | Class-substring selectors | 32 | 22 |
 | Production CSS bytes | 705,472 | 708,413 |
-| Production CSS gzip bytes | 108,667 | 106,345 |
+| Production CSS gzip bytes | 108,667 | 106,295 |
 
 
 
@@ -959,3 +959,46 @@
 - Risks or blockers:
   - None. S11C is fully completed and verified.
 - Next session: S11D — Extract feedback, privacy, release notes, site guide, and opening disclaimer (`panels/feedback.css`, `panels/info-modals.css` or dedicated dialog stylesheets).
+
+### S11D — Extract Feedback, Privacy, Release Notes, Site Guide, and Opening Disclaimer
+
+- Status: completed
+- Commit: 9c019b87
+- Scope: Extract feedback form, inputs, character count, submit action, support cards, opening disclaimer backdrop/panel/welcome carousel/keyframes, site guide dropdown, utility popovers and keyframes, source status indicators, release notes notice banner, release notes panel, version cards, and privacy/acknowledgements dialog into two dedicated domain stylesheets: `frontend/src/styles/panels/feedback.css` (274 lines) and `frontend/src/styles/panels/info-modals.css` (1,618 lines). Add relative imports `@import "../styles/panels/feedback.css";` and `@import "../styles/panels/info-modals.css";` to `globals.css` immediately following `alert-history.css`. Remove 1,851 lines across 5 blocks from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,148 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/panels/feedback.css`
+  - `frontend/src/styles/panels/info-modals.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,148 tests across 135 suites, 0 failures in ~994ms; +2 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 8,538 to 6,689 (-1,849 lines, -21.7%); parsed rules -239 (1,162 to 923); parsed declarations -751 (3,401 to 2,650); `!important` -24 (820 to 796); media queries -3 (58 to 55); keyframe blocks -8 (49 to 41); class-substring selectors steady at 22; production chunk raw bytes steady at 708,413; gzip bytes 106,295 (-50 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created two dedicated, modular domain stylesheets:
+    1. `frontend/src/styles/panels/feedback.css` (274 lines) isolating `.feedback-panel`, `.feedback-content`, `.feedback-field`, textarea container, character count and error states, `.feedback-textarea`, honeypot, actions, `.feedback-submit-button`, status messages, and `.feedback-support-card` / `.feedback-support-button` across default, dark, and high-contrast modes.
+    2. `frontend/src/styles/panels/info-modals.css` (1,618 lines) isolating four distinct informational modal & guide components:
+       - Section 1: Opening disclaimer backdrop, panel, header, unofficial notice copy, and opening welcome walkthrough carousel (`.opening-welcome-panel`, slide viewport, image frames, legend previews, slide controls, dot pagination, and account linking).
+       - Section 2: Site guide dropdown (`.site-guide-dropdown`), utility popovers (`.utility-popover`, `--opening`, `--closing`), popover keyframes (`utility-popover-enter`, `utility-popover-exit`), and `.source-status-panel` data-source health indicators across light, dark, and high-contrast modes.
+       - Section 3: Release notes notice banner (`.release-notes-notice`), actions, and dismiss controls, plus full release notes panel (`.release-notes-panel`), current installed version card (`.release-notes-current`), and version history cards (`.release-note-card`, `.release-note-sections`).
+       - Section 4: Privacy & acknowledgements panel styling (`.privacy-acknowledgements-panel`).
+       - Keyframes: Opening disclaimer backdrop and modal entrance/exit animations (`opening-disclaimer-backdrop-enter`, `opening-disclaimer-backdrop-exit`, `opening-disclaimer-modal-exit`, `opening-welcome-card-enter`).
+  - Removed 1,851 lines across 5 blocks from `globals.css`:
+    1. Release notes notice banner and actions (lines 1098-1201 in previous `globals.css`, 104 lines).
+    2. Opening disclaimer backdrop, panel, welcome carousel, and media query overrides (lines 1369-2129 in previous `globals.css`, 761 lines).
+    3. Opening disclaimer backdrop and modal exit keyframes (lines 3617-3670 in previous `globals.css`, 54 lines).
+    4. Site guide dropdown, utility popover, popover keyframes, and source status panel (lines 4148-4635 in previous `globals.css`, 488 lines).
+    5. Feedback panel, privacy panel, and release notes history cards (lines 7036-7479 in previous `globals.css`, 444 lines).
+  - Preserved cross-component elevation lists and responsive container rules (`@media (max-width: 767px)`) in `globals.css` for S11E / utilities.
+  - Maintained cascade hierarchy by importing `panels/feedback.css` and `panels/info-modals.css` at lines 38-39 immediately following `panels/alert-history.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of both new stylesheets in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11D is fully completed and verified.
+- Next session: S11E — Extract shared motion, scroll affordances, and utility overrides (`utilities/motion.css`, `utilities/scroll.css`, or shared utilities).
