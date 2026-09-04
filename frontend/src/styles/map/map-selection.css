@@ -1,0 +1,238 @@
+.ttc-impact-hover-foreground-layer,
+.ttc-impact-hover-foreground {
+  pointer-events: none;
+}
+
+.ttc-impact-hover-foreground {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 70ms ease-out,
+    visibility 0s linear 70ms;
+}
+
+.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.ttc-impact-hover-outline,
+.ttc-impact-hover-outline-mask-outer,
+.ttc-impact-hover-outline-mask-cutout,
+.ttc-impact-hover-outline-mask-divider {
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ttc-impact-hover-outline {
+  stroke-width: 118px;
+}
+
+.ttc-impact-hover-outline-core {
+  stroke: rgba(15, 23, 42, 0.98);
+}
+
+.ttc-impact-hover-outline-edge {
+  stroke: rgba(248, 250, 252, 0.98);
+  filter: drop-shadow(0 0 4px rgba(191, 219, 254, 0.62));
+}
+
+.ttc-impact-hover-outline-mask-outer {
+  stroke: white;
+  stroke-width: 118px;
+}
+
+.ttc-impact-hover-outline-mask-cutout {
+  stroke: black;
+  stroke-width: 96px;
+}
+
+.ttc-impact-hover-outline-mask-divider {
+  stroke: black;
+  stroke-width: 108px;
+}
+
+.map-selection-attention {
+  --selection-intro-name: none;
+  --selection-breathe-name: none;
+  animation-name: var(--selection-intro-name), var(--selection-breathe-name);
+  animation-duration: var(--selection-intro-duration), var(--selection-breathe-duration);
+  animation-delay: 0s, var(--selection-intro-duration);
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-direction: normal, alternate;
+  animation-fill-mode: both, none;
+}
+
+/* Chromium does not consistently resolve animation-name custom properties on
+   a cross-SVG <use> instance. Spell out the TTC station lifecycle on the
+   regional top-plane copy so its visible flash cannot fall back to `none`. */
+.regional-station-top-selection.map-selection-attention {
+  animation-name: map-selection-station-intro, map-selection-station-breathe;
+  animation-duration: var(--selection-intro-duration), var(--selection-breathe-duration);
+  animation-delay: 0s, var(--selection-intro-duration);
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-direction: normal, alternate;
+  animation-fill-mode: both, none;
+}
+
+/* Dynamic regional alert layers are rebuilt when fresh dashboard data arrives.
+   Once a selection has finished its one-time intro, recreated SVG nodes must
+   join the breathing phase instead of replaying the fast flashes. */
+.map-selection-attention.selection-intro-complete {
+  animation-name: var(--selection-breathe-name) !important;
+  animation-duration: var(--selection-breathe-duration) !important;
+  animation-delay: 0s !important;
+  animation-timing-function: ease-in-out !important;
+  animation-iteration-count: infinite !important;
+  animation-direction: alternate !important;
+  animation-fill-mode: none !important;
+}
+
+.regional-station-top-selection.map-selection-attention.selection-intro-complete {
+  animation-name: map-selection-station-breathe !important;
+}
+
+@keyframes map-selection-path-intro {
+  0%, 25%, 50%, 75%, 100% {
+    opacity: 0.4;
+    stroke-width: 120;
+    filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.45));
+  }
+  12.5%, 37.5%, 62.5%, 87.5% {
+    opacity: 1;
+    stroke-width: 142;
+    filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.95));
+  }
+}
+
+@keyframes map-selection-path-breathe {
+  from {
+    opacity: 0.4;
+    stroke-width: 120;
+    filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.45));
+  }
+  to {
+    opacity: 0.92;
+    stroke-width: 132;
+    filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.95));
+  }
+}
+
+.asset-alert-path.map-selection-flash {
+  --selection-intro-name: map-selection-path-intro;
+  --selection-breathe-name: map-selection-path-breathe;
+  fill: none;
+  stroke: #0284c7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-opacity: 0.95;
+  stroke-width: 118;
+  stroke-dasharray: none !important;
+  filter: drop-shadow(0 0 16px rgba(2, 132, 199, 0.9));
+}
+
+.motion-paused .asset-alert-path.map-selection-flash {
+  animation: none;
+  opacity: 0.95;
+}
+
+/* Keep the selected segment legible without obscuring the underlying network on desktop. */
+@media (min-width: 768px) {
+  .motion-paused .asset-alert-path.map-selection-flash {
+    opacity: 0.55;
+  }
+}
+
+@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
+  .asset-alert-path.map-selection-flash {
+    opacity: 0.55;
+  }
+}
+
+@keyframes map-selection-station-intro {
+  0%, 25%, 50%, 75%, 100% {
+    opacity: 0.42;
+    fill: var(--station-selection-accent);
+    filter: drop-shadow(0 0 5px rgb(var(--station-selection-accent-rgb) / 45%));
+  }
+  12.5%, 37.5%, 62.5%, 87.5% {
+    opacity: 1;
+    filter: drop-shadow(0 0 13px rgb(var(--station-selection-accent-rgb) / 100%));
+  }
+}
+
+@keyframes map-selection-station-breathe {
+  from {
+    opacity: 0.42;
+    fill: var(--station-selection-accent);
+    filter: drop-shadow(0 0 5px rgb(var(--station-selection-accent-rgb) / 45%));
+  }
+  to {
+    opacity: 0.92;
+    fill: var(--station-selection-accent);
+    filter: drop-shadow(0 0 12px rgb(var(--station-selection-accent-rgb) / 95%));
+  }
+}
+
+.station-selection-flash {
+  --selection-intro-name: map-selection-station-intro;
+  --selection-breathe-name: map-selection-station-breathe;
+  fill: var(--station-selection-accent);
+  stroke: none;
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
+}
+
+/* The foreground selection owns the complete attention lifecycle. Keep its
+   selected-dot underlay inert and hidden in both map modes and at every
+   viewport size so two coincident station animations cannot compete. */
+.linewatch-shell .station-selected-indicator.foreground-flash-active {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+/* A regional top-plane <use> animates this referenced artwork as one unit.
+   The source retains selected-marker styling, but must not run the base
+   station pulse inside the parent's flash-to-breathe lifecycle. */
+.regional-station-selection-source-artwork {
+  animation: none !important;
+  opacity: 1 !important;
+  fill: var(--station-selection-accent) !important;
+  stroke: none !important;
+}
+
+.motion-paused .station-selection-flash,
+.motion-paused .regional-station-top-selection {
+  animation: none;
+  opacity: 0.95;
+}
+
+.motion-paused .station-selected-indicator:not(.multi-anchor):not(.foreground-flash-active),
+.motion-paused .station-selected-indicator.multi-anchor.active:not(.foreground-flash-active) {
+  animation: none !important;
+  opacity: 0.55 !important;
+  transform: scale(1) !important;
+}
+
+.motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path-glow,
+.motion-paused.linewatch-shell.mobile-performance-mode .interactive-glow,
+.motion-paused.linewatch-shell.mobile-performance-mode .station-selected-indicator,
+.motion-paused.linewatch-shell.mobile-performance-mode .station-selection-flash,
+.motion-paused.linewatch-shell.mobile-performance-mode .regional-station-top-selection,
+.motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
+  animation: none !important;
+}
+
+/* Match the non-animated mobile selection treatment without making it more saturated. */
+.motion-paused.linewatch-shell.mobile-performance-mode .station-selection-flash,
+.motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
+  opacity: 0.7;
+}
+
+.motion-paused.linewatch-shell.mobile-performance-mode .regional-station-top-selection {
+  opacity: 0.7;
+}

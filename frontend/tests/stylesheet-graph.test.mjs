@@ -224,4 +224,19 @@ describe("stylesheet-graph helper", () => {
     assert.match(regionalMapContent, /\.regional-delay-glyph/);
     assert.match(regionalMapContent, /\.regional-station-impact-ring/);
   });
+
+  it("resolves the extracted map/map-selection.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("map-selection.css")), "map-selection.css must be in graph files");
+    const mapSelectionContent = readStylesheet(new URL("../src/styles/map/map-selection.css", import.meta.url));
+    assert.match(mapSelectionContent, /\.ttc-impact-hover-foreground/);
+    assert.match(mapSelectionContent, /\.ttc-impact-hover-outline/);
+    assert.match(mapSelectionContent, /\.map-selection-attention/);
+    assert.match(mapSelectionContent, /@keyframes map-selection-path-intro/);
+    assert.match(mapSelectionContent, /@keyframes map-selection-station-intro/);
+    assert.match(mapSelectionContent, /\.asset-alert-path\.map-selection-flash/);
+    assert.match(mapSelectionContent, /\.station-selection-flash/);
+    assert.match(mapSelectionContent, /\.station-selected-indicator\.foreground-flash-active/);
+  });
 });

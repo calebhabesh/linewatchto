@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S06B
-- Last completed session: S06B
-- Next recommended session: S06C
+- Current session: S06C
+- Last completed session: S06C
+- Next recommended session: S06D
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 27,800 |
-| Total authored app CSS lines | 31,414 | 31,416 |
-| Total authored app CSS bytes | 784,128 | 784,495 |
-| Parsed rules | 4,221 | 3,953 |
-| Declarations | 14,093 | 13,096 |
-| !important | 2,356 | 2,203 |
+| Global entry lines | 30,011 | 27,563 |
+| Total authored app CSS lines | 31,414 | 31,417 |
+| Total authored app CSS bytes | 784,128 | 784,538 |
+| Parsed rules | 4,221 | 3,919 |
+| Declarations | 14,093 | 12,995 |
+| !important | 2,356 | 2,184 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 108,175 |
+| Production CSS gzip bytes | 108,667 | 107,918 |
 
 ## Session log
 
@@ -273,3 +273,32 @@
 - Risks or blockers:
   - None. Regional impact overlay extraction is clean and verified.
 - Next session: S06C — Extract selection and hover foregrounds (`map/map-selection.css`).
+
+### S06C — Extract selection and hover foregrounds
+
+- Status: completed
+- Commit: d3af7f25
+- Scope: Extract selection and hover foreground styles (TTC impact hover foreground layers, outlines, masks, selection attention keyframes and lifecycle, regional top-plane copy attention, segment selection flash, desktop reduced-motion opacity, station selection flash, foreground flash active suppression, regional station selection source artwork suppression, motion-paused and mobile-performance-mode selection overrides) from `globals.css` (238 lines across hover outline and selection blocks) into dedicated `frontend/src/styles/map/map-selection.css`. Add relative `@import "../styles/map/map-selection.css";` in top manifest order immediately following `regional-map.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/map/map-selection.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,120 tests, 0 failures across 135 suites in ~940ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.2s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 27,800 to 27,563; production chunk raw bytes unchanged at 705,499; gzip bytes improved by 257 bytes to 107,918).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, GO/UP desktop map, high contrast, station detail, My Commutes, and mobile views.
+- Decisions:
+  - Extracted contiguous TTC hover foreground block (56 lines) and selection attention/flash block (182 lines) into `frontend/src/styles/map/map-selection.css` (238 lines total), preserving exact declaration values, comments, keyframes, and selector syntax.
+  - Placed `@import "../styles/map/map-selection.css";` right after `@import "../styles/map/regional-map.css";` in top manifest order.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` verifying that `map-selection.css` resolves in the app stylesheet graph and reads directly via `readStylesheet()`.
+  - Preserved overlap badges and chooser (`.overlap-indicator`, `.overlap-chooser-*`), train markers, and commute path previews in `globals.css` for subsequent sessions (S06D and S06E).
+- Risks or blockers:
+  - None. Selection and hover foreground extraction is clean and verified.
+- Next session: S06D — Extract overlap badges and chooser (`map/overlap-chooser.css` or `map/overlap-indicators.css`).
