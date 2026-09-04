@@ -4,8 +4,8 @@
 
 - Branch: `refactor/css-architecture`
 - Current session: S15I
-- Last completed session: S15H
-- Next recommended session: S15I — Consolidate Alert History stylesheet (`panels/alert-history.css`), reducing repeated filter option styles, redundant dark/high-contrast border overrides, and cascade !important declarations
+- Last completed session: S15I
+- Next recommended session: S15J — Consolidate Remaining Panel Stylesheets (`panels/reliability.css`, `panels/surface-notices.css`, `panels/accessibility-outages.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and Chromium E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,083 |
-| Total authored app CSS bytes | 784,128 | 834,613 |
+| Total authored app CSS lines | 31,414 | 32,039 |
+| Total authored app CSS bytes | 784,128 | 833,528 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 703,561 |
-| Production CSS gzip bytes | 108,667 | 105,676 |
+| Production CSS bytes | 705,472 | 702,773 |
+| Production CSS gzip bytes | 108,667 | 105,634 |
 
 
 
@@ -1945,6 +1945,7 @@
 ### S15H — Verification unblocked and full test suite passing (2026-09-04)
 
 - Status: verification passed; all E2E test failures resolved; verification clean across all suites; ready for S15I.
+- Commit: 5baa768f
 - Scope: Diagnosed and resolved all test failures encountered during S15H E2E verification without weakening product contracts:
   1. `opens emailed password reset links directly` ([LineWatchShell.tsx](file://~/dev/linewatchto/frontend/src/components/LineWatchShell.tsx#L2075-L2085)): Bypassed `consumeBrowserNavigationEntries()` when navigating directly to `/reset-password` so the token and route are preserved during the password reset workflow.
   2. `mobile closing impact details preserves the focused map camera` ([dashboard.spec.ts](file://~/dev/linewatchto/frontend/tests/smoke/dashboard.spec.ts#L2519-L2538)): Accommodated deliberate `transformForViewportResize` re-centering on mobile inspector dismissal while verifying that scale and translateX are preserved and transform is not reset to `defaultTransform`.
@@ -1964,4 +1965,48 @@
   - `npm --prefix frontend run test:e2e`: Passed (165 passed, 53 skipped, 0 failed in 7.1m).
   - `npm --prefix frontend run metrics:css`: Passed (53 lines in `globals.css`, 32,083 authored CSS lines, largest production chunk 703,561 raw / 105,676 gzip bytes).
   - `git diff --check`: Passed (0 whitespace or formatting issues).
-- Next session: Proceed to S15I with clean verification across all suites.
+- Next session: S15I — Consolidate Alert History stylesheet (`panels/alert-history.css`).
+
+### S15I — Consolidate Alert History Stylesheet (2026-09-04)
+
+- Status: completed
+- Commit: f3b35414
+- Scope: Consolidate `frontend/src/styles/panels/alert-history.css`, eliminating duplicate filter option states, redundant dark/high-contrast border overrides, displaced details declarations, and cascade `!important` declarations while preserving the alert history timeline, search, filtering, card layout, typography, and responsive presentation:
+  1. Search & Filter Input Controls:
+     - Unified shared container layout, background, border, border-radius, box-shadow, and padding between `.alert-history-search-field` and `.alert-history-line-filter`.
+     - Deduplicated `.high-contrast .alert-history-search-field, .high-contrast .alert-history-line-filter` rules, combining the border/shadow declaration with background/color and eliminating 2 `!important` declarations.
+     - Deduplicated `.high-contrast .alert-history-line-filter-options`, combining border and background rules and eliminating 1 `!important` declaration.
+     - Unified identical hover, focus-visible, and selected state rules for `.high-contrast .alert-history-line-filter-option`.
+  2. Load More & Dark Alert History Item Redundancy:
+     - Removed 2 `!important` declarations on `.high-contrast .alert-history-load-more` (specificity `(0,2,0)` naturally beats `(0,1,0)`).
+     - Removed 5 redundant declarations on `.dark .alert-history-item` (`border-top`, `border-right`, `border-bottom`, `border-left`, and `box-shadow` were already set identically by `.alert-history-item`), eliminating 5 `!important` declarations while retaining the theme-specific background.
+  3. Status Labels, Type Labels & Details Consolidation:
+     - Cleaned up repetitive declarations across `.alert-history-status-label` and `.alert-history-type-label` while preserving exact selector-opening contracts required by fixture tests (`min-height: 1.5rem`).
+     - Removed redundant `.dark/.high-contrast .alert-history-type-label svg { color: currentColor; }` override already defined on the base selector.
+     - Consolidated scattered `.alert-history-details` declarations, removing dead superseded `border-top-color: rgba(255, 255, 255, 0.08)` and grouping base and dark/high-contrast properties in the lifecycle details section.
+  4. Cascade Debt:
+     - Eliminated 10 `!important` declarations total from `alert-history.css` (from 20 down to 10).
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,109 to 2,099 (-10 declarations).
+- Files changed:
+  - `frontend/src/styles/panels/alert-history.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.6s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 19.5s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted `alert history renders one stable card per incident occurrence with its full lifecycle` and `mobile More restores its scroll position after submenu back navigation`: Passed (2/2 passed, 2 skipped across desktop and mobile).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 32,083 to 32,039 (-44 lines); `alert-history.css` reduced from 962 to 918 lines (-44 lines); authored CSS bytes reduced from 834,613 to 833,528 (-1,085 B); graph `!important` declarations reduced from 2,109 to 2,099 (-10); production chunk raw bytes reduced from 703,561 to 702,773 (-788 B); production gzip bytes reduced from 105,676 to 105,634 (-42 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved `.alert-history-status-label { min-height: 1.5rem; ... }` as an independent opening selector to fulfill fixture test contract expectations.
+  - Kept the intentional `!important` on `.alert-history-item` box-shadow and high-contrast item overrides because the later shared card-elevation layer deliberately applies important opaque surfaces.
+  - Safely eliminated `!important` on high-contrast load-more and filter controls where parent specificity `(0,2,0)` naturally wins over base `(0,1,0)`.
+- Risks or blockers:
+  - None. Alert history consolidation is verified cleanly across unit contracts, typecheck, lint, production build, smoke, visual regression, and targeted E2E lifecycle interactions.
+- Next session: S15J — Consolidate Remaining Panel Stylesheets (`panels/reliability.css`, `panels/surface-notices.css`, `panels/accessibility-outages.css`).
