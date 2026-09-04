@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S09C
-- Last completed session: S09C
-- Next recommended session: S09D
+- Current session: S09D
+- Last completed session: S09D
+- Next recommended session: S10A
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 18,363 |
-| Total authored app CSS lines | 31,414 | 31,593 |
-| Total authored app CSS bytes | 784,128 | 791,079 |
-| Parsed rules | 4,221 | 2,605 |
-| Declarations | 14,093 | 8,559 |
-| !important | 2,356 | 1,216 |
-| Class-substring selectors | 32 | 28 |
-| Production CSS bytes | 705,472 | 706,597 |
-| Production CSS gzip bytes | 108,667 | 106,825 |
+| Global entry lines | 30,011 | 17,951 |
+| Total authored app CSS lines | 31,414 | 31,678 |
+| Total authored app CSS bytes | 784,128 | 795,422 |
+| Parsed rules | 4,221 | 2,543 |
+| Declarations | 14,093 | 8,358 |
+| !important | 2,356 | 1,185 |
+| Class-substring selectors | 32 | 22 |
+| Production CSS bytes | 705,472 | 707,463 |
+| Production CSS gzip bytes | 108,667 | 106,877 |
 
 
 ## Session log
@@ -618,3 +618,43 @@
 - Risks or blockers:
   - None. S09C is fully complete and verified.
 - Next session: S09D — Extract station accessibility notices and surface connection cards (`station/station-accessibility.css` & `station/surface-connections.css` or combined S09D module).
+
+### S09D — Extract station accessibility notices and surface connection cards
+
+- Status: completed
+- Commit: 245af8e9
+- Scope: Extract station accessibility accordion (`.station-accessibility-details`, `.station-accessibility-summary`, `.station-accessibility-chevron`, `.station-accessibility-content-wrapper`, `.station-accessibility-content`), station notices accordion (`.station-notices-details`, `.station-notices-summary`, `.station-notices-chevron`, `.station-notices-content-wrapper`, `.station-notices-content`), access outage badge and count (`.station-access-outage-badge`, `.station-access-outage-count`), access outage summary banner button (`[data-station-access-outage-summary]`), station notices & accessibility item card styles, and high-contrast overrides into `frontend/src/styles/station/station-accessibility.css`. Extract surface connections accordion (`.surface-connections-details`, `.surface-connections-summary`, `.surface-connections-chevron`, `.surface-connections-content`, `.surface-connections-collapsed-pinned`, `.saved-station-arrival-group.is-surface-group`), connected networks cards (`.station-connections-card`, `.station-connections-title`, `.station-connection-list`, `.station-connection-row`, `.station-connection-icon`), tactile connection row overrides, surface route departure tiles (`.station-detail-panel [data-surface-route] [class*="min-h-[74px]"]`), and high-contrast overrides into `frontend/src/styles/station/surface-connections.css`. Add relative imports to `globals.css` lines 26 and 27. Remove 412 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,136 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/station/station-accessibility.css`
+  - `frontend/src/styles/station/surface-connections.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,136 tests across 135 suites, 0 failures in ~960ms; +2 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.0s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 18,363 to 17,951 (-412 lines); parsed rules -62; parsed declarations -201; `!important` -31; class-substring selectors in `globals.css` reduced from 28 to 22 (-6); production chunk raw bytes 707,463; gzip bytes 106,877).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created two dedicated, modular stylesheets for clean architectural separation:
+    1. `frontend/src/styles/station/station-accessibility.css` (233 lines) isolating station accessibility details, station notices details, elevator/escalator outage badges and count, access outage summary banner button, item card box-shadow/borders, and high-contrast overrides.
+    2. `frontend/src/styles/station/surface-connections.css` (264 lines) isolating surface connections details, surface departure tiles, connected network cards and icons, tactile overrides, and high-contrast rules.
+  - Removed 412 lines from `globals.css`:
+    1. Top surface connection details block (lines 27 to 91 in `globals.css`).
+    2. Connected network cards and rows (lines 199 to 326 in `globals.css`).
+    3. Station accessibility & notices details accordion, chevrons, and outage badges/count (lines 3086-3096 and lines 3122-3254 in `globals.css`), while preserving station impacts and trip changes accordion styles (`.station-impacts-...`, `.station-trip-changes-...`) in `globals.css` for S11.
+    4. Access outage summary banner button (`[data-station-access-outage-summary]`, lines 14341-14364 in `globals.css`).
+    5. Tactile connection rows (`.station-connection-row`, lines 14366-14382 in `globals.css`), while preserving `.station-impact-jump-button` in `globals.css`.
+    6. Surface route departure tiles (`.station-detail-panel [data-surface-route] [class*="min-h-[74px]"]`, lines 14402-14414 in `globals.css`).
+    7. Station notices & accessibility cards (`.station-notices-details [class*="rounded-md border"]`, `.station-accessibility-details [class*="rounded-md border"]`, lines 14416-14431 in `globals.css`).
+  - Class-substring selectors in `globals.css` reduced from 28 to 22 (-6 class-substring selectors extracted).
+  - Maintained cascade hierarchy by importing `station-accessibility.css` and `surface-connections.css` at lines 26 and 27 immediately following `station-arrivals.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `station/station-accessibility.css` and `station/surface-connections.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S09 (all phases S09A, S09B, S09C, S09D) is fully completed and verified.
+- Next session: S10A — Extract account dialogs and signed-out previews (`account/account-dialogs.css`).
