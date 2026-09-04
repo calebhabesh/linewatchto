@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
+import java.net.SocketTimeoutException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 @Component
 public class TtcAlertClient {
@@ -57,8 +59,22 @@ public class TtcAlertClient {
             );
         } catch (TtcAlertClientException exception) {
             throw exception;
+        } catch (RestClientResponseException exception) {
+            throw new TtcAlertClientException(
+                "TTC Live Alerts returned HTTP " + exception.getStatusCode().value(),
+                exception,
+                TtcSourceFetchStatus.HTTP_ERROR,
+                exception.getStatusCode().value()
+            );
         } catch (Exception exception) {
-            throw new TtcAlertClientException("Unable to fetch TTC Live Alerts", exception);
+            throw new TtcAlertClientException(
+                "Unable to fetch TTC Live Alerts",
+                exception,
+                containsSocketTimeout(exception)
+                    ? TtcSourceFetchStatus.TIMEOUT
+                    : TtcSourceFetchStatus.REQUEST_ERROR,
+                null
+            );
         }
     }
 
@@ -66,7 +82,7 @@ public class TtcAlertClient {
         try {
             JsonNode root = objectMapper.readTree(body);
             if (root == null || !root.isObject()) {
-                throw new TtcAlertClientException("TTC Live Alerts payload must be an object");
+                throw TtcAlertClientException.invalidResponse("TTC Live Alerts payload must be an object");
             }
             return new TtcAlertFeed(
                 parseOptionalTimestamp(root.get("lastUpdated")),
@@ -81,14 +97,14 @@ public class TtcAlertClient {
         } catch (TtcAlertClientException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new TtcAlertClientException("Unable to parse TTC Live Alerts payload", exception);
+            throw TtcAlertClientException.invalidResponse("Unable to parse TTC Live Alerts payload", exception);
         }
     }
 
     private List<TtcFetchedRecord> parseSection(JsonNode root, String section) throws Exception {
         JsonNode records = root.get(section);
         if (records == null || !records.isArray()) {
-            throw new TtcAlertClientException("TTC Live Alerts payload requires array: " + section);
+            throw TtcAlertClientException.invalidResponse("TTC Live Alerts payload requires array: " + section);
         }
         List<TtcFetchedRecord> parsed = new ArrayList<>();
         for (JsonNode node : records) {
@@ -109,7 +125,7 @@ public class TtcAlertClient {
             return List.of(parseRecord(records));
         }
         if (!records.isArray()) {
-            throw new TtcAlertClientException(
+            throw TtcAlertClientException.invalidResponse(
                 "TTC Live Alerts optional section must be an object, array, or null: " + section
             );
         }
@@ -175,5 +191,16 @@ public class TtcAlertClient {
         return routeType.contains("bus")
             || routeType.contains("streetcar")
             || routeType.equals("surface");
+    }
+
+    private boolean containsSocketTimeout(Throwable failure) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current instanceof SocketTimeoutException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

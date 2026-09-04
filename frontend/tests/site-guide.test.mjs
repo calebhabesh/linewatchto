@@ -202,6 +202,10 @@ describe("site guide dropdown", () => {
 
   it("adds scoped guide styles without broad theme churn", () => {
     assert.match(globalCss, /\.site-guide-panel/);
+    assert.match(globalCss, /\.site-guide-panel\s*\{[\s\S]*?border:\s*none !important;/);
+    assert.doesNotMatch(globalCss, /\.linewatch-shell\.high-contrast \.site-guide-panel[\s\S]*?border:\s*1px solid/);
+    assert.match(globalCss, /\.source-status-panel\s*\{[\s\S]*?border:\s*none !important;/);
+    assert.match(globalCss, /\.source-status-card\s*\{[\s\S]*?border:\s*none !important;[\s\S]*?var\(--mobile-card-shadow\)/);
     assert.match(globalCss, /\.site-guide-trigger/);
     assert.match(globalCss, /\.site-guide-divider/);
     assert.doesNotMatch(globalCss, /\.site-guide-install-asset-box/);

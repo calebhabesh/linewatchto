@@ -255,7 +255,9 @@ class TtcAlertClientTest {
             .andRespond(withSuccess("{\"routes\":{}}", MediaType.APPLICATION_JSON));
 
         assertThatThrownBy(client::fetch)
-            .isInstanceOf(TtcAlertClientException.class)
+            .isInstanceOfSatisfying(TtcAlertClientException.class, exception ->
+                assertThat(exception.fetchStatus()).isEqualTo(TtcSourceFetchStatus.INVALID_RESPONSE)
+            )
             .hasMessageContaining("routes");
     }
 
@@ -265,7 +267,10 @@ class TtcAlertClientTest {
             .andRespond(withServerError());
 
         assertThatThrownBy(client::fetch)
-            .isInstanceOf(TtcAlertClientException.class)
+            .isInstanceOfSatisfying(TtcAlertClientException.class, exception -> {
+                assertThat(exception.fetchStatus()).isEqualTo(TtcSourceFetchStatus.HTTP_ERROR);
+                assertThat(exception.httpStatus()).isEqualTo(500);
+            })
             .hasMessageContaining("TTC Live Alerts");
     }
 

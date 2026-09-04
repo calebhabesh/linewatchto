@@ -197,7 +197,7 @@ describe("alert history timeline UI", () => {
   });
 
   it("keeps thin card accents without the centered route strip", () => {
-    assert.match(cssSource, /border-left:\s*2px solid/);
+    assert.match(cssSource, /border-left:\s*(?:1\.5|2)px solid/);
     assert.doesNotMatch(timelineSource, /HistoryRouteSummary/);
     assert.doesNotMatch(timelineSource, /historyRouteParts/);
     assert.doesNotMatch(timelineSource, /alert-history-route-summary/);

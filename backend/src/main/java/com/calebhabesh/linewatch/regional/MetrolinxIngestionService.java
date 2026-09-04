@@ -33,7 +33,14 @@ public class MetrolinxIngestionService {
     public FeedApplicationCounts ingestNow() {
         long runId = runService.start();
         try {
-            MetrolinxFeed feed = client.fetchAlerts();
+            MetrolinxFeed feed;
+            try {
+                feed = client.fetchAlerts();
+                runService.recordSourceStatuses(runId, feed);
+            } catch (MetrolinxClientException exception) {
+                runService.recordSourceOutcomes(runId, exception.sourceOutcomes());
+                throw exception;
+            }
             List<RegionalAlertClassification> classifications = normalizer.classify(feed);
             List<RegionalNormalizedAlert> alerts = normalizer.normalize(feed, classifications);
             FeedApplicationCounts counts = applicationService.apply(feed, alerts, classifications);

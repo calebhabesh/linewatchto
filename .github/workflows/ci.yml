@@ -59,6 +59,13 @@ jobs:
           BACKEND_URL: http://127.0.0.1:8080
           NEXT_PUBLIC_LINEWATCH_API_BASE_URL: http://127.0.0.1:8080
 
+      - name: Install cross-browser Playwright runtimes
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Cross-browser map geometry
+        run: npm --prefix frontend run test:browser-compat
+
   mobile:
     name: Mobile
     runs-on: ubuntu-latest

@@ -175,7 +175,8 @@ describe("stable raster map renderer", () => {
     );
     assert.doesNotMatch(css, /\.ttc-authored-svg-source \.station-label-hover-effect-active[\s\S]*visibility:\s*visible/);
     assert.match(css, /\.raster-station-label-text-hover\s*\{[^}]*filter:\s*drop-shadow/s);
-    assert.match(mapLabelFontHook, /document\.fonts\s*\.load\(MAP_LABEL_FONT_SPEC, MAP_LABEL_FONT_SAMPLE\)/);
+    assert.match(mapLabelFontHook, /MAP_LABEL_FONT_SPECS\.map\(\(spec\) => document\.fonts\.load\(spec, MAP_LABEL_FONT_SAMPLE\)\)/);
+    assert.match(mapLabelFontHook, /fontFaces\.every/);
     assert.match(mapLabelFontHook, /faces\.length > 0 && faces\.every\(\(face\) => face\.status === "loaded"\)/);
     assert.match(ttc, /if \(!mapLabelFontReady \|\| loadState !== "ready" \|\| !mapSvgRef\.current\) return/);
     assert.match(regional, /if \(!mapLabelFontReady\) return null/);

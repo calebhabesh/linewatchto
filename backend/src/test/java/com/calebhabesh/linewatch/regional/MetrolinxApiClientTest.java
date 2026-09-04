@@ -110,12 +110,30 @@ class MetrolinxApiClientTest {
     void sanitizesUpstreamFailuresSoTheApiKeyIsNotLeaked() {
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceUpdate/ServiceAlert/All?key=" + KEY))
             .andRespond(withServerError());
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceUpdate/InformationAlert/All?key=" + KEY))
+            .andRespond(withSuccess(restAlerts("I1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceUpdate/MarketingAlert/All?key=" + KEY))
+            .andRespond(withSuccess(restAlerts("MK1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/Alerts?key=" + KEY))
+            .andRespond(withSuccess(gtfsAlerts("GO-GTFS-1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/ServiceUpdate/Exceptions/Train?key=" + KEY))
+            .andRespond(withSuccess(noContent(), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/TripUpdates?key=" + KEY))
+            .andRespond(withSuccess(gtfsTripUpdates("GO-TRIP-1"), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/Alerts?key=" + KEY))
+            .andRespond(withSuccess(gtfsAlerts("UP1"), MediaType.APPLICATION_JSON));
 
         assertThatThrownBy(client::fetchAlerts)
             .isInstanceOf(MetrolinxClientException.class)
             .hasMessage("Unable to fetch Metrolinx GO service alerts")
             .hasMessageNotContaining(KEY)
-            .hasNoCause();
+            .hasNoCause()
+            .isInstanceOfSatisfying(MetrolinxClientException.class, exception ->
+                assertThat(exception.sourceOutcomes())
+                    .containsEntry(MetrolinxSourceSystem.GO_SERVICE_ALERTS, false)
+                    .containsEntry(MetrolinxSourceSystem.UP_GTFS_ALERTS, true)
+            );
+        server.verify();
     }
 
     @Test

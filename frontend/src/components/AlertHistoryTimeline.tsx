@@ -526,7 +526,7 @@ const HistoryIncident = memo(function HistoryIncident({
         cleared
           ? "alert-history-event-cleared"
           : `alert-history-event-active alert-history-tone-${historyAlertTypeTone(incident.eventType)}`
-      } !bg-slate-50 dark:!bg-[#12151c] transition-all`}
+      } transition-all`}
     >
       <div className="alert-history-content">
         <div className="alert-history-card-heading">

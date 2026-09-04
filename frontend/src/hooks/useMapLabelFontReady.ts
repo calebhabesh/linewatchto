@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-const MAP_LABEL_FONT_SPEC = '400 80px "TeX Gyre Heros"';
+const MAP_LABEL_FONT_SPECS = [
+  '400 80px "TeX Gyre Heros"',
+  '700 100px "TeX Gyre Heros"',
+] as const;
 const MAP_LABEL_FONT_SAMPLE = "Tobermory Norfinch Oakdale Union";
 
 let mapLabelFontLoaded = false;
@@ -13,10 +16,13 @@ export function loadMapLabelFont(): Promise<boolean> {
   if (mapLabelFontLoadPromise) return mapLabelFontLoadPromise;
   if (typeof document === "undefined" || !document.fonts) return Promise.resolve(false);
 
-  mapLabelFontLoadPromise = document.fonts
-    .load(MAP_LABEL_FONT_SPEC, MAP_LABEL_FONT_SAMPLE)
-    .then((faces) => {
-      mapLabelFontLoaded = faces.length > 0 && faces.every((face) => face.status === "loaded");
+  mapLabelFontLoadPromise = Promise.all(
+    MAP_LABEL_FONT_SPECS.map((spec) => document.fonts.load(spec, MAP_LABEL_FONT_SAMPLE)),
+  )
+    .then((fontFaces) => {
+      mapLabelFontLoaded = fontFaces.every(
+        (faces) => faces.length > 0 && faces.every((face) => face.status === "loaded"),
+      );
       return mapLabelFontLoaded;
     })
     .catch(() => false)

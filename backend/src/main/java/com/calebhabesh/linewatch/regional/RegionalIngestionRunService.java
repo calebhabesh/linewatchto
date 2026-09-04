@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.regional;
 import com.calebhabesh.linewatch.ingestion.FeedApplicationCounts;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,16 @@ public class RegionalIngestionRunService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void succeed(long id, FeedApplicationCounts counts, MetrolinxFeed feed) {
         store.markSuccess(id, now(), counts, feed.sourceUpdatedAt());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordSourceStatuses(long id, MetrolinxFeed feed) {
         store.replaceSourceStatuses(id, feed);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordSourceOutcomes(long id, Map<String, Boolean> sourceOutcomes) {
+        store.recordSourceOutcomes(id, sourceOutcomes);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

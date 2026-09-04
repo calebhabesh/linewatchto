@@ -50,6 +50,16 @@ public class IngestionRunService {
         store.markFailed(id, now(), message.substring(0, Math.min(message.length(), MAX_ERROR_LENGTH)));
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordSourceFetch(
+        long id,
+        TtcSourceFetchStatus status,
+        Integer httpStatus,
+        long responseMs
+    ) {
+        store.recordSourceFetch(id, status, httpStatus, responseMs);
+    }
+
     private OffsetDateTime now() {
         return OffsetDateTime.now(clock);
     }

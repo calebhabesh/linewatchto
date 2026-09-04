@@ -23,6 +23,8 @@ class RegionalIngestionHealthControllerTest {
         properties.setApiKey("configured");
         RegionalIngestionRunStore runStore = mock(RegionalIngestionRunStore.class);
         RegionalIngestionFreshness freshness = mock(RegionalIngestionFreshness.class);
+        RegionalFeedAvailabilityService availabilityService = mock(RegionalFeedAvailabilityService.class);
+        when(availabilityService.summarize()).thenReturn(availability());
         OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-30T12:00:00-04:00");
         IngestionRunSnapshot run = new IngestionRunSnapshot(
             42, "success", completedAt.minusSeconds(2), completedAt, 30, 30, 2, 28, completedAt, null
@@ -38,7 +40,7 @@ class RegionalIngestionHealthControllerTest {
         ));
 
         RegionalIngestionHealthController.RegionalIngestionHealthResponse response =
-            new RegionalIngestionHealthController(properties, runStore, freshness).health();
+            new RegionalIngestionHealthController(properties, runStore, freshness, availabilityService).health();
 
         assertThat(response.collections()).hasSize(MetrolinxSourceSystem.descriptors().size());
         assertThat(response.collections())
@@ -60,6 +62,11 @@ class RegionalIngestionHealthControllerTest {
             .singleElement().satisfies(collection -> {
             assertThat(collection.status()).isEqualTo("unknown");
         });
+        assertThat(response.feedAvailability().availabilityPercentage()).isEqualTo(99.5);
+        assertThat(response.sourceEndpoints()).containsExactly(
+            "https://api.openmetrolinx.com/OpenDataAPI/api/V1/ServiceUpdate/ServiceAlert/All",
+            "https://api.openmetrolinx.com/OpenDataAPI/api/V1/UP/Gtfs/Feed/Alerts"
+        );
     }
 
     @Test
@@ -67,6 +74,8 @@ class RegionalIngestionHealthControllerTest {
         MetrolinxProperties properties = new MetrolinxProperties();
         RegionalIngestionRunStore runStore = mock(RegionalIngestionRunStore.class);
         RegionalIngestionFreshness freshness = mock(RegionalIngestionFreshness.class);
+        RegionalFeedAvailabilityService availabilityService = mock(RegionalFeedAvailabilityService.class);
+        when(availabilityService.summarize()).thenReturn(availability());
         OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-30T12:00:00-04:00");
         IngestionRunSnapshot run = new IngestionRunSnapshot(
             42, "failed", completedAt.minusSeconds(2), completedAt, 0, 0, 0, 0, null,
@@ -76,9 +85,33 @@ class RegionalIngestionHealthControllerTest {
         when(runStore.findSourceStatuses(42)).thenReturn(List.of());
 
         String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(
-            new RegionalIngestionHealthController(properties, runStore, freshness).health()
+            new RegionalIngestionHealthController(properties, runStore, freshness, availabilityService).health()
         );
 
         assertThat(json).doesNotContain("errorMessage", "internal-upstream-host");
+    }
+
+    @Test
+    void withholdsNonOfficialMetrolinxEndpointConfiguration() {
+        MetrolinxProperties properties = new MetrolinxProperties();
+        properties.setBaseUrl(java.net.URI.create("https://internal.example.test/OpenDataAPI/?key=secret"));
+        RegionalIngestionRunStore runStore = mock(RegionalIngestionRunStore.class);
+        RegionalIngestionFreshness freshness = mock(RegionalIngestionFreshness.class);
+        RegionalFeedAvailabilityService availabilityService = mock(RegionalFeedAvailabilityService.class);
+        when(runStore.findLatest()).thenReturn(Optional.empty());
+        when(availabilityService.summarize()).thenReturn(availability());
+
+        var response = new RegionalIngestionHealthController(
+            properties, runStore, freshness, availabilityService
+        ).health();
+
+        assertThat(response.sourceEndpoints()).isEmpty();
+    }
+
+    private RegionalFeedAvailabilityService.RegionalFeedAvailability availability() {
+        return new RegionalFeedAvailabilityService.RegionalFeedAvailability(
+            30, 99.5, 98.0, 398, 2, 400,
+            java.time.LocalDate.parse("2026-07-01"), List.of()
+        );
     }
 }

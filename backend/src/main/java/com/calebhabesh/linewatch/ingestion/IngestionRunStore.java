@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -88,6 +89,62 @@ public class IngestionRunStore {
                 .addValue("errorMessage", errorMessage));
     }
 
+    public void recordSourceFetch(
+        long id,
+        TtcSourceFetchStatus status,
+        Integer httpStatus,
+        long responseMs
+    ) {
+        jdbc.update("""
+            update ingestion_runs set
+                source_fetch_status = :sourceFetchStatus,
+                source_http_status = :sourceHttpStatus,
+                source_response_ms = :sourceResponseMs
+            where id = :id and run_type = 'alerts'
+            """, new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("sourceFetchStatus", status.persistedValue())
+                .addValue("sourceHttpStatus", httpStatus)
+                .addValue("sourceResponseMs", Math.max(0, responseMs)));
+    }
+
+    public Optional<OffsetDateTime> findFirstSourceFetchAt() {
+        OffsetDateTime first = jdbc.queryForObject("""
+            select min(started_at)
+            from ingestion_runs
+            where run_type = 'alerts' and source_fetch_status is not null
+            """, new MapSqlParameterSource(), OffsetDateTime.class);
+        return Optional.ofNullable(first);
+    }
+
+    public List<SourceFetchDailyCount> sourceFetchDailyCounts(
+        OffsetDateTime fromInclusive,
+        OffsetDateTime toExclusive
+    ) {
+        return jdbc.query("""
+            select
+                (started_at at time zone 'America/Toronto')::date as observation_date,
+                count(*) filter (where source_fetch_status = 'success') as successful_checks,
+                count(*) filter (where source_fetch_status <> 'success') as failed_checks,
+                count(*) as total_checks
+            from ingestion_runs
+            where run_type = 'alerts'
+              and source_fetch_status is not null
+              and started_at >= :fromInclusive
+              and started_at < :toExclusive
+            group by observation_date
+            order by observation_date
+            """, new MapSqlParameterSource()
+                .addValue("fromInclusive", fromInclusive)
+                .addValue("toExclusive", toExclusive),
+            (resultSet, rowNumber) -> new SourceFetchDailyCount(
+                resultSet.getObject("observation_date", LocalDate.class),
+                resultSet.getInt("successful_checks"),
+                resultSet.getInt("failed_checks"),
+                resultSet.getInt("total_checks")
+            ));
+    }
+
     public Optional<IngestionRunSnapshot> findLatest() {
         return findOne("""
             select id, status, started_at, completed_at, records_fetched, records_staged,
@@ -131,4 +188,11 @@ public class IngestionRunStore {
             ));
         return runs.stream().findFirst();
     }
+
+    public record SourceFetchDailyCount(
+        LocalDate date,
+        int successfulChecks,
+        int failedChecks,
+        int totalChecks
+    ) {}
 }

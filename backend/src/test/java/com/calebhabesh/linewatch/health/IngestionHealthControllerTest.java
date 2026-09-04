@@ -8,6 +8,7 @@ import com.calebhabesh.linewatch.ingestion.AlertIngestionProperties;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -35,8 +36,9 @@ class IngestionHealthControllerTest {
     private final DashboardCacheService cache = mock(DashboardCacheService.class);
     private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
     private final AlertIngestionProperties ingestionProperties = new AlertIngestionProperties();
+    private final TtcFeedAvailabilityService availabilityService = mock(TtcFeedAvailabilityService.class);
     private final IngestionHealthController controller = new IngestionHealthController(
-        store, freshness, cache, cacheProperties, ingestionProperties
+        store, freshness, cache, cacheProperties, ingestionProperties, availabilityService
     );
 
     @BeforeEach
@@ -45,6 +47,10 @@ class IngestionHealthControllerTest {
             java.util.function.Supplier<?> supplier = invocation.getArgument(3);
             return supplier.get();
         });
+        when(availabilityService.summarize()).thenReturn(new TtcFeedAvailabilityService.TtcFeedAvailability(
+            30, 99.8, 98.4, 998, 2, 1000,
+            java.time.LocalDate.parse("2026-05-03"), java.util.List.of()
+        ));
     }
 
     @Test
@@ -55,6 +61,8 @@ class IngestionHealthControllerTest {
 
         assertThat(response.status()).isEqualTo("not-run");
         assertThat(response.dashboardLive()).isFalse();
+        assertThat(response.feedAvailability().availabilityPercentage()).isEqualTo(99.8);
+        assertThat(response.sourceEndpoint()).isEqualTo("https://alerts.ttc.ca/api/alerts/live-alerts");
     }
 
     @Test
@@ -125,5 +133,19 @@ class IngestionHealthControllerTest {
         String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(controller.ingestion());
 
         assertThat(json).doesNotContain("errorMessage", "internal-host");
+    }
+
+    @Test
+    void stripsQueriesFromAllowlistedTtcEndpointAndWithholdsOtherHosts() {
+        ingestionProperties.setUrl(URI.create(
+            "https://alerts.ttc.ca/api/alerts/live-alerts?token=not-public"
+        ));
+        when(store.findLatest()).thenReturn(Optional.empty());
+
+        assertThat(controller.ingestion().sourceEndpoint())
+            .isEqualTo("https://alerts.ttc.ca/api/alerts/live-alerts");
+
+        ingestionProperties.setUrl(URI.create("https://internal.example.test/ttc?token=not-public"));
+        assertThat(controller.ingestion().sourceEndpoint()).isNull();
     }
 }

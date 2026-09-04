@@ -10,6 +10,7 @@ import {
   readSvgStationLabelPolygons,
   readSvgStationCenters,
   resolveNetworkSegmentPath,
+  svgElementMatrixToRootCoordinates,
   transformBoundsToRootCoordinates,
   visualTravelDirection,
   samplePath,
@@ -572,7 +573,8 @@ function InteractiveTtcMapComponent({
 
   useLayoutEffect(() => {
     if (loadState !== "ready" || !mapSvgRef.current) return;
-    if (measuredGeometrySignatureRef.current === geometryMeasurementSignature) return;
+    const measurementSignature = `${geometryMeasurementSignature}::font-ready:${mapLabelFontReady}`;
+    if (measuredGeometrySignatureRef.current === measurementSignature) return;
     const geometry = readSvgGeometry(mapSvgRef.current, networkSegments);
     setAnchorPoints(geometry.anchorPoints);
     setGuidePaths(geometry.guidePaths);
@@ -589,9 +591,13 @@ function InteractiveTtcMapComponent({
       ...collectMapCollisionBoxes(mapSvgRef.current),
       ...baseRouteCollisionBoxes,
     ]);
-    measuredGeometrySignatureRef.current = geometryMeasurementSignature;
+    // Font-display: swap can change label bounds after the first usable map
+    // frame. Allow the font-ready pass to reorganize badges against the final
+    // authored metrics rather than preserving positions from the fallback.
+    if (mapLabelFontReady) lockedOverlapBadgeLayoutsRef.current = new Map();
+    measuredGeometrySignatureRef.current = measurementSignature;
     setGeometryReady(true);
-  }, [geometryMeasurementSignature, loadState, mapStations, networkSegments, stations]);
+  }, [geometryMeasurementSignature, loadState, mapLabelFontReady, mapStations, networkSegments, stations]);
 
   useLayoutEffect(() => {
     if (!mapLabelFontReady || loadState !== "ready" || !mapSvgRef.current) return;
@@ -2163,7 +2169,16 @@ function InteractiveTtcMapComponent({
           >
             <style>
               {`
-                #non-linear-guides-layer { display: none; }
+                /* Keep geometry-only guides in the SVG layout tree so every
+                   engine can resolve getScreenCTM(). Inkscape authors this
+                   group as display:none, which WebKit may treat as having no
+                   usable screen transform. Visibility suppresses painting
+                   without removing the guide geometry from layout. */
+                #non-linear-guides-layer {
+                  display: inline !important;
+                  visibility: hidden;
+                  pointer-events: none;
+                }
 
                 /* Dark theme overrides for black elements in the SVG */
                 .dark .ttc-svg-container svg .fil6,
@@ -3898,6 +3913,7 @@ const INJECTED_MAP_OVERLAY_SELECTOR = [
   '[aria-label="Disruption overlays"]',
   '[aria-label="Overlapping alert badges"]',
   '[aria-label="Cardinal North Compass"]',
+  "#non-linear-guides-layer",
   "defs",
 ].join(", ");
 
@@ -3912,7 +3928,11 @@ function collectMapCollisionBoxes(svg: SVGSVGElement): SvgBounds[] {
       if (!(element instanceof SVGGraphicsElement)) return [];
       if (isInjectedMapOverlayElement(element)) return [];
       const style = window.getComputedStyle(element);
-      if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+      const authoredGeometrySource = Boolean(element.closest(".ttc-authored-svg-source"));
+      if (
+        style.display === "none"
+        || (!authoredGeometrySource && (style.visibility === "hidden" || style.opacity === "0"))
+      ) {
         return [];
       }
       try {
@@ -3995,8 +4015,9 @@ function transformedSvgBounds(element: SVGGraphicsElement): SvgBounds | null {
 
   return transformBoundsToRootCoordinates(
     { x: box.x, y: box.y, width: box.width, height: box.height },
-    element.getCTM(),
-    element.ownerSVGElement?.getCTM(),
+    element.ownerSVGElement
+      ? svgElementMatrixToRootCoordinates(element, element.ownerSVGElement)
+      : null,
   );
 }
 

@@ -61,7 +61,7 @@ Implemented now:
 - Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
 - Network-scoped `/api/dashboard?network=ttc|regional`, including the complete GO/UP static catalog and freshness-gated Metrolinx rail impacts.
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
-- Playwright Chromium smoke tests for seeded API, fallback rendering, delay overlay clicks, station-ring interactions, and station accessibility details on desktop and mobile viewports.
+- Playwright Chromium smoke tests for seeded API, fallback rendering, delay overlay clicks, station-ring interactions, and station accessibility details on desktop and mobile viewports, plus focused Chrome, Firefox, and WebKit regression coverage for SVG map geometry.
 - Opt-in scheduled polling for the official TTC Live Alerts feed at `https://alerts.ttc.ca/api/alerts/live-alerts`, supplemented by TTC.ca's official Subway and LRT service-advisory listing because scheduled closures are not consistently published in Live Alerts.
 - TTC GTFS-RT bus and streetcar service-alert ingestion supplements surface notices by default when alert ingestion runs. The supplement fetches the bus and streetcar feeds, filters out rapid-transit GTFS-RT records, and does not feed subway/LRT map overlays, status, saved-commute matching, or push notifications.
 - Raw staging for route and accessibility source records so unsupported records are retained for later analysis.
@@ -510,6 +510,7 @@ npm --prefix frontend run test:fixtures
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run build
+npm --prefix frontend run test:browser-compat
 npm --prefix frontend run test:smoke
 ```
 

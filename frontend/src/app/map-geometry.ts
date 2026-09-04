@@ -265,6 +265,27 @@ export function transformBoundsToRootPolygon(
   })) as MapPolygon;
 }
 
+/**
+ * Resolve an SVG graphics element into its owning root's viewBox coordinate
+ * system without depending on browser-specific outermost getCTM() semantics.
+ *
+ * Chromium currently includes the root viewBox transform in root.getCTM(),
+ * while Firefox reports an identity matrix for the same outermost SVG. Both
+ * engines include the complete transform in getScreenCTM(), so cancelling the
+ * two screen matrices gives us a stable element-to-root transform and also
+ * removes the map stage's CSS camera transform.
+ */
+export function svgElementMatrixToRootCoordinates(
+  element: SVGGraphicsElement,
+  root: SVGSVGElement,
+): MapMatrix | null {
+  const elementScreenMatrix = element.getScreenCTM();
+  const rootScreenMatrix = root.getScreenCTM();
+  if (!elementScreenMatrix || !rootScreenMatrix) return null;
+
+  return multiplyMatrix(invertMatrix(rootScreenMatrix), elementScreenMatrix);
+}
+
 export function composeNetworkSegmentPath(
   segments: ComposableNetworkSegment[],
   travelDirection: CorridorTravelDirection = "bidirectional",
@@ -679,20 +700,14 @@ export function readSvgGeometry(
     const element = root.querySelector<SVGGraphicsElement>(`#${CSS.escape(anchorId)}`);
     if (!element) continue;
     const box = element.getBBox();
-    const point = root.createSVGPoint();
-    point.x = box.x + box.width / 2;
-    point.y = box.y + box.height / 2;
-    // Prefer SVG-local matrices so an outer CSS entrance/camera transform
-    // (including its initial zero scale) cannot make geometry measurement
-    // singular. Screen matrices remain a fallback for older SVG engines.
-    const elementMatrix = element.getCTM() ?? element.getScreenCTM();
-    const rootMatrix = root.getCTM() ?? root.getScreenCTM();
+    const point = {
+      x: box.x + box.width / 2,
+      y: box.y + box.height / 2,
+    };
+    const relativeMatrix = svgElementMatrixToRootCoordinates(element, root);
     let resolved = point;
-    if (elementMatrix && rootMatrix) {
-      const relativeMatrix = rootMatrix.inverse().multiply(elementMatrix);
-      resolved = point.matrixTransform(relativeMatrix);
-    } else if (elementMatrix) {
-      resolved = point.matrixTransform(elementMatrix);
+    if (relativeMatrix) {
+      resolved = transformPoint(point, relativeMatrix);
     }
     anchorPoints.set(anchorId, { x: resolved.x, y: resolved.y });
   }
@@ -717,11 +732,7 @@ function pathDataInRootCoordinates(path: SVGPathElement, root: SVGSVGElement): s
     const length = path.getTotalLength();
     if (length <= 0) return authoredPathD;
 
-    const pathMatrix = path.getCTM();
-    const rootMatrix = root.getCTM();
-    const relativeMatrix = pathMatrix && rootMatrix
-      ? multiplyMatrix(invertMatrix(rootMatrix), pathMatrix)
-      : pathMatrix;
+    const relativeMatrix = svgElementMatrixToRootCoordinates(path, root);
     if (!relativeMatrix) return authoredPathD;
 
     const points = isLinearPathData(authoredPathD)
@@ -747,19 +758,15 @@ export function readSvgStationCenters(
     if (!element) continue;
 
     const box = element.getBBox();
-    const point = root.createSVGPoint();
-    point.x = box.x + box.width / 2;
-    point.y = box.y + box.height / 2;
+    const point = {
+      x: box.x + box.width / 2,
+      y: box.y + box.height / 2,
+    };
 
-    const elementMatrix = element.getScreenCTM();
-    const rootMatrix = root.getScreenCTM();
+    const relativeMatrix = svgElementMatrixToRootCoordinates(element, root);
     let resolved = point;
-
-    if (elementMatrix && rootMatrix) {
-      const relativeMatrix = rootMatrix.inverse().multiply(elementMatrix);
-      resolved = point.matrixTransform(relativeMatrix);
-    } else if (elementMatrix) {
-      resolved = point.matrixTransform(elementMatrix);
+    if (relativeMatrix) {
+      resolved = transformPoint(point, relativeMatrix);
     }
 
     centers.set(stationId, { x: resolved.x, y: resolved.y });
@@ -788,11 +795,6 @@ export function readSvgStationLabelPolygons(
   const padBottom = typeof padding === "number" ? padding : (padding.bottom ?? padding.y ?? 0);
   const expectedIds = new Set(stationIds);
   const polygonsByStationId = new Map<string, MapPolygon>();
-  // Label hit targets live in the root viewBox, so measure them with SVG-local
-  // matrices. getScreenCTM includes the animated map-stage transform and can
-  // be non-invertible during the first entrance frame.
-  const rootMatrix = root.getCTM() ?? root.getScreenCTM();
-
   const labelEntries: Array<{
     stationId: string;
     element: SVGGraphicsElement;
@@ -839,8 +841,7 @@ export function readSvgStationLabelPolygons(
           width: box.width + padLeading + allowedTrailing,
           height: box.height + padTop + padBottom,
         },
-        element.getCTM() ?? element.getScreenCTM(),
-        rootMatrix,
+        svgElementMatrixToRootCoordinates(element, root),
       );
       if (polygon) {
         polygonsByStationId.set(stationId, polygon);

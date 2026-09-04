@@ -32,8 +32,26 @@ public class TtcAlertIngestionService {
 
     public void ingestNow() {
         long runId = runService.start();
+        long fetchStartedAt = System.nanoTime();
         try {
-            TtcAlertFeed feed = client.fetch();
+            TtcAlertFeed feed;
+            try {
+                feed = client.fetch();
+            } catch (TtcAlertClientException exception) {
+                runService.recordSourceFetch(
+                    runId,
+                    exception.fetchStatus(),
+                    exception.httpStatus(),
+                    elapsedMillis(fetchStartedAt)
+                );
+                throw exception;
+            }
+            runService.recordSourceFetch(
+                runId,
+                TtcSourceFetchStatus.SUCCESS,
+                null,
+                elapsedMillis(fetchStartedAt)
+            );
             TtcSubwayClosureSnapshot subwayClosures = subwayClosureClient.fetch();
             FeedApplicationCounts counts = applicationService.apply(feed, subwayClosures);
             OffsetDateTime sourceUpdatedAt = TtcAlertTimes.sourceWallTimeToInstant(feed.lastUpdated());
@@ -49,5 +67,9 @@ public class TtcAlertIngestionService {
             runService.fail(runId, exception);
             throw exception;
         }
+    }
+
+    private long elapsedMillis(long startedAtNanos) {
+        return Math.max(0, (System.nanoTime() - startedAtNanos) / 1_000_000);
     }
 }

@@ -346,4 +346,17 @@ describe("map overlay geometry", () => {
     assert.match(mapGeometrySource, /getBBox\(\)/);
     assert.match(mapGeometrySource, /getScreenCTM\(\)/);
   });
+
+  it("uses paired screen matrices for browser-independent SVG root coordinates", async () => {
+    const { readFileSync } = await import("node:fs");
+    const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
+
+    assert.match(mapGeometrySource, /function svgElementMatrixToRootCoordinates/);
+    assert.match(mapGeometrySource, /element\.getScreenCTM\(\)/);
+    assert.match(mapGeometrySource, /root\.getScreenCTM\(\)/);
+    assert.match(mapGeometrySource, /multiplyMatrix\(invertMatrix\(rootScreenMatrix\), elementScreenMatrix\)/);
+    assert.match(mapGeometrySource, /resolved = transformPoint\(point, relativeMatrix\)/);
+    assert.doesNotMatch(mapGeometrySource, /matrixTransform\(relativeMatrix\)/);
+    assert.doesNotMatch(mapGeometrySource, /const rootMatrix = root\.getCTM\(\)/);
+  });
 });

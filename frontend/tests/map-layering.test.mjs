@@ -301,7 +301,7 @@ describe("asset-backed map layering", () => {
     assert.match(mapGeometrySource, /segment\.guidePathReversed/);
     assert.match(mapGeometrySource, /getAttribute\("inkscape:label"\) === "non-linear-guides-layer"/);
     assert.match(mapGeometrySource, /pathDataInRootCoordinates\(path, root\)/);
-    assert.match(mapGeometrySource, /multiplyMatrix\(invertMatrix\(rootMatrix\), pathMatrix\)/);
+    assert.match(mapGeometrySource, /svgElementMatrixToRootCoordinates\(path, root\)/);
     assert.match(interactiveMapSource, /travelDirection !== "reverse"/);
     assert.match(interactiveMapSource, /travelDirection !== "forward"/);
     assert.match(interactiveMapSource, /reducedMotion \? null : \(/);
@@ -597,11 +597,17 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition/);
     assert.match(interactiveMapSource, /alignedOverlapBadgePositionCandidates/);
     assert.match(interactiveMapSource, /const measuredGeometrySignatureRef = useRef<string \| null>\(null\)/);
-    assert.match(interactiveMapSource, /measuredGeometrySignatureRef\.current === geometryMeasurementSignature/);
+    assert.match(interactiveMapSource, /measuredGeometrySignatureRef\.current === measurementSignature/);
+    assert.match(interactiveMapSource, /font-ready:\$\{mapLabelFontReady\}/);
+    assert.match(interactiveMapSource, /lockedOverlapBadgeLayoutsRef\.current = new Map\(\)/);
     assert.match(interactiveMapSource, /const OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE = 260;/);
     assert.match(interactiveMapSource, /organizeOverlapBadgeClusters/);
     assert.match(interactiveMapSource, /gap: OVERLAP_BADGE_SIBLING_CLEARANCE/);
     assert.match(interactiveMapSource, /collectMapCollisionBoxes/);
+    assert.match(interactiveMapSource, /element\.closest\("\.ttc-authored-svg-source"\)/);
+    assert.match(interactiveMapSource, /!authoredGeometrySource && \(style\.visibility === "hidden" \|\| style\.opacity === "0"\)/);
+    assert.match(interactiveMapSource, /#non-linear-guides-layer \{[\s\S]*?display: inline !important;[\s\S]*?visibility: hidden;/);
+    assert.match(interactiveMapSource, /"#non-linear-guides-layer"/);
     assert.match(interactiveMapSource, /pathCorridorCollisionBoxes/);
     assert.match(interactiveMapSource, /pathMidpointFrame/);
     assert.match(interactiveMapSource, /const frame = pathMidpointFrame\(segment\.pathD\)/);
@@ -626,7 +632,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /radialBadgePositionCandidates/);
     assert.match(interactiveMapSource, /normalOffsetForBadge\(frame\.normal, size\)/);
     assert.match(interactiveMapSource, /transformedSvgBounds/);
-    assert.match(interactiveMapSource, /getCTM\(\)/);
+    assert.match(interactiveMapSource, /svgElementMatrixToRootCoordinates/);
     assert.match(interactiveMapSource, /transformBoundsToRootCoordinates/);
     assert.match(interactiveMapSource, /"path"/);
     assert.match(interactiveMapSource, /isInjectedMapOverlayElement/);

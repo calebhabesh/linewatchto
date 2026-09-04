@@ -54,34 +54,72 @@ public class MetrolinxApiClient {
         if (!properties.isConfigured()) {
             throw new MetrolinxClientException("Metrolinx API key is not configured");
         }
-        JsonNode goService = fetch(GO_SERVICE_ALERTS_PATH, "GO service alerts");
+        Map<String, Boolean> completeSources = new LinkedHashMap<>();
+        MetrolinxClientException requiredFailure = null;
+        JsonNode goService = null;
+        try {
+            goService = fetch(GO_SERVICE_ALERTS_PATH, "GO service alerts");
+            if (!isSuccessfulRestAlerts(goService)) {
+                throw new MetrolinxClientException(
+                    "Metrolinx GO service-alert response was not a successful full dataset"
+                );
+            }
+            completeSources.put(MetrolinxSourceSystem.GO_SERVICE_ALERTS, true);
+        } catch (MetrolinxClientException exception) {
+            completeSources.put(MetrolinxSourceSystem.GO_SERVICE_ALERTS, false);
+            requiredFailure = exception;
+        }
+
         JsonNode goInformation = fetchOptionalRest(GO_INFORMATION_ALERTS_PATH, "GO information alerts");
         JsonNode goMarketing = fetchOptionalRest(GO_MARKETING_ALERTS_PATH, "GO marketing alerts");
         JsonNode goGtfs = fetchOptional(GO_GTFS_ALERTS_PATH, "GO GTFS-RT alerts");
         JsonNode goTrainExceptions = fetchOptionalRest(GO_TRAIN_EXCEPTIONS_PATH, "GO train exceptions");
         JsonNode goTripUpdates = fetchOptional(GO_GTFS_TRIP_UPDATES_PATH, "GO GTFS-RT trip updates");
-        JsonNode up = fetch(UP_ALERTS_PATH, "UP Express alerts");
-        validateRestAlerts(goService, "service-alert");
-        validateGtfsAlerts(up, "UP");
         boolean informationComplete = isSuccessfulRestAlerts(goInformation);
         boolean marketingComplete = isSuccessfulRestAlerts(goMarketing);
         boolean goGtfsComplete = isFullGtfsFeed(goGtfs);
         boolean trainExceptionsComplete = isSuccessfulTrainExceptions(goTrainExceptions);
         boolean goTripUpdatesComplete = isFullGtfsFeed(goTripUpdates);
+        completeSources.put(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, informationComplete);
+        completeSources.put(MetrolinxSourceSystem.GO_MARKETING_ALERTS, marketingComplete);
+        completeSources.put(MetrolinxSourceSystem.GO_GTFS_ALERTS, goGtfsComplete);
+        completeSources.put(MetrolinxSourceSystem.GO_TRAIN_EXCEPTIONS, trainExceptionsComplete);
+        completeSources.put(MetrolinxSourceSystem.GO_GTFS_TRIP_UPDATES, goTripUpdatesComplete);
         logIfIncomplete("GO information alerts", goInformation, informationComplete);
         logIfIncomplete("GO marketing alerts", goMarketing, marketingComplete);
         logIfIncomplete("GO GTFS-RT alerts", goGtfs, goGtfsComplete);
         logIfIncomplete("GO train exceptions", goTrainExceptions, trainExceptionsComplete);
         logIfIncomplete("GO GTFS-RT trip updates", goTripUpdates, goTripUpdatesComplete);
 
+        JsonNode up = null;
+        try {
+            up = fetch(UP_ALERTS_PATH, "UP Express alerts");
+            if (!isFullGtfsFeed(up)) {
+                throw new MetrolinxClientException(
+                    "Metrolinx UP GTFS-RT alert response was not a full dataset"
+                );
+            }
+            completeSources.put(MetrolinxSourceSystem.UP_GTFS_ALERTS, true);
+        } catch (MetrolinxClientException exception) {
+            completeSources.put(MetrolinxSourceSystem.UP_GTFS_ALERTS, false);
+            if (requiredFailure == null) requiredFailure = exception;
+        }
+        if (requiredFailure != null) {
+            throw requiredFailure.withSourceOutcomes(completeSources);
+        }
+
         List<MetrolinxFetchedRecord> records = new ArrayList<>();
-        appendRestAlerts(records, goService, MetrolinxSourceSystem.GO_SERVICE_ALERTS);
-        if (informationComplete) appendRestAlerts(records, goInformation, MetrolinxSourceSystem.GO_INFORMATION_ALERTS);
-        if (marketingComplete) appendRestAlerts(records, goMarketing, MetrolinxSourceSystem.GO_MARKETING_ALERTS);
-        if (goGtfsComplete) appendGtfsAlerts(records, goGtfs, MetrolinxSourceSystem.GO_GTFS_ALERTS);
-        if (trainExceptionsComplete) appendTrainExceptions(records, goTrainExceptions);
-        if (goTripUpdatesComplete) appendGtfsTripUpdates(records, goTripUpdates);
-        appendGtfsAlerts(records, up, MetrolinxSourceSystem.UP_GTFS_ALERTS);
+        try {
+            appendRestAlerts(records, goService, MetrolinxSourceSystem.GO_SERVICE_ALERTS);
+            if (informationComplete) appendRestAlerts(records, goInformation, MetrolinxSourceSystem.GO_INFORMATION_ALERTS);
+            if (marketingComplete) appendRestAlerts(records, goMarketing, MetrolinxSourceSystem.GO_MARKETING_ALERTS);
+            if (goGtfsComplete) appendGtfsAlerts(records, goGtfs, MetrolinxSourceSystem.GO_GTFS_ALERTS);
+            if (trainExceptionsComplete) appendTrainExceptions(records, goTrainExceptions);
+            if (goTripUpdatesComplete) appendGtfsTripUpdates(records, goTripUpdates);
+            appendGtfsAlerts(records, up, MetrolinxSourceSystem.UP_GTFS_ALERTS);
+        } catch (MetrolinxClientException exception) {
+            throw exception.withSourceOutcomes(completeSources);
+        }
 
         OffsetDateTime sourceUpdatedAt = latest(
             parseTimestamp(goService.path("Metadata").path("TimeStamp").asText("")),
@@ -92,14 +130,6 @@ public class MetrolinxApiClient {
             goTripUpdatesComplete ? epoch(goTripUpdates.path("header").get("timestamp")) : null,
             epoch(up.path("header").get("timestamp"))
         );
-        Map<String, Boolean> completeSources = new LinkedHashMap<>();
-        completeSources.put(MetrolinxSourceSystem.GO_SERVICE_ALERTS, true);
-        completeSources.put(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, informationComplete);
-        completeSources.put(MetrolinxSourceSystem.GO_MARKETING_ALERTS, marketingComplete);
-        completeSources.put(MetrolinxSourceSystem.GO_GTFS_ALERTS, goGtfsComplete);
-        completeSources.put(MetrolinxSourceSystem.GO_TRAIN_EXCEPTIONS, trainExceptionsComplete);
-        completeSources.put(MetrolinxSourceSystem.GO_GTFS_TRIP_UPDATES, goTripUpdatesComplete);
-        completeSources.put(MetrolinxSourceSystem.UP_GTFS_ALERTS, true);
         Map<String, OffsetDateTime> sourceUpdatedAts = new LinkedHashMap<>();
         putTimestamp(sourceUpdatedAts, MetrolinxSourceSystem.GO_SERVICE_ALERTS, restTimestamp(goService));
         if (informationComplete) putTimestamp(sourceUpdatedAts, MetrolinxSourceSystem.GO_INFORMATION_ALERTS, restTimestamp(goInformation));
@@ -210,18 +240,6 @@ public class MetrolinxApiClient {
             .build()
             .encode()
             .toUri();
-    }
-
-    private void validateRestAlerts(JsonNode root, String label) {
-        if (!isSuccessfulRestAlerts(root)) {
-            throw new MetrolinxClientException("Metrolinx GO " + label + " response was not a successful full dataset");
-        }
-    }
-
-    private void validateGtfsAlerts(JsonNode root, String label) {
-        if (!isFullGtfsFeed(root)) {
-            throw new MetrolinxClientException("Metrolinx " + label + " GTFS-RT alert response was not a full dataset");
-        }
     }
 
     private boolean isSuccessfulRestAlerts(JsonNode root) {

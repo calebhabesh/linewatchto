@@ -65,4 +65,23 @@ class RegionalIngestionRunStoreTest {
         assertThat(exceptions.getValue("recordsFetched")).isEqualTo(2L);
         assertThat(exceptions.getValue("sourceUpdatedAt")).isEqualTo(updatedAt);
     }
+
+    @Test
+    void recordsOnlyAttemptedSourceOutcomesAfterARequiredFetchFailure() {
+        NamedParameterJdbcTemplate jdbc = mock(NamedParameterJdbcTemplate.class);
+        RegionalIngestionRunStore store = new RegionalIngestionRunStore(jdbc);
+
+        store.recordSourceOutcomes(42, Map.of(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, true,
+            MetrolinxSourceSystem.UP_GTFS_ALERTS, false
+        ));
+
+        ArgumentCaptor<SqlParameterSource[]> rows = ArgumentCaptor.forClass(SqlParameterSource[].class);
+        verify(jdbc).batchUpdate(contains("insert into metrolinx_ingestion_source_runs"), rows.capture());
+        assertThat(rows.getValue()).hasSize(2);
+        assertThat(List.of(rows.getValue())).extracting(row -> row.getValue("complete"))
+            .containsExactlyInAnyOrder(true, false);
+        assertThat(List.of(rows.getValue())).extracting(row -> row.getValue("required"))
+            .containsOnly(true);
+    }
 }

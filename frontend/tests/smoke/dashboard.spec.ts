@@ -14,7 +14,7 @@ async function setStubMode(request: APIRequestContext, mode: "seeded" | "diagnos
 
 async function openDashboardMenu(page: Page, isMobile = false) {
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
   } else {
@@ -2600,7 +2600,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   test.skip(!isMobile, "mobile-only rotated map smoke");
   await setStubMode(request, "seeded");
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Rotate map" }).click();
   const shell = page.locator(".linewatch-shell");
@@ -3444,7 +3444,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
 test("production capability keeps TTC source status sanitized", async ({ page, request, isMobile }) => {
   await setStubMode(request, "diagnostics-disabled");
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
@@ -3453,6 +3453,13 @@ test("production capability keeps TTC source status sanitized", async ({ page, r
   await page.getByRole("button", { name: "Toggle Source Status" }).click();
   await expect(page.getByText("TTC Source Status").last()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Dashboard feed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "30-day feed availability" })).toBeVisible();
+  await expect(page.getByText("99.72%", { exact: true })).toBeVisible();
+  await expect(page.getByText("alerts.ttc.ca", { exact: true })).toBeVisible();
+  await expect(page.getByText("TTC Live Alerts", { exact: true })).toBeVisible();
+  await expect(page.getByText("/api/alerts/live-alerts", { exact: true })).toBeVisible();
+  await expect(page.locator('code[title="https://alerts.ttc.ca/api/alerts/live-alerts"]')).toBeVisible();
+  await expect(page.getByText("LineWatchTO processing failures are excluded", { exact: false })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Processing summary" })).toBeVisible();
   await expect(page.getByText("Rider summaries")).toBeVisible();
   await expect(page.getByText("12", { exact: true })).toBeVisible();
@@ -3460,6 +3467,19 @@ test("production capability keeps TTC source status sanitized", async ({ page, r
   await expect(page.getByRole("tab", { name: "Source records" })).toHaveCount(0);
   await expect(page.getByText("Raw JSON Payload")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Copy JSON" })).toHaveCount(0);
+});
+
+test("site guide uses the borderless container treatment", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open site guide" }).click();
+
+  const guide = page.getByRole("dialog", { name: "LineWatchTO site guide" });
+  await expect(guide).toBeVisible();
+  await expect.poll(() => guide.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth];
+  })).toEqual(["0px", "0px", "0px", "0px"]);
 });
 
 test("opens TTC retained records when non-production diagnostics are enabled", async ({ page, request, context, isMobile }) => {
@@ -3487,7 +3507,7 @@ test("opens TTC retained records when non-production diagnostics are enabled", a
 test("opens regional source coverage and retained records in non-production", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
 
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
@@ -3502,6 +3522,14 @@ test("opens regional source coverage and retained records in non-production", as
 
   await page.getByRole("button", { name: "Toggle Source Status" }).click();
   await expect(page.getByText("GO / UP Source Status").last()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "30-day feed availability" })).toBeVisible();
+  await expect(page.getByText("99.91%", { exact: true })).toBeVisible();
+  await expect(page.getByText("api.openmetrolinx.com/OpenDataAPI/", { exact: true })).toBeVisible();
+  await expect(page.getByText("GO Service Alerts", { exact: true })).toBeVisible();
+  await expect(page.getByText("/api/V1/ServiceUpdate/ServiceAlert/All", { exact: true })).toBeVisible();
+  await expect(page.getByText("UP Express Alerts", { exact: true })).toBeVisible();
+  await expect(page.getByText("/api/V1/UP/Gtfs/Feed/Alerts", { exact: true })).toBeVisible();
+  await expect(page.getByText("Supplemental collections and LineWatchTO processing failures are excluded", { exact: false })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Collection coverage" })).toBeVisible();
   await expect(page.getByText("GO service alerts", { exact: true })).toBeVisible();
   await expect(page.getByText("UP rail service alerts", { exact: true })).toBeVisible();

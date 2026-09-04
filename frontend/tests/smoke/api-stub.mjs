@@ -824,6 +824,23 @@ const server = createServer(async (request, response) => {
       recordsNormalized: 12,
       recordsUnmatched: 32,
       sourceFeedUpdatedAt: "2026-06-02T18:11:30Z",
+      sourceEndpoint: "https://alerts.ttc.ca/api/alerts/live-alerts",
+      feedAvailability: {
+        periodDays: 30,
+        availabilityPercentage: 99.72,
+        monitoringCoveragePercentage: 98.6,
+        successfulChecks: 21385,
+        failedChecks: 59,
+        totalChecks: 21444,
+        monitoringStartedOn: "2026-05-04",
+        buckets: Array.from({ length: 30 }, (_, index) => ({
+          date: `2026-${index < 28 ? "05" : "06"}-${String(index < 28 ? index + 4 : index - 27).padStart(2, "0")}`,
+          status: index === 26 ? "degraded" : "up",
+          successfulChecks: index === 26 ? 701 : 718,
+          failedChecks: index === 26 ? 17 : 0,
+          totalChecks: 718,
+        })),
+      },
     });
     return;
   }
@@ -840,6 +857,26 @@ const server = createServer(async (request, response) => {
       sourceUpdatedAt: "2026-07-29T15:59:30Z",
       recordsFetched: 31,
       recordsNormalized: 2,
+      sourceEndpoints: [
+        "https://api.openmetrolinx.com/OpenDataAPI/api/V1/ServiceUpdate/ServiceAlert/All",
+        "https://api.openmetrolinx.com/OpenDataAPI/api/V1/UP/Gtfs/Feed/Alerts",
+      ],
+      feedAvailability: {
+        periodDays: 30,
+        availabilityPercentage: 99.91,
+        monitoringCoveragePercentage: 97.8,
+        successfulChecks: 42270,
+        failedChecks: 38,
+        totalChecks: 42308,
+        monitoringStartedOn: "2026-07-01",
+        buckets: Array.from({ length: 30 }, (_, index) => ({
+          date: `2026-${index < 28 ? "07" : "08"}-${String(index < 28 ? index + 1 : index - 27).padStart(2, "0")}`,
+          status: index === 24 ? "degraded" : "up",
+          successfulChecks: index === 24 ? 1410 : 1440,
+          failedChecks: index === 24 ? 30 : 0,
+          totalChecks: 1440,
+        })),
+      },
       collections: [
         { sourceSystem: "go-service-alerts", label: "GO service alerts", kind: "rider-alert", required: true, status: "complete", recordsFetched: 6, sourceUpdatedAt: "2026-07-29T15:59:30Z" },
         { sourceSystem: "up-gtfs-alerts", label: "UP rail service alerts", kind: "rider-alert", required: true, status: "complete", recordsFetched: 1, sourceUpdatedAt: "2026-07-29T15:59:25Z" },

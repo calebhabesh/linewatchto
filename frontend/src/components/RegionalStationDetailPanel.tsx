@@ -1286,7 +1286,11 @@ export function RegionalStationDetailPanel({
                 <div className="pt-3 flex flex-col gap-2">
                   {impacts.length > 0 ? (
                     impacts.map((impact) => (
-                      <div key={`${impact.kind}:${impact.id}`} className={stationImpactCardClassName(impact.tone)}>
+                      <div
+                        key={`${impact.kind}:${impact.id}`}
+                        data-station-impact-tone={impact.tone}
+                        className={stationImpactCardClassName(impact.tone)}
+                      >
                         <div className="flex items-center gap-2.5 text-sm font-bold text-slate-900 dark:text-white">
                           <RegionalStationImpactIcon impact={impact} />
                           <span className="flex items-center leading-none">{impact.classification}</span>

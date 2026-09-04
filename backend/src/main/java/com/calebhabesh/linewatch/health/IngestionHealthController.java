@@ -4,8 +4,9 @@ import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
 import com.calebhabesh.linewatch.ingestion.AlertIngestionProperties;
-import java.util.Optional;
+import java.net.URI;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -21,19 +22,22 @@ public class IngestionHealthController {
     private final DashboardCacheService cache;
     private final DashboardCacheProperties cacheProperties;
     private final AlertIngestionProperties ingestionProperties;
+    private final TtcFeedAvailabilityService availabilityService;
 
     public IngestionHealthController(
         IngestionRunStore store,
         IngestionFreshness ingestionFreshness,
         DashboardCacheService cache,
         DashboardCacheProperties cacheProperties,
-        AlertIngestionProperties ingestionProperties
+        AlertIngestionProperties ingestionProperties,
+        TtcFeedAvailabilityService availabilityService
     ) {
         this.store = store;
         this.ingestionFreshness = ingestionFreshness;
         this.cache = cache;
         this.cacheProperties = cacheProperties;
         this.ingestionProperties = ingestionProperties;
+        this.availabilityService = availabilityService;
     }
 
     @GetMapping
@@ -51,7 +55,8 @@ public class IngestionHealthController {
             .map(this::toResponse)
             .orElseGet(() -> new IngestionHealthResponse(
                 "not-run", false, null, null, 0, 0, 0, 0, null,
-                ingestionProperties.isSubwayClosureSupplementEnabled(), false, 0
+                ingestionProperties.isSubwayClosureSupplementEnabled(), false, 0,
+                availabilityService.summarize(), publicSourceEndpoint()
             ));
     }
 
@@ -68,8 +73,23 @@ public class IngestionHealthController {
             run.sourceFeedUpdatedAt(),
             ingestionProperties.isSubwayClosureSupplementEnabled(),
             run.subwayClosureSupplementAvailable(),
-            run.subwayClosureRecordsFetched()
+            run.subwayClosureRecordsFetched(),
+            availabilityService.summarize(),
+            publicSourceEndpoint()
         );
+    }
+
+    private String publicSourceEndpoint() {
+        URI endpoint = ingestionProperties.getUrl();
+        if (endpoint == null
+            || !"https".equalsIgnoreCase(endpoint.getScheme())
+            || endpoint.getHost() == null
+            || !(endpoint.getHost().equalsIgnoreCase("ttc.ca")
+                || endpoint.getHost().toLowerCase(java.util.Locale.ROOT).endsWith(".ttc.ca"))) {
+            return null;
+        }
+        String path = endpoint.getRawPath() == null ? "" : endpoint.getRawPath();
+        return "https://" + endpoint.getHost().toLowerCase(java.util.Locale.ROOT) + path;
     }
 
     public record IngestionHealthResponse(
@@ -84,6 +104,8 @@ public class IngestionHealthController {
         OffsetDateTime sourceFeedUpdatedAt,
         boolean subwayClosureSupplementEnabled,
         boolean subwayClosureSupplementAvailable,
-        int subwayClosureRecordsFetched
+        int subwayClosureRecordsFetched,
+        TtcFeedAvailabilityService.TtcFeedAvailability feedAvailability,
+        String sourceEndpoint
     ) {}
 }

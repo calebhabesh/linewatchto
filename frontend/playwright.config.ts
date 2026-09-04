@@ -38,5 +38,15 @@ export default defineConfig({
       name: "mobile-chromium",
       use: { ...devices["Pixel 5"] },
     },
+    {
+      name: "desktop-firefox",
+      testMatch: /browser-compat\.spec\.ts/,
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "desktop-webkit",
+      testMatch: /browser-compat\.spec\.ts/,
+      use: { ...devices["Desktop Safari"] },
+    },
   ],
 });

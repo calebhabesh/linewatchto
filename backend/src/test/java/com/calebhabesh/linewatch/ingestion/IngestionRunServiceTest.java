@@ -65,4 +65,11 @@ class IngestionRunServiceTest {
 
         verify(store).markFailed(42L, NOW, "IllegalStateException");
     }
+
+    @Test
+    void recordsSourceFetchOutcomeSeparatelyFromRunStatus() {
+        service.recordSourceFetch(42L, TtcSourceFetchStatus.HTTP_ERROR, 503, 8123);
+
+        verify(store).recordSourceFetch(42L, TtcSourceFetchStatus.HTTP_ERROR, 503, 8123);
+    }
 }

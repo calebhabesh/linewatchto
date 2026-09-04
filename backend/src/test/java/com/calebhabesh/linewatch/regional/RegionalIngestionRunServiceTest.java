@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 class RegionalIngestionRunServiceTest {
     @Test
-    void recordsAggregateAndPerCollectionCoverageInTheSameSuccessfulRun() {
+    void recordsAggregateAndPerCollectionCoverageWithoutCouplingFetchesToProcessing() {
         RegionalIngestionRunStore store = mock(RegionalIngestionRunStore.class);
         Clock clock = Clock.fixed(Instant.parse("2026-07-30T16:00:00Z"), ZoneOffset.UTC);
         RegionalIngestionRunService service = new RegionalIngestionRunService(store, clock);
@@ -26,6 +26,7 @@ class RegionalIngestionRunServiceTest {
             Map.of(MetrolinxSourceSystem.GO_TRAIN_EXCEPTIONS, true)
         );
 
+        service.recordSourceStatuses(42, feed);
         service.succeed(42, counts, feed);
 
         verify(store).markSuccess(42, OffsetDateTime.parse("2026-07-30T16:00:00Z"), counts, sourceUpdatedAt);

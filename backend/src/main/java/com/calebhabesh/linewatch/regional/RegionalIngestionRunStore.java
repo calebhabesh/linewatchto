@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.regional;
 
 import com.calebhabesh.linewatch.ingestion.FeedApplicationCounts;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +85,28 @@ public class RegionalIngestionRunStore {
             """, rows);
     }
 
+    public void recordSourceOutcomes(long runId, Map<String, Boolean> sourceOutcomes) {
+        SqlParameterSource[] rows = MetrolinxSourceSystem.descriptors().stream()
+            .filter(descriptor -> sourceOutcomes.containsKey(descriptor.sourceSystem()))
+            .map(descriptor -> new MapSqlParameterSource()
+                .addValue("runId", runId)
+                .addValue("sourceSystem", descriptor.sourceSystem())
+                .addValue("required", descriptor.required())
+                .addValue("complete", Boolean.TRUE.equals(sourceOutcomes.get(descriptor.sourceSystem()))))
+            .toArray(SqlParameterSource[]::new);
+        if (rows.length == 0) return;
+        jdbc.batchUpdate("""
+            insert into metrolinx_ingestion_source_runs (
+                run_id, source_system, required, complete, records_fetched, source_feed_updated_at
+            ) values (
+                :runId, :sourceSystem, :required, :complete, 0, null
+            )
+            on conflict (run_id, source_system) do update set
+                required = excluded.required,
+                complete = excluded.complete
+            """, rows);
+    }
+
     public Optional<IngestionRunSnapshot> findLatest() {
         return findOne("""
             select id, status, started_at, completed_at, records_fetched, records_staged,
@@ -129,10 +152,54 @@ public class RegionalIngestionRunStore {
         ));
     }
 
+    public List<SourceFetchDailyCount> requiredSourceFetchDailyCounts(
+        OffsetDateTime periodStart,
+        OffsetDateTime periodEnd
+    ) {
+        return jdbc.query("""
+            select (runs.started_at at time zone 'America/Toronto')::date as observed_date,
+                   count(*) filter (where sources.complete) as successful_checks,
+                   count(*) filter (where not sources.complete) as failed_checks,
+                   count(*) as total_checks
+            from metrolinx_ingestion_source_runs sources
+            join ingestion_runs runs on runs.id = sources.run_id
+            where runs.run_type = :runType
+              and sources.required = true
+              and runs.started_at >= :periodStart
+              and runs.started_at < :periodEnd
+            group by observed_date
+            order by observed_date
+            """, new MapSqlParameterSource()
+                .addValue("runType", RUN_TYPE)
+                .addValue("periodStart", periodStart)
+                .addValue("periodEnd", periodEnd), (resultSet, rowNumber) -> new SourceFetchDailyCount(
+                    resultSet.getObject("observed_date", LocalDate.class),
+                    resultSet.getInt("successful_checks"),
+                    resultSet.getInt("failed_checks"),
+                    resultSet.getInt("total_checks")
+                ));
+    }
+
+    public Optional<OffsetDateTime> findFirstRequiredSourceFetchAt() {
+        return Optional.ofNullable(jdbc.queryForObject("""
+            select min(runs.started_at)
+            from metrolinx_ingestion_source_runs sources
+            join ingestion_runs runs on runs.id = sources.run_id
+            where runs.run_type = :runType and sources.required = true
+            """, Map.of("runType", RUN_TYPE), OffsetDateTime.class));
+    }
+
     public record SourceStatus(
         String sourceSystem,
         boolean complete,
         int recordsFetched,
         OffsetDateTime sourceUpdatedAt
+    ) {}
+
+    public record SourceFetchDailyCount(
+        LocalDate date,
+        int successfulChecks,
+        int failedChecks,
+        int totalChecks
     ) {}
 }
