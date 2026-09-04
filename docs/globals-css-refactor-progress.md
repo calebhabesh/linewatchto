@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S04
-- Last completed session: S04
-- Next recommended session: S05
+- Current session: S05
+- Last completed session: S05
+- Next recommended session: S06
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 29,347 |
+| Global entry lines | 30,011 | 29,041 |
 | Total authored app CSS lines | 31,414 | 31,416 |
-| Total authored app CSS bytes | 784,128 | 784,373 |
-| Parsed rules | 4,221 | 4,192 |
-| Declarations | 14,093 | 13,655 |
-| !important | 2,356 | 2,346 |
+| Total authored app CSS bytes | 784,128 | 784,410 |
+| Parsed rules | 4,221 | 4,138 |
+| Declarations | 14,093 | 13,559 |
+| !important | 2,356 | 2,331 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 108,590 |
+| Production CSS gzip bytes | 108,667 | 108,545 |
 
 ## Session log
 
@@ -188,3 +188,32 @@
 - Risks or blockers:
   - None. Foundation styles are successfully extracted and verified.
 - Next session: S05 — Extract base map and rendering styles (`map/base-map.css`).
+
+### S05 — Extract base map and rendering styles
+
+- Status: completed
+- Commit: 693e3a9d
+- Scope: Extract base map canvas, viewport, raster planes, authored SVG visibility, single-paint-source opacity, pan/zoom interaction, camera wash, mobile-performance mode raster rules, and shared rendering styles from `globals.css` into dedicated `frontend/src/styles/map/base-map.css`. Add relative `@import "../styles/map/base-map.css";` in top manifest order. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/map/base-map.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,117 tests, 0 failures across 135 suites in ~955ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 29,347 to 29,041; production chunk raw bytes unchanged at 705,499; gzip bytes improved by 45 bytes to 108,545).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, high contrast, station detail, My Commutes, and mobile views.
+- Decisions:
+  - Extracted contiguous base map and rendering block (306 lines) into `frontend/src/styles/map/base-map.css` preserving exact declaration values, comments, and selector syntax.
+  - Placed `@import "../styles/map/base-map.css";` right after `@import "../styles/foundation/accessibility.css";` at top of manifest order.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` verifying that `base-map.css` resolves in the app stylesheet graph and reads directly via `readStylesheet()`.
+  - Kept alert path overrides and overlap chooser rules with their respective feature extraction sessions (S06) to preserve exact late-file cascade specificity.
+- Risks or blockers:
+  - None. Base map foundation is clean and verified.
+- Next session: S06 — Extract map impact and selection styles (`map/impact-overlays.css`, `map/map-selection.css`, etc.).

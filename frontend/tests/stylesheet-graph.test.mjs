@@ -185,4 +185,17 @@ describe("stylesheet-graph helper", () => {
     assert.match(a11yContent, /\.motion-paused,\s*\.motion-paused \*/);
     assert.match(a11yContent, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/);
   });
+
+  it("resolves the extracted map/base-map.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("base-map.css")), "base-map.css must be in graph files");
+    const baseMapContent = readStylesheet(new URL("../src/styles/map/base-map.css", import.meta.url));
+    assert.match(baseMapContent, /\.regional-map,\s*\.regional-map-viewport/);
+    assert.match(baseMapContent, /\.raster-map-plane\s*\{[^}]*transform:\s*translateZ\(0\);/);
+    assert.match(baseMapContent, /\.ttc-map-entrance-reveal/);
+    assert.match(baseMapContent, /\.map-center-feedback/);
+    assert.match(baseMapContent, /\.ttc-map-stage\[data-raster-map-ready="true"\]\s*\.ttc-authored-svg-source/);
+    assert.match(baseMapContent, /\.linewatch-shell\.mobile-performance-mode\s*:is\(\.ttc-map-stage,\s*\.regional-map-stage\)/);
+  });
 });
