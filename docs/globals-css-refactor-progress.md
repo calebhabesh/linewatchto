@@ -1612,3 +1612,51 @@
 - Risks or blockers:
   - None. Shared count badges and action buttons consolidation is verified across all responsive viewports and themes with 0 diffs.
 - Next session: S15C — Consolidate small leaf panels and dialogs (`panels/feedback.css`, `panels/info-modals.css`, `account/account-dialogs.css`, `shell/status-notices.css`).
+
+### S15C — Consolidate Small Leaf Panels and Dialogs
+
+- Status: completed
+- Commit: c1072b0f
+- Scope: Consolidate small leaf panels and dialogs across `feedback.css`, `info-modals.css`, `account-dialogs.css`, and `status-notices.css`:
+  1. Shared Dialog Modal & Notice Banner Tokens: Introduced semantic custom properties (`--dialog-backdrop-bg`, `--dialog-modal-bg`, `--dialog-modal-border`, `--dialog-modal-shadow`, `--notice-banner-bg`, `--notice-banner-border`, `--notice-banner-shadow`) across light, dark, and high-contrast theme definitions in `frontend/src/styles/foundation/themes.css`.
+  2. Standardized Modal Dialog Chrome & Animations: Standardized `.account-dialog-backdrop` and `.account-dialog` in `account-dialogs.css` using the new dialog modal tokens, merging entrance animations directly into base rules and eliminating superseded dark mode overrides. Reused notice banner tokens across `.app-update-banner` in `status-notices.css` and `.release-notes-notice` in `info-modals.css`.
+  3. Redundant Rules & Sections Eliminated:
+     - In `feedback.css`: Removed 100% duplicate `.feedback-actions` block, consolidated `.feedback-error` color rules with its base card container, and grouped muted text styles.
+     - In `account-dialogs.css`: Consolidated duplicate `.saved-commute-signup-btn` rules across light and dark modes, and streamlined provider choice button states.
+     - In `info-modals.css`: Consolidated `.release-notes-panel` and `.privacy-acknowledgements-panel` background overrides into a single rule, eliminating duplicate declarations.
+  4. `!important` Elimination: Safely eliminated 16 `!important` declarations across `info-modals.css` and `status-notices.css`:
+     - 2 from modal exit pointer-events overrides (`.opening-disclaimer-backdrop.opening-disclaimer-backdrop--exiting` and `.opening-disclaimer-panel.opening-disclaimer-panel--exiting`).
+     - 5 from `.opening-welcome-account-copy` (color, font-size, line-height in base and mobile) by using compound specificity with `.opening-disclaimer-panel`.
+     - 1 from `.opening-unofficial-notice.opening-unofficial-notice--exiting` exit animation.
+     - 2 from mobile-hidden notice rules (`.opening-unofficial-notice--mobile-hidden` and `.dashboard-availability-notice--mobile-hidden`).
+     - 4 from `.site-guide-trigger-icon` in motion-paused and reduced-motion states via matching `:is(...)` selector specificity.
+     - 2 from consolidated floating-panel-scroll background rules.
+  5. Guardrails & Unit Tests:
+     - Lowered graph-wide `!important` ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,311 down to 2,295 (-16 `!important` declarations, breaking below 2,300).
+     - Updated `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `--dialog-modal-bg` in `themes.css`.
+- Files changed:
+  - `frontend/src/styles/foundation/themes.css`
+  - `frontend/src/styles/panels/feedback.css`
+  - `frontend/src/styles/panels/info-modals.css`
+  - `frontend/src/styles/account/account-dialogs.css`
+  - `frontend/src/styles/shell/status-notices.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.2s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines reduced from 32,426 to 32,411 (-15 lines net); `account-dialogs.css` lines reduced from 539 to 509 (-30 lines); `feedback.css` lines reduced from 275 to 263 (-12 lines); graph `!important` declarations reduced from 2,311 to 2,295 (-16 declarations); production chunk raw bytes at 709,370).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop (`TTC desktop map, light`, `TTC desktop map, dark`, `GO/UP desktop map`), mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile Status or More sheet.
+- Decisions:
+  - Preserved explicit contract test assertions in `site-guide.test.mjs` (`.site-guide-panel`, `.source-status-panel`, `.source-status-card` border rules) and `account-feature-preview.test.mjs` (`.account-feature-preview` padding and dark background).
+  - Preserved separate base definitions for `.account-choice-primary` and `.account-choice-google-custom` to satisfy regex assertions in `account-ui-source.test.mjs`, while consolidating shared interactive and theme states.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 2,311 to 2,295 (-16 declarations).
+- Risks or blockers:
+  - None. Small leaf panels and dialogs consolidation is verified across all responsive viewports and themes with 0 diffs.
+- Next session: S15D — Consolidate station detail stylesheets (`station/station-detail.css`, `station/station-arrivals.css`, `station/station-accessibility.css`, `station/surface-connections.css`).
