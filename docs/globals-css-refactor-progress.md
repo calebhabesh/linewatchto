@@ -1543,4 +1543,38 @@
   - Added automated keyframe hygiene guardrail to ensure no duplicate `@keyframes` names can be introduced anywhere in the application stylesheet graph.
 - Risks or blockers:
   - None. Duplicate keyframe debt is completely resolved (0 duplicate names across the entire stylesheet graph).
-- Next session: S15A — Consolidate shared panel and card surfaces (or S13B: evaluate/address the 18 broad high-contrast utility selectors in `high-contrast.css`).
+- Next session: S15A — Consolidate shared panel and card surfaces (`shell/card-elevation.css` and `foundation/themes.css`).
+
+### S15A — Consolidate Shared Panel and Card Surfaces
+
+- Status: completed
+- Commit: 4b9f7730
+- Scope: Consolidate shared panel and card surfaces across `themes.css` and `card-elevation.css`:
+  1. Surface & Elevation Tokens: Introduced semantic custom properties (`--surface-sheen`, `--surface-sheen-strong`, `--surface-heading-sheen`, `--surface-card-subtle-shadow`, `--surface-card-2px-shadow`, `--surface-card-opaque`, `--card-bg-elevated-solid`, `--disruption-banner-bg`, `--menu-sheen`, `--menu-shadow`, `--desktop-chrome-control-shadow`) across light, dark, and high-contrast theme definitions in `frontend/src/styles/foundation/themes.css`.
+  2. Opaque Mobile Sheet Cards: Replaced hardcoded light container value with `var(--surface-card-opaque)` in `frontend/src/styles/shell/card-elevation.css` Section 2, eliminating redundant `.dark` block across 11 card selectors.
+  3. Redundant Rules & Selectors: Eliminated 100% duplicate `.dark` rules for borderless cards (Section 3), identical status action button/row borders (Section 2), duplicate station section and arrival group rules (Section 3), superseded transparent border rules (Section 3), redundant hover overrides (Sections 4 & 5), and redundant main map control borderless rules (Section 9).
+  4. Guardrails & Unit Tests: Updated `frontend/tests/stylesheet-graph.test.mjs` to assert `var(--surface-card-opaque)` resolution. Lowered graph-wide `!important` migration ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,385 down to 2,367 (-18 `!important` declarations).
+- Files changed:
+  - `frontend/src/styles/foundation/themes.css`
+  - `frontend/src/styles/shell/card-elevation.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 3.4s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines reduced from 32,489 to 32,437 (-52 lines net); `card-elevation.css` lines reduced from 946 to 858 (-88 lines net); graph `!important` declarations reduced from 2,385 to 2,367 (-18); production chunk raw bytes improved to 707,901 (-767 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop (`TTC desktop map, light`, `TTC desktop map, dark`, `GO/UP desktop map`), mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile Status or More sheet.
+- Decisions:
+  - Introduced semantic surface tokens in `foundation/themes.css` ensuring seamless theme adaptation and preparing for future retirement of broad high-contrast utility overrides.
+  - Safely eliminated exact duplicate rules and declarations where CSS variables or base cascading already covered the behavior.
+  - Preserved station detail and mobile sheet tactile container contract test rules pending their dedicated upcoming sessions (S15D station detail, S15G mobile shell).
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 2,385 to 2,367.
+- Risks or blockers:
+  - None. Shared panel and card surface consolidation is verified across all responsive viewports and themes.
+- Next session: S15B — Consolidate shared count badges and action buttons (`shell/badges.css`, count pills, action controls).
