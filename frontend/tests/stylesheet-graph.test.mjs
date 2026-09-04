@@ -419,4 +419,28 @@ describe("stylesheet-graph helper", () => {
     assert.match(responsiveDensityContent, /@media \(min-width: 768px\) and \(max-width: 899px\)/);
     assert.match(responsiveDensityContent, /\.header-search-bar/);
   });
+
+  it("resolves the extracted station/station-search.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("station-search.css")), "station-search.css must be in graph files");
+    const stationSearchContent = readStylesheet(new URL("../src/styles/station/station-search.css", import.meta.url));
+    assert.match(stationSearchContent, /\.station-search-panel/);
+    assert.match(stationSearchContent, /\.station-search-input-row/);
+    assert.match(stationSearchContent, /\.station-search-amenity-toolbar/);
+    assert.match(stationSearchContent, /\.station-search-amenity-chip/);
+    assert.match(stationSearchContent, /\.global-search-impact-result/);
+    assert.match(stationSearchContent, /\.global-search-resource-result/);
+    assert.match(stationSearchContent, /\.global-search-browse-alerts/);
+    assert.match(stationSearchContent, /\.station-search-browse-container/);
+    assert.match(stationSearchContent, /\.station-search-lines-column/);
+    assert.match(stationSearchContent, /\.station-search-stations-column/);
+    assert.match(stationSearchContent, /@keyframes station-search-list-slide-in/);
+    assert.match(stationSearchContent, /\.station-search-line-trigger/);
+    assert.match(stationSearchContent, /\.station-search-station/);
+    assert.match(stationSearchContent, /\.station-search-bookmark/);
+    assert.match(stationSearchContent, /\.station-search-mobile-back/);
+    assert.match(stationSearchContent, /@keyframes mobile-station-search-slide-in/);
+    assert.match(stationSearchContent, /html:not\(\[data-visual-keyboard="open"\]\) \.station-search-panel/);
+  });
 });
