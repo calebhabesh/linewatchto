@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S09B
-- Last completed session: S09B
-- Next recommended session: S09C
+- Current session: S09C
+- Last completed session: S09C
+- Next recommended session: S09D
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 18,450 |
-| Total authored app CSS lines | 31,414 | 31,549 |
-| Total authored app CSS bytes | 784,128 | 789,143 |
-| Parsed rules | 4,221 | 2,615 |
-| Declarations | 14,093 | 8,598 |
-| !important | 2,356 | 1,235 |
-| Class-substring selectors | 32 | 32 |
-| Production CSS bytes | 705,472 | 705,951 |
-| Production CSS gzip bytes | 108,667 | 106,759 |
+| Global entry lines | 30,011 | 18,363 |
+| Total authored app CSS lines | 31,414 | 31,593 |
+| Total authored app CSS bytes | 784,128 | 791,079 |
+| Parsed rules | 4,221 | 2,605 |
+| Declarations | 14,093 | 8,559 |
+| !important | 2,356 | 1,216 |
+| Class-substring selectors | 32 | 28 |
+| Production CSS bytes | 705,472 | 706,597 |
+| Production CSS gzip bytes | 108,667 | 106,825 |
 
 
 ## Session log
@@ -585,3 +585,36 @@
 - Risks or blockers:
   - None. S09B is fully complete and verified.
 - Next session: S09C — Extract TTC and regional arrival groups (`station/station-arrivals.css` / TTC direction arrival groups, platform track spine, track nodes, regional departure tiles, and timetable tabs).
+
+### S09C — Extract TTC and regional arrival groups
+
+- Status: completed
+- Commit: 6b1c3dfc
+- Scope: Extract TTC direction arrival groups (`[data-arrival-group]`), platform track spine (`.station-arrival-track-spine`), platform track nodes (`.station-arrival-track-node`), regional departure tiles (`[data-regional-arrival-direction]`, `[class*="min-h-[74px]"]`), inter-line arrival divider (`.station-arrival-line-divider`), and high-contrast tile overrides from `globals.css` (87 lines removed, 131 lines total authored with header) into dedicated `frontend/src/styles/station/station-arrivals.css`. Add relative import `@import "../styles/station/station-arrivals.css";` to `globals.css` line 25. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/station/station-arrivals.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,134 tests across 135 suites, 0 failures in ~1004ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 18,450 to 18,363 (-87 lines); parsed rules -10; parsed declarations -39; `!important` -19; class-substring selectors in `globals.css` reduced from 32 to 28 (-4); production chunk raw bytes 706,597; gzip bytes 106,825).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Extracted 87 lines from `globals.css` into dedicated `frontend/src/styles/station/station-arrivals.css`:
+    1. Station arrival line divider (`.station-arrival-line-divider`, light, dark, and high-contrast gradients).
+    2. Direction arrival groups container overrides (`.station-detail-panel [data-arrival-group]`).
+    3. Station arrivals transit track spine & platform nodes (`.station-arrival-track-spine`, `.station-arrival-track-node`, light, dark, and high-contrast definitions).
+    4. Departure tiles (`.station-detail-panel [data-arrival-group] [class*="min-h-[74px]"]`, `.station-detail-panel [data-regional-arrival-direction] [class*="min-h-[74px]"]`, light, dark, and high-contrast rules).
+    5. Preserved `.station-detail-panel [data-surface-route] [class*="min-h-[74px]"]` in `globals.css` for S09D (surface connections).
+  - Maintained cascade hierarchy by importing `station-arrivals.css` at line 25 immediately following `station-detail.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `station/station-arrivals.css` in the application stylesheet graph and selector coverage.
+- Risks or blockers:
+  - None. S09C is fully complete and verified.
+- Next session: S09D — Extract station accessibility notices and surface connection cards (`station/station-accessibility.css` & `station/surface-connections.css` or combined S09D module).
