@@ -363,4 +363,22 @@ describe("stylesheet-graph helper", () => {
     assert.match(mobileChromeContent, /\.network-selector--compact-vertical/);
     assert.match(mobileChromeContent, /\.rotate-map-btn/);
   });
+
+  it("resolves the extracted shell/mobile-sheets.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("mobile-sheets.css")), "mobile-sheets.css must be in graph files");
+    const mobileSheetsContent = readStylesheet(new URL("../src/styles/shell/mobile-sheets.css", import.meta.url));
+    assert.match(mobileSheetsContent, /\.mobile-status-sheet/);
+    assert.match(mobileSheetsContent, /\.mobile-sheet-heading/);
+    assert.match(mobileSheetsContent, /\.mobile-status-actions/);
+    assert.match(mobileSheetsContent, /\.mobile-line-status-row/);
+    assert.match(mobileSheetsContent, /\.mobile-more-sheet/);
+    assert.match(mobileSheetsContent, /\.mobile-more-row/);
+    assert.match(mobileSheetsContent, /\.floating-panel-shell/);
+    assert.match(mobileSheetsContent, /@keyframes floating-mobile-sheet-enter/);
+    assert.match(mobileSheetsContent, /\.floating-panel-scroll/);
+    assert.match(mobileSheetsContent, /\.mobile-impact-inspector/);
+    assert.match(mobileSheetsContent, /@keyframes mobile-impact-inspector-enter/);
+  });
 });
