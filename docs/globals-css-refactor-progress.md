@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S15F
-- Last completed session: S15F
-- Next recommended session: S15G — Consolidate Notification Settings stylesheet (`account/notification-settings.css`)
+- Current session: S15G
+- Last completed session: S15G
+- Next recommended session: S15H — Consolidate Alerts stylesheet (`panels/alerts.css`)
 - Blockers: none
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,211 |
-| Total authored app CSS bytes | 784,128 | 837,653 |
+| Total authored app CSS lines | 31,414 | 32,171 |
+| Total authored app CSS bytes | 784,128 | 836,882 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 705,815 |
-| Production CSS gzip bytes | 108,667 | 105,841 |
+| Production CSS bytes | 705,472 | 705,342 |
+| Production CSS gzip bytes | 108,667 | 105,851 |
 
 
 
@@ -1822,3 +1822,43 @@
   - None. My Commutes consolidation is verified across all responsive viewports and themes with 0 diffs.
 - Next session: S15G — Consolidate Notification Settings stylesheet (`account/notification-settings.css`), reducing repetitive notification channel grids, master toggle switches, and media query blocks across the notification preferences experience.
 
+### S15G — Consolidate Notification Settings Stylesheet
+
+- Status: completed
+- Commit: b922f425
+- Scope: Consolidate `frontend/src/styles/account/notification-settings.css`, reducing duplicate notification toggle rules and repetitive push-diagnostics layouts and theme overrides while preserving the existing notification settings presentation:
+  1. Notification Settings Consolidation:
+     - Unified the identical push settings and notification settings toggle typography, margin reset, and disabled-slider behavior.
+     - Removed superseded follow-up option backgrounds that were already replaced by the final selected-state rules.
+     - Removed notification event grid backgrounds that were already supplied by the later shared opaque-card elevation layer.
+     - Scoped the muted warning margin through its notification settings card parent so it no longer requires an important declaration.
+  2. Push Diagnostics Consolidation:
+     - Unified nine repeated column-flex layouts for diagnostics summaries, panels, device sections, device details, attempt lists, and event lists.
+     - Consolidated repeated dark-mode diagnostic border colors and high-contrast diagnostic surfaces.
+     - Re-scoped device health badges through `.push-device-main` to preserve their typography without important declarations.
+  3. `!important` Elimination:
+     - Removed 9 declarations: 2 toggle margins, 3 event-grid backgrounds, 1 muted-warning margin, and 3 device-health typography/color declarations.
+     - Retained the 3 selected follow-up option backgrounds because they intentionally override the later shared opaque-card rule in `shell/card-elevation.css`.
+     - Lowered the graph-wide migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,132 to 2,123.
+- Files changed:
+  - `frontend/src/styles/account/notification-settings.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 visual regression scenarios with 0 pixel diffs.
+  - Targeted smoke test for `manages push notification preferences on mobile`: Passed 1/1 on mobile Chromium.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines reduced from 32,211 to 32,171 (-40); `notification-settings.css` reduced from 1,042 to 1,002 lines (-40); authored CSS bytes reduced from 837,653 to 836,882 (-771 B); graph `!important` declarations reduced from 2,132 to 2,123 (-9); production chunk raw bytes reduced from 705,815 to 705,342 (-473 B); production gzip bytes measured 105,851 (+10 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 diffs.
+- Decisions:
+  - Preserved the explicit notification diagnostics typography contracts for the first and last summary copy spans.
+  - Kept selected follow-up backgrounds local to notification settings because the shared card-elevation layer deliberately applies important opaque surfaces later in the cascade.
+  - Used parent specificity for toggle, warning, and device-health rules instead of adding new cascade exceptions.
+- Risks or blockers:
+  - None. Notification settings consolidation is verified across fixture contracts, production compilation, the targeted mobile preference interaction, and all visual baselines.
+- Next session: S15H — Consolidate Alerts stylesheet (`panels/alerts.css`), reducing repeated alert-card surfaces, state themes, and responsive rules.
