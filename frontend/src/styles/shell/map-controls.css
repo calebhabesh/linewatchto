@@ -223,3 +223,55 @@
   fill: #000000 !important;
   filter: none !important;
 }
+
+/* ============================================================
+   Mobile Recenter & Rail Button Styling
+   ============================================================ */
+@media (max-width: 767px) {
+  /* Recenter mobile styling */
+  .map-control-recenter-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  .map-control-recenter-mobile-label {
+    display: block !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #0f172a !important;
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    padding: 2px 6px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+    white-space: nowrap !important;
+  }
+  .dark .map-control-recenter-mobile-label {
+    color: #ffffff !important;
+    background-color: rgba(15, 23, 42, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  .map-control-rail .map-control-button {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 9999px !important;
+    width: 48px !important;
+    height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: transform 0.2s ease, background-color 0.2s ease !important;
+  }
+  .map-control-rail .map-control-button svg {
+    color: #0f172a !important;
+  }
+  .high-contrast .map-control-rail .map-control-button,
+  .linewatch-shell.high-contrast .map-control-rail .map-control-button {
+    border: 1px solid #ffffff !important;
+  }
+}

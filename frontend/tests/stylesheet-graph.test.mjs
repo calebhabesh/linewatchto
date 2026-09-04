@@ -286,7 +286,11 @@ describe("stylesheet-graph helper", () => {
     assert.match(trainMarkersContent, /\.estimated-train-marker-regional-br/);
     assert.match(trainMarkersContent, /\.high-contrast \.estimated-train-marker-core/);
     assert.match(trainMarkersContent, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-outline/);
+    assert.match(trainMarkersContent, /\.train-layer-toggle/);
+    assert.match(trainMarkersContent, /\.mobile-train-toggle/);
+    assert.match(trainMarkersContent, /\.mobile-train-pending-spinner/);
   });
+
 
   it("resolves the extracted shell/dashboard-shell.css in the application stylesheet graph", () => {
     clearStylesheetCache();
@@ -313,7 +317,9 @@ describe("stylesheet-graph helper", () => {
     assert.match(desktopChromeContent, /\.desktop-status-chip--alerts/);
     assert.match(desktopChromeContent, /\.desktop-status-chip--delays/);
     assert.match(desktopChromeContent, /\.main-menu-pin/);
+    assert.match(desktopChromeContent, /\.menu-action-row/);
   });
+
 
   it("resolves the extracted shell/floating-panels.css in the application stylesheet graph", () => {
     clearStylesheetCache();
@@ -344,6 +350,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(mapControlsContent, /\.regional-map-control-rail/);
     assert.match(mapControlsContent, /\.map-control-zoom-group/);
     assert.match(mapControlsContent, /\.map-control-recenter-container/);
+    assert.match(mapControlsContent, /\.map-control-recenter-mobile-label/);
   });
 
   it("resolves the extracted shell/mobile-chrome.css in the application stylesheet graph", () => {
@@ -362,6 +369,8 @@ describe("stylesheet-graph helper", () => {
     assert.match(mobileChromeContent, /\.mobile-map-recenter-btn/);
     assert.match(mobileChromeContent, /\.network-selector--compact-vertical/);
     assert.match(mobileChromeContent, /\.rotate-map-btn/);
+    assert.match(mobileChromeContent, /\.mobile-alert-history-shortcut/);
+    assert.match(mobileChromeContent, /\.mobile-my-stations-shortcut/);
   });
 
   it("resolves the extracted shell/mobile-sheets.css in the application stylesheet graph", () => {

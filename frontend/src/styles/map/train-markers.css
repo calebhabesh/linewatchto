@@ -157,3 +157,196 @@
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-halo {
   display: none;
 }
+
+/* ============================================================
+   Train Layer Toggle Controls (Desktop & Mobile)
+   ============================================================ */
+.train-layer-toggle.active {
+  background: rgba(37, 99, 235, 0.14);
+  color: #2563eb;
+}
+
+.dark .train-layer-toggle.active {
+  background: rgba(96, 165, 250, 0.2);
+  color: #93c5fd;
+}
+
+.high-contrast .train-layer-toggle.active {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.mobile-train-toggle {
+  position: fixed;
+  z-index: 35;
+  width: 36px !important;
+  height: 48px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  padding: 4px 1px !important;
+  border-radius: 10px !important;
+  cursor: pointer;
+  border: none !important;
+  transition: all 0.2s ease-in-out;
+  background: var(--mobile-chrome-background) !important;
+  color: var(--mobile-chrome-text) !important;
+}
+
+.mobile-train-pending-spinner {
+  animation: train-spinner-rotate 1.6s linear infinite !important;
+  color: #f5f5f5 !important;
+  height: 18px !important;
+  inset: 0 !important;
+  margin: auto !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  width: 18px !important;
+  z-index: 2 !important;
+}
+
+.dark .mobile-train-pending-spinner {
+  color: #f5f5f5 !important;
+}
+
+.high-contrast .mobile-train-pending-spinner {
+  color: #f5f5f5 !important;
+}
+
+.motion-paused .mobile-train-pending-spinner {
+  animation: none !important;
+}
+
+.mobile-train-toggle svg {
+  color: var(--mobile-chrome-text-muted) !important;
+  flex: 0 0 auto !important;
+  height: 16px !important;
+  width: 16px !important;
+}
+
+.mobile-train-toggle.active {
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.22) !important;
+}
+
+.mobile-train-toggle.active svg {
+  color: #1d4ed8 !important;
+}
+
+.dark .mobile-train-toggle.active {
+  border-color: #60a5fa !important;
+  background: rgba(96, 165, 250, 0.35) !important;
+}
+
+.dark .mobile-train-toggle.active svg {
+  color: #93c5fd !important;
+}
+
+.high-contrast .mobile-train-toggle.active {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+.high-contrast .mobile-train-toggle.active svg {
+  color: #000000 !important;
+}
+
+.mobile-train-toggle span {
+  display: inline-block !important;
+  font-size: 6px !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--mobile-chrome-text-muted) !important;
+}
+
+.mobile-train-toggle.active span {
+  color: #1d4ed8 !important;
+}
+
+.dark .mobile-train-toggle.active span {
+  color: #93c5fd !important;
+}
+
+.high-contrast .mobile-train-toggle.active span {
+  color: #000000 !important;
+}
+
+.mobile-train-toggle.mobile-train-toggle--loading,
+.mobile-train-toggle.active.mobile-train-toggle--loading,
+.mobile-train-toggle[aria-busy="true"],
+.mobile-train-toggle.active[aria-busy="true"] {
+  background: rgba(71, 85, 105, 0.55) !important;
+  border-color: rgba(100, 116, 139, 0.45) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+.dark .mobile-train-toggle.mobile-train-toggle--loading,
+.dark .mobile-train-toggle.active.mobile-train-toggle--loading,
+.dark .mobile-train-toggle[aria-busy="true"],
+.dark .mobile-train-toggle.active[aria-busy="true"] {
+  background: rgba(51, 65, 85, 0.75) !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45) !important;
+}
+
+.high-contrast .mobile-train-toggle.mobile-train-toggle--loading,
+.high-contrast .mobile-train-toggle.active.mobile-train-toggle--loading,
+.high-contrast .mobile-train-toggle[aria-busy="true"],
+.high-contrast .mobile-train-toggle.active[aria-busy="true"] {
+  background: #334155 !important;
+  border-color: #94a3b8 !important;
+}
+
+.mobile-train-toggle.mobile-train-toggle--loading > svg:not(.mobile-train-pending-spinner),
+.mobile-train-toggle.active.mobile-train-toggle--loading > svg:not(.mobile-train-pending-spinner),
+.mobile-train-toggle[aria-busy="true"] > svg:not(.mobile-train-pending-spinner),
+.mobile-train-toggle.active[aria-busy="true"] > svg:not(.mobile-train-pending-spinner),
+.mobile-train-toggle.mobile-train-toggle--loading > span,
+.mobile-train-toggle.active.mobile-train-toggle--loading > span,
+.mobile-train-toggle[aria-busy="true"] > span,
+.mobile-train-toggle.active[aria-busy="true"] > span {
+  opacity: 0.22 !important;
+  visibility: visible !important;
+}
+
+.mobile-train-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+  .mobile-train-toggle {
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-map-legend-height, 142px) + 8px) !important;
+  }
+
+  .mobile-train-toggle--announcement {
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-announcement-chip-height) + var(--mobile-announcement-gap) + var(--mobile-map-legend-height, 142px) + 8px) !important;
+  }
+
+  .linewatch-shell[data-network="regional"] .mobile-train-toggle,
+  .mobile-train-toggle--regional {
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-map-legend-height, 220px) + 12px) !important;
+  }
+
+  .linewatch-shell[data-network="regional"] .mobile-train-toggle--announcement,
+  .mobile-train-toggle--regional.mobile-train-toggle--announcement {
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-regional-announcement-chip-height) + var(--mobile-announcement-gap) + var(--mobile-map-legend-height, 220px) + 12px) !important;
+  }
+
+  .mobile-train-toggle--legend-expanded {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-train-toggle {
+    display: none !important;
+  }
+}

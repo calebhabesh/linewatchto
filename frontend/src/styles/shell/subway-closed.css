@@ -975,3 +975,53 @@
     white-space: normal;
   }
 }
+
+/* ============================================================
+   Section 9: Mobile Announcement & Peek Chip Positioning (<=767px)
+   ============================================================ */
+@media (max-width: 767px) {
+  .subway-closing-soon-chip,
+  .subway-closed-peek-chip,
+  .go-up-closed-peek-chip {
+    position: fixed !important;
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset)) !important;
+    bottom: auto !important;
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
+    right: auto !important;
+    transform: none !important;
+    max-width: var(--mobile-announcement-max-width) !important;
+    width: min(
+      var(--mobile-announcement-max-width),
+      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
+    ) !important;
+    height: var(--mobile-announcement-chip-height) !important;
+    min-height: var(--mobile-announcement-chip-height) !important;
+    overflow: hidden !important;
+  }
+
+  .go-up-closing-soon-chip,
+  .go-up-closed-peek-chip {
+    height: var(--mobile-regional-announcement-chip-height) !important;
+    min-height: var(--mobile-regional-announcement-chip-height) !important;
+  }
+
+  .subway-closing-soon-copy,
+  .subway-closed-peek-text {
+    flex: 1 1 auto !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .subway-closed-peek-title,
+  .subway-closed-peek-subtitle {
+    display: block !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .go-up-closed-peek-chip .subway-closed-peek-subtitle {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+}

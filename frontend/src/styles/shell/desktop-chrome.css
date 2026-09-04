@@ -815,3 +815,52 @@
 .dark .main-menu-pin[aria-pressed="true"] {
   color: #81c9ff;
 }
+
+/* ============================================================
+   Menu Action Rows & Top Chrome Active Page State
+   ============================================================ */
+.menu-action-row {
+  align-items: center;
+  border-radius: 8px;
+  color: rgb(51, 65, 85);
+  display: flex;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  transition: background 0.16s ease, color 0.16s ease;
+  width: 100%;
+}
+
+.menu-action-row:hover,
+.menu-action-row:focus-visible {
+  background: rgba(0, 0, 0, 0.05);
+  outline: none;
+}
+
+.dark .menu-action-row,
+.high-contrast .menu-action-row {
+  color: rgb(226, 232, 240);
+}
+
+.dark .menu-action-row:hover,
+.dark .menu-action-row:focus-visible,
+.high-contrast .menu-action-row:hover,
+.high-contrast .menu-action-row:focus-visible {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.desktop-top-chrome [aria-current="page"] {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .desktop-top-chrome [aria-current="page"] {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.high-contrast .desktop-top-chrome [aria-current="page"] {
+  background: #ffffff;
+  color: #000000;
+}
