@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11B
-- Last completed session: S11B
-- Next recommended session: S11C
+- Current session: S11C
+- Last completed session: S11C
+- Next recommended session: S11D
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 9,571 |
-| Total authored app CSS lines | 31,414 | 32,041 |
-| Total authored app CSS bytes | 784,128 | 817,407 |
-| Parsed rules | 4,221 | 1,348 |
-| Declarations | 14,093 | 4,094 |
-| !important | 2,356 | 840 |
+| Global entry lines | 30,011 | 8,538 |
+| Total authored app CSS lines | 31,414 | 32,096 |
+| Total authored app CSS bytes | 784,128 | 819,423 |
+| Parsed rules | 4,221 | 1,196 |
+| Declarations | 14,093 | 3,569 |
+| !important | 2,356 | 820 |
 | Class-substring selectors | 32 | 22 |
-| Production CSS bytes | 705,472 | 708,268 |
-| Production CSS gzip bytes | 108,667 | 106,531 |
+| Production CSS bytes | 705,472 | 708,413 |
+| Production CSS gzip bytes | 108,667 | 106,345 |
 
 
 
@@ -922,3 +922,40 @@
 - Risks or blockers:
   - None. S11B is fully completed and verified.
 - Next session: S11C — Extract reliability and alert history (`panels/reliability.css` and `panels/alert-history.css`).
+
+### S11C — Extract Reliability & Alert History
+
+- Status: completed
+- Commit: e3a91792
+- Scope: Extract reliability analytics panel container, layout, metrics grid, reliability rows, score tracks, and ingestion system health indicators into `frontend/src/styles/panels/reliability.css` (126 lines). Extract alert history panel container, timeline controls (period chips, status filters, search row, line/corridor dropdown, alert type dropdown, sort groups/options), day grouping, incident history items, tone badges, compact location, duration formatting, and expandable lifecycle disclosures into `frontend/src/styles/panels/alert-history.css` (962 lines). Add relative imports `@import "../styles/panels/reliability.css";` and `@import "../styles/panels/alert-history.css";` to `globals.css` immediately following `surface-notices.css`. Remove 1,033 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,146 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/panels/reliability.css`
+  - `frontend/src/styles/panels/alert-history.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,146 tests across 135 suites, 0 failures in ~965ms; +2 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 1.91s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 9,571 to 8,538 (-1,033 lines, -10.8%); parsed rules -152; parsed declarations -525; `!important` -20; media queries -2; keyframe blocks steady at 49; class-substring selectors steady at 22; production chunk raw bytes 708,413; gzip bytes 106,345 (-186 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created two dedicated, modular domain stylesheets:
+    1. `frontend/src/styles/panels/reliability.css` (126 lines) isolating `.analytics-panel` and `.health-panel` grid definitions, `.reliability-row` flex column layout, `.reliability-copy` display blocks, `.score-track` tracks and gradients, `.health-grid`, `.health-item` indicators and typography, and responsive media query overrides for 1180px and 900px.
+    2. `frontend/src/styles/panels/alert-history.css` (962 lines) isolating `.alert-history-panel` container, `.alert-history-timeline`, `.alert-history-controls`, search field and prefix, custom line/type/sort filter dropdowns, option hover/selection states, divider, period and filter chips, result count, load-more button, incident cards, line identity badge alignment, status and tone labels, primary timestamps, fact grid, compact impact location, duration formatting, expandable lifecycle disclosures with chevrons, status dots, and loading state across default, dark, and high-contrast modes.
+  - Removed 1,033 lines across 4 blocks from `globals.css`:
+    1. Single-column panel layout override for `.analytics-panel` and `.health-panel` (lines 2594-2595 in previous `globals.css`).
+    2. Complete contiguous block for analytics panel, health panel, reliability row, reliability copy, score track, health grid, and health items (lines 2599-2676 in previous `globals.css`).
+    3. Media query overrides at 1180px and 900px for analytics, health, and reliability (lines 2698-2705 and 2764-2771 in previous `globals.css`).
+    4. Complete contiguous block for alert history timeline, controls, dropdowns, items, and disclosures (lines 7129-8067 in previous `globals.css`).
+  - Preserved cross-component elevation lists (`.reliability-row`, `.health-item`, `.alert-history-item`, `.alert-history-shortcut`) and shared scrollbar lists (`.reliability-list::-webkit-scrollbar`) in `globals.css` for S11E / utilities.
+  - Maintained cascade hierarchy by importing `panels/reliability.css` and `panels/alert-history.css` at lines 36-37 immediately following `panels/surface-notices.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of both new stylesheets in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11C is fully completed and verified.
+- Next session: S11D — Extract feedback, privacy, release notes, site guide, and opening disclaimer (`panels/feedback.css`, `panels/info-modals.css` or dedicated dialog stylesheets).
