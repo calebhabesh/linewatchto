@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S15G
+- Current session: S15H
 - Last completed session: S15G
-- Next recommended session: S15H — Consolidate Alerts stylesheet (`panels/alerts.css`)
-- Blockers: none
+- Next recommended session: S15H verification follow-up — reconcile the existing full smoke baseline before advancing to another stylesheet family
+- Blockers: Full Playwright smoke is not clean on this checkout (34 failures, including missing WebKit host libraries and failures outside the S15H diff). The targeted alert card/list preference test also exposes a pre-existing stale solid-color expectation against the deliberate semi-transparent light-filament rule in later `shell/card-elevation.css`.
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,171 |
-| Total authored app CSS bytes | 784,128 | 836,882 |
+| Total authored app CSS lines | 31,414 | 32,083 |
+| Total authored app CSS bytes | 784,128 | 834,613 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 705,342 |
-| Production CSS gzip bytes | 108,667 | 105,851 |
+| Production CSS bytes | 705,472 | 703,561 |
+| Production CSS gzip bytes | 108,667 | 105,676 |
 
 
 
@@ -1862,3 +1862,49 @@
 - Risks or blockers:
   - None. Notification settings consolidation is verified across fixture contracts, production compilation, the targeted mobile preference interaction, and all visual baselines.
 - Next session: S15H — Consolidate Alerts stylesheet (`panels/alerts.css`), reducing repeated alert-card surfaces, state themes, and responsive rules.
+
+### S15H — Consolidate Alerts Stylesheet
+
+- Status: implementation completed; required full-smoke verification blocked
+- Commit: fac9e4b0
+- Scope: Consolidate `frontend/src/styles/panels/alerts.css` while preserving the alert, delay, Reduced Speed Zone, planned closure, station-impact, list-view, dark-mode, high-contrast, and responsive presentation:
+  1. Alert Surfaces & States:
+     - Unified the shared alert and closure card surface block.
+     - Removed legacy `.active`, `.danger`, and `.warning` card rules that are superseded by the current `is-active` and semantic disruption-tone classes.
+     - Removed the unused legacy `.rsz-card-active` rule.
+  2. Map & Action Controls:
+     - Removed redundant state-specific border declarations from circular View on Map controls while preserving their base borderless contract and high-contrast border override.
+     - Removed duplicate selected-state white icon/text declarations already supplied by the base dual-tone rules.
+     - Unified the identical active transform for related-closure and planned-closure status buttons.
+  3. Alert Metadata, Themes & Responsive Rules:
+     - Consolidated repeated RSZ count/timing tones and dark/high-contrast variants.
+     - Removed redundant dark control borders and shadows already supplied by their base rules.
+     - Removed the redundant combined-class sort-menu alignment rule; the later alert-list base rule already wins over the earlier My Commutes default.
+     - Consolidated identical station highlight keyframe stops and empty-stack context selectors without changing specificity.
+     - Preserved standalone planned-closure metadata and window selectors required by explicit fixture contracts.
+  4. Cascade Debt:
+     - Removed a superseded compact-impact box-shadow rule that is overridden by the later shared light-filament system.
+     - Lowered the graph-wide `!important` migration debt ceiling from 2,123 to 2,109 (-14 declarations).
+- Files changed:
+  - `frontend/src/styles/panels/alerts.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 visual regression scenarios with 0 pixel differences.
+  - Targeted `alert category panels filter by line and sort without changing dashboard data`: Passed on desktop Chrome and mobile Chromium (2/2).
+  - Targeted `alert submenus persist one per-device card or list preference`: Failed on desktop Chrome and mobile Chromium (0/2). Both failures expect solid `rgb(245, 158, 11)` but receive `rgba(245, 158, 11, 0.85)` from the later shared light-filament rule in `shell/card-elevation.css`; neither the rule nor the assertion was changed by S15H.
+  - `npm --prefix frontend run test:smoke`: Ran and read to completion; 146 passed, 64 skipped, 34 failed in 14.2 minutes. The failures span regional navigation/data, station/map interactions, account/reset flows, mobile layout, the stale alert filament assertion above, and the known missing WebKit host libraries. This required gate is not clean, so S15H is not marked fully completed.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` steady at 53 lines; total authored app CSS reduced from 32,171 to 32,083 (-88 lines); `alerts.css` reduced from 1,553 to 1,465 lines (-88); authored CSS bytes reduced from 836,882 to 834,613 (-2,269 B); graph `!important` declarations reduced from 2,123 to 2,109 (-14); production chunk raw bytes reduced from 705,342 to 703,561 (-1,781 B); production gzip bytes reduced from 105,851 to 105,676 (-175 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 baselines across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Kept the intentional later shared light-filament styling unchanged rather than altering production appearance to satisfy a stale smoke expectation.
+  - Did not weaken or rewrite the failing smoke assertion as part of the CSS consolidation.
+  - Kept the implementation commit isolated from the verification follow-up needed to establish a clean full-smoke baseline.
+- Risks or blockers:
+  - Full Playwright smoke is not clean on the current checkout, and the repository session contract prohibits advancing to S15I until the baseline failures are reconciled or explicitly accepted.
+- Next session: S15H verification follow-up — establish which full-smoke failures reproduce on `4c018252`, reconcile the stale compact-impact filament expectation, and install or explicitly exclude unavailable WebKit host dependencies before advancing to another stylesheet family.
