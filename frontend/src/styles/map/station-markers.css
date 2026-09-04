@@ -1,0 +1,338 @@
+/* ============================================================
+   Section 1: Station Hit Targets & Touch Targets
+   ============================================================ */
+.station-hit-target {
+  cursor: pointer;
+  fill: transparent;
+  outline: none;
+  pointer-events: auto;
+  stroke: transparent;
+  stroke-width: 0;
+  transition: all 0.2s ease-in-out;
+}
+
+.station-label-hit-target {
+  cursor: pointer;
+  fill: transparent;
+  outline: none;
+  pointer-events: all;
+  stroke: transparent;
+  stroke-width: 0;
+}
+
+.station-label-hit-target:focus,
+.station-label-hit-target:focus-visible {
+  outline: none;
+  stroke: transparent;
+}
+
+.ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+}
+
+.dark .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+  stroke: #ffffff !important;
+}
+
+.station-label-hover-effect {
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 80ms ease-out;
+}
+
+.station-label-hover-effect-active,
+.station-label-hover-effect:has(.station-label-hovered),
+.station-label-hover-effect:has(.regional-station-label-hovered) {
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
+  transform: scale(1.045);
+  transition-delay: 0ms;
+}
+
+.motion-paused .station-label-hover-effect {
+  animation: none;
+  transition: none;
+}
+
+.motion-paused .station-label-hover-effect-active,
+.motion-paused .station-label-hover-effect:has(.station-label-hovered),
+.motion-paused .station-label-hover-effect:has(.regional-station-label-hovered) {
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
+  transform: scale(1.045);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-label-hover-effect {
+    animation: none;
+    transition: none;
+  }
+
+  .station-label-hover-effect-active,
+  .station-label-hover-effect:has(.station-label-hovered),
+  .station-label-hover-effect:has(.regional-station-label-hovered) {
+    filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
+    transform: scale(1.045);
+  }
+}
+
+.station-hit-target:hover,
+.station-hit-target:focus-visible {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 0;
+}
+
+@media (pointer: coarse) {
+  .station-hit-target,
+  .station-hit-target:hover,
+  .station-hit-target:focus-visible {
+    /* Balanced station touch target without drowning out adjacent disruption corridors. */
+    stroke-width: 32px;
+  }
+}
+
+/* ============================================================
+   Section 2: Station Hover & Selection Indicators
+   ============================================================ */
+.station-hover-indicator {
+  fill: transparent;
+  pointer-events: none;
+  stroke: transparent;
+  stroke-width: 0;
+  transition: fill 70ms ease-out, stroke 70ms ease-out, stroke-width 70ms ease-out;
+}
+
+.station-hover-indicator.active {
+  fill: rgb(var(--station-selection-accent-rgb) / 30%);
+  stroke: var(--station-selection-accent);
+  stroke-width: 10;
+}
+
+.station-hover-indicator[data-station-hover-selected="true"] {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 0;
+}
+
+.station-hit-target.multi-anchor:hover,
+.station-hit-target.multi-anchor:focus-visible {
+  fill: transparent;
+  stroke: transparent;
+}
+
+.station-hit-target.selected {
+  fill: transparent;
+  stroke: transparent;
+}
+
+.station-selected-indicator {
+  fill: var(--station-selection-accent);
+  transform-origin: center;
+  transform-box: fill-box;
+  stroke: none;
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
+  animation: station-selected-pulse 2.4s ease-in-out infinite;
+  animation-delay: var(--map-pulse-offset);
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* For multi-anchor stations where it is always in the DOM */
+.station-selected-indicator.multi-anchor {
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
+
+.station-selected-indicator.multi-anchor.active {
+  opacity: 1;
+  animation: station-selected-pulse 2.4s ease-in-out infinite;
+  animation-delay: var(--map-pulse-offset);
+}
+
+/* ============================================================
+   Section 3: Station Impact Rings & Hover Priority
+   ============================================================ */
+.station-impact-ring {
+  cursor: pointer;
+  fill: none;
+  outline: none;
+  opacity: 0.92;
+  stroke: #facc15; /* Glowing gold ring */
+  stroke-linecap: round;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8));
+  transition: opacity 0.2s ease, stroke-width 0.2s ease, stroke 0.2s ease;
+  animation: gold-ring-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
+  animation-delay: var(--map-pulse-offset);
+}
+
+.station-impact-ring.selected,
+.station-impact-ring:hover,
+.station-impact-ring:focus-visible {
+  opacity: 1;
+  stroke-width: 8;
+  stroke: #ffd700;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.95)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+}
+
+.station-impact-hover-priority {
+  fill: rgb(var(--station-selection-accent-rgb) / 18%);
+  opacity: 0;
+  visibility: hidden;
+  stroke: var(--station-selection-accent);
+  stroke-width: 9;
+  transition:
+    opacity 70ms ease-out,
+    visibility 0s linear 70ms;
+}
+
+.station-impact-hover-priority[data-ttc-impact-hovered="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.high-contrast .station-impact-hover-priority {
+  fill: rgb(var(--station-selection-accent-rgb) / 32%);
+  stroke: var(--station-selection-accent);
+  stroke-width: 11;
+}
+
+/* ============================================================
+   Section 4: Station Impact Red Core & Radar Pings
+   ============================================================ */
+.station-impact-dot-red-glow {
+  fill: #ff3b30; /* Vivid bright iOS/radar style red core */
+  transform-origin: center;
+  transform-box: fill-box;
+  filter: drop-shadow(0 0 6px rgba(255, 59, 48, 0.9));
+  animation: station-radar-core var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
+  animation-delay: var(--map-pulse-offset);
+}
+
+.station-impact-dot-red-ping {
+  fill: #ff3b30; /* Bright solid highlight color, opacity animated below */
+  stroke: #ff4b5c; /* Bright radar sweep edge */
+  stroke-width: 1.5;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: station-radar-ping 2.4s infinite var(--map-overlay-pulse-easing);
+  animation-delay: var(--map-pulse-offset);
+}
+
+.station-impact-dot-red-beacon {
+  display: none;
+}
+
+/* ============================================================
+   Section 5: Station Impact Direction Glyphs
+   ============================================================ */
+.station-impact-direction-glyph {
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.55));
+}
+
+.station-impact-direction-badge {
+  fill: #ffffff;
+  stroke: rgba(127, 29, 29, 0.9);
+  stroke-width: 2.5;
+}
+
+.station-impact-direction-arrow {
+  fill: none;
+  stroke: #111827;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 6;
+}
+
+.linewatch-shell.high-contrast .station-impact-direction-badge {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 3;
+}
+
+.linewatch-shell.high-contrast .station-impact-direction-arrow {
+  stroke: #000000;
+  stroke-width: 7;
+}
+
+/* ============================================================
+   Section 6: Keyframe Animations & Reduced Motion Overrides
+   ============================================================ */
+@keyframes station-selected-pulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 55%));
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+    filter: drop-shadow(0 0 10px rgb(var(--station-selection-accent-rgb) / 95%));
+  }
+}
+
+@keyframes gold-ring-pulse {
+  0% {
+    stroke-opacity: 0.6;
+    stroke-width: 3.5;
+    filter: drop-shadow(0 0 3px rgba(250, 204, 21, 0.5));
+  }
+  100% {
+    stroke-opacity: 0.95;
+    stroke-width: 5;
+    filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.9)) drop-shadow(0 0 20px rgba(250, 204, 21, 0.4));
+  }
+}
+
+@keyframes station-radar-core {
+  0% {
+    transform: scale(0.9);
+    filter: drop-shadow(0 0 4px rgba(255, 59, 48, 0.75));
+  }
+  100% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 12px rgba(255, 59, 48, 1)) drop-shadow(0 0 18px rgba(255, 59, 48, 0.45));
+  }
+}
+
+@keyframes station-radar-ping {
+  0% {
+    transform: scale(0.9);
+    fill-opacity: 0.45;
+    stroke-opacity: 0.95;
+    filter: drop-shadow(0 0 3px rgba(255, 59, 48, 0.85));
+  }
+  50% {
+    fill-opacity: 0.25;
+    stroke-opacity: 0.7;
+    filter: drop-shadow(0 0 12px rgba(255, 59, 48, 0.65)) drop-shadow(0 0 20px rgba(255, 59, 48, 0.36));
+  }
+  100% {
+    transform: scale(2.8);
+    fill-opacity: 0;
+    stroke-opacity: 0;
+    filter: drop-shadow(0 0 40px rgba(255, 59, 48, 0));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-hit-target.selected,
+  .station-selected-indicator,
+  .station-selection-flash,
+  .regional-station-top-selection,
+  .station-impact-ring,
+  .station-impact-dot-red-glow,
+  .station-impact-dot-red-ping {
+    animation: none !important;
+  }
+
+  .station-selected-indicator:not(.multi-anchor),
+  .station-selected-indicator.multi-anchor.active {
+    opacity: 0.55 !important;
+    transform: scale(1) !important;
+  }
+}

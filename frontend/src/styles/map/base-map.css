@@ -304,3 +304,188 @@
 ) path {
   fill: #4084cd !important;
 }
+
+/* ============================================================
+   Map layer transitions & attribution notice
+   ============================================================ */
+.map-layer-entering,
+.map-layer-current {
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+.map-layer-exiting {
+  opacity: 0;
+  pointer-events: none !important;
+  transition: opacity 240ms ease;
+}
+
+.motion-paused .map-layer-entering,
+.motion-paused .map-layer-current,
+.motion-paused .map-layer-exiting {
+  transition: none !important;
+}
+
+.map-attribution-notice {
+  position: absolute;
+  right: 4px;
+  bottom: 0px;
+  z-index: 28;
+  max-width: min(520px, calc(100vw - 8px));
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.78);
+  color: rgba(15, 23, 42, 0.82);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 0px 2px 6px;
+  pointer-events: none;
+  text-align: right;
+  text-wrap: nowrap;
+  user-select: none;
+}
+
+.dark .map-attribution-notice {
+  background: rgba(10, 12, 16, 0.68);
+  color: rgba(241, 245, 249, 0.82);
+}
+
+.linewatch-shell.high-contrast .map-attribution-notice {
+  background: #000000;
+  color: #ffffff;
+}
+
+@media (max-width: 767px) {
+  .map-attribution-notice {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Direct pan and user-zoom overlay simplification
+   ============================================================ */
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path-glow:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-candy,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.suspension-candy,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.delay-static-base,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .asset-alert-path.planned-preview,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-hourglass-mask-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .suspension-mask-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .delay-static-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-impact-dot-red-ping,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .station-commute-green-flash,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-glow,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .commute-path-preview-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-aura,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-path,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-delay-glyph,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-suspension-glyph,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-chevron-glyph,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-planned-closure-glyph,
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .regional-impact-interactive-glow:not(.map-selection-attention) {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+/* Freeze selection attention at its current frame too. Keeping filters and
+   opacity untouched preserves every authored glow during a pan or zoom. */
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .map-selection-attention {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) .interactive-glow.selected {
+  opacity: 0.36;
+  stroke-width: 138;
+}
+
+/* Camera input takes priority over decorative paint. Removing blur/drop-shadow
+   sampling and transient hover planes while the stage moves keeps Chromium's
+   compositor work bounded without hiding the service-impact rails themselves. */
+:is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
+  .asset-alert-path-glow,
+  .interactive-glow,
+  .station-impact-ring,
+  .station-impact-dot-red-glow,
+  .station-impact-dot-red-ping,
+  .station-impact-dot-red-beacon,
+  .station-selected-indicator,
+  .station-selection-flash,
+  .station-commute-green-flash,
+  .commute-path-preview-glow,
+  .regional-impact-aura,
+  .regional-impact-glow,
+  .regional-impact-interactive-glow,
+  .regional-station-impact-ring,
+  .regional-station-impact-beacon-group,
+  .regional-station-top-selection,
+  .estimated-train-marker
+) {
+  filter: none !important;
+}
+
+:is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
+  .asset-alert-path-glow:not(.map-selection-attention),
+  .station-impact-dot-red-ping,
+  .station-impact-dot-red-beacon,
+  .commute-path-preview-glow,
+  .regional-impact-aura,
+  .regional-impact-glow:not(.map-selection-attention),
+  .regional-station-impact-beacon-group
+) {
+  opacity: 0 !important;
+}
+
+:is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
+  .ttc-impact-hover-foreground,
+  .station-impact-hover-priority,
+  .station-hover-indicator,
+  .raster-station-label-text-hover,
+  .regional-impact-hover-foreground,
+  .regional-station-impact-hover-foreground,
+  .regional-station-hover-indicator
+) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: none !important;
+}
+
+/* Programmatic camera flights freeze pulse motion while preserving selection
+   emphasis. Unlike direct input, these short flights do not compete with a
+   stream of pointer frames. */
+[data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention),
+[data-map-camera-moving="true"] .interactive-glow:not(.map-selection-attention),
+[data-map-camera-moving="true"] .asset-alert-path.delay-candy,
+[data-map-camera-moving="true"] .asset-alert-path.suspension-candy,
+[data-map-camera-moving="true"] .asset-alert-path.delay-static-base,
+[data-map-camera-moving="true"] .asset-alert-path.planned-preview,
+[data-map-camera-moving="true"] .delay-hourglass-mask-path,
+[data-map-camera-moving="true"] .suspension-mask-path,
+[data-map-camera-moving="true"] .delay-static-path,
+[data-map-camera-moving="true"] .station-impact-ring:not(.map-selection-attention),
+[data-map-camera-moving="true"] .station-impact-dot-red-glow,
+[data-map-camera-moving="true"] .station-impact-dot-red-ping,
+[data-map-camera-moving="true"] .station-commute-green-flash,
+[data-map-camera-moving="true"] .commute-path-preview-glow,
+[data-map-camera-moving="true"] .commute-path-preview-path {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+:is([data-map-camera-moving="true"], [data-regional-map-camera-moving="true"]) :is(
+  .ttc-impact-hover-foreground,
+  .station-impact-hover-priority,
+  .station-hover-indicator,
+  .raster-station-label-text-hover,
+  .regional-impact-hover-foreground,
+  .regional-station-impact-hover-foreground,
+  .regional-station-hover-indicator
+) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: none !important;
+}

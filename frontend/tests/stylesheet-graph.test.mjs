@@ -197,6 +197,31 @@ describe("stylesheet-graph helper", () => {
     assert.match(baseMapContent, /\.map-center-feedback/);
     assert.match(baseMapContent, /\.ttc-map-stage\[data-raster-map-ready="true"\]\s*\.ttc-authored-svg-source/);
     assert.match(baseMapContent, /\.linewatch-shell\.mobile-performance-mode\s*:is\(\.ttc-map-stage,\s*\.regional-map-stage\)/);
+    assert.match(baseMapContent, /\.map-layer-entering,\s*\.map-layer-current/);
+    assert.match(baseMapContent, /\.map-attribution-notice/);
+    assert.match(baseMapContent, /:is\(\.map-gesture-active,\s*\[data-map-gesture-active="true"\],\s*\[data-map-zoom-active="true"\]\)/);
+    assert.match(baseMapContent, /\[data-map-camera-moving="true"\]/);
+  });
+
+  it("resolves the extracted map/station-markers.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("station-markers.css")), "station-markers.css must be in graph files");
+    const stationMarkersContent = readStylesheet(new URL("../src/styles/map/station-markers.css", import.meta.url));
+    assert.match(stationMarkersContent, /\.station-hit-target/);
+    assert.match(stationMarkersContent, /\.station-label-hit-target/);
+    assert.match(stationMarkersContent, /\.station-label-hover-effect/);
+    assert.match(stationMarkersContent, /\.station-hover-indicator/);
+    assert.match(stationMarkersContent, /\.station-selected-indicator/);
+    assert.match(stationMarkersContent, /\.station-impact-ring/);
+    assert.match(stationMarkersContent, /\.station-impact-hover-priority/);
+    assert.match(stationMarkersContent, /\.station-impact-dot-red-glow/);
+    assert.match(stationMarkersContent, /\.station-impact-dot-red-ping/);
+    assert.match(stationMarkersContent, /\.station-impact-direction-glyph/);
+    assert.match(stationMarkersContent, /@keyframes station-selected-pulse/);
+    assert.match(stationMarkersContent, /@keyframes gold-ring-pulse/);
+    assert.match(stationMarkersContent, /@keyframes station-radar-core/);
+    assert.match(stationMarkersContent, /@keyframes station-radar-ping/);
   });
 
   it("resolves the extracted map/impact-overlays.css in the application stylesheet graph", () => {
