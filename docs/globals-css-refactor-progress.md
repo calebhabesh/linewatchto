@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S09D
-- Last completed session: S09D
-- Next recommended session: S10A
+- Current session: S10C
+- Last completed session: S10C
+- Next recommended session: S10D
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 17,951 |
-| Total authored app CSS lines | 31,414 | 31,678 |
-| Total authored app CSS bytes | 784,128 | 795,422 |
-| Parsed rules | 4,221 | 2,543 |
-| Declarations | 14,093 | 8,358 |
-| !important | 2,356 | 1,185 |
+| Global entry lines | 30,011 | 13,917 |
+| Total authored app CSS lines | 31,414 | 31,846 |
+| Total authored app CSS bytes | 784,128 | 805,911 |
+| Parsed rules | 4,221 | 1,967 |
+| Declarations | 14,093 | 6,297 |
+| !important | 2,356 | 1,016 |
 | Class-substring selectors | 32 | 22 |
-| Production CSS bytes | 705,472 | 707,463 |
-| Production CSS gzip bytes | 108,667 | 106,877 |
+| Production CSS bytes | 705,472 | 707,742 |
+| Production CSS gzip bytes | 108,667 | 106,884 |
 
 
 ## Session log
@@ -732,3 +732,40 @@
 - Risks or blockers:
   - None. S10B is fully completed and verified.
 - Next session: S10C — Extract My Commutes cards and route display (`account/saved-commutes.css`).
+
+### S10C — Extract My Commutes Cards and Route Display
+
+- Status: completed
+- Commit: 66bad503
+- Scope: Extract saved commute cards (`.commute-card`, `.commute-card h3`, `.commute-card .status-pill`, `.commute-card.danger`, `.commute-card.warning`, `.commute-card.ok`, `.commute-card.filtered`), panel body container (`.commute-grid`), card header and identity (`.saved-commute-card-header`, `.saved-commute-card-identity`, `.saved-commute-title-icon`, `.saved-commute-current-impact-badge`), route endpoints and animated station swap (`.saved-commute-endpoints`, `.saved-commute-endpoint-row`, `.saved-commute-endpoint-connector`, `.saved-commute-endpoint-icon-col`, `.saved-commute-endpoint-content`, `.saved-commute-endpoint-prefix`, `.saved-commute-endpoint-station`, `.saved-commute-station-text`, `.saved-commute-origin-swap`, `.saved-commute-dest-swap`, `@keyframes commuteOriginSwapIn`, `@keyframes commuteDestSwapIn`), active commute disruption disclosures, summary chips, and matched impact rows (`.saved-commute-impact-disclosure`, `.saved-commute-impact-summary`, `.saved-commute-impact-summary-heading`, `.saved-commute-impact-summary-icon`, `.saved-commute-impact-total`, `.saved-commute-impact-summary-chips`, `.saved-commute-impact-summary-chip`, `.saved-commute-impact-summary-action`, `.saved-commute-impact-content-wrapper`, `.saved-commute-impact-content`, `.saved-commute-impact-list`, `.saved-commute-impact-icon`, `.saved-commute-impact-copy`, `.saved-commute-impact-details`, `.saved-commute-impact-heading`, `.saved-commute-impact-filter-note`, `.saved-commute-impact-ignored`), route actions, stop toggle, edit button, and map actions (`.commute-route-actions`, `.commute-route-stop-toggle`, `.commute-route-edit-button`, `.saved-commute-map-action`), leg monitoring toggle, glider, and direction banners (`.commute-leg-toggle`, `.commute-leg-glider`, `.commute-single-leg-container`, `.commute-single-leg-banner`, `.leg-btn-clear`, `.leg-btn-affected`, `.leg-btn-filtered`), direction-aware travel-time estimates (`.saved-commute-leg-list`, `.saved-commute-time-estimate`, `.saved-commute-time-estimate-heading`, `.saved-commute-time-estimate-grid`, `.saved-commute-time-verdict`, `.saved-commute-time-status-value`, `.saved-commute-time-headline-clock`), leg rows and tints (`.saved-commute-leg-row`, `.saved-commute-leg-row.clear-tint`, `.saved-commute-leg-row.affected-tint`), route stops list (`.commute-route-stop-list`, `.commute-route-stop-index`), saved route delete actions (`.commute-route-delete-confirm-button`, `.commute-route-delete-button`, `.commute-route-delete-confirmation`, `.commute-route-delete-cancel-button`), routing boundary disclaimers (`.saved-commute-routing-boundary-disclosure`, `.saved-commute-routing-boundary-trigger`, `.saved-commute-routing-boundary-label`, `.saved-commute-routing-boundary-static`), add route action (`.saved-commute-add-btn`), cancel button (`.saved-commute-cancel-button`), commute toast confirmation (`.commute-toast-success`), and responsive/motion/high-contrast overrides from `globals.css` into dedicated `frontend/src/styles/account/saved-commutes.css` (1,984 lines). Add relative import `@import "../styles/account/saved-commutes.css";` to `globals.css` at line 30 immediately following `my-stations.css`. Remove 1,932 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,139 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/account/saved-commutes.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,139 tests across 135 suites, 0 failures in ~1.1s; +1 test for new stylesheet).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 15,849 to 13,917 (-1,932 lines); parsed rules -279; parsed declarations -982; `!important` -116; media queries -9; keyframe blocks -2; class-substring selectors in `globals.css` steady at 22; production chunk raw bytes 707,742; gzip bytes 106,884 (-295 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated domain stylesheet `frontend/src/styles/account/saved-commutes.css` (1,984 lines) isolating saved commute cards, body container, route headers, animated station swap, disruption disclosures, route actions, leg monitoring toggle and glider, travel-time estimates, leg rows, route stop lists, delete confirmations, routing boundary notices, CTA add button, and toast confirmations.
+  - Removed 1,932 lines from `globals.css`:
+    1. Saved commutes panel body container (`.commute-grid`, lines 2865-2883 in original `globals.css`).
+    2. Saved commute cards shell, header, identity, tones, endpoints, swap animations, disruption disclosure, summary chips, impact list items, and responsive/motion overrides (lines 2899-3586 in original `globals.css`).
+    3. Commute route actions, stop toggle, edit button, map action, leg monitoring toggle/glider/banners, travel-time estimates, severity clocks, leg rows, and route stop list (lines 8406-9205 in original `globals.css`).
+    4. Saved route delete buttons, delete confirmation, prompt, cancel, dark/high-contrast modes, and responsive `@media (max-width: 30rem)` (lines 9353-9574 in original `globals.css`).
+    5. Commute toast success confirmation, routing boundary disclaimers, CTA add button, and cancel button (lines 15096-15303 in original `globals.css`).
+  - Preserved `.motion-paused .saved-station-global-notice` in `globals.css` to maintain station toast motion cancellation.
+  - Preserved saved commute rule editor, notification schedules, and create form (`.saved-commute-form`, `.saved-commute-rule-editor`, `.saved-commute-schedule-...`, `.commute-station-popover`) in `globals.css` for S10D.
+  - Preserved cross-component elevation lists and container navigation transitions in `globals.css` for S11.
+  - Maintained cascade hierarchy by importing `saved-commutes.css` at line 30 immediately following `my-stations.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `account/saved-commutes.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S10C is fully completed and verified.
+- Next session: S10D — Extract My Commutes rule editor and notification schedule picker (`account/saved-commute-rules.css`).
