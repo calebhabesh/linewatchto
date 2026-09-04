@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11J
-- Last completed session: S11J
-- Next recommended session: S11K (or S12)
+- Current session: S11K
+- Last completed session: S11K
+- Next recommended session: S11L (or S12)
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 2,088 |
-| Total authored app CSS lines | 31,414 | 32,374 |
-| Total authored app CSS bytes | 784,128 | 834,718 |
-| Parsed rules | 4,221 | 279 |
-| Declarations | 14,093 | 822 |
-| !important | 2,356 | 258 |
+| Global entry lines | 30,011 | 1,399 |
+| Total authored app CSS lines | 31,414 | 32,423 |
+| Total authored app CSS bytes | 784,128 | 837,219 |
+| Parsed rules | 4,221 | 173 |
+| Declarations | 14,093 | 502 |
+| !important | 2,356 | 189 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 708,439 |
-| Production CSS gzip bytes | 108,667 | 106,088 |
+| Production CSS bytes | 705,472 | 708,413 |
+| Production CSS gzip bytes | 108,667 | 106,245 |
 
 
 
@@ -1290,3 +1290,47 @@
 - Risks or blockers:
   - None. S11J is fully completed and verified.
 - Next session: S11K — Extract default map mode control and station picker search popover rules (`styles/shell/map-mode-control.css` or `styles/station/station-picker-popover.css`), or proceed to S12 (architecture guardrails).
+
+### S11K — Extract Default Map Mode Control and Station Picker Popover
+
+- Status: completed
+- Commit: 70cdab10
+- Scope: Extract default map mode segmented control (`.default-map-mode-control`, labels, options container, glider, network buttons, dark/high-contrast variants, compact mode, reduced motion, and mobile 390px breakpoint) into `frontend/src/styles/shell/map-mode-control.css` (237 lines across 4 sections). Extract shared compact dropdown language and commute station picker popover (`.site-dropdown-trigger`, `.site-dropdown-menu`, `.site-dropdown-option`, `@keyframes commute-popover-enter`, `.commute-station-popover`, option cards, search row, WebKit cancel suppression, `@media (max-width: 767px)` mobile column slide animations, mobile back button, virtual keyboard expansion, and panel viewport promotion) into `frontend/src/styles/station/station-picker-popover.css` (501 lines across 6 sections). Add relative imports `@import "../styles/shell/map-mode-control.css";` and `@import "../styles/station/station-picker-popover.css";` to `globals.css` immediately following `subway-closed.css`. Remove 689 lines across 3 blocks from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,161 passing, 0 failures), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/shell/map-mode-control.css`
+  - `frontend/src/styles/station/station-picker-popover.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,161 tests across 135 suites, 0 failures in ~998ms; +2 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.9s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 2,088 to 1,399 (-689 lines, -33.0%); parsed rules -106 (279 to 173, -38.0%); parsed declarations -320 (822 to 502, -38.9%); `!important` -69 (258 to 189, -26.7%); media queries -4 (17 to 13); keyframe blocks -4 (11 to 7, -36.4%); class-substring selectors steady at 0; production chunk raw bytes improved by 26 bytes to 708,413; gzip bytes 106,245).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated, modular shell stylesheet `frontend/src/styles/shell/map-mode-control.css` (237 lines) isolating 4 sections:
+    1. Section 1: Container, Hover States, & Labels (`.default-map-mode-control`, `:hover`, `.dark`, `.high-contrast`, `.default-map-mode-label`, icon, svg, text, strong, small).
+    2. Section 2: Segmented Options Container & Sliding Glider (`.default-map-mode-options`, `.default-map-mode-glider`, `[data-network="regional"]`, `[data-network="ttc"]`).
+    3. Section 3: Mode Buttons & Dark/High-Contrast Themes (`.default-map-mode-btn`, `:hover`, selected TTC/GO buttons, dark mode variants, high contrast selected outline).
+    4. Section 4: Compact Mode, Reduced Motion & Mobile Breakpoints (`.default-map-mode-control.is-compact`, `.dark`, `@media (prefers-reduced-motion: reduce)`, `@media (max-width: 390px)`).
+  - Created dedicated, modular station stylesheet `frontend/src/styles/station/station-picker-popover.css` (501 lines) isolating 6 sections:
+    1. Section 1: Shared Compact Dropdown System (`.site-dropdown-trigger`, `:hover`, `:focus-visible`, `.site-dropdown-menu`, `.site-dropdown-option`, `:hover`, `:focus-visible`, `.selected`, dark mode, high-contrast).
+    2. Section 2: Popover Base Shell & Desktop Defaults (`@keyframes commute-popover-enter`, `.commute-station-popover`, `.motion-paused`, `.commute-station-mobile-back` desktop hide, `.commute-station-popover.site-dropdown-menu`).
+    3. Section 3: Popover Options, Lines & Station Option Cards (`.commute-station-lines-list`, `.commute-station-options`, `.commute-station-line-trigger`, `.commute-station-option`, `.commute-station-stations-scroll-content`, dark mode, hover, selected, high-contrast).
+    4. Section 4: Popover Search Row & WebKit Cancel Suppression (`.commute-station-search-row`, input search styling, `::-webkit-search-cancel-button` suppression, focus-within, dark, high contrast).
+    5. Section 5: Mobile Column Browsing, Animations & Mobile Parity (`@media (max-width: 767px)`: `@keyframes commute-popover-enter-mobile`, fixed positioning, inline mode `[data-mobile-inline="true"]`, sticky search row, options scrolling, visual keyboard uncap, browse container, lines column, `@keyframes mobile-mini-search-lines-slide-back`, stations column, `@keyframes mobile-mini-search-expansion-slide-in`, mobile back button styling, dark, high contrast, `.saved-commute-account-prompt:not(.account-feature-preview)`, `.mobile-view-content-wrapper[data-active-view="commutes"]`, `.commute-panel`, `.mobile-view-content-wrapper[data-active-view="status"]`, `.panel`, `.floating-panel-shell` scroll & padding overrides, `.commute-grid` margins & mask reset, `.mobile-status-content-scroll`, `.mobile-status-sheet`).
+    6. Section 6: Mobile Virtual Keyboard & Viewport Promotion (`@media (max-width: 767px)`: hide mobile bottom nav when searching/focused, promote floating panel shell above virtual keyboard, full height for mobile view content wrapper and commute panel, commute-grid scrolling, scroll-snap-type none, `html:has(...) scroll-behavior: auto !important;`, stations column back button spacing, scrollbar gutter and padding).
+  - Removed 689 lines across 3 blocks from `globals.css`:
+    1. Default map mode control rules (former lines 685-900 in `globals.css`, 216 lines).
+    2. Commute station picker search popover block 1 (former lines 1055-1261 in `globals.css`, 207 lines).
+    3. Shared compact dropdowns and commute station picker popover block 2 (former lines 1824-2088 in `globals.css`, 265 lines).
+  - Maintained cascade hierarchy by importing `map-mode-control.css` and `station-picker-popover.css` at lines 51-52 immediately following `subway-closed.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of both new stylesheets in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11K is fully completed and verified.
+- Next session: S11L — Extract mobile floating action shortcuts and train marker toggle controls (`styles/shell/mobile-chrome.css` or `styles/map/train-markers.css`), pan/zoom gesture optimizations (`styles/map/base-map.css`), or proceed to S12 (architecture guardrails).
