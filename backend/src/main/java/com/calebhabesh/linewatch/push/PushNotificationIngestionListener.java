@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,6 +24,7 @@ public class PushNotificationIngestionListener {
         this.healthService = healthService;
     }
 
+    @Async
     @EventListener
     public void onTtcAlertIngestionSucceeded(TtcAlertIngestionSucceededEvent event) {
         try {

@@ -172,14 +172,27 @@ public class PushNotificationDispatchService {
         this.lifecycleService = lifecycleService;
     }
 
+    record FreshnessScope(boolean ttcFresh, boolean regionalFresh) {
+        boolean freshForLine(String lineId) {
+            if (lineId != null && lineId.startsWith("regional-")) {
+                return regionalFresh;
+            }
+            return ttcFresh;
+        }
+    }
+
     public PushEvaluationResult evaluateSavedCommuteNotifications() {
         int accountsEvaluated = 0;
         int accountsFailed = 0;
         String lastError = null;
+        FreshnessScope freshnessScope = new FreshnessScope(
+            ingestionFreshness.isDashboardFresh(),
+            regionalIngestionFreshness != null && regionalIngestionFreshness.isFresh()
+        );
         for (String accountId : subscriptionRepository.findEnabledAccountIds()) {
             accountsEvaluated++;
             try {
-                AccountEvaluationResult accountResult = evaluateAccount(accountId);
+                AccountEvaluationResult accountResult = evaluateAccount(accountId, freshnessScope);
                 if (accountResult.candidatesFailed() > 0) {
                     accountsFailed++;
                     lastError = accountResult.lastError();
@@ -198,6 +211,16 @@ public class PushNotificationDispatchService {
     record AccountEvaluationResult(int candidatesFailed, String lastError) {}
 
     AccountEvaluationResult evaluateAccount(String accountId) {
+        return evaluateAccount(
+            accountId,
+            new FreshnessScope(
+                ingestionFreshness.isDashboardFresh(),
+                regionalIngestionFreshness != null && regionalIngestionFreshness.isFresh()
+            )
+        );
+    }
+
+    AccountEvaluationResult evaluateAccount(String accountId, FreshnessScope freshnessScope) {
             PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(accountId);
             
             List<SavedCommuteEntity> commutes = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(accountId);
@@ -286,13 +309,15 @@ public class PushNotificationDispatchService {
                 commutesById,
                 savedCurrentNotificationKeys,
                 savedCurrentSourceIncidentKeys,
-                savedCommuteCandidates
+                savedCommuteCandidates,
+                freshnessScope
             );
             clearStaleSavedCommuteObservations(
                 accountId,
                 savedCurrentNotificationKeys,
                 savedCurrentSourceIncidentKeys,
-                savedCommuteCandidates
+                savedCommuteCandidates,
+                freshnessScope
             );
             sendClearedLineObservationNotifications(
                 accountId,
@@ -300,7 +325,8 @@ public class PushNotificationDispatchService {
                 subscribedLineIdSet,
                 currentLineNotificationKeys,
                 currentLineSourceIncidentKeys,
-                lineCandidates
+                lineCandidates,
+                freshnessScope
             );
             retryRecentClearedLifecycleNotifications(
                 accountId,
@@ -415,7 +441,8 @@ public class PushNotificationDispatchService {
         java.util.Map<String, SavedCommuteEntity> commutesById,
         Set<String> currentNotificationKeys,
         Set<String> currentSourceIncidentKeys,
-        List<PushNotificationCandidate> allSavedCommuteCandidates
+        List<PushNotificationCandidate> allSavedCommuteCandidates,
+        FreshnessScope freshnessScope
     ) {
         Instant now = clock.instant();
         List<String> currentCategories = List.of("saved-commute-current", "saved-commute-impact");
@@ -427,7 +454,7 @@ public class PushNotificationDispatchService {
         );
 
         for (PushNotificationEventEntity activeEvent : activeEvents) {
-            if (!freshForLine(activeEvent.getLineId())) {
+            if (!freshForLine(activeEvent.getLineId(), freshnessScope)) {
                 continue;
             }
             if (savedCommuteCurrentCategory(activeEvent.getCategory()) && activeEvent.getCommuteId() == null) {
@@ -505,11 +532,12 @@ public class PushNotificationDispatchService {
         String accountId,
         Set<String> currentNotificationKeys,
         Set<String> currentSourceIncidentKeys,
-        List<PushNotificationCandidate> allSavedCommuteCandidates
+        List<PushNotificationCandidate> allSavedCommuteCandidates,
+        FreshnessScope freshnessScope
     ) {
         Instant now = clock.instant();
         for (PushSavedCommuteEventObservationEntity observation : savedCommuteObservationService.activeObservations(accountId)) {
-            if (!freshForLine(observation.getLineId())) {
+            if (!freshForLine(observation.getLineId(), freshnessScope)) {
                 continue;
             }
             if (currentNotificationKeys.contains(observation.getNotificationKey())) {
@@ -532,12 +560,13 @@ public class PushNotificationDispatchService {
         Set<String> subscribedLineIds,
         Set<String> currentLineNotificationKeys,
         Set<String> currentLineSourceIncidentKeys,
-        List<PushNotificationCandidate> allLineCandidates
+        List<PushNotificationCandidate> allLineCandidates,
+        FreshnessScope freshnessScope
     ) {
         Instant now = clock.instant();
 
         for (PushLineEventObservationEntity observation : lineEventObservationService.activeObservations(accountId)) {
-            if (!freshForLine(observation.getLineId())) {
+            if (!freshForLine(observation.getLineId(), freshnessScope)) {
                 continue;
             }
             if (currentLineNotificationKeys.contains(observation.getNotificationKey())) {
@@ -721,6 +750,13 @@ public class PushNotificationDispatchService {
     private boolean savedCommuteCurrentCategory(String category) {
         String normalized = normalize(category);
         return "saved-commute-current".equals(normalized) || "saved-commute-impact".equals(normalized);
+    }
+
+    private boolean freshForLine(String lineId, FreshnessScope freshnessScope) {
+        if (freshnessScope != null) {
+            return freshnessScope.freshForLine(lineId);
+        }
+        return freshForLine(lineId);
     }
 
     private boolean freshForLine(String lineId) {

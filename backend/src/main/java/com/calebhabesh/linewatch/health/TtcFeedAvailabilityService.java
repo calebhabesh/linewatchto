@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 public class TtcFeedAvailabilityService {
     static final int PERIOD_DAYS = 30;
     private static final ZoneId TORONTO = ZoneId.of("America/Toronto");
-    private static final double SUFFICIENT_DAILY_COVERAGE = 0.95;
+    private static final double SUFFICIENT_DAILY_COVERAGE = 0.40;
     private static final double DEGRADED_AVAILABILITY_FLOOR = 0.95;
     private static final int MINIMUM_CONFIRMED_FAILURES_FOR_DOWN = 3;
 

@@ -18,6 +18,17 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:127.0.0.1}
       port: ${SPRING_DATA_REDIS_PORT:6380}
+  task:
+    execution:
+      pool:
+        core-size: ${LINEWATCH_TASK_EXECUTION_CORE_SIZE:4}
+        max-size: ${LINEWATCH_TASK_EXECUTION_MAX_SIZE:8}
+        queue-capacity: 100
+      thread-name-prefix: "linewatch-task-"
+    scheduling:
+      pool:
+        size: ${LINEWATCH_TASK_SCHEDULING_POOL_SIZE:6}
+      thread-name-prefix: "linewatch-sched-"
 
 server:
   port: ${SERVER_PORT:8080}
