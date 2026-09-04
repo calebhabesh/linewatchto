@@ -1660,3 +1660,40 @@
 - Risks or blockers:
   - None. Small leaf panels and dialogs consolidation is verified across all responsive viewports and themes with 0 diffs.
 - Next session: S15D — Consolidate station detail stylesheets (`station/station-detail.css`, `station/station-arrivals.css`, `station/station-accessibility.css`, `station/surface-connections.css`).
+
+### S15D — Consolidate Station Detail Stylesheets
+
+- Status: completed
+- Commit: 2b5fd9a4
+- Scope: Consolidate station detail stylesheets across `station-detail.css`, `station-arrivals.css`, `station-accessibility.css`, and `surface-connections.css`:
+  1. Station Detail Shell & Media Query Consolidation: Merged duplicate responsive `@media (max-width: 767px)` and `@media (min-width: 768px)` blocks for `.station-detail-panel` into their primary definitions, eliminating the redundant 44-line Section 6 tactile override block while maintaining exact test contract assertions for borderless design and dark background.
+  2. Save & Close Controls & View on Map Button: Consolidated `.station-detail-save-control` and `.station-detail-close-button` base rules with their tactile elevation styles, removing superseded pre-tactile `.dark` and hover blocks (-46 lines). Eliminated 5 redundant `border: none !important;` declarations on `.station-detail-map-button` state pseudo-classes.
+  3. Accessibility & Notices Accordion Unification: Consolidated duplicated accordion animation and expansion rules between `.station-accessibility-*` and `.station-notices-*` into shared multi-class selectors, eliminating 44 lines of duplicate CSS.
+  4. Station Arrivals & Track Platform Nodes: Removed duplicate `.dark .station-detail-panel [data-arrival-group]` block (-3 `!important`), duplicate `.dark .station-arrival-track-spine` rule (-1 `!important`), redundant `opacity: 1 !important;` on high-contrast spine, redundant `background-color` and `border` declarations on dark and high-contrast `.station-arrival-track-node` (-4 `!important`), and redundant `border: none !important;` on dark arrival tiles (-1 `!important`).
+  5. Surface Connections & Station Connection Rows: Removed duplicate `.dark .saved-station-arrival-group.is-surface-group` block (-3 `!important`), consolidated `.station-connection-row` base and tactile elevation declarations, and eliminated redundant `border: none !important;` from dark surface departure tiles (-1 `!important`).
+  6. Guardrails & Unit Tests:
+     - Lowered graph-wide `!important` migration ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,295 down to 2,267 (-28 `!important` declarations).
+- Files changed:
+  - `frontend/src/styles/station/station-detail.css`
+  - `frontend/src/styles/station/station-arrivals.css`
+  - `frontend/src/styles/station/station-accessibility.css`
+  - `frontend/src/styles/station/surface-connections.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.4s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines reduced from 32,411 to 32,276 (-135 lines net); `station-detail.css` lines reduced from 752 to 695 (-57 lines); `station-accessibility.css` lines reduced from 233 to 189 (-44 lines); `station-arrivals.css` lines reduced from 269 to 253 (-16 lines); `surface-connections.css` lines reduced from 264 to 246 (-18 lines); graph `!important` declarations reduced from 2,295 to 2,267 (-28 declarations); production chunk raw bytes improved to 707,544 (-1,826 B); production chunk gzip bytes improved to 105,976 (-138 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop (`TTC desktop map, light`, `TTC desktop map, dark`, `GO/UP desktop map`), mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile Status or More sheet.
+- Decisions:
+  - Preserved explicit contract test assertions in `station-connections.test.mjs` (`.dark .station-connection-row` opacity background) and `station-line-direction-indicator.test.mjs` (`.dark .station-line-directions` background-color).
+  - Preserved separate base definitions and regex matching order for `.station-detail-save-control button` and `.station-detail-close-button` to maintain contract test compatibility with `my-stations-ui.test.mjs` and `station-panel-layout.test.mjs`.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 2,295 to 2,267 (-28 declarations).
+- Risks or blockers:
+  - None. Station detail consolidation is verified across all responsive viewports and themes with 0 diffs.
+- Next session: S15E — Consolidate My Stations stylesheets (`account/my-stations.css`), reducing repetitive card layouts, saved-station badge groupings, and media query blocks across the saved stations watchlist experience.
