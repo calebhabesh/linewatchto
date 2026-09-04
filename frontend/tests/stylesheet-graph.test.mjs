@@ -473,4 +473,17 @@ describe("stylesheet-graph helper", () => {
     assert.match(stationDetailContent, /@keyframes station-detail-exit-mobile/);
     assert.match(stationDetailContent, /@keyframes station-detail-exit-desktop/);
   });
+
+  it("resolves the extracted station/station-arrivals.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("station-arrivals.css")), "station-arrivals.css must be in graph files");
+    const stationArrivalsContent = readStylesheet(new URL("../src/styles/station/station-arrivals.css", import.meta.url));
+    assert.match(stationArrivalsContent, /\.station-arrival-line-divider/);
+    assert.match(stationArrivalsContent, /\[data-arrival-group\]/);
+    assert.match(stationArrivalsContent, /\.station-arrival-track-spine/);
+    assert.match(stationArrivalsContent, /\.station-arrival-track-node/);
+    assert.match(stationArrivalsContent, /\[data-regional-arrival-direction\]/);
+    assert.match(stationArrivalsContent, /min-h-\[74px\]/);
+  });
 });
