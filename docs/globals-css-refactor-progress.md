@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S07
-- Last completed session: S07
-- Next recommended session: S08
+- Current session: S08A
+- Last completed session: S08A
+- Next recommended session: S08B
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 25,127 |
-| Total authored app CSS lines | 31,414 | 31,427 |
-| Total authored app CSS bytes | 784,128 | 784,858 |
-| Parsed rules | 4,221 | 3,543 |
-| Declarations | 14,093 | 11,850 |
-| !important | 2,356 | 1,974 |
+| Global entry lines | 30,011 | 23,882 |
+| Total authored app CSS lines | 31,414 | 31,438 |
+| Total authored app CSS bytes | 784,128 | 785,248 |
+| Parsed rules | 4,221 | 3,385 |
+| Declarations | 14,093 | 11,172 |
+| !important | 2,356 | 1,800 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,456 |
-| Production CSS gzip bytes | 108,667 | 107,558 |
+| Production CSS gzip bytes | 108,667 | 107,222 |
 
 ## Session log
 
@@ -395,4 +395,34 @@
   - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` verifying that all four extracted stylesheets resolve in the app stylesheet graph and read directly via `readStylesheet()`.
 - Risks or blockers:
   - None. S07 is fully verified and visual baselines match identically.
-- Next session: S08 — Extract mobile shell and responsive-density styles (`shell/mobile-chrome.css`, `utilities/responsive-density.css`) covering bottom navigation, Status/More sheets, draggable sheets, safe-area handling, rotated-map mode, mobile action clusters, and compact-phone/narrow viewport rules.
+- Next session: S08A — Extract common mobile chrome and safe areas (`shell/mobile-chrome.css`).
+
+### S08A — Extract common mobile chrome and safe areas
+
+- Status: completed
+- Commit: 145b68c7
+- Scope: Extract common mobile chrome, safe areas, bottom navigation, PWA install nudge, mobile status peek, detached map controls, and mobile top chrome action cluster from `globals.css` (1,246 lines total) into dedicated `frontend/src/styles/shell/mobile-chrome.css`. Add relative import `@import "../styles/shell/mobile-chrome.css";` to `globals.css` line 19. Ensure `.mobile-status-sheet` remains cleanly enclosed in `@media (max-width: 767px)` in `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/shell/mobile-chrome.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,128 tests across 135 suites, 0 failures in ~1046ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.4s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 25,127 to 23,882 (-1,245 lines); parsed rules -158; parsed declarations -678; `!important` -174; media queries -3; production chunk raw bytes 705,456; gzip bytes improved to 107,222 (-336 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport, high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Extracted 1,256 lines into dedicated `frontend/src/styles/shell/mobile-chrome.css`: root mobile CSS variables (`--mobile-safe-top`, `--mobile-bottom-nav-*`, etc.), mobile bottom navigation (`.mobile-bottom-nav`, gliders, active key transforms, badges, themes), PWA install nudge, mobile status peek bar (`.mobile-status-peek`, count badges, category themes, live dot pulse), mobile detached map controls cluster (`.mobile-map-controls-group`, recenter button, zoom capsule), and mobile top chrome header & action cluster (`.linewatch-shell > header` padding, `.map-utility-cluster`, `.network-selector--compact-vertical`, `.rotate-map-btn`, action buttons, zoom rail hide).
+  - Maintained cascade hierarchy by importing `mobile-chrome.css` at line 19 immediately following `map-controls.css`.
+  - Wrapped `.mobile-status-sheet` cleanly in `@media (max-width: 767px)` in `globals.css` to keep all sheet styling valid and unperturbed.
+  - Preserved mobile sheets (Status sheet, More sheet, mobile impact inspector, draggable sheets) for S08B; rotated-map mode for S08C; and compact phone / narrow desktop density passes for S08D.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `mobile-chrome.css` in the application stylesheet graph.
+- Risks or blockers:
+  - None. S08A is fully complete and verified.
+- Next session: S08B — Extract mobile sheets and navigation (`shell/mobile-sheets.css`) covering Status sheet, More sheet, floating panel shell mobile layout, and mobile impact inspector / draggable sheets.
