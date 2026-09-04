@@ -132,4 +132,13 @@ describe("stylesheet-graph helper", () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("resolves the extracted foundation/fonts.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("fonts.css")), "fonts.css must be in graph files");
+    const fontContent = readStylesheet(new URL("../src/styles/foundation/fonts.css", import.meta.url));
+    assert.match(fontContent, /@font-face\s*{[^}]*font-family:\s*"TeX Gyre Heros"/);
+    assert.match(fontContent, /@font-face\s*{[^}]*font-family:\s*"Switzer"/);
+  });
 });

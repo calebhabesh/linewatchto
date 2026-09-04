@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S01
-- Last completed session: S01
-- Next recommended session: S02
+- Current session: S03
+- Last completed session: S03
+- Next recommended session: S04
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 30,011 |
-| Total authored app CSS lines | 31,414 | 31,414 |
-| Total authored app CSS bytes | 784,128 | 784,156 |
+| Global entry lines | 30,011 | 29,671 |
+| Total authored app CSS lines | 31,414 | 31,415 |
+| Total authored app CSS bytes | 784,128 | 784,198 |
 | Parsed rules | 4,221 | 4,221 |
-| Declarations | 14,093 | 14,093 |
+| Declarations | 14,093 | 13,863 |
 | !important | 2,356 | 2,356 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 108,668 |
+| Production CSS gzip bytes | 108,667 | 108,669 |
 
 ## Session log
 
@@ -129,3 +129,30 @@
 - Risks or blockers:
   - None. Extraction into `frontend/src/styles/` in S03 (canary `fonts.css`) can proceed safely without breaking contract tests.
 - Next session: S03 — Prove the import strategy with one low-risk extraction.
+
+### S03 — Prove the import strategy with one low-risk extraction
+
+- Status: completed
+- Commit: 9a8fcba3
+- Scope: Canary extraction of contiguous font definitions from `globals.css` into `frontend/src/styles/foundation/fonts.css`. Add relative `@import "../styles/foundation/fonts.css";` to `globals.css` in top manifest order. Validate Next.js Turbopack build, PostCSS cascade ordering, stylesheet-graph resolution, and visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/foundation/fonts.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,112 tests, 0 failures across 135 suites in ~921ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 0 new warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 30,011 to 29,671; total rules 4,221 preserved; production bundle size unchanged).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, high contrast, station detail, My Commutes, and mobile views.
+- Decisions:
+  - Manifest Placement: Standard CSS requires `@import` statements to precede regular style rules. Placed `@import "../styles/foundation/fonts.css";` at the top of `globals.css` directly following `@import "tailwindcss" source("../");`. Next.js Turbopack and `@tailwindcss/postcss` resolve the relative import cleanly.
+  - Granular Leaf Reads: Updated `frontend/tests/stylesheet-graph.test.mjs` with an explicit test verifying `fonts.css` presence in the app stylesheet graph and validating direct reading via `readStylesheet()`.
+  - Zero Semantic Alterations: All 46 `@font-face` definitions were extracted verbatim with their existing asset URLs (`/assets/fonts/*.woff2`) and font weights/styles preserved character-for-character.
+- Risks or blockers:
+  - None. The import strategy is proven and production-ready for the foundation extractions in S04.
+- Next session: S04 — Extract foundation styles (tokens, reset, themes, accessibility).
