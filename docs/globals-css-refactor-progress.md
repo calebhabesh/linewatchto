@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S15B
-- Last completed session: S15B
-- Next recommended session: S15C — Consolidate small leaf panels and dialogs
+- Current session: S15E
+- Last completed session: S15E
+- Next recommended session: S15F — Consolidate My Commutes stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`)
 - Blockers: none
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,426 |
-| Total authored app CSS bytes | 784,128 | 841,132 |
+| Total authored app CSS lines | 31,414 | 32,240 |
+| Total authored app CSS bytes | 784,128 | 838,101 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 708,756 |
-| Production CSS gzip bytes | 108,667 | 105,905 |
+| Production CSS bytes | 705,472 | 706,453 |
+| Production CSS gzip bytes | 108,667 | 105,914 |
 
 
 
@@ -1697,3 +1697,60 @@
 - Risks or blockers:
   - None. Station detail consolidation is verified across all responsive viewports and themes with 0 diffs.
 - Next session: S15E — Consolidate My Stations stylesheets (`account/my-stations.css`), reducing repetitive card layouts, saved-station badge groupings, and media query blocks across the saved stations watchlist experience.
+
+### S15E — Consolidate My Stations Stylesheets
+
+- Status: completed
+- Commit: 3d449a48
+- Scope: Consolidate `frontend/src/styles/account/my-stations.css`, eliminating redundant rules, duplicate media queries, duplicate gliders, and repetitive card layouts and badge groupings. Safely remove superseded and cargo-culted `!important` declarations, freezing the lower migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs`:
+  1. Media Query & Responsive Breakpoint Consolidation:
+     - Merged two separate `@media (max-width: 30rem)` blocks into one unified mobile breakpoint block.
+     - Merged two separate `@media (min-width: 768px)` blocks into one unified desktop breakpoint block.
+  2. Glider & Filter Controls Consolidation:
+     - Consolidated duplicate network gliders between 2-option and 3-option filter states, eliminating 24 duplicate declarations.
+     - Streamlined network filter button background, box-shadow, and border styling.
+  3. Redundant Rules & Layouts Eliminated:
+     - Removed duplicate `.dark .saved-station-disruption-action` rule.
+     - Removed duplicate `.saved-station-disruption-clear-copy` rules.
+     - Removed duplicate `.saved-station-arrivals` block.
+     - Removed redundant `.my-stations-add-compact { display: none; }` from mobile media query.
+     - Consolidated shared styling between `.saved-station-inline-undo` and `.my-stations-undo` buttons and text selectors.
+  4. `!important` Elimination: Safely eliminated 32 `!important` declarations across `my-stations.css`:
+     - 6 arrival source color declarations (`[data-arrival-source="..."]` for live, scheduled, mixed in light & dark).
+     - 1 dark arrival group background (`.dark .saved-station-arrival-group`).
+     - 4 badge flex-basis/min-width declarations (`.saved-station-arrival-line-badge`).
+     - 4 disruption heading icons & text declarations (`.saved-station-disruption-heading .saved-commute-impact-summary-icon`, `strong`, `.dark ... strong`).
+     - 6 arrivals heading icons, text & dark color declarations (`.saved-station-arrivals-heading`).
+     - 2 responsive font-size declarations at 30rem and 23.5rem.
+     - 4 row background, image, and opacity declarations on light/dark `.my-stations-row`.
+     - 1 dark network glider border (`border: none !important` -> `border: none`).
+     - 4 network filter button declarations (`background`, `box-shadow`, `border: none !important` -> standard declarations).
+  5. Guardrails & Unit Tests:
+     - Preserved explicit test contract assertions in `my-stations-ui.test.mjs`: `.my-stations-done` width, `.dark .my-stations-row` background, `.saved-station-arrival-line-badge` sizes (base and 768px), and mobile title `line-height: 1.2 !important`.
+     - Lowered graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,267 down to 2,235 (-32 `!important` declarations).
+- Files changed:
+  - `frontend/src/styles/account/my-stations.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.2s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines reduced from 32,276 to 32,240 (-36 lines net); `my-stations.css` lines reduced from 1,680 to 1,644 (-36 lines); authored CSS bytes reduced from 838,777 to 838,101 (-676 B); graph `!important` declarations reduced from 2,267 to 2,235 (-32 declarations); production chunk raw bytes improved to 706,453 (-1,091 B); production chunk gzip bytes improved to 105,914 (-62 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop (`TTC desktop map, light`, `TTC desktop map, dark`, `GO/UP desktop map`), mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile Status or More sheet.
+- Decisions:
+  - Preserved explicit contract test assertions in `my-stations-ui.test.mjs`:
+    - `.my-stations-done` width (`54px !important`)
+    - `.dark .my-stations-row,` group selector background (`rgb(21, 24, 33) !important`)
+    - `.saved-station-arrival-line-badge` size (`22px !important` in base, `24px !important` at 768px)
+    - Mobile title `line-height: 1.2 !important`
+  - Merged duplicated `@media (max-width: 30rem)` and `@media (min-width: 768px)` queries into unified blocks at the bottom of the file.
+  - Consolidated network glider positioning rules between 2-option and 3-option toggle states.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 2,267 to 2,235 (-32 declarations).
+- Risks or blockers:
+  - None. My Stations consolidation is verified across all responsive viewports and themes with 0 diffs.
+- Next session: S15F — Consolidate My Commutes stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`).
