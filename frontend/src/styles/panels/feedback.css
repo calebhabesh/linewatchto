@@ -1,0 +1,274 @@
+/**
+ * Feedback Panel Styles
+ *
+ * Covers feedback form container, form fields, textarea, character counter,
+ * support button/card, honeypot field, status/error banners, and mobile actions.
+ */
+
+/* ==========================================================================
+   Feedback Panel & Form Fields
+   ========================================================================== */
+
+.feedback-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--panel-strong);
+}
+
+.feedback-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.feedback-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feedback-field span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dark .feedback-field span,
+.high-contrast .feedback-field span {
+  color: #94a3b8;
+}
+
+.feedback-textarea-container {
+  position: relative;
+  width: 100%;
+}
+
+.feedback-count {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.45;
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.dark .feedback-count,
+.high-contrast .feedback-count {
+  color: #94a3b8;
+}
+
+.feedback-count-error {
+  color: #dc2626;
+}
+
+.dark .feedback-count-error,
+.high-contrast .feedback-count-error {
+  color: #fca5a5;
+}
+
+.feedback-textarea {
+  min-height: 152px;
+  resize: vertical;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.86);
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px 12px 28px 12px;
+  outline: none;
+  width: 100%;
+  display: block;
+}
+
+.feedback-textarea:focus-visible {
+  border-color: rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+.dark .feedback-textarea,
+.high-contrast .feedback-textarea {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.86);
+  color: #f8fafc;
+}
+
+.feedback-honeypot {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Feedback Actions & Support Affiliate
+   ========================================================================== */
+
+.feedback-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.feedback-count-error,
+.feedback-error {
+  color: #dc2626;
+}
+
+.dark .feedback-error,
+.high-contrast .feedback-error {
+  color: #fca5a5;
+}
+
+.feedback-submit-button {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-width: 148px;
+  margin-left: auto;
+}
+
+.feedback-status {
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 10px 12px;
+}
+
+.dark .feedback-status,
+.high-contrast .feedback-status {
+  color: #86efac;
+}
+
+.feedback-error {
+  border: 1px solid rgba(220, 38, 38, 0.24);
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.08);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 10px 12px;
+}
+
+.feedback-error a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.feedback-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.feedback-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.feedback-support-card.feedback-support-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feedback-support-prompt {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dark .feedback-support-prompt,
+.high-contrast .feedback-support-prompt {
+  color: #94a3b8;
+}
+
+.feedback-support-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: #2b303a;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+}
+
+.feedback-support-button:hover {
+  background-color: #383f4c;
+}
+
+.feedback-support-button:active {
+  transform: scale(0.98);
+}
+
+.support-mug-icon {
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.high-contrast .feedback-support-button {
+  background-color: transparent;
+  color: currentColor;
+  border: 2px solid currentColor;
+}
+
+.high-contrast .feedback-support-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   Responsive Overrides
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .feedback-content {
+    padding-bottom: 12px;
+  }
+
+  .feedback-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 36px;
+  }
+
+  .feedback-submit-button {
+    align-self: flex-end;
+    margin-left: auto;
+  }
+
+  .feedback-support-card.feedback-support-inline {
+    align-self: stretch;
+    justify-content: space-between;
+    background-color: var(--panel-soft);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 4px;
+  }
+}

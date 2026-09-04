@@ -891,4 +891,46 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.alert-history-lifecycle-event/);
     assert.match(content, /\.alert-history-loading/);
   });
+
+  it("resolves the extracted panels/feedback.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("feedback.css")), "feedback.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/panels/feedback.css", import.meta.url));
+    assert.match(content, /\.feedback-panel/);
+    assert.match(content, /\.feedback-content/);
+    assert.match(content, /\.feedback-field/);
+    assert.match(content, /\.feedback-textarea-container/);
+    assert.match(content, /\.feedback-count/);
+    assert.match(content, /\.feedback-count-error/);
+    assert.match(content, /\.feedback-textarea/);
+    assert.match(content, /\.feedback-honeypot/);
+    assert.match(content, /\.feedback-actions/);
+    assert.match(content, /\.feedback-submit-button/);
+    assert.match(content, /\.feedback-status/);
+    assert.match(content, /\.feedback-support-card/);
+    assert.match(content, /\.feedback-support-button/);
+  });
+
+  it("resolves the extracted panels/info-modals.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("info-modals.css")), "info-modals.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/panels/info-modals.css", import.meta.url));
+    assert.match(content, /\.opening-disclaimer-backdrop/);
+    assert.match(content, /\.opening-disclaimer-panel/);
+    assert.match(content, /\.opening-welcome-panel/);
+    assert.match(content, /\.opening-welcome-slide/);
+    assert.match(content, /\.site-guide-dropdown/);
+    assert.match(content, /\.utility-popover/);
+    assert.match(content, /@keyframes utility-popover-enter/);
+    assert.match(content, /@keyframes utility-popover-exit/);
+    assert.match(content, /\.source-status-panel/);
+    assert.match(content, /\.release-notes-notice/);
+    assert.match(content, /\.release-notes-panel/);
+    assert.match(content, /\.release-notes-current/);
+    assert.match(content, /\.release-note-card/);
+    assert.match(content, /\.privacy-acknowledgements-panel/);
+    assert.match(content, /@keyframes opening-disclaimer-backdrop-enter/);
+  });
 });
