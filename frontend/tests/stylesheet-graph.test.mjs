@@ -1090,4 +1090,33 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.subway-closed-peek-chip/);
     assert.match(content, /@keyframes subway-closed-modal-enter/);
   });
+
+  it("resolves the extracted shell/map-mode-control.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("map-mode-control.css")), "map-mode-control.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/shell/map-mode-control.css", import.meta.url));
+    assert.match(content, /\.default-map-mode-control/);
+    assert.match(content, /\.default-map-mode-label/);
+    assert.match(content, /\.default-map-mode-options/);
+    assert.match(content, /\.default-map-mode-glider/);
+    assert.match(content, /\.default-map-mode-btn/);
+    assert.match(content, /\.default-map-mode-btn-regional/);
+  });
+
+  it("resolves the extracted station/station-picker-popover.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("station-picker-popover.css")), "station-picker-popover.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/station/station-picker-popover.css", import.meta.url));
+    assert.match(content, /\.site-dropdown-trigger/);
+    assert.match(content, /\.site-dropdown-menu/);
+    assert.match(content, /\.site-dropdown-option/);
+    assert.match(content, /@keyframes commute-popover-enter/);
+    assert.match(content, /\.commute-station-popover/);
+    assert.match(content, /\.commute-station-search-row/);
+    assert.match(content, /\.commute-station-browse-container/);
+    assert.match(content, /@keyframes commute-popover-enter-mobile/);
+    assert.match(content, /\.commute-station-mobile-back/);
+  });
 });

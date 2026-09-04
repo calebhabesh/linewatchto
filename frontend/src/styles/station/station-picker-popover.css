@@ -1,0 +1,501 @@
+/* ============================================================
+   LineWatchTO Commute Station Picker & Dropdown Popover
+   Popover station selector, shared dropdown menu language,
+   mobile view parity, sliding column navigation, and visual
+   viewport/virtual keyboard handling for saved commute editing.
+   ============================================================ */
+
+/* ============================================================
+   Section 1: Shared Compact Dropdown System
+   ============================================================ */
+
+.site-dropdown-trigger {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 6px;
+  color: rgb(15, 23, 42);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.site-dropdown-trigger:hover,
+.site-dropdown-trigger:focus-visible {
+  background: rgb(241, 245, 249);
+  border-color: rgba(15, 23, 42, 0.25);
+  outline: none;
+}
+
+.site-dropdown-menu {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.site-dropdown-option {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: rgb(71, 85, 105);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.site-dropdown-option:hover,
+.site-dropdown-option:focus-visible {
+  background: rgb(248, 250, 252);
+  color: rgb(15, 23, 42);
+  outline: none;
+}
+
+.site-dropdown-option.selected {
+  background: rgb(241, 245, 249);
+  color: rgb(15, 23, 42);
+}
+
+.dark .site-dropdown-trigger,
+.high-contrast .site-dropdown-trigger {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgb(248, 250, 252);
+}
+
+.dark .site-dropdown-trigger:hover,
+.dark .site-dropdown-trigger:focus-visible {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.dark .site-dropdown-menu {
+  background: rgba(15, 23, 42, 0.98);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dark .site-dropdown-option {
+  background: transparent;
+  color: rgb(148, 163, 184);
+}
+
+.dark .site-dropdown-option:hover,
+.dark .site-dropdown-option:focus-visible {
+  background: rgba(30, 41, 59, 0.5);
+  color: rgb(248, 250, 252);
+}
+
+.dark .site-dropdown-option.selected {
+  background: rgba(30, 41, 59, 0.8);
+  color: rgb(248, 250, 252);
+}
+
+.high-contrast .site-dropdown-trigger,
+.high-contrast .site-dropdown-menu {
+  background: #000000;
+  border-color: #ffffff;
+}
+
+.high-contrast .site-dropdown-option {
+  background: transparent;
+  color: #ffffff;
+}
+
+.high-contrast .site-dropdown-option:hover,
+.high-contrast .site-dropdown-option:focus-visible,
+.high-contrast .site-dropdown-option.selected {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* ============================================================
+   Section 2: Popover Base Shell & Desktop Defaults
+   ============================================================ */
+
+@keyframes commute-popover-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.commute-station-popover {
+  animation: commute-popover-enter 180ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.motion-paused .commute-station-popover {
+  animation: none !important;
+}
+
+.commute-station-mobile-back {
+  display: none;
+}
+
+.commute-station-popover.site-dropdown-menu {
+  padding: 4px 0;
+}
+
+/* ============================================================
+   Section 3: Popover Options, Lines & Station Option Cards
+   ============================================================ */
+
+.commute-station-popover .commute-station-lines-list {
+  gap: 0;
+  padding-right: 0;
+}
+
+.commute-station-popover .commute-station-options {
+  gap: 6px;
+  padding: 0 0 4px;
+}
+
+.commute-station-popover .commute-station-line-trigger,
+.commute-station-popover .commute-station-option {
+  min-height: 40px;
+  padding: 0.5rem 0.75rem;
+}
+
+.commute-station-popover .commute-station-option {
+  border: 1px solid rgba(15, 23, 42, 0.055);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.66);
+  margin-inline: 8px;
+  width: calc(100% - 16px);
+}
+
+/* Align the whole click-through card with the line badge without widening it. */
+.commute-station-stations-scroll-content .commute-station-option {
+  margin-left: 2px;
+  margin-right: 14px;
+}
+
+.dark .commute-station-popover .commute-station-option {
+  border-color: rgba(148, 163, 184, 0.12);
+  background: rgba(30, 41, 59, 0.58);
+}
+
+.commute-station-popover .commute-station-option:hover,
+.commute-station-popover .commute-station-option:focus-visible,
+.commute-station-popover .commute-station-option.selected {
+  border-color: rgba(14, 165, 233, 0.42);
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.high-contrast .commute-station-popover .commute-station-option {
+  border-color: #ffffff;
+  background: #000000;
+}
+
+.high-contrast .commute-station-popover .commute-station-option:hover,
+.high-contrast .commute-station-popover .commute-station-option:focus-visible,
+.high-contrast .commute-station-popover .commute-station-option.selected {
+  background: #ffffff;
+}
+
+/* ============================================================
+   Section 4: Popover Search Row & WebKit Cancel Suppression
+   ============================================================ */
+
+.commute-station-popover .commute-station-search-row {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  box-shadow: var(--mobile-card-shadow);
+  margin: 4px 8px 0;
+  padding-inline: 8px;
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.commute-station-popover .commute-station-search-row input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent !important;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.commute-station-search-row input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.commute-station-popover .commute-station-search-row:focus-within {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(14, 165, 233, 0.68);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1);
+}
+
+.dark .commute-station-popover .commute-station-search-row {
+  background: rgba(30, 41, 59, 0.48);
+  border-color: transparent;
+  box-shadow: var(--mobile-card-shadow);
+}
+
+.dark .commute-station-popover .commute-station-search-row:focus-within {
+  background: rgba(30, 41, 59, 0.72);
+  border-color: rgba(56, 189, 248, 0.72);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1);
+}
+
+.high-contrast .commute-station-popover .commute-station-search-row,
+.high-contrast .commute-station-popover .commute-station-search-row:focus-within {
+  background: #000000;
+  border-color: currentColor;
+  box-shadow: none;
+}
+
+/* ============================================================
+   Section 5: Mobile Column Browsing, Animations & Mobile Parity
+   ============================================================ */
+
+@media (max-width: 767px) {
+  @keyframes commute-popover-enter-mobile {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 20px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .commute-station-popover {
+    position: fixed !important;
+    bottom: auto !important;
+    right: auto !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    animation: commute-popover-enter-mobile 220ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  .commute-station-popover[data-mobile-inline="true"] {
+    animation: none !important;
+    bottom: auto !important;
+    left: 0 !important;
+    max-width: none !important;
+    position: absolute !important;
+    right: auto !important;
+    top: calc(100% + 6px) !important;
+    transform: none !important;
+    width: 100% !important;
+  }
+
+  .commute-station-search-row {
+    flex: 0 0 auto !important;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .commute-station-popover > .commute-station-options {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  html[data-visual-keyboard="open"] .commute-station-popover > .commute-station-options {
+    max-height: none;
+  }
+
+  .commute-station-browse-container {
+    flex-direction: column !important;
+    gap: 0 !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+  }
+
+  .commute-station-lines-column {
+    flex: 1 1 auto !important;
+    max-height: min(40vh, 40dvh) !important;
+    overflow-y: auto !important;
+    padding-right: 0 !important;
+  }
+
+  .commute-station-popover[data-expanded="true"] .commute-station-lines-column {
+    display: none !important;
+  }
+
+  .commute-station-popover:not([data-expanded="true"]) .commute-station-lines-column {
+    animation: mobile-mini-search-lines-slide-back 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes mobile-mini-search-lines-slide-back {
+    from {
+      opacity: 0;
+      transform: translate3d(-10px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .commute-station-stations-column {
+    border-left: 0 !important;
+    flex: 1 !important;
+    opacity: 1 !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    width: auto !important;
+  }
+
+  .commute-station-popover[data-expanded="true"] .commute-station-stations-column {
+    animation: mobile-mini-search-expansion-slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes mobile-mini-search-expansion-slide-in {
+    from {
+      opacity: 0;
+      transform: translate3d(12px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .commute-station-popover:not([data-expanded="true"]) .commute-station-stations-column {
+    display: none !important;
+  }
+
+  .commute-station-mobile-back {
+    align-items: center;
+    background: rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 8px;
+    color: inherit;
+    display: flex;
+    font-size: 12px;
+    font-weight: 900;
+    min-height: 38px;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dark .commute-station-mobile-back {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .high-contrast .commute-station-mobile-back {
+    background: #000000;
+    border: 1px solid #ffffff;
+  }
+
+  .saved-commute-account-prompt:not(.account-feature-preview) {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="commutes"],
+  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-panel,
+  .mobile-view-content-wrapper[data-active-view="status"],
+  .mobile-view-content-wrapper[data-active-view="status"] .panel {
+    height: auto !important;
+  }
+
+  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll {
+    height: auto !important;
+  }
+
+  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="status"]) .floating-panel-scroll {
+    height: auto !important;
+    padding-bottom: 12px !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {
+    margin-top: 0px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="status"] .mobile-status-content-scroll {
+    padding-bottom: 0 !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="status"] .mobile-status-sheet {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* ============================================================
+   Section 6: Mobile Viewport & Virtual Keyboard Promotion
+   ============================================================ */
+
+@media (max-width: 767px) {
+  /* Match the main search: opening browses in place; focusing/searching promotes
+     the picker and its parent panel to the visible viewport above either keyboard. */
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-bottom-nav,
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]),
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) {
+    bottom: auto;
+    height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 16px);
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 16px);
+    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 8px);
+  }
+
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll,
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll,
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-view-content-wrapper[data-active-view="commutes"],
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .mobile-view-content-wrapper[data-active-view="commutes"],
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-view-content-wrapper[data-active-view="commutes"] .commute-panel,
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .mobile-view-content-wrapper[data-active-view="commutes"] .commute-panel {
+    height: 100% !important;
+    max-height: 100% !important;
+  }
+
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid,
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow-anchor: none;
+    overflow-y: auto !important;
+    scroll-behavior: auto !important;
+    scroll-snap-type: none !important;
+  }
+
+  html:has(.commute-station-popover[data-input-focused="true"]),
+  html:has(.commute-station-popover[data-searching="true"]) {
+    scroll-behavior: auto !important;
+  }
+
+  .commute-station-stations-column > .commute-station-mobile-back {
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+    width: calc(100% - 1rem);
+  }
+
+  .commute-station-stations-scroll {
+    scrollbar-gutter: stable;
+  }
+
+  .commute-station-stations-scroll-content {
+    box-sizing: border-box;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    width: 100%;
+  }
+}
