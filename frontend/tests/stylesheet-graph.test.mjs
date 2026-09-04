@@ -178,6 +178,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(themeContent, /\.linewatch-backdrop\s*\{[^}]*background-color:\s*#f8fafc;/);
     assert.match(themeContent, /\.linewatch-shell\.high-contrast\s*\{[^}]*--bg:\s*#000000;/);
     assert.match(themeContent, /--badge-pill-bg-alerts/);
+    assert.match(themeContent, /--dialog-modal-bg/);
   });
 
   it("resolves the extracted foundation/accessibility.css in the application stylesheet graph", () => {

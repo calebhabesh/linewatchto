@@ -26,7 +26,7 @@ const ENTRY_STYLESHEET_PATH = getAppStylesheetGraphFiles()[0];
  * will reduce these numbers; they may NEVER increase.
  */
 const BASELINE_CEILINGS = {
-  GRAPH_IMPORTANT_DECLARATIONS: 2311,
+  GRAPH_IMPORTANT_DECLARATIONS: 2295,
   GRAPH_CLASS_SUBSTRING_SELECTORS: 18,
   GLOBALS_IMPORTANT_DECLARATIONS: 0,
   GLOBALS_CLASS_SUBSTRING_SELECTORS: 0,
@@ -354,7 +354,7 @@ describe("CSS architecture guardrails", () => {
       assert.equal(
         count,
         BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS,
-        "Graph !important count should match baseline ceiling in S15B",
+        "Graph !important count should match baseline ceiling in S15C",
       );
     });
 

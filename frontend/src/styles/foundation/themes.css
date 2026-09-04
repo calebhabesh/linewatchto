@@ -64,6 +64,14 @@
   --badge-pill-text-surface: #047857;
   --badge-pill-bg-info: rgba(14, 165, 233, 0.14);
   --badge-pill-text-info: #0369a1;
+  /* Shared dialog & modal chrome tokens */
+  --dialog-backdrop-bg: rgba(2, 6, 23, 0.44);
+  --dialog-modal-bg: rgba(248, 250, 252, 0.98);
+  --dialog-modal-border: rgba(15, 23, 42, 0.12);
+  --dialog-modal-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
+  --notice-banner-bg: rgb(15, 23, 42);
+  --notice-banner-border: rgba(255, 255, 255, 0.16);
+  --notice-banner-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
 }
 
 .linewatch-shell.dark {
@@ -128,6 +136,14 @@
   --badge-pill-text-surface: #a7f3d0;
   --badge-pill-bg-info: rgba(14, 165, 233, 0.28);
   --badge-pill-text-info: #7dd3fc;
+  /* Shared dialog & modal chrome tokens */
+  --dialog-backdrop-bg: rgba(2, 6, 23, 0.44);
+  --dialog-modal-bg: rgba(15, 23, 42, 0.98);
+  --dialog-modal-border: rgba(255, 255, 255, 0.14);
+  --dialog-modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.44);
+  --notice-banner-bg: rgb(15, 23, 42);
+  --notice-banner-border: rgba(255, 255, 255, 0.16);
+  --notice-banner-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
 }
 
 .linewatch-backdrop {
@@ -219,6 +235,14 @@
   --badge-pill-text-surface: #ffffff;
   --badge-pill-bg-info: #000000;
   --badge-pill-text-info: #ffffff;
+  /* Shared dialog & modal chrome tokens */
+  --dialog-backdrop-bg: rgba(0, 0, 0, 0.85);
+  --dialog-modal-bg: #000000;
+  --dialog-modal-border: #ffffff;
+  --dialog-modal-shadow: none;
+  --notice-banner-bg: #000000;
+  --notice-banner-border: #ffffff;
+  --notice-banner-shadow: none;
   background-color: #000000 !important;
   color: #ffffff !important;
 }

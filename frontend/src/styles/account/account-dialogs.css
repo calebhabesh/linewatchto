@@ -21,7 +21,7 @@
 
 .account-dialog-backdrop {
   align-items: flex-start;
-  background: rgba(2, 6, 23, 0.44);
+  background: var(--dialog-backdrop-bg, rgba(2, 6, 23, 0.44));
   display: flex;
   inset: 0;
   justify-content: center;
@@ -30,17 +30,19 @@
   z-index: 70;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  animation: linewatch-backdrop-enter 160ms ease-out both;
 }
 
 .account-dialog {
-  background: rgba(248, 250, 252, 0.98);
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: var(--dialog-modal-bg, rgba(248, 250, 252, 0.98));
+  border: 1px solid var(--dialog-modal-border, rgba(15, 23, 42, 0.12));
   border-radius: 8px;
-  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
+  box-shadow: var(--dialog-modal-shadow, 0 24px 80px rgba(2, 6, 23, 0.28));
   max-width: 420px;
   overflow: hidden;
   width: 100%;
   margin: auto;
+  animation: linewatch-dialog-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .account-dialog-header {
@@ -91,12 +93,6 @@
   }
 }
 
-.dark .account-dialog,
-.high-contrast .account-dialog {
-  background: rgba(15, 23, 42, 0.98);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
 .account-dialog-close {
   align-items: center;
   border-radius: 8px;
@@ -135,14 +131,6 @@
 /* ==========================================================================
    Account Modal Animations
    ========================================================================== */
-
-.account-dialog-backdrop {
-  animation: linewatch-backdrop-enter 160ms ease-out both;
-}
-
-.account-dialog {
-  animation: linewatch-dialog-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
 
 .account-dialog [data-account-dialog-view] {
   animation: linewatch-dialog-content-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -244,23 +232,17 @@
   opacity: 0.6;
 }
 
-.dark .account-choice-primary,
-.dark .account-choice-google-custom,
-.high-contrast .account-choice-primary,
-.high-contrast .account-choice-google-custom {
+.dark :is(.account-choice-primary, .account-choice-google-custom),
+.high-contrast :is(.account-choice-primary, .account-choice-google-custom) {
   background: rgb(255, 255, 255);
   border-color: rgb(218, 220, 224);
   color: rgb(31, 31, 31);
 }
 
-.dark .account-choice-primary:hover:not(:disabled),
-.dark .account-choice-primary:focus-visible,
-.dark .account-choice-google-custom:hover:not(:disabled),
-.dark .account-choice-google-custom:focus-visible,
-.high-contrast .account-choice-primary:hover:not(:disabled),
-.high-contrast .account-choice-primary:focus-visible,
-.high-contrast .account-choice-google-custom:hover:not(:disabled),
-.high-contrast .account-choice-google-custom:focus-visible {
+.dark :is(.account-choice-primary, .account-choice-google-custom):hover:not(:disabled),
+.dark :is(.account-choice-primary, .account-choice-google-custom):focus-visible,
+.high-contrast :is(.account-choice-primary, .account-choice-google-custom):hover:not(:disabled),
+.high-contrast :is(.account-choice-primary, .account-choice-google-custom):focus-visible {
   background: rgb(248, 250, 252);
   border-color: rgb(203, 213, 225);
 }
@@ -365,25 +347,14 @@
   background: rgb(241, 245, 249);
 }
 
-.saved-commute-account-prompt button.saved-commute-signup-btn,
-.notification-settings-prompt button.saved-commute-signup-btn {
+:is(.saved-commute-account-prompt, .notification-settings-prompt) button.saved-commute-signup-btn,
+.dark :is(.saved-commute-account-prompt, .notification-settings-prompt) button.saved-commute-signup-btn {
   background: rgb(16, 185, 129);
   color: white;
 }
 
-.saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
-.notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
-  background: rgb(5, 150, 105);
-}
-
-.dark .saved-commute-account-prompt button.saved-commute-signup-btn,
-.dark .notification-settings-prompt button.saved-commute-signup-btn {
-  background: rgb(16, 185, 129);
-  color: white;
-}
-
-.dark .saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
-.dark .notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
+:is(.saved-commute-account-prompt, .notification-settings-prompt) button.saved-commute-signup-btn:hover:not(:disabled),
+.dark :is(.saved-commute-account-prompt, .notification-settings-prompt) button.saved-commute-signup-btn:hover:not(:disabled) {
   background: rgb(5, 150, 105);
 }
 

@@ -111,23 +111,6 @@
    Feedback Actions & Support Affiliate
    ========================================================================== */
 
-.feedback-actions {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-
-.feedback-count-error,
-.feedback-error {
-  color: #dc2626;
-}
-
-.dark .feedback-error,
-.high-contrast .feedback-error {
-  color: #fca5a5;
-}
-
 .feedback-submit-button {
   align-items: center;
   display: inline-flex;
@@ -157,10 +140,16 @@
   border: 1px solid rgba(220, 38, 38, 0.24);
   border-radius: 8px;
   background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.45;
   padding: 10px 12px;
+}
+
+.dark .feedback-error,
+.high-contrast .feedback-error {
+  color: #fca5a5;
 }
 
 .feedback-error a {
