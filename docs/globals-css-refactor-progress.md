@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S08B
-- Last completed session: S08B
-- Next recommended session: S08C
+- Current session: S08C
+- Last completed session: S08C
+- Next recommended session: S08D
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 22,114 |
+| Global entry lines | 30,011 | 21,501 |
 | Total authored app CSS lines | 31,414 | 31,447 |
-| Total authored app CSS bytes | 784,128 | 785,620 |
-| Parsed rules | 4,221 | 3,147 |
-| Declarations | 14,093 | 10,295 |
-| !important | 2,356 | 1,598 |
+| Total authored app CSS bytes | 784,128 | 785,667 |
+| Parsed rules | 4,221 | 3,073 |
+| Declarations | 14,093 | 9,972 |
+| !important | 2,356 | 1,538 |
 | Class-substring selectors | 32 | 32 |
-| Production CSS bytes | 705,472 | 705,456 |
-| Production CSS gzip bytes | 108,667 | 107,138 |
+| Production CSS bytes | 705,472 | 705,482 |
+| Production CSS gzip bytes | 108,667 | 107,005 |
 
 ## Session log
 
@@ -453,6 +453,33 @@
   - Wrapped remaining station search rules in `globals.css` cleanly in `@media (max-width: 767px)` to keep station search functioning pending S09A.
   - Preserved rotated-map mode for S08C; compact phone / narrow desktop density passes for S08D; and station search/detail for S09.
   - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `mobile-sheets.css` in the application stylesheet graph.
-- Risks or blockers:
-  - None. S08B is fully complete and verified.
 - Next session: S08C — Extract rotated-map and landscape mode (`shell/mobile-landscape.css` / rotated-map rules).
+
+### S08C — Extract rotated-map and landscape mode
+
+- Status: completed
+- Commit: f8522dc0
+- Scope: Extract mobile map controls (`.mobile-map-controls`, `.mobile-map-control-button`, `.mobile-map-controls[data-mode="rotated-landscape"]`), rotated mobile map shell layout (`.linewatch-shell.mobile-map-rotated`, viewport isolation, rotated UI surface), rotated map HUD and selection HUD (`.rotated-map-hud`, `.rotated-map-selection-hud`), and rotated map selection card (`.rotated-map-selection-card`, action column, portrait cue button, title groups, severity card themes) from `globals.css` (613 lines total) into dedicated `frontend/src/styles/shell/mobile-landscape.css`. Add relative import `@import "../styles/shell/mobile-landscape.css";` to `globals.css` line 21. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/shell/mobile-landscape.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,130 tests across 135 suites, 0 failures in ~1001ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 22,114 to 21,501 (-613 lines); parsed rules -74; parsed declarations -323; `!important` -60; media queries -4; production chunk raw bytes 705,482; gzip bytes improved to 107,005 (-133 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport, high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Extracted 613 lines into dedicated `frontend/src/styles/shell/mobile-landscape.css`: Mobile map controls (`.mobile-map-controls`, `.mobile-map-control-button`, `.mobile-map-control-button-strong`, active state, themes), Rotated mobile map shell layout (`.linewatch-shell.mobile-map-rotated`, suppression of non-map mobile chrome, isolated viewport, 90deg transformed controls surface `.rotated-map-ui-surface`), Rotated map HUD & selection HUD (`.rotated-map-hud`, `.rotated-map-selection-hud`, station/impact positioning, keepout styling), and Rotated map selection card (`.rotated-map-selection-card`, two-column action layout, close button, portrait rotation cue, line badge, meta text, and full critical/warning/rsz/delay/planned/normal color borders and background gradients across dark and high-contrast modes).
+  - Maintained cascade hierarchy by importing `mobile-landscape.css` at line 21 immediately following `mobile-sheets.css`.
+  - Preserved compact phone and narrow desktop density passes for S08D, and station search/detail for S09.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `mobile-landscape.css` in the application stylesheet graph.
+- Risks or blockers:
+  - None. S08C is fully complete and verified.
+- Next session: S08D — Extract compact phone and narrow desktop density styles (`shell/responsive-density.css` / compact phone and short landscape queries).
