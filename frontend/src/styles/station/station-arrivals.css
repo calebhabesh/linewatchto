@@ -42,12 +42,6 @@
   background: transparent !important;
 }
 
-.dark .station-detail-panel [data-arrival-group] {
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
 /* ==========================================================================
    Station Arrivals Transit Track Spine & Platform Nodes
    ========================================================================== */
@@ -58,10 +52,6 @@
   transform: translateX(-50%);
   width: 2px;
   pointer-events: none;
-  opacity: 1 !important;
-}
-
-.dark .station-arrival-track-spine {
   opacity: 1 !important;
 }
 
@@ -82,22 +72,17 @@
 }
 
 .dark .station-arrival-track-node {
-  background-color: #ffffff !important;
-  border: 2.5px solid #000000 !important;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.18),
     0 2px 5px rgba(0, 0, 0, 0.45) !important;
 }
 
 .high-contrast .station-arrival-track-node {
-  background-color: #ffffff !important;
-  border: 2.5px solid #000000 !important;
   box-shadow: none !important;
 }
 
 .high-contrast .station-arrival-track-spine {
   background-color: #ffffff !important;
-  opacity: 1 !important;
 }
 
 /* ==========================================================================
@@ -114,7 +99,6 @@
 
 .dark .station-detail-panel [data-arrival-group] .station-arrival-tile,
 .dark .station-detail-panel [data-regional-arrival-direction] .station-arrival-tile {
-  border: none !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.25) !important;

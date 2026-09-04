@@ -67,12 +67,6 @@
   padding: 4px 0 !important;
 }
 
-.dark .saved-station-arrival-group.is-surface-group {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .surface-connections-chevron {
     transition: none;
@@ -118,9 +112,12 @@
   min-height: 48px;
   align-items: center;
   gap: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 5px;
-  background: #ffffff;
+  border: none !important;
+  border-radius: 6px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   padding: 7px 10px;
 }
 
@@ -201,6 +198,13 @@
   background: rgba(255, 255, 255, 0.035);
 }
 
+.dark .station-connection-row {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.25) !important;
+  background: #12151c !important;
+}
+
 .dark .station-connection-copy small,
 .high-contrast .station-connection-copy small {
   color: #94a3b8;
@@ -209,27 +213,6 @@
 .dark .station-connection-copy strong,
 .high-contrast .station-connection-copy strong {
   color: #f8fafc;
-}
-
-/* ==========================================================================
-   Tactile Overrides for Connected Networks
-   ========================================================================== */
-
-.station-connection-row {
-  border: none !important;
-  border-radius: 6px !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 2px rgba(0, 0, 0, 0.05) !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-}
-
-.dark .station-connection-row {
-  border: none !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.25) !important;
-  background: #12151c !important;
 }
 
 /* ==========================================================================
@@ -244,7 +227,6 @@
 }
 
 .dark .station-detail-panel [data-surface-route] .surface-departure-tile {
-  border: none !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.25) !important;

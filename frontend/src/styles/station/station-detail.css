@@ -31,9 +31,13 @@
 .station-detail-save-control button,
 .station-detail-close-button {
   align-items: center;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 8px;
-  color: rgb(51, 65, 85);
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: rgb(51, 65, 85) !important;
   display: inline-flex;
   flex-direction: column;
   gap: 1px;
@@ -49,18 +53,22 @@
 
 .dark .station-detail-save-control button,
 .dark .station-detail-close-button {
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgb(226, 232, 240);
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  background: #161a23 !important;
+  color: rgb(226, 232, 240) !important;
 }
 
 .station-detail-save-control button:hover,
 .station-detail-close-button:hover {
-  background: rgba(15, 23, 42, 0.06);
+  background: rgba(239, 246, 255, 0.95) !important;
 }
 
 .dark .station-detail-save-control button:hover,
 .dark .station-detail-close-button:hover {
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(30, 58, 138, 0.35) !important;
 }
 
 .station-detail-save-control button.saved {
@@ -91,38 +99,6 @@
 
 @keyframes saved-station-spin {
   to { transform: rotate(360deg); }
-}
-
-/* Tactile Design Language overrides for Save & Close buttons */
-.station-detail-save-control button,
-.station-detail-close-button {
-  border: none !important;
-  border-radius: 8px !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 3px rgba(0, 0, 0, 0.08) !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  color: rgb(51, 65, 85) !important;
-}
-
-.dark .station-detail-save-control button,
-.dark .station-detail-close-button {
-  border: none !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.3) !important;
-  background: #161a23 !important;
-  color: rgb(226, 232, 240) !important;
-}
-
-.station-detail-save-control button:hover,
-.station-detail-close-button:hover {
-  background: rgba(239, 246, 255, 0.95) !important;
-}
-
-.dark .station-detail-save-control button:hover,
-.dark .station-detail-close-button:hover {
-  background: rgba(30, 58, 138, 0.35) !important;
 }
 
 /* ==========================================================================
@@ -179,21 +155,10 @@
 }
 
 .dark .station-line-directions {
-  border: none !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
     0 1px 3px rgba(0, 0, 0, 0.4) !important;
   background-color: var(--line-direction-color, #64748b) !important;
-  color: var(--line-direction-text, #ffffff) !important;
-}
-
-.dark .station-line-directions span {
-  color: var(--line-direction-text, #ffffff) !important;
-}
-
-.dark .station-line-directions .station-line-directions-divider {
-  color: var(--line-direction-text, #ffffff) !important;
-  opacity: 0.55 !important;
 }
 
 /* Station Submenu Quick Jump Buttons */
@@ -256,29 +221,24 @@
 
 .dark .station-detail-map-button {
   background: rgba(56, 189, 248, 0.09) !important;
-  border: none !important;
   color: #38bdf8;
 }
 
 .station-detail-map-button:hover {
   background: rgba(37, 99, 235, 0.14) !important;
-  border: none !important;
 }
 
 .dark .station-detail-map-button:hover {
   background: rgba(56, 189, 248, 0.16) !important;
-  border: none !important;
 }
 
 .station-detail-map-button:active {
   transform: scale(0.93);
   background: rgba(37, 99, 235, 0.2) !important;
-  border: none !important;
 }
 
 .dark .station-detail-map-button:active {
   background: rgba(56, 189, 248, 0.22) !important;
-  border: none !important;
 }
 
 .station-detail-map-button svg {
@@ -350,6 +310,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: none !important;
   animation: station-detail-enter-mobile 220ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, opacity;
 }
@@ -385,8 +346,11 @@
 @media (max-width: 767px) {
   .station-detail-panel {
     border: none !important;
-    border-radius: 8px 8px 0 0;
-    box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.38);
+    border-radius: 8px 8px 0 0 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 -18px 44px rgba(0, 0, 0, 0.38) !important;
+    background: #ffffff !important;
     height: calc(var(--visual-viewport-height, 100dvh) * 0.92) !important;
     max-height: calc(var(--visual-viewport-height, 100dvh) * 0.92) !important;
     transform: translate3d(0, var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)), 0);
@@ -396,6 +360,14 @@
     isolation: isolate;
     backface-visibility: hidden;
     overscroll-behavior-y: contain;
+  }
+
+  .dark .station-detail-panel {
+    border: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 -18px 44px rgba(0, 0, 0, 0.45) !important;
+    background: #12151c !important;
   }
 
   .high-contrast .station-detail-panel,
@@ -453,10 +425,26 @@
   }
 
   .station-detail-panel {
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+    background: #ffffff !important;
     height: auto !important;
     max-height: calc(var(--visual-viewport-height, 100dvh) - 128px) !important;
     transform: none !important;
     transition: none !important;
+  }
+
+  .dark .station-detail-panel {
+    border: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 20px 25px -5px rgba(0, 0, 0, 0.5),
+      0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+    background: #12151c !important;
   }
 
   .station-detail-panel .station-detail-scroll {
@@ -523,51 +511,6 @@
   text-transform: uppercase;
 }
 
-/* ==========================================================================
-   Station Submenu Containers — Borderless Tactile Design Language
-   ========================================================================== */
-
-.station-detail-panel {
-  border: none !important;
-}
-
-@media (min-width: 768px) {
-  .station-detail-panel {
-    border: none !important;
-    border-radius: 8px !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.85),
-      0 20px 25px -5px rgba(0, 0, 0, 0.1),
-      0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
-    background: #ffffff !important;
-  }
-  .dark .station-detail-panel {
-    border: none !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      0 20px 25px -5px rgba(0, 0, 0, 0.5),
-      0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
-    background: #12151c !important;
-  }
-}
-
-@media (max-width: 767px) {
-  .station-detail-panel {
-    border: none !important;
-    border-radius: 8px 8px 0 0 !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.85),
-      0 -18px 44px rgba(0, 0, 0, 0.38) !important;
-    background: #ffffff !important;
-  }
-  .dark .station-detail-panel {
-    border: none !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 -18px 44px rgba(0, 0, 0, 0.45) !important;
-    background: #12151c !important;
-  }
-}
 
 /* ==========================================================================
    Station Detail Scroll, Content Swap & Motion Preferences
