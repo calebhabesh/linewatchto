@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11M
-- Last completed session: S11M
-- Next recommended session: S11N (or S12)
+- Current session: S11N
+- Last completed session: S11N
+- Next recommended session: S12
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 363 |
-| Total authored app CSS lines | 31,414 | 32,455 |
-| Total authored app CSS bytes | 784,128 | 839,491 |
-| Parsed rules | 4,221 | 47 |
-| Declarations | 14,093 | 107 |
-| !important | 2,356 | 10 |
+| Global entry lines | 30,011 | 53 |
+| Total authored app CSS lines | 31,414 | 32,481 |
+| Total authored app CSS bytes | 784,128 | 841,157 |
+| Parsed rules | 4,221 | 0 |
+| Declarations | 14,093 | 0 |
+| !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
 | Production CSS bytes | 705,472 | 708,514 |
-| Production CSS gzip bytes | 108,667 | 105,595 |
+| Production CSS gzip bytes | 108,667 | 105,581 |
 
 
 
@@ -1402,3 +1402,38 @@
 - Risks or blockers:
   - None. S11M is fully completed and verified.
 - Next session: S11N — Extract remaining shell & dashboard grid layout styles (`frontend/src/styles/shell/dashboard-shell.css`), panel headings typography, card borders, and responsive breakpoints (1180px, 900px, 520px) from `globals.css` (the final ~300 lines of `globals.css`), reducing `globals.css` to an import-only entry manifest and preparing for S12 architecture guardrails.
+
+### S11N — Extract Shell, Panel Typography, Cards, and Responsive Grid Layout
+
+- Status: completed
+- Commit: bd6a34be
+- Scope: Extract remaining shell & dashboard grid layout styles (`frontend/src/styles/shell/dashboard-shell.css`), panel headings typography, card borders, network map stage, drift animation, responsive breakpoints (1180px, 900px, 520px), and card selection highlight glow keyframes from `frontend/src/app/globals.css` (310 lines) into `frontend/src/styles/shell/dashboard-shell.css` (347 lines across 7 modular sections). Reduce `frontend/src/app/globals.css` to an import-only entry manifest of 53 lines (0 parsed rules, 0 parsed declarations, 0 `!important`). Update unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of all extracted selectors in `dashboard-shell.css` and verifying that the entry stylesheet manifest contains only `@import` statements and comments. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,163 passing, 0 failures), TypeScript typecheck, ESLint, and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/shell/dashboard-shell.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,163 tests across 135 suites, 0 failures; +1 new test for entry manifest validation).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.4s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 363 to 53 (-310 lines, -85.4%); parsed rules reduced to 0 (-47, -100%); parsed declarations reduced to 0 (-107, -100%); `!important` reduced to 0 (-10, -100%); media queries reduced to 0 (-4, -100%); keyframe blocks reduced to 0 (-3, -100%); class-substring selectors steady at 0; production chunk raw bytes steady at 708,514; gzip bytes improved by 14 bytes to 105,581).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Consolidated all remaining dashboard shell rules into `frontend/src/styles/shell/dashboard-shell.css` across 7 modular sections:
+    1. Section 1: Shell Wordmark & Custom Properties (`.linewatch-wordmark`, `.linewatch-shell`).
+    2. Section 2: Panel Headings & Typography (`.panel-title-row span`, `.closure-heading p`, `.health-item p`, `.reliability-copy span`, `.map-panel`, `.panel-heading`, `.panel-title-row`, `.panel-heading.compact`, heading typography clamp, flex centering, icon and span alignment).
+    3. Section 3: Network Map Stage & Viewport Containers (`.network-map`, `.asset-map-stage`, `@keyframes map-center-fade-in`, `.animate-map-center-fade`, mobile performance and reduced-motion overrides).
+    4. Section 4: Dashboard Cards & List Containers (`.alert-card`, `.closure-card`, `.commute-card`, `.health-item`, `.reliability-row`, `.closure-heading`, card paragraphs, `.line-list`, `.alert-stack`, `.closure-stack`, `.reliability-list`, `.health-grid`, `.line-row`, break-word rules, `.commute-panel`).
+    5. Section 5: Network Background Drift Animation (`@keyframes drift-network`).
+    6. Section 6: Responsive Dashboard Layout Breakpoints (`@media (max-width: 1180px)`, `@media (max-width: 900px)`, `@media (max-width: 520px)`).
+    7. Section 7: Card Selection Highlight Glow & Keyframes (`@keyframes highlight-glow`, `.highlight-active-card`, `.motion-paused`).
+  - Reduced `frontend/src/app/globals.css` to an import-only entry manifest (53 lines containing solely the Tailwind source directive and 52 modular `@import` rules).
+  - Extended unit test suite in `frontend/tests/stylesheet-graph.test.mjs` with assertions for all extracted selectors and keyframes in `dashboard-shell.css`, and added a verification test confirming that the entry stylesheet is an import-only manifest without any non-import rules.
+- Risks or blockers:
+  - None. S11N is fully completed and verified.
+- Next session: S12 — Add architecture guardrails to prevent CSS debt regressions (verify entry manifest remains import-only, freeze `!important` and selector metrics, prevent duplicate imports, validate import ordering).
