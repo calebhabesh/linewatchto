@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S14
-- Last completed session: S14
-- Next recommended session: S15A (or S13B)
+- Current session: S15B
+- Last completed session: S15B
+- Next recommended session: S15C — Consolidate small leaf panels and dialogs
 - Blockers: none
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,489 |
-| Total authored app CSS bytes | 784,128 | 841,274 |
+| Total authored app CSS lines | 31,414 | 32,426 |
+| Total authored app CSS bytes | 784,128 | 841,132 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 708,668 |
-| Production CSS gzip bytes | 108,667 | 105,590 |
+| Production CSS bytes | 705,472 | 708,756 |
+| Production CSS gzip bytes | 108,667 | 105,905 |
 
 
 
@@ -1578,3 +1578,37 @@
 - Risks or blockers:
   - None. Shared panel and card surface consolidation is verified across all responsive viewports and themes.
 - Next session: S15B — Consolidate shared count badges and action buttons (`shell/badges.css`, count pills, action controls).
+
+### S15B — Consolidate Shared Count Badges and Action Buttons
+
+- Status: completed
+- Commit: f2289f94
+- Scope: Consolidate shared count badges and action buttons across `themes.css` and `badges.css`:
+  1. Category Count Badge Tokens: Introduced semantic custom properties (`--badge-pill-bg-alerts`, `--badge-pill-text-alerts`, `--badge-pill-bg-delays`, `--badge-pill-text-delays`, `--badge-pill-bg-rsz`, `--badge-pill-text-rsz`, `--badge-pill-bg-closures`, `--badge-pill-text-closures`, `--badge-pill-bg-trip-changes`, `--badge-pill-text-trip-changes`, `--badge-pill-bg-accessibility`, `--badge-pill-text-accessibility`, `--badge-pill-bg-surface`, `--badge-pill-text-surface`, `--badge-pill-bg-info`, `--badge-pill-text-info`) across light, dark, and high-contrast theme definitions in `frontend/src/styles/foundation/themes.css`.
+  2. Desktop Menu Count Badges: Eliminated redundant `!important` declarations from all 32 category backgrounds and text colors in `frontend/src/styles/shell/badges.css` Section 5. Two-class (and three-class in dark mode) specificity naturally wins over single-class Tailwind utilities without `!important`.
+  3. Redundant Rules & Sections Eliminated: Merged mobile line status impact buttons with mobile system status actions in Section 3, eliminating Section 7 completely (71 lines, 20 duplicate declarations) and Section 3 duplicate base rules (14 lines, 4 duplicate declarations). Harmonized high-contrast border rules for line impacts and action buttons in Section 6.
+  4. Guardrails & Unit Tests: Updated `frontend/tests/stylesheet-graph.test.mjs` to assert `--badge-pill-bg-alerts` resolution. Lowered graph-wide `!important` migration ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,367 down to 2,311 (-56 `!important` declarations).
+- Files changed:
+  - `frontend/src/styles/foundation/themes.css`
+  - `frontend/src/styles/shell/badges.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 3.5s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines reduced from 32,437 to 32,426 (-11 lines net); `badges.css` lines reduced from 559 to 497 (-62 lines net); `badges.css` `!important` declarations reduced from 115 to 59 (-56 declarations, -48.7%); graph `!important` declarations reduced from 2,367 to 2,311 (-56); production chunk raw bytes at 708,756).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop (`TTC desktop map, light`, `TTC desktop map, dark`, `GO/UP desktop map`), mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile Status or More sheet.
+- Decisions:
+  - Preserved explicit regex selector matching order (`.dark .mobile-status-actions button.mobile-status-btn-alerts`) directly before opening brace to maintain contract test compatibility with `mobile-bottom-sheet-ux.test.mjs`.
+  - Preserved explicit RSZ color tokens in CSS rules to maintain compatibility with `rsz-color.test.mjs`.
+  - Consolidated duplicate hover, active, and dark states of mobile line status impacts with status action buttons.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 2,367 to 2,311 (-56 declarations).
+- Risks or blockers:
+  - None. Shared count badges and action buttons consolidation is verified across all responsive viewports and themes with 0 diffs.
+- Next session: S15C — Consolidate small leaf panels and dialogs (`panels/feedback.css`, `panels/info-modals.css`, `account/account-dialogs.css`, `shell/status-notices.css`).
