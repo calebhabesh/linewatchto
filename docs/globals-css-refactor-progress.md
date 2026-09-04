@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11L
-- Last completed session: S11L
-- Next recommended session: S11M (or S12)
+- Current session: S11M
+- Last completed session: S11M
+- Next recommended session: S11N (or S12)
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 868 |
-| Total authored app CSS lines | 31,414 | 32,437 |
-| Total authored app CSS bytes | 784,128 | 838,175 |
-| Parsed rules | 4,221 | 107 |
-| Declarations | 14,093 | 302 |
-| !important | 2,356 | 32 |
+| Global entry lines | 30,011 | 363 |
+| Total authored app CSS lines | 31,414 | 32,455 |
+| Total authored app CSS bytes | 784,128 | 839,491 |
+| Parsed rules | 4,221 | 47 |
+| Declarations | 14,093 | 107 |
+| !important | 2,356 | 10 |
 | Class-substring selectors | 32 | 0 |
 | Production CSS bytes | 705,472 | 708,514 |
-| Production CSS gzip bytes | 108,667 | 106,035 |
+| Production CSS gzip bytes | 108,667 | 105,595 |
 
 
 
@@ -1372,3 +1372,33 @@
 - Risks or blockers:
   - None. S11L is fully completed and verified.
 - Next session: S11M — Extract interactive map interactions, direct pan/zoom overlay simplification (`:is(.map-gesture-active...)`), station hit targets, selection indicators, pulse animations, and impact rings (`styles/map/base-map.css` or `styles/map/station-markers.css`), or proceed to S11N / S12 (shell & responsive grid layout, architecture guardrails).
+
+### S11M — Extract Station Markers, Map Transitions, and Camera Gesture Optimizations
+
+- Status: completed
+- Commit: a46f4a33
+- Scope: Extract TTC station hit targets, station labels, hover indicators, selected indicators, gold impact rings, radar red cores and pings, direction glyphs, and pulse keyframes from `frontend/src/app/globals.css` (321 lines) into dedicated `frontend/src/styles/map/station-markers.css` (338 lines across 6 sections). Extract map layer enter/exit transitions (`.map-layer-entering`, `.map-layer-current`, `.map-layer-exiting`), map attribution notice (`.map-attribution-notice`), direct pan/zoom overlay simplifications (`:is(.map-gesture-active, [data-map-gesture-active="true"], [data-map-zoom-active="true"]) ...`, `.interactive-glow.selected`, filter/opacity/visibility resets), and programmatic camera flights (`[data-map-camera-moving="true"] ...`, `:is([data-map-camera-moving="true"], [data-regional-map-camera-moving="true"]) ...`) into `frontend/src/styles/map/base-map.css` (185 lines). Add relative import `@import "../styles/map/station-markers.css";` to `frontend/src/app/globals.css` in top manifest order immediately following `regional-map.css`. Remove 505 lines from `frontend/src/app/globals.css` (dropping from 868 to 363 lines, a -58.2% reduction). Add unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `station-markers.css` in the application stylesheet graph and update `base-map.css` assertions. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,162 passing, 0 failures), TypeScript typecheck, ESLint, and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/map/station-markers.css`
+  - `frontend/src/styles/map/base-map.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,162 tests across 135 suites, 0 failures in ~1.1s; +1 test for `station-markers.css`).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 3.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 868 to 363 (-505 lines, -58.2%); parsed rules -60 (107 to 47, -56.1%); parsed declarations -195 (302 to 107, -64.6%); `!important` -22 (32 to 10, -68.8%); media queries -4 (8 to 4, -50.0%); keyframe blocks -4 (7 to 3, -57.1%); class-substring selectors steady at 0; production chunk raw bytes steady at 708,514; gzip bytes improved by 440 bytes to 105,595).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated modular map stylesheet `frontend/src/styles/map/station-markers.css` (338 lines) isolating TTC station hit targets, station labels, hover indicators, selected indicators, gold impact rings, radar red cores and pings, direction glyphs, and pulse keyframes in exact authored order.
+  - Appended map layer transitions, attribution notice, direct pan/zoom overlay simplification, and programmatic camera flight optimizations to `frontend/src/styles/map/base-map.css` (185 lines), consolidating all viewport-level camera and gesture behavior in `base-map.css`.
+  - Maintained cascade hierarchy by importing `station-markers.css` at line 11 immediately following `regional-map.css` and preceding `map-selection.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `station-markers.css` in the application stylesheet graph and updated `base-map.css` assertions.
+- Risks or blockers:
+  - None. S11M is fully completed and verified.
+- Next session: S11N — Extract remaining shell & dashboard grid layout styles (`frontend/src/styles/shell/dashboard-shell.css`), panel headings typography, card borders, and responsive breakpoints (1180px, 900px, 520px) from `globals.css` (the final ~300 lines of `globals.css`), reducing `globals.css` to an import-only entry manifest and preparing for S12 architecture guardrails.
