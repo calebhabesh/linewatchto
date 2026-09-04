@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S09A
-- Last completed session: S09A
-- Next recommended session: S09B
+- Current session: S09B
+- Last completed session: S09B
+- Next recommended session: S09C
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 19,086 |
-| Total authored app CSS lines | 31,414 | 31,467 |
-| Total authored app CSS bytes | 784,128 | 786,582 |
-| Parsed rules | 4,221 | 2,708 |
-| Declarations | 14,093 | 8,879 |
-| !important | 2,356 | 1,345 |
+| Global entry lines | 30,011 | 18,450 |
+| Total authored app CSS lines | 31,414 | 31,549 |
+| Total authored app CSS bytes | 784,128 | 789,143 |
+| Parsed rules | 4,221 | 2,615 |
+| Declarations | 14,093 | 8,598 |
+| !important | 2,356 | 1,235 |
 | Class-substring selectors | 32 | 32 |
-| Production CSS bytes | 705,472 | 705,508 |
-| Production CSS gzip bytes | 108,667 | 106,712 |
+| Production CSS bytes | 705,472 | 705,951 |
+| Production CSS gzip bytes | 108,667 | 106,759 |
 
 
 ## Session log
@@ -550,3 +550,38 @@
 - Risks or blockers:
   - None. S09A is fully complete and verified.
 - Next session: S09B — Extract shared station-detail shell and header styles (`station/station-detail.css` / station detail panel shell, drag handling, headers, actions, and map buttons).
+
+### S09B — Extract shared station-detail shell and header styles
+
+- Status: completed
+- Commit: 4beea985
+- Scope: Extract station detail panel container and right dock, mobile bottom sheet geometry and dragging state containment, drag handle pill and ridges, sheet entrance animations, updating indicator, scroll container, body transitions, content swap animations, sheet exit animations, header actions (save control and close button), tactile panel and header overrides, transit line header rows, station line direction pills, quick jump navigation buttons, and circular "View on Map" jump button from `globals.css` (636 lines removed, 718 lines total authored with header) into dedicated `frontend/src/styles/station/station-detail.css`. Add relative import `@import "../styles/station/station-detail.css";` to `globals.css` line 24. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/station/station-detail.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,133 tests across 135 suites, 0 failures in ~1039ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 19,086 to 18,450 (-636 lines); parsed rules -93; parsed declarations -281; `!important` -110; media queries -12; keyframe blocks -7; production chunk raw bytes 705,951; gzip bytes 106,759).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Extracted 636 lines from `globals.css` into dedicated `frontend/src/styles/station/station-detail.css`:
+    1. Header actions (`.station-detail-header-actions`, `.station-detail-save-control`, `.station-detail-close-button`, save states, save spinner, and `@keyframes saved-station-spin`).
+    2. Header line rows and quick jump controls (`.station-header-line-row`, `.station-header-line-badge`, `.station-header-line-name`, `.station-line-directions`, `.station-submenu-nav-btn`, `.station-detail-panel [data-station-submenu-nav] button`).
+    3. View on map button (`.station-detail-map-button`, dual-tone icon styles, hover, active, dark, and high-contrast rules).
+    4. Station detail panel shell & dragging (`.station-detail-panel`, mobile sheet translate, sheet dragging containment, `.station-sheet-drag-handle-container`, drag pill, drag ridges, and `.station-detail-updating`).
+    5. Tactile container and header overrides (`.station-detail-panel`, desktop/mobile box-shadows, `.station-detail-save-control button`, `.station-detail-close-button`).
+    6. Scroll, body wrapper, content swap & motion preferences (`.station-detail-scroll`, `.station-detail-body-wrapper`, `.station-detail-content-swap`, `@keyframes station-detail-content-in`, `.motion-paused`, `@media (prefers-reduced-motion: reduce)`).
+    7. Station detail panel exit animations (`.station-detail-panel.station-detail-closing`, `.station-detail-panel[data-closing="true"]`, `@keyframes station-detail-exit-mobile`, `@keyframes station-detail-exit-desktop`).
+  - Maintained cascade hierarchy by importing `station-detail.css` at line 24 immediately following `station-search.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `station/station-detail.css` in the application stylesheet graph and selector coverage.
+- Risks or blockers:
+  - None. S09B is fully complete and verified.
+- Next session: S09C — Extract TTC and regional arrival groups (`station/station-arrivals.css` / TTC direction arrival groups, platform track spine, track nodes, regional departure tiles, and timetable tabs).
