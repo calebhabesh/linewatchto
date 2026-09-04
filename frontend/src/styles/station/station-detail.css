@@ -350,11 +350,17 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: station-detail-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: station-detail-enter-mobile 220ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, opacity;
 }
 
-@keyframes station-detail-enter {
+@media (min-width: 768px) {
+  .station-detail-panel {
+    animation-name: station-detail-enter-desktop;
+  }
+}
+
+@keyframes station-detail-enter-mobile {
   from {
     opacity: 0;
     transform: translate3d(0, calc(var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)) + 18px), 0) scale(0.985);
@@ -365,16 +371,14 @@
   }
 }
 
-@media (min-width: 768px) {
-  @keyframes station-detail-enter {
-    from {
-      opacity: 0;
-      transform: translateX(18px) scale(0.985);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0) scale(1);
-    }
+@keyframes station-detail-enter-desktop {
+  from {
+    opacity: 0;
+    transform: translateX(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
   }
 }
 
@@ -631,11 +635,17 @@
 }
 
 .station-detail-content-swap {
-  animation: station-detail-content-in 800ms cubic-bezier(0.05, 0.7, 0.1, 1);
+  animation: station-detail-content-in-mobile 800ms cubic-bezier(0.05, 0.7, 0.1, 1);
   will-change: transform, opacity;
 }
 
-@keyframes station-detail-content-in {
+@media (min-width: 768px) {
+  .station-detail-content-swap {
+    animation-name: station-detail-content-in-desktop;
+  }
+}
+
+@keyframes station-detail-content-in-mobile {
   from {
     opacity: 0;
     transform: translateY(4px);
@@ -646,16 +656,14 @@
   }
 }
 
-@media (min-width: 768px) {
-  @keyframes station-detail-content-in {
-    from {
-      opacity: 0;
-      transform: translateX(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+@keyframes station-detail-content-in-desktop {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 

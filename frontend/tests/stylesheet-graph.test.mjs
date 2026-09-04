@@ -519,7 +519,8 @@ describe("stylesheet-graph helper", () => {
     assert.ok(files.some(f => f.endsWith("station-detail.css")), "station-detail.css must be in graph files");
     const stationDetailContent = readStylesheet(new URL("../src/styles/station/station-detail.css", import.meta.url));
     assert.match(stationDetailContent, /\.station-detail-panel/);
-    assert.match(stationDetailContent, /@keyframes station-detail-enter/);
+    assert.match(stationDetailContent, /@keyframes station-detail-enter-mobile/);
+    assert.match(stationDetailContent, /@keyframes station-detail-enter-desktop/);
     assert.match(stationDetailContent, /\.station-detail-sheet-dragging/);
     assert.match(stationDetailContent, /\.station-sheet-drag-handle-container/);
     assert.match(stationDetailContent, /\.station-sheet-drag-pill/);
@@ -532,7 +533,8 @@ describe("stylesheet-graph helper", () => {
     assert.match(stationDetailContent, /\.station-detail-scroll/);
     assert.match(stationDetailContent, /\.station-detail-body-wrapper/);
     assert.match(stationDetailContent, /\.station-detail-content-swap/);
-    assert.match(stationDetailContent, /@keyframes station-detail-content-in/);
+    assert.match(stationDetailContent, /@keyframes station-detail-content-in-mobile/);
+    assert.match(stationDetailContent, /@keyframes station-detail-content-in-desktop/);
     assert.match(stationDetailContent, /\.station-detail-map-button/);
     assert.match(stationDetailContent, /\.station-header-line-row/);
     assert.match(stationDetailContent, /\.station-header-line-badge/);

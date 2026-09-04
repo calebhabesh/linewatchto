@@ -316,6 +316,31 @@ describe("CSS architecture guardrails", () => {
     });
   });
 
+  describe("keyframe hygiene and uniqueness", () => {
+    it("enforces that no duplicate @keyframes names exist across the application stylesheet graph", () => {
+      clearStylesheetCache();
+      const graphCss = stripCssComments(readAppStylesheetGraph({ forceRefresh: true }));
+      const keyframeNames = [...graphCss.matchAll(/@keyframes\s+([a-zA-Z0-9_-]+)/g)].map(m => m[1]);
+      const counts = new Map();
+      const duplicates = [];
+
+      for (const name of keyframeNames) {
+        const current = (counts.get(name) || 0) + 1;
+        counts.set(name, current);
+        if (current === 2) {
+          duplicates.push(name);
+        }
+      }
+
+      assert.deepEqual(
+        duplicates,
+        [],
+        `Duplicate @keyframes names detected across the stylesheet graph: ${duplicates.join(", ")}`,
+      );
+      assert.equal(keyframeNames.length, 99, "Expected exactly 99 unique @keyframes definitions across graph");
+    });
+  });
+
   describe("technical debt migration ceilings", () => {
     it("enforces that graph-wide !important declarations do not exceed the migration ceiling", () => {
       clearStylesheetCache();

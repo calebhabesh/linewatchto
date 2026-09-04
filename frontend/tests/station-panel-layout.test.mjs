@@ -366,7 +366,8 @@ describe("station detail panel layout", () => {
   it("supports updating state, animation, and prefers-reduced-motion overrides", () => {
     assert.match(panelSource, /updating\?: boolean/);
     assert.match(stationHeaderSource, /station-detail-updating/);
-    assert.match(globalCss, /@keyframes station-detail-enter/);
+    assert.match(globalCss, /@keyframes station-detail-enter-mobile/);
+    assert.match(globalCss, /@keyframes station-detail-enter-desktop/);
     assert.match(globalCss, /\.motion-paused \.station-detail-panel/);
     assert.match(panelSource, /station-detail-body-wrapper/);
     assert.match(globalCss, /\.station-detail-body-wrapper/);
@@ -375,7 +376,8 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /station-detail-content-swap/);
     assert.doesNotMatch(globalCss, /filter:\s*blur\(1px\)/);
     assert.doesNotMatch(globalCss, /opacity:\s*0\.35/);
-    assert.match(globalCss, /@keyframes station-detail-content-in/);
+    assert.match(globalCss, /@keyframes station-detail-content-in-mobile/);
+    assert.match(globalCss, /@keyframes station-detail-content-in-desktop/);
   });
 
   it("renders accent chips on section headers across station detail panels with uniform spacing", () => {
