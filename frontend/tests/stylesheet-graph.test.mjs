@@ -5,10 +5,14 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
   clearStylesheetCache,
+  countClassSubstringSelectors,
+  countImportantDeclarations,
   getAppStylesheetGraphFiles,
+  getImportDirectives,
   readAppStylesheet,
   readAppStylesheetGraph,
   readStylesheet,
+  stripCssComments,
 } from "./helpers/stylesheet-graph.mjs";
 
 describe("stylesheet-graph helper", () => {
@@ -1183,5 +1187,25 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.commute-station-browse-container/);
     assert.match(content, /@keyframes commute-popover-enter-mobile/);
     assert.match(content, /\.commute-station-mobile-back/);
+  });
+
+  it("strips comments and counts debt metrics accurately", () => {
+    const sampleCss = `
+      /* !important comment */
+      .valid { color: red !important; }
+      /* [class*="fake"] */
+      .target[class*="min-h-[74px]"] { padding: 4px !important; }
+    `;
+    assert.equal(stripCssComments(sampleCss).includes("fake"), false);
+    assert.equal(countImportantDeclarations(sampleCss), 2);
+    assert.equal(countClassSubstringSelectors(sampleCss), 1);
+  });
+
+  it("extracts @import directives from stylesheet entries", () => {
+    const directives = getImportDirectives();
+    assert.ok(Array.isArray(directives));
+    assert.equal(directives.length, 52);
+    assert.equal(directives[0], '@import "tailwindcss" source("../");');
+    assert.equal(directives[1], '@import "../styles/foundation/fonts.css";');
   });
 });

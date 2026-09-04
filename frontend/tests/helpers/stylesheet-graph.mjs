@@ -158,3 +158,55 @@ export function clearStylesheetCache() {
   cachedGraphFiles = null;
   cachedEntryPath = null;
 }
+
+/**
+ * Strips all block comments (/* ... *\/) from a CSS string.
+ *
+ * @param {string} css
+ * @returns {string}
+ */
+export function stripCssComments(css) {
+  return css.replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
+/**
+ * Counts !important declarations outside of comments.
+ *
+ * @param {string} css
+ * @returns {number}
+ */
+export function countImportantDeclarations(css) {
+  const stripped = stripCssComments(css);
+  const matches = stripped.match(/!\s*important\b/gi);
+  return matches ? matches.length : 0;
+}
+
+/**
+ * Counts [class*="..."] and other class substring/prefix/suffix selectors outside of comments.
+ *
+ * @param {string} css
+ * @returns {number}
+ */
+export function countClassSubstringSelectors(css) {
+  const stripped = stripCssComments(css);
+  const matches = stripped.match(/\[class[*^$|~]?=[^\]]*\]/g);
+  return matches ? matches.length : 0;
+}
+
+/**
+ * Extracts all non-comment @import directive strings from a stylesheet.
+ *
+ * @param {string | URL} [pathOrUrl]
+ * @returns {string[]}
+ */
+export function getImportDirectives(pathOrUrl = DEFAULT_ENTRY_URL) {
+  const content = readStylesheet(pathOrUrl);
+  const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
+  const directives = [];
+  for (const line of lines) {
+    if (line.startsWith("@import ")) {
+      directives.push(line);
+    }
+  }
+  return directives;
+}
