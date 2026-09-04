@@ -443,4 +443,34 @@ describe("stylesheet-graph helper", () => {
     assert.match(stationSearchContent, /@keyframes mobile-station-search-slide-in/);
     assert.match(stationSearchContent, /html:not\(\[data-visual-keyboard="open"\]\) \.station-search-panel/);
   });
+
+  it("resolves the extracted station/station-detail.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("station-detail.css")), "station-detail.css must be in graph files");
+    const stationDetailContent = readStylesheet(new URL("../src/styles/station/station-detail.css", import.meta.url));
+    assert.match(stationDetailContent, /\.station-detail-panel/);
+    assert.match(stationDetailContent, /@keyframes station-detail-enter/);
+    assert.match(stationDetailContent, /\.station-detail-sheet-dragging/);
+    assert.match(stationDetailContent, /\.station-sheet-drag-handle-container/);
+    assert.match(stationDetailContent, /\.station-sheet-drag-pill/);
+    assert.match(stationDetailContent, /\.station-sheet-drag-ridges/);
+    assert.match(stationDetailContent, /\.station-detail-header-actions/);
+    assert.match(stationDetailContent, /\.station-detail-save-control/);
+    assert.match(stationDetailContent, /\.station-detail-close-button/);
+    assert.match(stationDetailContent, /@keyframes saved-station-spin/);
+    assert.match(stationDetailContent, /\.station-detail-updating/);
+    assert.match(stationDetailContent, /\.station-detail-scroll/);
+    assert.match(stationDetailContent, /\.station-detail-body-wrapper/);
+    assert.match(stationDetailContent, /\.station-detail-content-swap/);
+    assert.match(stationDetailContent, /@keyframes station-detail-content-in/);
+    assert.match(stationDetailContent, /\.station-detail-map-button/);
+    assert.match(stationDetailContent, /\.station-header-line-row/);
+    assert.match(stationDetailContent, /\.station-header-line-badge/);
+    assert.match(stationDetailContent, /\.station-line-directions/);
+    assert.match(stationDetailContent, /\.station-submenu-nav-btn/);
+    assert.match(stationDetailContent, /\.station-detail-closing/);
+    assert.match(stationDetailContent, /@keyframes station-detail-exit-mobile/);
+    assert.match(stationDetailContent, /@keyframes station-detail-exit-desktop/);
+  });
 });

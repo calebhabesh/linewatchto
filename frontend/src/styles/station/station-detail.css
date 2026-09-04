@@ -1,0 +1,718 @@
+/**
+ * Shared Station Detail Shell & Header Styles
+ *
+ * Covers desktop right-dock panel shell, mobile bottom sheet geometry, sheet entrance
+ * and exit animations, dragging state containment, drag handle pill and ridges,
+ * scroll container, body transition and content swap animations, updating badge,
+ * header actions (save/favorite control and close button), header transit line rows,
+ * header quick-jump navigation buttons, and circular "View on Map" jump button.
+ */
+
+/* ==========================================================================
+   Station Detail Header Actions (Save & Close)
+   ========================================================================== */
+
+.station-detail-header-actions {
+  align-items: flex-start;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.station-detail-save-control {
+  align-items: center;
+  display: flex;
+  flex: 0 0 48px;
+  flex-direction: column;
+  gap: 2px;
+  width: 48px;
+}
+
+.station-detail-save-control button,
+.station-detail-close-button {
+  align-items: center;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  color: rgb(51, 65, 85);
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  height: 44px;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  width: 44px;
+}
+
+.station-detail-save-control button {
+  gap: 4px;
+}
+
+.dark .station-detail-save-control button,
+.dark .station-detail-close-button {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgb(226, 232, 240);
+}
+
+.station-detail-save-control button:hover,
+.station-detail-close-button:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.dark .station-detail-save-control button:hover,
+.dark .station-detail-close-button:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.station-detail-save-control button.saved {
+  color: rgb(14, 165, 233);
+}
+
+.station-detail-save-control button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.station-detail-save-control button > span {
+  color: rgb(100, 116, 139);
+  font-size: 7px;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.dark .station-detail-save-control button > span {
+  color: rgb(148, 163, 184);
+}
+
+.station-detail-save-spinner {
+  animation: saved-station-spin 0.8s linear infinite;
+}
+
+@keyframes saved-station-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Tactile Design Language overrides for Save & Close buttons */
+.station-detail-save-control button,
+.station-detail-close-button {
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: rgb(51, 65, 85) !important;
+}
+
+.dark .station-detail-save-control button,
+.dark .station-detail-close-button {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  background: #161a23 !important;
+  color: rgb(226, 232, 240) !important;
+}
+
+.station-detail-save-control button:hover,
+.station-detail-close-button:hover {
+  background: rgba(239, 246, 255, 0.95) !important;
+}
+
+.dark .station-detail-save-control button:hover,
+.dark .station-detail-close-button:hover {
+  background: rgba(30, 58, 138, 0.35) !important;
+}
+
+/* ==========================================================================
+   Station Line Header Rows & Submenu Navigation
+   ========================================================================== */
+
+/* Station Line Header Rows - prevents transit line name truncation on mobile */
+.station-header-line-row {
+  min-width: 0;
+  width: 100%;
+}
+
+.station-header-line-badge {
+  --transit-line-badge-size: 32px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  flex-shrink: 0 !important;
+}
+
+.station-header-line-name {
+  line-height: 1.22;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+@media (min-width: 640px) {
+  .station-header-line-badge {
+    --transit-line-badge-size: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+  }
+}
+
+/* Station Line Direction Badges - true transit line color pill matching line badges */
+.station-line-directions {
+  border: none !important;
+  border-radius: 999px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.12) !important;
+  background-color: var(--line-direction-color, #64748b) !important;
+  color: var(--line-direction-text, #ffffff) !important;
+}
+
+.station-line-directions span {
+  color: var(--line-direction-text, #ffffff) !important;
+}
+
+.station-line-directions .station-line-directions-divider {
+  color: var(--line-direction-text, #ffffff) !important;
+  opacity: 0.55 !important;
+}
+
+.dark .station-line-directions {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.4) !important;
+  background-color: var(--line-direction-color, #64748b) !important;
+  color: var(--line-direction-text, #ffffff) !important;
+}
+
+.dark .station-line-directions span {
+  color: var(--line-direction-text, #ffffff) !important;
+}
+
+.dark .station-line-directions .station-line-directions-divider {
+  color: var(--line-direction-text, #ffffff) !important;
+  opacity: 0.55 !important;
+}
+
+/* Station Submenu Quick Jump Buttons */
+.station-submenu-nav-btn,
+.station-detail-panel [data-station-submenu-nav] button {
+  border: none !important;
+  border-radius: 6px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: rgb(51, 65, 85) !important;
+}
+
+.dark .station-submenu-nav-btn,
+.dark .station-detail-panel [data-station-submenu-nav] button {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.25) !important;
+  background: #161a23 !important;
+  color: rgb(226, 232, 240) !important;
+}
+
+.station-submenu-nav-btn:hover,
+.station-detail-panel [data-station-submenu-nav] button:hover {
+  background: rgba(239, 246, 255, 0.95) !important;
+}
+
+.dark .station-submenu-nav-btn:hover,
+.dark .station-detail-panel [data-station-submenu-nav] button:hover {
+  background: rgba(30, 58, 138, 0.35) !important;
+}
+
+/* ==========================================================================
+   Station Submenu Header View on Map Circle Button
+   ========================================================================== */
+
+.station-detail-map-button {
+  align-items: center;
+  background: rgba(37, 99, 235, 0.08) !important;
+  background-image: none !important;
+  border: none !important;
+  outline: none !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+  color: #2563eb;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 46px;
+  gap: 1.5px;
+  height: 46px;
+  justify-content: center;
+  min-width: 46px;
+  padding: 0 2px;
+  transition: background-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
+  width: 46px;
+}
+
+.dark .station-detail-map-button {
+  background: rgba(56, 189, 248, 0.09) !important;
+  border: none !important;
+  color: #38bdf8;
+}
+
+.station-detail-map-button:hover {
+  background: rgba(37, 99, 235, 0.14) !important;
+  border: none !important;
+}
+
+.dark .station-detail-map-button:hover {
+  background: rgba(56, 189, 248, 0.16) !important;
+  border: none !important;
+}
+
+.station-detail-map-button:active {
+  transform: scale(0.93);
+  background: rgba(37, 99, 235, 0.2) !important;
+  border: none !important;
+}
+
+.dark .station-detail-map-button:active {
+  background: rgba(56, 189, 248, 0.22) !important;
+  border: none !important;
+}
+
+.station-detail-map-button svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease, filter 0.15s ease;
+}
+
+.station-detail-map-button span {
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+  line-height: 1.05;
+  color: #ffffff !important;
+  max-width: 40px;
+}
+
+.station-detail-map-button .jump-to-corners path {
+  stroke: #ffffff !important;
+}
+
+.station-detail-map-button .jump-to-pin {
+  color: #2563eb;
+  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.5));
+}
+
+.station-detail-map-button .jump-to-pin path {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+.station-detail-map-button .jump-to-pin circle {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+.linewatch-shell:not(.dark) .station-detail-map-button .jump-to-pin {
+  color: #2563eb;
+  filter: none;
+}
+
+/* High contrast mode support for station-detail-map-button */
+.high-contrast .station-detail-map-button,
+.linewatch-shell.high-contrast .station-detail-map-button {
+  background: #000000 !important;
+  border: 1px solid #ffffff !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.high-contrast .station-detail-map-button .jump-to-corners path,
+.high-contrast .station-detail-map-button .jump-to-pin {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  filter: none !important;
+}
+
+.high-contrast .station-detail-map-button span,
+.linewatch-shell.high-contrast .station-detail-map-button span {
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Station Detail Panel Shell & Mobile Draggable Sheet
+   ========================================================================== */
+
+.station-detail-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: station-detail-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+
+@keyframes station-detail-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)) + 18px), 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)), 0) scale(1);
+  }
+}
+
+@media (min-width: 768px) {
+  @keyframes station-detail-enter {
+    from {
+      opacity: 0;
+      transform: translateX(18px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  .station-detail-panel {
+    border: none !important;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.38);
+    height: calc(var(--visual-viewport-height, 100dvh) * 0.92) !important;
+    max-height: calc(var(--visual-viewport-height, 100dvh) * 0.92) !important;
+    transform: translate3d(0, var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)), 0);
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 45;
+    contain: paint;
+    isolation: isolate;
+    backface-visibility: hidden;
+    overscroll-behavior-y: contain;
+  }
+
+  .high-contrast .station-detail-panel,
+  .linewatch-shell.high-contrast .station-detail-panel {
+    border: 1px solid #ffffff !important;
+  }
+
+  .station-detail-panel.station-detail-sheet-dragging {
+    contain: layout paint;
+    transition: none !important;
+    user-select: none;
+    will-change: transform;
+  }
+
+  .station-detail-panel.station-detail-sheet-dragging * {
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+
+  .station-detail-panel.station-detail-sheet-dragging .station-detail-scroll {
+    overflow: hidden !important;
+  }
+
+  .station-detail-panel .station-detail-scroll {
+    padding-bottom: calc(var(--mobile-station-sheet-translate-y, 42dvh) + 16px + var(--mobile-safe-bottom, 0px)) !important;
+  }
+
+  .station-sheet-drag-handle-container {
+    -webkit-tap-highlight-color: transparent;
+    align-items: center;
+    cursor: grab;
+    display: flex;
+    justify-content: center;
+    margin-top: -4px;
+    min-height: 24px;
+    outline: none;
+    padding-bottom: 8px;
+    padding-top: 4px;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    width: 100%;
+  }
+
+  .station-sheet-drag-handle-container:active,
+  .station-sheet-drag-handle-container[data-dragging="true"] {
+    cursor: grabbing;
+  }
+}
+
+@media (min-width: 768px) {
+  .station-sheet-drag-handle-container {
+    display: none !important;
+  }
+
+  .station-detail-panel {
+    height: auto !important;
+    max-height: calc(var(--visual-viewport-height, 100dvh) - 128px) !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .station-detail-panel .station-detail-scroll {
+    padding-bottom: 0 !important;
+  }
+}
+
+.station-sheet-drag-handle-container:focus-visible .station-sheet-drag-pill {
+  outline: 2px solid rgba(59, 130, 246, 0.7);
+  outline-offset: 2px;
+}
+
+.station-sheet-drag-pill {
+  align-items: center;
+  background: rgba(148, 163, 184, 0.55);
+  border-radius: 9999px;
+  display: flex;
+  height: 9px;
+  justify-content: center;
+  width: 60px;
+}
+
+.dark .station-sheet-drag-pill {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.high-contrast .station-sheet-drag-pill {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.station-sheet-drag-ridges {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.station-sheet-drag-ridges span {
+  background: rgba(71, 85, 105, 0.4);
+  border-radius: 9999px;
+  display: block;
+  height: 5px;
+  width: 2px;
+}
+
+.dark .station-sheet-drag-ridges span {
+  background: rgba(241, 245, 249, 0.4);
+}
+
+.high-contrast .station-sheet-drag-ridges span {
+  background: #000000;
+}
+
+.station-detail-updating {
+  display: inline-flex;
+  margin-top: 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: rgba(59, 130, 246, 0.12);
+  padding: 3px 7px;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Station Submenu Containers — Borderless Tactile Design Language
+   ========================================================================== */
+
+.station-detail-panel {
+  border: none !important;
+}
+
+@media (min-width: 768px) {
+  .station-detail-panel {
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+    background: #ffffff !important;
+  }
+  .dark .station-detail-panel {
+    border: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 20px 25px -5px rgba(0, 0, 0, 0.5),
+      0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+    background: #12151c !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .station-detail-panel {
+    border: none !important;
+    border-radius: 8px 8px 0 0 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 -18px 44px rgba(0, 0, 0, 0.38) !important;
+    background: #ffffff !important;
+  }
+  .dark .station-detail-panel {
+    border: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 -18px 44px rgba(0, 0, 0, 0.45) !important;
+    background: #12151c !important;
+  }
+}
+
+/* ==========================================================================
+   Station Detail Scroll, Content Swap & Motion Preferences
+   ========================================================================== */
+
+.motion-paused .station-detail-panel {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-detail-panel {
+    animation: none !important;
+  }
+}
+
+.station-detail-scroll {
+  scroll-behavior: smooth;
+  margin-right: -10px;
+  padding-right: 6px;
+}
+
+@media (min-width: 768px) {
+  .station-detail-scroll {
+    margin-right: -11px;
+    padding-right: 5px;
+  }
+}
+
+.motion-paused .station-detail-scroll {
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-detail-scroll {
+    scroll-behavior: auto !important;
+  }
+}
+
+.station-detail-body-wrapper {
+  transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: top center;
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
+.station-detail-body-wrapper.station-detail-body-updating {
+  /* styling removed to prevent stutter during transitions */
+}
+
+.motion-paused .station-detail-body-wrapper {
+  transition: none !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-detail-body-wrapper {
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+.station-detail-content-swap {
+  animation: station-detail-content-in 800ms cubic-bezier(0.05, 0.7, 0.1, 1);
+  will-change: transform, opacity;
+}
+
+@keyframes station-detail-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 768px) {
+  @keyframes station-detail-content-in {
+    from {
+      opacity: 0;
+      transform: translateX(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+.motion-paused .station-detail-content-swap {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-detail-content-swap {
+    animation: none !important;
+  }
+}
+
+/* ==========================================================================
+   Station Detail Panel Exit Animations
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .station-detail-panel.station-detail-closing,
+  .station-detail-panel[data-closing="true"] {
+    animation: station-detail-exit-mobile 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    will-change: transform, opacity;
+    pointer-events: none !important;
+  }
+
+  @keyframes station-detail-exit-mobile {
+    0% {
+      opacity: 1;
+      transform: translate3d(0, var(--mobile-station-sheet-translate-y, 0), 0);
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(0, 100%, 0);
+    }
+  }
+}
+
+@media (min-width: 768px) {
+  .station-detail-panel.station-detail-closing,
+  .station-detail-panel[data-closing="true"] {
+    animation: station-detail-exit-desktop 380ms cubic-bezier(0.32, 1.2, 0.32, 1) forwards !important;
+    will-change: transform, opacity;
+    pointer-events: none !important;
+  }
+
+  @keyframes station-detail-exit-desktop {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    16% {
+      opacity: 1;
+      transform: translateY(-6px) scale(1.008);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.94);
+    }
+  }
+}
