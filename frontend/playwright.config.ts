@@ -9,6 +9,12 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: "list",
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+      animations: "disabled",
+    },
+  },
   use: {
     baseURL: appUrl,
     screenshot: "only-on-failure",

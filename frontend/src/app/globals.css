@@ -19091,7 +19091,7 @@ img.transit-line-badge {
   }
 }
 
-.mobile-status-peek {
+.mobile-status-peek, .mobile-map-controls-group {
   display: none;
 }
 

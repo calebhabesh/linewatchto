@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S00
-- Last completed session: S00
-- Next recommended session: S01
+- Current session: S01
+- Last completed session: S01
+- Next recommended session: S02
 - Blockers: none
 
 ## Current metrics
@@ -14,20 +14,20 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 30,011 |
 | Total authored app CSS lines | 31,414 | 31,414 |
-| Total authored app CSS bytes | 784,128 | 784,128 |
+| Total authored app CSS bytes | 784,128 | 784,156 |
 | Parsed rules | 4,221 | 4,221 |
 | Declarations | 14,093 | 14,093 |
-| `!important` | 2,356 | 2,356 |
+| !important | 2,356 | 2,356 |
 | Class-substring selectors | 32 | 32 |
-| Production CSS bytes | 705,472 | 705,472 |
-| Production CSS gzip bytes | 108,667 | 108,667 |
+| Production CSS bytes | 705,472 | 705,499 |
+| Production CSS gzip bytes | 108,667 | 108,668 |
 
 ## Session log
 
 ### S00 — Baseline and tooling
 
 - Status: completed
-- Commit: 88de7082
+- Commit: 68a04eb9
 - Scope: Establish baseline metrics and progress tracking infrastructure. Add reproducible measurement script and record accurate baseline values for line counts, byte sizes, PostCSS AST nodes, class-substring selectors, test references, and production CSS chunk sizes.
 - Files changed:
   - `frontend/scripts/measure-css.mjs`
@@ -60,3 +60,45 @@
 - Risks or blockers:
   - S01 will establish the visual regression harness. Before running the full Playwright suite in S01, the pre-existing desktop unhidden `.mobile-map-controls-group` issue should be formally resolved or handled in the test setup.
 - Next session: S01 — Visual regression harness.
+
+### S01 — Visual regression harness
+
+- Status: completed
+- Commit: f78fc43e
+- Scope: Add Playwright visual regression test harness covering the complete 11-scenario minimum coverage matrix across desktop and mobile viewports, light/dark themes, high contrast, station detail, My Commutes, overlapping impacts, and mobile status sheets. Freeze time-dependent labels, animations, transitions, caret blinking, constellation background canvas, and transient map motion. Store deterministic golden screenshots.
+- Files changed:
+  - `frontend/tests/smoke/visual-baselines.spec.ts`
+  - `frontend/tests/smoke/visual-baselines.spec.ts-snapshots/` (11 baseline png artifacts)
+  - `frontend/playwright.config.ts`
+  - `frontend/package.json`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/smoke/overlapping-count-badges.spec.ts`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across 2 consecutive runs with 0 diffs.
+  - `npm --prefix frontend run test:fixtures`: Passed (1,104 tests, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors).
+  - `npm --prefix frontend run build`: Passed (production build succeeds in ~2.1s).
+  - `npm --prefix frontend run metrics:css`: Passed (30,011 lines in `globals.css`, 4,221 rules, 14,093 declarations, 2,356 `!important`).
+- Visual checks:
+  - Verified 11 baseline screenshots generated and deterministic across consecutive runs:
+    1. `ttc-desktop-map-light-desktop-chrome-linux.png`
+    2. `ttc-desktop-map-dark-desktop-chrome-linux.png`
+    3. `regional-desktop-map-desktop-chrome-linux.png`
+    4. `ttc-mobile-portrait-mobile-chromium-linux.png`
+    5. `compact-mobile-viewport-mobile-chromium-linux.png`
+    6. `high-contrast-panel-state-desktop-chrome-linux.png`
+    7. `current-status-alerts-panel-desktop-chrome-linux.png`
+    8. `station-detail-panel-desktop-chrome-linux.png`
+    9. `my-commutes-panel-desktop-chrome-linux.png`
+    10. `selected-overlapping-map-impact-desktop-chrome-linux.png`
+    11. `mobile-status-sheet-mobile-chromium-linux.png`
+- Decisions:
+  - Formally resolved the pre-existing desktop `.mobile-map-controls-group` unhidden regression by adding `.mobile-map-controls-group` to desktop `display: none` on the same line as `.mobile-status-peek`, preserving the exact 30,011 line count of `globals.css`.
+  - Refined desktop menu count badge locator in `overlapping-count-badges.spec.ts` with `.first()`, matching the mobile assertion pattern.
+  - Configured `expect.toHaveScreenshot` in `playwright.config.ts` with `animations: "disabled"` and `maxDiffPixelRatio: 0.01`.
+  - Added `test:visual` and `test:visual:update` scripts in `frontend/package.json`.
+- Risks or blockers:
+  - None. Visual baselines are locked and reproducible.
+- Next session: S02 — Decouple CSS source tests from `globals.css`.

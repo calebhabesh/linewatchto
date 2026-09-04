@@ -15,6 +15,8 @@
     "test:browser-compat": "playwright test browser-compat.spec.ts --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit",
     "test:smoke": "playwright test",
     "test:smoke:install": "playwright install chromium firefox webkit",
+    "test:visual": "playwright test tests/smoke/visual-baselines.spec.ts",
+    "test:visual:update": "playwright test tests/smoke/visual-baselines.spec.ts --update-snapshots",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {

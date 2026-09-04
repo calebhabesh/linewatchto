@@ -72,7 +72,7 @@ test("overlapping count glyphs stay inside their badge through viewport and cont
 
   const badge = isMobile
     ? page.locator(".mobile-bottom-nav-badge").first()
-    : page.locator(".desktop-menu-count-badge");
+    : page.locator(".desktop-menu-count-badge").first();
 
   await expectGlyphInsideBadge(badge);
 
