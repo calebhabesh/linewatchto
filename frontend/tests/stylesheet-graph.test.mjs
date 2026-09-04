@@ -198,4 +198,17 @@ describe("stylesheet-graph helper", () => {
     assert.match(baseMapContent, /\.ttc-map-stage\[data-raster-map-ready="true"\]\s*\.ttc-authored-svg-source/);
     assert.match(baseMapContent, /\.linewatch-shell\.mobile-performance-mode\s*:is\(\.ttc-map-stage,\s*\.regional-map-stage\)/);
   });
+
+  it("resolves the extracted map/impact-overlays.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("impact-overlays.css")), "impact-overlays.css must be in graph files");
+    const overlaysContent = readStylesheet(new URL("../src/styles/map/impact-overlays.css", import.meta.url));
+    assert.match(overlaysContent, /\.asset-svg-frame,\s*\.asset-label-frame/);
+    assert.match(overlaysContent, /\.asset-alert-path-glow/);
+    assert.match(overlaysContent, /\.asset-alert-path\.suspension-candy/);
+    assert.match(overlaysContent, /\.asset-alert-path\.delay-candy/);
+    assert.match(overlaysContent, /\.asset-alert-path\.planned-preview/);
+    assert.match(overlaysContent, /\.rsz-chevron/);
+  });
 });

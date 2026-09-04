@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S05
-- Last completed session: S05
-- Next recommended session: S06
+- Current session: S06A
+- Last completed session: S06A
+- Next recommended session: S06B
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 29,041 |
+| Global entry lines | 30,011 | 28,275 |
 | Total authored app CSS lines | 31,414 | 31,416 |
-| Total authored app CSS bytes | 784,128 | 784,410 |
-| Parsed rules | 4,221 | 4,138 |
-| Declarations | 14,093 | 13,559 |
-| !important | 2,356 | 2,331 |
+| Total authored app CSS bytes | 784,128 | 784,454 |
+| Parsed rules | 4,221 | 4,021 |
+| Declarations | 14,093 | 13,277 |
+| !important | 2,356 | 2,254 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 108,545 |
+| Production CSS gzip bytes | 108,667 | 108,109 |
 
 ## Session log
 
@@ -214,6 +214,33 @@
   - Placed `@import "../styles/map/base-map.css";` right after `@import "../styles/foundation/accessibility.css";` at top of manifest order.
   - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` verifying that `base-map.css` resolves in the app stylesheet graph and reads directly via `readStylesheet()`.
   - Kept alert path overrides and overlap chooser rules with their respective feature extraction sessions (S06) to preserve exact late-file cascade specificity.
+- Next session: S06A — Extract TTC impact overlays (`map/impact-overlays.css`).
+
+### S06A — Extract TTC impact overlays
+
+- Status: completed
+- Commit: 5aec7df2
+- Scope: Extract contiguous TTC impact overlay styles (SVG frames, alert path glows, aura pulses, candy paths, delay static base, planned preview rails and markers, suspension masks, RSZ chevron lanes, hover boundaries, mobile performance mode overlay rules, and geometricPrecision rendering attributes) from `globals.css` (766 lines) into dedicated `frontend/src/styles/map/impact-overlays.css`. Add relative `@import "../styles/map/impact-overlays.css";` in top manifest order. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/map/impact-overlays.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,118 tests, 0 failures across 135 suites in ~972ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 29,041 to 28,275; production chunk raw bytes unchanged at 705,499; gzip bytes improved by 436 bytes to 108,109).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, high contrast, station detail, My Commutes, and mobile views.
+- Decisions:
+  - Extracted contiguous TTC impact overlays block (766 lines) into `frontend/src/styles/map/impact-overlays.css` preserving exact declaration values, comments, keyframes, and selector syntax.
+  - Placed `@import "../styles/map/impact-overlays.css";` right after `@import "../styles/map/base-map.css";` at top of manifest order.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` verifying that `impact-overlays.css` resolves in the app stylesheet graph and reads directly via `readStylesheet()`.
+  - Preserved late overlap chooser rules (`.overlap-indicator`, `.overlap-chooser-*`), station selection attention keyframes, train markers, and commute path previews in `globals.css` for subsequent sub-sessions (S06B through S06E) to preserve exact cascade specificity and avoid accidental overrides.
 - Risks or blockers:
-  - None. Base map foundation is clean and verified.
-- Next session: S06 — Extract map impact and selection styles (`map/impact-overlays.css`, `map/map-selection.css`, etc.).
+  - None. TTC impact overlay extraction is clean and verified.
+- Next session: S06B — Extract regional impact overlays (`map/regional-map.css`).
