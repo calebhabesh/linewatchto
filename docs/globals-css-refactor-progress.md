@@ -3,24 +3,25 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S10D
-- Last completed session: S10D
-- Next recommended session: S10E
+- Current session: S10E
+- Last completed session: S10E
+- Next recommended session: S11
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 12,238 |
-| Total authored app CSS lines | 31,414 | 31,934 |
-| Total authored app CSS bytes | 784,128 | 810,616 |
-| Parsed rules | 4,221 | 1,745 |
-| Declarations | 14,093 | 5,409 |
-| !important | 2,356 | 967 |
+| Global entry lines | 30,011 | 11,227 |
+| Total authored app CSS lines | 31,414 | 31,965 |
+| Total authored app CSS bytes | 784,128 | 813,160 |
+| Parsed rules | 4,221 | 1,597 |
+| Declarations | 14,093 | 4,893 |
+| !important | 2,356 | 955 |
 | Class-substring selectors | 32 | 22 |
 | Production CSS bytes | 705,472 | 707,988 |
-| Production CSS gzip bytes | 108,667 | 106,791 |
+| Production CSS gzip bytes | 108,667 | 106,516 |
+
 
 
 ## Session log
@@ -807,3 +808,37 @@
 - Risks or blockers:
   - None. S10D is fully completed and verified.
 - Next session: S10E — Extract push notification settings and prompt cards (`account/notification-settings.css`).
+
+### S10E — Extract Push Notification Settings & Push Diagnostics
+
+- Status: completed
+- Commit: 57256554
+- Scope: Extract Web Push subscription toggle, status card, prompt banner, notification settings section, follow-up preferences, corridor/line subscriptions, and push delivery diagnostics panel from `globals.css` into a dedicated domain stylesheet `frontend/src/styles/account/notification-settings.css` (1,042 lines). Add relative import `@import "../styles/account/notification-settings.css";` to `globals.css` at line 32 immediately following `saved-commute-rules.css`. Remove 1,012 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,141 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/account/notification-settings.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,141 tests across 135 suites, 0 failures in ~916ms; +1 test for new stylesheet).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 1.95s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 12,238 to 11,227 (-1,011 lines, -8.3%); parsed rules -148; parsed declarations -516; `!important` -12; media queries steady at 75; keyframe blocks steady at 50; class-substring selectors in `globals.css` steady at 22; production chunk raw bytes 707,988; gzip bytes 106,516 (-275 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated domain stylesheet `frontend/src/styles/account/notification-settings.css` (1,042 lines) isolating Web Push status card, prompt banner, notification settings section, follow-up schedule options, corridor/line subscriptions, notification event type grids, dark and high-contrast theme overrides, and push delivery diagnostics panel with device listings, attempt history, recipient delivery statuses, and event logs.
+  - Removed 1,012 lines from `globals.css`:
+    1. Push settings card, heading, message, toggle, notification settings panel, scroll container, sections, headers, cards, rows, icons, options, notes, badges, and event type grids (lines 5766-6206 in original `globals.css`).
+    2. Selected follow-up schedule option overrides (`.notification-follow-up-option[data-selected="true"]` across default, dark, and high-contrast modes; lines 6997-7007 in original `globals.css`).
+    3. Push delivery diagnostics details, summary, panel, header, devices section, device row, hash/health badges, attempt list, recipient statuses, and client event logs (lines 7049-7605 in original `globals.css`).
+  - Preserved cross-component elevation lists (`.notification-settings-card`, `.notification-event-type-grid`, `.notification-settings-row`, `.notification-settings-prompt`, `.notification-follow-up-option`) and `.notification-settings-scroll` in scrollbar lists in `globals.css` for S11.
+  - Maintained cascade hierarchy by importing `notification-settings.css` at line 32 immediately following `saved-commute-rules.css`.
+  - Completed Phase 10 (all account feature styles isolated: account dialogs, My Stations, My Commutes cards/editor, and notification settings & push diagnostics).
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `account/notification-settings.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S10E is fully completed and verified.
+- Next session: S11 — Extract remaining panels and utilities (alerts, delays, reduced speed zones, closures, accessibility outages, surface notices, reliability, release notes, privacy, site guide, shared motion/scroll affordances).
