@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11N
-- Last completed session: S11N
-- Next recommended session: S12
+- Current session: S12
+- Last completed session: S12
+- Next recommended session: S13
 - Blockers: none
 
 ## Current metrics
@@ -1437,3 +1437,36 @@
 - Risks or blockers:
   - None. S11N is fully completed and verified.
 - Next session: S12 — Add architecture guardrails to prevent CSS debt regressions (verify entry manifest remains import-only, freeze `!important` and selector metrics, prevent duplicate imports, validate import ordering).
+
+### S12 — Add architecture guardrails
+
+- Status: completed
+- Commit: 7634f697
+- Scope: Add automated, dependency-free CSS architecture guardrails to lock in the modular split milestones, freeze migration debt ceilings, and prevent architectural regressions. Add `frontend/tests/css-architecture-guardrails.test.mjs` (17 tests across 5 suites) and helper functions in `frontend/tests/helpers/stylesheet-graph.mjs`:
+  1. Entry manifest integrity: Enforce that the entry stylesheet manifest contains solely approved Tailwind source directives, relative `@import` declarations, and comments, with zero parsed rules, declaration blocks, opening/closing braces, media queries, keyframes, or `!important`.
+  2. Graph resolution & import health: Enforce that all 51 imported modular stylesheets exist on disk as readable files, no duplicate imports exist in the manifest, no leaf stylesheet contains nested `@import` rules, zero orphaned stylesheets exist in `src/styles/`, and the graph resolves exactly 52 distinct files without cycles.
+  3. Cascade ordering & layer hierarchy: Enforce that Tailwind setup is the first directive, initial foundation stylesheets precede components, high-contrast overrides follow base components, and all 52 `@import` directives strictly match the canonical manifest.
+  4. Debt migration ceilings: Freeze graph-wide `!important` declarations at recorded ceiling (<= 2,385), freeze graph-wide class-substring selectors at recorded ceiling (<= 38), freeze total authored CSS debt across all `src/` stylesheets, and keep entry manifest debt at strictly 0.
+- Files changed:
+  - `frontend/tests/helpers/stylesheet-graph.mjs`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,182 tests across 140 suites, 0 failures in ~1.0s; +19 tests).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.2s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53, 0 rules, 0 decls, 0 `!important`, 0 class substrings; tests referencing `globals.css` steady at 0; production chunk raw bytes steady at 708,514; gzip bytes steady at 105,581).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Implemented architecture guardrails using dependency-free Node.js built-ins (`node:assert/strict`, `node:fs`, `node:path`, `node:url`, `node:test`).
+  - Added reusable helper functions (`stripCssComments`, `countImportantDeclarations`, `countClassSubstringSelectors`, `getImportDirectives`) in `frontend/tests/helpers/stylesheet-graph.mjs`.
+  - Defined explicit migration debt ceilings (2,385 `!important`, 38 class-substring selectors) that freeze existing debt as upper bounds while permitting subsequent sessions (S13, S15+) to decrement them.
+  - Enforced exact canonical cascade order of all 52 directives to safeguard PostCSS and Turbopack bundling behavior.
+- Risks or blockers:
+  - None. Architecture guardrails are active and verified.
+- Next session: S13 — Replace class-substring selectors with semantic classes or data-* states (targeting station arrival tiles, accessibility cards, surface connections, card elevations, and high-contrast overrides).
