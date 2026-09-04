@@ -513,4 +513,24 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.station-connection-row/);
     assert.match(content, /\[data-surface-route\]/);
   });
+
+  it("resolves the extracted account/account-dialogs.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("account-dialogs.css")), "account-dialogs.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/account/account-dialogs.css", import.meta.url));
+    assert.match(content, /\.account-dialog/);
+    assert.match(content, /\.account-dialog-backdrop/);
+    assert.match(content, /\.account-dialog-header/);
+    assert.match(content, /\.account-dialog-close/);
+    assert.match(content, /\.account-choice-primary/);
+    assert.match(content, /\.account-choice-google-custom/);
+    assert.match(content, /\.account-field/);
+    assert.match(content, /\.account-primary-button/);
+    assert.match(content, /\.account-link-button/);
+    assert.match(content, /\.account-linked-status/);
+    assert.match(content, /\.account-reset-status/);
+    assert.match(content, /\.account-feature-preview/);
+    assert.match(content, /linewatch-dialog-enter/);
+  });
 });

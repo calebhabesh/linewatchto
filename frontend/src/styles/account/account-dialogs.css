@@ -1,0 +1,538 @@
+/**
+ * Account Dialogs & Signed-Out Previews
+ *
+ * Covers account modal dialogs (.account-dialog, .account-dialog-backdrop,
+ * .account-dialog-header, .account-dialog-intro, .account-dialog-description,
+ * .account-dialog-close), entrance animations (linewatch-dialog-enter,
+ * linewatch-backdrop-enter, linewatch-dialog-content-enter), auth provider buttons
+ * (.account-choice-primary, .account-choice-google-custom, .account-choice-google-icon,
+ * .account-auth-divider, .account-provider-stack), account form fields (.account-field,
+ * .account-field span, .account-field input), auth action buttons (.account-primary-button,
+ * .account-link-button), status/validation badges (.account-linked-status,
+ * .account-reset-status, .account-reset-dev-note, .account-reset-hint), and signed-out
+ * feature preview cards and buttons (.account-feature-preview, .account-action-row,
+ * .saved-commute-account-prompt, .notification-settings-prompt button,
+ * .saved-commute-signup-btn).
+ */
+
+/* ==========================================================================
+   Account Modal Dialogs & Backdrop
+   ========================================================================== */
+
+.account-dialog-backdrop {
+  align-items: flex-start;
+  background: rgba(2, 6, 23, 0.44);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 70;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.account-dialog {
+  background: rgba(248, 250, 252, 0.98);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
+  max-width: 420px;
+  overflow: hidden;
+  width: 100%;
+  margin: auto;
+}
+
+.account-dialog-header {
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.dark .account-dialog-header,
+.high-contrast .account-dialog-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.account-dialog-intro {
+  min-width: 0;
+}
+
+.account-dialog-description {
+  color: rgb(71, 85, 105);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 5px;
+  max-width: 350px;
+}
+
+.dark .account-dialog-description,
+.high-contrast .account-dialog-description {
+  color: rgb(203, 213, 225);
+}
+
+@media (max-width: 767px), (max-height: 600px) {
+  .account-dialog-backdrop {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+  .account-dialog {
+    border: none;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.44);
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+  .high-contrast .account-dialog,
+  .linewatch-shell.high-contrast .account-dialog {
+    border: 1px solid #ffffff;
+  }
+}
+
+.dark .account-dialog,
+.high-contrast .account-dialog {
+  background: rgba(15, 23, 42, 0.98);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.account-dialog-close {
+  align-items: center;
+  border-radius: 8px;
+  color: rgb(71, 85, 105);
+  display: inline-flex;
+  flex: 0 0 38px;
+  height: 38px;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  width: 38px;
+}
+
+.account-dialog-close:hover,
+.account-dialog-close:focus-visible {
+  background: rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  color: rgb(15, 23, 42);
+  outline: none;
+}
+
+.dark .account-dialog-close,
+.high-contrast .account-dialog-close {
+  color: rgb(203, 213, 225);
+}
+
+.dark .account-dialog-close:hover,
+.dark .account-dialog-close:focus-visible,
+.high-contrast .account-dialog-close:hover,
+.high-contrast .account-dialog-close:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+/* ==========================================================================
+   Account Modal Animations
+   ========================================================================== */
+
+.account-dialog-backdrop {
+  animation: linewatch-backdrop-enter 160ms ease-out both;
+}
+
+.account-dialog {
+  animation: linewatch-dialog-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.account-dialog [data-account-dialog-view] {
+  animation: linewatch-dialog-content-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes linewatch-backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes linewatch-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes linewatch-dialog-content-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(8px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ==========================================================================
+   Auth Choices, Providers & Divider
+   ========================================================================== */
+
+.account-provider-stack {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.account-choice-primary {
+  align-items: center;
+  background: rgb(255, 255, 255);
+  border: 1px solid rgb(218, 220, 224);
+  border-radius: 8px;
+  color: rgb(31, 31, 31);
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 700;
+  gap: 10px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.625rem 0.875rem;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  width: 100%;
+}
+
+.account-choice-google-custom {
+  align-items: center;
+  background: rgb(255, 255, 255);
+  border: 1px solid rgb(218, 220, 224);
+  border-radius: 8px;
+  color: rgb(31, 31, 31);
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 700;
+  gap: 10px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.625rem 0.875rem;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  width: 100%;
+}
+
+.account-choice-google-icon {
+  flex: 0 0 auto;
+  height: 18px;
+  width: 18px;
+}
+
+.account-choice-primary:hover:not(:disabled),
+.account-choice-primary:focus-visible,
+.account-choice-google-custom:hover:not(:disabled),
+.account-choice-google-custom:focus-visible {
+  background: rgb(248, 250, 252);
+  border-color: rgb(203, 213, 225);
+  outline: none;
+}
+
+.account-choice-primary:active:not(:disabled),
+.account-choice-google-custom:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.account-choice-google-custom:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.dark .account-choice-primary,
+.dark .account-choice-google-custom,
+.high-contrast .account-choice-primary,
+.high-contrast .account-choice-google-custom {
+  background: rgb(255, 255, 255);
+  border-color: rgb(218, 220, 224);
+  color: rgb(31, 31, 31);
+}
+
+.dark .account-choice-primary:hover:not(:disabled),
+.dark .account-choice-primary:focus-visible,
+.dark .account-choice-google-custom:hover:not(:disabled),
+.dark .account-choice-google-custom:focus-visible,
+.high-contrast .account-choice-primary:hover:not(:disabled),
+.high-contrast .account-choice-primary:focus-visible,
+.high-contrast .account-choice-google-custom:hover:not(:disabled),
+.high-contrast .account-choice-google-custom:focus-visible {
+  background: rgb(248, 250, 252);
+  border-color: rgb(203, 213, 225);
+}
+
+.account-auth-divider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: rgb(100 116 139);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.account-auth-divider::before,
+.account-auth-divider::after {
+  content: "";
+  height: 1px;
+  background: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+/* ==========================================================================
+   Account Form Fields & Inputs
+   ========================================================================== */
+
+.account-field {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.account-field span {
+  color: rgb(71, 85, 105);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dark .account-field span,
+.high-contrast .account-field span {
+  color: rgb(203, 213, 225);
+}
+
+.account-field input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  color: rgb(15, 23, 42);
+  min-height: 40px;
+  padding: 0.5rem 0.625rem;
+  scroll-margin-bottom: 2rem;
+}
+
+.dark .account-field input,
+.high-contrast .account-field input {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgb(248, 250, 252);
+}
+
+/* ==========================================================================
+   Account Buttons & Links
+   ========================================================================== */
+
+.account-primary-button,
+.saved-commute-account-prompt button,
+.notification-settings-prompt button {
+  border-radius: 8px;
+  background: rgb(15, 23, 42);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0.5rem 0.75rem;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.account-primary-button:hover:not(:disabled),
+.saved-commute-account-prompt button:hover:not(:disabled),
+.notification-settings-prompt button:hover:not(:disabled) {
+  background: rgb(30, 41, 59);
+}
+
+.dark .account-primary-button,
+.dark .saved-commute-account-prompt button,
+.dark .notification-settings-prompt button,
+.high-contrast .account-primary-button,
+.high-contrast .saved-commute-account-prompt button,
+.high-contrast .notification-settings-prompt button {
+  background: rgb(226, 232, 240);
+  color: rgb(15, 23, 42);
+}
+
+.dark .account-primary-button:hover:not(:disabled),
+.dark .saved-commute-account-prompt button:hover:not(:disabled),
+.dark .notification-settings-prompt button:hover:not(:disabled),
+.high-contrast .account-primary-button:hover:not(:disabled),
+.high-contrast .saved-commute-account-prompt button:hover:not(:disabled),
+.high-contrast .notification-settings-prompt button:hover:not(:disabled) {
+  background: rgb(241, 245, 249);
+}
+
+.saved-commute-account-prompt button.saved-commute-signup-btn,
+.notification-settings-prompt button.saved-commute-signup-btn {
+  background: rgb(16, 185, 129);
+  color: white;
+}
+
+.saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
+.notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
+  background: rgb(5, 150, 105);
+}
+
+.dark .saved-commute-account-prompt button.saved-commute-signup-btn,
+.dark .notification-settings-prompt button.saved-commute-signup-btn {
+  background: rgb(16, 185, 129);
+  color: white;
+}
+
+.dark .saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
+.dark .notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
+  background: rgb(5, 150, 105);
+}
+
+.high-contrast .saved-commute-account-prompt button.saved-commute-signup-btn,
+.high-contrast .notification-settings-prompt button.saved-commute-signup-btn {
+  background: rgb(226, 232, 240);
+  color: rgb(15, 23, 42);
+}
+
+.high-contrast .saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
+.high-contrast .notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
+  background: rgb(241, 245, 249);
+}
+
+.account-link-button {
+  align-items: center;
+  border-radius: 8px;
+  color: rgb(37, 99, 235);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0.25rem 0.375rem;
+  text-align: left;
+  transition: color 0.2s ease, background 0.2s ease;
+  width: fit-content;
+}
+
+.account-link-button:hover,
+.account-link-button:focus-visible {
+  background: rgba(37, 99, 235, 0.1);
+  color: rgb(29, 78, 216);
+}
+
+.dark .account-link-button,
+.high-contrast .account-link-button {
+  color: rgb(147, 197, 253);
+}
+
+.dark .account-link-button:hover,
+.dark .account-link-button:focus-visible,
+.high-contrast .account-link-button:hover,
+.high-contrast .account-link-button:focus-visible {
+  background: rgba(147, 197, 253, 0.12);
+  color: rgb(191, 219, 254);
+}
+
+/* ==========================================================================
+   Account Status & Validation Badges
+   ========================================================================== */
+
+.account-linked-status {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: rgb(21 128 61);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dark .account-linked-status {
+  color: rgb(134 239 172);
+}
+
+.account-reset-status {
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  color: rgb(6, 95, 70);
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.625rem;
+}
+
+.dark .account-reset-status,
+.high-contrast .account-reset-status {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(52, 211, 153, 0.28);
+  color: rgb(167, 243, 208);
+}
+
+.account-reset-dev-note,
+.account-reset-hint {
+  color: rgb(71, 85, 105);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.dark .account-reset-dev-note,
+.dark .account-reset-hint,
+.high-contrast .account-reset-dev-note,
+.high-contrast .account-reset-hint {
+  color: rgb(203, 213, 225);
+}
+
+/* ==========================================================================
+   Signed-Out Previews & Prompt Cards
+   ========================================================================== */
+
+.account-action-row {
+  display: grid;
+  gap: 0.375rem;
+}
+
+/* Keep signed-out feature previews visually identical across Notifications,
+   My Commutes, and My Stations. */
+.account-feature-preview {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  padding: 1rem !important;
+}
+
+.dark .account-feature-preview {
+  background: #151821 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.high-contrast .account-feature-preview {
+  background: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+.saved-commute-account-prompt {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  background: rgb(248, 250, 252);
+}
+
+.dark .saved-commute-account-prompt {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #12151c;
+}
+
+.high-contrast .saved-commute-account-prompt {
+  border-color: #ffffff;
+  background: #000000;
+}
