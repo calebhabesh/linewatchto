@@ -11,8 +11,7 @@
 
 .surface-notices-body {
   background: rgb(255, 255, 255);
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
+  border-radius: 0 0 8px 8px;
 }
 
 .dark .surface-notices-body {
@@ -30,7 +29,7 @@
 
 @media (max-width: 767px) {
   .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="surface-notices"]) .floating-panel-scroll {
-    padding: 0 !important;
+    padding: 0;
   }
 }
 
@@ -40,7 +39,7 @@
 
 .regional-notices-filter {
   position: relative;
-  border-color: transparent !important;
+  border-color: transparent;
   box-shadow: var(--mobile-card-shadow);
 }
 
@@ -60,7 +59,7 @@
 
 .dark .regional-notices-glider {
   background: rgb(30 41 59);
-  border: none !important;
+  border: none;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
@@ -73,12 +72,12 @@
 }
 
 .motion-paused .regional-notices-glider {
-  transition: none !important;
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .regional-notices-glider {
-    transition: none !important;
+    transition: none;
   }
 }
 
@@ -95,14 +94,14 @@
 }
 
 .trip-change-count-badge {
-  background: var(--trip-change-soft) !important;
-  color: var(--trip-change-ink) !important;
-  border-color: var(--trip-change-border) !important;
+  background: var(--trip-change-soft);
+  color: var(--trip-change-ink);
+  border-color: var(--trip-change-border);
 }
 
 .dark .trip-change-count-badge,
 .high-contrast .trip-change-count-badge {
-  color: var(--trip-change) !important;
+  color: var(--trip-change);
 }
 
 /* ==========================================================================

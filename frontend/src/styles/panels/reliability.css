@@ -11,22 +11,18 @@
 
 .analytics-panel,
 .health-panel {
-  grid-column: span 1;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 .analytics-panel {
   grid-column: 1 / 2;
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
 }
 
 .health-panel {
   grid-column: 2 / 3;
   grid-row: 3;
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
 }
 
 /* ==========================================================================
@@ -36,7 +32,6 @@
 .reliability-row {
   align-items: stretch;
   background: var(--panel-soft);
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 10px;

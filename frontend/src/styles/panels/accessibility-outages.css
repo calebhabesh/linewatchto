@@ -46,12 +46,12 @@
 
 .motion-paused .accessibility-accordion-chevron,
 .motion-paused .accessibility-accordion-wrapper {
-  transition: none !important;
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .accessibility-accordion-chevron,
   .accessibility-accordion-wrapper {
-    transition: none !important;
+    transition: none;
   }
 }
