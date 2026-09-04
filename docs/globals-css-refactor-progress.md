@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11K
-- Last completed session: S11K
-- Next recommended session: S11L (or S12)
+- Current session: S11L
+- Last completed session: S11L
+- Next recommended session: S11M (or S12)
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 1,399 |
-| Total authored app CSS lines | 31,414 | 32,423 |
-| Total authored app CSS bytes | 784,128 | 837,219 |
-| Parsed rules | 4,221 | 173 |
-| Declarations | 14,093 | 502 |
-| !important | 2,356 | 189 |
+| Global entry lines | 30,011 | 868 |
+| Total authored app CSS lines | 31,414 | 32,437 |
+| Total authored app CSS bytes | 784,128 | 838,175 |
+| Parsed rules | 4,221 | 107 |
+| Declarations | 14,093 | 302 |
+| !important | 2,356 | 32 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 708,413 |
-| Production CSS gzip bytes | 108,667 | 106,245 |
+| Production CSS bytes | 705,472 | 708,514 |
+| Production CSS gzip bytes | 108,667 | 106,035 |
 
 
 
@@ -1334,3 +1334,41 @@
 - Risks or blockers:
   - None. S11K is fully completed and verified.
 - Next session: S11L — Extract mobile floating action shortcuts and train marker toggle controls (`styles/shell/mobile-chrome.css` or `styles/map/train-markers.css`), pan/zoom gesture optimizations (`styles/map/base-map.css`), or proceed to S12 (architecture guardrails).
+
+### S11L — Extract Map Controls, Floating Action Shortcuts, and Train Marker Toggle Controls
+
+- Status: completed
+- Commit: 76a1dc18
+- Scope: Extract mobile recenter controls (`.map-control-recenter-container`, `.map-control-recenter-mobile-label`, `.map-control-rail .map-control-button`) to `frontend/src/styles/shell/map-controls.css`. Extract menu action rows and desktop top chrome page active state (`.menu-action-row`, `.desktop-top-chrome [aria-current="page"]`) to `frontend/src/styles/shell/desktop-chrome.css`. Extract mobile closing-soon announcement chips and peek chips positioning (`.subway-closing-soon-chip`, `.subway-closed-peek-chip`, `.go-up-closed-peek-chip`) to Section 9 of `frontend/src/styles/shell/subway-closed.css`. Extract train layer toggle controls and mobile train toggle button (`.train-layer-toggle`, `.mobile-train-toggle`, `.mobile-train-pending-spinner`, loading/aria-busy states, mobile legend offset positioning, and desktop hide) to `frontend/src/styles/map/train-markers.css`. Extract mobile floating action shortcuts (`.mobile-alert-history-shortcut`, `.mobile-my-stations-shortcut`, `.mobile-my-stations-shortcut-icon`) and mobile floating button VisionOS material luminosity gradients / tactile active compression to `frontend/src/styles/shell/mobile-chrome.css`. Remove 531 lines across 2 blocks from `frontend/src/app/globals.css`. Update unit tests in `frontend/tests/stylesheet-graph.test.mjs`. Validate Next.js Turbopack build, PostCSS cascade handling, fixture tests (1,161 passing, 0 failures), TypeScript typecheck, ESLint, and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/app/globals.css`
+  - `frontend/src/styles/map/train-markers.css`
+  - `frontend/src/styles/shell/desktop-chrome.css`
+  - `frontend/src/styles/shell/map-controls.css`
+  - `frontend/src/styles/shell/mobile-chrome.css`
+  - `frontend/src/styles/shell/subway-closed.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,161 tests across 135 suites, 0 failures in ~1.1s).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 1,399 to 868 (-531 lines, -38.0%); parsed rules -66 (173 to 107, -38.2%); parsed declarations -200 (502 to 302, -39.8%); `!important` -157 (189 to 32, -83.1%); media queries -5 (13 to 8); keyframe blocks steady at 7; class-substring selectors steady at 0; production chunk raw bytes 708,514; gzip bytes improved by 210 bytes to 106,035).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Consolidated mobile recenter button and rail styling (`.map-control-recenter-container`, `.map-control-recenter-mobile-label`, `.map-control-rail .map-control-button`, dark, and high-contrast) into `frontend/src/styles/shell/map-controls.css` (53 lines).
+  - Consolidated menu action rows and desktop top chrome page active state (`.menu-action-row`, `.desktop-top-chrome [aria-current="page"]`, dark, and high-contrast) into `frontend/src/styles/shell/desktop-chrome.css` (50 lines).
+  - Consolidated mobile announcement chips and peek chips positioning (`.subway-closing-soon-chip`, `.subway-closed-peek-chip`, `.go-up-closed-peek-chip`, copy, title, subtitle) into Section 9 of `frontend/src/styles/shell/subway-closed.css` (51 lines).
+  - Consolidated train layer toggle controls (`.train-layer-toggle`, `.mobile-train-toggle`, `.mobile-train-pending-spinner`, active, themes, loading states, aria-busy states, disabled, mobile positioning, and `@media (min-width: 768px)` desktop hide) into `frontend/src/styles/map/train-markers.css` (194 lines).
+  - Consolidated mobile floating action shortcuts (`.mobile-alert-history-shortcut`, `.mobile-my-stations-shortcut`, `.mobile-my-stations-shortcut-icon`, hover, focus, active, dark, high contrast, desktop hide) and mobile floating button VisionOS material luminosity gradients / tactile active compression into `frontend/src/styles/shell/mobile-chrome.css` (202 lines).
+  - Removed 531 lines across 2 blocks from `frontend/src/app/globals.css`:
+    1. Former lines 744-838 (menu action rows, desktop top chrome active state, mobile recenter & rail button styling, 95 lines).
+    2. Former lines 968-1400 (mobile announcements & peek chip positioning, mobile train toggle positioning, mobile floating action button gradients, train layer toggles, mobile train toggles, mobile shortcuts, and desktop hide, 433 lines).
+  - Added unit test assertions in `frontend/tests/stylesheet-graph.test.mjs` verifying resolution of the extracted selectors in their respective stylesheets within the application graph.
+- Risks or blockers:
+  - None. S11L is fully completed and verified.
+- Next session: S11M — Extract interactive map interactions, direct pan/zoom overlay simplification (`:is(.map-gesture-active...)`), station hit targets, selection indicators, pulse animations, and impact rings (`styles/map/base-map.css` or `styles/map/station-markers.css`), or proceed to S11N / S12 (shell & responsive grid layout, architecture guardrails).
