@@ -3,24 +3,25 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11D
-- Last completed session: S11D
-- Next recommended session: S11E
+- Current session: S11E
+- Last completed session: S11E
+- Next recommended session: S11F
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 6,689 |
-| Total authored app CSS lines | 31,414 | 32,139 |
-| Total authored app CSS bytes | 784,128 | 821,482 |
-| Parsed rules | 4,221 | 923 |
-| Declarations | 14,093 | 2,650 |
-| !important | 2,356 | 796 |
+| Global entry lines | 30,011 | 5,875 |
+| Total authored app CSS lines | 31,414 | 32,155 |
+| Total authored app CSS bytes | 784,128 | 822,532 |
+| Parsed rules | 4,221 | 807 |
+| Declarations | 14,093 | 2,420 |
+| !important | 2,356 | 736 |
 | Class-substring selectors | 32 | 22 |
 | Production CSS bytes | 705,472 | 708,413 |
 | Production CSS gzip bytes | 108,667 | 106,295 |
+
 
 
 
@@ -1002,3 +1003,52 @@
 - Risks or blockers:
   - None. S11D is fully completed and verified.
 - Next session: S11E — Extract shared motion, scroll affordances, and utility overrides (`utilities/motion.css`, `utilities/scroll.css`, or shared utilities).
+
+### S11E — Extract Shared Motion, Scroll Affordances, and Navigation Transitions
+
+- Status: completed
+- Commit: a52eb946
+- Scope: Extract shared scroll affordances (stealth scrollbar, desktop unified container scrollbars, high-contrast scrollbars, and `data-scroll-more-below` fade mask) into `frontend/src/styles/utilities/scroll.css` (241 lines). Extract shared motion (network map view transitions and slide animations, live signal wave propagation, view content fade-in animations and navigation wrappers, desktop menu border pulse, toast lifecycle, panel container enter/back/closing transitions, root navigation motion, button press response, terminating blink, and reduced-motion/paused safety overrides) into `frontend/src/styles/utilities/motion.css` (589 lines). Add relative imports `@import "../styles/utilities/scroll.css";` and `@import "../styles/utilities/motion.css";` to `globals.css` immediately following `info-modals.css`. Remove 816 lines across 7 blocks from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,150 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/utilities/scroll.css`
+  - `frontend/src/styles/utilities/motion.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,150 tests across 135 suites, 0 failures in ~985ms; +2 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 6,689 to 5,875 (-814 lines, -12.2%); parsed rules -116 (923 to 807); parsed declarations -230 (2,650 to 2,420); `!important` -60 (796 to 736); media queries -9 (55 to 46); keyframe blocks -18 (41 to 23); class-substring selectors steady at 22; production chunk raw bytes steady at 708,413; gzip bytes steady at 106,295).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created two dedicated, modular utility stylesheets under `frontend/src/styles/utilities/`:
+    1. `frontend/src/styles/utilities/scroll.css` (241 lines) isolating:
+       - Section 1: Stealth scrollbars (`.stealth-scrollbar`, track, thumb, hover, button hide).
+       - Section 2: Desktop unified scrollbar styling (`#linewatch-main-menu-scroll`, `.floating-panel-shell > div`, etc.) and high-contrast scrollbar overrides.
+       - Section 3: Scroll overflow affordance (`.linewatch-shell [data-scroll-more-below]` linear-gradient mask image).
+    2. `frontend/src/styles/utilities/motion.css` (589 lines) isolating 7 distinct shared motion subsystems:
+       - Section 1: Network map view transitions (`html[data-network-transition-direction]`, snapshot pause, and `@keyframes network-map-slide-*`).
+       - Section 2: Live signal propagating wave animation (`.live-signal-icon`, concentric arcs, `@keyframes live-signal-*`, reduced-motion/motion-paused overrides).
+       - Section 3: View content fade-in animations and wrappers (`.desktop-view-content-wrapper`, `.mobile-view-content-wrapper`, `@keyframes desktop-content-fade-in`, `@keyframes mobile-content-fade-in`, reduced-motion overrides).
+       - Section 4: Desktop menu border pulse animation (`.menu-attention-beam`, `@keyframes menu-border-pulse`, reduced-motion overrides).
+       - Section 5: Shared toast notification lifecycle animation (`@keyframes linewatch-toast-lifecycle`).
+       - Section 6: Panel container navigation transitions (`.floating-panel-shell`, `@keyframes floating-panel-back-exit`, `@keyframes panel-container-forward`, `@keyframes panel-container-back`, mobile slide-down exit, desktop exit, motion-paused safety).
+       - Section 7: Root navigation, button press response, and terminating blink (`@keyframes panel-container-root`, `.linewatch-shell button:not(:disabled):active`, `@keyframes terminating-blink`, `.animate-terminating-blink`).
+  - Removed 816 lines across 7 blocks from `globals.css`:
+    1. Network map view transitions (lines 41-146 in previous `globals.css`, 106 lines).
+    2. Live signal wave propagation (lines 641-734 in previous `globals.css`, 94 lines).
+    3. View content fade-in animations and wrapper definitions (lines 3383-3483 in previous `globals.css`, 101 lines).
+    4. Stealth scrollbar and desktop unified scrollbar rules (lines 5416-5630 in previous `globals.css`, 215 lines).
+    5. Desktop menu border pulse animation (lines 5666-5710 in previous `globals.css`, 45 lines).
+    6. Shared toast lifecycle animation (lines 6170-6194 in previous `globals.css`, 25 lines).
+    7. Panel container navigation transitions, scroll-more-below mask, root navigation, button active scale, and terminating blink (lines 6461-6689 in previous `globals.css`, 229 lines).
+  - Maintained cascade hierarchy by importing `utilities/scroll.css` and `utilities/motion.css` at lines 40-41 immediately following `panels/info-modals.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of both new stylesheets in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11E is fully completed and verified.
+- Next session: S11F — Extract remaining shared chrome, header search, tactile card elevation, and station header styling (e.g., `styles/shell/search-bar.css`, `styles/shell/header-flare.css`, `styles/shell/card-elevation.css`, or shared shell/panel styles).
