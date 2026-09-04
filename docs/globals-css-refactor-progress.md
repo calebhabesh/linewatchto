@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S15E
-- Last completed session: S15E
-- Next recommended session: S15F — Consolidate My Commutes stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`)
+- Current session: S15F
+- Last completed session: S15F
+- Next recommended session: S15G — Consolidate Notification Settings stylesheet (`account/notification-settings.css`)
 - Blockers: none
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,240 |
-| Total authored app CSS bytes | 784,128 | 838,101 |
+| Total authored app CSS lines | 31,414 | 32,211 |
+| Total authored app CSS bytes | 784,128 | 837,653 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 706,453 |
-| Production CSS gzip bytes | 108,667 | 105,914 |
+| Production CSS bytes | 705,472 | 705,815 |
+| Production CSS gzip bytes | 108,667 | 105,841 |
 
 
 
@@ -1754,3 +1754,71 @@
 - Risks or blockers:
   - None. My Stations consolidation is verified across all responsive viewports and themes with 0 diffs.
 - Next session: S15F — Consolidate My Commutes stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`).
+
+### S15F — Consolidate My Commutes Stylesheets
+
+- Status: completed
+- Commit: 66069934
+- Scope: Consolidate `frontend/src/styles/account/saved-commutes.css` and `frontend/src/styles/account/saved-commute-rules.css`, eliminating redundant rules, duplicate media queries, duplicate motion overrides, and repetitive route card mechanics. Safely remove superseded and cargo-culted `!important` declarations, freezing the lower migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs`:
+  1. Media Query & Responsive Breakpoint Consolidation:
+     - In `saved-commutes.css`: Merged two separate `@media (max-width: 30rem)` blocks and three separate `@media (max-width: 767px)` blocks into unified mobile breakpoint blocks at the bottom of the file.
+     - In `saved-commutes.css`: Unified scattered motion controls into a single `.motion-paused` block and a single `@media (prefers-reduced-motion: reduce)` block.
+     - In `saved-commute-rules.css`: Merged two separate `@media (max-width: 767px)` blocks into a single unified tablet/mobile breakpoint block.
+  2. Redundant Rules & Layouts Eliminated:
+     - In `saved-commutes.css`: Removed 100% duplicate `.dark .commute-leg-toggle button[aria-selected="true"]` rule block.
+     - In `saved-commutes.css`: Removed duplicate `.dark .saved-commute-time-estimate, .high-contrast .saved-commute-time-estimate` rule block.
+     - In `saved-commutes.css`: Removed redundant `white-space: nowrap !important;` declarations on `.commute-route-stop-toggle` and `.commute-route-edit-button` in base and mobile media queries.
+     - In `saved-commutes.css`: Leveraged compound specificity on delete action buttons (`.commute-route-actions .commute-route-delete-button, ...`) to eliminate 24 `!important` declarations across base, hover, cancel, and dark mode states.
+     - In `saved-commute-rules.css`: Removed redundant `border: none !important;` on hover and active states of `.commute-station-trigger` and `.commute-station-option` already governed by the tested base group.
+     - In `saved-commute-rules.css`: Removed redundant `border: none` and `outline: none` declarations from `.dark .saved-commute-rule-summary` and `.high-contrast .saved-commute-rule-summary`.
+  3. `!important` Elimination: Safely eliminated 103 `!important` declarations across both stylesheets (-83 in `saved-commutes.css`, -20 in `saved-commute-rules.css`):
+     - 2 title icon color declarations (`.dark` and `.high-contrast` on `.saved-commute-title-icon`).
+     - 10 endpoint layout, row, connector, and content flex declarations (`.saved-commute-endpoints`, `.saved-commute-endpoint-row`, `.saved-commute-endpoint-connector`, `.saved-commute-endpoint-icon-col`, `.saved-commute-endpoint-content`).
+     - 1 dark endpoint connector icon color declaration (`.dark .saved-commute-endpoint-connector svg`).
+     - 1 ignored impact copy color declaration (`.saved-commute-impact-ignored`).
+     - 1 single leg banner color declaration (`.commute-single-leg-banner`).
+     - 1 leg toggle button box-shadow declaration (`.commute-leg-toggle button`).
+     - 4 dark selected leg button declarations (`.dark .commute-leg-toggle button[aria-selected="true"]`).
+     - 4 time estimate border and outline declarations in base, dark, and high contrast.
+     - 6 leg row status pill color and background declarations (`.saved-commute-leg-row .status-pill.ok`, `.warning`, `.danger`).
+     - 2 leg row strong text color declarations (`.saved-commute-leg-row.clear-tint strong`, `.affected-tint strong`).
+     - 2 success toast color declarations in base and dark mode (`.commute-toast-success`).
+     - 10 routing boundary trigger layout, alignment, and reset declarations (`.saved-commute-routing-boundary-trigger`).
+     - 4 routing boundary label layout and gap declarations (`.saved-commute-routing-boundary-label`).
+     - 1 add button text color declaration (`.saved-commute-add-btn`).
+     - 24 delete button, confirmation, hover, cancel, and dark mode declarations on commute route delete mechanics.
+     - 4 route form layout, border, background, and padding declarations (`.saved-commute-form`).
+     - 4 station line badge declarations (`.commute-station-line-badge`).
+     - 3 station picker hover and option border declarations (`.commute-station-trigger:hover`, `.dark ...:hover`, `.commute-station-option:hover`).
+     - 2 return toggle margin and padding declarations (`.saved-commute-return-toggle`).
+     - 1 notification master toggle margin declaration (`.saved-commute-notification-master`).
+     - 6 rule summary border and outline declarations (`.saved-commute-rule-summary` in base, dark, and high-contrast).
+  4. Guardrails & Unit Tests:
+     - Preserved explicit test contract assertions in `account-ui-source.test.mjs` (`.saved-commute-time-estimate.unreliable p > strong, ... p > span` with `font-size: 1rem !important; text-transform: none !important;`).
+     - Preserved explicit test contract assertions in `unified-search-ui.test.mjs` (`.commute-station-trigger, .commute-station-search-row, .commute-station-popover { border: none !important; }` and `.commute-station-line-trigger, .commute-station-option { border: none !important; }`).
+     - Preserved explicit test contract assertions in `my-commutes-product-boundary.test.mjs` (`.saved-commute-routing-boundary-trigger { min-height: 18px; }`, `.saved-commute-routing-boundary-disclosure { margin: -0.125rem 0 -0.25rem; }`, and mobile margin-bottom rules).
+     - Lowered graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,235 down to 2,132 (-103 `!important` declarations, breaking below 2,200).
+- Files changed:
+  - `frontend/src/styles/account/saved-commutes.css`
+  - `frontend/src/styles/account/saved-commute-rules.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines reduced from 32,240 to 32,211 (-29 lines net); `saved-commutes.css` lines reduced from 1,984 to 1,956 (-28 lines); `saved-commute-rules.css` lines reduced from 1,767 to 1,766 (-1 line); authored CSS bytes reduced from 838,101 to 837,653 (-448 B); graph `!important` declarations reduced from 2,235 to 2,132 (-103 declarations); production chunk raw bytes improved to 705,815 (-638 B); production chunk gzip bytes improved to 105,841 (-73 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop (`TTC desktop map, light`, `TTC desktop map, dark`, `GO/UP desktop map`), mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile Status or More sheet.
+- Decisions:
+  - Preserved explicit contract test assertions in `account-ui-source.test.mjs` for `.saved-commute-time-estimate.unreliable p > strong, ... p > span` requiring `font-size: 1rem !important;` and `text-transform: none !important;`.
+  - Preserved explicit contract test assertions in `unified-search-ui.test.mjs` for borderless tactile popover trigger and option rules.
+  - Re-scoped delete action buttons via `.commute-route-actions` parent selector specificity to avoid cascade collisions without needing `!important`.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 2,235 to 2,132 (-103 declarations).
+- Risks or blockers:
+  - None. My Commutes consolidation is verified across all responsive viewports and themes with 0 diffs.
+- Next session: S15G — Consolidate Notification Settings stylesheet (`account/notification-settings.css`), reducing repetitive notification channel grids, master toggle switches, and media query blocks across the notification preferences experience.
+
