@@ -7,6 +7,11 @@
   gap: 0.4rem;
 }
 
+@media (max-width: 767px) {
+  .regional-map-controls { top: 4.5rem; right: 0.65rem; }
+}
+
+
 .regional-map-controls button {
   display: grid;
   width: 2.65rem;

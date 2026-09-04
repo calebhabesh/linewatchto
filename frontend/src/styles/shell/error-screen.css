@@ -1,0 +1,169 @@
+/**
+ * Error Screen Styles
+ *
+ * Covers full-page error boundary screen (.linewatch-error-screen),
+ * branded card container (.linewatch-error-card), 5-line transit color strip
+ * (.linewatch-transit-accent-strip), and error action buttons (.linewatch-error-actions).
+ */
+
+/* ==========================================================================
+   Section 1: Full-Page Error Boundary Screen & Card
+   ========================================================================== */
+
+.linewatch-error-screen {
+  align-items: center;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    #0d0808;
+  background-size: 28px 28px;
+  color: #f8fafc;
+  display: flex;
+  min-height: 100dvh;
+  padding:
+    max(24px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    max(24px, env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
+}
+
+.linewatch-error-card {
+  background: rgba(10, 12, 16, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  margin: 0 auto;
+  max-width: 520px;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* ==========================================================================
+   Section 2: Transit Line Color Accent Strip
+   ========================================================================== */
+
+.linewatch-transit-accent-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 5px;
+}
+
+.linewatch-transit-accent-strip span:nth-child(1) {
+  background: #fed105;
+}
+
+.linewatch-transit-accent-strip span:nth-child(2) {
+  background: #0a7c3f;
+}
+
+.linewatch-transit-accent-strip span:nth-child(3) {
+  background: #7c277d;
+}
+
+.linewatch-transit-accent-strip span:nth-child(4) {
+  background: #e8721b;
+}
+
+.linewatch-transit-accent-strip span:nth-child(5) {
+  background: #8a999a;
+}
+
+/* ==========================================================================
+   Section 3: Card Body, Branding, Typography & Copy
+   ========================================================================== */
+
+.linewatch-error-card-body {
+  padding: clamp(22px, 6vw, 30px);
+}
+
+.linewatch-error-brand {
+  align-items: center;
+  color: #f8fafc;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.linewatch-error-brand img {
+  border-radius: 8px;
+  display: block;
+  height: 44px;
+  width: 44px;
+}
+
+.linewatch-error-eyebrow {
+  color: #facc15;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.linewatch-error-card h1 {
+  color: #f8fafc;
+  font-size: clamp(28px, 8vw, 42px);
+  letter-spacing: 0;
+  line-height: 1.02;
+  margin: 0;
+}
+
+.linewatch-error-message {
+  color: #cbd5e1;
+  font-size: 15px;
+  line-height: 1.58;
+  margin: 14px 0 0;
+}
+
+/* ==========================================================================
+   Section 4: Error Actions & Buttons
+   ========================================================================== */
+
+.linewatch-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.linewatch-error-actions a,
+.linewatch-error-actions button {
+  align-items: center;
+  background: #f8c302;
+  border: 0;
+  border-radius: 8px;
+  color: #111827;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 148px;
+  padding: 0 16px;
+  text-decoration: none;
+}
+
+.linewatch-error-actions .linewatch-error-secondary-action {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+.linewatch-error-actions a:focus-visible,
+.linewatch-error-actions button:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+  .linewatch-error-actions {
+    flex-direction: column;
+  }
+
+  .linewatch-error-actions a,
+  .linewatch-error-actions button {
+    width: 100%;
+  }
+}

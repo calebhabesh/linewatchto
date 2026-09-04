@@ -1,0 +1,229 @@
+/**
+ * Status Notices & System Banners
+ *
+ * Covers dashboard availability notice (.dashboard-availability-notice)
+ * and app update notification banner (.app-update-banner).
+ */
+
+/* ==========================================================================
+   Section 1: Dashboard Availability Notice
+   ========================================================================== */
+
+.dashboard-availability-notice {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: min(540px, calc(100vw - 32px));
+  padding: 10px 16px;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 251, 235, 0.96);
+  color: #92400e;
+  box-shadow: 0 14px 48px rgba(0, 0, 0, 0.38);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+  transform: translateX(-50%);
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+}
+
+.dark .dashboard-availability-notice {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(30, 22, 12, 0.96);
+  color: #fde68a;
+}
+
+.dashboard-availability-notice[data-state="unavailable"] {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(254, 242, 242, 0.97);
+  color: #991b1b;
+}
+
+.dark .dashboard-availability-notice[data-state="unavailable"] {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(35, 13, 16, 0.97);
+  color: #fecaca;
+}
+
+.high-contrast .dashboard-availability-notice {
+  border-width: 2px;
+  border-color: currentColor;
+  background: #000;
+  color: #ffdf00;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .dashboard-availability-notice {
+    bottom: calc(var(--mobile-bottom-nav-occupied-height, 88px) + 10px + var(--mobile-status-peek-actual-height, 116px) + 14px);
+    top: auto;
+    max-width: calc(100vw - 28px);
+    width: min(500px, calc(100vw - 28px));
+    border-radius: 12px;
+    font-size: 11px;
+    padding: 10px 14px;
+  }
+
+  .dashboard-availability-notice--mobile-hidden {
+    display: none !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .dashboard-availability-notice {
+    max-width: calc(100vw - 20px);
+    width: calc(100vw - 20px);
+  }
+}
+
+/* ==========================================================================
+   Section 2: App Update Banner
+   ========================================================================== */
+
+.app-update-banner {
+  align-items: center;
+  background: rgb(15, 23, 42);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+  color: white;
+  display: flex;
+  gap: 12px;
+  left: 50%;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 10px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 90;
+}
+
+.app-update-banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.app-update-banner-copy > strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.app-update-banner-copy span {
+  color: rgb(203, 213, 225);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.app-update-banner-actions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.app-update-banner-actions button {
+  align-items: center;
+  background: white;
+  border: 0;
+  border-radius: 8px;
+  color: rgb(15, 23, 42);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.app-update-banner-actions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.app-update-banner-actions .app-update-banner-later {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  min-width: 74px;
+  padding: 0 12px;
+}
+
+.app-update-banner-actions .app-update-banner-view {
+  background: rgba(254, 209, 5, 0.16);
+  color: #fde68a;
+  min-width: 104px;
+}
+
+.app-update-banner-spin {
+  animation: app-update-spin 900ms linear infinite;
+}
+
+@keyframes app-update-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-update-banner-spin {
+    animation: none;
+  }
+}
+
+.app-update-banner-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  overflow: hidden;
+}
+
+.app-update-banner-progress-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #fed105, #e8721b);
+  animation: app-update-banner-pulse 1s linear infinite;
+  transform-origin: left;
+}
+
+@keyframes app-update-banner-pulse {
+  0% { transform: scaleX(0); }
+  50% { transform: scaleX(0.5); }
+  100% { transform: scaleX(1); }
+}
+
+@media (max-width: 520px) {
+  .app-update-banner {
+    align-items: stretch;
+    flex-direction: column;
+    width: calc(100vw - 24px);
+  }
+
+  .app-update-banner-actions {
+    width: 100%;
+  }
+
+  .app-update-banner-actions button {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-update-banner {
+    bottom: calc(var(--mobile-bottom-nav-occupied-height, 84px) + 10px);
+  }
+}

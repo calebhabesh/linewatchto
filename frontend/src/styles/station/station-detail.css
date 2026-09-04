@@ -716,3 +716,29 @@
     }
   }
 }
+
+/* ==========================================================================
+   Regional Station Links & Route Identity
+   ========================================================================== */
+
+.regional-station-official-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.regional-station-official-links a { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.75rem; padding: 0.45rem 0.6rem; color: #0369a1; font-size: 0.76rem; font-weight: 750; border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 5px; }
+.dark .regional-station-official-links a { color: #7dd3fc; }
+.station-route-identity { display: inline-flex; min-height: 2rem; max-width: 100%; min-width: 0; align-items: center; gap: 0.5rem; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 5px; padding: 0.25rem 0.55rem 0.25rem 0.25rem; background: rgba(255, 255, 255, 0.76); }
+.dark .station-route-identity { border-color: rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.14); }
+
+/* ==========================================================================
+   Station Impacts Details Accordion
+   ========================================================================== */
+
+.station-impacts-summary::-webkit-details-marker {
+  display: none;
+}
+
+.station-impacts-chevron {
+  transition: transform 160ms ease;
+}
+
+.station-impacts-details[open] .station-impacts-chevron {
+  transform: rotate(180deg);
+}

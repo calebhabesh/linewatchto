@@ -473,3 +473,12 @@
     opacity: 0.18;
   }
 }
+
+/* ==========================================================================
+   Regional Airport Connection Styling
+   ========================================================================== */
+
+.dark .regional-map-stage .map-connection-airport :is(text, tspan),
+.high-contrast .regional-map-stage .map-connection-airport :is(text, tspan) {
+  fill: #f8fafc !important;
+}

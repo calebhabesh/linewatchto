@@ -1039,4 +1039,28 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.mobile-legend-heading/);
     assert.match(content, /\.mobile-legend-line-row/);
   });
+
+  it("resolves the extracted shell/status-notices.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("status-notices.css")), "status-notices.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/shell/status-notices.css", import.meta.url));
+    assert.match(content, /\.dashboard-availability-notice/);
+    assert.match(content, /\.dashboard-availability-notice\[data-state="unavailable"\]/);
+    assert.match(content, /\.app-update-banner/);
+    assert.match(content, /\.app-update-banner-copy/);
+    assert.match(content, /\.app-update-banner-actions/);
+  });
+
+  it("resolves the extracted shell/error-screen.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("error-screen.css")), "error-screen.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/shell/error-screen.css", import.meta.url));
+    assert.match(content, /\.linewatch-error-screen/);
+    assert.match(content, /\.linewatch-error-card/);
+    assert.match(content, /\.linewatch-transit-accent-strip/);
+    assert.match(content, /\.linewatch-error-brand/);
+    assert.match(content, /\.linewatch-error-actions/);
+  });
 });

@@ -129,3 +129,141 @@
   box-shadow: none !important;
   background-image: none !important;
 }
+
+/* ==========================================================================
+   Section 5: Station Arrival Line Pin Button
+   ========================================================================== */
+
+.arrival-line-pin {
+  align-items: center;
+  background: transparent !important;
+  border: none;
+  border-radius: 4px;
+  box-sizing: content-box;
+  color: rgb(245, 158, 11);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 32px;
+  justify-content: center;
+  margin: -6px -6px -6px 0;
+  padding: 4px;
+  touch-action: manipulation;
+  transition: color 150ms ease, transform 150ms ease;
+  width: 32px;
+}
+
+.arrival-line-pin svg {
+  transition: fill 150ms ease, stroke 150ms ease, transform 150ms ease;
+}
+
+.arrival-line-pin svg,
+.arrival-line-pin svg polygon,
+.arrival-line-pin svg path {
+  fill: rgba(245, 158, 11, 0.15) !important;
+  stroke: rgb(245, 158, 11) !important;
+}
+
+.arrival-line-pin.is-hovered,
+.arrival-line-pin:hover,
+.arrival-line-pin:active {
+  background: transparent !important;
+  color: rgb(245, 158, 11);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .arrival-line-pin:not(.is-pinned):hover svg,
+  .arrival-line-pin:not(.is-pinned):hover svg polygon,
+  .arrival-line-pin:not(.is-pinned):hover svg path,
+  .arrival-line-pin:not(.is-pinned).is-hovered svg,
+  .arrival-line-pin:not(.is-pinned).is-hovered svg polygon,
+  .arrival-line-pin:not(.is-pinned).is-hovered svg path {
+    fill: rgba(245, 158, 11, 0.3) !important;
+  }
+}
+
+/* On touch (coarse pointer), the scale shifts the element's hit area and causes touchend
+   re-hit-tests to miss — so we only apply the press-shrink on mouse (fine pointer). */
+@media (pointer: fine) {
+  .arrival-line-pin:active {
+    transform: scale(0.92);
+  }
+}
+
+.arrival-line-pin:focus-visible {
+  outline: 2px solid rgb(14, 165, 233);
+  outline-offset: 1px;
+}
+
+.arrival-line-pin.is-pinned {
+  background: transparent !important;
+  color: rgb(245, 158, 11);
+}
+
+.arrival-line-pin.is-pinned svg,
+.arrival-line-pin.is-pinned svg polygon,
+.arrival-line-pin.is-pinned svg path {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .arrival-line-pin.is-pinned:hover {
+    background: transparent !important;
+    color: rgb(217, 119, 6);
+  }
+}
+
+.arrival-line-pin.is-compact {
+  height: 28px;
+  margin: -6px -6px -6px 0;
+  padding: 4px;
+  width: 28px;
+}
+
+.dark .arrival-line-pin {
+  color: rgb(251, 191, 36);
+}
+
+.dark .arrival-line-pin svg,
+.dark .arrival-line-pin svg polygon,
+.dark .arrival-line-pin svg path {
+  fill: rgba(251, 191, 36, 0.15) !important;
+  stroke: rgb(251, 191, 36) !important;
+}
+
+.dark .arrival-line-pin.is-hovered,
+.dark .arrival-line-pin:hover,
+.dark .arrival-line-pin:active {
+  background: transparent !important;
+  color: rgb(251, 191, 36);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dark .arrival-line-pin:not(.is-pinned):hover svg,
+  .dark .arrival-line-pin:not(.is-pinned):hover svg polygon,
+  .dark .arrival-line-pin:not(.is-pinned):hover svg path,
+  .dark .arrival-line-pin:not(.is-pinned).is-hovered svg,
+  .dark .arrival-line-pin:not(.is-pinned).is-hovered svg polygon,
+  .dark .arrival-line-pin:not(.is-pinned).is-hovered svg path {
+    fill: rgba(251, 191, 36, 0.35) !important;
+  }
+}
+
+.dark .arrival-line-pin.is-pinned {
+  background: transparent !important;
+  color: rgb(251, 191, 36);
+}
+
+.dark .arrival-line-pin.is-pinned svg,
+.dark .arrival-line-pin.is-pinned svg polygon,
+.dark .arrival-line-pin.is-pinned svg path {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dark .arrival-line-pin.is-pinned:hover {
+    background: transparent !important;
+    color: rgb(253, 224, 71);
+  }
+}
