@@ -1,0 +1,116 @@
+/* ==========================================================================
+   Station Submenu Subsection Header - Diffuse Light Beam Effect (Global)
+   ========================================================================== */
+
+.station-subsection-header,
+.station-connections-title,
+.mobile-status-section-heading {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+}
+
+/* 1. Origin Flare & Enhanced Glow on the Accent Chip */
+.station-subsection-header > .bg-logo-blue,
+.station-connections-title > .bg-logo-blue,
+.mobile-status-section-heading > .bg-logo-blue,
+[data-station-section] .station-subsection-header > .bg-logo-blue,
+[data-station-section] .station-connections-title > .bg-logo-blue {
+  position: relative;
+  z-index: 3;
+  box-shadow:
+    0 0 6px rgba(56, 189, 248, 0.75),
+    0 0 12px rgba(0, 130, 201, 0.40),
+    inset 0 0 2px rgba(255, 255, 255, 0.85);
+  filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.60));
+}
+
+/* 2. Uniform Diffuse Light Strip across Header Text */
+.station-subsection-header::before,
+.station-connections-title::before,
+.mobile-status-section-heading::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(100% + 12px);
+  height: 36px;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+  filter: blur(3.5px);
+  background:
+    radial-gradient(ellipse 260px 80% at 4px 50%, rgba(56, 189, 248, 0.40) 0%, rgba(0, 130, 201, 0.20) 45%, transparent 88%),
+    radial-gradient(ellipse 460px 95% at 4px 50%, rgba(56, 189, 248, 0.22) 0%, rgba(0, 130, 201, 0.10) 50%, transparent 95%),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.20) 0%, rgba(0, 130, 201, 0.10) 35%, transparent 75%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 68%, transparent 95%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 68%, transparent 95%);
+}
+
+.mobile-status-section-heading::before {
+  height: 28px;
+}
+
+/* Ensure text, icons, and badges stay razor-sharp above the diffuse light beam */
+.station-subsection-header > *:not(.bg-logo-blue),
+.station-connections-title > *:not(.bg-logo-blue),
+.mobile-status-section-heading > *:not(.bg-logo-blue) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Light Theme: Subtle Cerulean Watercolor Plume */
+:root:not(.dark) .station-subsection-header::before,
+:root:not(.dark) .station-connections-title::before,
+:root:not(.dark) .mobile-status-section-heading::before {
+  opacity: 0.75;
+  filter: blur(4px);
+  background:
+    radial-gradient(ellipse 260px 75% at 4px 50%, rgba(0, 130, 201, 0.08) 0%, rgba(0, 102, 184, 0.04) 45%, transparent 85%),
+    radial-gradient(ellipse 460px 85% at 4px 50%, rgba(0, 130, 201, 0.05) 0%, rgba(0, 102, 184, 0.02) 50%, transparent 95%),
+    linear-gradient(90deg, rgba(0, 130, 201, 0.05) 0%, rgba(0, 102, 184, 0.02) 35%, transparent 75%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 68%, transparent 95%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 68%, transparent 95%);
+}
+
+:root:not(.dark) .station-subsection-header > .bg-logo-blue,
+:root:not(.dark) .station-connections-title > .bg-logo-blue,
+:root:not(.dark) .mobile-status-section-heading > .bg-logo-blue {
+  box-shadow:
+    0 0 4px rgba(0, 102, 184, 0.50),
+    0 0 8px rgba(0, 130, 201, 0.25),
+    inset 0 0 2px rgba(255, 255, 255, 0.9);
+  filter: drop-shadow(0 0 2px rgba(0, 102, 184, 0.35));
+}
+
+/* 3. Station Submenu Contrast Compensation (balances against dark:bg-white/5 card backgrounds in dark mode) */
+[data-station-section] .station-subsection-header::before,
+[data-station-section] .station-connections-title::before,
+.station-detail-panel .station-subsection-header::before,
+.station-detail-panel .station-connections-title::before {
+  background:
+    radial-gradient(ellipse 280px 80% at 4px 50%, rgba(56, 189, 248, 0.58) 0%, rgba(0, 130, 201, 0.30) 45%, transparent 88%),
+    radial-gradient(ellipse 480px 95% at 4px 50%, rgba(56, 189, 248, 0.32) 0%, rgba(0, 130, 201, 0.15) 50%, transparent 95%),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.28) 0%, rgba(0, 130, 201, 0.14) 35%, transparent 75%);
+}
+
+:root:not(.dark) [data-station-section] .station-subsection-header::before,
+:root:not(.dark) [data-station-section] .station-connections-title::before,
+:root:not(.dark) .station-detail-panel .station-subsection-header::before,
+:root:not(.dark) .station-detail-panel .station-connections-title::before {
+  opacity: 0.80;
+  filter: blur(4px);
+  background:
+    radial-gradient(ellipse 280px 75% at 4px 50%, rgba(0, 130, 201, 0.10) 0%, rgba(0, 102, 184, 0.05) 45%, transparent 85%),
+    radial-gradient(ellipse 480px 85% at 4px 50%, rgba(0, 130, 201, 0.06) 0%, rgba(0, 102, 184, 0.02) 50%, transparent 95%),
+    linear-gradient(90deg, rgba(0, 130, 201, 0.06) 0%, rgba(0, 102, 184, 0.02) 35%, transparent 75%);
+}
+
+/* High-Contrast / Reduced-Motion Accommodations */
+.high-contrast .station-subsection-header::before,
+.high-contrast .station-connections-title::before,
+.high-contrast .mobile-status-section-heading::before {
+  opacity: 0.4;
+}

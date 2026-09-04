@@ -974,4 +974,39 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /@keyframes terminating-blink/);
     assert.match(content, /\.animate-terminating-blink/);
   });
+
+  it("resolves the extracted shell/header-flare.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("header-flare.css")), "header-flare.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/shell/header-flare.css", import.meta.url));
+    assert.match(content, /\.station-subsection-header/);
+    assert.match(content, /\.station-connections-title/);
+    assert.match(content, /\.mobile-status-section-heading/);
+    assert.match(content, /\[data-station-section\] \.station-subsection-header > \.bg-logo-blue/);
+  });
+
+  it("resolves the extracted shell/card-elevation.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("card-elevation.css")), "card-elevation.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/shell/card-elevation.css", import.meta.url));
+    assert.match(content, /\.alert-card/);
+    assert.match(content, /\.rsz-card-border/);
+    assert.match(content, /\.delay-card-border/);
+    assert.match(content, /\.suspension-card-border/);
+    assert.match(content, /\.planned-closure-card-border/);
+    assert.match(content, /\.desktop-line-status-row/);
+    assert.match(content, /\.station-detail-disruption-card/);
+  });
+
+  it("resolves the extracted shell/search-bar.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("search-bar.css")), "search-bar.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/shell/search-bar.css", import.meta.url));
+    assert.match(content, /\.header-search-bar/);
+    assert.match(content, /\.header-search-input/);
+    assert.match(content, /\.search-btn\[aria-expanded="true"\]/);
+  });
 });

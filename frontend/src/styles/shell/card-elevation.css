@@ -1,0 +1,946 @@
+/* ==========================================================================
+   Tactile Card Elevation, Borderless Containers, and Light Filament System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Section 1: Mobile Borderless Cards & Content Containers
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  /* Mobile borderless cards & content containers (modern UX elevation) */
+  .alert-card,
+  .closure-card,
+  .compact-impact-list-item,
+  .commute-card {
+    border-top-color: transparent !important;
+    border-right-color: transparent !important;
+    border-bottom-color: transparent !important;
+    box-shadow: var(--mobile-card-shadow);
+  }
+
+  .station-detail-panel [data-station-section],
+  .station-detail-panel .station-notices-details,
+  .station-detail-panel .station-accessibility-details,
+  .station-detail-panel .station-connections-card,
+  .station-detail-panel .station-detail-loading,
+  .surface-notice-route-group,
+  .reliability-row,
+  .health-item,
+  .notification-settings-card,
+  .notification-event-type-grid,
+  .saved-commute-account-prompt,
+  .mobile-status-actions button,
+  .mobile-line-status-row,
+  .mobile-more-account,
+  .mobile-more-row,
+  .mobile-more-install-help,
+  .station-search-station,
+  .station-search-bookmark,
+  .station-search-amenity-chip,
+  .station-search-mobile-back,
+  .station-search-stations-column-header,
+  .station-search-line-trigger,
+  .global-search-category-shortcuts button,
+  .global-search-browse-alerts button,
+  .global-search-resource-result,
+  .commute-station-trigger,
+  .commute-station-option,
+  .commute-station-line-trigger,
+  .commute-station-mobile-back {
+    border-color: transparent !important;
+    box-shadow: var(--mobile-card-shadow);
+  }
+
+  .station-detail-panel [data-station-section="station-impacts"] .border-l-2,
+  .station-detail-panel [data-station-section="station-impacts"] .border-l-4 {
+    border-top-color: transparent !important;
+    border-right-color: transparent !important;
+    border-bottom-color: transparent !important;
+  }
+
+  /* High-contrast preservation for mobile cards & containers */
+  .high-contrast .alert-card,
+  .linewatch-shell.high-contrast .alert-card,
+  .high-contrast .closure-card,
+  .linewatch-shell.high-contrast .closure-card,
+  .high-contrast .compact-impact-list-item,
+  .linewatch-shell.high-contrast .compact-impact-list-item,
+  .high-contrast .commute-card,
+  .linewatch-shell.high-contrast .commute-card {
+    border-top-color: #ffffff !important;
+    border-right-color: #ffffff !important;
+    border-bottom-color: #ffffff !important;
+  }
+
+  .high-contrast .station-detail-panel [data-station-section],
+  .linewatch-shell.high-contrast .station-detail-panel [data-station-section],
+  .high-contrast .station-detail-panel .station-notices-details,
+  .linewatch-shell.high-contrast .station-detail-panel .station-notices-details,
+  .high-contrast .station-detail-panel .station-accessibility-details,
+  .linewatch-shell.high-contrast .station-detail-panel .station-accessibility-details,
+  .high-contrast .station-detail-panel .station-connections-card,
+  .linewatch-shell.high-contrast .station-detail-panel .station-connections-card,
+  .high-contrast .station-detail-panel .station-detail-loading,
+  .linewatch-shell.high-contrast .station-detail-panel .station-detail-loading,
+  .high-contrast .surface-notice-route-group,
+  .linewatch-shell.high-contrast .surface-notice-route-group,
+  .high-contrast .reliability-row,
+  .linewatch-shell.high-contrast .reliability-row,
+  .high-contrast .health-item,
+  .linewatch-shell.high-contrast .health-item,
+  .high-contrast .notification-settings-card,
+  .linewatch-shell.high-contrast .notification-settings-card,
+  .high-contrast .notification-event-type-grid,
+  .linewatch-shell.high-contrast .notification-event-type-grid,
+  .high-contrast .saved-commute-account-prompt,
+  .linewatch-shell.high-contrast .saved-commute-account-prompt,
+  .high-contrast .mobile-status-actions button,
+  .linewatch-shell.high-contrast .mobile-status-actions button,
+  .high-contrast .mobile-line-status-row,
+  .linewatch-shell.high-contrast .mobile-line-status-row,
+  .high-contrast .mobile-more-account,
+  .linewatch-shell.high-contrast .mobile-more-account,
+  .high-contrast .mobile-more-row,
+  .linewatch-shell.high-contrast .mobile-more-row,
+  .high-contrast .mobile-more-install-help,
+  .linewatch-shell.high-contrast .mobile-more-install-help {
+    border-color: #ffffff !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Section 2: Opaque Cards & Buttons in Mobile Sheets & Elevation
+   -------------------------------------------------------------------------- */
+
+/* Opaque cards/buttons in Status and More mobile sheets */
+.mobile-line-status-row,
+.mobile-more-account,
+.mobile-more-row,
+.mobile-more-health-grid div,
+.mobile-more-install-help,
+.notification-settings-card,
+.notification-settings-row,
+.notification-settings-prompt,
+.notification-follow-up-option,
+.saved-commute-notification-summary,
+.saved-commute-rule-summary {
+  background: var(--light-container) !important;
+  opacity: 1 !important;
+}
+
+.dark .mobile-line-status-row,
+.dark .mobile-more-account,
+.dark .mobile-more-row,
+.dark .mobile-more-health-grid div,
+.dark .mobile-more-install-help,
+.dark .notification-settings-card,
+.dark .notification-settings-row,
+.dark .notification-settings-prompt,
+.dark .notification-follow-up-option,
+.dark .saved-commute-notification-summary,
+.dark .saved-commute-rule-summary {
+  background: #151821 !important;
+  opacity: 1 !important;
+}
+
+.high-contrast .mobile-status-actions button,
+.high-contrast .mobile-line-status-row,
+.high-contrast .mobile-line-status-impacts button,
+.high-contrast .mobile-more-account,
+.high-contrast .mobile-more-row,
+.high-contrast .mobile-more-health-grid div,
+.high-contrast .mobile-more-install-help,
+.high-contrast .notification-settings-card,
+.high-contrast .notification-settings-row,
+.high-contrast .notification-settings-prompt,
+.high-contrast .notification-follow-up-option,
+.high-contrast .saved-commute-notification-summary,
+.high-contrast .saved-commute-rule-summary {
+  background: #000000 !important;
+  border: 1px solid #ffffff !important;
+}
+
+/* Status action buttons & line status cards: borderless with subtle card elevation */
+.mobile-status-actions button,
+.mobile-line-status-row {
+  border: none !important;
+  box-shadow: var(--mobile-card-shadow);
+}
+
+.dark .mobile-status-actions button,
+.dark .mobile-line-status-row {
+  border: none !important;
+  box-shadow: var(--mobile-card-shadow);
+}
+
+.high-contrast .mobile-status-actions button,
+.high-contrast .mobile-line-status-row,
+.linewatch-shell.high-contrast .mobile-status-actions button,
+.linewatch-shell.high-contrast .mobile-line-status-row {
+  border: 1px solid #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* Keep More-menu groupings legible in light mode, especially on mobile. */
+.mobile-more-account,
+.mobile-more-row,
+.mobile-more-health-grid div,
+.mobile-more-install-help {
+  border: none !important;
+}
+
+.high-contrast .mobile-more-account,
+.high-contrast .mobile-more-row,
+.high-contrast .mobile-more-health-grid div,
+.high-contrast .mobile-more-install-help,
+.linewatch-shell.high-contrast .mobile-more-account,
+.linewatch-shell.high-contrast .mobile-more-row,
+.linewatch-shell.high-contrast .mobile-more-health-grid div,
+.linewatch-shell.high-contrast .mobile-more-install-help {
+  border: 1px solid #ffffff !important;
+}
+
+/* Hover and active states matching transit line containers */
+.mobile-more-row:hover,
+.mobile-more-row:active {
+  background: #e2e8f0 !important;
+}
+
+.dark .mobile-more-row:hover,
+.dark .mobile-more-row:active {
+  background: #334155 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Section 3: Crossplatform Borderless Cards & Light Filament System
+   -------------------------------------------------------------------------- */
+
+/* Crossplatform borderless cards & content containers (modern UX elevation) */
+.alert-card,
+.closure-card {
+  border-left-width: 2px !important;
+}
+
+.alert-card,
+.closure-card,
+.compact-impact-list-item,
+.commute-card,
+.alert-history-item,
+.station-impact-card,
+.my-stations-row,
+.saved-station-rich-row {
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
+  box-shadow: var(--mobile-card-shadow) !important;
+}
+
+.dark .alert-card,
+.dark .closure-card,
+.dark .compact-impact-list-item,
+.dark .commute-card,
+.dark .alert-history-item,
+.dark .station-impact-card,
+.dark .my-stations-row,
+.dark .saved-station-rich-row {
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
+  box-shadow: var(--mobile-card-shadow) !important;
+}
+
+/* Modern Left-Edge Light Filament System */
+.alert-card.rsz-card-border,
+.station-impact-card.rsz-card-border,
+.station-impact-card[data-station-impact-tone="reduced-speed-zone"],
+.compact-impact-list-item.rsz-card-border,
+.commute-card.warning,
+.alert-history-item.alert-history-tone-reduced-speed-zone,
+.alert-history-item.alert-history-event-active {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 1.5px solid rgba(245, 158, 11, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(245, 158, 11, 0.20) !important;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.07) 0%, rgba(245, 158, 11, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .alert-card.rsz-card-border,
+.dark .station-impact-card.rsz-card-border,
+.dark .station-impact-card[data-station-impact-tone="reduced-speed-zone"],
+.dark .compact-impact-list-item.rsz-card-border,
+.dark .commute-card.warning,
+.dark .alert-history-item.alert-history-tone-reduced-speed-zone,
+.dark .alert-history-item.alert-history-event-active {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+.alert-card.delay-card-border,
+.station-impact-card.delay-card-border,
+.station-impact-card[data-station-impact-tone="delay"],
+.compact-impact-list-item.delay-card-border,
+.alert-history-item.alert-history-tone-delay,
+.alert-history-item.alert-history-event-active.alert-history-tone-delay {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 1.5px solid rgba(254, 236, 65, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(254, 236, 65, 0.20) !important;
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.07) 0%, rgba(254, 236, 65, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .alert-card.delay-card-border,
+.dark .station-impact-card.delay-card-border,
+.dark .station-impact-card[data-station-impact-tone="delay"],
+.dark .compact-impact-list-item.delay-card-border,
+.dark .alert-history-item.alert-history-tone-delay,
+.dark .alert-history-item.alert-history-event-active.alert-history-tone-delay {
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.11) 0%, rgba(254, 236, 65, 0.035) 14px, transparent 30px), #12151c !important;
+}
+
+.alert-card.suspension-card-border,
+.station-impact-card.suspension-card-border,
+.station-impact-card[data-station-impact-tone="active"],
+.compact-impact-list-item.suspension-card-border,
+.commute-card.danger,
+.alert-history-item.alert-history-tone-suspension,
+.alert-history-item.alert-history-event-active.alert-history-tone-suspension {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 1.5px solid rgba(239, 68, 68, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(239, 68, 68, 0.20) !important;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.07) 0%, rgba(239, 68, 68, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .alert-card.suspension-card-border,
+.dark .station-impact-card.suspension-card-border,
+.dark .station-impact-card[data-station-impact-tone="active"],
+.dark .compact-impact-list-item.suspension-card-border,
+.dark .commute-card.danger,
+.dark .alert-history-item.alert-history-tone-suspension,
+.dark .alert-history-item.alert-history-event-active.alert-history-tone-suspension {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+.closure-card.planned-closure-card-border,
+.alert-card.planned-closure-card-border,
+.station-impact-card.planned-closure-card-border,
+.station-impact-card[data-station-impact-tone="planned"],
+.compact-impact-list-item.planned-closure-card-border,
+.alert-history-item.alert-history-tone-planned-closure,
+.alert-history-item.alert-history-event-active.alert-history-tone-planned-closure {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 1.5px solid rgba(59, 130, 246, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(59, 130, 246, 0.20) !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .closure-card.planned-closure-card-border,
+.dark .alert-card.planned-closure-card-border,
+.dark .station-impact-card.planned-closure-card-border,
+.dark .station-impact-card[data-station-impact-tone="planned"],
+.dark .compact-impact-list-item.planned-closure-card-border,
+.dark .alert-history-item.alert-history-tone-planned-closure,
+.dark .alert-history-item.alert-history-event-active.alert-history-tone-planned-closure {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+.commute-card.ok,
+.alert-history-item.alert-history-event-cleared {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 1.5px solid rgba(16, 185, 129, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(16, 185, 129, 0.20) !important;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.07) 0%, rgba(16, 185, 129, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .commute-card.ok,
+.dark .alert-history-item.alert-history-event-cleared {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+.alert-card.is-active,
+.dark .alert-card.is-active,
+.closure-card.is-active,
+.dark .closure-card.is-active,
+.station-impact-card.is-active,
+.dark .station-impact-card.is-active,
+.compact-impact-list-item.is-active,
+.dark .compact-impact-list-item.is-active {
+  background: #172554 !important;
+}
+
+.compact-impact-list-item:hover {
+  filter: brightness(1.05);
+}
+.dark .compact-impact-list-item:hover {
+  filter: brightness(1.1);
+}
+
+.station-detail-panel [data-station-section],
+.station-detail-panel .station-notices-details,
+.station-detail-panel .station-accessibility-details,
+.station-detail-panel .station-connections-card,
+.station-detail-panel .station-detail-loading,
+.surface-notice-route-group,
+.reliability-row,
+.health-item,
+.notification-settings-card,
+.notification-event-type-grid,
+.saved-commute-account-prompt {
+  border-color: transparent !important;
+  box-shadow: var(--mobile-card-shadow) !important;
+}
+
+.saved-station-arrival-group,
+.saved-station-arrival-group.is-surface-group {
+  box-shadow: none !important;
+}
+
+.dark .station-detail-panel [data-station-section],
+.dark .station-detail-panel .station-notices-details,
+.dark .station-detail-panel .station-accessibility-details,
+.dark .station-detail-panel .station-connections-card,
+.dark .station-detail-panel .station-detail-loading,
+.dark .surface-notice-route-group,
+.dark .reliability-row,
+.dark .health-item,
+.dark .notification-settings-card,
+.dark .notification-event-type-grid,
+.dark .saved-commute-account-prompt {
+  border-color: transparent !important;
+  box-shadow: var(--mobile-card-shadow) !important;
+}
+
+.dark .saved-station-arrival-group,
+.dark .saved-station-arrival-group.is-surface-group {
+  box-shadow: none !important;
+}
+
+.station-detail-panel [data-station-section="station-impacts"] .station-impact-card,
+.station-detail-panel [data-station-section="station-impacts"] .border-l-2,
+.station-detail-panel [data-station-section="station-impacts"] .border-l-4 {
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+.high-contrast .alert-card,
+.linewatch-shell.high-contrast .alert-card,
+.high-contrast .closure-card,
+.linewatch-shell.high-contrast .closure-card,
+.high-contrast .compact-impact-list-item,
+.linewatch-shell.high-contrast .compact-impact-list-item,
+.high-contrast .commute-card,
+.linewatch-shell.high-contrast .commute-card,
+.high-contrast .alert-history-item,
+.linewatch-shell.high-contrast .alert-history-item,
+.high-contrast .station-impact-card,
+.linewatch-shell.high-contrast .station-impact-card,
+.high-contrast .rotated-map-selection-card,
+.linewatch-shell.high-contrast .rotated-map-selection-card,
+.high-contrast .my-stations-row,
+.linewatch-shell.high-contrast .my-stations-row,
+.high-contrast .saved-station-rich-row,
+.linewatch-shell.high-contrast .saved-station-rich-row {
+  border: 1px solid #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Section 4: Tactile Surface Sheen & Top-Rim Highlight for Mobile & Desktop
+   -------------------------------------------------------------------------- */
+
+/* Contemporary tactile surface sheen and top-rim highlight for mobile & desktop containers */
+.mobile-status-actions button,
+.mobile-line-status-row,
+.mobile-more-account,
+.mobile-more-row,
+.mobile-more-install-help,
+.global-search-resource-result,
+.global-search-impact-result,
+.station-search-station,
+.station-search-bookmark,
+.station-search-amenity-chip,
+.station-search-mobile-back,
+.station-search-stations-column-header,
+.station-search-line-trigger,
+.global-search-category-shortcuts button,
+.global-search-browse-alerts button,
+.commute-station-trigger,
+.commute-station-option,
+.commute-station-line-trigger,
+.commute-station-mobile-back {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    var(--mobile-card-shadow);
+  background-image: none !important;
+}
+
+.dark .mobile-status-actions button,
+.dark .mobile-line-status-row,
+.dark .mobile-more-account,
+.dark .mobile-more-row,
+.dark .mobile-more-install-help,
+.dark .global-search-resource-result,
+.dark .global-search-impact-result,
+.dark .station-search-station,
+.dark .station-search-bookmark,
+.dark .station-search-amenity-chip,
+.dark .station-search-mobile-back,
+.dark .station-search-stations-column-header,
+.dark .station-search-line-trigger,
+.dark .global-search-category-shortcuts button,
+.dark .global-search-browse-alerts button,
+.dark .commute-station-trigger,
+.dark .commute-station-option,
+.dark .commute-station-line-trigger,
+.dark .commute-station-mobile-back {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
+  background-image: none !important;
+}
+
+@media (hover: hover) {
+  .mobile-line-status-row:hover {
+    background-image: none !important;
+  }
+  .dark .mobile-line-status-row:hover {
+    background-image: none !important;
+  }
+}
+
+.high-contrast .mobile-status-actions button,
+.high-contrast .mobile-line-status-row,
+.high-contrast .mobile-more-account,
+.high-contrast .mobile-more-row,
+.high-contrast .mobile-more-install-help,
+.high-contrast .alert-card,
+.high-contrast .closure-card,
+.high-contrast .compact-impact-list-item,
+.high-contrast .commute-card,
+.high-contrast .station-detail-panel [data-station-section],
+.high-contrast .station-detail-panel .station-notices-details,
+.high-contrast .station-detail-panel .station-accessibility-details,
+.high-contrast .station-detail-panel .station-connections-card,
+.high-contrast .surface-notice-route-group,
+.high-contrast .reliability-row,
+.high-contrast .reliability-notice-banner,
+.high-contrast .health-item,
+.high-contrast .notification-settings-card,
+.high-contrast .notification-event-type-grid,
+.high-contrast .saved-commute-account-prompt,
+.high-contrast .global-search-resource-result,
+.high-contrast .global-search-impact-result,
+.high-contrast .station-search-station,
+.high-contrast .station-search-bookmark,
+.high-contrast .station-search-amenity-chip,
+.high-contrast .station-search-mobile-back,
+.high-contrast .station-search-stations-column-header,
+.high-contrast .station-search-line-trigger,
+.high-contrast .global-search-category-shortcuts button,
+.high-contrast .global-search-browse-alerts button,
+.high-contrast .commute-station-trigger,
+.high-contrast .commute-station-option,
+.high-contrast .commute-station-line-trigger,
+.high-contrast .commute-station-mobile-back,
+.linewatch-shell.high-contrast .mobile-status-actions button,
+.linewatch-shell.high-contrast .mobile-line-status-row,
+.linewatch-shell.high-contrast .mobile-more-account,
+.linewatch-shell.high-contrast .mobile-more-row,
+.linewatch-shell.high-contrast .mobile-more-install-help,
+.linewatch-shell.high-contrast .alert-card,
+.linewatch-shell.high-contrast .closure-card,
+.linewatch-shell.high-contrast .compact-impact-list-item,
+.linewatch-shell.high-contrast .commute-card,
+.linewatch-shell.high-contrast .station-detail-panel [data-station-section],
+.linewatch-shell.high-contrast .station-detail-panel .station-notices-details,
+.linewatch-shell.high-contrast .station-detail-panel .station-accessibility-details,
+.linewatch-shell.high-contrast .station-detail-panel .station-connections-card,
+.linewatch-shell.high-contrast .surface-notice-route-group,
+.linewatch-shell.high-contrast .reliability-row,
+.linewatch-shell.high-contrast .reliability-notice-banner,
+.linewatch-shell.high-contrast .health-item,
+.linewatch-shell.high-contrast .notification-settings-card,
+.linewatch-shell.high-contrast .notification-event-type-grid,
+.linewatch-shell.high-contrast .saved-commute-account-prompt,
+.linewatch-shell.high-contrast .global-search-resource-result,
+.linewatch-shell.high-contrast .global-search-impact-result,
+.linewatch-shell.high-contrast .station-search-station,
+.linewatch-shell.high-contrast .station-search-bookmark,
+.linewatch-shell.high-contrast .station-search-amenity-chip,
+.linewatch-shell.high-contrast .station-search-mobile-back,
+.linewatch-shell.high-contrast .station-search-stations-column-header,
+.linewatch-shell.high-contrast .station-search-line-trigger,
+.linewatch-shell.high-contrast .global-search-category-shortcuts button,
+.linewatch-shell.high-contrast .global-search-browse-alerts button,
+.linewatch-shell.high-contrast .commute-station-trigger,
+.linewatch-shell.high-contrast .commute-station-option,
+.linewatch-shell.high-contrast .commute-station-line-trigger,
+.linewatch-shell.high-contrast .commute-station-mobile-back {
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Section 5: Contemporary Tactile Styling for Desktop Line Status Rows
+   -------------------------------------------------------------------------- */
+
+/* Contemporary tactile styling for desktop line status rows (clean slate) */
+.desktop-line-status-row {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  background-image: none !important;
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+}
+
+.desktop-line-status-row:active {
+  transform: scale(0.99);
+}
+
+.dark .desktop-line-status-row {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  background-image: none !important;
+}
+
+@media (hover: hover) {
+  .desktop-line-status-row:hover {
+    background-image: none !important;
+  }
+  .dark .desktop-line-status-row:hover {
+    background-image: none !important;
+  }
+}
+
+.high-contrast .desktop-line-status-row,
+.linewatch-shell.high-contrast .desktop-line-status-row {
+  background-image: none !important;
+  box-shadow: none !important;
+  border: 1px solid #ffffff !important;
+}
+
+/* --------------------------------------------------------------------------
+   Section 6: Borderless Alignment for Desktop Top Chrome & Zoom Rail
+   -------------------------------------------------------------------------- */
+
+/* Borderless alignment for desktop top chrome controls and map zoom rail */
+.menu-toggle-btn,
+.header-search-bar,
+.desktop-status-capsule,
+.alert-history-shortcut,
+.theme-toggle-btn,
+.site-guide-trigger,
+.logs-trigger-btn,
+.rotate-map-btn,
+.desktop-map-control-rail,
+.map-control-rail {
+  border: none !important;
+}
+
+.dark .menu-toggle-btn,
+.dark .header-search-bar,
+.dark .desktop-status-capsule,
+.dark .alert-history-shortcut,
+.dark .theme-toggle-btn,
+.dark .site-guide-trigger,
+.dark .logs-trigger-btn,
+.dark .rotate-map-btn,
+.dark .desktop-map-control-rail,
+.dark .map-control-rail {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 25px -3px rgba(0, 0, 0, 0.45) !important;
+}
+
+.high-contrast .menu-toggle-btn,
+.high-contrast .header-search-bar,
+.high-contrast .desktop-status-capsule,
+.high-contrast .alert-history-shortcut,
+.high-contrast .theme-toggle-btn,
+.high-contrast .site-guide-trigger,
+.high-contrast .logs-trigger-btn,
+.high-contrast .rotate-map-btn,
+.high-contrast .desktop-map-control-rail,
+.high-contrast .map-control-rail,
+.linewatch-shell.high-contrast .menu-toggle-btn,
+.linewatch-shell.high-contrast .header-search-bar,
+.linewatch-shell.high-contrast .desktop-status-capsule,
+.linewatch-shell.high-contrast .alert-history-shortcut,
+.linewatch-shell.high-contrast .theme-toggle-btn,
+.linewatch-shell.high-contrast .site-guide-trigger,
+.linewatch-shell.high-contrast .logs-trigger-btn,
+.linewatch-shell.high-contrast .rotate-map-btn,
+.linewatch-shell.high-contrast .desktop-map-control-rail,
+.linewatch-shell.high-contrast .map-control-rail {
+  border: 1px solid #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Section 7: Contemporary Top-Rim Highlight for Desktop Floating Panels
+   -------------------------------------------------------------------------- */
+
+/* Contemporary top-rim highlight for desktop floating panels & chrome (clean slate, no gradients) */
+@media (min-width: 768px) {
+  .floating-panel-scroll {
+    border: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      var(--shadow) !important;
+  }
+  .dark .floating-panel-scroll {
+    border: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      var(--shadow) !important;
+  }
+  .floating-panel-shell .panel-heading {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    background-image: none !important;
+  }
+  .dark .floating-panel-shell .panel-heading {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    background-image: none !important;
+  }
+  #linewatch-main-menu {
+    border: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+  }
+  .dark #linewatch-main-menu {
+    border: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 20px 25px -5px rgba(0, 0, 0, 0.5),
+      0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+  }
+  .desktop-status-capsule {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      var(--shadow) !important;
+    background-image: none !important;
+  }
+  .dark .desktop-status-capsule {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      var(--shadow) !important;
+    background-image: none !important;
+  }
+  .menu-toggle-btn.desktop-top-chrome,
+  .header-search-bar.desktop-top-chrome {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      0 10px 15px -3px rgba(0, 0, 0, 0.08) !important;
+    background-image: none !important;
+  }
+  .dark .menu-toggle-btn.desktop-top-chrome,
+  .dark .header-search-bar.desktop-top-chrome {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
+    background-image: none !important;
+  }
+  .high-contrast .floating-panel-scroll,
+  .high-contrast #linewatch-main-menu,
+  .high-contrast .desktop-status-capsule,
+  .high-contrast .menu-toggle-btn.desktop-top-chrome,
+  .high-contrast .header-search-bar.desktop-top-chrome,
+  .high-contrast .floating-panel-shell .panel-heading,
+  .linewatch-shell.high-contrast .floating-panel-scroll,
+  .linewatch-shell.high-contrast #linewatch-main-menu,
+  .linewatch-shell.high-contrast .desktop-status-capsule,
+  .linewatch-shell.high-contrast .menu-toggle-btn.desktop-top-chrome,
+  .linewatch-shell.high-contrast .header-search-bar.desktop-top-chrome,
+  .linewatch-shell.high-contrast .floating-panel-shell .panel-heading {
+    background-image: none !important;
+    box-shadow: none !important;
+    border: 1px solid #ffffff !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Section 8: Station Detail Section Cards & Disruption Banner
+   -------------------------------------------------------------------------- */
+
+/* Station Detail Section Cards (Desktop and Mobile) */
+.station-detail-panel [data-station-section],
+.station-detail-panel [data-station-section] > section,
+.station-detail-panel .station-notices-details,
+.station-detail-panel .station-accessibility-details,
+.station-detail-panel .station-detail-loading,
+.station-detail-disruption-card,
+[data-station-access-outage-summary] {
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.dark .station-detail-panel [data-station-section],
+.dark .station-detail-panel [data-station-section] > section,
+.dark .station-detail-panel .station-notices-details,
+.dark .station-detail-panel .station-accessibility-details,
+.dark .station-detail-panel .station-detail-loading {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  background: #161a23 !important;
+}
+
+/* Schedule May Be Disrupted banner container */
+.station-detail-disruption-card {
+  align-items: center !important;
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  background: #fffbeb !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+  padding: 8px 10px !important;
+}
+
+.dark .station-detail-disruption-card {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  background: #251d0d !important;
+}
+
+.station-detail-disruption-card .station-disruption-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1;
+}
+
+.station-detail-disruption-card .station-disruption-heading svg {
+  display: block;
+  flex-shrink: 0;
+  transform: translateY(-1px);
+}
+
+.station-detail-disruption-card .station-disruption-heading-text {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.station-detail-disruption-card .station-impact-jump-actions {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* Station Impact Jump Buttons */
+.station-impact-jump-button {
+  border: none !important;
+  border-radius: 6px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.08) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.dark .station-impact-jump-button {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  background: #161a23 !important;
+}
+
+.station-detail-panel [data-station-section="station-impacts"] .station-impact-card,
+.station-detail-panel [data-station-section="station-impacts"] .border-l-2,
+.station-detail-panel [data-station-section="station-impacts"] .border-l-4 {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+}
+
+/* High contrast preservation for station submenu */
+.high-contrast .station-detail-panel,
+.high-contrast .station-detail-panel [data-station-section],
+.high-contrast .station-detail-panel [data-station-section] > section,
+.high-contrast .station-detail-panel .station-notices-details,
+.high-contrast .station-detail-panel .station-accessibility-details,
+.high-contrast .station-detail-save-control button,
+.high-contrast .station-detail-close-button,
+.high-contrast .station-submenu-nav-btn,
+.high-contrast .station-detail-panel [data-station-submenu-nav] button,
+.high-contrast .station-connection-row,
+.high-contrast .station-impact-jump-button,
+.high-contrast [data-station-access-outage-summary],
+.high-contrast .station-detail-disruption-card,
+.high-contrast .station-detail-panel [data-arrival-group] [class*="min-h-[74px]"],
+.high-contrast .station-detail-panel [data-surface-route] [class*="min-h-[74px]"],
+.high-contrast .station-line-directions,
+.linewatch-shell.high-contrast .station-detail-panel,
+.linewatch-shell.high-contrast .station-detail-panel [data-station-section],
+.linewatch-shell.high-contrast .station-detail-panel [data-station-section] > section,
+.linewatch-shell.high-contrast .station-detail-panel .station-notices-details,
+.linewatch-shell.high-contrast .station-detail-panel .station-accessibility-details,
+.linewatch-shell.high-contrast .station-detail-save-control button,
+.linewatch-shell.high-contrast .station-detail-close-button,
+.linewatch-shell.high-contrast .station-submenu-nav-btn,
+.linewatch-shell.high-contrast .station-detail-panel [data-station-submenu-nav] button,
+.linewatch-shell.high-contrast .station-connection-row,
+.linewatch-shell.high-contrast .station-impact-jump-button,
+.linewatch-shell.high-contrast [data-station-access-outage-summary],
+.linewatch-shell.high-contrast .station-detail-disruption-card,
+.linewatch-shell.high-contrast .station-detail-panel [data-arrival-group] [class*="min-h-[74px]"],
+.linewatch-shell.high-contrast .station-detail-panel [data-surface-route] [class*="min-h-[74px]"],
+.linewatch-shell.high-contrast .station-line-directions {
+  border: 1px solid #ffffff !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Section 9: Borderless Styling for Main Map Page Elements
+   -------------------------------------------------------------------------- */
+
+/* Borderless styling for main map page elements */
+.alert-history-shortcut,
+.menu-toggle-btn,
+.header-search-bar,
+.logs-trigger-btn,
+.theme-toggle-btn,
+.site-guide-trigger,
+.rotate-map-btn {
+  border: none !important;
+}
+
+.dark .alert-history-shortcut,
+.dark .menu-toggle-btn,
+.dark .header-search-bar,
+.dark .logs-trigger-btn,
+.dark .theme-toggle-btn,
+.dark .site-guide-trigger,
+.dark .rotate-map-btn {
+  border: none !important;
+}
+
+.high-contrast .mobile-legend-pill,
+.high-contrast .mobile-train-toggle,
+.high-contrast .mobile-alert-history-shortcut,
+.high-contrast .mobile-my-stations-shortcut,
+.high-contrast .alert-history-shortcut,
+.high-contrast .theme-toggle-btn,
+.high-contrast .rotate-map-btn,
+.high-contrast .site-guide-trigger,
+.high-contrast .menu-toggle-btn,
+.high-contrast .header-search-bar,
+.high-contrast .logs-trigger-btn {
+  border: 1px solid #ffffff !important;
+}
