@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const bottomNavSource = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const floatingPanelSource = readFileSync(new URL("../src/components/FloatingPanelShell.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("mobile navigation motion", () => {
   it("moves one shared selection pill between mobile destinations", () => {

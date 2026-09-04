@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 function readRequiredSource(relativePath) {
   const url = new URL(relativePath, import.meta.url);
@@ -38,7 +39,7 @@ describe("Next.js branded error routes", () => {
   });
 
   it("styles branded error screens with the transit line strip", () => {
-    const source = readRequiredSource("../src/app/globals.css");
+    const source = readAppStylesheet();
     const componentSource = readRequiredSource("../src/components/BrandedErrorScreen.tsx");
 
     assert.match(source, /\.linewatch-error-screen/);

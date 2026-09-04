@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
 const delaysSource = readFileSync(new URL("../src/components/DelaysPanel.tsx", import.meta.url), "utf8");
@@ -10,7 +11,7 @@ const stationHeaderSource = readFileSync(new URL("../src/components/StationDetai
 const stationPanelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalStationPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("circular View on Map button", () => {
   it("uses circular impact-card-map-btn with 'View on Map' text across all impact panels", () => {

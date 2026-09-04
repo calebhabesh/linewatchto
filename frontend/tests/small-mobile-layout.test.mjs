@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("compact phone layout", () => {
   it("targets narrow phones and short mobile viewports without changing taller regular-width phones", () => {

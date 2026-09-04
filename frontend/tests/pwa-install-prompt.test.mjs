@@ -13,12 +13,12 @@ import {
   isStandalonePwaDisplay,
   shouldShowPwaInstallNudge,
 } from "../src/app/pwa-install-state.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const hookSourceUrl = new URL("../src/hooks/usePwaInstallPrompt.ts", import.meta.url);
 const nudgeSourceUrl = new URL("../src/components/PwaInstallNudge.tsx", import.meta.url);
 const moreSheetSourceUrl = new URL("../src/components/MobileMoreSheet.tsx", import.meta.url);
 const shellSourceUrl = new URL("../src/components/LineWatchShell.tsx", import.meta.url);
-const globalCssUrl = new URL("../src/app/globals.css", import.meta.url);
 const iosGuideIconUrl = new URL("../public/assets/linewatch/guide-icons/share-iphone.svg", import.meta.url);
 const androidGuideIconUrl = new URL("../public/assets/linewatch/guide-icons/add-to-homescreen-android.svg", import.meta.url);
 
@@ -280,7 +280,7 @@ describe("PWA share entry in More sheet", () => {
 
 describe("PWA install prompt styles", () => {
   it("adds scoped mobile styles without changing the core PWA manifest or guide styles", () => {
-    const globalCss = readFileSync(globalCssUrl, "utf8");
+    const globalCss = readAppStylesheet();
 
     assert.match(globalCss, /\.pwa-install-nudge/);
     assert.match(globalCss, /bottom:\s*calc\(var\(--mobile-bottom-nav-occupied-height\)/);

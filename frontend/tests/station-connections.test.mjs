@@ -8,6 +8,7 @@ import {
   ttcStationIdForRegionalStation,
   ttcStationConnections,
 } from "../src/app/station-connections.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const ttcMap = readFileSync(
   new URL("../public/assets/linewatch/ttc-subway-map-custom.svg", import.meta.url),
@@ -37,7 +38,7 @@ const upExpressLogo = readFileSync(
   new URL("../public/assets/linewatch/connections/up-express-logo.svg", import.meta.url),
   "utf8",
 );
-const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const css = readAppStylesheet();
 
 describe("station connection metadata and map labels", () => {
   it("records reviewed TTC to GO/UP station pairs as reusable product data", () => {

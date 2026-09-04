@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
@@ -11,7 +12,7 @@ const arrivalPinSource = readFileSync(new URL("../src/components/ArrivalLinePinB
 const navButtonsSource = readFileSync(new URL("../src/components/StationSubmenuNavButtons.tsx", import.meta.url), "utf8");
 const stationHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("station detail panel layout", () => {
   it("reserves a bottom-right corner for regional arrival coach counts", () => {

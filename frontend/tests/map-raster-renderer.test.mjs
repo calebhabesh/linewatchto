@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const frontendRoot = fileURLToPath(new URL("..", import.meta.url));
 const assetRoot = `${frontendRoot}/public/assets/linewatch/raster-maps`;
@@ -57,7 +58,7 @@ describe("stable raster map renderer", () => {
       readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/hooks/useMobilePerformanceMode.ts`, "utf8"),
-      readFile(`${frontendRoot}/src/app/globals.css`, "utf8"),
+      readAppStylesheet(),
     ]);
 
     assert.match(mobileHook, /export function mobilePerformanceModeMatches\(\)/);
@@ -91,7 +92,7 @@ describe("stable raster map renderer", () => {
     const [ttc, regional, css] = await Promise.all([
       readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
-      readFile(`${frontendRoot}/src/app/globals.css`, "utf8"),
+      readAppStylesheet(),
     ]);
 
     const ttcBackground = ttc.indexOf('plane="background"');
@@ -117,7 +118,7 @@ describe("stable raster map renderer", () => {
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
-      readFile(`${frontendRoot}/src/app/globals.css`, "utf8"),
+      readAppStylesheet(),
       readFile(`${frontendRoot}/src/hooks/useMapLabelFontReady.ts`, "utf8"),
     ]);
 

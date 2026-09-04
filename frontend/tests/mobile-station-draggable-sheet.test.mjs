@@ -17,6 +17,7 @@ import {
   computeBoundedMapFrame,
   computeInsetViewportFocus,
 } from "../src/hooks/panZoomMath.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
@@ -24,7 +25,7 @@ const handleSource = readFileSync(new URL("../src/components/MobileSheetDragHand
 const hookSource = readFileSync(new URL("../src/hooks/useMobileDraggableSheet.ts", import.meta.url), "utf8");
 const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 
 describe("mobile station draggable sheet UX", () => {
@@ -107,7 +108,7 @@ describe("mobile station draggable sheet UX", () => {
     assert.match(hookSource, /aria-valuenow/);
   });
 
-  it("defines responsive CSS rules and drag handle styles in globals.css", () => {
+  it("defines responsive CSS rules and drag handle styles in stylesheet", () => {
     assert.match(globalCss, /\.station-sheet-drag-handle-container\s*\{[^}]*cursor:\s*grab/s);
     assert.match(globalCss, /\.station-sheet-drag-pill\s*\{[^}]*border-radius:\s*9999px/s);
     assert.match(globalCss, /\.station-sheet-drag-ridges\s*\{[^}]*display:\s*flex/s);

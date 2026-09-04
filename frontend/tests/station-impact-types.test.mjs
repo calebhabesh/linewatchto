@@ -8,12 +8,13 @@ import {
   stationImpactSelection,
   stationImpactSelectionsByStation,
 } from "../src/app/station-impact-types.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const stationSearch = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
 const myStations = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const badges = readFileSync(new URL("../src/components/StationImpactTypeBadges.tsx", import.meta.url), "utf8");
 const outageBadge = readFileSync(new URL("../src/components/StationOutageBadge.tsx", import.meta.url), "utf8");
-const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const styles = readAppStylesheet();
 
 describe("station impact type badges", () => {
   it("resolves Reduced Speed Zone source alerts before their broad delay severity", () => {

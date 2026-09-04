@@ -7,6 +7,7 @@ import {
   dataPracticeSections,
   privacyAcknowledgementLinks,
 } from "../src/app/privacy-acknowledgements-data.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const panelUrl = new URL("../src/components/PrivacyAcknowledgementsPanel.tsx", import.meta.url);
 
@@ -58,7 +59,7 @@ describe("privacy and acknowledgement content", () => {
 describe("privacy and acknowledgement navigation", () => {
   const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
   const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
-  const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  const globalCss = readAppStylesheet();
 
   it("adds a desktop menu item and a mobile More entry", () => {
     assert.equal(existsSync(panelUrl), true);

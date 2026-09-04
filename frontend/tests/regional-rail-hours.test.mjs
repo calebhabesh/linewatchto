@@ -7,6 +7,7 @@ import {
   getRegionalRailOperatingState,
   isRegionalRailClosed,
 } from "../src/app/regional-rail-hours.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 describe("GO and UP regional rail operating hours", () => {
   it("uses the broad weekday overnight pause after the last regular trains", () => {
@@ -88,10 +89,7 @@ describe("GO and UP closed-hours UI", () => {
     new URL("../src/components/LineWatchShell.tsx", import.meta.url),
     "utf8",
   );
-  const globalCss = readFileSync(
-    new URL("../src/app/globals.css", import.meta.url),
-    "utf8",
-  );
+  const globalCss = readAppStylesheet();
 
   it("renders corridor-aware schedule copy and official schedule links", () => {
     assert.match(closedScreenSource, /GO &amp; UP Rail Closed/);

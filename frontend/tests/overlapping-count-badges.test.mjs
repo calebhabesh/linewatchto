@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
-const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const css = readAppStylesheet();
 const badge = readFileSync(new URL("../src/components/OverlappingCountBadge.tsx", import.meta.url), "utf8");
 const mapBadge = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const regionalMap = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");

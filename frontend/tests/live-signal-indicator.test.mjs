@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const liveSignalIconSource = readFileSync(new URL("../src/components/LiveSignalIcon.tsx", import.meta.url), "utf8");
 const stationPanelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalStationPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const myStationsPanelSource = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const surfaceConnectionsSource = readFileSync(new URL("../src/components/SurfaceConnectionsSection.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("live signal indicator and propagating wave visual effect", () => {
   it("renders Lucide Radio icon geometry with transmitter dot and concentric arcs", () => {
@@ -25,7 +26,7 @@ describe("live signal indicator and propagating wave visual effect", () => {
     assert.match(liveSignalIconSource, /<circle[\s\S]*cx="12"[\s\S]*cy="12"[\s\S]*r="2"/);
   });
 
-  it("defines outward-propagating signal wave animations in globals.css", () => {
+  it("defines outward-propagating signal wave animations in stylesheet", () => {
     assert.match(globalCss, /@keyframes live-signal-dot-pulse/);
     assert.match(globalCss, /@keyframes live-signal-wave-inner/);
     assert.match(globalCss, /@keyframes live-signal-wave-outer/);

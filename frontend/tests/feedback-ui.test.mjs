@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const panelUrl = new URL("../src/components/FeedbackPanel.tsx", import.meta.url);
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("feedback panel UI", () => {
   it("renders a focused improvement textbox without reply collection", () => {

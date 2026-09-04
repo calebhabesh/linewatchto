@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const commutes = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const stations = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const notifications = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
-const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const styles = readAppStylesheet();
 
 describe("signed-out account feature previews", () => {
   it("uses one card treatment for Notifications, My Commutes, and My Stations", () => {

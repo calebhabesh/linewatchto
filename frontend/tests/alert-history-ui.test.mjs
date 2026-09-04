@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const timelineSource = readFileSync(
   new URL("../src/components/AlertHistoryTimeline.tsx", import.meta.url),
@@ -22,10 +23,7 @@ const moreSheetSource = readFileSync(
   new URL("../src/components/MobileMoreSheet.tsx", import.meta.url),
   "utf8",
 );
-const cssSource = readFileSync(
-  new URL("../src/app/globals.css", import.meta.url),
-  "utf8",
-);
+const cssSource = readAppStylesheet();
 
 describe("alert history timeline UI", () => {
   it("renders period chips and whole-incident status filters", () => {

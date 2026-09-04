@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 const guideComponentUrl = new URL("../src/components/SiteGuideDropdown.tsx", import.meta.url);
 const logsComponentUrl = new URL("../src/components/LogsDropdown.tsx", import.meta.url);
 const guideAssetUrl = new URL("../public/assets/linewatch/site-guide.svg", import.meta.url);

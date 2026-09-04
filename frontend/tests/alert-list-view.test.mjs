@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const readSource = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 const toolbarSource = readSource("../src/components/ImpactListToolbar.tsx");
 const compactRowSource = readSource("../src/components/CompactImpactListItem.tsx");
 const preferenceSource = readSource("../src/hooks/useImpactListView.ts");
-const globalCss = readSource("../src/app/globals.css");
+const globalCss = readAppStylesheet();
 const panelSources = [
   readSource("../src/components/ActiveAlertsPanel.tsx"),
   readSource("../src/components/DelaysPanel.tsx"),

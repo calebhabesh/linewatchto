@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const panelSource = readFileSync(new URL("../src/components/SurfaceNoticesPanel.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
-const stylesSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const stylesSource = readAppStylesheet();
 
 describe("surface notices panel and routing source verification", () => {
   it("verifies LineWatchShell.tsx includes surface-notices view and routing", () => {

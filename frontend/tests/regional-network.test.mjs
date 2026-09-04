@@ -14,6 +14,7 @@ import {
   regionalStationSummaries,
 } from "../src/app/regional-data.ts";
 import { defaultVisualPreferences } from "../src/app/visual-preferences.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const networkSelectorSource = readFileSync(new URL("../src/components/NetworkSelector.tsx", import.meta.url), "utf8");
@@ -30,7 +31,7 @@ const regionalStationDetailSource = readFileSync(new URL("../src/components/Regi
 const stationDetailHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const regionalSvg = readFileSync(new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url), "utf8");
-const globalsCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalsCss = readAppStylesheet();
 
 describe("network-scoped regional dashboard", () => {
   it("keeps TTC as the default and dispatches to separate map implementations", () => {

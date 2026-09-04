@@ -3,9 +3,10 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { MOBILE_VIEWPORT_QUERY } from "../src/hooks/useMobilePerformanceMode.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 const hookSource = readFileSync(new URL("../src/hooks/useMobilePerformanceMode.ts", import.meta.url), "utf8");
 
 describe("mobile landscape viewport mode", () => {

@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import fs from "node:fs";
-import path from "node:path";
 
 import { filterAndSortSavedStations } from "../src/app/saved-stations.ts";
-
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 function saved(id, name, lineIds, options = {}) {
   return {
@@ -66,7 +63,7 @@ test("line sort keeps TTC and regional routes in authored network order", () => 
 });
 
 test("saved station notice toast uses max-content width so mobile toasts remain single-line unless constrained", () => {
-  const css = fs.readFileSync(path.join(root, "src/app/globals.css"), "utf8");
+  const css = readAppStylesheet();
   const noticeRuleMatch = css.match(/\.saved-station-global-notice\s*\{([^}]+)\}/);
   assert.ok(noticeRuleMatch, "found .saved-station-global-notice rule");
   const block = noticeRuleMatch[1];

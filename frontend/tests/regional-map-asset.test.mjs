@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const svg = readFileSync(new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url), "utf8");
-const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const css = readAppStylesheet();
 
 describe("regional application map asset", () => {
   it("uses padded bounds and hides authored lakes and labels", () => {

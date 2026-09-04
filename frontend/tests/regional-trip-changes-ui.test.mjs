@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const stationSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const listSource = readFileSync(new URL("../src/components/RegionalTripChangesList.tsx", import.meta.url), "utf8");
@@ -9,7 +10,7 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const mobileStatusSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const mobilePeekSource = readFileSync(new URL("../src/components/MobileStatusPeek.tsx", import.meta.url), "utf8");
 const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
-const stylesSource = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const stylesSource = readAppStylesheet();
 
 describe("regional trip changes UI", () => {
   it("annotates matching arrivals and exposes a station-scoped upcoming section", () => {

@@ -102,3 +102,30 @@
 - Risks or blockers:
   - None. Visual baselines are locked and reproducible.
 - Next session: S02 — Decouple CSS source tests from `globals.css`.
+
+### S02 — Decouple CSS source tests from `globals.css`
+
+- Status: completed
+- Commit: 4a225dec
+- Scope: Decouple style contracts and fixture tests from hardcoded direct reads of `globals.css`. Add dependency-free helper `frontend/tests/helpers/stylesheet-graph.mjs` that recursively resolves relative `@import` rules in manifest order and preserves cascade semantics. Add comprehensive test suite in `frontend/tests/stylesheet-graph.test.mjs`. Migrate all 51 tests that directly read `globals.css` to read the complete stylesheet graph via the helper without relaxing any assertions.
+- Files changed:
+  - `frontend/tests/helpers/stylesheet-graph.mjs`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - 51 test files in `frontend/tests/*.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,111 tests, 0 failures across 135 suites).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 0 new warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed. Tests directly referencing `globals.css` reduced from 51 to 0.
+- Visual checks:
+  - Re-verified all 11 visual regression baselines pass cleanly with 0 diffs.
+- Decisions:
+  - Implemented `readAppStylesheet()` / `readAppStylesheetGraph()` with full cycle detection, recursive inlining of relative `@import` declarations, and comment preservation using only Node.js standard modules (`node:fs`, `node:path`, `node:url`).
+  - Added `readStylesheet(path)` for directly reading an individual stylesheet without resolving imports once physical extraction into leaf files occurs in S03+.
+  - Preserved all 1,100+ existing style contract assertions across all 51 tests without relaxing any assertion regex or token.
+- Risks or blockers:
+  - None. Extraction into `frontend/src/styles/` in S03 (canary `fonts.css`) can proceed safely without breaking contract tests.
+- Next session: S03 — Prove the import strategy with one low-risk extraction.

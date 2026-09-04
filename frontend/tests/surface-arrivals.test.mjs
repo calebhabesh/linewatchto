@@ -19,6 +19,7 @@ import {
   surfaceArrivalLabel,
   surfaceSourceSummary,
 } from "../src/app/surface-arrivals.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const row = (overrides = {}) => ({
   agency: "TTC",
@@ -315,7 +316,7 @@ describe("surface station arrivals", () => {
   it("integrates SurfaceConnectionsSection in MyStationsPanel and renders collapsed pinned routes", () => {
     const myStations = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
     const section = readFileSync(new URL("../src/components/SurfaceConnectionsSection.tsx", import.meta.url), "utf8");
-    const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+    const css = readAppStylesheet();
 
     assert.match(myStations, /SurfaceConnectionsSection[^>]*networkId="ttc"/);
     assert.match(myStations, /SurfaceConnectionsSection[^>]*networkId="regional"/);

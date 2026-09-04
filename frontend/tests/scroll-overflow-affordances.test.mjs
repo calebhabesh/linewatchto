@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const controllerSource = readFileSync(
   new URL("../src/components/ScrollOverflowAffordances.tsx", import.meta.url),
@@ -10,10 +11,7 @@ const shellSource = readFileSync(
   new URL("../src/components/LineWatchShell.tsx", import.meta.url),
   "utf8",
 );
-const globalCss = readFileSync(
-  new URL("../src/app/globals.css", import.meta.url),
-  "utf8",
-);
+const globalCss = readAppStylesheet();
 
 describe("scroll overflow affordances", () => {
   it("mounts one overflow-aware controller for desktop and mobile list surfaces", () => {

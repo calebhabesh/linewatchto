@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const chipPath = new URL("../src/components/SubwayClosingSoonChip.tsx", import.meta.url);
 const previewScriptPath = new URL("../scripts/preview-closing-soon.mjs", import.meta.url);
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 const baseClosingSoonChipCss = globalCss.match(/\.subway-closing-soon-chip\s*\{[^}]*\}/s)?.[0] ?? "";
 const sharedMobileAnnouncementCss = Array.from(
   globalCss.matchAll(/\.subway-closing-soon-chip,\s*\.subway-closed-peek-chip,\s*\.go-up-closed-peek-chip\s*\{[^}]*\}/gs)

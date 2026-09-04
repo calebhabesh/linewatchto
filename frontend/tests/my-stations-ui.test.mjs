@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shell = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const panel = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
@@ -8,7 +9,7 @@ const stationDetail = readFileSync(new URL("../src/components/StationDetailPanel
 const stationDetailHeader = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const stationSearch = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
 const mobileMore = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
-const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const styles = readAppStylesheet();
 const transitLineBadge = readFileSync(new URL("../src/components/TransitLineBadge.tsx", import.meta.url), "utf8");
 
 describe("My Stations UI", () => {

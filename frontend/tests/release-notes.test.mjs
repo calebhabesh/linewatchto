@@ -11,13 +11,14 @@ import {
   releaseNotes,
   shouldShowReleaseNotesNotice,
 } from "../src/app/release-notes.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const appUpdateBannerSource = readFileSync(new URL("../src/components/AppUpdateBanner.tsx", import.meta.url), "utf8");
 const versionRouteSource = readFileSync(new URL("../src/app/version.json/route.ts", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 const panelUrl = new URL("../src/components/ReleaseNotesPanel.tsx", import.meta.url);
 const noticeUrl = new URL("../src/components/ReleaseNotesNotice.tsx", import.meta.url);
 

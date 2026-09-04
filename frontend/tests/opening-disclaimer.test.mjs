@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const onboardingPath = new URL("../src/components/OpeningDisclaimer.tsx", import.meta.url);
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const onboardingSource = readFileSync(onboardingPath, "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("first-visit welcome experience", () => {
   it("separates the welcome carousel from the unofficial-project acknowledgement", () => {

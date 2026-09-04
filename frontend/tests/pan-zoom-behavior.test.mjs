@@ -21,12 +21,13 @@ import {
   transformForMapPointAtViewportPoint,
   transformForViewportResize,
 } from "../src/hooks/panZoomMath.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("pan zoom behavior guardrails", () => {
   it("centers desktop artwork within the space below the controls", () => {

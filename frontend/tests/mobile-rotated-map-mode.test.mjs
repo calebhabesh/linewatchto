@@ -9,13 +9,14 @@ import {
   logicalViewportSizeForOrientation,
   orientedMapCameraTransform,
 } from "../src/hooks/panZoomMath.ts";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const controlsSource = readFileSync(new URL("../src/components/MobileMapControls.tsx", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 const rotatedSelectionSource = readFileSync(new URL("../src/components/RotatedMapSelectionCard.tsx", import.meta.url), "utf8");
 const exclaimAlertAsset = new URL("../public/assets/linewatch/exclaim-alert-white.svg", import.meta.url);
 

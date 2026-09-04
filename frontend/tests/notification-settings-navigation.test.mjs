@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
@@ -8,7 +9,7 @@ const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommute
 const notificationPanelSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
 const diagnosticsPanelSource = readFileSync(new URL("../src/components/PushDeliveryDiagnosticsPanel.tsx", import.meta.url), "utf8");
 const diagnosticsStateSource = readFileSync(new URL("../src/app/push-diagnostics-state.ts", import.meta.url), "utf8");
-const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const globalCss = readAppStylesheet();
 
 describe("notification settings navigation", () => {
   it("centralizes notification settings behind More without adding a mobile nav item", () => {

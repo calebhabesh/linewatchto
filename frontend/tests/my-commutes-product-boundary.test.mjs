@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const panel = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
-const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const styles = readAppStylesheet();
 const guide = readFileSync(new URL("../src/components/SiteGuideDropdown.tsx", import.meta.url), "utf8");
 const onboarding = readFileSync(new URL("../src/components/OpeningDisclaimer.tsx", import.meta.url), "utf8");
 const privacy = readFileSync(new URL("../src/app/privacy-acknowledgements-data.ts", import.meta.url), "utf8");
