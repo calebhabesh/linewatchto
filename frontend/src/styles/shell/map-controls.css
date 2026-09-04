@@ -1,0 +1,220 @@
+.regional-map-controls {
+  position: absolute;
+  right: 1rem;
+  top: 9.5rem;
+  z-index: 4;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.regional-map-controls button {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 7px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+}
+
+.regional-map-controls svg { width: 1.15rem; }
+
+@media (min-width: 1024px) {
+  .desktop-map-control-rail {
+    top: 96px !important;
+  }
+  .regional-map-control-rail {
+    top: 176px !important;
+    right: 24px !important;
+    width: 62px !important;
+    left: auto !important;
+    transform: none !important;
+    border-radius: 12px !important;
+  }
+}
+
+.map-control-rail {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+  padding: 4px;
+}
+
+.dark .map-control-rail {
+  background: rgba(10, 12, 16, 0.9);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+  color: #ffffff;
+}
+
+.high-contrast .map-control-rail {
+  background: #000000;
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px #000000;
+  color: #ffffff;
+}
+
+.map-control-divider {
+  align-self: center;
+  background-color: rgba(15, 23, 42, 0.16);
+  height: 28px;
+  margin: 0 4px;
+  width: 1px;
+}
+
+.dark .map-control-divider {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.high-contrast .map-control-divider {
+  background-color: #ffffff;
+}
+
+.map-control-divider-v {
+  align-self: center;
+  background-color: rgba(15, 23, 42, 0.16);
+  height: 1px;
+  margin: 4px 0;
+  width: 32px;
+}
+
+.dark .map-control-divider-v {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.high-contrast .map-control-divider-v {
+  background-color: #ffffff;
+}
+
+.map-control-button {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 52px;
+  justify-content: center;
+  outline: none;
+  padding: 0 10px;
+  transition: background-color 150ms ease, color 150ms ease, transform 120ms ease;
+  min-width: 52px;
+}
+
+.map-control-button span {
+  line-height: 1;
+}
+
+.map-control-button:hover,
+.map-control-button:focus-visible {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
+.dark .map-control-button:hover,
+.dark .map-control-button:focus-visible,
+.high-contrast .map-control-button:hover,
+.high-contrast .map-control-button:focus-visible {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}
+
+.map-control-button:active {
+  transform: scale(0.97);
+}
+
+.map-control-slider {
+  min-width: 68px;
+  height: 52px;
+}
+
+.map-control-slider span {
+  line-height: 1;
+}
+
+.regional-map-control-rail {
+  width: 62px !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+}
+
+.regional-map-control-rail .map-control-button {
+  box-sizing: border-box;
+  height: 52px !important;
+  min-height: 52px !important;
+  min-width: 52px !important;
+  width: 52px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+}
+
+.regional-map-control-rail .map-control-slider {
+  height: auto !important;
+  min-height: 84px !important;
+  min-width: 52px !important;
+  width: 52px !important;
+  padding: 4px 0 !important;
+}
+
+.regional-map-control-rail .map-control-recenter-desktop-label {
+  font-size: 8.5px !important;
+  letter-spacing: 0.04em !important;
+}
+
+.map-control-zoom-group {
+  display: contents;
+}
+
+/* Recenter button & label desktop defaults */
+.map-control-recenter-container {
+  display: contents;
+}
+.map-control-recenter-mobile-label {
+  display: none !important;
+}
+
+.map-control-recenter-container .map-control-button svg,
+.map-control-recenter-icon {
+  color: #ffffff;
+  stroke: #ffffff;
+  fill: #2563eb;
+  stroke-width: 2.2;
+  flex-shrink: 0;
+  filter: none !important;
+  transition: transform 0.2s ease, fill 0.15s ease;
+}
+
+.map-control-recenter-container .map-control-button:hover svg,
+.map-control-recenter-container .map-control-button:focus-visible svg,
+.map-control-button:hover .map-control-recenter-icon,
+.map-control-button:focus-visible .map-control-recenter-icon {
+  transform: scale(1.08);
+  filter: none !important;
+}
+
+.linewatch-shell:not(.dark) .map-control-recenter-container .map-control-button svg,
+.linewatch-shell:not(.dark) .map-control-recenter-icon {
+  color: #2563eb;
+  stroke: #2563eb;
+  fill: rgba(37, 99, 235, 0.25);
+  filter: none;
+}
+
+.linewatch-shell:not(.dark) .map-control-recenter-container .map-control-button:hover svg,
+.linewatch-shell:not(.dark) .map-control-recenter-container .map-control-button:focus-visible svg,
+.linewatch-shell:not(.dark) .map-control-button:hover .map-control-recenter-icon,
+.linewatch-shell:not(.dark) .map-control-button:focus-visible .map-control-recenter-icon {
+  fill: rgba(37, 99, 235, 0.4);
+}
+
+.high-contrast .map-control-recenter-container .map-control-button svg,
+.linewatch-shell.high-contrast .map-control-recenter-container .map-control-button svg,
+.high-contrast .map-control-recenter-icon,
+.linewatch-shell.high-contrast .map-control-recenter-icon {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: #000000 !important;
+  filter: none !important;
+}

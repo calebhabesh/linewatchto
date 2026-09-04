@@ -1,0 +1,11 @@
+.linewatch-wordmark {
+  font-family: "Chillax", var(--font-wordmark), Arial, Helvetica, sans-serif;
+  font-size: 1.3em;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.linewatch-shell {
+  --desktop-global-search-width: 370px;
+}

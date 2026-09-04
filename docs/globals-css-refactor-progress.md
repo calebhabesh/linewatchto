@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S06E
-- Last completed session: S06E
-- Next recommended session: S07
+- Current session: S07
+- Last completed session: S07
+- Next recommended session: S08
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 26,316 |
-| Total authored app CSS lines | 31,414 | 31,420 |
-| Total authored app CSS bytes | 784,128 | 784,671 |
-| Parsed rules | 4,221 | 3,722 |
-| Declarations | 14,093 | 12,434 |
-| !important | 2,356 | 2,084 |
+| Global entry lines | 30,011 | 25,127 |
+| Total authored app CSS lines | 31,414 | 31,427 |
+| Total authored app CSS bytes | 784,128 | 784,858 |
+| Parsed rules | 4,221 | 3,543 |
+| Declarations | 14,093 | 11,850 |
+| !important | 2,356 | 1,974 |
 | Class-substring selectors | 32 | 32 |
-| Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 107,655 |
+| Production CSS bytes | 705,472 | 705,456 |
+| Production CSS gzip bytes | 108,667 | 107,558 |
 
 ## Session log
 
@@ -364,3 +364,35 @@
   - None. S06 family is fully complete and verified.
 - Next session: S07 — Extract shell and desktop chrome (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/floating-panels.css`).
 
+### S07 — Extract shell and desktop chrome
+
+- Status: completed
+- Commit: pending
+- Scope: Extract shell container, desktop chrome, floating panels, and map controls from `globals.css` (1,189 lines total) into four dedicated stylesheets in `frontend/src/styles/shell/`: `dashboard-shell.css` (wordmark, shell custom property), `desktop-chrome.css` (network selector capsule and glider, top chrome elevation, desktop status capsule anchor and rows, live indicator dot, polling badge, train switch, impact status chips with all color/contrast modes, responsive breakpoints, main menu pin button), `floating-panels.css` (panel surface bases, mobile sheet icon button, floating panel shell, scroll frame, panel header, shared panel scrolling containers, enter keyframes, motion-paused, 640px and pinned-menu 768px overrides), and `map-controls.css` (regional map controls, desktop map control rail 1024px positioning, map control rail base and dark/high-contrast themes, dividers, button and slider controls, regional map rail, zoom group contents, and desktop recenter container and icon styles). Add relative imports `@import "../styles/shell/dashboard-shell.css";`, `@import "../styles/shell/desktop-chrome.css";`, `@import "../styles/shell/floating-panels.css";`, and `@import "../styles/shell/map-controls.css";` to `globals.css` lines 15-18. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/shell/dashboard-shell.css`
+  - `frontend/src/styles/shell/desktop-chrome.css`
+  - `frontend/src/styles/shell/floating-panels.css`
+  - `frontend/src/styles/shell/map-controls.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,127 tests, 0 failures across 135 suites in ~1169ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.4s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 26,316 to 25,127; parsed rules -179; parsed declarations -584; `!important` -110; media queries -9; keyframes -2; production chunk raw bytes 705,456; gzip bytes improved to 107,558).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, GO/UP desktop map, high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile views.
+- Decisions:
+  - Extracted 4 modular stylesheets into `frontend/src/styles/shell/`: `dashboard-shell.css` (11 lines), `desktop-chrome.css` (817 lines), `floating-panels.css` (148 lines), and `map-controls.css` (220 lines), reducing `globals.css` by 1,189 lines.
+  - Consolidated network selector capsule, desktop status capsule, and impact chip states into `desktop-chrome.css` to keep all desktop header chrome together.
+  - Placed `@import "../styles/shell/..."` immediately following `@import "../styles/map/train-markers.css";` at lines 15-18 in `globals.css` to preserve the cascade hierarchy where shell chrome and floating panels sit above map layers.
+  - Preserved mobile-specific overrides (sheets, bottom nav, mobile action clusters, narrow viewports) in late `globals.css` for S08 to avoid fracturing late-file media queries and cascade order.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` verifying that all four extracted stylesheets resolve in the app stylesheet graph and read directly via `readStylesheet()`.
+- Risks or blockers:
+  - None. S07 is fully verified and visual baselines match identically.
+- Next session: S08 — Extract mobile shell and responsive-density styles (`shell/mobile-chrome.css`, `utilities/responsive-density.css`) covering bottom navigation, Status/More sheets, draggable sheets, safe-area handling, rotated-map mode, mobile action clusters, and compact-phone/narrow viewport rules.

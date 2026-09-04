@@ -287,4 +287,62 @@ describe("stylesheet-graph helper", () => {
     assert.match(trainMarkersContent, /\.high-contrast \.estimated-train-marker-core/);
     assert.match(trainMarkersContent, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-outline/);
   });
+
+  it("resolves the extracted shell/dashboard-shell.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("dashboard-shell.css")), "dashboard-shell.css must be in graph files");
+    const dashboardShellContent = readStylesheet(new URL("../src/styles/shell/dashboard-shell.css", import.meta.url));
+    assert.match(dashboardShellContent, /\.linewatch-wordmark/);
+    assert.match(dashboardShellContent, /\.linewatch-shell/);
+    assert.match(dashboardShellContent, /--desktop-global-search-width/);
+  });
+
+  it("resolves the extracted shell/desktop-chrome.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("desktop-chrome.css")), "desktop-chrome.css must be in graph files");
+    const desktopChromeContent = readStylesheet(new URL("../src/styles/shell/desktop-chrome.css", import.meta.url));
+    assert.match(desktopChromeContent, /\.network-selector/);
+    assert.match(desktopChromeContent, /\.network-selector-glider/);
+    assert.match(desktopChromeContent, /\.desktop-top-chrome/);
+    assert.match(desktopChromeContent, /\.desktop-status-capsule-anchor/);
+    assert.match(desktopChromeContent, /\.desktop-status-capsule/);
+    assert.match(desktopChromeContent, /\.desktop-status-train-switch/);
+    assert.match(desktopChromeContent, /\.desktop-header-impact-chips/);
+    assert.match(desktopChromeContent, /\.desktop-status-chip--alerts/);
+    assert.match(desktopChromeContent, /\.desktop-status-chip--delays/);
+    assert.match(desktopChromeContent, /\.main-menu-pin/);
+  });
+
+  it("resolves the extracted shell/floating-panels.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("floating-panels.css")), "floating-panels.css must be in graph files");
+    const floatingPanelsContent = readStylesheet(new URL("../src/styles/shell/floating-panels.css", import.meta.url));
+    assert.match(floatingPanelsContent, /\.map-panel/);
+    assert.match(floatingPanelsContent, /\.panel/);
+    assert.match(floatingPanelsContent, /\.floating-panel-shell/);
+    assert.match(floatingPanelsContent, /\.floating-panel-scroll/);
+    assert.match(floatingPanelsContent, /\.panel-heading/);
+    assert.match(floatingPanelsContent, /\.line-impact-panel-stack/);
+    assert.match(floatingPanelsContent, /@keyframes floating-panel-enter/);
+    assert.match(floatingPanelsContent, /\.panel-strong/);
+    assert.match(floatingPanelsContent, /\[data-menu-pinned="true"\]/);
+  });
+
+  it("resolves the extracted shell/map-controls.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("map-controls.css")), "map-controls.css must be in graph files");
+    const mapControlsContent = readStylesheet(new URL("../src/styles/shell/map-controls.css", import.meta.url));
+    assert.match(mapControlsContent, /\.regional-map-controls/);
+    assert.match(mapControlsContent, /\.desktop-map-control-rail/);
+    assert.match(mapControlsContent, /\.map-control-rail/);
+    assert.match(mapControlsContent, /\.map-control-button/);
+    assert.match(mapControlsContent, /\.map-control-slider/);
+    assert.match(mapControlsContent, /\.regional-map-control-rail/);
+    assert.match(mapControlsContent, /\.map-control-zoom-group/);
+    assert.match(mapControlsContent, /\.map-control-recenter-container/);
+  });
 });
