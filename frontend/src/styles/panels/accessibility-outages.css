@@ -1,0 +1,57 @@
+/**
+ * Accessibility Outages Panel Styles
+ *
+ * Covers accessibility outages accordion expansion and rotation,
+ * group cards, elevator and escalator drill-down views, station lists,
+ * outage item cards, and accessibility status indicators.
+ */
+
+/* ==========================================================================
+   Accessibility Outages Accordion Smooth Expansion & Rotation
+   ========================================================================== */
+
+.accessibility-accordion-wrapper {
+  display: grid;
+  transition: grid-template-rows 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+  will-change: grid-template-rows, opacity;
+}
+
+.accessibility-accordion-wrapper[data-expanded="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.accessibility-accordion-wrapper[data-expanded="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.accessibility-accordion-chevron {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
+}
+
+.accessibility-accordion-chevron[data-expanded="true"] {
+  transform: rotate(180deg);
+}
+
+.accessibility-accordion-chevron[data-expanded="false"] {
+  transform: rotate(0deg);
+}
+
+/* ==========================================================================
+   Motion Paused & Reduced Motion Accommodations
+   ========================================================================== */
+
+.motion-paused .accessibility-accordion-chevron,
+.motion-paused .accessibility-accordion-wrapper {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accessibility-accordion-chevron,
+  .accessibility-accordion-wrapper {
+    transition: none !important;
+  }
+}

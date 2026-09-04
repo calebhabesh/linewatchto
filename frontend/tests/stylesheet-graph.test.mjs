@@ -810,4 +810,40 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.legend-rsz-button/);
     assert.match(content, /\.legend-delay-button/);
   });
+
+  it("resolves the extracted panels/accessibility-outages.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("accessibility-outages.css")), "accessibility-outages.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/panels/accessibility-outages.css", import.meta.url));
+    assert.match(content, /\.accessibility-accordion-wrapper/);
+    assert.match(content, /\.accessibility-accordion-wrapper\[data-expanded="true"\]/);
+    assert.match(content, /\.accessibility-accordion-wrapper\[data-expanded="false"\]/);
+    assert.match(content, /\.accessibility-accordion-chevron/);
+    assert.match(content, /\.accessibility-accordion-chevron\[data-expanded="true"\]/);
+    assert.match(content, /\.accessibility-accordion-chevron\[data-expanded="false"\]/);
+    assert.match(content, /\.motion-paused \.accessibility-accordion-chevron/);
+  });
+
+  it("resolves the extracted panels/surface-notices.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("surface-notices.css")), "surface-notices.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/panels/surface-notices.css", import.meta.url));
+    assert.match(content, /\.surface-notices-body/);
+    assert.match(content, /\.dark \.surface-notices-body/);
+    assert.match(content, /\.high-contrast \.surface-notices-body/);
+    assert.match(content, /\.floating-panel-shell\[data-floating-panel="mobile-panel"\]:has\(\[data-active-view="surface-notices"\]\) \.floating-panel-scroll/);
+    assert.match(content, /\.regional-notices-filter/);
+    assert.match(content, /\.regional-notices-glider/);
+    assert.match(content, /\.regional-notices-filter\[data-content="notices"\] \.regional-notices-glider/);
+    assert.match(content, /\.regional-notices-filter\[data-content="trip-changes"\] \.regional-notices-glider/);
+    assert.match(content, /\.trip-change-tone/);
+    assert.match(content, /\.dark \.trip-change-tone/);
+    assert.match(content, /\.trip-change-count-badge/);
+    assert.match(content, /\.dark \.trip-change-count-badge/);
+    assert.match(content, /\.station-trip-changes-summary/);
+    assert.match(content, /\.station-trip-changes-chevron/);
+    assert.match(content, /\.station-trip-changes-details\[open\] \.station-trip-changes-chevron/);
+  });
 });

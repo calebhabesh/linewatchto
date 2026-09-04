@@ -31,6 +31,8 @@
 @import "../styles/account/saved-commute-rules.css";
 @import "../styles/account/notification-settings.css";
 @import "../styles/panels/alerts.css";
+@import "../styles/panels/accessibility-outages.css";
+@import "../styles/panels/surface-notices.css";
 
 html[data-network-transition-direction] .network-map-transition-surface {
   view-transition-name: network-map;
@@ -1262,19 +1264,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .station-impacts-details[open] .station-impacts-chevron {
   transform: rotate(180deg);
 }
-
-.station-trip-changes-summary::-webkit-details-marker {
-  display: none;
-}
-
-.station-trip-changes-chevron {
-  transition: transform 160ms ease;
-}
-
-.station-trip-changes-details[open] .station-trip-changes-chevron {
-  transform: rotate(180deg);
-}
-
 
 .linewatch-shell.high-contrast .linewatch-backdrop {
   background-color: #000000 !important;
@@ -2605,21 +2594,6 @@ img.transit-line-badge {
 .analytics-panel,
 .health-panel {
   grid-column: span 1;
-}
-
-.surface-notices-body {
-  background: rgb(255, 255, 255);
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
-}
-
-.dark .surface-notices-body {
-  background: rgb(10, 12, 16);
-}
-
-.high-contrast .surface-notices-body {
-  background: #000000;
-  border-top: 1px solid #ffffff;
 }
 
 .analytics-panel {
@@ -5293,11 +5267,6 @@ img.transit-line-badge {
     padding-bottom: 12px !important;
   }
 
-
-  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="surface-notices"]) .floating-panel-scroll {
-    padding: 0 !important;
-  }
-
   .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {
     margin-top: 0px !important;
     padding-top: 12px !important;
@@ -5907,21 +5876,6 @@ img.transit-line-badge {
   opacity: 0.65;
 }
 
-.trip-change-tone {
-  color: var(--trip-change-ink);
-}
-
-.trip-change-count-badge {
-  background: var(--trip-change-soft) !important;
-  color: var(--trip-change-ink) !important;
-  border-color: var(--trip-change-border) !important;
-}
-
-.dark .trip-change-count-badge,
-.high-contrast .trip-change-count-badge {
-  color: var(--trip-change) !important;
-}
-
 /* Contemporary tactile styling for desktop line status rows (clean slate) */
 .desktop-line-status-row {
   box-shadow:
@@ -6313,50 +6267,6 @@ img.transit-line-badge {
   background-image: none !important;
 }
 
-.regional-notices-filter {
-  position: relative;
-  border-color: transparent !important;
-  box-shadow: var(--mobile-card-shadow);
-}
-
-.regional-notices-glider {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc((100% - 12px) / 2);
-  border-radius: 6px;
-  pointer-events: none;
-  z-index: 0;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease;
-  background: white;
-  box-shadow: 0 1px 3px rgb(15 23 42 / 0.14);
-}
-
-.dark .regional-notices-glider {
-  background: rgb(30 41 59);
-  border: none !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-}
-
-.regional-notices-filter[data-content="notices"] .regional-notices-glider {
-  transform: translateX(0);
-}
-
-.regional-notices-filter[data-content="trip-changes"] .regional-notices-glider {
-  transform: translateX(calc(100% + 4px));
-}
-
-.motion-paused .regional-notices-glider {
-  transition: none !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .regional-notices-glider {
-    transition: none !important;
-  }
-}
-
 /* Hover and active states for light mode line impacts */
 @media (hover: hover) {
   .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
@@ -6397,10 +6307,6 @@ img.transit-line-badge {
 }
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures {
   background: #0e1c30 !important;
-}
-
-.dark .trip-change-tone {
-  color: #fbbf24;
 }
 
 /* Hover and active states for dark mode line impacts */
@@ -9465,37 +9371,6 @@ img.transit-line-badge {
     opacity: 0;
     transform: translateX(-32px) scale(0.95);
   }
-}
-
-/* Accessibility Outages Accordion Smooth Expansion & Rotation */
-.accessibility-accordion-wrapper {
-  display: grid;
-  transition: grid-template-rows 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
-  will-change: grid-template-rows, opacity;
-}
-
-.accessibility-accordion-wrapper[data-expanded="true"] {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-
-.accessibility-accordion-wrapper[data-expanded="false"] {
-  grid-template-rows: 0fr;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.accessibility-accordion-chevron {
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: center;
-}
-
-.accessibility-accordion-chevron[data-expanded="true"] {
-  transform: rotate(180deg);
-}
-
-.accessibility-accordion-chevron[data-expanded="false"] {
-  transform: rotate(0deg);
 }
 
 /* Container Navigation Transitions (Forward vs Back) */

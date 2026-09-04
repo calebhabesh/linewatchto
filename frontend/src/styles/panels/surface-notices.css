@@ -1,0 +1,122 @@
+/**
+ * Surface Connection Notices & Regional Trip Changes Styles
+ *
+ * Covers surface notices panel body container, route groups, stop rows,
+ * regional notice content filter and sliding glider, and regional trip changes integration.
+ */
+
+/* ==========================================================================
+   Surface Notices Body Container
+   ========================================================================== */
+
+.surface-notices-body {
+  background: rgb(255, 255, 255);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.dark .surface-notices-body {
+  background: rgb(10, 12, 16);
+}
+
+.high-contrast .surface-notices-body {
+  background: #000000;
+  border-top: 1px solid #ffffff;
+}
+
+/* ==========================================================================
+   Mobile Sheet Padding Override
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="surface-notices"]) .floating-panel-scroll {
+    padding: 0 !important;
+  }
+}
+
+/* ==========================================================================
+   Regional Notices Content Filter & Sliding Glider
+   ========================================================================== */
+
+.regional-notices-filter {
+  position: relative;
+  border-color: transparent !important;
+  box-shadow: var(--mobile-card-shadow);
+}
+
+.regional-notices-glider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 12px) / 2);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease;
+  background: white;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.14);
+}
+
+.dark .regional-notices-glider {
+  background: rgb(30 41 59);
+  border: none !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.regional-notices-filter[data-content="notices"] .regional-notices-glider {
+  transform: translateX(0);
+}
+
+.regional-notices-filter[data-content="trip-changes"] .regional-notices-glider {
+  transform: translateX(calc(100% + 4px));
+}
+
+.motion-paused .regional-notices-glider {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regional-notices-glider {
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   Trip Changes Tone & Count Badges
+   ========================================================================== */
+
+.trip-change-tone {
+  color: var(--trip-change-ink);
+}
+
+.dark .trip-change-tone {
+  color: #fbbf24;
+}
+
+.trip-change-count-badge {
+  background: var(--trip-change-soft) !important;
+  color: var(--trip-change-ink) !important;
+  border-color: var(--trip-change-border) !important;
+}
+
+.dark .trip-change-count-badge,
+.high-contrast .trip-change-count-badge {
+  color: var(--trip-change) !important;
+}
+
+/* ==========================================================================
+   Station Trip Changes Accordion
+   ========================================================================== */
+
+.station-trip-changes-summary::-webkit-details-marker {
+  display: none;
+}
+
+.station-trip-changes-chevron {
+  transition: transform 160ms ease;
+}
+
+.station-trip-changes-details[open] .station-trip-changes-chevron {
+  transform: rotate(180deg);
+}
