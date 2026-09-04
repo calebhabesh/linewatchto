@@ -381,4 +381,22 @@ describe("stylesheet-graph helper", () => {
     assert.match(mobileSheetsContent, /\.mobile-impact-inspector/);
     assert.match(mobileSheetsContent, /@keyframes mobile-impact-inspector-enter/);
   });
+
+  it("resolves the extracted shell/mobile-landscape.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("mobile-landscape.css")), "mobile-landscape.css must be in graph files");
+    const mobileLandscapeContent = readStylesheet(new URL("../src/styles/shell/mobile-landscape.css", import.meta.url));
+    assert.match(mobileLandscapeContent, /\.mobile-map-controls/);
+    assert.match(mobileLandscapeContent, /\.mobile-map-controls\[data-mode="rotated-landscape"\]/);
+    assert.match(mobileLandscapeContent, /\.linewatch-shell\.mobile-map-rotated/);
+    assert.match(mobileLandscapeContent, /\.rotated-map-ui-surface/);
+    assert.match(mobileLandscapeContent, /\.rotated-map-hud/);
+    assert.match(mobileLandscapeContent, /\.rotated-map-selection-hud/);
+    assert.match(mobileLandscapeContent, /\.rotated-map-selection-card/);
+    assert.match(mobileLandscapeContent, /\.rotated-map-selection-action-column/);
+    assert.match(mobileLandscapeContent, /\.rotated-map-selection-details-action/);
+    assert.match(mobileLandscapeContent, /\.rotated-map-selection-portrait-cue/);
+    assert.match(mobileLandscapeContent, /\.rotated-map-selection-card-critical/);
+  });
 });
