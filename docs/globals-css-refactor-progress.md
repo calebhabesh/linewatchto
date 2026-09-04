@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S06D
-- Last completed session: S06D
-- Next recommended session: S06E
+- Current session: S06E
+- Last completed session: S06E
+- Next recommended session: S07
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 26,774 |
-| Total authored app CSS lines | 31,414 | 31,418 |
-| Total authored app CSS bytes | 784,128 | 784,583 |
-| Parsed rules | 4,221 | 3,802 |
-| Declarations | 14,093 | 12,648 |
-| !important | 2,356 | 2,103 |
+| Global entry lines | 30,011 | 26,316 |
+| Total authored app CSS lines | 31,414 | 31,420 |
+| Total authored app CSS bytes | 784,128 | 784,671 |
+| Parsed rules | 4,221 | 3,722 |
+| Declarations | 14,093 | 12,434 |
+| !important | 2,356 | 2,084 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 107,828 |
+| Production CSS gzip bytes | 108,667 | 107,655 |
 
 ## Session log
 
@@ -332,3 +332,35 @@
 - Risks or blockers:
   - None. Overlap badges and chooser extraction is clean and verified.
 - Next session: S06E — Extract train markers and commute path previews (`map/train-markers.css` or `map/commute-preview.css`).
+
+### S06E — Extract train markers and commute path previews
+
+- Status: completed
+- Commit: cf8f01ff
+- Scope: Extract commute path preview geometry and chip styles (`.commute-path-preview-layer`, `.commute-path-preview-glow`, `.commute-path-preview-path`, `.commute-path-preview-endpoint`, regional pulse keyframe `@keyframes regional-commute-path-pulse`, regional stroke overrides, performance mode and motion-paused rules, chip entrance keyframes `@keyframes commute-preview-chip-enter`, `@keyframes commute-preview-embedded-enter`, `@keyframes commute-preview-mobile-enter`, `.commute-path-preview-chip`, dark and high-contrast themes, mobile viewports, embedded chip, motion-paused, prefers-reduced-motion, and mobile inspector margin) from `globals.css` (301 lines) into dedicated `frontend/src/styles/map/commute-preview.css`. Extract estimated train marker styles (`.estimated-train-marker-layer`, pointer events, muted state, `.estimated-train-marker`, outline, core, arrow, window, light theme `:not(.dark)`, line colors Line 1-6 and regional corridors BR, KI, LE, LW, MI, RH, ST, UP, high contrast, motion-paused, mobile performance mode) from `globals.css` (159 lines) into dedicated `frontend/src/styles/map/train-markers.css`. Add relative imports `@import "../styles/map/commute-preview.css";` and `@import "../styles/map/train-markers.css";` immediately after `overlap-chooser.css` in top manifest order. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/map/commute-preview.css`
+  - `frontend/src/styles/map/train-markers.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,123 tests, 0 failures across 135 suites in ~976ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 26,774 to 26,316; parsed rules -80; parsed declarations -214; `!important` -19; media queries -4; keyframe blocks -4; production chunk raw bytes unchanged at 705,499; gzip bytes improved by 173 bytes to 107,655).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, GO/UP desktop map, high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile views.
+- Decisions:
+  - Extracted commute path previews into dedicated `frontend/src/styles/map/commute-preview.css` (301 lines) and estimated train markers into dedicated `frontend/src/styles/map/train-markers.css` (159 lines), maintaining single-responsibility modular stylesheets rather than convolving train blips with commute route polyline geometry.
+  - Placed `@import "../styles/map/commute-preview.css";` and `@import "../styles/map/train-markers.css";` right after `@import "../styles/map/overlap-chooser.css";` at lines 13 and 14 in `globals.css` to complete the map layer cascade.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` verifying that both `commute-preview.css` and `train-markers.css` resolve in the app stylesheet graph and read directly via `readStylesheet()`.
+  - Preserved multi-selector global camera gesture performance blocks (`:is(.map-gesture-active, ...)` and `:is([data-map-gesture-active="true"], ...)`) in late `globals.css` for S08 / late-file performance consolidation.
+  - Completed the S06 family (S06A through S06E).
+- Risks or blockers:
+  - None. S06 family is fully complete and verified.
+- Next session: S07 — Extract shell and desktop chrome (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/floating-panels.css`).
+

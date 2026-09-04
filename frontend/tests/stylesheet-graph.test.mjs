@@ -254,4 +254,37 @@ describe("stylesheet-graph helper", () => {
     assert.match(overlapChooserContent, /\.delay-badge-exclamation/);
     assert.match(overlapChooserContent, /\.overlap-impact-ref/);
   });
+
+  it("resolves the extracted map/commute-preview.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("commute-preview.css")), "commute-preview.css must be in graph files");
+    const commutePreviewContent = readStylesheet(new URL("../src/styles/map/commute-preview.css", import.meta.url));
+    assert.match(commutePreviewContent, /\.commute-path-preview-layer/);
+    assert.match(commutePreviewContent, /\.commute-path-preview-glow/);
+    assert.match(commutePreviewContent, /\.commute-path-preview-path/);
+    assert.match(commutePreviewContent, /\.commute-path-preview-endpoint/);
+    assert.match(commutePreviewContent, /@keyframes regional-commute-path-pulse/);
+    assert.match(commutePreviewContent, /@keyframes commute-preview-chip-enter/);
+    assert.match(commutePreviewContent, /\.commute-path-preview-chip/);
+    assert.match(commutePreviewContent, /\.commute-path-preview-chip\.commute-path-preview-embedded/);
+  });
+
+  it("resolves the extracted map/train-markers.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("train-markers.css")), "train-markers.css must be in graph files");
+    const trainMarkersContent = readStylesheet(new URL("../src/styles/map/train-markers.css", import.meta.url));
+    assert.match(trainMarkersContent, /\.estimated-train-marker-layer/);
+    assert.match(trainMarkersContent, /\.estimated-train-marker-layer\[data-muted="true"\]/);
+    assert.match(trainMarkersContent, /\.estimated-train-marker/);
+    assert.match(trainMarkersContent, /\.estimated-train-marker-outline/);
+    assert.match(trainMarkersContent, /\.estimated-train-marker-core/);
+    assert.match(trainMarkersContent, /\.estimated-train-marker-arrow/);
+    assert.match(trainMarkersContent, /\.estimated-train-marker-window/);
+    assert.match(trainMarkersContent, /\.estimated-train-marker-line-1/);
+    assert.match(trainMarkersContent, /\.estimated-train-marker-regional-br/);
+    assert.match(trainMarkersContent, /\.high-contrast \.estimated-train-marker-core/);
+    assert.match(trainMarkersContent, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-outline/);
+  });
 });
