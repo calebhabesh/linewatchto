@@ -882,8 +882,8 @@
 .high-contrast .station-impact-jump-button,
 .high-contrast [data-station-access-outage-summary],
 .high-contrast .station-detail-disruption-card,
-.high-contrast .station-detail-panel [data-arrival-group] [class*="min-h-[74px]"],
-.high-contrast .station-detail-panel [data-surface-route] [class*="min-h-[74px]"],
+.high-contrast .station-detail-panel [data-arrival-group] .station-arrival-tile,
+.high-contrast .station-detail-panel [data-surface-route] .surface-departure-tile,
 .high-contrast .station-line-directions,
 .linewatch-shell.high-contrast .station-detail-panel,
 .linewatch-shell.high-contrast .station-detail-panel [data-station-section],
@@ -898,8 +898,8 @@
 .linewatch-shell.high-contrast .station-impact-jump-button,
 .linewatch-shell.high-contrast [data-station-access-outage-summary],
 .linewatch-shell.high-contrast .station-detail-disruption-card,
-.linewatch-shell.high-contrast .station-detail-panel [data-arrival-group] [class*="min-h-[74px]"],
-.linewatch-shell.high-contrast .station-detail-panel [data-surface-route] [class*="min-h-[74px]"],
+.linewatch-shell.high-contrast .station-detail-panel [data-arrival-group] .station-arrival-tile,
+.linewatch-shell.high-contrast .station-detail-panel [data-surface-route] .surface-departure-tile,
 .linewatch-shell.high-contrast .station-line-directions {
   border: 1px solid #ffffff !important;
   box-shadow: none !important;

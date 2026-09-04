@@ -200,8 +200,8 @@
    Station Notices & Accessibility Card Styling
    ========================================================================== */
 
-.station-detail-panel .station-notices-details [class*="rounded-md border"],
-.station-detail-panel .station-accessibility-details [class*="rounded-md border"] {
+.station-detail-panel .station-notices-details .station-notice-card,
+.station-detail-panel .station-accessibility-details .station-accessibility-card {
   border: none !important;
   border-radius: 6px !important;
   box-shadow:
@@ -209,8 +209,8 @@
     0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
-.dark .station-detail-panel .station-notices-details [class*="rounded-md border"],
-.dark .station-detail-panel .station-accessibility-details [class*="rounded-md border"] {
+.dark .station-detail-panel .station-notices-details .station-notice-card,
+.dark .station-detail-panel .station-accessibility-details .station-accessibility-card {
   border: none !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),

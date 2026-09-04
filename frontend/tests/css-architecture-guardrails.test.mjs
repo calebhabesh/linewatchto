@@ -27,7 +27,7 @@ const ENTRY_STYLESHEET_PATH = getAppStylesheetGraphFiles()[0];
  */
 const BASELINE_CEILINGS = {
   GRAPH_IMPORTANT_DECLARATIONS: 2385,
-  GRAPH_CLASS_SUBSTRING_SELECTORS: 38,
+  GRAPH_CLASS_SUBSTRING_SELECTORS: 18,
   GLOBALS_IMPORTANT_DECLARATIONS: 0,
   GLOBALS_CLASS_SUBSTRING_SELECTORS: 0,
 };
@@ -345,7 +345,7 @@ describe("CSS architecture guardrails", () => {
       assert.equal(
         count,
         BASELINE_CEILINGS.GRAPH_CLASS_SUBSTRING_SELECTORS,
-        "Graph class-substring selector count should match baseline ceiling in S12",
+        "Graph class-substring selector count should match ceiling in S13A",
       );
     });
 

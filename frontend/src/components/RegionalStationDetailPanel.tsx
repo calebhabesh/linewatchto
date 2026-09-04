@@ -1117,7 +1117,7 @@ export function RegionalStationDetailPanel({
                                                     data-arrival-due={due ? "true" : "false"}
                                                     data-regional-arrival-due={due ? "true" : "false"}
                                                     className={[
-                                                      "relative flex flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 text-center transition-colors",
+                                                      "station-arrival-tile relative flex flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 text-center transition-colors",
                                                       coachCountLabel
                                                         ? showTileDestination
                                                           ? "min-h-[92px] sm:min-h-[96px] pb-6"
@@ -1398,7 +1398,7 @@ export function RegionalStationDetailPanel({
                       Metrolinx Open API
                     </p>
                     {noticesState.loading ? (
-                      <div className="flex min-h-16 items-center justify-center rounded-md border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/10">
+                      <div className="station-notice-card flex min-h-16 items-center justify-center rounded-md border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/10">
                         <LoaderCircle size={18} className="animate-spin text-slate-500" aria-label="Loading station notices" />
                       </div>
                     ) : linkedNotices.length > 0 ? (
@@ -1406,7 +1406,7 @@ export function RegionalStationDetailPanel({
                         {linkedNotices.map((notice) => (
                           <div
                             key={notice.id}
-                            className="flex flex-col gap-2 rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                            className="station-notice-card flex flex-col gap-2 rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex flex-wrap items-center gap-1.5 min-w-0">
@@ -1523,7 +1523,7 @@ export function RegionalStationDetailPanel({
                         {accessibilityOutages.map((outage) => (
                           <li
                             key={outage.id}
-                            className="rounded-md border border-amber-500/30 bg-white/80 p-3 dark:bg-black/10"
+                            className="station-accessibility-card rounded-md border border-amber-500/30 bg-white/80 p-3 dark:bg-black/10"
                           >
                             <div className="flex items-start gap-2.5">
                               <Image

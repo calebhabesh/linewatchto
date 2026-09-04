@@ -168,7 +168,7 @@ function SurfaceRouteCard({
               ? "whitespace-nowrap text-base sm:text-lg font-black leading-none tracking-tight tabular-nums"
               : "text-base sm:text-lg font-black leading-none";
             const arrivalTileClassName = [
-              "relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
+              "surface-departure-tile relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
               due
                 ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                 : delayed

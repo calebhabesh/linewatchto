@@ -1123,7 +1123,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                             ? "whitespace-nowrap text-base sm:text-lg font-black leading-none tracking-tight tabular-nums"
                                             : "text-base sm:text-lg font-black leading-none";
                                           const arrivalTileClassName = [
-                                            "relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
+                                            "station-arrival-tile relative flex min-h-[74px] sm:min-h-[78px] flex-col items-center justify-center rounded-md border px-1.5 pt-3.5 pb-1.5 text-center transition-colors",
                                             due
                                               ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                                               : detailedCountdown
@@ -1208,7 +1208,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                         return (
                           <article
                             key={notice.id}
-                            className="flex flex-col gap-2.5 rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                            className="station-notice-card flex flex-col gap-2.5 rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300">
@@ -1396,7 +1396,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 {sortedOutages.length > 0 && (
                   <div className="flex flex-col gap-2">
                     {sortedOutages.map((outage) => (
-                      <div key={outage.id} className="flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                      <div key={outage.id} className="station-accessibility-card flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
                         {outage.assetType === "elevator" && (
                           <div className="relative shrink-0">
                             <Image

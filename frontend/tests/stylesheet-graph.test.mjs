@@ -553,7 +553,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(stationArrivalsContent, /\.station-arrival-track-spine/);
     assert.match(stationArrivalsContent, /\.station-arrival-track-node/);
     assert.match(stationArrivalsContent, /\[data-regional-arrival-direction\]/);
-    assert.match(stationArrivalsContent, /min-h-\[74px\]/);
+    assert.match(stationArrivalsContent, /\.station-arrival-tile/);
   });
 
   it("resolves the extracted station/station-accessibility.css in the application stylesheet graph", () => {
@@ -568,6 +568,8 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.station-access-outage-badge/);
     assert.match(content, /\.station-access-outage-count/);
     assert.match(content, /\[data-station-access-outage-summary\]/);
+    assert.match(content, /\.station-notice-card/);
+    assert.match(content, /\.station-accessibility-card/);
   });
 
   it("resolves the extracted station/surface-connections.css in the application stylesheet graph", () => {
@@ -581,6 +583,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.station-connections-title/);
     assert.match(content, /\.station-connection-row/);
     assert.match(content, /\[data-surface-route\]/);
+    assert.match(content, /\.surface-departure-tile/);
   });
 
   it("resolves the extracted account/account-dialogs.css in the application stylesheet graph", () => {
