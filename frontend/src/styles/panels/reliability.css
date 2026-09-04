@@ -1,0 +1,126 @@
+/**
+ * Reliability Analytics & Ingestion Health Panel Styles
+ *
+ * Covers reliability analytics dashboard panel container, metrics grid,
+ * reliability rows, score tracks, and ingestion system health indicators.
+ */
+
+/* ==========================================================================
+   Panel Containers & Layout
+   ========================================================================== */
+
+.analytics-panel,
+.health-panel {
+  grid-column: span 1;
+}
+
+.analytics-panel {
+  grid-column: 1 / 2;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.health-panel {
+  grid-column: 2 / 3;
+  grid-row: 3;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+/* ==========================================================================
+   Reliability Rows, Copy & Score Tracks
+   ========================================================================== */
+
+.reliability-row {
+  align-items: stretch;
+  background: var(--panel-soft);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  padding: 10px;
+  width: 100%;
+}
+
+.reliability-copy strong,
+.reliability-copy span {
+  display: block;
+}
+
+.score-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  height: 9px;
+  overflow: hidden;
+}
+
+.score-track span {
+  background: linear-gradient(90deg, var(--warning), var(--ok));
+  display: block;
+  height: 100%;
+}
+
+/* ==========================================================================
+   Ingestion System Health Grid & Items
+   ========================================================================== */
+
+.health-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.health-item {
+  align-items: flex-start;
+  background: var(--panel-soft);
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+}
+
+.health-item > span {
+  background: var(--ok);
+  border-radius: 999px;
+  box-shadow: 0 0 0 5px rgba(48, 209, 117, 0.12);
+  flex: 0 0 auto;
+  height: 10px;
+  margin-top: 4px;
+  width: 10px;
+}
+
+.health-item strong {
+  display: block;
+}
+
+.health-item p {
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+/* ==========================================================================
+   Responsive Viewport Overrides
+   ========================================================================== */
+
+@media (max-width: 1180px) {
+  .analytics-panel,
+  .health-panel {
+    grid-column: 1;
+  }
+
+  .health-panel {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .reliability-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .score-track {
+    grid-column: 1 / -1;
+  }
+}

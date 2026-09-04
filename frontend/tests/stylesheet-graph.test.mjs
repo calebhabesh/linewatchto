@@ -846,4 +846,49 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.station-trip-changes-chevron/);
     assert.match(content, /\.station-trip-changes-details\[open\] \.station-trip-changes-chevron/);
   });
+
+  it("resolves the extracted panels/reliability.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("reliability.css")), "reliability.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/panels/reliability.css", import.meta.url));
+    assert.match(content, /\.analytics-panel/);
+    assert.match(content, /\.health-panel/);
+    assert.match(content, /\.reliability-row/);
+    assert.match(content, /\.reliability-copy/);
+    assert.match(content, /\.score-track/);
+    assert.match(content, /\.health-grid/);
+    assert.match(content, /\.health-item/);
+    assert.match(content, /@media \(max-width: 1180px\)/);
+    assert.match(content, /@media \(max-width: 900px\)/);
+  });
+
+  it("resolves the extracted panels/alert-history.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("alert-history.css")), "alert-history.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/panels/alert-history.css", import.meta.url));
+    assert.match(content, /\.alert-history-panel/);
+    assert.match(content, /\.alert-history-timeline/);
+    assert.match(content, /\.alert-history-controls/);
+    assert.match(content, /\.alert-history-search-row/);
+    assert.match(content, /\.alert-history-selects-row/);
+    assert.match(content, /\.alert-history-search-field/);
+    assert.match(content, /\.alert-history-line-filter/);
+    assert.match(content, /\.alert-history-line-filter-options/);
+    assert.match(content, /\.alert-history-period-chip/);
+    assert.match(content, /\.alert-history-filter-chip/);
+    assert.match(content, /\.alert-history-list/);
+    assert.match(content, /\.alert-history-item/);
+    assert.match(content, /\.alert-history-type-label/);
+    assert.match(content, /\.alert-history-status-label/);
+    assert.match(content, /\.alert-history-primary-time/);
+    assert.match(content, /\.alert-history-title/);
+    assert.match(content, /\.alert-history-fact-grid/);
+    assert.match(content, /\.compact-impact-location/);
+    assert.match(content, /\.alert-history-duration/);
+    assert.match(content, /\.alert-history-details/);
+    assert.match(content, /\.alert-history-lifecycle-event/);
+    assert.match(content, /\.alert-history-loading/);
+  });
 });
