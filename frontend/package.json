@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "generate:map-rasters": "node scripts/generate-map-rasters.mjs",
+    "metrics:css": "node scripts/measure-css.mjs",
     "preview:closing-soon": "node scripts/preview-closing-soon.mjs",
     "test:fixtures": "node --test tests/*.test.mjs",
     "test:browser-compat": "playwright test browser-compat.spec.ts --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit",
