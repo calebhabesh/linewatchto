@@ -696,3 +696,39 @@
 - Risks or blockers:
   - None. S10A is fully completed and verified.
 - Next session: S10B — Extract My Stations (`account/my-stations.css`).
+
+### S10B — Extract My Stations
+
+- Status: completed
+- Commit: 0bc8dfaa
+- Scope: Extract account-backed station watchlist panel (`.my-stations-panel`, `.my-stations-heading`, `.my-stations-title`, `.my-stations-title-icon`, `.my-stations-bookmark`, `.my-stations-picker-action`), controls and mode toggles (`.my-stations-count`, `.my-stations-body`, `.my-stations-controls`, `.my-stations-controls-top`, `.my-stations-search`, `.my-stations-add`, `.my-stations-done`, `.my-stations-mode-action`, `.my-stations-mode-action-content`, `.my-stations-selects`), picker sections (`.my-stations-picker-list`, `.my-stations-picker-section`, `.my-stations-picker-section-heading`, `.my-stations-picker-line-number`, `.my-stations-picker-section-count`, `.my-stations-picker-section-rows`), watchlist rows (`.my-stations-row`, `.my-stations-picker-row`, `.my-stations-row-main`, `.my-stations-row-copy`, `.my-stations-row-heading`, `.my-stations-row-badges`, `.my-stations-line-badges`, `.my-stations-state`, `.my-stations-picker-conditions`), saved station rich card rows (`.saved-station-list-slot`, `.saved-station-rich-row`, `.saved-station-rich-heading`, `.saved-station-open-action`, `.saved-station-detail-loading`, `.saved-station-rich-content`), station disruption disclosures and chips (`.saved-station-disruption-disclosure`, `.saved-station-disruption-summary`, `.saved-station-disruption-heading`, `.saved-station-clear-dot`, `.saved-station-disruption-total`, `.saved-station-disruption-chips`, `.saved-station-disruption-action`, `.saved-station-disruption-clear-copy`, `.saved-station-disruption-list`), saved station arrivals (`.saved-station-arrivals`, `.saved-station-section-divider`, `.saved-station-surface-divider`, `.saved-station-line-divider`, `.saved-station-arrivals-heading`, `.saved-station-arrival-groups`, `.saved-station-arrival-line-section`, `.saved-station-arrival-line-header`, `.saved-station-arrival-group`, `.saved-station-arrival-line-badge`, `.saved-station-arrival-line`, `.saved-station-arrival-direction`, `.saved-station-arrival-destination`, `.saved-station-arrival-source`, `.saved-station-arrival-times`, `.saved-station-arrivals-empty`, `.saved-station-source-note`), inline undo banners and toasts (`.saved-station-inline-undo`, `.my-stations-empty`, `.my-stations-undo`, `.saved-station-global-notice`, `.saved-station-notice-action`), account network filter tabs and badges (`.account-network-filter`, `.account-network-glider`, `.account-network-badge`), animations (`@keyframes my-stations-mode-swap`, `@keyframes my-stations-search-nudge`), and high-contrast / mobile responsive overrides from `globals.css` into dedicated `frontend/src/styles/account/my-stations.css` (1,680 lines). Add relative import `@import "../styles/account/my-stations.css";` to `globals.css` at line 29. Remove 1,631 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,138 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/account/my-stations.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,138 tests across 135 suites, 0 failures in ~909ms; +1 test for new stylesheet).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 17,480 to 15,849 (-1,631 lines); parsed rules -234; parsed declarations -856; `!important` -41; media queries -6; keyframe blocks -2; class-substring selectors in `globals.css` steady at 22; production chunk raw bytes 707,717; gzip bytes 107,179 (-67 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated domain stylesheet `frontend/src/styles/account/my-stations.css` (1,680 lines) isolating account-backed station watchlist panel, controls, station picker sections, watchlist rows, disruption disclosures, saved station arrival platform tiles, inline undo banners, empty states, network filter tabs, and network badges.
+  - Removed 1,631 lines from `globals.css`:
+    1. Account-backed station watchlist panel shell and header (lines 495-540 in original `globals.css`).
+    2. Watchlist controls, search input, mode action, picker sections, rows, disruption disclosure, and arrival groups (lines 746-1684 in original `globals.css`).
+    3. Saved station arrival line badges, directions, sources, and heading media queries (lines 1819-1956 in original `globals.css`).
+    4. Saved station arrival times, inline undo, empty state, undo banner, global notice toast, high-contrast, motion-paused, and mobile adaptation (lines 2051-2368 in original `globals.css`).
+    5. Account network filter tabs, glider, and network badges (`.account-network-filter`, `.account-network-glider`, `.account-network-badge`, lines 17272-17461 in original `globals.css`).
+  - Preserved shared `.arrival-line-pin` and `.live-signal-icon` in `globals.css` as shared cross-component indicators across station detail, surface connections, and my-stations, deferred to S11.
+  - Preserved cross-component elevation lists and container navigation transitions in `globals.css` for S11.
+  - Maintained cascade hierarchy by importing `my-stations.css` at line 29 immediately following `account-dialogs.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `account/my-stations.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S10B is fully completed and verified.
+- Next session: S10C — Extract My Commutes cards and route display (`account/saved-commutes.css`).
