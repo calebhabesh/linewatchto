@@ -211,4 +211,17 @@ describe("stylesheet-graph helper", () => {
     assert.match(overlaysContent, /\.asset-alert-path\.planned-preview/);
     assert.match(overlaysContent, /\.rsz-chevron/);
   });
+
+  it("resolves the extracted map/regional-map.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("regional-map.css")), "regional-map.css must be in graph files");
+    const regionalMapContent = readStylesheet(new URL("../src/styles/map/regional-map.css", import.meta.url));
+    assert.match(regionalMapContent, /\.regional-station-hit-target/);
+    assert.match(regionalMapContent, /\.regional-overlay-segment-group/);
+    assert.match(regionalMapContent, /\.regional-impact-path/);
+    assert.match(regionalMapContent, /\.regional-impact-glow/);
+    assert.match(regionalMapContent, /\.regional-delay-glyph/);
+    assert.match(regionalMapContent, /\.regional-station-impact-ring/);
+  });
 });

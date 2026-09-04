@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S06A
-- Last completed session: S06A
-- Next recommended session: S06B
+- Current session: S06B
+- Last completed session: S06B
+- Next recommended session: S06C
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 28,275 |
+| Global entry lines | 30,011 | 27,800 |
 | Total authored app CSS lines | 31,414 | 31,416 |
-| Total authored app CSS bytes | 784,128 | 784,454 |
-| Parsed rules | 4,221 | 4,021 |
-| Declarations | 14,093 | 13,277 |
-| !important | 2,356 | 2,254 |
+| Total authored app CSS bytes | 784,128 | 784,495 |
+| Parsed rules | 4,221 | 3,953 |
+| Declarations | 14,093 | 13,096 |
+| !important | 2,356 | 2,203 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 108,109 |
+| Production CSS gzip bytes | 108,667 | 108,175 |
 
 ## Session log
 
@@ -244,3 +244,32 @@
 - Risks or blockers:
   - None. TTC impact overlay extraction is clean and verified.
 - Next session: S06B — Extract regional impact overlays (`map/regional-map.css`).
+
+### S06B — Extract regional impact overlays
+
+- Status: completed
+- Commit: 7e24997f
+- Scope: Extract regional impact overlay styles (regional station hit targets, hover indicators, regional segment groups, impact paths, glows, auras, delay glyphs and direction arrows, reduced speed zones, suspensions, planned closures, rail pulse keyframes, hover boundaries and foreground layers, station impact rings, direction glyphs, selection ring keyframes, and motion-paused / prefers-reduced-motion regional rules) from `globals.css` (474 lines across regional blocks) into dedicated `frontend/src/styles/map/regional-map.css`. Add relative `@import "../styles/map/regional-map.css";` in top manifest order. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/map/regional-map.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,119 tests, 0 failures across 135 suites in ~1033ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.2s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 28,275 to 27,800; production chunk raw bytes unchanged at 705,499; gzip bytes 108,175).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, GO/UP desktop map, high contrast, station detail, My Commutes, and mobile views.
+- Decisions:
+  - Extracted regional impact overlay blocks (474 lines total) into `frontend/src/styles/map/regional-map.css` preserving exact declaration values, comments, keyframes, and selector syntax.
+  - Placed `@import "../styles/map/regional-map.css";` right after `@import "../styles/map/impact-overlays.css";` at top of manifest order.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` verifying that `regional-map.css` resolves in the app stylesheet graph and reads directly via `readStylesheet()`.
+  - Preserved `.ttc-impact-hover-foreground` and `.ttc-impact-hover-outline` in `globals.css` for extraction in S06C alongside selection attention keyframes and selection foreground overlays.
+- Risks or blockers:
+  - None. Regional impact overlay extraction is clean and verified.
+- Next session: S06C — Extract selection and hover foregrounds (`map/map-selection.css`).
