@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S12
-- Last completed session: S12
-- Next recommended session: S13
+- Current session: S13A
+- Last completed session: S13A
+- Next recommended session: S13B
 - Blockers: none
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 32,481 |
-| Total authored app CSS bytes | 784,128 | 841,157 |
+| Total authored app CSS bytes | 784,128 | 841,096 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 708,514 |
-| Production CSS gzip bytes | 108,667 | 105,581 |
+| Production CSS bytes | 705,472 | 708,480 |
+| Production CSS gzip bytes | 108,667 | 105,563 |
 
 
 
@@ -1469,4 +1469,44 @@
   - Enforced exact canonical cascade order of all 52 directives to safeguard PostCSS and Turbopack bundling behavior.
 - Risks or blockers:
   - None. Architecture guardrails are active and verified.
-- Next session: S13 — Replace class-substring selectors with semantic classes or data-* states (targeting station arrival tiles, accessibility cards, surface connections, card elevations, and high-contrast overrides).
+- Next session: S13A — Replace station experience class-substring selectors with semantic classes or data-* states.
+
+### S13A — Replace Station Experience Class-Substring Selectors
+
+- Status: completed
+- Commit: 361e239f
+- Scope: Replace fragile class-substring selectors in the station experience domain with semantic classes across components and stylesheets:
+  1. Station Arrival Tiles: Add `.station-arrival-tile` to arrival tile markup in `StationDetailPanel.tsx` and `RegionalStationDetailPanel.tsx`. Replace 8 `[class*="min-h-[74px]"]` selectors in `station-arrivals.css` (base, dark, high contrast) and 2 in `card-elevation.css` with `.station-arrival-tile`.
+  2. Surface Connections: Add `.surface-departure-tile` to surface departure tile markup in `SurfaceConnectionsSection.tsx`. Replace 4 `[class*="min-h-[74px]"]` selectors in `surface-connections.css` (base, dark, high contrast) and 2 in `card-elevation.css` with `.surface-departure-tile`.
+  3. Station Notices & Accessibility Cards: Add `.station-notice-card` to notices articles/containers in `StationDetailPanel.tsx` and `RegionalStationDetailPanel.tsx` (including loading indicator). Add `.station-accessibility-card` to accessibility outage containers in `StationDetailPanel.tsx` and `RegionalStationDetailPanel.tsx`. Replace 4 `[class*="rounded-md border"]` selectors in `station-accessibility.css` (base, dark) with `.station-notice-card` and `.station-accessibility-card`.
+  4. Guardrails & Unit Tests: Update `stylesheet-graph.test.mjs` to assert `.station-arrival-tile`, `.surface-departure-tile`, `.station-notice-card`, and `.station-accessibility-card`. Lower frozen class-substring ceiling in `css-architecture-guardrails.test.mjs` from 38 down to 18 (-52.6%).
+- Files changed:
+  - `frontend/src/components/StationDetailPanel.tsx`
+  - `frontend/src/components/RegionalStationDetailPanel.tsx`
+  - `frontend/src/components/SurfaceConnectionsSection.tsx`
+  - `frontend/src/styles/station/station-arrivals.css`
+  - `frontend/src/styles/station/surface-connections.css`
+  - `frontend/src/styles/station/station-accessibility.css`
+  - `frontend/src/styles/shell/card-elevation.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,182 tests across 140 suites, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.7s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53, 0 rules, 0 decls, 0 `!important`, 0 class substrings; production chunk raw bytes 708,480 (-34 B); gzip bytes improved to 105,563 (-18 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Followed playbook instruction: "Work one component family per sub-session. Replace fragile matching with an explicit semantic class or existing data-* state. Treat broad high-contrast selectors separately from station-detail selectors."
+  - Replaced 20 class-substring selectors across station arrivals, surface connections, accessibility cards, and card elevations with dedicated semantic classes (`.station-arrival-tile`, `.surface-departure-tile`, `.station-notice-card`, `.station-accessibility-card`).
+  - Successfully dropped graph-wide class-substring selector count from 38 to 18 (all 18 remaining reside in `foundation/high-contrast.css` for broad utility matching).
+  - Updated `BASELINE_CEILINGS.GRAPH_CLASS_SUBSTRING_SELECTORS` to 18 to lock in the lower ceiling.
+- Risks or blockers:
+  - None. Station experience class-substring debt is completely eliminated and verified across all themes.
+- Next session: S13B — Replace broad high-contrast utility substring selectors (`high-contrast.css`, 18 selectors) or proceed to S14 (resolve duplicate keyframe names).
+
