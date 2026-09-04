@@ -231,31 +231,6 @@
   color: #000000;
 }
 
-@media (max-width: 767px) {
-  .saved-commute-list-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .saved-commute-sort-control {
-    flex: 0 0 auto;
-    width: 10.5rem;
-  }
-
-  .saved-commute-sort-control select {
-    height: 34px;
-  }
-
-  .saved-commute-sort-trigger {
-    height: 34px;
-  }
-
-  .saved-commute-list-actions .saved-commute-add-btn {
-    min-height: 34px;
-    padding-block: 0.375rem;
-  }
-}
-
 .dark .saved-commute-form input,
 .dark .saved-commute-form select,
 .high-contrast .saved-commute-form input,
@@ -302,6 +277,10 @@
   background: #334155;
   border-color: rgba(255, 255, 255, 0.3);
 }
+
+/* ==========================================================================
+   Saved Commute Edit Danger Zone & Delete Confirmation
+   ========================================================================== */
 
 .saved-commute-edit-danger-zone {
   border-top: 1px solid rgba(15, 23, 42, 0.1);
@@ -450,10 +429,10 @@
 .saved-commute-form {
   display: grid;
   gap: 0.625rem;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
 }
 
 /* ==========================================================================
@@ -508,12 +487,10 @@
 
 .commute-station-trigger:hover {
   background: rgba(239, 246, 255, 0.95) !important;
-  border: none !important;
 }
 
 .dark .commute-station-trigger:hover {
   background: rgba(30, 58, 138, 0.35) !important;
-  border: none !important;
 }
 
 .commute-station-trigger span {
@@ -629,7 +606,6 @@
 .commute-station-option:focus-visible,
 .commute-station-option.selected {
   background: rgba(239, 246, 255, 0.95) !important;
-  border: none !important;
   outline: none;
 }
 
@@ -646,7 +622,7 @@
 
 .commute-station-line-badge {
   align-items: center;
-  border-radius: 9999px !important;
+  border-radius: 9999px;
   display: inline-flex;
   font-size: 0.68rem;
   font-weight: 950;
@@ -654,11 +630,11 @@
   width: 20px;
   min-width: 20px;
   justify-content: center;
-  padding: 0 !important;
+  padding: 0;
   flex-shrink: 0;
   aspect-ratio: 1 / 1;
-  line-height: 0 !important;
-  box-sizing: border-box !important;
+  line-height: 0;
+  box-sizing: border-box;
 }
 
 .commute-station-empty {
@@ -722,8 +698,8 @@
   font-weight: 800;
   gap: 0.6rem;
   justify-content: flex-start;
-  margin: 0.25rem 0 !important;
-  padding: 0 !important;
+  margin: 0.25rem 0;
+  padding: 0;
   width: fit-content;
 }
 
@@ -790,7 +766,7 @@
 }
 
 .saved-commute-notification-master {
-  margin: 0 !important;
+  margin: 0;
 }
 
 .saved-commute-notification-master-row {
@@ -1250,40 +1226,10 @@
   color: rgb(16, 185, 129);
 }
 
-@media (max-width: 30rem) {
-  .saved-commute-notification-segmented {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .saved-commute-schedule-header {
-    align-items: center;
-    gap: 0.4rem;
-    grid-template-columns: 24px minmax(0, 1fr);
-  }
-
-  .saved-commute-schedule-disclosure {
-    align-items: center;
-    padding-left: 0;
-    text-align: left;
-  }
-
-  .saved-commute-schedule-copy {
-    align-items: start;
-    display: grid;
-    gap: 0.18rem;
-    justify-content: stretch;
-    text-align: center;
-  }
-
-  .saved-commute-schedule-copy .saved-commute-route-label {
-    justify-content: center;
-  }
-}
-
 .saved-commute-rule-summary {
   align-items: center;
   background: rgba(16, 185, 129, 0.08);
-  border: none !important;
+  border: none;
   border-radius: 8px;
   display: flex;
   flex-direction: row;
@@ -1291,7 +1237,7 @@
   justify-content: space-between;
   margin-top: 0.65rem;
   min-width: 0;
-  outline: none !important;
+  outline: none;
   padding: 0.55rem 1.1rem 0.55rem 0.6rem;
 }
 
@@ -1356,14 +1302,10 @@
 
 .dark .saved-commute-rule-summary {
   background: rgba(16, 185, 129, 0.08);
-  border: none !important;
-  outline: none !important;
 }
 
 .high-contrast .saved-commute-rule-summary {
   background: rgba(255, 255, 255, 0.08);
-  border: none !important;
-  outline: none !important;
 }
 
 .dark .saved-commute-notification-summary strong,
@@ -1693,32 +1635,6 @@
   animation-delay: var(--map-pulse-offset);
 }
 
-.motion-paused .station-commute-green-flash {
-  animation: none !important;
-  filter: none !important;
-  opacity: 0.95;
-  transform: scale(1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .station-commute-green-flash {
-    animation: none !important;
-    filter: none !important;
-    opacity: 0.95;
-    transform: scale(1);
-  }
-}
-
-@media (max-width: 767px) {
-  .station-commute-green-flash {
-    fill: #4ade80 !important;
-    opacity: 1;
-    stroke: #dcfce7 !important;
-    stroke-width: 3.5 !important;
-    transform: scale(1.4);
-  }
-}
-
 /* ==========================================================================
    Saved Commute Customize Toggle
    ========================================================================== */
@@ -1764,4 +1680,87 @@
   border: 2px solid rgba(59, 130, 246, 0.5);
   color: rgb(96, 165, 250);
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+}
+
+/* ==========================================================================
+   Consolidated Responsive & Motion Overrides
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .saved-commute-list-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .saved-commute-sort-control {
+    flex: 0 0 auto;
+    width: 10.5rem;
+  }
+
+  .saved-commute-sort-control select {
+    height: 34px;
+  }
+
+  .saved-commute-sort-trigger {
+    height: 34px;
+  }
+
+  .saved-commute-list-actions .saved-commute-add-btn {
+    min-height: 34px;
+    padding-block: 0.375rem;
+  }
+
+  .station-commute-green-flash {
+    fill: #4ade80 !important;
+    opacity: 1;
+    stroke: #dcfce7 !important;
+    stroke-width: 3.5 !important;
+    transform: scale(1.4);
+  }
+}
+
+@media (max-width: 30rem) {
+  .saved-commute-notification-segmented {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .saved-commute-schedule-header {
+    align-items: center;
+    gap: 0.4rem;
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .saved-commute-schedule-disclosure {
+    align-items: center;
+    padding-left: 0;
+    text-align: left;
+  }
+
+  .saved-commute-schedule-copy {
+    align-items: start;
+    display: grid;
+    gap: 0.18rem;
+    justify-content: stretch;
+    text-align: center;
+  }
+
+  .saved-commute-schedule-copy .saved-commute-route-label {
+    justify-content: center;
+  }
+}
+
+.motion-paused .station-commute-green-flash {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0.95;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-commute-green-flash {
+    animation: none !important;
+    filter: none !important;
+    opacity: 0.95;
+    transform: scale(1);
+  }
 }
