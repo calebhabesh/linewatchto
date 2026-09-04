@@ -399,4 +399,24 @@ describe("stylesheet-graph helper", () => {
     assert.match(mobileLandscapeContent, /\.rotated-map-selection-portrait-cue/);
     assert.match(mobileLandscapeContent, /\.rotated-map-selection-card-critical/);
   });
+
+  it("resolves the extracted shell/responsive-density.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("responsive-density.css")), "responsive-density.css must be in graph files");
+    const responsiveDensityContent = readStylesheet(new URL("../src/styles/shell/responsive-density.css", import.meta.url));
+    assert.match(responsiveDensityContent, /@media \(max-width: 480px\)/);
+    assert.match(responsiveDensityContent, /\.rotate-map-btn/);
+    assert.match(responsiveDensityContent, /\.mobile-legend-pill--expanded/);
+    assert.match(responsiveDensityContent, /@media \(max-width: 400px\), \(orientation: landscape\) and \(max-height: 520px\)/);
+    assert.match(responsiveDensityContent, /--mobile-edge-inset/);
+    assert.match(responsiveDensityContent, /\.opening-disclaimer-backdrop/);
+    assert.match(responsiveDensityContent, /\.subway-closed-screen/);
+    assert.match(responsiveDensityContent, /\.station-search-panel/);
+    assert.match(responsiveDensityContent, /@media \(orientation: landscape\)/);
+    assert.match(responsiveDensityContent, /@media \(min-width: 768px\) and \(max-width: 1099px\)/);
+    assert.match(responsiveDensityContent, /\.desktop-status-capsule-anchor/);
+    assert.match(responsiveDensityContent, /@media \(min-width: 768px\) and \(max-width: 899px\)/);
+    assert.match(responsiveDensityContent, /\.header-search-bar/);
+  });
 });

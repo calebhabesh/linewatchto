@@ -1,0 +1,891 @@
+/* ============================================================
+   LineWatchTO Responsive Density Styles
+   Narrow phone button clamps, compact phone density pass,
+   short landscape overrides, and narrow desktop reflow.
+   ============================================================ */
+@media (max-width: 480px) {
+  .rotate-map-btn {
+    width: var(--mobile-rotate-action-width) !important;
+    padding: 0 clamp(4px, 1.7vw, 7px) !important;
+    gap: clamp(3px, 1.2vw, 5px) !important;
+    justify-content: center !important;
+  }
+  .rotate-map-btn span {
+    display: inline-block !important;
+    font-size: clamp(6.5px, 2.15vw, 8px) !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1.05 !important;
+  }
+
+  .mobile-legend-pill--expanded {
+    max-width: var(--mobile-legend-expanded-width) !important;
+    z-index: 55 !important;
+  }
+}
+
+/* Compact-phone density pass
+ *
+ * The regular mobile layout is tuned for taller devices such as the Pixel 6a.
+ * Narrow phones (for example, the 375 x 667 iPhone SE) and short landscape
+ * viewports need a little more usable map and sheet space. Keep controls near
+ * the 44px touch-target baseline while reducing chrome, container padding,
+ * decorative media, and secondary type. */
+@media (max-width: 400px), (orientation: landscape) and (max-height: 520px) {
+  :root {
+    --mobile-edge-inset: 10px;
+    --mobile-bottom-nav-height: 64px;
+    --mobile-bottom-nav-side-inset: 10px;
+    --mobile-status-peek-height: 44px;
+  }
+
+  /* Welcome and first-run notices */
+  .opening-disclaimer-backdrop {
+    padding: 10px;
+  }
+
+  .opening-disclaimer-panel {
+    max-height: calc(100dvh - 20px);
+    width: min(calc(100vw - 20px), 360px);
+  }
+
+  .opening-disclaimer-content {
+    gap: 7px;
+    padding: 9px 10px 10px;
+  }
+
+  .opening-disclaimer-logo {
+    height: 48px;
+    margin-bottom: 3px;
+    width: 48px;
+  }
+
+  .opening-disclaimer-welcome h1 {
+    font-size: 1.05rem;
+  }
+
+  .opening-disclaimer-welcome p,
+  .opening-welcome-slide-heading p {
+    font-size: 0.69rem;
+    line-height: 1.3;
+  }
+
+  .opening-welcome-divider {
+    margin: 6px 0 3px;
+  }
+
+  .opening-welcome-slide {
+    gap: 5px;
+  }
+
+  .opening-welcome-slide-heading {
+    margin-top: 5px;
+  }
+
+  .opening-welcome-slide-heading h2 {
+    font-size: 0.84rem;
+  }
+
+  .opening-welcome-map-legend {
+    gap: 3px 8px;
+  }
+
+  .opening-welcome-map-legend li {
+    font-size: 0.59rem;
+    gap: 4px;
+  }
+
+  .opening-welcome-legend-asset {
+    max-width: 48px;
+  }
+
+  .opening-welcome-legend-asset--station {
+    max-width: 19px;
+  }
+
+  .opening-welcome-controls {
+    gap: 5px;
+    margin-top: 5px;
+  }
+
+  .opening-welcome-control-row {
+    grid-template-columns: 54px minmax(0, 1fr) 54px;
+  }
+
+  .opening-welcome-secondary-button,
+  .opening-welcome-skip-button {
+    font-size: 0.68rem;
+  }
+
+  .opening-welcome-primary-button {
+    font-size: 0.75rem;
+    min-height: 40px;
+    padding-block: 7px;
+  }
+
+  .opening-welcome-account-copy {
+    font-size: 0.76rem !important;
+    line-height: 1.32 !important;
+    margin-top: 6px;
+  }
+
+  .opening-unofficial-notice {
+    gap: 7px;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    max-width: calc(100vw - 20px);
+    padding: 8px 9px;
+    width: calc(100vw - 20px);
+  }
+
+  .opening-unofficial-notice strong {
+    font-size: 0.72rem;
+  }
+
+  .opening-unofficial-notice p {
+    font-size: 0.67rem;
+    line-height: 1.25;
+  }
+
+  /* Closed-hours cards can be content-heavy, especially for GO/UP. */
+  .subway-closed-screen {
+    padding: 8px;
+  }
+
+  .subway-closed-content {
+    gap: 7px;
+    max-height: calc(100dvh - 16px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 11px 12px;
+  }
+
+  .subway-closed-icon-shell img {
+    height: 40px;
+    width: 40px;
+  }
+
+  .subway-closed-copy {
+    gap: 5px;
+  }
+
+  .subway-closed-copy h1 {
+    font-size: 1.25rem;
+  }
+
+  .subway-closed-copy p {
+    font-size: 0.72rem;
+    line-height: 1.28;
+  }
+
+  .subway-closed-resume {
+    gap: 2px;
+    min-width: 190px;
+    padding: 4px 0 7px;
+  }
+
+  .subway-closed-resume svg {
+    height: 15px;
+    margin-bottom: 0;
+    width: 15px;
+  }
+
+  .subway-closed-resume-prefix {
+    font-size: 0.62rem;
+  }
+
+  .subway-closed-resume-countdown {
+    font-size: 1.08rem;
+  }
+
+  .subway-closed-resume-details,
+  .subway-closed-schedule-table td,
+  .subway-closed-overnight-note {
+    font-size: 0.66rem;
+  }
+
+  .subway-closed-schedule-container {
+    gap: 4px;
+    padding: 7px 0;
+  }
+
+  .subway-closed-schedule-label {
+    font-size: 0.69rem;
+  }
+
+  .subway-closed-schedule-table td {
+    line-height: 1.25;
+  }
+
+  .subway-closed-caveat {
+    font-size: 0.63rem;
+    line-height: 1.25;
+  }
+
+  .subway-closed-primary-action {
+    font-size: 0.74rem;
+    min-height: 40px;
+  }
+
+  /* Persistent map chrome */
+  .mobile-bottom-nav {
+    display: grid !important;
+    gap: 1px;
+    padding: 3px 5px;
+  }
+
+  .mobile-bottom-nav::before {
+    height: calc(100% - 6px);
+    left: 5px;
+    top: 3px;
+    width: calc((100% - 14px) / 5);
+  }
+
+  .mobile-bottom-nav[data-active-key="status"]::before {
+    transform: translate3d(calc(100% + 1px), 0, 0);
+  }
+
+  .mobile-bottom-nav[data-active-key="search"]::before {
+    transform: translate3d(calc(200% + 2px), 0, 0);
+  }
+
+  .mobile-bottom-nav[data-active-key="commutes"]::before {
+    transform: translate3d(calc(300% + 3px), 0, 0);
+  }
+
+  .mobile-bottom-nav[data-active-key="more"]::before {
+    transform: translate3d(calc(400% + 4px), 0, 0);
+  }
+
+  .mobile-bottom-nav-item {
+    font-size: 9px;
+    gap: 2px;
+    min-height: 46px;
+    padding: 4px 2px;
+  }
+
+  .mobile-bottom-nav-icon svg {
+    height: 19px;
+    width: 19px;
+  }
+
+  .mobile-bottom-nav-label,
+  .mobile-bottom-nav-item[data-nav-key="commutes"] .mobile-bottom-nav-label {
+    font-size: 8px;
+  }
+
+  .mobile-status-peek {
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 14px);
+    gap: 4px;
+    padding: 0;
+    max-width: 346px;
+  }
+
+  .mobile-status-peek-info-btn {
+    padding: 4px 12px 4px 10px;
+    gap: 5px;
+  }
+
+  .mobile-status-peek-title {
+    font-size: 14px;
+  }
+
+  .mobile-status-peek-source,
+  .mobile-status-peek-source--updated {
+    font-size: 11.5px;
+  }
+
+  .mobile-status-peek-counts {
+    gap: 3px;
+    border: none !important;
+    border-top: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-status-peek-count-badge,
+  .mobile-status-peek:is([data-category-count="3"], [data-category-count="4"]) .mobile-status-peek-count-badge {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 6px 0 5px;
+  }
+
+  /* All mobile menus and drill-in submenus */
+  .floating-panel-shell {
+    max-height: min(82dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - 56px));
+    padding: 0 6px 6px;
+  }
+
+  .floating-panel-scroll {
+    padding-bottom: 8px;
+  }
+
+  .floating-panel-shell .panel-heading {
+    min-height: 48px !important;
+    padding: 9px 10px !important;
+  }
+
+  .floating-panel-shell .panel-heading h2 {
+    font-size: clamp(13px, 4vw, 16px) !important;
+    gap: 6px !important;
+  }
+
+  .floating-panel-shell .panel-heading h2 svg,
+  .floating-panel-shell .panel-heading h2 img,
+  .floating-panel-shell .panel-heading h2 .delay-tone,
+  .floating-panel-shell .panel-heading h2 .rsz-tone {
+    height: 16px !important;
+    width: 16px !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="reduced-speed-zones"] .panel-heading h2,
+  .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading h2,
+  .mobile-view-content-wrapper[data-active-view="closures"] .panel-heading h2,
+  .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2 {
+    font-size: clamp(10.5px, 3.15vw, 13px) !important;
+  }
+
+  .alert-stack,
+  .closure-stack,
+  .commute-grid,
+  .reliability-list,
+  .health-grid,
+  .notification-settings-scroll,
+  .accessibility-outages-scroll,
+  .surface-notices-scroll,
+  .release-notes-content,
+  .privacy-acknowledgements-scroll {
+    gap: 8px !important;
+    padding: 8px !important;
+  }
+
+  .mobile-status-sheet,
+  .mobile-more-sheet {
+    gap: 9px;
+    padding: 9px;
+  }
+
+  .mobile-more-accent-strip {
+    margin: -9px -9px -9px;
+  }
+
+  .mobile-more-sheet .mobile-sheet-heading {
+    margin: 0 -9px;
+  }
+
+  .mobile-sheet-heading {
+    margin: -9px -9px 0;
+    min-height: 48px;
+    padding: 9px 9px 8px;
+  }
+
+  .mobile-sheet-heading h2 {
+    font-size: 20px;
+  }
+
+  .mobile-sheet-heading p,
+  .mobile-sheet-kicker,
+  .mobile-more-build-label {
+    font-size: 9px !important;
+  }
+
+  .mobile-sheet-kicker {
+    font-size: 12px !important;
+    gap: 5.5px;
+  }
+
+  .mobile-status-sheet-live-blip {
+    height: 6px;
+    width: 6px;
+  }
+
+  .mobile-sheet-icon-button {
+    height: 40px;
+    width: 40px;
+  }
+
+  .station-header-line-badge {
+    --transit-line-badge-size: 28px !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+  }
+
+  .station-header-line-name {
+    font-size: 12.5px !important;
+  }
+
+  .station-line-directions {
+    padding: 2px 8px !important;
+    font-size: 10.5px !important;
+    gap: 4px !important;
+  }
+
+  .mobile-status-content-scroll,
+  .mobile-more-content-scroll {
+    gap: 10px !important;
+    margin-right: -9px !important;
+    padding-right: 9px !important;
+    margin-top: -9px !important;
+    padding-top: 9px !important;
+  }
+
+  .mobile-status-actions {
+    gap: 6px;
+  }
+
+  .mobile-status-actions button {
+    gap: 5px;
+    min-height: 44px;
+    padding: 6px 7px;
+  }
+
+  .mobile-status-btn-text {
+    font-size: 11.5px;
+  }
+
+  .mobile-status-btn-circle {
+    font-size: 9.5px;
+    height: 20px;
+    min-width: 20px;
+  }
+
+  .mobile-line-status-list {
+    gap: 6px;
+  }
+
+  .mobile-line-status-impacts {
+    gap: 5px;
+    margin-left: 28px;
+    width: calc(100% - 28px);
+  }
+
+  .mobile-line-status-row {
+    gap: 0px 8px;
+    padding: 8px;
+  }
+
+  .mobile-line-status-copy {
+    gap: 4px;
+  }
+
+  .mobile-line-status-copy strong {
+    font-size: 14px;
+  }
+
+  .mobile-line-status-impacts button {
+    font-size: 10px;
+    min-height: 30px;
+    padding: 4px 7px;
+  }
+
+  .mobile-more-section {
+    gap: 4px;
+    padding: 7px;
+  }
+
+  .mobile-more-section h3 {
+    font-size: 10px;
+  }
+
+  .mobile-more-account,
+  .mobile-more-row {
+    font-size: 13px;
+    min-height: 42px;
+    padding: 8px 9px;
+  }
+
+  .mobile-more-row {
+    gap: 9px;
+  }
+
+  .mobile-more-install-copy span:last-child,
+  .mobile-more-share-copy span:last-child {
+    font-size: 10px;
+  }
+
+  .mobile-more-health-grid,
+  .mobile-more-utility-row {
+    gap: 6px;
+  }
+
+  .mobile-more-health-grid div {
+    padding: 7px;
+  }
+
+  /* Alert, closure, reliability, notification, and commute cards */
+  .alert-card,
+  .closure-card,
+  .commute-card,
+  .reliability-row,
+  .health-item,
+  .notification-settings-card,
+  .notification-settings-row,
+  .notification-settings-prompt,
+  .notification-follow-up-option,
+  .account-feature-preview,
+  .feedback-content {
+    padding: 9px !important;
+  }
+
+  .alert-card > p,
+  .closure-card p,
+  .commute-card p,
+  .reliability-copy span,
+  .health-item p,
+  .notification-settings-note,
+  .notification-settings-message,
+  .notification-settings-prompt span,
+  .notification-follow-up-copy small {
+    font-size: 0.67rem;
+    line-height: 1.32;
+  }
+
+  .alert-card > .impact-route,
+  .closure-card > .impact-route {
+    margin-block: 14px;
+  }
+
+  .impact-route__bounds {
+    font-size: 0.94rem;
+    gap: 8px;
+  }
+
+  .impact-route__arrow {
+    height: 17px;
+    width: 32px;
+  }
+
+  .impact-route__direction {
+    font-size: 0.75rem;
+  }
+
+  .impact-metadata-grid {
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .impact-metadata-grid dt {
+    font-size: 0.58rem;
+  }
+
+  .impact-metadata-grid dd {
+    font-size: 0.7rem;
+  }
+
+  .impact-list-toolbar {
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  .compact-impact-list-item {
+    column-gap: 7px;
+    padding: 7px 8px;
+  }
+
+  .compact-impact-list-item__heading strong,
+  .compact-impact-list-item__location {
+    font-size: 11px;
+  }
+
+  .compact-impact-list-item__map-action {
+    height: 30px;
+    width: 30px;
+  }
+
+  .commute-card {
+    padding: 10px !important;
+  }
+
+  .commute-card h3 {
+    font-size: 0.92rem;
+  }
+
+  .saved-commute-card-header,
+  .saved-commute-card-identity {
+    gap: 0.45rem;
+  }
+
+  .saved-commute-current-impact-badge,
+  .status-pill {
+    font-size: 0.68rem;
+    padding: 5px 7px;
+  }
+
+  .saved-commute-impact-disclosure {
+    margin-top: 0.7rem;
+  }
+
+  .saved-commute-impact-summary {
+    padding-block: 0.5rem;
+  }
+
+  .notification-settings-scroll,
+  .notification-settings-section,
+  .notification-settings-card,
+  .notification-settings-list,
+  .notification-follow-up-options {
+    gap: 0.4rem;
+  }
+
+  .notification-settings-section-header h3 {
+    font-size: 0.66rem;
+  }
+
+  .account-network-filter button {
+    font-size: 0.66rem;
+    min-height: 32px;
+    padding-inline: 0.45rem;
+  }
+
+  .accessibility-outages-scroll > div {
+    gap: 10px !important;
+  }
+
+  .accessibility-outages-scroll > div > button {
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  .accessibility-outages-scroll > div > button img {
+    height: 28px !important;
+    width: 28px !important;
+  }
+
+  .surface-notices-body > div:not(.surface-notices-scroll) {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    padding-top: 8px !important;
+  }
+
+  .surface-notices-body .submenu-search-input {
+    font-size: 12px;
+    height: 36px;
+  }
+
+  .surface-notices-body button.rounded-full {
+    font-size: 10px;
+    padding: 5px 9px;
+  }
+
+  .surface-notice-route-group > div {
+    padding: 9px 10px !important;
+  }
+
+  .reliability-list h3 {
+    font-size: 13px !important;
+  }
+
+  .reliability-row strong,
+  .health-item strong {
+    font-size: 0.72rem !important;
+  }
+
+  .my-stations-body,
+  .my-stations-controls,
+  .my-stations-list {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .my-stations-controls-top {
+    gap: 6px;
+  }
+
+  .my-stations-card,
+  .my-stations-list-item {
+    padding: 9px !important;
+  }
+
+  /* Search, station details, and map inspectors */
+  .station-search-panel {
+    left: calc(var(--mobile-safe-left) + 6px);
+    right: calc(var(--mobile-safe-right) + 6px);
+  }
+
+  .station-search-input-row {
+    min-height: 44px;
+    padding: 7px 9px;
+  }
+
+  .station-search-content,
+  .station-search-results,
+  .station-search-lines-column,
+  .station-search-stations-column {
+    padding: 8px;
+  }
+
+  .station-search-amenity-toolbar {
+    margin-left: -8px;
+    margin-right: -8px;
+    padding: 2px 8px 8px;
+    margin-bottom: 0;
+  }
+
+  .station-search-line-trigger,
+  .station-search-station-row,
+  .commute-station-line-trigger,
+  .commute-station-option {
+    min-height: 42px;
+    padding-block: 7px;
+  }
+
+  .station-search-line-title,
+  .station-search-station-name,
+  .commute-station-option-name {
+    font-size: 12px;
+  }
+
+  .station-detail-scroll {
+    margin-top: 8px !important;
+  }
+
+  .station-detail-scroll > div,
+  .station-detail-body-wrapper {
+    gap: 8px;
+  }
+
+  .mobile-impact-inspector {
+    padding: 9px;
+  }
+
+  .mobile-impact-inspector-scroll {
+    gap: 8px;
+    margin-right: -9px;
+    padding-right: 9px;
+  }
+
+  .mobile-impact-inspector-action {
+    font-size: 11px;
+    min-height: 42px;
+    padding: 7px;
+  }
+
+  .mobile-impact-inspector-badge {
+    font-size: 9px;
+    padding: 3px 5px;
+  }
+
+  .account-dialog-backdrop {
+    padding: 10px;
+  }
+
+  .account-dialog {
+    max-height: calc(100dvh - 20px);
+    padding: 1rem;
+  }
+
+  .account-dialog-header {
+    margin-bottom: 0.65rem;
+  }
+
+  .account-provider-stack {
+    gap: 8px;
+  }
+
+  /* Physical landscape overrides for mobile phone viewports */
+  @media (orientation: landscape) {
+    .rotate-map-btn {
+      display: none !important;
+    }
+
+    .alert-history-shortcut {
+      display: none !important;
+    }
+
+    .mobile-alert-history-shortcut,
+    .mobile-my-stations-shortcut,
+    .mobile-train-toggle {
+      display: flex !important;
+    }
+
+    .station-sheet-drag-handle-container {
+      display: flex !important;
+    }
+
+    .station-detail-panel {
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      top: auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      border-radius: 8px 8px 0 0 !important;
+    }
+  }
+}
+
+/* Narrow desktop windows (for example, a browser snapped to half a monitor)
+   keep desktop navigation while reflowing the dense top chrome into two rows. */
+@media (min-width: 768px) and (max-width: 1099px) {
+  .linewatch-shell > header {
+    padding: 16px !important;
+  }
+
+  .desktop-status-capsule-anchor {
+    flex-direction: column;
+    gap: 6px !important;
+    left: 50% !important;
+    max-width: calc(100vw - 32px);
+    top: 104px !important;
+    transform: translateX(-50%);
+    width: min(680px, calc(100vw - 32px));
+  }
+
+  .desktop-status-capsule,
+  .desktop-status-stack,
+  .desktop-status-primary-row {
+    max-width: 100%;
+  }
+
+  .desktop-status-primary-row {
+    gap: 7px;
+  }
+
+  .desktop-status-primary-row > div:first-child,
+  .desktop-status-primary-row > .desktop-status-divider:first-of-type,
+  .desktop-status-time,
+  .desktop-status-time + .desktop-status-divider {
+    display: none;
+  }
+
+  .linewatch-shell:not([data-active-view="map"]) .desktop-status-capsule-anchor {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .desktop-map-control-rail {
+    top: 176px !important;
+  }
+
+  .floating-panel-shell {
+    width: min(680px, 72vw, calc(100vw - 48px));
+  }
+
+  .floating-panel-shell[data-floating-panel="my-stations"] {
+    width: min(600px, calc(100vw - 48px));
+  }
+
+  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell {
+    left: 392px;
+    width: min(680px, calc(100vw - 408px));
+  }
+
+  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell[data-floating-panel="my-stations"] {
+    width: min(600px, calc(100vw - 408px));
+  }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+  .header-search-bar {
+    width: clamp(220px, 34vw, 270px);
+  }
+
+  .header-search-bar:focus-within,
+  .header-search-bar[data-active="true"] {
+    width: min(var(--desktop-global-search-width), calc(100vw - 240px));
+  }
+
+  .desktop-status-capsule {
+    padding-inline: 8px;
+  }
+}
