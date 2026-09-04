@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11F
-- Last completed session: S11F
-- Next recommended session: S11G (or S12)
+- Current session: S11G
+- Last completed session: S11G
+- Next recommended session: S11H (or S12)
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 4,754 |
-| Total authored app CSS lines | 31,414 | 32,196 |
-| Total authored app CSS bytes | 784,128 | 825,150 |
-| Parsed rules | 4,221 | 704 |
-| Declarations | 14,093 | 2,168 |
-| !important | 2,356 | 560 |
+| Global entry lines | 30,011 | 4,230 |
+| Total authored app CSS lines | 31,414 | 32,231 |
+| Total authored app CSS bytes | 784,128 | 827,090 |
+| Parsed rules | 4,221 | 584 |
+| Declarations | 14,093 | 1,938 |
+| !important | 2,356 | 445 |
 | Class-substring selectors | 32 | 18 |
 | Production CSS bytes | 705,472 | 708,413 |
-| Production CSS gzip bytes | 108,667 | 106,613 |
+| Production CSS gzip bytes | 108,667 | 106,362 |
 
 
 
@@ -1113,3 +1113,43 @@
 - Risks or blockers:
   - None. S11F is fully completed and verified.
 - Next session: S11G — Extract remaining mobile status action buttons and count badges (`styles/shell/badges.css`), or proceed to S12 (station details/search responsive popover rules).
+
+### S11G — Extract Status Action Buttons, Count Badges, and Route Badges
+
+- Status: completed
+- Commit: d3fdefae
+- Scope: Extract fixed SVG coordinate system count badges (`.overlapping-count-badge`, `.overlapping-count-badge[data-single-digit="true"]`, `.overlapping-count-badge__svg`, `.overlapping-count-badge__text`, and `.desktop-menu-count-badge` base sizing), transit line badges and status pills (`.line-badge`, `img.transit-line-badge`, `.transit-line-badge--fallback`, `.status-pill`), mobile line status impact buttons (`.mobile-line-status-impacts button.*`), mobile System Status action buttons (`.mobile-status-actions button.*`), mobile status count circles (`.mobile-status-btn-circle`), desktop menu count badges & jewel pills (`.desktop-menu-count-badge`), hover/active states, dark mode tints, and high-contrast mode borders into `frontend/src/styles/shell/badges.css` (559 lines). Add relative import `@import "../styles/shell/badges.css";` to `globals.css` immediately following `search-bar.css`. Remove 525 lines across 3 blocks from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,154 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/shell/badges.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,154 tests across 135 suites, 0 failures in ~1,222ms; +1 test for new stylesheet).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 4,754 to 4,230 (-524 lines, -11.0%); parsed rules -120 (704 to 584); parsed declarations -230 (2,168 to 1,938); `!important` -115 (560 to 445, -20.5%); media queries -3 (41 to 38); keyframe blocks steady at 23; class-substring selectors steady at 18; production chunk raw bytes steady at 708,413; gzip bytes improved by 251 bytes to 106,362).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated, modular stylesheet `frontend/src/styles/shell/badges.css` (559 lines) isolating 8 sections:
+    1. Section 1: Fixed SVG coordinate system overlapping count badges (`.overlapping-count-badge`, `.overlapping-count-badge[data-single-digit="true"]`, `.overlapping-count-badge__svg`, `.overlapping-count-badge__text`, and `.desktop-menu-count-badge` base sizing).
+    2. Section 2: Transit line badges and status pills (`.line-badge`, `img.transit-line-badge`, `.transit-line-badge--fallback`, `.status-pill`, `.status-pill.ok`, `.warning`, `.danger`, `.neutral`).
+    3. Section 3: Line status impact buttons on mobile (`.mobile-line-status-impacts button.*` background tints).
+    4. Section 4: Mobile System Status action buttons (`.mobile-status-actions button.*`, category background tints, hover, active, dark mode).
+    5. Section 5: Mobile status count circles and positive/zero states (`.mobile-status-btn-circle`, category colors, dark mode, zero-count opacity).
+    6. Section 6: Desktop menu count badges and jewel pill styling (`.desktop-menu-count-badge`, box-shadow, tabular numbers, category colors, dark mode, high contrast).
+    7. Section 7: Line impacts hover, active, and dark mode states (`.mobile-line-status-impacts button.*`).
+    8. Section 8: High-contrast mode borders matching alert type for line impacts and mobile status actions.
+  - Removed 525 lines across 3 blocks from `globals.css`:
+    1. Fixed SVG coordinate system overlapping count badges (lines 497-546 in previous `globals.css`, 50 lines).
+    2. Transit line badges and status pills (lines 1340-1417 in previous `globals.css`, 78 lines).
+    3. Mobile line status impact buttons, mobile status action buttons, count pills, desktop menu count badges, and high-contrast borders (lines 3176-3571 in previous `globals.css`, 396 lines).
+  - Maintained cascade hierarchy by importing `badges.css` at line 45 immediately following `search-bar.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `badges.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11G is fully completed and verified.
+- Next session: S11H — Extract map legends and legend route badges (`styles/map/map-legends.css`), or proceed to S12 (station details/search responsive popover rules).
