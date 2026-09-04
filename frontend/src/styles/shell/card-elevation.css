@@ -124,22 +124,7 @@
 .notification-follow-up-option,
 .saved-commute-notification-summary,
 .saved-commute-rule-summary {
-  background: var(--light-container) !important;
-  opacity: 1 !important;
-}
-
-.dark .mobile-line-status-row,
-.dark .mobile-more-account,
-.dark .mobile-more-row,
-.dark .mobile-more-health-grid div,
-.dark .mobile-more-install-help,
-.dark .notification-settings-card,
-.dark .notification-settings-row,
-.dark .notification-settings-prompt,
-.dark .notification-follow-up-option,
-.dark .saved-commute-notification-summary,
-.dark .saved-commute-rule-summary {
-  background: #151821 !important;
+  background: var(--surface-card-opaque) !important;
   opacity: 1 !important;
 }
 
@@ -163,12 +148,6 @@
 /* Status action buttons & line status cards: borderless with subtle card elevation */
 .mobile-status-actions button,
 .mobile-line-status-row {
-  border: none !important;
-  box-shadow: var(--mobile-card-shadow);
-}
-
-.dark .mobile-status-actions button,
-.dark .mobile-line-status-row {
   border: none !important;
   box-shadow: var(--mobile-card-shadow);
 }
@@ -229,20 +208,6 @@
 .station-impact-card,
 .my-stations-row,
 .saved-station-rich-row {
-  border-top-color: transparent !important;
-  border-right-color: transparent !important;
-  border-bottom-color: transparent !important;
-  box-shadow: var(--mobile-card-shadow) !important;
-}
-
-.dark .alert-card,
-.dark .closure-card,
-.dark .compact-impact-list-item,
-.dark .commute-card,
-.dark .alert-history-item,
-.dark .station-impact-card,
-.dark .my-stations-row,
-.dark .saved-station-rich-row {
   border-top-color: transparent !important;
   border-right-color: transparent !important;
   border-bottom-color: transparent !important;
@@ -396,33 +361,6 @@
   box-shadow: none !important;
 }
 
-.dark .station-detail-panel [data-station-section],
-.dark .station-detail-panel .station-notices-details,
-.dark .station-detail-panel .station-accessibility-details,
-.dark .station-detail-panel .station-connections-card,
-.dark .station-detail-panel .station-detail-loading,
-.dark .surface-notice-route-group,
-.dark .reliability-row,
-.dark .health-item,
-.dark .notification-settings-card,
-.dark .notification-event-type-grid,
-.dark .saved-commute-account-prompt {
-  border-color: transparent !important;
-  box-shadow: var(--mobile-card-shadow) !important;
-}
-
-.dark .saved-station-arrival-group,
-.dark .saved-station-arrival-group.is-surface-group {
-  box-shadow: none !important;
-}
-
-.station-detail-panel [data-station-section="station-impacts"] .station-impact-card,
-.station-detail-panel [data-station-section="station-impacts"] .border-l-2,
-.station-detail-panel [data-station-section="station-impacts"] .border-l-4 {
-  border-top-color: transparent !important;
-  border-right-color: transparent !important;
-  border-bottom-color: transparent !important;
-}
 
 .high-contrast .alert-card,
 .linewatch-shell.high-contrast .alert-card,
@@ -499,15 +437,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     var(--mobile-card-shadow);
   background-image: none !important;
-}
-
-@media (hover: hover) {
-  .mobile-line-status-row:hover {
-    background-image: none !important;
-  }
-  .dark .mobile-line-status-row:hover {
-    background-image: none !important;
-  }
 }
 
 .high-contrast .mobile-status-actions button,
@@ -604,15 +533,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.3) !important;
   background-image: none !important;
-}
-
-@media (hover: hover) {
-  .desktop-line-status-row:hover {
-    background-image: none !important;
-  }
-  .dark .desktop-line-status-row:hover {
-    background-image: none !important;
-  }
 }
 
 .high-contrast .desktop-line-status-row,
@@ -860,6 +780,7 @@
   background: #161a23 !important;
 }
 
+
 .station-detail-panel [data-station-section="station-impacts"] .station-impact-card,
 .station-detail-panel [data-station-section="station-impacts"] .border-l-2,
 .station-detail-panel [data-station-section="station-impacts"] .border-l-4 {
@@ -921,15 +842,6 @@
   border: none !important;
 }
 
-.dark .alert-history-shortcut,
-.dark .menu-toggle-btn,
-.dark .header-search-bar,
-.dark .logs-trigger-btn,
-.dark .theme-toggle-btn,
-.dark .site-guide-trigger,
-.dark .rotate-map-btn {
-  border: none !important;
-}
 
 .high-contrast .mobile-legend-pill,
 .high-contrast .mobile-train-toggle,

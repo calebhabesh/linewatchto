@@ -1072,6 +1072,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.planned-closure-card-border/);
     assert.match(content, /\.desktop-line-status-row/);
     assert.match(content, /\.station-detail-disruption-card/);
+    assert.match(content, /var\(--surface-card-opaque\)/);
   });
 
   it("resolves the extracted shell/search-bar.css in the application stylesheet graph", () => {
