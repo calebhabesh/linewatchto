@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S08D
-- Last completed session: S08D
-- Next recommended session: S09A
+- Current session: S09A
+- Last completed session: S09A
+- Next recommended session: S09B
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 20,616 |
-| Total authored app CSS lines | 31,414 | 31,453 |
-| Total authored app CSS bytes | 784,128 | 786,005 |
-| Parsed rules | 4,221 | 2,910 |
-| Declarations | 14,093 | 9,675 |
-| !important | 2,356 | 1,466 |
+| Global entry lines | 30,011 | 19,086 |
+| Total authored app CSS lines | 31,414 | 31,467 |
+| Total authored app CSS bytes | 784,128 | 786,582 |
+| Parsed rules | 4,221 | 2,708 |
+| Declarations | 14,093 | 8,879 |
+| !important | 2,356 | 1,345 |
 | Class-substring selectors | 32 | 32 |
-| Production CSS bytes | 705,472 | 705,482 |
-| Production CSS gzip bytes | 108,667 | 106,876 |
+| Production CSS bytes | 705,472 | 705,508 |
+| Production CSS gzip bytes | 108,667 | 106,712 |
 
 
 ## Session log
@@ -516,3 +516,37 @@
 - Risks or blockers:
   - None. S08D is fully complete and verified.
 - Next session: S09A — Extract station search styles (`station/station-search.css` / station search panel, input row, filter toolbar, and search results).
+
+### S09A — Extract station search styles
+
+- Status: completed
+- Commit: c899168c
+- Scope: Extract station search panel container, input and clear controls, amenity filter toolbar and chips, global search results list and category shortcuts, resource/impact result items, browse alerts sections, lines and stations split columns, line triggers and chevrons, station rows, bookmarks, impact and outage badges, motion/high-contrast preferences, and mobile search layout, animations, flipping, and control suppression from `globals.css` (1,530 lines removed, 1,544 lines total authored with header) into dedicated `frontend/src/styles/station/station-search.css`. Add relative import `@import "../styles/station/station-search.css";` to `globals.css` line 23. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/station/station-search.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,132 tests across 135 suites, 0 failures in ~965ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.2s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 20,616 to 19,086 (-1,530 lines); parsed rules -202; parsed declarations -796; `!important` -121; media queries -2; keyframe blocks -3; production chunk raw bytes 705,508; gzip bytes improved to 106,712 (-164 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Extracted 1,530 lines from `globals.css` into dedicated `frontend/src/styles/station/station-search.css`:
+    1. Desktop search panel shell, search input row, icon, clear button, and amenity filter toolbar (`.station-search-panel`, `.station-search-input-row`, `.station-search-amenity-toolbar`, `.station-search-amenity-chips`, `.station-search-amenity-chip`, `.station-search-amenity-clear`).
+    2. Global search results, impact results, and resource results (`.global-search-results-list`, `.global-search-group`, `.global-search-impact-result`, `.global-search-resource-result`, `.global-search-category-shortcuts`, `.global-search-browse-alerts`).
+    3. Split-column browse view (`.station-search-browse-container`, `.station-search-lines-column`, `.station-search-stations-column`, `@keyframes station-search-list-slide-in`, `.station-search-network-heading`).
+    4. Line triggers and station items (`.station-search-line-trigger`, `.station-search-station-row`, `.station-search-station`, `.station-search-bookmark`, `.station-search-line-badges`, `.station-impact-type-badges`, `.station-search-outage-badge`, `.station-search-outage-count`).
+    5. High-contrast and reduced-motion states (`.motion-paused`, `.high-contrast`, `@media (max-width: 640px)`).
+    6. Mobile station search layout and behavior (`.station-search-mobile-back`, `@media (max-width: 767px)` mobile station search panel geometry, full viewport anchoring, hiding non-search controls and bottom nav, slide-in/back column animations, and search UI flipping).
+  - Maintained cascade hierarchy by importing `station-search.css` at line 23 immediately following `responsive-density.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `station/station-search.css` in the application stylesheet graph.
+- Risks or blockers:
+  - None. S09A is fully complete and verified.
+- Next session: S09B — Extract shared station-detail shell and header styles (`station/station-detail.css` / station detail panel shell, drag handling, headers, actions, and map buttons).
