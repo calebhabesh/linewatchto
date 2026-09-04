@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S10C
-- Last completed session: S10C
-- Next recommended session: S10D
+- Current session: S10D
+- Last completed session: S10D
+- Next recommended session: S10E
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 13,917 |
-| Total authored app CSS lines | 31,414 | 31,846 |
-| Total authored app CSS bytes | 784,128 | 805,911 |
-| Parsed rules | 4,221 | 1,967 |
-| Declarations | 14,093 | 6,297 |
-| !important | 2,356 | 1,016 |
+| Global entry lines | 30,011 | 12,238 |
+| Total authored app CSS lines | 31,414 | 31,934 |
+| Total authored app CSS bytes | 784,128 | 810,616 |
+| Parsed rules | 4,221 | 1,745 |
+| Declarations | 14,093 | 5,409 |
+| !important | 2,356 | 967 |
 | Class-substring selectors | 32 | 22 |
-| Production CSS bytes | 705,472 | 707,742 |
-| Production CSS gzip bytes | 108,667 | 106,884 |
+| Production CSS bytes | 705,472 | 707,988 |
+| Production CSS gzip bytes | 108,667 | 106,791 |
 
 
 ## Session log
@@ -769,3 +769,41 @@
 - Risks or blockers:
   - None. S10C is fully completed and verified.
 - Next session: S10D — Extract My Commutes rule editor and notification schedule picker (`account/saved-commute-rules.css`).
+
+### S10D — Extract My Commutes Route Editor & Notification Rules
+
+- Status: completed
+- Commit: c6318b1a
+- Scope: Extract My Commutes route creation/editing form, station picker popover, sort controls, danger zone / delete controls, switch and slider controls, notification rule editor, and notification schedules into a dedicated domain stylesheet `frontend/src/styles/account/saved-commute-rules.css` (1,767 lines). Add relative import `@import "../styles/account/saved-commute-rules.css";` to `globals.css` at line 31 immediately following `saved-commutes.css`. Remove 1,679 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,140 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/account/saved-commute-rules.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,140 tests across 135 suites, 0 failures in ~918ms; +1 test for new stylesheet).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.0s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 13,917 to 12,238 (-1,679 lines); parsed rules -222; parsed declarations -888; `!important` -49; media queries -5; keyframe blocks -5; class-substring selectors in `globals.css` steady at 22; production chunk raw bytes 707,988; gzip bytes 106,791 (-93 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated domain stylesheet `frontend/src/styles/account/saved-commute-rules.css` (1,767 lines) isolating route creation/editing form, station picker popover with animated line expansion and green flash indicators, sort controls, delete confirmation box, slider switches, return leg toggles, notification rule editor, master toggles, notification schedules, day buttons, custom time windows, and event checkboxes.
+  - Removed 1,679 lines from `globals.css`:
+    1. Saved commute form inputs, sort control dropdowns, sort options, primary CTA button, danger zone, and delete confirmation box (lines 5649-6072 in original `globals.css`).
+    2. Commute station picker trigger, label, search row, line filter chips, station list, options, and green flash anim (lines 6183-6448 in original `globals.css`).
+    3. Saved commute notification rule editor, master row, schedule list, schedule card, leg toggles, day grid, time window, and event checkboxes (lines 6531-7093 in original `globals.css`).
+    4. Dark and high-contrast overrides for saved commute rules, switches, sliders, day buttons, and schedule headers (lines 7388-7580 in original `globals.css`).
+    5. Spin animations, station browse columns, slide-in animations, line chevron, and green flash beacon (lines 14210-14371 in original `globals.css`).
+    6. Saved commute customize toggle and dark mode styles (lines 14815-14852 in original `globals.css`).
+  - Preserved `.impact-list-select-trigger` under `@media (max-width: 767px)` in `globals.css` to retain touch targets for impact dropdowns.
+  - Split shared selectors between saved commute notification summaries and notification settings (`.notification-settings-row-main`, `.notification-settings-row-label`, `.notification-settings-prompt`), keeping notification settings in `globals.css` for S10E.
+  - Preserved cross-component elevation lists (`.mobile-more-account, .mobile-more-row, .notification-settings-card, .saved-commute-notification-summary`) and `.saved-commute-sort-options` in scrollbar lists in `globals.css` for S11.
+  - Maintained cascade hierarchy by importing `saved-commute-rules.css` at line 31 immediately following `saved-commutes.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `account/saved-commute-rules.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S10D is fully completed and verified.
+- Next session: S10E — Extract push notification settings and prompt cards (`account/notification-settings.css`).
