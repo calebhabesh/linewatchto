@@ -1022,4 +1022,21 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.mobile-status-actions/);
     assert.match(content, /\.desktop-menu-count-badge/);
   });
+
+  it("resolves the extracted map/map-legends.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("map-legends.css")), "map-legends.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/map/map-legends.css", import.meta.url));
+    assert.match(content, /\.desktop-map-legend/);
+    assert.match(content, /\.desktop-legend-route-badge/);
+    assert.match(content, /\.desktop-legend-route-badge--ttc/);
+    assert.match(content, /\.desktop-legend-route-badge--regional/);
+    assert.match(content, /\.legend-impact-count/);
+    assert.match(content, /\.regional-map-legend/);
+    assert.match(content, /\.mobile-legend-pill/);
+    assert.match(content, /\.mobile-legend-route-badge/);
+    assert.match(content, /\.mobile-legend-heading/);
+    assert.match(content, /\.mobile-legend-line-row/);
+  });
 });
