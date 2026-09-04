@@ -658,3 +658,41 @@
 - Risks or blockers:
   - None. S09 (all phases S09A, S09B, S09C, S09D) is fully completed and verified.
 - Next session: S10A — Extract account dialogs and signed-out previews (`account/account-dialogs.css`).
+
+### S10A — Extract account dialogs and signed-out previews
+
+- Status: completed
+- Commit: 1e8123f9
+- Scope: Extract account modal dialogs (`.account-dialog`, `.account-dialog-backdrop`, `.account-dialog-header`, `.account-dialog-intro`, `.account-dialog-description`, `.account-dialog-close`), entrance animations (`linewatch-dialog-enter`, `linewatch-backdrop-enter`, `linewatch-dialog-content-enter`), auth choices and provider stack (`.account-choice-primary`, `.account-choice-google-custom`, `.account-choice-google-icon`, `.account-provider-stack`, `.account-auth-divider`), account form fields (`.account-field`, `.account-field span`, `.account-field input`), auth action buttons and links (`.account-primary-button`, `.account-link-button`), validation/status badges and helper notes (`.account-linked-status`, `.account-reset-status`, `.account-reset-dev-note`, `.account-reset-hint`), and signed-out feature previews (`.account-feature-preview`, `.account-action-row`, `.saved-commute-account-prompt`, `.saved-commute-account-prompt button`, `.notification-settings-prompt button`, `.saved-commute-signup-btn`) from `globals.css` into dedicated `frontend/src/styles/account/account-dialogs.css` (538 lines). Add relative import `@import "../styles/account/account-dialogs.css";` to `globals.css` at line 28. Remove 471 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,137 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/account/account-dialogs.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,137 tests across 135 suites, 0 failures in ~984ms; +1 test for new stylesheet).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~1.9s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 17,951 to 17,480 (-471 lines); parsed rules -63; parsed declarations -223; `!important` -12; media queries -1; keyframe blocks -3; class-substring selectors in `globals.css` steady at 22; production chunk raw bytes 707,717; gzip bytes 107,246).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes (signed-out preview test), and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated domain stylesheet `frontend/src/styles/account/account-dialogs.css` (538 lines) isolating account modal dialogs, animations, auth provider buttons, input fields, action buttons, validation badges, and signed-out preview prompts.
+  - Removed 471 lines from `globals.css`:
+    1. Account action row, dialog structure, header, close button, provider stack, Google sign-in custom button, auth divider, and account field labels (lines 7794-8049 in original `globals.css`).
+    2. Separated `.account-field input` from `.saved-commute-form input, select` at line 8050, moving `.account-field input` (light, dark, high-contrast) to `account-dialogs.css` while leaving commute form inputs in `globals.css` for S10C/D.
+    3. Separated `.account-primary-button`, `.saved-commute-account-prompt button`, and `.notification-settings-prompt button` from `.saved-commute-primary-button` at lines 8286-8344, leaving `.saved-commute-primary-button` in `globals.css` for S10C/D.
+    4. Signed-out preview green create-account buttons (`.saved-commute-account-prompt button.saved-commute-signup-btn`, `.notification-settings-prompt button.saved-commute-signup-btn`, light, dark, high-contrast) from lines 8500-8531.
+    5. Account link buttons (`.account-link-button`, light, dark, high-contrast) from lines 8533-8565.
+    6. Account reset status and validation hints (`.account-reset-status`, `.account-reset-dev-note`, `.account-reset-hint`) from lines 8567-8599.
+    7. Signed-out preview base container (`.saved-commute-account-prompt`, light, dark, high-contrast) from lines 8601-8608 and 8619-8627, while preserving `.saved-commute-form` in `globals.css`.
+    8. Unified signed-out feature preview card treatment (`.account-feature-preview`, light, dark, high-contrast) from lines 9763-9784.
+    9. Account dialog entrance animations and keyframes (`.account-dialog-backdrop`, `.account-dialog`, `.account-dialog [data-account-dialog-view]`, `@keyframes linewatch-backdrop-enter`, `@keyframes linewatch-dialog-enter`, `@keyframes linewatch-dialog-content-enter`) from lines 17691-17728.
+  - Maintained cascade hierarchy by importing `account-dialogs.css` at line 28 immediately following `surface-connections.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `account/account-dialogs.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S10A is fully completed and verified.
+- Next session: S10B — Extract My Stations (`account/my-stations.css`).
