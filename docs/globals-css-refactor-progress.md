@@ -3,24 +3,25 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11H
-- Last completed session: S11H
-- Next recommended session: S11I (or S12)
+- Current session: S11I
+- Last completed session: S11I
+- Next recommended session: S11J (or S12)
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 3,648 |
-| Total authored app CSS lines | 31,414 | 32,270 |
-| Total authored app CSS bytes | 784,128 | 829,129 |
-| Parsed rules | 4,221 | 500 |
-| Declarations | 14,093 | 1,605 |
-| !important | 2,356 | 416 |
+| Global entry lines | 30,011 | 3,118 |
+| Total authored app CSS lines | 31,414 | 32,324 |
+| Total authored app CSS bytes | 784,128 | 831,700 |
+| Parsed rules | 4,221 | 422 |
+| Declarations | 14,093 | 1,330 |
+| !important | 2,356 | 396 |
 | Class-substring selectors | 32 | 18 |
 | Production CSS bytes | 705,472 | 708,439 |
-| Production CSS gzip bytes | 108,667 | 106,141 |
+| Production CSS gzip bytes | 108,667 | 106,111 |
+
 
 
 
@@ -1193,3 +1194,52 @@
 - Risks or blockers:
   - None. S11H is fully completed and verified.
 - Next session: S11I — Extract station arrivals line pin, dashboard availability notice, and error screens (`styles/station/station-arrivals.css` or `styles/shell/status-notices.css` / `styles/shell/error-screen.css`), or proceed to S12.
+
+### S11I — Extract Status Notices, Error Screens, and Station Arrivals Pins
+
+- Status: completed
+- Commit: 12e764c2
+- Scope: Extract dashboard availability notice (`.dashboard-availability-notice`, dark mode, unavailable state, high contrast, and mobile breakpoints) and app update notification banner (`.app-update-banner`, copy, action buttons, spin animation keyframe, progress bar, and pulse animation keyframe) into `frontend/src/styles/shell/status-notices.css` (229 lines). Extract full-page error boundary screen (`.linewatch-error-screen`), branded card container (`.linewatch-error-card`), 5-line transit color accent strip (`.linewatch-transit-accent-strip`), typography, and error action buttons (`.linewatch-error-actions`) into `frontend/src/styles/shell/error-screen.css` (169 lines). Extract station arrival line pin button (`.arrival-line-pin`, idle, hover, active, fine/coarse pointer media queries, focus-visible, is-pinned, compact, and dark mode variants) into `frontend/src/styles/station/station-arrivals.css` (139 lines). Extract regional station links (`.regional-station-official-links`), station route identity (`.station-route-identity`), and station impact details accordion (`.station-impacts-summary`, `.station-impacts-chevron`, `.station-impacts-details`) into `frontend/src/styles/station/station-detail.css` (27 lines). Extract regional airport connection text styling into `frontend/src/styles/map/regional-map.css` (10 lines). Extract mobile regional map controls positioning override into `frontend/src/styles/shell/map-controls.css` (5 lines). Extract mobile input font-size 16px auto-zoom prevention into `frontend/src/styles/foundation/reset.css` (9 lines). Add relative imports `@import "../styles/shell/status-notices.css";` and `@import "../styles/shell/error-screen.css";` to `globals.css` immediately following `map-legends.css`. Remove 532 lines from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,157 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/shell/status-notices.css`
+  - `frontend/src/styles/shell/error-screen.css`
+  - `frontend/src/styles/station/station-arrivals.css`
+  - `frontend/src/styles/station/station-detail.css`
+  - `frontend/src/styles/map/regional-map.css`
+  - `frontend/src/styles/shell/map-controls.css`
+  - `frontend/src/styles/foundation/reset.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,157 tests across 135 suites, 0 failures in ~980ms; +2 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.0s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 3,648 to 3,118 (-530 lines, -14.5%); parsed rules -78 (500 to 422, -15.6%); parsed declarations -275 (1,605 to 1,330); `!important` -20 (416 to 396, -4.8%); media queries -13 (37 to 24); keyframe blocks -2 (20 to 18); class-substring selectors steady at 18; production chunk raw bytes steady at 708,439; gzip bytes improved by 30 bytes to 106,111).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created two dedicated, modular shell stylesheets under `frontend/src/styles/shell/`:
+    1. `frontend/src/styles/shell/status-notices.css` (229 lines) isolating:
+       - Section 1: Dashboard Availability Notice (`.dashboard-availability-notice`, `.dark`, unavailable, high-contrast, and mobile breakpoints).
+       - Section 2: App Update Banner (`.app-update-banner`, copy, action buttons, progress bar, spin keyframe, and pulse keyframe).
+    2. `frontend/src/styles/shell/error-screen.css` (169 lines) isolating:
+       - Section 1: Full-Page Error Boundary Screen & Card (`.linewatch-error-screen`, `.linewatch-error-card`).
+       - Section 2: Transit Line Color Accent Strip (`.linewatch-transit-accent-strip` with 5 line colors).
+       - Section 3: Card Body, Branding, Typography & Copy (`.linewatch-error-brand`, `.linewatch-error-eyebrow`, `.linewatch-error-message`).
+       - Section 4: Error Actions & Buttons (`.linewatch-error-actions`, secondary action, and mobile layout).
+  - Consolidated related station arrivals, station detail, regional map, map controls, and reset rules into their established domain stylesheets:
+    - Section 5 of `frontend/src/styles/station/station-arrivals.css`: `.arrival-line-pin` and states (139 lines).
+    - `frontend/src/styles/station/station-detail.css`: `.regional-station-official-links`, `.station-route-identity`, and `.station-impacts-*` accordion (27 lines).
+    - `frontend/src/styles/map/regional-map.css`: `.map-connection-airport` text fill in dark and high contrast (10 lines).
+    - `frontend/src/styles/shell/map-controls.css`: Mobile `.regional-map-controls` positioning (5 lines).
+    - `frontend/src/styles/foundation/reset.css`: Mobile input/textarea/select 16px font-size zoom prevention (9 lines).
+  - Removed 532 lines (lines 48-579 in previous `globals.css`) in a single contiguous block.
+  - Maintained cascade hierarchy by importing `status-notices.css` and `error-screen.css` at lines 47-48 immediately following `map-legends.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of both new stylesheets in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11I is fully completed and verified.
+- Next session: S11J — Extract high contrast overrides and closed subway/overnight modal screens (`styles/foundation/high-contrast.css` and `styles/shell/subway-closed.css`), or proceed to S12.
