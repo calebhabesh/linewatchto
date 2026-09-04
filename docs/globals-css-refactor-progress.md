@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11G
-- Last completed session: S11G
-- Next recommended session: S11H (or S12)
+- Current session: S11H
+- Last completed session: S11H
+- Next recommended session: S11I (or S12)
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 4,230 |
-| Total authored app CSS lines | 31,414 | 32,231 |
-| Total authored app CSS bytes | 784,128 | 827,090 |
-| Parsed rules | 4,221 | 584 |
-| Declarations | 14,093 | 1,938 |
-| !important | 2,356 | 445 |
+| Global entry lines | 30,011 | 3,648 |
+| Total authored app CSS lines | 31,414 | 32,270 |
+| Total authored app CSS bytes | 784,128 | 829,129 |
+| Parsed rules | 4,221 | 500 |
+| Declarations | 14,093 | 1,605 |
+| !important | 2,356 | 416 |
 | Class-substring selectors | 32 | 18 |
-| Production CSS bytes | 705,472 | 708,413 |
-| Production CSS gzip bytes | 108,667 | 106,362 |
+| Production CSS bytes | 705,472 | 708,439 |
+| Production CSS gzip bytes | 108,667 | 106,141 |
 
 
 
@@ -1152,4 +1152,44 @@
   - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `badges.css` in the application stylesheet graph and validating selector matches.
 - Risks or blockers:
   - None. S11G is fully completed and verified.
-- Next session: S11H — Extract map legends and legend route badges (`styles/map/map-legends.css`), or proceed to S12 (station details/search responsive popover rules).
+- Next session: S11H — Extract map legends and legend route badges (`styles/map/map-legends.css`).
+
+### S11H — Extract Map Legends and Legend Route Badges
+
+- Status: completed
+- Commit: 6adda8ef
+- Scope: Extract typography definitions (`.font-subway`), desktop map legend container (`.desktop-map-legend`, `.desktop-map-legend--regional`), line name styling (`.legend-line-name`), desktop legend route badge rings and squircles (`.desktop-legend-route-badge`, `.desktop-legend-route-badge--ttc`, `.desktop-legend-route-number`, `.desktop-legend-route-badge--regional`), service tone rings, inner red flash animations, and badge pulse keyframes (`.service-tone-affected`, `.service-tone-good`, `@keyframes desktop-legend-badge-pulse`, `@keyframes legend-badge-inner-red-flash`), legend impact count badges (`.legend-impact-count`, `[data-digit-count="multiple"]`, `.legend-impact-count-svg`, `.legend-impact-count--regional`), regional map legend and swatch styling (`.regional-map-legend`, `.limited-service-swatch`, `@media (max-width: 767px)` overrides), mobile legend pill, compact rows, route badges, and pulse keyframes (`.mobile-legend-pill`, `.mobile-legend-collapsed-toggle`, `.mobile-legend-compact-row`, `.mobile-legend-route-badge`, `@keyframes mobile-legend-badge-pulse`), mobile legend expanded list, rows, and status indicators (`.mobile-legend-heading`, `.mobile-legend-line-list`, `.mobile-legend-line-row`, `.mobile-legend-line-status`), and motion safety / announcement displacement overrides (`@media (prefers-reduced-motion: reduce)`, `.motion-paused`, `.mobile-legend-pill--announcement`, `.mobile-legend-pill--regional.mobile-legend-pill--announcement`) into `frontend/src/styles/map/map-legends.css` (621 lines). Add relative import `@import "../styles/map/map-legends.css";` to `globals.css` immediately following `badges.css`. Remove 583 lines across 3 blocks from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,155 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/map/map-legends.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,155 tests across 135 suites, 0 failures in ~1,210ms; +1 test for new stylesheet).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.4s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 4,230 to 3,648 (-582 lines, -13.8%); parsed rules -84 (584 to 500); parsed declarations -333 (1,938 to 1,605); `!important` -29 (445 to 416); media queries -1 (38 to 37); keyframe blocks -3 (23 to 20); class-substring selectors steady at 18; production chunk raw bytes 708,439; gzip bytes improved by 221 bytes to 106,141).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated, modular stylesheet `frontend/src/styles/map/map-legends.css` (621 lines) isolating 8 sections:
+    1. Section 1: Typography and subway font definitions (`.font-subway`, `.legend-line-name`, `.desktop-map-legend span`, `.mobile-legend-pill span`).
+    2. Section 2: Desktop map legend container (`.desktop-map-legend`, `.desktop-map-legend--regional`, `.legend-line-name`).
+    3. Section 3: Desktop line legend route badge rings and squircles (`.desktop-legend-route-badge`, `.desktop-legend-route-badge--ttc`, `.desktop-legend-route-number`, `.desktop-legend-route-badge--regional`).
+    4. Section 4: Desktop legend route badge service tones, inner red flash, and pulse keyframes (`.service-tone-affected`, `.service-tone-good`, `@keyframes desktop-legend-badge-pulse`, `@keyframes legend-badge-inner-red-flash`).
+    5. Section 5: Legend impact count badges (`.legend-impact-count`, `[data-digit-count="multiple"]`, `.legend-impact-count-svg`, `.legend-impact-count--regional`).
+    6. Section 6: Regional map legend & swatch styling across desktop and mobile (`.regional-map-legend`, `.limited-service-swatch`, `@media (max-width: 767px)` overrides).
+    7. Section 7: Mobile legend pill, route badges, compact rows, and pulse keyframes (`.mobile-legend-pill`, `.mobile-legend-collapsed-toggle`, `.mobile-legend-compact-row`, `.mobile-legend-route-badge`, `@keyframes mobile-legend-badge-pulse`).
+    8. Section 8: Mobile legend expanded list, rows, status indicators, and motion/announcement overrides (`.mobile-legend-heading`, `.mobile-legend-line-list`, `.mobile-legend-line-row`, `.mobile-legend-line-status`, `@media (prefers-reduced-motion: reduce)`, `.motion-paused`, `.mobile-legend-pill--announcement`, `.mobile-legend-pill--regional.mobile-legend-pill--announcement`).
+  - Removed 583 lines across 3 blocks from `globals.css`:
+    1. Regional map legend and swatch rules (lines 52-77 in previous `globals.css`, 26 lines, plus lines 86-87 in `@media (max-width: 767px)`).
+    2. Subway legend font definition, desktop map legend, desktop legend route badges, and legend impact count badges (lines 90-287 in previous `globals.css`, 198 lines).
+    3. Mobile legend pill, route badges, compact row, expanded line list, and motion/announcement overrides (lines 2970-3333 in modified `globals.css`, 355 lines).
+  - Maintained cascade hierarchy by importing `map/map-legends.css` at line 46 immediately following `badges.css`.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `map-legends.css` in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11H is fully completed and verified.
+- Next session: S11I — Extract station arrivals line pin, dashboard availability notice, and error screens (`styles/station/station-arrivals.css` or `styles/shell/status-notices.css` / `styles/shell/error-screen.css`), or proceed to S12.
