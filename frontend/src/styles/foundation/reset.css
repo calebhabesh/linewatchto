@@ -1,0 +1,70 @@
+html {
+  font-size: 106.25%; /* Scales base from 16px to 17px to match Inter's optical x-height */
+}
+
+html,
+body {
+  font-family: "Switzer", var(--font-inter), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+* {
+  scrollbar-color: var(--mobile-scroll-indicator-thumb) transparent;
+  scrollbar-width: thin;
+}
+
+@media (min-width: 768px) {
+  *::-webkit-scrollbar {
+    height: 9px;
+    width: 9px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--mobile-scroll-indicator-thumb);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--mobile-scroll-indicator-thumb-hover);
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0;
+    height: 0;
+  }
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #0d0808;
+  font-family: var(--font-sans);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}

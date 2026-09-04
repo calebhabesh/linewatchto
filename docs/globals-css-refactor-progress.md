@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S03
-- Last completed session: S03
-- Next recommended session: S04
+- Current session: S04
+- Last completed session: S04
+- Next recommended session: S05
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 29,671 |
-| Total authored app CSS lines | 31,414 | 31,415 |
-| Total authored app CSS bytes | 784,128 | 784,198 |
-| Parsed rules | 4,221 | 4,221 |
-| Declarations | 14,093 | 13,863 |
-| !important | 2,356 | 2,356 |
+| Global entry lines | 30,011 | 29,347 |
+| Total authored app CSS lines | 31,414 | 31,416 |
+| Total authored app CSS bytes | 784,128 | 784,373 |
+| Parsed rules | 4,221 | 4,192 |
+| Declarations | 14,093 | 13,655 |
+| !important | 2,356 | 2,346 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 108,669 |
+| Production CSS gzip bytes | 108,667 | 108,590 |
 
 ## Session log
 
@@ -156,3 +156,35 @@
 - Risks or blockers:
   - None. The import strategy is proven and production-ready for the foundation extractions in S04.
 - Next session: S04 — Extract foundation styles (tokens, reset, themes, accessibility).
+
+### S04 — Extract foundation styles
+
+- Status: completed
+- Commit: 432469cd
+- Scope: Extract foundation styles from `globals.css` into dedicated files in `frontend/src/styles/foundation/`: `tokens.css`, `reset.css`, `themes.css`, and `accessibility.css`. Add relative `@import` directives in top manifest order. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/foundation/tokens.css`
+  - `frontend/src/styles/foundation/reset.css`
+  - `frontend/src/styles/foundation/themes.css`
+  - `frontend/src/styles/foundation/accessibility.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,116 tests, 0 failures across 135 suites in ~926ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 29,671 to 29,347; production chunk raw bytes unchanged at 705,499; gzip bytes improved by 79 bytes to 108,590).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, high contrast, station detail, My Commutes, and mobile views.
+- Decisions:
+  - Preserved exact declaration and token values without selector renaming, specificity alterations, or `!important` removals.
+  - Placed `@import` directives in top manifest order right after `fonts.css` (`tokens.css`, `reset.css`, `themes.css`, `accessibility.css`) to guarantee standard CSS cascade ordering and clean Turbopack / PostCSS bundling.
+  - Added dedicated unit tests in `frontend/tests/stylesheet-graph.test.mjs` verifying that all extracted foundation files resolve in the app stylesheet graph and are readable directly via `readStylesheet()`.
+  - Scoped high-contrast overrides (`.linewatch-shell.high-contrast .panel`, etc.) deferred to utilities session (`utilities/high-contrast.css`) per playbook architecture.
+- Risks or blockers:
+  - None. Foundation styles are successfully extracted and verified.
+- Next session: S05 — Extract base map and rendering styles (`map/base-map.css`).

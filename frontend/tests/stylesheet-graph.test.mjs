@@ -141,4 +141,48 @@ describe("stylesheet-graph helper", () => {
     assert.match(fontContent, /@font-face\s*{[^}]*font-family:\s*"TeX Gyre Heros"/);
     assert.match(fontContent, /@font-face\s*{[^}]*font-family:\s*"Switzer"/);
   });
+
+  it("resolves the extracted foundation/tokens.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("tokens.css")), "tokens.css must be in graph files");
+    const tokenContent = readStylesheet(new URL("../src/styles/foundation/tokens.css", import.meta.url));
+    assert.match(tokenContent, /@theme\s*\{[^}]*--font-sans:/);
+    assert.match(tokenContent, /:root\s*\{[^}]*--map-pulse-offset:/);
+    assert.match(tokenContent, /--line-up:\s*#4084cd;/);
+    assert.match(tokenContent, /html\[data-safe-area-debug="iphone-dynamic-island"\]/);
+  });
+
+  it("resolves the extracted foundation/reset.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("reset.css")), "reset.css must be in graph files");
+    const resetContent = readStylesheet(new URL("../src/styles/foundation/reset.css", import.meta.url));
+    assert.match(resetContent, /html\s*\{[^}]*font-size:\s*106\.25%;/);
+    assert.match(resetContent, /\*\s*\{[^}]*box-sizing:\s*border-box;/);
+    assert.match(resetContent, /scrollbar-color:\s*var\(--mobile-scroll-indicator-thumb\)/);
+    assert.match(resetContent, /button,\s*input,\s*select,\s*textarea\s*\{[^}]*font:\s*inherit;/);
+  });
+
+  it("resolves the extracted foundation/themes.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("themes.css")), "themes.css must be in graph files");
+    const themeContent = readStylesheet(new URL("../src/styles/foundation/themes.css", import.meta.url));
+    assert.match(themeContent, /\.linewatch-shell\s*\{[^}]*color-scheme:\s*light;/);
+    assert.match(themeContent, /\.linewatch-shell\.dark\s*\{[^}]*color-scheme:\s*dark;/);
+    assert.match(themeContent, /\.linewatch-backdrop\s*\{[^}]*background-color:\s*#f8fafc;/);
+    assert.match(themeContent, /\.linewatch-shell\.high-contrast\s*\{[^}]*--bg:\s*#000000;/);
+  });
+
+  it("resolves the extracted foundation/accessibility.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("accessibility.css")), "accessibility.css must be in graph files");
+    const a11yContent = readStylesheet(new URL("../src/styles/foundation/accessibility.css", import.meta.url));
+    assert.match(a11yContent, /button,\s*a\s*\{[^}]*-webkit-tap-highlight-color:\s*transparent;/);
+    assert.match(a11yContent, /touch-action:\s*manipulation;/);
+    assert.match(a11yContent, /\.motion-paused,\s*\.motion-paused \*/);
+    assert.match(a11yContent, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/);
+  });
 });

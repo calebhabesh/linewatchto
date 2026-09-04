@@ -1,0 +1,83 @@
+@theme {
+  --font-sans: "Switzer", var(--font-inter), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-mono), monospace;
+  --font-subway: "Tex Gyre Heros", "TeX Gyre Heros", "Toronto Subway", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-wordmark: "Chillax", var(--font-wordmark-family), Arial, Helvetica, sans-serif;
+  --color-logo-blue: #81c9ff;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light dark;
+  --map-pulse-offset: 0ms;
+  --map-overlay-pulse-half-cycle: 1.2s;
+  --map-overlay-pulse-easing: cubic-bezier(0.37, 0, 0.63, 1);
+  --map-overlay-rail-width: 102px;
+  --map-overlay-rail-pulse-width: 114px;
+  --station-selection-accent: var(--color-logo-blue);
+  --station-selection-accent-rgb: 129 201 255;
+  --mobile-announcement-chip-height: 40px;
+  --mobile-regional-announcement-chip-height: 48px;
+  --mobile-edge-inset: clamp(10px, 4vw, 16px);
+  --mobile-top-action-button-size: clamp(34px, 10.7vw, 40px);
+  --mobile-top-action-gap: clamp(4px, 2vw, 8px);
+  --mobile-rotate-action-width: clamp(62px, 20vw, 76px);
+  --mobile-announcement-gap: clamp(6px, 2.2vw, 10px);
+  --mobile-announcement-max-width: clamp(128px, 50vw, 260px);
+  --mobile-top-chrome-height: 40px;
+  --mobile-top-action-cluster-width: calc(var(--mobile-top-action-button-size) + var(--mobile-rotate-action-width) + var(--mobile-top-action-button-size) + var(--mobile-top-action-gap) + var(--mobile-top-action-gap));
+  --mobile-bottom-nav-height: 74px;
+  --mobile-bottom-nav-bottom-offset: max(10px, calc(var(--mobile-safe-bottom) - 18px));
+  --mobile-bottom-nav-occupied-height: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-bottom-offset));
+  --mobile-bottom-nav-side-inset: 16px;
+  --mobile-status-peek-height: 108px;
+  --mobile-safe-top: env(safe-area-inset-top, 0px);
+  --mobile-safe-right: env(safe-area-inset-right, 0px);
+  --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mobile-safe-left: env(safe-area-inset-left, 0px);
+  --visual-viewport-height: 100dvh;
+  --visual-viewport-width: 100vw;
+  --visual-viewport-offset-top: 0px;
+  --visual-viewport-offset-left: 0px;
+  --visual-viewport-scale: 1;
+  --visual-keyboard-inset: 0px;
+  --mobile-chrome-background: rgb(14, 16, 22);
+  --mobile-chrome-backdrop-filter: blur(18px) saturate(1.4);
+  --mobile-chrome-shadow: 0 2px 6px rgba(0, 0, 0, 0.32), 0 10px 32px rgba(0, 0, 0, 0.48), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
+  --impact-rsz: #F59E0B; 
+  --impact-rsz-ink: #78350f;
+  --impact-rsz-soft: rgba(245, 158, 11, 0.14);
+  --impact-rsz-border: rgba(245, 158, 11, 0.55);
+  --impact-rsz-active: rgba(245, 158, 11, 0.22);
+  --trip-change: #f59e0b;
+  --trip-change-ink: #92400e;
+  --trip-change-soft: rgba(245, 158, 11, 0.14);
+  --trip-change-border: rgba(245, 158, 11, 0.4);
+
+  /* Regional Rail / Metrolinx Line Palette (Official July 2026) */
+  --line-up: #4084cd;
+  --line-br: #155ba0;
+  --line-ki: #138336;
+  --line-le: #ee2722;
+  --line-lw: #8b0a31;
+  --line-mi: #f47216;
+  --line-rh: #27adea;
+  --line-st: #774111;
+}
+
+html[data-safe-area-debug="iphone-dynamic-island"] {
+  --mobile-safe-top: 59px;
+  --mobile-safe-right: 0px;
+  --mobile-safe-bottom: 34px;
+  --mobile-safe-left: 0px;
+}
+
+@media (max-width: 767px) and (orientation: landscape), (orientation: landscape) and (max-height: 520px) {
+  html[data-safe-area-debug="iphone-dynamic-island"] {
+    --mobile-safe-top: 0px;
+    --mobile-safe-right: 59px;
+    --mobile-safe-bottom: 21px;
+    --mobile-safe-left: 59px;
+  }
+}

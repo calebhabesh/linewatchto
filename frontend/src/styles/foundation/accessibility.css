@@ -1,0 +1,35 @@
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+/* The in-app switch is authoritative for the complete shell, including
+   newly added transitions. The media query provides the same guarantee
+   before the stored preference has hydrated. */
+.motion-paused,
+.motion-paused *,
+.motion-paused *::before,
+.motion-paused *::after {
+  animation: none !important;
+  scroll-behavior: auto !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .linewatch-shell,
+  .linewatch-shell *,
+  .linewatch-shell *::before,
+  .linewatch-shell *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
