@@ -44,8 +44,8 @@ jobs:
       - name: Performance measurement tool tests
         run: node scripts/tests/performance-measurements.test.mjs
 
-      - name: Fixture tests
-        run: npm --prefix frontend run test:fixtures
+      - name: Fast frontend tests
+        run: npm --prefix frontend run test:fast
 
       - name: Typecheck
         run: npm --prefix frontend run typecheck
@@ -56,15 +56,22 @@ jobs:
       - name: Build
         run: npm --prefix frontend run build
         env:
-          BACKEND_URL: http://127.0.0.1:8080
-          NEXT_PUBLIC_LINEWATCH_API_BASE_URL: http://127.0.0.1:8080
+          BACKEND_URL: http://127.0.0.1:4174
+          NEXT_PUBLIC_LINEWATCH_API_BASE_URL: http://127.0.0.1:4174
 
       - name: Install cross-browser Playwright runtimes
         working-directory: frontend
         run: npx playwright install --with-deps chromium firefox webkit
 
+      - name: Browser smoke tests
+        run: npm --prefix frontend run test:smoke
+        env:
+          LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
+
       - name: Cross-browser map geometry
         run: npm --prefix frontend run test:browser-compat
+        env:
+          LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
 
   mobile:
     name: Mobile

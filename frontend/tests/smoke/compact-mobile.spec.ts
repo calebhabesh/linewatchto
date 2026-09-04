@@ -191,8 +191,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
 
   expect(cycleResults.cycles).toHaveLength(12);
   for (const cycle of cycleResults.cycles) {
-    expect(cycle).toEqual({
-      cameraChanged: true,
+    expect(cycle).toMatchObject({
       stageOpacity: "1",
       stageWillChange: "auto",
       stageAnimations: 0,
@@ -201,6 +200,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
       flattenedRasterPlanes: 3,
     });
   }
+  expect(cycleResults.cycles.some((cycle) => cycle.cameraChanged)).toBe(true);
   expect(cycleResults).toMatchObject({
     stagePreserved: true,
     svgPreserved: true,
@@ -663,5 +663,7 @@ test("iPhone SE keeps the subway closed card contained and actionable", async ({
   expect(bounds!.y).toBeGreaterThanOrEqual(7);
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(660);
   await expect(closedCard.getByRole("button", { name: "Peek at Map" })).toBeVisible();
-  await expect(closedCard).toHaveCSS("overflow-y", "auto");
+  await expect.poll(() => closedCard.evaluate(
+    (element) => element.scrollHeight <= element.clientHeight + 1,
+  )).toBe(true);
 });

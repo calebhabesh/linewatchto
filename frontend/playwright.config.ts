@@ -6,6 +6,10 @@ const stubUrl = "http://127.0.0.1:4174";
 export default defineConfig({
   testDir: "./tests/smoke",
   outputDir: "/tmp/linewatch-playwright-test-results",
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 1 : 0,
+  // The API stub has intentionally mutable scenario state. Keep a single
+  // worker until scenarios are isolated per browser context.
   fullyParallel: false,
   workers: 1,
   reporter: "list",
@@ -25,14 +29,13 @@ export default defineConfig({
       command: "node tests/smoke/api-stub.mjs",
       url: `${stubUrl}/__test/health`,
       timeout: 30_000,
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
     {
-      command:
-        "BACKEND_URL=http://127.0.0.1:4174 NEXT_PUBLIC_LINEWATCH_API_BASE_URL=http://127.0.0.1:4174 npm run build && BACKEND_URL=http://127.0.0.1:4174 NEXT_PUBLIC_LINEWATCH_API_BASE_URL=http://127.0.0.1:4174 npm run start -- --hostname 127.0.0.1 --port 4173",
+      command: "node scripts/start-playwright-app.mjs",
       url: appUrl,
       timeout: 120_000,
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
   ],
   projects: [

@@ -506,13 +506,22 @@ frontend helper to disable the shortcut.
 Run frontend checks:
 
 ```bash
-npm --prefix frontend run test:fixtures
+npm --prefix frontend run test:fast
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run build
-npm --prefix frontend run test:browser-compat
 npm --prefix frontend run test:smoke
+npm --prefix frontend run test:e2e
+npm --prefix frontend run test:e2e:full # only when a complete failure inventory is needed
+npm --prefix frontend run test:visual
+npm --prefix frontend run test:browser-compat
 ```
+
+The smoke command is intentionally small. The full desktop/mobile Chromium
+interaction catalog lives under `test:e2e`; visual snapshots and the focused
+Chrome/Firefox/WebKit geometry contract are separate gates. `test:fixtures`
+remains an alias for the fast suite. See [`docs/testing.md`](docs/testing.md)
+for test ownership and build-reuse guidance.
 
 Fixture data lives in:
 
@@ -1004,7 +1013,7 @@ Before claiming a frontend change is complete, run:
 
 ```bash
 node scripts/tests/performance-measurements.test.mjs
-npm --prefix frontend run test:fixtures
+npm --prefix frontend run test:fast
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run test:smoke
@@ -1014,6 +1023,8 @@ For substantial UI changes, also run:
 
 ```bash
 npm --prefix frontend run build
+npm --prefix frontend run test:e2e
+npm --prefix frontend run test:visual
 ```
 
 Before claiming a backend change is complete, run:

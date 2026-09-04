@@ -1,17 +1,5 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-
-const appUrl = process.env.LINEWATCH_SMOKE_APP_URL ?? "http://127.0.0.1:4173";
-const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
-
-async function setStubMode(
-  request: APIRequestContext,
-  mode: "seeded" | "diagnostics-disabled" | "unavailable" | "map-authoritative-overlap" | "regional-live",
-) {
-  const response = await request.post(`${stubUrl}/__test/mode`, {
-    data: { mode },
-  });
-  expect(response.ok()).toBeTruthy();
-}
+import { expect, test, type Page } from "@playwright/test";
+import { appUrl, setStubMode } from "./test-support";
 
 type PrepareOptions = {
   theme?: "dark" | "light";

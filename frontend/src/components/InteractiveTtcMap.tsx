@@ -4658,6 +4658,7 @@ function OverlapChooser({
         top: layout.left,
         width: layout.width,
         height: layout.height,
+        maxHeight: layout.height,
         transform: "rotate(90deg)",
         transformOrigin: "top left",
       }
@@ -4666,6 +4667,7 @@ function OverlapChooser({
         top: layout.top,
         width: layout.width,
         height: layout.height,
+        maxHeight: layout.height,
       };
 
   const animatedEntranceRef = useRef(false);
@@ -4755,6 +4757,7 @@ function OverlapChooser({
       <div
         ref={surfaceRef}
         className="overlap-chooser-surface"
+        style={{ maxHeight: layout.height }}
         data-overlap-chooser
         data-map-wheel-scroll-region
         role="dialog"

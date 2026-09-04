@@ -2074,9 +2074,15 @@ export function LineWatchShell({
         password: accountPassword,
       });
       setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      closeAccountDialog();
-      resetAccountForm();
-      router.replace("/");
+      if (typeof window !== "undefined" && window.location.pathname === "/reset-password") {
+        accountDialogModeRef.current = null;
+        setAccountDialogMode(null);
+        resetAccountForm();
+        router.replace("/");
+      } else {
+        closeAccountDialog();
+        resetAccountForm();
+      }
     } catch (error) {
       if (error instanceof AccountRequestError) {
         setAccountError(error.message);

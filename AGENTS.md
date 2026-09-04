@@ -136,7 +136,7 @@ Frontend:
 
 ```bash
 node scripts/tests/performance-measurements.test.mjs
-npm --prefix frontend run test:fixtures
+npm --prefix frontend run test:fast
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run build
@@ -145,6 +145,10 @@ scripts/dev-live-frontend.sh
 scripts/dev-alert-scenario-frontend.sh all-alert-types
 scripts/dev-regional-alert-scenario-frontend.sh all-alert-types
 npm --prefix frontend run test:smoke
+npm --prefix frontend run test:e2e
+npm --prefix frontend run test:e2e:full
+npm --prefix frontend run test:visual
+npm --prefix frontend run test:browser-compat
 ```
 
 Mobile:
@@ -201,7 +205,7 @@ Do not call work complete until relevant checks have been run and read.
 For frontend-only changes, run:
 
 ```bash
-npm --prefix frontend run test:fixtures
+npm --prefix frontend run test:fast
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 ```
@@ -211,6 +215,13 @@ For substantial frontend changes, also run:
 ```bash
 npm --prefix frontend run build
 npm --prefix frontend run test:smoke
+npm --prefix frontend run test:e2e
+```
+
+For visual changes, also run:
+
+```bash
+npm --prefix frontend run test:visual
 ```
 
 For mobile changes, run:

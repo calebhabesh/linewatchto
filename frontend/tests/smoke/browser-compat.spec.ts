@@ -1,18 +1,8 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
-
-const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
-
-async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavailable") {
-  const response = await request.post(`${stubUrl}/__test/mode`, { data: { mode } });
-  expect(response.ok()).toBeTruthy();
-}
+import { expect, test } from "@playwright/test";
+import { installDismissedTransientUi, setStubMode } from "./test-support";
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
-    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-  });
+  await installDismissedTransientUi(page);
 });
 
 test("keeps TTC dynamic geometry in authored viewBox coordinates", async ({ page, request }) => {

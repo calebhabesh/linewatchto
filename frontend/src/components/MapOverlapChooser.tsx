@@ -118,6 +118,7 @@ export function MapOverlapChooser({
         top: layout.left,
         width: chooserSize.width,
         height: chooserSize.height,
+        maxHeight: chooserSize.height,
         transform: "rotate(90deg)",
         transformOrigin: "top left",
       }
@@ -126,6 +127,7 @@ export function MapOverlapChooser({
         top: layout.top,
         width: chooserSize.width,
         height: chooserSize.height,
+        maxHeight: chooserSize.height,
       };
 
   const animatedEntranceRef = useRef(false);
@@ -216,6 +218,7 @@ export function MapOverlapChooser({
       <div
         ref={surfaceRef}
         className="overlap-chooser-surface"
+        style={{ maxHeight: chooserSize.height }}
         data-overlap-chooser
         data-map-wheel-scroll-region
         role="dialog"
