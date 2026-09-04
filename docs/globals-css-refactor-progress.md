@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S13A
-- Last completed session: S13A
-- Next recommended session: S13B
+- Current session: S14
+- Last completed session: S14
+- Next recommended session: S15A (or S13B)
 - Blockers: none
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,481 |
-| Total authored app CSS bytes | 784,128 | 841,096 |
+| Total authored app CSS lines | 31,414 | 32,489 |
+| Total authored app CSS bytes | 784,128 | 841,274 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 708,480 |
-| Production CSS gzip bytes | 108,667 | 105,563 |
+| Production CSS bytes | 705,472 | 708,668 |
+| Production CSS gzip bytes | 108,667 | 105,590 |
 
 
 
@@ -1508,5 +1508,39 @@
   - Updated `BASELINE_CEILINGS.GRAPH_CLASS_SUBSTRING_SELECTORS` to 18 to lock in the lower ceiling.
 - Risks or blockers:
   - None. Station experience class-substring debt is completely eliminated and verified across all themes.
-- Next session: S13B — Replace broad high-contrast utility substring selectors (`high-contrast.css`, 18 selectors) or proceed to S14 (resolve duplicate keyframe names).
+- Next session: S14 — Resolve duplicate keyframe names (`station-detail-enter` and `station-detail-content-in`).
 
+### S14 — Resolve Duplicate Keyframe Names
+
+- Status: completed
+- Commit: c88043e4
+- Scope: Investigate and resolve duplicate keyframe names (`station-detail-enter` and `station-detail-content-in`) in `frontend/src/styles/station/station-detail.css`:
+  1. Root Cause Analysis: Confirmed the duplicate definitions were intentional responsive definitions (mobile sheet slide vs. desktop panel slide, and mobile vertical content-in vs. desktop horizontal content-in). They had been authored using identical keyframe names across base rules and `@media (min-width: 768px)` media queries.
+  2. Station Detail Panel Enter: Disambiguated into `@keyframes station-detail-enter-mobile` and `@keyframes station-detail-enter-desktop`. Wired `.station-detail-panel` with base `animation: station-detail-enter-mobile 220ms ...` and responsive desktop override `@media (min-width: 768px) { .station-detail-panel { animation-name: station-detail-enter-desktop; } }`, mirroring the existing canonical pattern used by `station-detail-exit-mobile` and `station-detail-exit-desktop`.
+  3. Station Detail Content In: Disambiguated into `@keyframes station-detail-content-in-mobile` and `@keyframes station-detail-content-in-desktop`. Wired `.station-detail-content-swap` with base `animation: station-detail-content-in-mobile 800ms ...` and responsive desktop override `@media (min-width: 768px) { .station-detail-content-swap { animation-name: station-detail-content-in-desktop; } }`.
+  4. Guardrails & Unit Tests:
+     - Added new `keyframe hygiene and uniqueness` suite in `frontend/tests/css-architecture-guardrails.test.mjs` verifying that 0 duplicate `@keyframes` names exist across the entire application stylesheet graph and asserting all 99 definitions are unique.
+     - Updated `frontend/tests/stylesheet-graph.test.mjs` and `frontend/tests/station-panel-layout.test.mjs` to explicitly assert the mobile and desktop keyframe variants.
+- Files changed:
+  - `frontend/src/styles/station/station-detail.css`
+  - `frontend/tests/station-panel-layout.test.mjs`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,183 tests across 141 suites, 0 failures; +1 test).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total keyframes steady at 99 with 0 duplicate names; production chunk raw bytes 708,668 (+188 B); gzip bytes 105,590 (+27 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop (`TTC desktop map, light`, `TTC desktop map, dark`, `GO/UP desktop map`), mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile Status or More sheet.
+- Decisions:
+  - Maintained complete fidelity with the established responsive animation pattern in `station-detail.css` (`station-detail-exit-mobile` and `station-detail-exit-desktop`).
+  - Switched animation names cleanly via `animation-name` inside `@media (min-width: 768px)` while preserving all timing, bezier easing curves, and reduced-motion / motion-paused overrides.
+  - Added automated keyframe hygiene guardrail to ensure no duplicate `@keyframes` names can be introduced anywhere in the application stylesheet graph.
+- Risks or blockers:
+  - None. Duplicate keyframe debt is completely resolved (0 duplicate names across the entire stylesheet graph).
+- Next session: S15A — Consolidate shared panel and card surfaces (or S13B: evaluate/address the 18 broad high-contrast utility selectors in `high-contrast.css`).
