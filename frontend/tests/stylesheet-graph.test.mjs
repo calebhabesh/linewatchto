@@ -1063,4 +1063,31 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.linewatch-error-brand/);
     assert.match(content, /\.linewatch-error-actions/);
   });
+
+  it("resolves the extracted foundation/high-contrast.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("high-contrast.css")), "high-contrast.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/foundation/high-contrast.css", import.meta.url));
+    assert.match(content, /\.linewatch-shell\.high-contrast \.linewatch-backdrop/);
+    assert.match(content, /\.linewatch-shell\.high-contrast \.text-slate-900/);
+    assert.match(content, /\.linewatch-shell\.high-contrast button:hover/);
+    assert.match(content, /\.linewatch-shell\.high-contrast \.panel/);
+    assert.match(content, /\.high-contrast \.station-detail-panel/);
+  });
+
+  it("resolves the extracted shell/subway-closed.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("subway-closed.css")), "subway-closed.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/shell/subway-closed.css", import.meta.url));
+    assert.match(content, /\.subway-closing-soon-chip/);
+    assert.match(content, /\.subway-closed-screen/);
+    assert.match(content, /\.subway-closed-content/);
+    assert.match(content, /\.subway-closed-resume/);
+    assert.match(content, /\.subway-closed-schedule-table/);
+    assert.match(content, /\.go-up-closed-content/);
+    assert.match(content, /\.subway-closed-peek-chip/);
+    assert.match(content, /@keyframes subway-closed-modal-enter/);
+  });
 });

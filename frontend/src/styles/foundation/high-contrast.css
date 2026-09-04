@@ -1,0 +1,103 @@
+/* ============================================================
+   LineWatchTO — High Contrast Mode Global Overrides
+   Foundation-level color, background, border, and utility overrides
+   for .linewatch-shell.high-contrast and .high-contrast.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Section 1: Backdrop & Canvas Suppression
+   ------------------------------------------------------------ */
+
+.linewatch-shell.high-contrast .linewatch-backdrop {
+  background-color: #000000 !important;
+  background-image: none !important;
+}
+
+.linewatch-shell.high-contrast .linewatch-backdrop canvas {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------
+   Section 2: Text Color Overrides for Utility Classes
+   ------------------------------------------------------------ */
+
+/* Force high contrast text colors for Tailwind utilities */
+.linewatch-shell.high-contrast .text-slate-900,
+.linewatch-shell.high-contrast .text-slate-800,
+.linewatch-shell.high-contrast .text-slate-700,
+.linewatch-shell.high-contrast .text-slate-600,
+.linewatch-shell.high-contrast .text-gray-900,
+.linewatch-shell.high-contrast .text-gray-800,
+.linewatch-shell.high-contrast .text-gray-700,
+.linewatch-shell.high-contrast .text-gray-600 {
+  color: #ffffff !important;
+}
+
+.linewatch-shell.high-contrast .text-slate-500,
+.linewatch-shell.high-contrast .text-slate-400,
+.linewatch-shell.high-contrast .text-slate-300,
+.linewatch-shell.high-contrast .text-gray-500,
+.linewatch-shell.high-contrast .text-gray-400 {
+  color: #f0f0f0 !important;
+}
+
+/* ------------------------------------------------------------
+   Section 3: Interactive & Hover States
+   ------------------------------------------------------------ */
+
+/* Force high contrast hover and interactive elements */
+.linewatch-shell.high-contrast button:hover,
+.linewatch-shell.high-contrast a:hover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+.linewatch-shell.high-contrast button:hover *,
+.linewatch-shell.high-contrast a:hover * {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+/* ------------------------------------------------------------
+   Section 4: Panels, Containers & Sub-cards
+   ------------------------------------------------------------ */
+
+/* Force high-contrast background, border, and sub-card styling on all panels/submenus */
+.linewatch-shell.high-contrast .panel,
+.linewatch-shell.high-contrast .panel-strong,
+.linewatch-shell.high-contrast .map-panel,
+.linewatch-shell.high-contrast .commute-panel,
+.linewatch-shell.high-contrast .analytics-panel,
+.linewatch-shell.high-contrast .health-panel,
+.linewatch-shell.high-contrast .station-detail-panel {
+  background-color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+.high-contrast .panel [class*="bg-slate-"],
+.high-contrast .panel [class*="bg-white/"],
+.high-contrast .panel [class*="bg-black/"],
+.high-contrast .panel [class*="dark:bg-"],
+.high-contrast .panel-strong [class*="bg-slate-"],
+.high-contrast .panel-strong [class*="bg-white/"],
+.high-contrast .panel-strong [class*="bg-black/"],
+.high-contrast .panel-strong [class*="dark:bg-"],
+.high-contrast .station-detail-panel [class*="bg-slate-"],
+.high-contrast .station-detail-panel [class*="bg-white/"],
+.high-contrast .station-detail-panel [class*="bg-black/"],
+.high-contrast .station-detail-panel [class*="dark:bg-"] {
+  background-color: #000000 !important;
+}
+
+.high-contrast .panel [class*="border-"],
+.high-contrast .panel .border,
+.high-contrast .panel [class*="divide-"] > *,
+.high-contrast .panel-strong [class*="border-"],
+.high-contrast .panel-strong .border,
+.high-contrast .panel-strong [class*="divide-"] > *,
+.high-contrast .station-detail-panel [class*="border-"],
+.high-contrast .station-detail-panel .border,
+.high-contrast .station-detail-panel [class*="divide-"] > * {
+  border-color: #ffffff !important;
+}
