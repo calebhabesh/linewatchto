@@ -54,7 +54,8 @@
   min-width: 0;
 }
 
-.alert-history-search-field {
+.alert-history-search-field,
+.alert-history-line-filter {
   align-items: center;
   border: 1px solid transparent;
   border-radius: 0.5rem;
@@ -64,9 +65,12 @@
   display: flex;
   min-height: 2.25rem;
   min-width: 0;
-  width: 100%;
-  gap: 0.4rem;
   padding: 0 0.65rem;
+}
+
+.alert-history-search-field {
+  gap: 0.4rem;
+  width: 100%;
 }
 
 .alert-history-search-field input {
@@ -85,19 +89,9 @@
 }
 
 .alert-history-line-filter {
-  align-items: center;
-  border: 1px solid transparent;
-  border-radius: 0.5rem;
-  background: #ffffff;
-  box-shadow: var(--mobile-card-shadow);
-  color: rgb(51, 65, 85);
-  display: flex;
-  min-height: 2.25rem;
-  min-width: 0;
-  width: 0;
   flex: 1 1 0;
   gap: 0.35rem;
-  padding: 0 0.65rem;
+  width: 0;
 }
 
 .alert-history-control-prefix {
@@ -216,8 +210,10 @@
 
 .high-contrast .alert-history-search-field,
 .high-contrast .alert-history-line-filter {
-  border: 1px solid #ffffff !important;
-  box-shadow: none !important;
+  background: #000000;
+  border: 1px solid #ffffff;
+  box-shadow: none;
+  color: #ffffff;
 }
 
 .dark .alert-history-line-filter-trigger,
@@ -239,7 +235,8 @@
 }
 
 .high-contrast .alert-history-line-filter-options {
-  border: 1px solid #ffffff !important;
+  background: #000000;
+  border: 1px solid #ffffff;
 }
 
 .dark .alert-history-sort-group-header {
@@ -264,18 +261,6 @@
   color: rgb(52, 211, 153);
 }
 
-.high-contrast .alert-history-search-field,
-.high-contrast .alert-history-line-filter {
-  background: #000000;
-  border-color: #ffffff;
-  color: #ffffff;
-}
-
-.high-contrast .alert-history-line-filter-options {
-  background: #000000;
-  border-color: #ffffff;
-}
-
 .high-contrast .alert-history-sort-group-header {
   color: #ffffff;
 }
@@ -289,12 +274,7 @@
 }
 
 .high-contrast .alert-history-line-filter-option:hover,
-.high-contrast .alert-history-line-filter-option:focus-visible {
-  background: white;
-  color: black;
-  font-weight: 900;
-}
-
+.high-contrast .alert-history-line-filter-option:focus-visible,
 .high-contrast .alert-history-line-filter-option.selected {
   background: white;
   color: black;
@@ -470,16 +450,11 @@
 }
 
 .high-contrast .alert-history-load-more {
-  border: 1px solid #ffffff !important;
-  box-shadow: none !important;
+  border: 1px solid #ffffff;
+  box-shadow: none;
 }
 
 .dark .alert-history-item {
-  border-top: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
-  border-left: 1.5px solid rgba(245, 158, 11, 0.85) !important;
-  box-shadow: inset 2px 0 6px -1px rgba(245, 158, 11, 0.20) !important;
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 14px, transparent 30px), #12151c !important;
 }
 
@@ -559,23 +534,14 @@
   align-items: center;
   border: 1px solid currentColor;
   border-radius: 999px;
+  color: rgb(100, 116, 139);
   display: inline-flex;
+  font-size: 0.67rem;
+  font-weight: 900;
   gap: 0.25rem;
   min-height: 1.5rem;
   padding: 0.22rem 0.48rem;
   white-space: nowrap;
-}
-
-.alert-history-type-label,
-.alert-history-status-label,
-.alert-history-details {
-  color: rgb(100, 116, 139);
-  font-size: 0.72rem;
-}
-
-.alert-history-status-label {
-  font-size: 0.67rem;
-  font-weight: 900;
 }
 
 .alert-history-type-label {
@@ -657,11 +623,6 @@
   width: 0.78rem;
 }
 
-.dark .alert-history-type-label svg,
-.high-contrast .alert-history-type-label svg {
-  color: currentColor;
-}
-
 .alert-history-status-label svg {
   height: 0.72rem;
   width: 0.72rem;
@@ -683,10 +644,6 @@
   color: rgb(29, 78, 216);
 }
 
-.dark .alert-history-details,
-.high-contrast .alert-history-details {
-  color: rgb(203, 213, 225);
-}
 
 .dark .alert-history-event-cleared .alert-history-status-label,
 .high-contrast .alert-history-event-cleared .alert-history-status-label {
@@ -828,12 +785,10 @@
 
 .alert-history-details {
   border-top: 1px solid rgba(100, 116, 139, 0.18);
+  color: rgb(100, 116, 139);
+  font-size: 0.72rem;
   margin-top: 0.12rem;
   padding-top: 0.42rem;
-}
-
-.dark .alert-history-details {
-  border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 .alert-history-details summary {
@@ -933,6 +888,7 @@
 .dark .alert-history-details,
 .high-contrast .alert-history-details {
   border-top-color: rgba(203, 213, 225, 0.16);
+  color: rgb(203, 213, 225);
 }
 
 .dark .alert-history-details li span,
