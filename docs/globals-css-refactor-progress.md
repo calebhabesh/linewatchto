@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11I
-- Last completed session: S11I
-- Next recommended session: S11J (or S12)
+- Current session: S11J
+- Last completed session: S11J
+- Next recommended session: S11K (or S12)
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 3,118 |
-| Total authored app CSS lines | 31,414 | 32,324 |
-| Total authored app CSS bytes | 784,128 | 831,700 |
-| Parsed rules | 4,221 | 422 |
-| Declarations | 14,093 | 1,330 |
-| !important | 2,356 | 396 |
-| Class-substring selectors | 32 | 18 |
+| Global entry lines | 30,011 | 2,088 |
+| Total authored app CSS lines | 31,414 | 32,374 |
+| Total authored app CSS bytes | 784,128 | 834,718 |
+| Parsed rules | 4,221 | 279 |
+| Declarations | 14,093 | 822 |
+| !important | 2,356 | 258 |
+| Class-substring selectors | 32 | 0 |
 | Production CSS bytes | 705,472 | 708,439 |
-| Production CSS gzip bytes | 108,667 | 106,111 |
+| Production CSS gzip bytes | 108,667 | 106,088 |
 
 
 
@@ -1243,3 +1243,50 @@
 - Risks or blockers:
   - None. S11I is fully completed and verified.
 - Next session: S11J — Extract high contrast overrides and closed subway/overnight modal screens (`styles/foundation/high-contrast.css` and `styles/shell/subway-closed.css`), or proceed to S12.
+
+### S11J — Extract High-Contrast Overrides and Closed Subway Modal Screens
+
+- Status: completed
+- Commit: 9c8811a4
+- Scope: Extract foundation-level high-contrast global overrides (`.linewatch-shell.high-contrast .linewatch-backdrop`, canvas suppression, text colors for Tailwind utilities, button/link hover and interactive states, panel/submenu background/borders, and sub-card overrides) into `frontend/src/styles/foundation/high-contrast.css` (103 lines across 4 sections). Extract closed subway and overnight hours experience into `frontend/src/styles/shell/subway-closed.css` (977 lines across 8 sections): subway closing-soon announcement chips (`.subway-closing-soon-chip`, copy, details, separator, prefix, time, countdown badges, responsive breakpoints, and light mode overrides); full-page closed subway modal screen and blurred backdrop (`.subway-closed-map-backdrop`, `.subway-closed-backdrop`, `.subway-closed-backdrop--exiting`, `.subway-closed-screen`, `.subway-closed-content`, `.subway-closed-content--exiting`, `.go-up-closed-content`, `.subway-closed-icon-shell`, `@keyframes subtle-glow-pulse`); closed screen copy, caveats, links, and resume countdown badges (`.subway-closed-copy`, `.subway-closed-caveat`, `.subway-closed-link`, `.subway-closed-resume`, `.go-up-closed-resume`); operating schedule tables and overnight bus notes (`.subway-closed-schedule-container`, `.subway-closed-schedule-label`, `.subway-closed-schedule-table`, `.go-up-closed-schedule-container`, `.go-up-closed-schedule-table`, `.subway-closed-overnight-note`); closed screen primary action buttons (`.subway-closed-actions`, `.subway-closed-primary-action`, `.go-up-closed-primary-action`); persistent peek chips and floating pill controls (`.subway-closed-peek-chip`, `.go-up-closed-peek-chip`, `.subway-closed-peek-chip--exiting`, `.subway-closed-peek-icon`, `.subway-closed-peek-text`, `.subway-closed-peek-title`, `.subway-closed-peek-subtitle`, action buttons, hover, active, focus-visible); keyframe animations (`@keyframes subway-closed-backdrop-enter`, `@keyframes subway-closed-backdrop-exit`, `@keyframes subway-closed-modal-enter`, `@keyframes subway-closed-modal-exit`, `@keyframes subway-peek-chip-enter`, `@keyframes subway-peek-chip-exit`); and light mode, high-contrast, and mobile responsive overrides (`@media (max-width: 767px)`, `@media (max-width: 640px)`). Add relative imports `@import "../styles/foundation/high-contrast.css";` and `@import "../styles/shell/subway-closed.css";` to `globals.css` immediately following `error-screen.css`. Remove 1,030 lines across 3 blocks from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,159 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/foundation/high-contrast.css`
+  - `frontend/src/styles/shell/subway-closed.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,159 tests across 135 suites, 0 failures in ~1,037ms; +2 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 3,118 to 2,088 (-1,030 lines, -33.0%); parsed rules -143 (422 to 279, -33.9%); parsed declarations -508 (1,330 to 822); `!important` -138 (396 to 258, -34.8%); class-substring selectors in `globals.css` reduced from 18 to 0 (-100%); media queries -7 (24 to 17); keyframe blocks -7 (18 to 11); production chunk raw bytes steady at 708,439; gzip bytes improved by 23 bytes to 106,088).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created dedicated, modular foundation stylesheet `frontend/src/styles/foundation/high-contrast.css` (103 lines) isolating 4 sections:
+    1. Section 1: Backdrop & Canvas Suppression (`.linewatch-shell.high-contrast .linewatch-backdrop`, canvas display none).
+    2. Section 2: Text Color Overrides for Tailwind Utility Classes (`.text-slate-*`, `.text-gray-*`).
+    3. Section 3: Interactive & Hover States (`button:hover`, `a:hover`).
+    4. Section 4: Panels, Containers & Sub-cards (`.panel`, `.panel-strong`, `.map-panel`, `.commute-panel`, `.analytics-panel`, `.health-panel`, `.station-detail-panel`, and background/border utility overrides).
+  - Created dedicated, modular shell stylesheet `frontend/src/styles/shell/subway-closed.css` (977 lines) isolating 8 sections:
+    1. Section 1: Subway & GO/UP Closing Soon Announcement Chips (`.subway-closing-soon-chip`, `.go-up-closing-soon-chip`, copy, details, countdown badges, responsive breakpoints, light mode).
+    2. Section 2: Full-Page Closed Screen, Backdrop, & Branded Container (`.subway-closed-map-backdrop`, `.subway-closed-backdrop`, `.subway-closed-backdrop--exiting`, `.subway-closed-screen`, `.subway-closed-content`, `.subway-closed-content--exiting`, `.go-up-closed-content`, `.subway-closed-icon-shell`, `@keyframes subtle-glow-pulse`).
+    3. Section 3: Closed Screen Copy, Caveat, Links & Resume Countdowns (`.subway-closed-copy`, `.subway-closed-caveat`, `.subway-closed-link`, `.subway-closed-resume`, `.go-up-closed-resume`).
+    4. Section 4: Operating Schedule Tables & Overnight Notes (`.subway-closed-schedule-container`, `.subway-closed-schedule-label`, `.subway-closed-schedule-table`, `.go-up-closed-schedule-container`, `.go-up-closed-schedule-table`, `.subway-closed-overnight-note`).
+    5. Section 5: Closed Screen Action Buttons (`.subway-closed-actions`, `.subway-closed-primary-action`, `.go-up-closed-primary-action`).
+    6. Section 6: Persistent Peek Chips & Floating Pill Controls (`.subway-closed-peek-chip`, `.go-up-closed-peek-chip`, `.subway-closed-peek-chip--exiting`, `.subway-closed-peek-icon`, `.subway-closed-peek-text`, `.subway-closed-peek-title`, `.subway-closed-peek-subtitle`, action buttons).
+    7. Section 7: Keyframe Animations (`@keyframes subway-closed-backdrop-enter`, `@keyframes subway-closed-backdrop-exit`, `@keyframes subway-closed-modal-enter`, `@keyframes subway-closed-modal-exit`, `@keyframes subway-peek-chip-enter`, `@keyframes subway-peek-chip-exit`).
+    8. Section 8: Light Mode, High Contrast & Mobile Responsive Overrides (light mode overrides for peek chips, `.high-contrast .subway-closed-screen`, `.high-contrast .subway-closed-content`, `.high-contrast .subway-closed-peek-chip`, `.high-contrast .go-up-closed-peek-chip`, and `@media (max-width: 640px)` overrides for the closed screen).
+  - Removed 1,030 lines across 3 blocks from `globals.css`:
+    1. High contrast global overrides (lines 50-130 in previous `globals.css`, 81 lines).
+    2. Subway closing-soon announcement chips (lines 149-365 in previous `globals.css`, 217 lines).
+    3. Subway closed modal screen rules (lines 991-1266 in previous `globals.css`, 276 lines).
+    4. GO/UP closed modal, peek chips, keyframes, and responsive overrides (lines 1484-1928 in previous `globals.css`, 445 lines).
+  - Maintained cascade hierarchy by importing `high-contrast.css` and `subway-closed.css` at lines 49-50 immediately following `error-screen.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of both new stylesheets in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11J is fully completed and verified.
+- Next session: S11K — Extract default map mode control and station picker search popover rules (`styles/shell/map-mode-control.css` or `styles/station/station-picker-popover.css`), or proceed to S12 (architecture guardrails).
