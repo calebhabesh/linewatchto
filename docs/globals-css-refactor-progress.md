@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S11E
-- Last completed session: S11E
-- Next recommended session: S11F
+- Current session: S11F
+- Last completed session: S11F
+- Next recommended session: S11G (or S12)
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 5,875 |
-| Total authored app CSS lines | 31,414 | 32,155 |
-| Total authored app CSS bytes | 784,128 | 822,532 |
-| Parsed rules | 4,221 | 807 |
-| Declarations | 14,093 | 2,420 |
-| !important | 2,356 | 736 |
-| Class-substring selectors | 32 | 22 |
+| Global entry lines | 30,011 | 4,754 |
+| Total authored app CSS lines | 31,414 | 32,196 |
+| Total authored app CSS bytes | 784,128 | 825,150 |
+| Parsed rules | 4,221 | 704 |
+| Declarations | 14,093 | 2,168 |
+| !important | 2,356 | 560 |
+| Class-substring selectors | 32 | 18 |
 | Production CSS bytes | 705,472 | 708,413 |
-| Production CSS gzip bytes | 108,667 | 106,295 |
+| Production CSS gzip bytes | 108,667 | 106,613 |
 
 
 
@@ -1052,3 +1052,64 @@
 - Risks or blockers:
   - None. S11E is fully completed and verified.
 - Next session: S11F — Extract remaining shared chrome, header search, tactile card elevation, and station header styling (e.g., `styles/shell/search-bar.css`, `styles/shell/header-flare.css`, `styles/shell/card-elevation.css`, or shared shell/panel styles).
+
+### S11F — Extract Shared Chrome, Header Search, Tactile Card Elevation, and Station Header Styling
+
+- Status: completed
+- Commit: 76273594
+- Scope: Extract station subsection header diffuse light beam and origin flare into `frontend/src/styles/shell/header-flare.css` (116 lines). Extract header inline search bar, search button active state, focus/active styling, and mobile search collapse into `frontend/src/styles/shell/search-bar.css` (100 lines). Extract cross-platform and mobile borderless containers, tactile card elevation, left-edge light filament system (RSZ, delay, suspension, closure, and cleared/ok states), surface sheen/top-rim highlights, desktop line status rows, desktop chrome borderless alignment, desktop floating panels top-rim highlight, and station detail section cards/disruption banners into `frontend/src/styles/shell/card-elevation.css` (946 lines). Add relative imports `@import "../styles/shell/header-flare.css";`, `@import "../styles/shell/card-elevation.css";`, and `@import "../styles/shell/search-bar.css";` to `globals.css` immediately following `utilities/motion.css`. Remove 1,124 lines across 10 blocks from `globals.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, fixture unit tests (1,153 passing), and Playwright visual regression baselines across all 11 scenarios with 0 pixel diffs.
+- Files changed:
+  - `frontend/src/styles/shell/header-flare.css`
+  - `frontend/src/styles/shell/search-bar.css`
+  - `frontend/src/styles/shell/card-elevation.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,153 tests across 135 suites, 0 failures in ~1,040ms; +3 tests for new stylesheets).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in 2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 5,875 to 4,754 (-1,121 lines, -19.1%); parsed rules -103 (807 to 704); parsed declarations -252 (2,420 to 2,168); `!important` -176 (736 to 560); media queries -5 (46 to 41); keyframe blocks steady at 23; class-substring selectors -4 (22 to 18); production chunk raw bytes steady at 708,413; gzip bytes steady at 106,613).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Created three dedicated, modular shell stylesheets under `frontend/src/styles/shell/`:
+    1. `frontend/src/styles/shell/header-flare.css` (116 lines) isolating:
+       - Station subsection header (`.station-subsection-header`, `.station-connections-title`, `.mobile-status-section-heading`).
+       - Origin flare & enhanced glow on the accent chip (`.bg-logo-blue`).
+       - Diffuse light strip across header text with multi-stop radial/linear gradients and mask images.
+       - High-contrast, dark mode, and light mode variants.
+    2. `frontend/src/styles/shell/search-bar.css` (100 lines) isolating:
+       - Active search button highlight (`.search-btn[aria-expanded="true"]`).
+       - Inline header search bar dimensions, transitions, focus-within, and active states (`.header-search-bar`, `.header-search-input`).
+       - Dark mode and high-contrast styling.
+       - Mobile viewport collapse rules (`@media (max-width: 767px)`).
+    3. `frontend/src/styles/shell/card-elevation.css` (946 lines) isolating 9 sections:
+       - Section 1: Mobile borderless cards & content containers (`@media (max-width: 767px)`).
+       - Section 2: Opaque cards in mobile sheets (`@media (max-width: 767px)`).
+       - Section 3: Cross-platform borderless cards (`.alert-card`, `.closure-card`, `.commute-card`, etc.).
+       - Section 4: Left-edge light filament system (RSZ, delay, suspension, closure, and cleared/ok states).
+       - Section 5: Tactile surface sheen / top-rim highlight system across cards and panels.
+       - Section 6: Desktop line status rows and borderless alignment (`.desktop-line-status-row`).
+       - Section 7: Desktop chrome borderless alignment (`#desktop-status-toggle`, `#linewatch-desktop-nav-island`, etc.).
+       - Section 8: Desktop floating panels top-rim highlight (`.floating-panel-shell > div`, etc.).
+       - Section 9: Station detail section cards, disruption banners, and accent borders.
+  - Removed 1,124 lines across 10 blocks from `globals.css`:
+    1. Station subsection header diffuse light beam (lines 43-159 in previous `globals.css`, 117 lines).
+    2. Mobile borderless cards `@media (max-width: 767px)` (lines 3033-3133 in previous `globals.css`, 101 lines).
+    3. Opaque cards in mobile sheets `@media (max-width: 767px)` (lines 3185-3282 in previous `globals.css`, 98 lines).
+    4. Cross-platform borderless cards, light filaments, and surface sheen (lines 3656-4017 in previous `globals.css`, 362 lines).
+    5. Desktop line status rows and desktop chrome borderless alignment (lines 4082-4170 in previous `globals.css`, 89 lines).
+    6. Desktop floating panels top-rim highlight and elevation (lines 4253-4318 in previous `globals.css`, 66 lines).
+    7. Station detail section cards, disruption cards, and accent borders (lines 4319-4472 in previous `globals.css`, 154 lines).
+    8. Main map page borderless styling (lines 5116-5136 in previous `globals.css`, 21 lines).
+    9. Search button highlight rules (lines 5137-5164 in previous `globals.css`, 28 lines).
+    10. Header inline search bar rules (lines 5284-5367 in previous `globals.css`, 84 lines).
+  - Maintained cascade hierarchy by importing `header-flare.css`, `card-elevation.css`, and `search-bar.css` at lines 42-44 in `globals.css` immediately following `utilities/motion.css`.
+  - Added unit tests in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of all three new stylesheets in the application stylesheet graph and validating selector matches.
+- Risks or blockers:
+  - None. S11F is fully completed and verified.
+- Next session: S11G — Extract remaining mobile status action buttons and count badges (`styles/shell/badges.css`), or proceed to S12 (station details/search responsive popover rules).
