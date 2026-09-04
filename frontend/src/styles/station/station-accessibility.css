@@ -1,0 +1,233 @@
+/**
+ * Station Accessibility & Notices Styles
+ *
+ * Covers station accessibility section (.station-accessibility-details, .station-accessibility-chevron,
+ * .station-accessibility-content-wrapper, .station-accessibility-content),
+ * station notices section (.station-notices-details, .station-notices-chevron,
+ * .station-notices-content-wrapper, .station-notices-content),
+ * elevator/escalator access outage badge and count (.station-access-outage-badge, .station-access-outage-count),
+ * station access outage summary banner button ([data-station-access-outage-summary]),
+ * card styling for notices and accessibility items, and high-contrast theme overrides.
+ */
+
+/* ==========================================================================
+   Station Accessibility Accordion
+   ========================================================================== */
+
+.station-accessibility-summary::-webkit-details-marker {
+  display: none;
+}
+
+.station-accessibility-chevron {
+  transition: transform 160ms ease;
+}
+
+.station-accessibility-details[open] .station-accessibility-chevron {
+  transform: rotate(180deg);
+}
+
+.station-accessibility-content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.station-accessibility-details[open] .station-accessibility-content-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.station-accessibility-details.collapsing .station-accessibility-content-wrapper {
+  grid-template-rows: 0fr;
+}
+
+.station-accessibility-details.collapsing .station-accessibility-chevron {
+  transform: rotate(0deg);
+}
+
+.station-accessibility-content {
+  min-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.station-accessibility-details[open] .station-accessibility-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.station-accessibility-details.collapsing .station-accessibility-content {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* ==========================================================================
+   Station Notices Accordion
+   ========================================================================== */
+
+.station-notices-summary::-webkit-details-marker {
+  display: none;
+}
+
+.station-notices-chevron {
+  transition: transform 160ms ease;
+}
+
+.station-notices-details[open] .station-notices-chevron {
+  transform: rotate(180deg);
+}
+
+.station-notices-content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.station-notices-details[open] .station-notices-content-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.station-notices-details.collapsing .station-notices-content-wrapper {
+  grid-template-rows: 0fr;
+}
+
+.station-notices-details.collapsing .station-notices-chevron {
+  transform: rotate(0deg);
+}
+
+.station-notices-content {
+  min-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.station-notices-details[open] .station-notices-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.station-notices-details.collapsing .station-notices-content {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* ==========================================================================
+   Station Accessibility Outage Badges & Count
+   ========================================================================== */
+
+.station-access-outage-badge {
+  position: relative;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+}
+
+.station-access-outage-badge img {
+  border-radius: 5px;
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.28));
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .station-access-outage-badge img {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.station-access-outage-count {
+  --overlapping-count-font-size: 11px;
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  display: flex;
+  min-width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgb(220, 38, 38);
+  padding: 0 4px;
+  color: white;
+  font-size: 8px;
+  font-weight: 950;
+  line-height: 1;
+  box-shadow: 0 0 0 1px rgb(248, 250, 252);
+}
+
+.station-access-outage-count[data-single-digit="true"] {
+  padding: 0;
+  width: 16px;
+}
+
+.dark .station-access-outage-count {
+  box-shadow: 0 0 0 1px rgb(10, 12, 16);
+}
+
+/* ==========================================================================
+   Station Access Outages Banner Button
+   ========================================================================== */
+
+[data-station-access-outage-summary] {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  background: #fef2f2 !important;
+}
+
+.dark [data-station-access-outage-summary] {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  background: #26171a !important;
+}
+
+[data-station-access-outage-summary]:hover {
+  background: #fee2e2 !important;
+}
+
+.dark [data-station-access-outage-summary]:hover {
+  background: #361f23 !important;
+}
+
+/* ==========================================================================
+   Station Notices & Accessibility Card Styling
+   ========================================================================== */
+
+.station-detail-panel .station-notices-details [class*="rounded-md border"],
+.station-detail-panel .station-accessibility-details [class*="rounded-md border"] {
+  border: none !important;
+  border-radius: 6px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark .station-detail-panel .station-notices-details [class*="rounded-md border"],
+.dark .station-detail-panel .station-accessibility-details [class*="rounded-md border"] {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* ==========================================================================
+   High-Contrast Theme Overrides
+   ========================================================================== */
+
+.high-contrast .station-detail-panel .station-notices-details,
+.high-contrast .station-detail-panel .station-accessibility-details,
+.high-contrast [data-station-access-outage-summary],
+.linewatch-shell.high-contrast .station-detail-panel .station-notices-details,
+.linewatch-shell.high-contrast .station-detail-panel .station-accessibility-details,
+.linewatch-shell.high-contrast [data-station-access-outage-summary] {
+  border: 1px solid #ffffff !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}

@@ -486,4 +486,31 @@ describe("stylesheet-graph helper", () => {
     assert.match(stationArrivalsContent, /\[data-regional-arrival-direction\]/);
     assert.match(stationArrivalsContent, /min-h-\[74px\]/);
   });
+
+  it("resolves the extracted station/station-accessibility.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("station-accessibility.css")), "station-accessibility.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/station/station-accessibility.css", import.meta.url));
+    assert.match(content, /\.station-accessibility-details/);
+    assert.match(content, /\.station-accessibility-chevron/);
+    assert.match(content, /\.station-notices-details/);
+    assert.match(content, /\.station-notices-chevron/);
+    assert.match(content, /\.station-access-outage-badge/);
+    assert.match(content, /\.station-access-outage-count/);
+    assert.match(content, /\[data-station-access-outage-summary\]/);
+  });
+
+  it("resolves the extracted station/surface-connections.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("surface-connections.css")), "surface-connections.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/station/surface-connections.css", import.meta.url));
+    assert.match(content, /\.surface-connections-details/);
+    assert.match(content, /\.surface-connections-chevron/);
+    assert.match(content, /\.station-connections-card/);
+    assert.match(content, /\.station-connections-title/);
+    assert.match(content, /\.station-connection-row/);
+    assert.match(content, /\[data-surface-route\]/);
+  });
 });

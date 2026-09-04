@@ -1,0 +1,264 @@
+/**
+ * Station Surface Connections & Connected Network Styles
+ *
+ * Covers surface connections expandable section (surface-connections-details,
+ * surface-connections-content, surface-connections-summary, surface-connections-chevron),
+ * surface departure tiles ([data-surface-route] [class*="min-h-[74px]"]),
+ * connected network cards (station-connections-card, station-connections-title,
+ * station-connection-list, station-connection-row, station-connection-icon),
+ * and related dark and high-contrast theme overrides.
+ */
+
+/* ==========================================================================
+   Surface Connections Accordion & Group Styling
+   ========================================================================== */
+
+.surface-connections-details.is-saved-station,
+.saved-station-rich-content .surface-connections-details {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  box-sizing: border-box;
+  display: block;
+  margin-top: 0;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  width: 100%;
+}
+
+.saved-station-rich-content .surface-connections-details .saved-station-arrivals-heading {
+  padding-bottom: 0;
+}
+
+.surface-connections-content {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.surface-connections-summary::-webkit-details-marker {
+  display: none;
+}
+
+.surface-connections-chevron {
+  transition: transform 150ms ease;
+}
+
+.surface-connections-details[open] .surface-connections-chevron {
+  transform: rotate(180deg);
+}
+
+.surface-connections-details[open] .surface-connections-collapsed-pinned {
+  display: none;
+}
+
+.saved-station-arrival-group.is-surface-group {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0 !important;
+}
+
+.dark .saved-station-arrival-group.is-surface-group {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-connections-chevron {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   Connected Networks Card & Items
+   ========================================================================== */
+
+.station-connections-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  color: #1e293b;
+}
+
+.station-connections-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.station-connection-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  gap: 7px;
+}
+
+.station-connection-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 5px;
+  background: #ffffff;
+  padding: 7px 10px;
+}
+
+.station-connection-logo-frame {
+  display: flex;
+  width: 36px;
+  min-width: 36px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.station-connection-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.station-connection-copy strong {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.station-connection-dot-sep {
+  display: inline-block;
+  margin: 0 6px;
+  font-weight: 700;
+  opacity: 0.65;
+}
+
+.station-connection-copy small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.station-connection-icon {
+  display: block;
+  max-width: 36px;
+  width: auto;
+  height: 22px;
+  object-fit: contain;
+}
+
+.station-connection-row--airport .station-connection-icon {
+  width: 30px;
+  height: 30px;
+  max-width: 30px;
+}
+
+.station-connection-row--ttc .station-connection-icon {
+  width: 32px;
+  height: 32px;
+  max-width: 32px;
+}
+
+.dark .station-connections-title,
+.high-contrast .station-connections-title {
+  color: #f8fafc;
+}
+
+.dark .station-connection-row,
+.high-contrast .station-connection-row {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.dark .station-connection-copy small,
+.high-contrast .station-connection-copy small {
+  color: #94a3b8;
+}
+
+.dark .station-connection-copy strong,
+.high-contrast .station-connection-copy strong {
+  color: #f8fafc;
+}
+
+/* ==========================================================================
+   Tactile Overrides for Connected Networks
+   ========================================================================== */
+
+.station-connection-row {
+  border: none !important;
+  border-radius: 6px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.dark .station-connection-row {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.25) !important;
+  background: #12151c !important;
+}
+
+/* ==========================================================================
+   Surface Route Departure Tiles
+   ========================================================================== */
+
+.station-detail-panel [data-surface-route] [class*="min-h-[74px]"] {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark .station-detail-panel [data-surface-route] [class*="min-h-[74px]"] {
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* ==========================================================================
+   High-Contrast Theme Overrides
+   ========================================================================== */
+
+.high-contrast .station-detail-panel [data-surface-route] [class*="min-h-[74px]"],
+.high-contrast .station-connection-row,
+.linewatch-shell.high-contrast .station-detail-panel [data-surface-route] [class*="min-h-[74px]"],
+.linewatch-shell.high-contrast .station-connection-row {
+  border: 1px solid #ffffff !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
