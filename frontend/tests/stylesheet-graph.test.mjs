@@ -239,4 +239,19 @@ describe("stylesheet-graph helper", () => {
     assert.match(mapSelectionContent, /\.station-selection-flash/);
     assert.match(mapSelectionContent, /\.station-selected-indicator\.foreground-flash-active/);
   });
+
+  it("resolves the extracted map/overlap-chooser.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("overlap-chooser.css")), "overlap-chooser.css must be in graph files");
+    const overlapChooserContent = readStylesheet(new URL("../src/styles/map/overlap-chooser.css", import.meta.url));
+    assert.match(overlapChooserContent, /\.overlap-indicator/);
+    assert.match(overlapChooserContent, /\.overlap-chooser-surface/);
+    assert.match(overlapChooserContent, /@keyframes overlap-chooser-enter/);
+    assert.match(overlapChooserContent, /\.overlap-chooser-choice/);
+    assert.match(overlapChooserContent, /\.overlap-indicator-pill/);
+    assert.match(overlapChooserContent, /\.overlap-indicator-badge/);
+    assert.match(overlapChooserContent, /\.delay-badge-exclamation/);
+    assert.match(overlapChooserContent, /\.overlap-impact-ref/);
+  });
 });

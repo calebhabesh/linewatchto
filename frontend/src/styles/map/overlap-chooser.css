@@ -1,0 +1,790 @@
+.overlap-indicator {
+  cursor: pointer;
+  filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.28));
+  outline: none;
+  pointer-events: auto;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity 70ms ease-out,
+    transform 80ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.overlap-indicator.open {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.78);
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.overlap-chooser-object {
+  opacity: 0;
+  overflow: visible;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.overlap-chooser-object.open {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.overlap-chooser-portal {
+  isolation: isolate;
+  position: absolute;
+  z-index: 45;
+  height: fit-content !important;
+  max-height: calc(100vh - 32px);
+  pointer-events: none;
+}
+
+.overlap-chooser-surface {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 20px 48px rgba(15, 23, 42, 0.24);
+  color: #0f172a;
+  contain: paint layout style;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  max-height: 100%;
+  opacity: 1 !important;
+  overflow: hidden;
+  padding: 12px;
+  pointer-events: auto;
+  transform-origin: center;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  width: 100%;
+}
+
+.overlap-chooser-object.open .overlap-chooser-surface {
+  animation: none;
+}
+
+@keyframes overlap-chooser-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dark .overlap-chooser-surface {
+  background: #0e1016 !important;
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 24px 56px rgba(0, 0, 0, 0.75);
+  color: #f8fafc;
+  opacity: 1 !important;
+}
+
+.high-contrast .overlap-chooser-surface {
+  background: #000000 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 0 3px #000000, 0 0 0 5px #ffffff;
+  color: #ffffff;
+}
+
+.overlap-chooser-header {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 0 0 10px 2px;
+}
+
+.overlap-chooser-header-title {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+}
+
+.overlap-chooser-header-count {
+  align-items: center;
+  background: #ef4444;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px rgba(15, 23, 42, 0.88);
+  color: #ffffff;
+  display: inline-flex;
+  flex: 0 0 28px;
+  font-size: 14px;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.overlap-chooser-header strong {
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+
+.overlap-chooser-close,
+.overlap-chooser-close-btn {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.08);
+  border: none !important;
+  border-radius: 50%;
+  color: inherit;
+  display: flex;
+  flex: 0 0 36px;
+  height: 36px;
+  justify-content: center;
+  transition: background-color 140ms ease, transform 140ms ease, filter 140ms ease;
+  width: 36px;
+}
+
+.dark .overlap-chooser-close,
+.dark .overlap-chooser-close-btn {
+  background: rgba(255, 255, 255, 0.10);
+  border: none !important;
+  color: #f8fafc;
+}
+
+.overlap-chooser-close:hover,
+.overlap-chooser-close:focus-visible,
+.overlap-chooser-close-btn:hover,
+.overlap-chooser-close-btn:focus-visible {
+  background: rgba(15, 23, 42, 0.14);
+  outline: none !important;
+  filter: brightness(1.15);
+}
+
+.dark .overlap-chooser-close:hover,
+.dark .overlap-chooser-close:focus-visible,
+.dark .overlap-chooser-close-btn:hover,
+.dark .overlap-chooser-close-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  outline: none !important;
+  filter: brightness(1.2);
+}
+
+.overlap-chooser-close:active,
+.overlap-chooser-close-btn:active {
+  transform: scale(0.92);
+}
+
+.overlap-chooser-list {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 6px;
+  grid-auto-rows: max-content;
+  margin-right: -6px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+}
+
+.overlap-chooser-choice {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.04);
+  border: none !important;
+  border-left-width: 2px;
+  border-left-style: solid;
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
+  border-radius: 10px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-height: 64px;
+  padding: 8px 10px;
+  text-align: left;
+  transition:
+    background-color 150ms ease,
+    background-image 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.dark .overlap-chooser-choice {
+  background: #12151c;
+}
+
+.overlap-chooser-choice.rsz-card-border,
+.overlap-chooser-choice.reduced-speed-zone {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(245, 158, 11, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(245, 158, 11, 0.20) !important;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.07) 0%, rgba(245, 158, 11, 0.02) 12px, transparent 24px), #f8fafc !important;
+  /* rgba(245, 158, 11, 0.42) */
+}
+.dark .overlap-chooser-choice.rsz-card-border,
+.dark .overlap-chooser-choice.reduced-speed-zone {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+.overlap-chooser-choice.delay-card-border,
+.overlap-chooser-choice.delay {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(254, 236, 65, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(254, 236, 65, 0.20) !important;
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.07) 0%, rgba(254, 236, 65, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .overlap-chooser-choice.delay-card-border,
+.dark .overlap-chooser-choice.delay {
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.11) 0%, rgba(254, 236, 65, 0.035) 14px, transparent 30px), #12151c !important;
+}
+
+.overlap-chooser-choice.suspension-card-border,
+.overlap-chooser-choice.suspension {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(239, 68, 68, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(239, 68, 68, 0.20) !important;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.07) 0%, rgba(239, 68, 68, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .overlap-chooser-choice.suspension-card-border,
+.dark .overlap-chooser-choice.suspension {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+.overlap-chooser-choice.planned-closure-card-border,
+.overlap-chooser-choice.planned-closure {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 2px solid rgba(59, 130, 246, 0.85) !important;
+  box-shadow: inset 2px 0 6px -1px rgba(59, 130, 246, 0.20) !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0.02) 12px, transparent 24px), #f8fafc !important;
+}
+.dark .overlap-chooser-choice.planned-closure-card-border,
+.dark .overlap-chooser-choice.planned-closure {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 14px, transparent 30px), #12151c !important;
+}
+
+/* Evident, prominent hover and selection highlights */
+.overlap-chooser-choice:hover,
+.overlap-chooser-choice:focus-visible,
+.overlap-chooser-choice.selected {
+  outline: none !important;
+}
+
+.overlap-chooser-choice.delay:hover,
+.overlap-chooser-choice.delay:focus-visible,
+.overlap-chooser-choice.delay.selected {
+  border-left-color: #fde047 !important;
+  box-shadow:
+    inset 3px 0 10px -1px rgba(254, 236, 65, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.16) 0%, rgba(254, 236, 65, 0.04) 30px, transparent 60px), #e8edf4 !important;
+}
+.dark .overlap-chooser-choice.delay:hover,
+.dark .overlap-chooser-choice.delay:focus-visible,
+.dark .overlap-chooser-choice.delay.selected {
+  border-left-color: #fef08a !important;
+  box-shadow:
+    inset 3px 0 12px -1px rgba(254, 236, 65, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.40) !important;
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.24) 0%, rgba(254, 236, 65, 0.08) 32px, transparent 68px), #232a38 !important;
+}
+
+.overlap-chooser-choice.planned-closure:hover,
+.overlap-chooser-choice.planned-closure:focus-visible,
+.overlap-chooser-choice.planned-closure.selected {
+  border-left-color: #3b82f6 !important;
+  box-shadow:
+    inset 3px 0 10px -1px rgba(59, 130, 246, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0.04) 30px, transparent 60px), #e8edf4 !important;
+}
+.dark .overlap-chooser-choice.planned-closure:hover,
+.dark .overlap-chooser-choice.planned-closure:focus-visible,
+.dark .overlap-chooser-choice.planned-closure.selected {
+  border-left-color: #60a5fa !important;
+  box-shadow:
+    inset 3px 0 12px -1px rgba(59, 130, 246, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.40) !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.08) 32px, transparent 68px), #232a38 !important;
+}
+
+.overlap-chooser-choice.suspension:hover,
+.overlap-chooser-choice.suspension:focus-visible,
+.overlap-chooser-choice.suspension.selected {
+  border-left-color: #ef4444 !important;
+  box-shadow:
+    inset 3px 0 10px -1px rgba(239, 68, 68, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.16) 0%, rgba(239, 68, 68, 0.04) 30px, transparent 60px), #e8edf4 !important;
+}
+.dark .overlap-chooser-choice.suspension:hover,
+.dark .overlap-chooser-choice.suspension:focus-visible,
+.dark .overlap-chooser-choice.suspension.selected {
+  border-left-color: #f87171 !important;
+  box-shadow:
+    inset 3px 0 12px -1px rgba(239, 68, 68, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.40) !important;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0.08) 32px, transparent 68px), #232a38 !important;
+}
+
+.overlap-chooser-choice.reduced-speed-zone:hover,
+.overlap-chooser-choice.reduced-speed-zone:focus-visible,
+.overlap-chooser-choice.reduced-speed-zone.selected {
+  border-left-color: #f59e0b !important;
+  box-shadow:
+    inset 3px 0 10px -1px rgba(245, 158, 11, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0.04) 30px, transparent 60px), #e8edf4 !important;
+}
+.dark .overlap-chooser-choice.reduced-speed-zone:hover,
+.dark .overlap-chooser-choice.reduced-speed-zone:focus-visible,
+.dark .overlap-chooser-choice.reduced-speed-zone.selected {
+  border-left-color: #fbbf24 !important;
+  box-shadow:
+    inset 3px 0 12px -1px rgba(245, 158, 11, 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.40) !important;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.08) 32px, transparent 68px), #232a38 !important;
+}
+
+.overlap-chooser-choice:active {
+  transform: scale(0.985);
+}
+
+.high-contrast .overlap-chooser-choice {
+  border: 1px solid #ffffff !important;
+  border-left-width: 3px !important;
+  background: #000000 !important;
+  box-shadow: none !important;
+}
+
+.high-contrast .overlap-chooser-choice:hover,
+.high-contrast .overlap-chooser-choice:focus-visible,
+.high-contrast .overlap-chooser-choice.selected {
+  background: #1e293b !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 2px #ffffff !important;
+}
+
+.overlap-chooser-choice-icon {
+  align-items: center;
+  background: #172033;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  display: flex;
+  height: 42px;
+  justify-content: center;
+  transition: transform 150ms ease, filter 150ms ease;
+  width: 42px;
+}
+
+.overlap-chooser-choice:hover .overlap-chooser-choice-icon,
+.overlap-chooser-choice:focus-visible .overlap-chooser-choice-icon,
+.overlap-chooser-choice.selected .overlap-chooser-choice-icon {
+  transform: scale(1.05);
+  filter: brightness(1.15);
+}
+
+.overlap-chooser-choice-icon.suspension {
+  color: #ef4444;
+}
+
+.overlap-chooser-choice-icon.planned-closure {
+  color: #60a5fa;
+}
+
+.overlap-chooser-choice-icon.delay {
+  color: #feec41;
+}
+
+.overlap-chooser-choice-icon.reduced-speed-zone {
+  color: var(--impact-rsz);
+}
+
+.overlap-chooser-choice-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.overlap-chooser-choice-copy strong {
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.overlap-chooser-choice-location {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.dark .overlap-chooser-choice-location {
+  color: #cbd5e1;
+}
+
+.overlap-chooser-choice-date {
+  color: #3b82f6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  margin: 1px 0 2px;
+  overflow-wrap: anywhere;
+}
+
+.dark .overlap-chooser-choice-date {
+  color: #93c5fd;
+}
+
+.high-contrast .overlap-chooser-choice-date {
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .overlap-chooser-object.open .overlap-chooser-surface {
+    animation: none;
+  }
+
+  .overlap-chooser-surface {
+    border-radius: 14px;
+    padding: 10px;
+  }
+
+  .overlap-chooser-header {
+    gap: 10px;
+    padding: 0 0 8px 1px;
+  }
+
+  .overlap-chooser-header-title {
+    gap: 8px;
+  }
+
+  .overlap-chooser-header-count {
+    flex-basis: 26px;
+    font-size: 13px;
+    height: 26px;
+    width: 26px;
+  }
+
+  .overlap-chooser-header strong {
+    font-size: 18px;
+  }
+
+  .overlap-chooser-close,
+  .overlap-chooser-close-btn {
+    flex-basis: 36px;
+    height: 36px;
+    width: 36px;
+  }
+
+  .overlap-chooser-list {
+    gap: 5px;
+    grid-auto-rows: max-content;
+  }
+
+  .overlap-chooser-choice {
+    align-items: start;
+    gap: 9px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    min-height: 82px;
+    padding: 7px 9px;
+  }
+
+  .overlap-chooser-choice-icon {
+    align-self: center;
+    height: 38px;
+    width: 38px;
+  }
+
+  .overlap-chooser-choice-copy strong {
+    font-size: 15px;
+  }
+
+  .overlap-chooser-choice-location {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .overlap-chooser-choice-date {
+    font-size: 11px;
+    line-height: 1.2;
+    margin: 1px 0 2px;
+  }
+}
+
+.motion-paused .overlap-chooser-object,
+.motion-paused .overlap-indicator {
+  transition: none !important;
+}
+
+.motion-paused .overlap-chooser-surface {
+  animation: none !important;
+}
+
+.overlap-indicator-pill {
+  fill: rgba(255, 255, 255, 0.94);
+  stroke: rgba(15, 23, 42, 0.28);
+  stroke-width: 4;
+  transition: stroke-width 70ms ease-out, stroke 70ms ease-out, fill 70ms ease-out;
+}
+
+.dark .overlap-indicator-pill,
+.high-contrast .overlap-indicator-pill {
+  fill: rgba(15, 23, 42, 0.94);
+  stroke: rgba(255, 255, 255, 0.3);
+}
+
+.overlap-indicator:hover .overlap-indicator-pill,
+.overlap-indicator:focus-visible .overlap-indicator-pill,
+.overlap-indicator.selected .overlap-indicator-pill {
+  fill: rgba(255, 255, 255, 0.98);
+  stroke: #60a5fa;
+  stroke-width: 6;
+}
+
+.dark .overlap-indicator:hover .overlap-indicator-pill,
+.dark .overlap-indicator:focus-visible .overlap-indicator-pill,
+.dark .overlap-indicator.selected .overlap-indicator-pill,
+.high-contrast .overlap-indicator:hover .overlap-indicator-pill,
+.high-contrast .overlap-indicator:focus-visible .overlap-indicator-pill,
+.high-contrast .overlap-indicator.selected .overlap-indicator-pill {
+  fill: rgba(15, 23, 42, 0.98);
+}
+
+.overlap-indicator-badge {
+  fill: rgba(15, 23, 42, 0.92);
+  stroke-width: 3.5;
+}
+
+.overlap-indicator-badge.suspension {
+  fill: rgba(239, 68, 68, 0.12);
+  stroke: #ef4444;
+}
+
+.overlap-indicator-badge.planned-closure {
+  fill: rgba(59, 130, 246, 0.12);
+  stroke: #3b82f6;
+}
+
+.overlap-indicator-badge.reduced-speed-zone {
+  fill: var(--impact-rsz-soft);
+  stroke: var(--impact-rsz);
+}
+
+.overlap-indicator-badge.delay {
+  fill: rgba(254, 236, 65, 0.14);
+  stroke: #FEEC41;
+}
+
+.overlap-indicator-badge.more {
+  fill: #334155;
+  stroke: rgba(255, 255, 255, 0.42);
+}
+
+.impact-type-icon.suspension {
+  color: #ef4444;
+}
+
+.impact-type-icon.delay,
+.dark .impact-type-icon.delay,
+.high-contrast .impact-type-icon.delay {
+  color: #FEEC41;
+}
+
+.delay-badge-exclamation {
+  stroke: #ffffff;
+}
+.delay-badge-exclamation-dot {
+  fill: #ffffff;
+}
+.dark .delay-badge-exclamation,
+.high-contrast .delay-badge-exclamation {
+  stroke: #12151c;
+}
+.dark .delay-badge-exclamation-dot,
+.high-contrast .delay-badge-exclamation-dot {
+  fill: #12151c;
+}
+
+/* Specific overrides for buttons or cards where background is different */
+.overlap-impact-ref.delay .delay-badge-exclamation {
+  stroke: #f1f5f9;
+}
+.overlap-impact-ref.delay .delay-badge-exclamation-dot {
+  fill: #f1f5f9;
+}
+.dark .overlap-impact-ref.delay .delay-badge-exclamation,
+.high-contrast .overlap-impact-ref.delay .delay-badge-exclamation {
+  stroke: #1e293b;
+}
+.dark .overlap-impact-ref.delay .delay-badge-exclamation-dot,
+.high-contrast .overlap-impact-ref.delay .delay-badge-exclamation-dot {
+  fill: #1e293b;
+}
+
+/* Overrides for map overlap indicator badges */
+.overlap-indicator .delay-badge-exclamation {
+  stroke: rgba(255, 255, 255, 0.94);
+}
+.overlap-indicator .delay-badge-exclamation-dot {
+  fill: rgba(255, 255, 255, 0.94);
+}
+.dark .overlap-indicator .delay-badge-exclamation,
+.high-contrast .overlap-indicator .delay-badge-exclamation {
+  stroke: rgb(15, 23, 42);
+}
+.dark .overlap-indicator .delay-badge-exclamation-dot,
+.high-contrast .overlap-indicator .delay-badge-exclamation-dot {
+  fill: rgb(15, 23, 42);
+}
+
+.impact-type-icon.reduced-speed-zone {
+  color: var(--impact-rsz);
+}
+
+.impact-type-icon.planned-closure {
+  color: #3b82f6;
+}
+
+.overlap-indicator-type-icon {
+  display: block;
+  overflow: visible;
+}
+
+.overlap-indicator-type-icon.suspension {
+  color: #ef4444;
+}
+
+.overlap-indicator-type-icon.delay {
+  color: #FEEC41;
+}
+
+.overlap-indicator-type-icon.reduced-speed-zone {
+  color: var(--impact-rsz);
+}
+
+.overlap-indicator-type-icon.planned-closure {
+  color: #3b82f6;
+}
+
+.overlap-indicator-vector-label {
+  fill: #ffffff;
+}
+
+.overlap-indicator-count-badge {
+  fill: #ef4444;
+  stroke: rgba(15, 23, 42, 0.95);
+  stroke-width: 2.5;
+}
+
+.impact-overlap-refs {
+  border: none !important;
+  box-sizing: border-box;
+  margin-left: 0;
+  margin-right: 0;
+  margin-inline: 0;
+  max-width: 100%;
+  outline: none !important;
+  width: 100%;
+}
+
+.overlap-impact-ref {
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 4px;
+  color: rgb(51, 65, 85);
+  display: inline-flex;
+  font-weight: 700;
+  gap: 6px;
+  max-width: 220px;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.overlap-impact-ref:hover,
+.overlap-impact-ref:focus-visible {
+  background: rgba(248, 250, 252, 0.96);
+  outline: none;
+}
+
+.dark .overlap-impact-ref,
+.high-contrast .overlap-impact-ref {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgb(226, 232, 240);
+}
+
+.dark .overlap-impact-ref:hover,
+.dark .overlap-impact-ref:focus-visible,
+.high-contrast .overlap-impact-ref:hover,
+.high-contrast .overlap-impact-ref:focus-visible {
+  background: rgba(30, 41, 59, 0.88);
+}
+
+.overlap-impact-ref.suspension {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.overlap-impact-ref.delay {
+  border-color: rgba(254, 236, 65, 0.38);
+  background: rgba(254, 236, 65, 0.08);
+}
+
+.overlap-impact-ref.reduced-speed-zone {
+  border-color: var(--impact-rsz-border);
+  background: var(--impact-rsz-soft);
+}
+
+.overlap-impact-ref.planned-closure {
+  border-color: rgba(59, 130, 246, 0.38);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.dark .overlap-impact-ref.suspension,
+.high-contrast .overlap-impact-ref.suspension {
+  background: rgba(127, 29, 29, 0.26);
+}
+
+.dark .overlap-impact-ref.delay,
+.high-contrast .overlap-impact-ref.delay {
+  background: rgba(254, 236, 65, 0.12);
+}
+
+.dark .overlap-impact-ref.reduced-speed-zone,
+.high-contrast .overlap-impact-ref.reduced-speed-zone {
+  background: rgba(120, 53, 15, 0.32);
+}
+
+.dark .overlap-impact-ref.planned-closure,
+.high-contrast .overlap-impact-ref.planned-closure {
+  background: rgba(30, 58, 138, 0.26);
+}

@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S06C
-- Last completed session: S06C
-- Next recommended session: S06D
+- Current session: S06D
+- Last completed session: S06D
+- Next recommended session: S06E
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 27,563 |
-| Total authored app CSS lines | 31,414 | 31,417 |
-| Total authored app CSS bytes | 784,128 | 784,538 |
-| Parsed rules | 4,221 | 3,919 |
-| Declarations | 14,093 | 12,995 |
-| !important | 2,356 | 2,184 |
+| Global entry lines | 30,011 | 26,774 |
+| Total authored app CSS lines | 31,414 | 31,418 |
+| Total authored app CSS bytes | 784,128 | 784,583 |
+| Parsed rules | 4,221 | 3,802 |
+| Declarations | 14,093 | 12,648 |
+| !important | 2,356 | 2,103 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,499 |
-| Production CSS gzip bytes | 108,667 | 107,918 |
+| Production CSS gzip bytes | 108,667 | 107,828 |
 
 ## Session log
 
@@ -302,3 +302,33 @@
 - Risks or blockers:
   - None. Selection and hover foreground extraction is clean and verified.
 - Next session: S06D — Extract overlap badges and chooser (`map/overlap-chooser.css` or `map/overlap-indicators.css`).
+
+### S06D — Extract overlap badges and chooser
+
+- Status: completed
+- Commit: 0adf0b39
+- Scope: Extract overlap indicator badges and chooser popup styles (`.overlap-indicator`, `.overlap-chooser-*`, popup enter keyframes, theme overrides, list/choices by kind, icon, hover/focus/selected states, max-width: 640px mobile responsive overrides, motion paused rules, `.overlap-indicator-pill`, `.overlap-indicator-badge`, `.impact-type-icon`, delay exclamation badge glyphs, `.overlap-indicator-type-icon`, `.overlap-indicator-vector-label`, `.overlap-indicator-count-badge`, `.impact-overlap-refs`, `.overlap-impact-ref`) from `globals.css` (790 lines) into dedicated `frontend/src/styles/map/overlap-chooser.css`. Add relative `@import "../styles/map/overlap-chooser.css";` in top manifest order immediately following `map-selection.css`. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/map/overlap-chooser.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,121 tests, 0 failures across 135 suites in ~1000ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.3s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 27,563 to 26,774; parsed rules -117; parsed declarations -347; `!important` -81; production chunk raw bytes unchanged at 705,499; gzip bytes improved by 90 bytes to 107,828).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across light/dark themes, GO/UP desktop map, high contrast, station detail, My Commutes, selected/overlapping map impact, and mobile views.
+- Decisions:
+  - Extracted contiguous overlap badges, indicator pills, chooser modal surface, choices by impact kind, exclamation glyphs, type icons, and impact reference links into `frontend/src/styles/map/overlap-chooser.css` (790 lines total), preserving exact declaration values, comments, keyframes, and selector syntax.
+  - Placed `@import "../styles/map/overlap-chooser.css";` right after `@import "../styles/map/map-selection.css";` in top manifest order to preserve the cascade hierarchy where overlap badges and popup surfaces paint above map rails and selections.
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` verifying that `overlap-chooser.css` resolves in the app stylesheet graph and reads directly via `readStylesheet()`.
+  - Preserved late mobile inspector media-query rule in `globals.css` line 19,553 (`.overlap-impact-ref`) for S08 responsive density extraction.
+  - Left train markers and commute path previews for the final sub-session S06E.
+- Risks or blockers:
+  - None. Overlap badges and chooser extraction is clean and verified.
+- Next session: S06E — Extract train markers and commute path previews (`map/train-markers.css` or `map/commute-preview.css`).
