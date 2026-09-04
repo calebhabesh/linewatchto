@@ -345,4 +345,22 @@ describe("stylesheet-graph helper", () => {
     assert.match(mapControlsContent, /\.map-control-zoom-group/);
     assert.match(mapControlsContent, /\.map-control-recenter-container/);
   });
+
+  it("resolves the extracted shell/mobile-chrome.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("mobile-chrome.css")), "mobile-chrome.css must be in graph files");
+    const mobileChromeContent = readStylesheet(new URL("../src/styles/shell/mobile-chrome.css", import.meta.url));
+    assert.match(mobileChromeContent, /--mobile-bottom-nav-height/);
+    assert.match(mobileChromeContent, /--mobile-safe-top/);
+    assert.match(mobileChromeContent, /\.mobile-bottom-nav/);
+    assert.match(mobileChromeContent, /\.mobile-bottom-nav-item/);
+    assert.match(mobileChromeContent, /\.pwa-install-nudge/);
+    assert.match(mobileChromeContent, /\.mobile-status-peek/);
+    assert.match(mobileChromeContent, /\.mobile-status-peek-info-btn/);
+    assert.match(mobileChromeContent, /\.mobile-map-controls-group/);
+    assert.match(mobileChromeContent, /\.mobile-map-recenter-btn/);
+    assert.match(mobileChromeContent, /\.network-selector--compact-vertical/);
+    assert.match(mobileChromeContent, /\.rotate-map-btn/);
+  });
 });
