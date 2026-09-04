@@ -3,24 +3,25 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S08C
-- Last completed session: S08C
-- Next recommended session: S08D
+- Current session: S08D
+- Last completed session: S08D
+- Next recommended session: S09A
 - Blockers: none
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
-| Global entry lines | 30,011 | 21,501 |
-| Total authored app CSS lines | 31,414 | 31,447 |
-| Total authored app CSS bytes | 784,128 | 785,667 |
-| Parsed rules | 4,221 | 3,073 |
-| Declarations | 14,093 | 9,972 |
-| !important | 2,356 | 1,538 |
+| Global entry lines | 30,011 | 20,616 |
+| Total authored app CSS lines | 31,414 | 31,453 |
+| Total authored app CSS bytes | 784,128 | 786,005 |
+| Parsed rules | 4,221 | 2,910 |
+| Declarations | 14,093 | 9,675 |
+| !important | 2,356 | 1,466 |
 | Class-substring selectors | 32 | 32 |
 | Production CSS bytes | 705,472 | 705,482 |
-| Production CSS gzip bytes | 108,667 | 107,005 |
+| Production CSS gzip bytes | 108,667 | 106,876 |
+
 
 ## Session log
 
@@ -483,3 +484,35 @@
 - Risks or blockers:
   - None. S08C is fully complete and verified.
 - Next session: S08D — Extract compact phone and narrow desktop density styles (`shell/responsive-density.css` / compact phone and short landscape queries).
+
+### S08D — Extract compact phone and narrow desktop density styles
+
+- Status: completed
+- Commit: c676e702
+- Scope: Extract narrow phone button clamp rules (`@media (max-width: 480px)`), compact-phone density pass (`@media (max-width: 400px), (orientation: landscape) and (max-height: 520px)`), and narrow desktop window top-chrome reflow rules (`@media (min-width: 768px) and (max-width: 1099px)`, `@media (min-width: 768px) and (max-width: 899px)`) from `globals.css` (886 lines removed, 891 lines total authored with header) into dedicated `frontend/src/styles/shell/responsive-density.css`. Add relative import `@import "../styles/shell/responsive-density.css";` to `globals.css` line 22. Validate Next.js Turbopack build, PostCSS cascade handling, stylesheet-graph resolution, unit tests, and Playwright visual regression baselines across all 11 scenarios.
+- Files changed:
+  - `frontend/src/styles/shell/responsive-density.css`
+  - `frontend/src/app/globals.css`
+  - `frontend/tests/stylesheet-graph.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fixtures`: Passed (1,131 tests across 135 suites, 0 failures in ~970ms).
+  - `npm --prefix frontend run typecheck`: Passed (clean route types and 0 TypeScript errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 pre-existing warnings in unrelated files).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack build succeeded in ~2.1s, 208/208 static routes).
+  - `npm --prefix frontend run test:visual`: Passed 11/11 tests across desktop and mobile viewports with 0 diffs.
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines reduced from 21,501 to 20,616 (-885 lines); parsed rules -163; parsed declarations -297; `!important` -72; media queries -5; production chunk raw bytes 705,482; gzip bytes improved to 106,876 (-129 B)).
+  - `git diff --check`: Passed (0 whitespace/formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios with Playwright against production build: 0 diffs across desktop, mobile portrait (`TTC mobile portrait`), compact/short mobile viewport (`compact or short mobile viewport`), high contrast, station detail, My Commutes, and mobile Status or More sheet.
+- Decisions:
+  - Extracted 886 lines from `globals.css` into dedicated `frontend/src/styles/shell/responsive-density.css`:
+    1. Narrow phone button clamps (`@media (max-width: 480px)`: `.rotate-map-btn` width, padding, gap, and text clamp; `.mobile-legend-pill--expanded` max-width and z-index).
+    2. Compact phone & short landscape density pass (`@media (max-width: 400px), (orientation: landscape) and (max-height: 520px)`: `--mobile-edge-inset`, `--mobile-bottom-nav-height`, `--mobile-bottom-nav-side-inset`, `--mobile-status-peek-height`; welcome & first-run dialogs; closed-hours cards; persistent bottom navigation grid & status peek count badge clamp; floating panel shell and scroll insets; alert, closure, reliability, notification, and commute card compact padding; station search panel bounds and touch row heights; station detail and impact inspector compact layout; physical landscape mobile orientation overrides).
+    3. Narrow desktop window top-chrome reflow rules (`@media (min-width: 768px) and (max-width: 1099px)` & `@media (min-width: 768px) and (max-width: 899px)`: header padding, two-row `.desktop-status-capsule-anchor` reflow, rail positioning, floating panel width clamps, and `.header-search-bar` width clamp).
+  - Maintained cascade hierarchy by importing `responsive-density.css` at line 22 immediately following `mobile-landscape.css`.
+  - Concluded S08 series (mobile shell and responsive density). S09 will proceed with station experience styles (`station-search.css`, `station-detail.css`, arrivals, surface connections).
+  - Added unit test in `frontend/tests/stylesheet-graph.test.mjs` asserting resolution of `responsive-density.css` in the application stylesheet graph.
+- Risks or blockers:
+  - None. S08D is fully complete and verified.
+- Next session: S09A — Extract station search styles (`station/station-search.css` / station search panel, input row, filter toolbar, and search results).
