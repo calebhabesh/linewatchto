@@ -933,4 +933,45 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.privacy-acknowledgements-panel/);
     assert.match(content, /@keyframes opening-disclaimer-backdrop-enter/);
   });
+
+  it("resolves the extracted utilities/scroll.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("scroll.css")), "scroll.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/utilities/scroll.css", import.meta.url));
+    assert.match(content, /\.stealth-scrollbar/);
+    assert.match(content, /\.stealth-scrollbar::-webkit-scrollbar/);
+    assert.match(content, /#linewatch-main-menu-scroll::-webkit-scrollbar/);
+    assert.match(content, /\.station-detail-scroll::-webkit-scrollbar/);
+    assert.match(content, /\.linewatch-shell\.high-contrast #linewatch-main-menu-scroll/);
+    assert.match(content, /\.linewatch-shell \[data-scroll-more-below\]/);
+  });
+
+  it("resolves the extracted utilities/motion.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("motion.css")), "motion.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/utilities/motion.css", import.meta.url));
+    assert.match(content, /html\[data-network-transition-direction\]/);
+    assert.match(content, /@keyframes network-map-slide-in-from-right/);
+    assert.match(content, /@keyframes network-map-slide-out-to-left/);
+    assert.match(content, /\.live-signal-icon/);
+    assert.match(content, /@keyframes live-signal-wave-inner/);
+    assert.match(content, /\.desktop-view-content-wrapper/);
+    assert.match(content, /@keyframes desktop-content-fade-in/);
+    assert.match(content, /\.mobile-view-content-wrapper/);
+    assert.match(content, /@keyframes mobile-content-fade-in/);
+    assert.match(content, /@keyframes menu-border-pulse/);
+    assert.match(content, /@keyframes linewatch-toast-lifecycle/);
+    assert.match(content, /\.floating-panel-shell/);
+    assert.match(content, /@keyframes floating-panel-back-exit/);
+    assert.match(content, /@keyframes panel-container-forward/);
+    assert.match(content, /@keyframes panel-container-back/);
+    assert.match(content, /@keyframes mobile-sheet-slide-down-exit/);
+    assert.match(content, /@keyframes floating-panel-exit-desktop/);
+    assert.match(content, /@keyframes panel-container-root/);
+    assert.match(content, /\.linewatch-shell button:not\(:disabled\)/);
+    assert.match(content, /@keyframes terminating-blink/);
+    assert.match(content, /\.animate-terminating-blink/);
+  });
 });
