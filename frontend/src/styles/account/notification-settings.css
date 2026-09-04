@@ -51,12 +51,14 @@
   margin: 0;
 }
 
-.push-settings-toggle {
+.push-settings-toggle,
+.notification-settings-toggle {
   font-size: 0.72rem;
-  margin: 0 !important;
+  margin: 0;
 }
 
-.push-settings-toggle input:disabled + .saved-commute-slider {
+.push-settings-toggle input:disabled + .saved-commute-slider,
+.notification-settings-toggle input:disabled + .saved-commute-slider {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -247,7 +249,6 @@
 }
 
 .notification-follow-up-option[data-selected="true"] {
-  background: rgba(16, 185, 129, 0.08);
   border-color: rgba(16, 185, 129, 0.34);
 }
 
@@ -330,16 +331,6 @@
   font-weight: 900;
 }
 
-.notification-settings-toggle {
-  font-size: 0.72rem;
-  margin: 0 !important;
-}
-
-.notification-settings-toggle input:disabled + .saved-commute-slider {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
 .notification-line-badge {
   align-items: center;
   border: 1px solid rgba(15, 23, 42, 0.32);
@@ -390,12 +381,10 @@
 }
 
 .dark .notification-follow-up-option[data-selected="true"] {
-  background: #12251f;
   border-color: rgba(16, 185, 129, 0.38);
 }
 
 .high-contrast .notification-follow-up-option[data-selected="true"] {
-  background: rgba(255, 255, 255, 0.08);
   border-color: currentColor;
 }
 
@@ -423,17 +412,8 @@
 }
 
 .notification-event-type-grid {
-  background: #ffffff !important;
   display: grid;
   width: 100%;
-}
-
-.dark .notification-event-type-grid {
-  background: #151821 !important;
-}
-
-.high-contrast .notification-event-type-grid {
-  background: #000000 !important;
 }
 
 .notification-event-type-header {
@@ -460,8 +440,8 @@
   min-width: 0;
 }
 
-.notification-settings-muted-warning {
-  margin-top: 0.25rem !important;
+.notification-settings-card .notification-settings-muted-warning {
+  margin-top: 0.25rem;
 }
 
 .notification-settings-row-actions {
@@ -483,9 +463,24 @@
   background: #000000 !important;
 }
 
-.push-diagnostics-details {
+.push-diagnostics-details,
+.push-diagnostics-panel,
+.push-diagnostics-summary-copy,
+.push-diagnostics-header div,
+.push-devices-section,
+.push-devices-header,
+.push-devices-list,
+.push-device-details,
+.push-diagnostics-scroll,
+.push-diagnostics-item,
+.push-diagnostics-attempts,
+.push-diagnostics-attempt,
+.push-diagnostics-events {
   display: flex;
   flex-direction: column;
+}
+
+.push-diagnostics-details {
   gap: 6px;
   min-width: 0;
 }
@@ -503,9 +498,7 @@
 }
 
 .push-diagnostics-summary-copy {
-  display: flex;
   flex: 1;
-  flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
@@ -544,18 +537,25 @@
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 8px;
-  display: flex;
-  flex-direction: column;
   gap: 10px;
   padding: 10px;
 }
 
-.dark .push-diagnostics-panel {
-  background: #151821;
+.dark .push-diagnostics-panel,
+.dark .push-devices-section,
+.dark .push-device-row,
+.dark .push-diagnostics-item,
+.dark .push-diagnostics-attempt {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-.high-contrast .push-diagnostics-panel {
+.dark .push-diagnostics-panel {
+  background: #151821;
+}
+
+.high-contrast .push-diagnostics-panel,
+.high-contrast .push-device-row,
+.high-contrast .push-diagnostics-item {
   background: #000000;
   border-color: #ffffff;
 }
@@ -568,9 +568,7 @@
 }
 
 .push-diagnostics-header div {
-  display: flex;
   flex: 1;
-  flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
@@ -599,14 +597,8 @@
 
 .push-devices-section {
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
   gap: 10px;
   padding-bottom: 12px;
-}
-
-.dark .push-devices-section {
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .high-contrast .push-devices-section {
@@ -614,8 +606,6 @@
 }
 
 .push-devices-header {
-  display: flex;
-  flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
@@ -635,8 +625,6 @@
 }
 
 .push-devices-list {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
   max-height: min(30vh, 280px);
   overflow-y: auto;
@@ -658,12 +646,6 @@
 
 .dark .push-device-row {
   background: rgba(2, 6, 23, 0.3);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.high-contrast .push-device-row {
-  background: #000000;
-  border-color: #ffffff;
 }
 
 .push-device-row.stale {
@@ -671,11 +653,9 @@
 }
 
 .push-device-details {
-  display: flex;
-  flex-direction: column;
+  flex: 1;
   gap: 5px;
   min-width: 0;
-  flex: 1;
 }
 
 .push-device-main {
@@ -706,14 +686,14 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-.push-device-health {
+.push-device-main .push-device-health {
   background: rgba(14, 165, 233, 0.12);
   border: 1px solid rgba(14, 165, 233, 0.24);
   border-radius: 999px;
-  color: var(--text) !important;
+  color: var(--text);
   flex-shrink: 0;
-  font-size: 10px !important;
-  font-weight: 900 !important;
+  font-size: 10px;
+  font-weight: 900;
   padding: 2px 6px;
   white-space: nowrap;
 }
@@ -834,8 +814,6 @@
 }
 
 .push-diagnostics-scroll {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
   max-height: min(52vh, 560px);
   overflow-y: auto;
@@ -897,8 +875,6 @@
   background: rgba(248, 250, 252, 0.88);
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 8px;
-  display: flex;
-  flex-direction: column;
   gap: 7px;
   min-width: 0;
   padding: 10px;
@@ -906,12 +882,6 @@
 
 .dark .push-diagnostics-item {
   background: rgba(2, 6, 23, 0.3);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.high-contrast .push-diagnostics-item {
-  background: #000000;
-  border-color: #ffffff;
 }
 
 .push-diagnostics-item-heading {
@@ -981,21 +951,13 @@
 }
 
 .push-diagnostics-attempts {
-  display: flex;
-  flex-direction: column;
   gap: 7px;
 }
 
 .push-diagnostics-attempt {
   border-top: 1px solid rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
   gap: 5px;
   padding-top: 7px;
-}
-
-.dark .push-diagnostics-attempt {
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .push-diagnostics-recipient.not-attempted .push-diagnostics-meta span:nth-child(3) {
@@ -1009,8 +971,6 @@
 
 .push-diagnostics-events {
   color: var(--quiet);
-  display: flex;
-  flex-direction: column;
   font-size: 11px;
   gap: 4px;
   line-height: 1.25;
