@@ -47,6 +47,23 @@
   --menu-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.85);
   --menu-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
   --desktop-chrome-control-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  /* Shared badge & status action tokens */
+  --badge-pill-bg-alerts: rgba(239, 68, 68, 0.14);
+  --badge-pill-text-alerts: #b91c1c;
+  --badge-pill-bg-delays: rgba(234, 179, 8, 0.18);
+  --badge-pill-text-delays: #854d0e;
+  --badge-pill-bg-rsz: rgba(245, 158, 11, 0.18);
+  --badge-pill-text-rsz: var(--impact-rsz-ink);
+  --badge-pill-bg-closures: rgba(59, 130, 246, 0.14);
+  --badge-pill-text-closures: #1d4ed8;
+  --badge-pill-bg-trip-changes: rgba(245, 158, 11, 0.18);
+  --badge-pill-text-trip-changes: var(--trip-change-ink);
+  --badge-pill-bg-accessibility: rgba(168, 85, 247, 0.14);
+  --badge-pill-text-accessibility: #7e22ce;
+  --badge-pill-bg-surface: rgba(16, 185, 129, 0.14);
+  --badge-pill-text-surface: #047857;
+  --badge-pill-bg-info: rgba(14, 165, 233, 0.14);
+  --badge-pill-text-info: #0369a1;
 }
 
 .linewatch-shell.dark {
@@ -94,6 +111,23 @@
   --menu-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.1);
   --menu-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
   --desktop-chrome-control-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  /* Shared badge & status action tokens */
+  --badge-pill-bg-alerts: rgba(239, 68, 68, 0.28);
+  --badge-pill-text-alerts: #fca5a5;
+  --badge-pill-bg-delays: rgba(234, 179, 8, 0.28);
+  --badge-pill-text-delays: #fef08a;
+  --badge-pill-bg-rsz: rgba(245, 158, 11, 0.28);
+  --badge-pill-text-rsz: var(--impact-rsz);
+  --badge-pill-bg-closures: rgba(59, 130, 246, 0.28);
+  --badge-pill-text-closures: #bfdbfe;
+  --badge-pill-bg-trip-changes: rgba(245, 158, 11, 0.28);
+  --badge-pill-text-trip-changes: var(--trip-change);
+  --badge-pill-bg-accessibility: rgba(168, 85, 247, 0.28);
+  --badge-pill-text-accessibility: #e9d5ff;
+  --badge-pill-bg-surface: rgba(16, 185, 129, 0.28);
+  --badge-pill-text-surface: #a7f3d0;
+  --badge-pill-bg-info: rgba(14, 165, 233, 0.28);
+  --badge-pill-text-info: #7dd3fc;
 }
 
 .linewatch-backdrop {
@@ -168,6 +202,23 @@
   --menu-sheen: none;
   --menu-shadow: none;
   --desktop-chrome-control-shadow: none;
+  /* Shared badge & status action tokens */
+  --badge-pill-bg-alerts: #000000;
+  --badge-pill-text-alerts: #ffffff;
+  --badge-pill-bg-delays: #000000;
+  --badge-pill-text-delays: #ffffff;
+  --badge-pill-bg-rsz: #000000;
+  --badge-pill-text-rsz: #ffffff;
+  --badge-pill-bg-closures: #000000;
+  --badge-pill-text-closures: #ffffff;
+  --badge-pill-bg-trip-changes: #000000;
+  --badge-pill-text-trip-changes: #ffffff;
+  --badge-pill-bg-accessibility: #000000;
+  --badge-pill-text-accessibility: #ffffff;
+  --badge-pill-bg-surface: #000000;
+  --badge-pill-text-surface: #ffffff;
+  --badge-pill-bg-info: #000000;
+  --badge-pill-text-info: #ffffff;
   background-color: #000000 !important;
   color: #ffffff !important;
 }

@@ -145,35 +145,22 @@ img.transit-line-badge {
 }
 
 /* ------------------------------------------------------------
-   3. Line Status Impact Buttons (Mobile)
+   3. Line Status Impact & Action Buttons (Mobile)
    ------------------------------------------------------------ */
-/* Background tints for line status impact buttons */
-.mobile-line-status-impacts button.mobile-line-status-btn-alerts {
-  background: #fef2f2 !important;
-}
-.mobile-line-status-impacts button.mobile-line-status-btn-delays {
-  background: #fefce8 !important;
-}
-.mobile-line-status-impacts button.mobile-line-status-btn-rsz {
-  background: #fffbeb !important;
-}
-.mobile-line-status-impacts button.mobile-line-status-btn-closures {
-  background: #eff6ff !important;
-}
-
-/* ------------------------------------------------------------
-   4. Mobile System Status Action Buttons
-   ------------------------------------------------------------ */
-/* Category background tints for System Status action buttons */
+/* Category background tints for System Status & Line Status impact buttons */
+.mobile-line-status-impacts button.mobile-line-status-btn-alerts,
 .mobile-status-actions button.mobile-status-btn-alerts {
   background: #fef2f2 !important;
 }
+.mobile-line-status-impacts button.mobile-line-status-btn-delays,
 .mobile-status-actions button.mobile-status-btn-delays {
   background: #fefce8 !important;
 }
+.mobile-line-status-impacts button.mobile-line-status-btn-rsz,
 .mobile-status-actions button.mobile-status-btn-rsz {
   background: #fffbeb !important;
 }
+.mobile-line-status-impacts button.mobile-line-status-btn-closures,
 .mobile-status-actions button.mobile-status-btn-closures {
   background: #eff6ff !important;
 }
@@ -187,15 +174,19 @@ img.transit-line-badge {
   background: #f0fdf4 !important;
 }
 
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts,
 .dark .mobile-status-actions button.mobile-status-btn-alerts {
   background: #2d1414 !important;
 }
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays,
 .dark .mobile-status-actions button.mobile-status-btn-delays {
   background: #2a2808 !important;
 }
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz,
 .dark .mobile-status-actions button.mobile-status-btn-rsz {
   background: #2a1f08 !important;
 }
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures,
 .dark .mobile-status-actions button.mobile-status-btn-closures {
   background: #0e1c30 !important;
 }
@@ -209,17 +200,21 @@ img.transit-line-badge {
   background: #0f291e !important;
 }
 
-/* Hover and active states for mobile status action buttons */
+/* Hover and active states for status action and line impact buttons */
 @media (hover: hover) {
+  .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover,
   .mobile-status-actions button.mobile-status-btn-alerts:hover {
     background: #fee2e2 !important;
   }
+  .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover,
   .mobile-status-actions button.mobile-status-btn-delays:hover {
     background: #fef9c3 !important;
   }
+  .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover,
   .mobile-status-actions button.mobile-status-btn-rsz:hover {
     background: #fef3c7 !important;
   }
+  .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover,
   .mobile-status-actions button.mobile-status-btn-closures:hover {
     background: #dbeafe !important;
   }
@@ -233,15 +228,19 @@ img.transit-line-badge {
     background: #dcfce7 !important;
   }
 
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover,
   .dark .mobile-status-actions button.mobile-status-btn-alerts:hover {
     background: #3d1b1b !important;
   }
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover,
   .dark .mobile-status-actions button.mobile-status-btn-delays:hover {
     background: #38360d !important;
   }
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover,
   .dark .mobile-status-actions button.mobile-status-btn-rsz:hover {
     background: #38280d !important;
   }
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover,
   .dark .mobile-status-actions button.mobile-status-btn-closures:hover {
     background: #132540 !important;
   }
@@ -256,18 +255,22 @@ img.transit-line-badge {
   }
 }
 
+.mobile-line-status-impacts button.mobile-line-status-btn-alerts:active,
 .mobile-status-actions button.mobile-status-btn-alerts:active {
   background: #fecaca !important;
   transform: scale(0.98);
 }
+.mobile-line-status-impacts button.mobile-line-status-btn-delays:active,
 .mobile-status-actions button.mobile-status-btn-delays:active {
   background: #fef08a !important;
   transform: scale(0.98);
 }
+.mobile-line-status-impacts button.mobile-line-status-btn-rsz:active,
 .mobile-status-actions button.mobile-status-btn-rsz:active {
   background: #fde68a !important;
   transform: scale(0.98);
 }
+.mobile-line-status-impacts button.mobile-line-status-btn-closures:active,
 .mobile-status-actions button.mobile-status-btn-closures:active {
   background: #bfdbfe !important;
   transform: scale(0.98);
@@ -285,18 +288,22 @@ img.transit-line-badge {
   transform: scale(0.98);
 }
 
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active,
 .dark .mobile-status-actions button.mobile-status-btn-alerts:active {
   background: #4a2020 !important;
   transform: scale(0.98);
 }
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:active,
 .dark .mobile-status-actions button.mobile-status-btn-delays:active {
   background: #474410 !important;
   transform: scale(0.98);
 }
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active,
 .dark .mobile-status-actions button.mobile-status-btn-rsz:active {
   background: #473410 !important;
   transform: scale(0.98);
 }
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:active,
 .dark .mobile-status-actions button.mobile-status-btn-closures:active {
   background: #1a3254 !important;
   transform: scale(0.98);
@@ -381,7 +388,7 @@ img.transit-line-badge {
 }
 
 /* ------------------------------------------------------------
-   6. Desktop Menu Count Badges & Jewel Pills
+   5. Desktop Menu Count Badges & Jewel Pills
    ------------------------------------------------------------ */
 /* Contemporary jewel pill styling for desktop menu count badges */
 .desktop-menu-count-badge {
@@ -392,71 +399,71 @@ img.transit-line-badge {
 }
 
 .desktop-menu-count-badge.desktop-menu-count-alerts {
-  background: rgba(239, 68, 68, 0.14) !important;
-  color: #b91c1c !important;
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
 }
 .desktop-menu-count-badge.desktop-menu-count-delays {
-  background: rgba(234, 179, 8, 0.18) !important;
-  color: #854d0e !important;
+  background: rgba(234, 179, 8, 0.18);
+  color: #854d0e;
 }
 .desktop-menu-count-badge.desktop-menu-count-rsz {
-  background: rgba(245, 158, 11, 0.18) !important;
-  color: var(--impact-rsz-ink) !important;
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--impact-rsz-ink);
 }
 .desktop-menu-count-badge.desktop-menu-count-closures {
-  background: rgba(59, 130, 246, 0.14) !important;
-  color: #1d4ed8 !important;
+  background: rgba(59, 130, 246, 0.14);
+  color: #1d4ed8;
 }
 .desktop-menu-count-badge.desktop-menu-count-trip-changes {
-  background: rgba(245, 158, 11, 0.18) !important;
-  color: var(--trip-change-ink) !important;
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--trip-change-ink);
 }
 .desktop-menu-count-badge.desktop-menu-count-accessibility {
-  background: rgba(168, 85, 247, 0.14) !important;
-  color: #7e22ce !important;
+  background: rgba(168, 85, 247, 0.14);
+  color: #7e22ce;
 }
 .desktop-menu-count-badge.desktop-menu-count-surface {
-  background: rgba(16, 185, 129, 0.14) !important;
-  color: #047857 !important;
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
 }
 .desktop-menu-count-badge.desktop-menu-count-announcements,
 .desktop-menu-count-badge.desktop-menu-count-stations {
-  background: rgba(14, 165, 233, 0.14) !important;
-  color: #0369a1 !important;
+  background: rgba(14, 165, 233, 0.14);
+  color: #0369a1;
 }
 
 .dark .desktop-menu-count-badge.desktop-menu-count-alerts {
-  background: rgba(239, 68, 68, 0.28) !important;
-  color: #fca5a5 !important;
+  background: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
 }
 .dark .desktop-menu-count-badge.desktop-menu-count-delays {
-  background: rgba(234, 179, 8, 0.28) !important;
-  color: #fef08a !important;
+  background: rgba(234, 179, 8, 0.28);
+  color: #fef08a;
 }
 .dark .desktop-menu-count-badge.desktop-menu-count-rsz {
-  background: rgba(245, 158, 11, 0.28) !important;
-  color: var(--impact-rsz) !important;
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--impact-rsz);
 }
 .dark .desktop-menu-count-badge.desktop-menu-count-closures {
-  background: rgba(59, 130, 246, 0.28) !important;
-  color: #bfdbfe !important;
+  background: rgba(59, 130, 246, 0.28);
+  color: #bfdbfe;
 }
 .dark .desktop-menu-count-badge.desktop-menu-count-trip-changes {
-  background: rgba(245, 158, 11, 0.28) !important;
-  color: var(--trip-change) !important;
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--trip-change);
 }
 .dark .desktop-menu-count-badge.desktop-menu-count-accessibility {
-  background: rgba(168, 85, 247, 0.28) !important;
-  color: #e9d5ff !important;
+  background: rgba(168, 85, 247, 0.28);
+  color: #e9d5ff;
 }
 .dark .desktop-menu-count-badge.desktop-menu-count-surface {
-  background: rgba(16, 185, 129, 0.28) !important;
-  color: #a7f3d0 !important;
+  background: rgba(16, 185, 129, 0.28);
+  color: #a7f3d0;
 }
 .dark .desktop-menu-count-badge.desktop-menu-count-announcements,
 .dark .desktop-menu-count-badge.desktop-menu-count-stations {
-  background: rgba(14, 165, 233, 0.28) !important;
-  color: #7dd3fc !important;
+  background: rgba(14, 165, 233, 0.28);
+  color: #7dd3fc;
 }
 
 .high-contrast .desktop-menu-count-badge,
@@ -466,92 +473,23 @@ img.transit-line-badge {
 }
 
 /* ------------------------------------------------------------
-   7. Line Impacts Hover, Active, and Dark Mode States
+   6. High-Contrast Mode Borders for Line Impacts & Actions
    ------------------------------------------------------------ */
-/* Hover and active states for light mode line impacts */
-@media (hover: hover) {
-  .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
-    background: #fee2e2 !important;
-  }
-  .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover {
-    background: #fef9c3 !important;
-  }
-  .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover {
-    background: #fef3c7 !important;
-  }
-  .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
-    background: #dbeafe !important;
-  }
-}
-.mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
-  background: #fee2e2 !important;
-}
-.mobile-line-status-impacts button.mobile-line-status-btn-delays:active {
-  background: #fef9c3 !important;
-}
-.mobile-line-status-impacts button.mobile-line-status-btn-rsz:active {
-  background: #fef3c7 !important;
-}
-.mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
-  background: #dbeafe !important;
-}
-
-/* Dark mode tints for line impacts */
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts {
-  background: #2d1414 !important;
-}
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays {
-  background: #2a2808 !important;
-}
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz {
-  background: #2a1f08 !important;
-}
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures {
-  background: #0e1c30 !important;
-}
-
-/* Hover and active states for dark mode line impacts */
-@media (hover: hover) {
-  .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
-    background: #3d1b1b !important;
-  }
-  .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover {
-    background: #38360d !important;
-  }
-  .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover {
-    background: #38280d !important;
-  }
-  .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
-    background: #132540 !important;
-  }
-}
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
-  background: #3d1b1b !important;
-}
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:active {
-  background: #38360d !important;
-}
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active {
-  background: #38280d !important;
-}
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
-  background: #132540 !important;
-}
-
-/* ------------------------------------------------------------
-   8. High-Contrast Mode Borders for Line Impacts & Actions
-   ------------------------------------------------------------ */
-/* High-contrast mode borders matching the alert type for line impacts */
-.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-alerts {
+/* High-contrast mode borders matching the alert type for line impacts & actions */
+.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-alerts,
+.high-contrast .mobile-status-actions button.mobile-status-btn-alerts {
   border-color: #ff4545 !important;
 }
-.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-delays {
+.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-delays,
+.high-contrast .mobile-status-actions button.mobile-status-btn-delays {
   border-color: #FEEC41 !important;
 }
-.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-rsz {
+.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-rsz,
+.high-contrast .mobile-status-actions button.mobile-status-btn-rsz {
   border-color: var(--impact-rsz) !important;
 }
-.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-closures {
+.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-closures,
+.high-contrast .mobile-status-actions button.mobile-status-btn-closures {
   border-color: #4aa3ff !important;
 }
 .high-contrast .mobile-status-actions button.mobile-status-btn-trip-changes {
