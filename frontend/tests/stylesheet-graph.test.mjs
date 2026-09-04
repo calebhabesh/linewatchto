@@ -325,6 +325,37 @@ describe("stylesheet-graph helper", () => {
     assert.match(dashboardShellContent, /\.linewatch-wordmark/);
     assert.match(dashboardShellContent, /\.linewatch-shell/);
     assert.match(dashboardShellContent, /--desktop-global-search-width/);
+    assert.match(dashboardShellContent, /\.panel-title-row/);
+    assert.match(dashboardShellContent, /\.panel-heading/);
+    assert.match(dashboardShellContent, /\.map-panel/);
+    assert.match(dashboardShellContent, /\.network-map/);
+    assert.match(dashboardShellContent, /\.asset-map-stage/);
+    assert.match(dashboardShellContent, /@keyframes map-center-fade-in/);
+    assert.match(dashboardShellContent, /\.animate-map-center-fade/);
+    assert.match(dashboardShellContent, /\.alert-card/);
+    assert.match(dashboardShellContent, /\.closure-card/);
+    assert.match(dashboardShellContent, /\.commute-card/);
+    assert.match(dashboardShellContent, /\.line-list/);
+    assert.match(dashboardShellContent, /\.line-row/);
+    assert.match(dashboardShellContent, /\.commute-panel/);
+    assert.match(dashboardShellContent, /@keyframes drift-network/);
+    assert.match(dashboardShellContent, /@media \(max-width: 1180px\)/);
+    assert.match(dashboardShellContent, /@media \(max-width: 900px\)/);
+    assert.match(dashboardShellContent, /@media \(max-width: 520px\)/);
+    assert.match(dashboardShellContent, /@keyframes highlight-glow/);
+    assert.match(dashboardShellContent, /\.highlight-active-card/);
+  });
+
+  it("verifies that entry stylesheet manifest is an import-only manifest", () => {
+    const files = getAppStylesheetGraphFiles();
+    const rawEntry = readStylesheet(files[0]);
+    const lines = rawEntry.split("\n").map(l => l.trim()).filter(Boolean);
+    for (const line of lines) {
+      assert.ok(
+        line.startsWith("@import ") || line.startsWith("/*") || line.startsWith("*") || line.endsWith("*/"),
+        `entry stylesheet line must be an @import or comment, got: ${line}`
+      );
+    }
   });
 
   it("resolves the extracted shell/desktop-chrome.css in the application stylesheet graph", () => {

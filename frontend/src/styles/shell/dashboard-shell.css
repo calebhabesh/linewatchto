@@ -1,3 +1,11 @@
+/* ==========================================================================
+   LineWatchTO Dashboard Shell & Layout
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Section 1: Shell Wordmark & Custom Properties
+   -------------------------------------------------------------------------- */
+
 .linewatch-wordmark {
   font-family: "Chillax", var(--font-wordmark), Arial, Helvetica, sans-serif;
   font-size: 1.3em;
@@ -8,4 +16,332 @@
 
 .linewatch-shell {
   --desktop-global-search-width: 370px;
+}
+
+/* --------------------------------------------------------------------------
+   Section 2: Panel Headings & Typography
+   -------------------------------------------------------------------------- */
+
+.panel-title-row span,
+.closure-heading p,
+.health-item p,
+.reliability-copy span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+}
+
+.map-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.panel-heading,
+.panel-title-row {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 16px;
+  min-height: 72px;
+}
+
+.panel-heading.compact {
+  padding: 14px 16px;
+}
+
+.panel-heading h1,
+.panel-heading h2,
+.panel-title-row h2 {
+  font-size: clamp(1.1rem, 1.8vw, 1.75rem);
+  letter-spacing: 0;
+  line-height: 1.1;
+  margin: 3px 0 0;
+}
+
+/* Ensure heading text and icons are perfectly center-aligned and remove off-center top margin */
+.panel-heading h1,
+.panel-heading h2 {
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+
+.panel-heading h1 > svg,
+.panel-heading h1 > img,
+.panel-heading h2 > svg,
+.panel-heading h2 > img,
+.panel-heading h2 > .delay-tone,
+.panel-heading h2 > .rsz-tone {
+  align-self: center !important;
+  display: inline-block !important;
+}
+
+.panel-heading h1 > span,
+.panel-heading h2 > span {
+  align-self: center !important;
+  line-height: 1.2 !important;
+  display: inline-block !important;
+}
+
+.panel-title-row h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Section 3: Network Map Stage & Viewport Containers
+   -------------------------------------------------------------------------- */
+
+.network-map {
+  align-items: center;
+  aspect-ratio: 825 / 400;
+  background: #f3f3ef;
+  display: grid;
+  min-height: 500px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.asset-map-stage {
+  background: #ffffff;
+  border-radius: 6px;
+  height: 100%;
+  min-height: 476px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+@keyframes map-center-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-map-center-fade {
+  animation: map-center-fade-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center center;
+}
+
+.linewatch-shell.mobile-performance-mode .animate-map-center-fade,
+.reduced-motion .animate-map-center-fade {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-map-center-fade {
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Section 4: Dashboard Cards & List Containers
+   -------------------------------------------------------------------------- */
+
+.alert-card,
+.closure-card,
+.commute-card,
+.health-item,
+.reliability-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.closure-heading {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+}
+
+.commute-card p,
+.closure-card p,
+.line-row p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
+.line-list,
+.alert-stack,
+.closure-stack,
+.reliability-list,
+.health-grid {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.line-row {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.line-row strong,
+.line-row p,
+.alert-card strong,
+.alert-card p,
+.closure-card strong,
+.closure-card p,
+.commute-card h3,
+.commute-card p {
+  min-width: 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+  word-break: normal;
+}
+
+.commute-panel {
+  grid-column: span 1;
+}
+
+/* --------------------------------------------------------------------------
+   Section 5: Network Background Drift Animation
+   -------------------------------------------------------------------------- */
+
+@keyframes drift-network {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(64px, 36px, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Section 6: Responsive Dashboard Layout Breakpoints
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .side-rail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .commute-panel {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-shell {
+    padding: 12px 12px 84px;
+  }
+
+  .top-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .time-capsule {
+    justify-self: stretch;
+  }
+
+  .settings-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toggle-button {
+    min-width: 0;
+  }
+
+  .panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .status-cluster,
+  .map-detail-strip,
+  .commute-grid,
+  .health-grid,
+  .side-rail {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .network-map {
+    min-height: 460px;
+    padding: 10px;
+  }
+
+  .asset-map-stage {
+    height: 440px;
+    min-height: 440px;
+    min-width: 900px;
+  }
+
+  .line-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .line-row .status-pill {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+}
+
+@media (max-width: 520px) {
+  .brand-cluster {
+    align-items: flex-start;
+  }
+
+  .network-map {
+    min-height: 410px;
+  }
+
+  .asset-map-stage {
+    height: 390px;
+    min-height: 390px;
+    min-width: 820px;
+  }
+
+  .panel-heading,
+  .panel-title-row,
+  .line-list,
+  .alert-stack,
+  .closure-stack,
+  .commute-grid,
+  .reliability-list,
+  .health-grid {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Section 7: Card Selection Highlight Glow & Keyframes
+   -------------------------------------------------------------------------- */
+
+@keyframes highlight-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.85), 0 0 16px rgba(2, 132, 199, 0.6);
+  }
+}
+
+.highlight-active-card {
+  animation: highlight-glow var(--selection-fast-cycle-duration) ease-in-out 4 forwards;
+}
+
+.motion-paused .highlight-active-card {
+  animation: none;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.85);
 }
