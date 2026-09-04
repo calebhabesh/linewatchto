@@ -1009,4 +1009,17 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.header-search-input/);
     assert.match(content, /\.search-btn\[aria-expanded="true"\]/);
   });
+
+  it("resolves the extracted shell/badges.css in the application stylesheet graph", () => {
+    clearStylesheetCache();
+    const files = getAppStylesheetGraphFiles();
+    assert.ok(files.some(f => f.endsWith("badges.css")), "badges.css must be in graph files");
+    const content = readStylesheet(new URL("../src/styles/shell/badges.css", import.meta.url));
+    assert.match(content, /\.overlapping-count-badge/);
+    assert.match(content, /\.line-badge/);
+    assert.match(content, /\.status-pill/);
+    assert.match(content, /\.mobile-line-status-impacts/);
+    assert.match(content, /\.mobile-status-actions/);
+    assert.match(content, /\.desktop-menu-count-badge/);
+  });
 });

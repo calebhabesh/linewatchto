@@ -1,0 +1,559 @@
+/* ============================================================
+   LineWatchTO Badges & Status Action Buttons
+   - Overlapping count badges (fixed SVG coordinate system)
+   - Transit line badges & status pills
+   - Mobile line status impact buttons
+   - Mobile system status action buttons
+   - Mobile status count circles & positive/zero states
+   - Desktop menu count badges & jewel pills
+   - Hover, active, dark mode, and high-contrast styling
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. Overlapping count badges (Fixed SVG coordinate system)
+   Chromium can intermittently rasterize tiny HTML badge text
+   at the wrong compositor scale after viewport changes; SVG
+   keeps the glyph and badge geometry in lockstep.
+   ------------------------------------------------------------ */
+.overlapping-count-badge {
+  --overlapping-count-font-size: 9px;
+  -webkit-text-size-adjust: none;
+  box-sizing: border-box;
+  flex: none;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  overflow: hidden;
+  text-size-adjust: none;
+  white-space: nowrap;
+}
+
+.overlapping-count-badge[data-single-digit="true"] {
+  aspect-ratio: 1 / 1;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.overlapping-count-badge__svg {
+  aspect-ratio: var(--overlapping-count-viewbox-width, 7) / 16;
+  display: block;
+  flex: none;
+  height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  width: auto;
+}
+
+.overlapping-count-badge__text {
+  dominant-baseline: central;
+  text-anchor: middle;
+  fill: currentColor;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-size: var(--overlapping-count-font-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+}
+
+.desktop-menu-count-badge {
+  --overlapping-count-font-size: 9px;
+}
+
+.desktop-menu-count-badge[data-single-digit="true"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: 26px;
+}
+
+/* ------------------------------------------------------------
+   2. Transit Line Badges & Status Pills
+   ------------------------------------------------------------ */
+.line-badge {
+  align-items: center;
+  background: #F8C300;
+  border: 1px solid #000000;
+  border-radius: 999px;
+  color: #08090d;
+  display: inline-grid;
+  font-size: 0.78rem;
+  font-weight: 800;
+  height: 28px;
+  justify-items: center;
+  min-width: 28px;
+  padding: 0 7px;
+}
+
+.dark .line-badge {
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.line-badge.small {
+  font-size: 0.72rem;
+  height: 24px;
+  min-width: 24px;
+}
+
+img.transit-line-badge {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box;
+  display: inline-block;
+  flex: 0 0 auto;
+  max-width: none;
+  min-width: var(--transit-line-badge-size);
+  object-fit: contain;
+  padding: 0 !important;
+}
+
+.transit-line-badge--fallback {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 var(--transit-line-badge-size);
+  font-size: calc(var(--transit-line-badge-size) * 0.46);
+  font-weight: 900;
+  height: var(--transit-line-badge-size);
+  justify-content: center;
+  width: var(--transit-line-badge-size);
+}
+
+.status-pill {
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+
+.status-pill.ok {
+  background: rgba(48, 209, 117, 0.12);
+  color: var(--ok);
+}
+
+.status-pill.warning {
+  background: rgba(255, 159, 28, 0.12);
+  color: var(--warning);
+}
+
+.status-pill.danger {
+  background: rgba(255, 69, 69, 0.12);
+  color: var(--danger);
+}
+
+.status-pill.neutral {
+  background: var(--panel-soft);
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------
+   3. Line Status Impact Buttons (Mobile)
+   ------------------------------------------------------------ */
+/* Background tints for line status impact buttons */
+.mobile-line-status-impacts button.mobile-line-status-btn-alerts {
+  background: #fef2f2 !important;
+}
+.mobile-line-status-impacts button.mobile-line-status-btn-delays {
+  background: #fefce8 !important;
+}
+.mobile-line-status-impacts button.mobile-line-status-btn-rsz {
+  background: #fffbeb !important;
+}
+.mobile-line-status-impacts button.mobile-line-status-btn-closures {
+  background: #eff6ff !important;
+}
+
+/* ------------------------------------------------------------
+   4. Mobile System Status Action Buttons
+   ------------------------------------------------------------ */
+/* Category background tints for System Status action buttons */
+.mobile-status-actions button.mobile-status-btn-alerts {
+  background: #fef2f2 !important;
+}
+.mobile-status-actions button.mobile-status-btn-delays {
+  background: #fefce8 !important;
+}
+.mobile-status-actions button.mobile-status-btn-rsz {
+  background: #fffbeb !important;
+}
+.mobile-status-actions button.mobile-status-btn-closures {
+  background: #eff6ff !important;
+}
+.mobile-status-actions button.mobile-status-btn-trip-changes {
+  background: #fffbeb !important;
+}
+.mobile-status-actions button.mobile-status-btn-accessibility {
+  background: #faf5ff !important;
+}
+.mobile-status-actions button.mobile-status-btn-surface {
+  background: #f0fdf4 !important;
+}
+
+.dark .mobile-status-actions button.mobile-status-btn-alerts {
+  background: #2d1414 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-delays {
+  background: #2a2808 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-rsz {
+  background: #2a1f08 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-closures {
+  background: #0e1c30 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes {
+  background: #2a1f08 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility {
+  background: #20132c !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface {
+  background: #0f291e !important;
+}
+
+/* Hover and active states for mobile status action buttons */
+@media (hover: hover) {
+  .mobile-status-actions button.mobile-status-btn-alerts:hover {
+    background: #fee2e2 !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-delays:hover {
+    background: #fef9c3 !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-rsz:hover {
+    background: #fef3c7 !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-closures:hover {
+    background: #dbeafe !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
+    background: #fef3c7 !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-accessibility:hover {
+    background: #f3e8ff !important;
+  }
+  .mobile-status-actions button.mobile-status-btn-surface:hover {
+    background: #dcfce7 !important;
+  }
+
+  .dark .mobile-status-actions button.mobile-status-btn-alerts:hover {
+    background: #3d1b1b !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-delays:hover {
+    background: #38360d !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-rsz:hover {
+    background: #38280d !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-closures:hover {
+    background: #132540 !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
+    background: #38280d !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-accessibility:hover {
+    background: #2e1b3f !important;
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-surface:hover {
+    background: #163929 !important;
+  }
+}
+
+.mobile-status-actions button.mobile-status-btn-alerts:active {
+  background: #fecaca !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-delays:active {
+  background: #fef08a !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-rsz:active {
+  background: #fde68a !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-closures:active {
+  background: #bfdbfe !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-trip-changes:active {
+  background: #fde68a !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-accessibility:active {
+  background: #e9d5ff !important;
+  transform: scale(0.98);
+}
+.mobile-status-actions button.mobile-status-btn-surface:active {
+  background: #bbf7d0 !important;
+  transform: scale(0.98);
+}
+
+.dark .mobile-status-actions button.mobile-status-btn-alerts:active {
+  background: #4a2020 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-delays:active {
+  background: #474410 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-rsz:active {
+  background: #473410 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-closures:active {
+  background: #1a3254 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes:active {
+  background: #473410 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility:active {
+  background: #3b2352 !important;
+  transform: scale(0.98);
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface:active {
+  background: #1e4734 !important;
+  transform: scale(0.98);
+}
+
+/* ------------------------------------------------------------
+   5. Mobile Status Count Circles & Positive/Zero States
+   ------------------------------------------------------------ */
+/* Category-harmonized count pill styling for positive counts */
+.mobile-status-actions button.mobile-status-btn-alerts .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+.mobile-status-actions button.mobile-status-btn-delays .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(234, 179, 8, 0.18);
+  color: #854d0e;
+}
+.mobile-status-actions button.mobile-status-btn-rsz .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--impact-rsz-ink);
+}
+.mobile-status-actions button.mobile-status-btn-closures .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(59, 130, 246, 0.14);
+  color: #1d4ed8;
+}
+.mobile-status-actions button.mobile-status-btn-trip-changes .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--trip-change-ink);
+}
+.mobile-status-actions button.mobile-status-btn-accessibility .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(168, 85, 247, 0.14);
+  color: #7e22ce;
+}
+.mobile-status-actions button.mobile-status-btn-surface .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.dark .mobile-status-actions button.mobile-status-btn-alerts .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+}
+.dark .mobile-status-actions button.mobile-status-btn-delays .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(234, 179, 8, 0.28);
+  color: #fef08a;
+}
+.dark .mobile-status-actions button.mobile-status-btn-rsz .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--impact-rsz);
+}
+.dark .mobile-status-actions button.mobile-status-btn-closures .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(59, 130, 246, 0.28);
+  color: #bfdbfe;
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--trip-change);
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(168, 85, 247, 0.28);
+  color: #e9d5ff;
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface .mobile-status-btn-circle[data-count="positive"] {
+  background: rgba(16, 185, 129, 0.28);
+  color: #a7f3d0;
+}
+
+.mobile-status-actions button[data-count="zero"] .mobile-status-btn-circle {
+  opacity: 0.65;
+}
+
+/* ------------------------------------------------------------
+   6. Desktop Menu Count Badges & Jewel Pills
+   ------------------------------------------------------------ */
+/* Contemporary jewel pill styling for desktop menu count badges */
+.desktop-menu-count-badge {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.desktop-menu-count-badge.desktop-menu-count-alerts {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #b91c1c !important;
+}
+.desktop-menu-count-badge.desktop-menu-count-delays {
+  background: rgba(234, 179, 8, 0.18) !important;
+  color: #854d0e !important;
+}
+.desktop-menu-count-badge.desktop-menu-count-rsz {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: var(--impact-rsz-ink) !important;
+}
+.desktop-menu-count-badge.desktop-menu-count-closures {
+  background: rgba(59, 130, 246, 0.14) !important;
+  color: #1d4ed8 !important;
+}
+.desktop-menu-count-badge.desktop-menu-count-trip-changes {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: var(--trip-change-ink) !important;
+}
+.desktop-menu-count-badge.desktop-menu-count-accessibility {
+  background: rgba(168, 85, 247, 0.14) !important;
+  color: #7e22ce !important;
+}
+.desktop-menu-count-badge.desktop-menu-count-surface {
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: #047857 !important;
+}
+.desktop-menu-count-badge.desktop-menu-count-announcements,
+.desktop-menu-count-badge.desktop-menu-count-stations {
+  background: rgba(14, 165, 233, 0.14) !important;
+  color: #0369a1 !important;
+}
+
+.dark .desktop-menu-count-badge.desktop-menu-count-alerts {
+  background: rgba(239, 68, 68, 0.28) !important;
+  color: #fca5a5 !important;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-delays {
+  background: rgba(234, 179, 8, 0.28) !important;
+  color: #fef08a !important;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-rsz {
+  background: rgba(245, 158, 11, 0.28) !important;
+  color: var(--impact-rsz) !important;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-closures {
+  background: rgba(59, 130, 246, 0.28) !important;
+  color: #bfdbfe !important;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-trip-changes {
+  background: rgba(245, 158, 11, 0.28) !important;
+  color: var(--trip-change) !important;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-accessibility {
+  background: rgba(168, 85, 247, 0.28) !important;
+  color: #e9d5ff !important;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-surface {
+  background: rgba(16, 185, 129, 0.28) !important;
+  color: #a7f3d0 !important;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-announcements,
+.dark .desktop-menu-count-badge.desktop-menu-count-stations {
+  background: rgba(14, 165, 233, 0.28) !important;
+  color: #7dd3fc !important;
+}
+
+.high-contrast .desktop-menu-count-badge,
+.linewatch-shell.high-contrast .desktop-menu-count-badge {
+  box-shadow: none !important;
+  border: 1px solid #ffffff !important;
+}
+
+/* ------------------------------------------------------------
+   7. Line Impacts Hover, Active, and Dark Mode States
+   ------------------------------------------------------------ */
+/* Hover and active states for light mode line impacts */
+@media (hover: hover) {
+  .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
+    background: #fee2e2 !important;
+  }
+  .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover {
+    background: #fef9c3 !important;
+  }
+  .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover {
+    background: #fef3c7 !important;
+  }
+  .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
+    background: #dbeafe !important;
+  }
+}
+.mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
+  background: #fee2e2 !important;
+}
+.mobile-line-status-impacts button.mobile-line-status-btn-delays:active {
+  background: #fef9c3 !important;
+}
+.mobile-line-status-impacts button.mobile-line-status-btn-rsz:active {
+  background: #fef3c7 !important;
+}
+.mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
+  background: #dbeafe !important;
+}
+
+/* Dark mode tints for line impacts */
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts {
+  background: #2d1414 !important;
+}
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays {
+  background: #2a2808 !important;
+}
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz {
+  background: #2a1f08 !important;
+}
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures {
+  background: #0e1c30 !important;
+}
+
+/* Hover and active states for dark mode line impacts */
+@media (hover: hover) {
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
+    background: #3d1b1b !important;
+  }
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover {
+    background: #38360d !important;
+  }
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover {
+    background: #38280d !important;
+  }
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
+    background: #132540 !important;
+  }
+}
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
+  background: #3d1b1b !important;
+}
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:active {
+  background: #38360d !important;
+}
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active {
+  background: #38280d !important;
+}
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
+  background: #132540 !important;
+}
+
+/* ------------------------------------------------------------
+   8. High-Contrast Mode Borders for Line Impacts & Actions
+   ------------------------------------------------------------ */
+/* High-contrast mode borders matching the alert type for line impacts */
+.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-alerts {
+  border-color: #ff4545 !important;
+}
+.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-delays {
+  border-color: #FEEC41 !important;
+}
+.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-rsz {
+  border-color: var(--impact-rsz) !important;
+}
+.high-contrast .mobile-line-status-impacts button.mobile-line-status-btn-closures {
+  border-color: #4aa3ff !important;
+}
+.high-contrast .mobile-status-actions button.mobile-status-btn-trip-changes {
+  border-color: var(--trip-change) !important;
+}
