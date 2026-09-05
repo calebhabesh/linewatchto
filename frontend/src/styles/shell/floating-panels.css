@@ -113,12 +113,12 @@
 }
 
 .motion-paused .floating-panel-shell {
-  animation: none !important;
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .floating-panel-shell {
-    animation: none !important;
+    animation: none;
   }
 }
 

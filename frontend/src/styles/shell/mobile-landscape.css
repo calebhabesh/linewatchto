@@ -294,17 +294,12 @@
   }
 
   .rotated-map-selection-card-station {
-    border-left: 1.5px solid rgba(100, 116, 139, 0.85) !important;
     max-width: min(500px, 100%) !important;
     width: 100%;
   }
 
   .dark .rotated-map-selection-card {
     background: rgba(10, 12, 16, 0.96);
-    border-top: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
-    border-left: 1.5px solid rgba(100, 116, 139, 0.85) !important;
     box-shadow:
       inset 2px 0 6px -1px rgba(100, 116, 139, 0.20),
       0 14px 34px rgba(0, 0, 0, 0.5) !important;
@@ -320,9 +315,6 @@
   }
 
   .rotated-map-selection-card-critical {
-    border-top: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
     border-left: 1.5px solid rgba(239, 68, 68, 0.85) !important;
     box-shadow:
       inset 2px 0 6px -1px rgba(239, 68, 68, 0.20),
@@ -338,9 +330,6 @@
 
   .rotated-map-selection-card-warning,
   .rotated-map-selection-card-rsz {
-    border-top: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
     border-left: 1.5px solid rgba(245, 158, 11, 0.85) !important;
     box-shadow:
       inset 2px 0 6px -1px rgba(245, 158, 11, 0.20),
@@ -356,9 +345,6 @@
   }
 
   .rotated-map-selection-card-delay {
-    border-top: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
     border-left: 1.5px solid rgba(254, 236, 65, 0.85) !important;
     box-shadow:
       inset 2px 0 6px -1px rgba(254, 236, 65, 0.20),
@@ -373,9 +359,6 @@
   }
 
   .rotated-map-selection-card-planned {
-    border-top: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
     border-left: 1.5px solid rgba(59, 130, 246, 0.85) !important;
     box-shadow:
       inset 2px 0 6px -1px rgba(59, 130, 246, 0.20),
@@ -390,9 +373,6 @@
   }
 
   .rotated-map-selection-card-normal {
-    border-top: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
     border-left: 1.5px solid rgba(16, 185, 129, 0.85) !important;
     box-shadow:
       inset 2px 0 6px -1px rgba(16, 185, 129, 0.20),
@@ -604,10 +584,5 @@
     display: inline-flex;
     flex-shrink: 0;
     gap: 6px;
-  }
-
-  .dark .rotated-map-selection-disruption,
-  .high-contrast .rotated-map-selection-disruption {
-    color: #ffffff;
   }
 }

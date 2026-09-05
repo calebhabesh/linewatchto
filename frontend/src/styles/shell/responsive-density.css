@@ -295,10 +295,6 @@
 
   .mobile-status-peek-counts {
     gap: 3px;
-    border: none !important;
-    border-top: none !important;
-    outline: none !important;
-    box-shadow: none !important;
   }
 
   .mobile-status-peek-count-badge,
@@ -382,7 +378,6 @@
   }
 
   .mobile-sheet-heading p,
-  .mobile-sheet-kicker,
   .mobile-more-build-label {
     font-size: 9px !important;
   }

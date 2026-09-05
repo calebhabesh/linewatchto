@@ -32,10 +32,8 @@
   .regional-map-control-rail {
     top: 176px !important;
     right: 24px !important;
-    width: 62px !important;
     left: auto !important;
     transform: none !important;
-    border-radius: 12px !important;
   }
 }
 
@@ -151,8 +149,8 @@
   min-height: 52px !important;
   min-width: 52px !important;
   width: 52px !important;
-  padding: 0 10px !important;
-  border-radius: 8px !important;
+  padding: 0 10px;
+  border-radius: 8px;
 }
 
 .regional-map-control-rail .map-control-slider {
@@ -187,7 +185,6 @@
   fill: #2563eb;
   stroke-width: 2.2;
   flex-shrink: 0;
-  filter: none !important;
   transition: transform 0.2s ease, fill 0.15s ease;
 }
 
@@ -196,7 +193,6 @@
 .map-control-button:hover .map-control-recenter-icon,
 .map-control-button:focus-visible .map-control-recenter-icon {
   transform: scale(1.08);
-  filter: none !important;
 }
 
 .linewatch-shell:not(.dark) .map-control-recenter-container .map-control-button svg,
@@ -204,7 +200,6 @@
   color: #2563eb;
   stroke: #2563eb;
   fill: rgba(37, 99, 235, 0.25);
-  filter: none;
 }
 
 .linewatch-shell:not(.dark) .map-control-recenter-container .map-control-button:hover svg,
@@ -221,7 +216,6 @@
   color: #ffffff !important;
   stroke: #ffffff !important;
   fill: #000000 !important;
-  filter: none !important;
 }
 
 /* ============================================================
@@ -237,22 +231,22 @@
   }
   .map-control-recenter-mobile-label {
     display: block !important;
-    font-size: 9px !important;
-    font-weight: 800 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    color: #0f172a !important;
-    background-color: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-    padding: 2px 6px !important;
-    border-radius: 6px !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
-    white-space: nowrap !important;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #0f172a;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
   }
   .dark .map-control-recenter-mobile-label {
-    color: #ffffff !important;
-    background-color: rgba(15, 23, 42, 0.95) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff;
+    background-color: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   .map-control-rail .map-control-button {
     background-color: #ffffff !important;
@@ -262,10 +256,10 @@
     border-radius: 9999px !important;
     width: 48px !important;
     height: 48px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: transform 0.2s ease, background-color 0.2s ease !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background-color 0.2s ease;
   }
   .map-control-rail .map-control-button svg {
     color: #0f172a !important;
