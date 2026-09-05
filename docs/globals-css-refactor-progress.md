@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S29
-- Last completed session: S29
-- Next recommended session: S30 — Consolidate Shell Overlays, Late Rules, and Utilities (`utilities/scroll.css`, `utilities/motion.css`, `shell/header-flare.css`, `shell/card-elevation.css`, `shell/search-bar.css`, `shell/badges.css`, `map/map-legends.css`, `shell/status-notices.css`, `shell/error-screen.css`, `shell/subway-closed.css`, `shell/map-mode-control.css`)
+- Current session: S30
+- Last completed session: S30
+- Next recommended session: S31 — Architecture Completion & Production Verification
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -3618,3 +3618,84 @@
 - Risks or blockers:
   - None. Mobile shell and desktop chrome stylesheets are consolidated, cascade debt ceiling is lowered by 5 declarations, and all quality gates pass cleanly.
 - Next session: S30 — Consolidate Shell Overlays, Late Rules, and Utilities (`utilities/scroll.css`, `utilities/motion.css`, `shell/header-flare.css`, `shell/card-elevation.css`, `shell/search-bar.css`, `shell/badges.css`, `map/map-legends.css`, `shell/status-notices.css`, `shell/error-screen.css`, `shell/subway-closed.css`, `shell/map-mode-control.css`).
+
+### S30 — Consolidate Shell Overlays, Late Rules, and Utilities
+
+- Status: completed
+- Commit: 3d8d43a8
+- Scope: Consolidate shell overlays, late rules, and utility stylesheets (`frontend/src/styles/utilities/scroll.css`, `frontend/src/styles/utilities/motion.css`, `frontend/src/styles/shell/header-flare.css`, `frontend/src/styles/shell/card-elevation.css`, `frontend/src/styles/shell/search-bar.css`, `frontend/src/styles/shell/badges.css`, `frontend/src/styles/map/map-legends.css`, `frontend/src/styles/shell/status-notices.css`, `frontend/src/styles/shell/error-screen.css`, `frontend/src/styles/shell/subway-closed.css`, `frontend/src/styles/shell/map-mode-control.css`), conducting full specificity and cascade audits across all eleven stylesheets, verifying zero class-substring selectors and zero unintended cascade leaks, and strictly preserving contract-tested selectors, motion-safety overrides, exit transitions, and high-contrast accessibility overrides across the entire group:
+  1. Scroll Utilities (`frontend/src/styles/utilities/scroll.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 241 authored lines.
+  2. Motion Utilities (`frontend/src/styles/utilities/motion.css`):
+     - Confirmed preservation of all 10 `!important` declarations:
+       - 1 network view transition map animation pause (`html[data-network-transition-direction] :is(.ttc-map-stage, .regional-map-stage) * { animation-play-state: paused !important; }`).
+       - 2 bottom nav motion-paused / reduced motion transitions (`.motion-paused .mobile-bottom-nav::before, ... { transition: none !important; }` and `@media (prefers-reduced-motion: reduce) { ... { transition: none !important; } }`) per `mobile-nav-motion.test.mjs:27-28`.
+       - 1 desktop back exit animation (`.floating-panel-shell[data-going-back="true"], ... { animation: floating-panel-back-exit ... !important; }`).
+       - 2 motion-paused container animation/transform overrides (`.motion-paused .desktop-view-content-wrapper, ... { animation: none !important; transform: none !important; }`) per `mobile-show-on-map-inspector.test.mjs:166`.
+       - 2 prefers-reduced-motion container animation/transform overrides (`@media (prefers-reduced-motion: reduce) { ... { animation: none !important; transform: none !important; } }`) per `mobile-show-on-map-inspector.test.mjs:167`.
+       - 1 mobile sheet slide down exit animation (`@media (max-width: 767px) { .floating-panel-shell[data-going-back="true"], ... { animation: mobile-sheet-slide-down-exit 240ms ... !important; } }`) per `mobile-nav-motion.test.mjs:40,48` and `smoke/dashboard.spec.ts:4770`.
+       - 1 desktop floating panel exit animation (`@media (min-width: 768px) { .floating-panel-shell.floating-panel-closing, ... { animation: floating-panel-exit-desktop 380ms ... !important; } }`) per `stylesheet-graph.test.mjs:1047`.
+     - Net in `motion.css`: steady at 10 `!important` declarations. Authored lines steady at 566.
+  3. Header Flare (`frontend/src/styles/shell/header-flare.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 116 authored lines.
+  4. Card Elevation & Light Filament System (`frontend/src/styles/shell/card-elevation.css`):
+     - Confirmed preservation of all 29 `!important` declarations:
+       - 9 contract-tested border and background declarations: `.alert-card, .closure-card, .compact-impact-list-item, .commute-card` border-top-color per `mobile-bottom-sheet-ux.test.mjs:388`; `.mobile-status-actions button, .mobile-line-status-row` border per `mobile-bottom-sheet-ux.test.mjs:395`; `.mobile-more-account, .mobile-more-row, .mobile-more-health-grid div, .mobile-more-install-help` border per `mobile-bottom-sheet-ux.test.mjs:399`; `.menu-toggle-btn, .header-search-bar, .desktop-status-capsule, ...` border per `desktop-status-capsule.test.mjs:72`; `.station-detail-panel [data-station-section]` border and dark background per `station-panel-layout.test.mjs:191,192`; `.station-detail-disruption-card` align-items and border per `station-panel-layout.test.mjs:195,196`; and `.station-impact-jump-button` border and dark background per `station-panel-layout.test.mjs:199,200`.
+       - 20 high-contrast accessibility overrides across mobile cards (3), mobile sheet cards (2), borderless cards (2), container shadows (1), desktop line status rows (2), top chrome controls (1), desktop floating panels (2), and station detail sections (7).
+     - Net in `card-elevation.css`: steady at 29 `!important` declarations. Authored lines steady at 722.
+  5. Search Bar (`frontend/src/styles/shell/search-bar.css`):
+     - Confirmed preservation of all 4 `!important` declarations:
+       - 1 contract-tested declaration: `.header-search-bar` `padding-right: 16px !important;` per `mobile-bottom-sheet-ux.test.mjs:325`.
+       - 3 high-contrast accessibility overrides: `.high-contrast .header-search-bar` border (1) and `.high-contrast .header-search-bar:focus-within` border-color and box-shadow (2).
+     - Net in `search-bar.css`: steady at 4 `!important` declarations. Authored lines steady at 102.
+  6. Badges & Status Action Buttons (`frontend/src/styles/shell/badges.css`):
+     - Confirmed preservation of all 15 `!important` declarations:
+       - 5 contract-tested SVG badge layout declarations: `.overlapping-count-badge { font-size: 0 !important; }` per `overlapping-count-badges.test.mjs:26`, single-digit count padding (`padding-left: 0 !important; padding-right: 0 !important;`) per `overlapping-count-badges.test.mjs:45`, and desktop menu single-digit count padding per `overlapping-count-badges.test.mjs:53`.
+       - 3 dark alerts button background rules: contract-tested `.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts, .dark .mobile-status-actions button.mobile-status-btn-alerts { background: #2d1414 !important; }` per `mobile-bottom-sheet-ux.test.mjs:398`, plus hover (`#3d1b1b !important;`) and active (`#4a2020 !important;`) overrides.
+       - 7 high-contrast overrides: `.high-contrast .desktop-menu-count-badge` (box-shadow, border) and 5 distinct alert-tone border-color overrides for alerts, delays, RSZ, closures, and trip changes.
+     - Net in `badges.css`: steady at 15 `!important` declarations. Authored lines steady at 497.
+  7. Map Legends (`frontend/src/styles/map/map-legends.css`):
+     - Confirmed preservation of all 13 `!important` declarations:
+       - 3 contract-tested safe-inset offsets (`top`, `left`) and collapsed width (`width: 36px !important;`) per `mobile-bottom-sheet-ux.test.mjs:220-221` and `drawer-layout.test.mjs:91`.
+       - 1 expanded width override (`width: var(--mobile-legend-expanded-width) !important;`).
+       - 3 contract-tested regional route badge dimensions (`border-radius: 5px !important;`, `height: 24px !important;`, `width: 24px !important;`) per `drawer-layout.test.mjs:99`.
+       - 4 contract-tested regional route badge icon dimensions and reset (`border-radius: 3px !important;`, `height: 100% !important;`, `outline: none !important;`, `width: 100% !important;`) per `drawer-layout.test.mjs:101`.
+       - 2 announcement displacement offsets (`.mobile-legend-pill--announcement` and `.mobile-legend-pill--regional.mobile-legend-pill--announcement` `top: calc(...) !important;`) cleanly overriding the base `top` contract.
+     - Net in `map-legends.css`: steady at 13 `!important` declarations. Authored lines steady at 621.
+  8. Status Notices (`frontend/src/styles/shell/status-notices.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 230 authored lines.
+  9. Error Screen (`frontend/src/styles/shell/error-screen.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 169 authored lines.
+  10. Subway Closed Overnight Shell (`frontend/src/styles/shell/subway-closed.css`):
+     - Confirmed preservation of all 6 `!important` declarations:
+       - 3 functional pointer-events safety overrides on exiting animations: `.subway-closed-backdrop--exiting`, `.subway-closed-content--exiting`, and `.subway-closed-peek-chip--exiting` (`pointer-events: none !important;`).
+       - 3 contract-tested mobile notice rules: `overflow: hidden !important;` on `.subway-closing-soon-chip, .subway-closed-peek-chip, .go-up-closed-peek-chip` per `regional-network.test.mjs:123`, `overflow: hidden !important;` on `.subway-closing-soon-copy, .subway-closed-peek-text` per `regional-network.test.mjs:124`, and `white-space: normal !important;` on `.go-up-closed-peek-chip .subway-closed-peek-subtitle` per `regional-network.test.mjs:164`.
+     - Net in `subway-closed.css`: steady at 6 `!important` declarations. Authored lines steady at 1,027.
+  11. Default Map Mode Control (`frontend/src/styles/shell/map-mode-control.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 237 authored lines.
+  12. Cascade Debt:
+     - Confirmed that all 77 `!important` declarations across these eleven stylesheets are strictly essential (38 contract-tested, 30 high-contrast accessibility overrides, and 9 functional animation/motion-safety/exit overrides).
+     - Graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` held steady at 535 declarations.
+- Files changed:
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (200/200 suites, 0 failures).
+  - `npm run typecheck`: Passed (0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.0s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 17.6s).
+  - `npm run test:visual`: Passed (11/11 passed, 0 pixel differences across all baseline scenarios in 22.3s).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 18.7s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,568; authored CSS bytes steady at 801,676; graph `!important` declarations steady at 535; production chunk raw bytes steady at 675,383; production gzip bytes steady at 103,751).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations across `motion.css` (`mobile-nav-motion.test.mjs:27-28,40,48`, `mobile-show-on-map-inspector.test.mjs:166-167`, `stylesheet-graph.test.mjs:1047`), `card-elevation.css` (`mobile-bottom-sheet-ux.test.mjs:388,395,399`, `desktop-status-capsule.test.mjs:72`, `station-panel-layout.test.mjs:191-192,195-196,199-200`), `search-bar.css` (`mobile-bottom-sheet-ux.test.mjs:325`), `badges.css` (`overlapping-count-badges.test.mjs:26,45,53`, `mobile-bottom-sheet-ux.test.mjs:398`), `map-legends.css` (`mobile-bottom-sheet-ux.test.mjs:220-221`, `drawer-layout.test.mjs:91,99,101`), and `subway-closed.css` (`regional-network.test.mjs:123,124,164`).
+  - Preserved all 30 high-contrast accessibility overrides across card elevation, search bar, badges, and map legends.
+  - Preserved all functional motion-safety, exit animation, and pointer-events safety overrides.
+  - Maintained `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` steady at 535 declarations.
+- Risks or blockers:
+  - None. All eleven shell overlay, late rule, and utility stylesheets are audited and consolidated, and all quality gates pass cleanly.
+- Next session: S31 — Architecture Completion & Production Verification.
+
