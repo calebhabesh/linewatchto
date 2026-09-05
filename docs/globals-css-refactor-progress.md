@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S20A
-- Last completed session: S20A
-- Next recommended session: S20B — Consolidate Remaining Panel Stylesheets (`panels/surface-notices.css`, `panels/reliability.css`, `panels/feedback.css`, `panels/info-modals.css`)
+- Current session: S20B
+- Last completed session: S20B
+- Next recommended session: S21A — Consolidate Utility Stylesheets (`utilities/scroll.css`, `utilities/motion.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,634 |
-| Total authored app CSS bytes | 784,128 | 814,412 |
+| Total authored app CSS lines | 31,414 | 31,622 |
+| Total authored app CSS bytes | 784,128 | 813,807 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 687,555 |
-| Production CSS gzip bytes | 108,667 | 104,691 |
+| Production CSS bytes | 705,472 | 687,409 |
+| Production CSS gzip bytes | 108,667 | 104,671 |
 
 
 
@@ -2643,3 +2643,56 @@
 - Risks or blockers:
   - None. All alert & outage stylesheets are consolidated and cleanly verified.
 - Next session: S20B — Consolidate Remaining Panel Stylesheets (`panels/surface-notices.css`, `panels/reliability.css`, `panels/feedback.css`, `panels/info-modals.css`).
+
+### S20B — Consolidate Remaining Panel Stylesheets
+
+- Status: completed
+- Commit: 3653613e
+- Scope: Consolidate remaining panel stylesheets (`panels/surface-notices.css`, `panels/reliability.css`, `panels/feedback.css`, `panels/info-modals.css`), eliminating duplicate rules, redundant container rules, non-essential `!important` declarations, and fixing motion specificity while strictly preserving contract-tested selectors and visual regression baselines:
+  1. Feedback Panel (`panels/feedback.css`):
+     - Simplified compound `.feedback-support-card.feedback-support-inline` to `.feedback-support-card` across base and mobile rules.
+     - Removed redundant `margin-left: auto;` from `.feedback-submit-button` in `@media (max-width: 767px)` (already inherited from base rule).
+     - Net: authored lines reduced from 263 to 262 (-1 line).
+  2. Info Modals, Walkthroughs & Popovers (`panels/info-modals.css`):
+     - Corrected `.site-guide-trigger-icon` motion-paused and prefers-reduced-motion selectors to avoid unintended global suppression and maintain proper specificity matching (`.motion-paused .site-guide-trigger .site-guide-trigger-icon` and `@media (prefers-reduced-motion: reduce) .site-guide-trigger:not([data-menu-attention="false"]) .site-guide-trigger-icon`).
+     - Merged duplicate `.site-guide-note` rule blocks into a single consolidated rule with light/dark inset shadows.
+     - Removed non-essential `!important` from `.source-status-inset, .source-status-note` (`border: none; box-shadow: none;`).
+     - Removed non-essential `!important` from high-contrast `box-shadow: none;` on `.source-status-panel, .source-status-card, .site-guide-note`.
+     - Removed non-essential `!important` from background colors on `:is(.release-notes-panel, .privacy-acknowledgements-panel)` and `.floating-panel-shell:is([data-floating-panel="release-notes"], [data-floating-panel="privacy-acknowledgements"]) .floating-panel-scroll` in both light and dark themes.
+     - Strictly preserved contract-tested declarations:
+       - `.site-guide-panel { border: none !important; }` (`site-guide.test.mjs:206`)
+       - `.source-status-panel { border: none !important; }` (`site-guide.test.mjs:208`)
+       - `.source-status-card { border: none !important; ... }` (`site-guide.test.mjs:209`)
+       - `.high-contrast .source-status-panel, ... { border: 1px solid #ffffff !important; }` (overrides borderless base rules).
+     - Net: eliminated 5 `!important` declarations (down from 9 to 4). Authored lines reduced from 1,618 to 1,616 (-2 lines).
+  3. Surface Connection Notices (`panels/surface-notices.css`):
+     - Inspected and verified: 121 lines, 0 `!important` declarations, already minimal and compliant with all surface connection notice and regional trip changes tests.
+  4. Reliability & Ingestion Health (`panels/reliability.css`):
+     - Inspected and verified: 121 lines, 0 `!important` declarations, all selectors and media queries strictly asserted by stylesheet graph tests.
+  5. Cascade Debt:
+     - Eliminated 5 `!important` declarations total across remaining panel stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,498 to 1,493 (-5 declarations).
+- Files changed:
+  - `frontend/src/styles/panels/feedback.css`
+  - `frontend/src/styles/panels/info-modals.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.2s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 19.1s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,634 to 31,622 (-12 lines including S20A updates); authored CSS bytes reduced from 814,412 to 813,807 (-605 B); graph `!important` declarations reduced from 1,498 to 1,493 (-5); production chunk raw bytes reduced from 687,555 to 687,409 (-146 B); production gzip bytes reduced from 104,691 to 104,671 (-20 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `info-modals.css` (`site-guide.test.mjs`, `opening-disclaimer.test.mjs`, `release-notes.test.mjs`).
+  - Maintained required `border: none !important;` on `.site-guide-panel`, `.source-status-panel`, and `.source-status-card` per contract assertions.
+  - Maintained high-contrast `border: 1px solid #ffffff !important;` to ensure visibility over borderless base rules.
+- Risks or blockers:
+  - None. All panel stylesheets are consolidated and cleanly verified.
+- Next session: S21A — Consolidate Utility Stylesheets (`utilities/scroll.css`, `utilities/motion.css`).
+
