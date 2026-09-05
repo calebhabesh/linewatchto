@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S19B
-- Last completed session: S19B
-- Next recommended session: S20A — Consolidate Alert & Outage Panel Stylesheets (`panels/alerts.css`, `panels/alert-history.css`, `panels/accessibility-outages.css`)
+- Current session: S20A
+- Last completed session: S20A
+- Next recommended session: S20B — Consolidate Remaining Panel Stylesheets (`panels/surface-notices.css`, `panels/reliability.css`, `panels/feedback.css`, `panels/info-modals.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,637 |
-| Total authored app CSS bytes | 784,128 | 815,095 |
+| Total authored app CSS lines | 31,414 | 31,634 |
+| Total authored app CSS bytes | 784,128 | 814,412 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 688,507 |
-| Production CSS gzip bytes | 108,667 | 104,794 |
+| Production CSS bytes | 705,472 | 687,555 |
+| Production CSS gzip bytes | 108,667 | 104,691 |
 
 
 
@@ -2592,3 +2592,54 @@
 - Risks or blockers:
   - None. All commute stylesheets are consolidated and cleanly verified.
 - Next session: S20A — Consolidate Alert & Outage Panel Stylesheets (`panels/alerts.css`, `panels/alert-history.css`, `panels/accessibility-outages.css`).
+
+### S20A — Consolidate Alert & Outage Panel Stylesheets
+
+- Status: completed
+- Commit: 466a175e
+- Scope: Consolidate alert and outage panel stylesheets (`panels/alerts.css`, `panels/alert-history.css`, `panels/accessibility-outages.css`), eliminating dead overrides, redundant compound selectors, duplicate declarations, and unnecessary `!important` declarations while strictly preserving contract-tested selectors, visual regression baselines, and drawer/embed behavior:
+  1. Alert Panels (`panels/alerts.css`):
+     - Removed 73 redundant `!important` declarations:
+       - `.impact-card-map-btn`: base background, background-image, outline, border-radius, box-shadow, dark background, hover/active backgrounds, mobile `@media (max-width: 767px)` flex/min-width/gap/padding/svg/span dimensions, pin svg stroke/fill, is-active text color/box-shadow/hover/dark hover, and high-contrast color/box-shadow/stroke/filter.
+       - Strictly preserved contract-tested declarations: `border: none !important;`, `span { color: #ffffff !important; }`, `@media (max-width: 767px) { width: 72px !important; height: 72px !important; }`, `.jump-to-corners path { stroke: #ffffff !important; }`, `is-active { background: #2563eb !important; }`, `.dark ... is-active { background: #1d4ed8 !important; }`, `is-active .jump-to-pin { filter: none !important; }`, and necessary high-contrast border/background overrides (`view-on-map-button.test.mjs`).
+       - Closure windows: removed `!important` on `is-window-row` grid-columns, `closure-window-value` nowrap, and mobile `font-size: 0.74rem`. Kept standalone rule `.impact-metadata-grid > .is-window-row` per `drawer-layout.test.mjs:305`.
+       - `.embedded-impact-panel`: removed 8 `!important` declarations (`border`, `border-radius`, `background`, `box-shadow`, `height`, `max-height`, `overflow`, `flex`). Retained `display: none !important;` on headings and toolbar per `drawer-layout.test.mjs:59`, and retained `overflow-y: visible !important; flex: none !important;` on embedded stacks to prevent nested scroll containers.
+       - Removed duplicate `@media (max-width: 767px) .floating-panel-shell .embedded-impact-panel > .panel-heading` block.
+       - Removed `!important` from `.high-contrast .impact-list-search` border and box-shadow.
+       - Removed `!important` from `.compact-impact-list-item__map-action` border, outline, background, and dark background.
+       - Removed `!important` from `.motion-paused .station-impact-card-highlight animation: none`.
+       - Removed duplicate `.rsz-card-border { border-left-color: var(--impact-rsz); }` rule.
+       - Removed 5 `!important` declarations from empty-state flex styling (`display`, `flex-direction`, `justify-content`, `align-items`, `flex-grow`), while retaining `padding-bottom: 12px !important;` and `mask-image: none !important;`.
+     - Net: eliminated 73 `!important` declarations (down from 92 to 19). Authored lines reduced from 1,465 to 1,453 (-12 lines).
+  2. Alert History (`panels/alert-history.css`):
+     - Removed 9 redundant `!important` declarations from `.alert-history-item` across base, `.dark`, and `.high-contrast` rules (`border-top`, `border-right`, `border-bottom`, `border-left`, `box-shadow`, `background`).
+     - Retained single necessary `.high-contrast .alert-history-item { background: #000000 !important; }` to cleanly override `card-elevation.css`'s toned item backgrounds.
+     - Net: eliminated 9 `!important` declarations (down from 10 to 1). Authored lines steady at 918.
+  3. Accessibility Outages (`panels/accessibility-outages.css`):
+     - Inspected and verified: 57 lines, 0 `!important` declarations, already minimal and compliant with all accessibility contract tests.
+  4. Cascade Debt:
+     - Eliminated 82 `!important` declarations total across alert and outage stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,580 to 1,498 (-82 declarations).
+- Files changed:
+  - `frontend/src/styles/panels/alerts.css`
+  - `frontend/src/styles/panels/alert-history.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed, 0 failures across all alert, regional alert, accessibility, drawer, view-on-map, and css architecture tests; 199/199 passing).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 1.9s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 17.7s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,637 to 31,634 (-3 lines); authored CSS bytes reduced from 815,095 to 814,412 (-683 B); graph `!important` declarations reduced from 1,580 to 1,498 (-82); production chunk raw bytes reduced from 688,507 to 687,555 (-952 B); production gzip bytes reduced from 104,794 to 104,691 (-103 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `alerts.css` (`drawer-layout.test.mjs`, `view-on-map-button.test.mjs`, `alert-list-view.test.mjs`).
+  - Maintained necessary `!important` declarations on `.impact-card-map-btn` button styling per `view-on-map-button.test.mjs` and `.embedded-impact-panel` header suppression per `drawer-layout.test.mjs`.
+  - Maintained isolated rule syntax for `.impact-metadata-grid > .is-window-row` to satisfy regex assertions in `drawer-layout.test.mjs:305`.
+- Risks or blockers:
+  - None. All alert & outage stylesheets are consolidated and cleanly verified.
+- Next session: S20B — Consolidate Remaining Panel Stylesheets (`panels/surface-notices.css`, `panels/reliability.css`, `panels/feedback.css`, `panels/info-modals.css`).
