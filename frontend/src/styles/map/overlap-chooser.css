@@ -42,7 +42,7 @@
 }
 
 .overlap-chooser-surface {
-  background: #ffffff !important;
+  background: #ffffff;
   border: none !important;
   border-radius: 16px;
   box-shadow:
@@ -80,7 +80,7 @@
 }
 
 .dark .overlap-chooser-surface {
-  background: #0e1016 !important;
+  background: #0e1016;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.10),
     0 24px 56px rgba(0, 0, 0, 0.75);
@@ -88,7 +88,7 @@
 }
 
 .high-contrast .overlap-chooser-surface {
-  background: #000000 !important;
+  background: #000000;
   border: 2px solid #ffffff !important;
   box-shadow: 0 0 0 3px #000000, 0 0 0 5px #ffffff;
   color: #ffffff;
@@ -138,7 +138,7 @@
 .overlap-chooser-close-btn {
   align-items: center;
   background: rgba(15, 23, 42, 0.08);
-  border: none !important;
+  border: none;
   border-radius: 50%;
   color: inherit;
   display: flex;
@@ -224,46 +224,46 @@
 .overlap-chooser-choice.rsz-card-border,
 .overlap-chooser-choice.reduced-speed-zone {
   border-left: 2px solid rgba(245, 158, 11, 0.85) !important;
-  box-shadow: inset 2px 0 6px -1px rgba(245, 158, 11, 0.20) !important;
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.07) 0%, rgba(245, 158, 11, 0.02) 12px, transparent 24px), #f8fafc !important;
+  box-shadow: inset 2px 0 6px -1px rgba(245, 158, 11, 0.20);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.07) 0%, rgba(245, 158, 11, 0.02) 12px, transparent 24px), #f8fafc;
   /* rgba(245, 158, 11, 0.42) */
 }
 .dark .overlap-chooser-choice.rsz-card-border,
 .dark .overlap-chooser-choice.reduced-speed-zone {
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 14px, transparent 30px), #12151c !important;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 14px, transparent 30px), #12151c;
 }
 
 .overlap-chooser-choice.delay-card-border,
 .overlap-chooser-choice.delay {
   border-left: 2px solid rgba(254, 236, 65, 0.85) !important;
-  box-shadow: inset 2px 0 6px -1px rgba(254, 236, 65, 0.20) !important;
-  background: linear-gradient(90deg, rgba(254, 236, 65, 0.07) 0%, rgba(254, 236, 65, 0.02) 12px, transparent 24px), #f8fafc !important;
+  box-shadow: inset 2px 0 6px -1px rgba(254, 236, 65, 0.20);
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.07) 0%, rgba(254, 236, 65, 0.02) 12px, transparent 24px), #f8fafc;
 }
 .dark .overlap-chooser-choice.delay-card-border,
 .dark .overlap-chooser-choice.delay {
-  background: linear-gradient(90deg, rgba(254, 236, 65, 0.11) 0%, rgba(254, 236, 65, 0.035) 14px, transparent 30px), #12151c !important;
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.11) 0%, rgba(254, 236, 65, 0.035) 14px, transparent 30px), #12151c;
 }
 
 .overlap-chooser-choice.suspension-card-border,
 .overlap-chooser-choice.suspension {
   border-left: 2px solid rgba(239, 68, 68, 0.85) !important;
-  box-shadow: inset 2px 0 6px -1px rgba(239, 68, 68, 0.20) !important;
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.07) 0%, rgba(239, 68, 68, 0.02) 12px, transparent 24px), #f8fafc !important;
+  box-shadow: inset 2px 0 6px -1px rgba(239, 68, 68, 0.20);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.07) 0%, rgba(239, 68, 68, 0.02) 12px, transparent 24px), #f8fafc;
 }
 .dark .overlap-chooser-choice.suspension-card-border,
 .dark .overlap-chooser-choice.suspension {
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 14px, transparent 30px), #12151c !important;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 14px, transparent 30px), #12151c;
 }
 
 .overlap-chooser-choice.planned-closure-card-border,
 .overlap-chooser-choice.planned-closure {
   border-left: 2px solid rgba(59, 130, 246, 0.85) !important;
-  box-shadow: inset 2px 0 6px -1px rgba(59, 130, 246, 0.20) !important;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0.02) 12px, transparent 24px), #f8fafc !important;
+  box-shadow: inset 2px 0 6px -1px rgba(59, 130, 246, 0.20);
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0.02) 12px, transparent 24px), #f8fafc;
 }
 .dark .overlap-chooser-choice.planned-closure-card-border,
 .dark .overlap-chooser-choice.planned-closure {
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 14px, transparent 30px), #12151c !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 14px, transparent 30px), #12151c;
 }
 
 /* Evident, prominent hover and selection highlights */
@@ -280,8 +280,8 @@
   box-shadow:
     inset 3px 0 10px -1px rgba(254, 236, 65, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.60),
-    0 2px 8px rgba(15, 23, 42, 0.08) !important;
-  background: linear-gradient(90deg, rgba(254, 236, 65, 0.16) 0%, rgba(254, 236, 65, 0.04) 30px, transparent 60px), #e8edf4 !important;
+    0 2px 8px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.16) 0%, rgba(254, 236, 65, 0.04) 30px, transparent 60px), #e8edf4;
 }
 .dark .overlap-chooser-choice.delay:hover,
 .dark .overlap-chooser-choice.delay:focus-visible,
@@ -290,8 +290,8 @@
   box-shadow:
     inset 3px 0 12px -1px rgba(254, 236, 65, 0.50),
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 4px 12px rgba(0, 0, 0, 0.40) !important;
-  background: linear-gradient(90deg, rgba(254, 236, 65, 0.24) 0%, rgba(254, 236, 65, 0.08) 32px, transparent 68px), #232a38 !important;
+    0 4px 12px rgba(0, 0, 0, 0.40);
+  background: linear-gradient(90deg, rgba(254, 236, 65, 0.24) 0%, rgba(254, 236, 65, 0.08) 32px, transparent 68px), #232a38;
 }
 
 .overlap-chooser-choice.planned-closure:hover,
@@ -301,8 +301,8 @@
   box-shadow:
     inset 3px 0 10px -1px rgba(59, 130, 246, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.60),
-    0 2px 8px rgba(15, 23, 42, 0.08) !important;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0.04) 30px, transparent 60px), #e8edf4 !important;
+    0 2px 8px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0.04) 30px, transparent 60px), #e8edf4;
 }
 .dark .overlap-chooser-choice.planned-closure:hover,
 .dark .overlap-chooser-choice.planned-closure:focus-visible,
@@ -311,8 +311,8 @@
   box-shadow:
     inset 3px 0 12px -1px rgba(59, 130, 246, 0.50),
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 4px 12px rgba(0, 0, 0, 0.40) !important;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.08) 32px, transparent 68px), #232a38 !important;
+    0 4px 12px rgba(0, 0, 0, 0.40);
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.08) 32px, transparent 68px), #232a38;
 }
 
 .overlap-chooser-choice.suspension:hover,
@@ -322,8 +322,8 @@
   box-shadow:
     inset 3px 0 10px -1px rgba(239, 68, 68, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.60),
-    0 2px 8px rgba(15, 23, 42, 0.08) !important;
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.16) 0%, rgba(239, 68, 68, 0.04) 30px, transparent 60px), #e8edf4 !important;
+    0 2px 8px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.16) 0%, rgba(239, 68, 68, 0.04) 30px, transparent 60px), #e8edf4;
 }
 .dark .overlap-chooser-choice.suspension:hover,
 .dark .overlap-chooser-choice.suspension:focus-visible,
@@ -332,8 +332,8 @@
   box-shadow:
     inset 3px 0 12px -1px rgba(239, 68, 68, 0.50),
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 4px 12px rgba(0, 0, 0, 0.40) !important;
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0.08) 32px, transparent 68px), #232a38 !important;
+    0 4px 12px rgba(0, 0, 0, 0.40);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0.08) 32px, transparent 68px), #232a38;
 }
 
 .overlap-chooser-choice.reduced-speed-zone:hover,
@@ -343,8 +343,8 @@
   box-shadow:
     inset 3px 0 10px -1px rgba(245, 158, 11, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.60),
-    0 2px 8px rgba(15, 23, 42, 0.08) !important;
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0.04) 30px, transparent 60px), #e8edf4 !important;
+    0 2px 8px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0.04) 30px, transparent 60px), #e8edf4;
 }
 .dark .overlap-chooser-choice.reduced-speed-zone:hover,
 .dark .overlap-chooser-choice.reduced-speed-zone:focus-visible,
@@ -353,8 +353,8 @@
   box-shadow:
     inset 3px 0 12px -1px rgba(245, 158, 11, 0.50),
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 4px 12px rgba(0, 0, 0, 0.40) !important;
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.08) 32px, transparent 68px), #232a38 !important;
+    0 4px 12px rgba(0, 0, 0, 0.40);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.08) 32px, transparent 68px), #232a38;
 }
 
 .overlap-chooser-choice:active {

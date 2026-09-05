@@ -273,7 +273,7 @@
                 left 300ms ease,
                 background-color 300ms ease,
                 border-color 300ms ease,
-                box-shadow 300ms ease !important;
+                box-shadow 300ms ease;
     will-change: max-width;
   }
 
@@ -283,10 +283,10 @@
 
   .mobile-legend-pill--expanded {
     width: var(--mobile-legend-expanded-width) !important;
-    max-width: var(--mobile-legend-expanded-width) !important;
+    max-width: var(--mobile-legend-expanded-width);
     transition: max-width 450ms cubic-bezier(0.25, 1, 0.5, 1),
                 top 300ms ease,
-                left 300ms ease !important;
+                left 300ms ease;
   }
 
   .mobile-legend-collapsed-toggle {
@@ -584,8 +584,8 @@
   @media (prefers-reduced-motion: reduce) {
     .mobile-legend-pill,
     .mobile-legend-pill--expanded {
-      transition-duration: 0.01ms !important;
-      transition-delay: 0ms !important;
+      transition-duration: 0.01ms;
+      transition-delay: 0ms;
     }
 
     .desktop-legend-route-badge,
