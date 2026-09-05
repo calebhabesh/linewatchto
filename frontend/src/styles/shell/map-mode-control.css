@@ -98,7 +98,7 @@
 
 .default-map-mode-glider {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  border: none !important;
+  border: none;
   border-radius: 5px;
   box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4), inset 0 1px 0.5px rgba(255, 255, 255, 0.3);
   inset: 2px auto 2px 2px;
@@ -154,13 +154,13 @@
 }
 
 .default-map-mode-btn-ttc.is-selected {
-  color: #ffffff !important;
+  color: #ffffff;
   font-weight: 800;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .default-map-mode-btn-regional.is-selected {
-  color: #ffffff !important;
+  color: #ffffff;
   font-weight: 800;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
@@ -194,7 +194,7 @@
 }
 
 .dark .default-map-mode-btn.is-selected {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .dark .default-map-mode-btn:hover:not(.is-selected) {

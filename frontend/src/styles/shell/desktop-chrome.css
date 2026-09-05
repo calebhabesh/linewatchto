@@ -497,44 +497,44 @@
 
 .desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count {
   background: rgba(239, 68, 68, 0.14) !important;
-  color: #b91c1c !important;
+  color: #b91c1c;
 }
 .desktop-header-impact-chips .desktop-status-chip--delays .desktop-status-chip-count {
-  background: rgba(234, 179, 8, 0.18) !important;
-  color: #854d0e !important;
+  background: rgba(234, 179, 8, 0.18);
+  color: #854d0e;
 }
 .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone .desktop-status-chip-count {
-  background: rgba(245, 158, 11, 0.18) !important;
-  color: var(--impact-rsz-ink) !important;
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--impact-rsz-ink);
 }
 .desktop-header-impact-chips .desktop-status-chip--closures .desktop-status-chip-count {
-  background: rgba(59, 130, 246, 0.14) !important;
-  color: #1d4ed8 !important;
+  background: rgba(59, 130, 246, 0.14);
+  color: #1d4ed8;
 }
 .desktop-header-impact-chips .desktop-status-chip--trip-changes .desktop-status-chip-count {
-  background: rgba(245, 158, 11, 0.18) !important;
-  color: var(--trip-change-ink) !important;
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--trip-change-ink);
 }
 
 .dark .desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count {
   background: rgba(239, 68, 68, 0.28) !important;
-  color: #fca5a5 !important;
+  color: #fca5a5;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--delays .desktop-status-chip-count {
-  background: rgba(234, 179, 8, 0.28) !important;
-  color: #fef08a !important;
+  background: rgba(234, 179, 8, 0.28);
+  color: #fef08a;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone .desktop-status-chip-count {
-  background: rgba(245, 158, 11, 0.28) !important;
-  color: var(--impact-rsz) !important;
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--impact-rsz);
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--closures .desktop-status-chip-count {
-  background: rgba(59, 130, 246, 0.28) !important;
-  color: #bfdbfe !important;
+  background: rgba(59, 130, 246, 0.28);
+  color: #bfdbfe;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--trip-changes .desktop-status-chip-count {
-  background: rgba(245, 158, 11, 0.28) !important;
-  color: var(--trip-change) !important;
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--trip-change);
 }
 
 .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count {
@@ -587,38 +587,38 @@
 
 /* Consistent hover backgrounds for the bottom-left chips */
 .desktop-header-impact-chips .desktop-status-chip--alerts:hover {
-  background: #fee2e2 !important;
+  background: #fee2e2;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--alerts:hover {
   background: #3d1b1b !important;
 }
 
 .desktop-header-impact-chips .desktop-status-chip--delays:hover {
-  background: #fef9c3 !important;
+  background: #fef9c3;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--delays:hover {
-  background: #39311d !important;
+  background: #39311d;
 }
 
 .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:hover {
-  background: #fef3c7 !important;
+  background: #fef3c7;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:hover {
-  background: #3b2a1a !important;
+  background: #3b2a1a;
 }
 
 .desktop-header-impact-chips .desktop-status-chip--closures:hover {
-  background: #dbeafe !important;
+  background: #dbeafe;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--closures:hover {
-  background: #1f2e4f !important;
+  background: #1f2e4f;
 }
 
 .desktop-header-impact-chips .desktop-status-chip--trip-changes:hover {
-  background: #fef3c7 !important;
+  background: #fef3c7;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:hover {
-  background: #3b2a1a !important;
+  background: #3b2a1a;
 }
 
 /* Active/press state — slight scale down */
@@ -633,57 +633,57 @@
 
 .desktop-header-impact-chips .desktop-status-chip {
   border: none !important;
-  box-shadow: var(--mobile-card-shadow) !important;
+  box-shadow: var(--mobile-card-shadow);
 }
 
 .desktop-status-chip--alerts {
-  background: #fef2f2 !important;
-  color: #dc2626 !important;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .desktop-status-chip--delays {
-  background: #fefce8 !important;
-  color: #b45309 !important;
+  background: #fefce8;
+  color: #b45309;
 }
 
 .desktop-status-chip--reduced-speed-zone {
-  background: #fffbeb !important;
-  color: var(--impact-rsz-ink) !important;
+  background: #fffbeb;
+  color: var(--impact-rsz-ink);
 }
 
 .desktop-status-chip--closures {
-  background: #eff6ff !important;
-  color: #1d4ed8 !important;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .desktop-status-chip--trip-changes {
-  background: #fffbeb !important;
-  color: var(--trip-change-ink) !important;
+  background: #fffbeb;
+  color: var(--trip-change-ink);
 }
 
 .dark .desktop-status-chip--alerts {
   background: #2d1414 !important;
-  color: #fca5a5 !important;
+  color: #fca5a5;
 }
 
 .dark .desktop-status-chip--delays {
-  background: #2a2415 !important;
-  color: #fef08a !important;
+  background: #2a2415;
+  color: #fef08a;
 }
 
 .dark .desktop-status-chip--reduced-speed-zone {
-  background: #2b1a0e !important;
-  color: var(--impact-rsz) !important;
+  background: #2b1a0e;
+  color: var(--impact-rsz);
 }
 
 .dark .desktop-status-chip--closures {
-  background: #17223b !important;
-  color: #bfdbfe !important;
+  background: #17223b;
+  color: #bfdbfe;
 }
 
 .dark .desktop-status-chip--trip-changes {
-  background: #2b1a0e !important;
-  color: var(--trip-change) !important;
+  background: #2b1a0e;
+  color: var(--trip-change);
 }
 
 .high-contrast .desktop-header-impact-chips .desktop-status-chip,
