@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S28
-- Last completed session: S28
-- Next recommended session: S29 — Consolidate Mobile Shell and Desktop Chrome (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/floating-panels.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`)
+- Current session: S29
+- Last completed session: S29
+- Next recommended session: S30 — Consolidate Shell Overlays, Late Rules, and Utilities (`utilities/scroll.css`, `utilities/motion.css`, `shell/header-flare.css`, `shell/card-elevation.css`, `shell/search-bar.css`, `shell/badges.css`, `map/map-legends.css`, `shell/status-notices.css`, `shell/error-screen.css`, `shell/subway-closed.css`, `shell/map-mode-control.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,568 |
-| Total authored app CSS bytes | 784,128 | 801,731 |
+| Total authored app CSS bytes | 784,128 | 801,676 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 675,433 |
-| Production CSS gzip bytes | 108,667 | 103,763 |
+| Production CSS bytes | 705,472 | 675,383 |
+| Production CSS gzip bytes | 108,667 | 103,751 |
 
 
 
@@ -3536,3 +3536,85 @@
 - Risks or blockers:
   - None. Panels stylesheets are consolidated, cascade debt ceiling is lowered by 5 declarations, and all quality gates pass cleanly.
 - Next session: S29 — Consolidate Mobile Shell and Desktop Chrome (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/floating-panels.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`).
+
+### S29 — Consolidate Mobile Shell and Desktop Chrome
+
+- Status: completed
+- Commit: 2eeef70b
+- Scope: Consolidate mobile shell and desktop chrome stylesheets (`frontend/src/styles/shell/dashboard-shell.css`, `frontend/src/styles/shell/desktop-chrome.css`, `frontend/src/styles/shell/floating-panels.css`, `frontend/src/styles/shell/map-controls.css`, `frontend/src/styles/shell/mobile-chrome.css`, `frontend/src/styles/shell/mobile-sheets.css`, `frontend/src/styles/shell/mobile-landscape.css`, `frontend/src/styles/shell/responsive-density.css`), eliminating 5 redundant `!important` declarations across map controls and mobile landscape stylesheets while strictly preserving contract-tested selectors, high-contrast accessibility overrides, defensive hover overrides, and responsive density overrides across all eight stylesheets:
+  1. Dashboard Shell (`frontend/src/styles/shell/dashboard-shell.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 343 authored lines.
+  2. Desktop Chrome (`frontend/src/styles/shell/desktop-chrome.css`):
+     - Confirmed preservation of all 11 `!important` declarations:
+       - Contract-tested `background: rgba(239, 68, 68, 0.14) !important` on `.desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count` per `desktop-status-capsule.test.mjs:70`.
+       - Contract-tested `background: rgba(239, 68, 68, 0.28) !important` on `.dark .desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count` per `desktop-status-capsule.test.mjs:71`.
+       - Contract-tested `border: none !important` on `.desktop-header-impact-chips .desktop-status-chip` per `desktop-status-capsule.test.mjs:68`.
+       - Contract-tested `background: #2d1414 !important` on `.dark .desktop-status-chip--alerts` per `desktop-status-capsule.test.mjs:69`.
+       - Defensive hover override `background: #3d1b1b !important` on `.dark .desktop-header-impact-chips .desktop-status-chip--alerts:hover` (defeats the subsequent base active chip background).
+       - High-contrast accessibility overrides: 3 on `.high-contrast .desktop-header-impact-chips .desktop-status-chip-count` (border, background, color) and 3 on `.high-contrast .desktop-header-impact-chips .desktop-status-chip` (border, box-shadow, background).
+     - Net in `desktop-chrome.css`: steady at 11 `!important` declarations. Authored lines steady at 854.
+  3. Floating Panels (`frontend/src/styles/shell/floating-panels.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 148 authored lines.
+  4. Map Controls (`frontend/src/styles/shell/map-controls.css`):
+     - Eliminated 4 redundant `!important` declarations:
+       - `top: 176px !important` on `.regional-map-control-rail` (redundant with Tailwind `sm:top-[176px]`).
+       - `left: auto !important` and `transform: none !important` on `.regional-map-control-rail` (no conflicting left or transform rules exist for regional rails).
+       - `color: #0f172a !important` on mobile `.map-control-rail .map-control-button svg` (already inherits `#0f172a` from parent button, and rail is hidden via `display: none !important` on mobile viewports).
+     - Strictly preserved 6 declarations:
+       - Contract-tested `top: 96px !important` on `.desktop-map-control-rail` per `desktop-status-capsule.test.mjs:108`.
+       - Contract-tested `right: 24px !important` on `.regional-map-control-rail` per `desktop-status-capsule.test.mjs:109`.
+       - High-contrast accessibility overrides: 3 on `.high-contrast .map-control-recenter-...` (color, stroke, fill) and 1 on `.high-contrast .map-control-rail .map-control-button` (border).
+     - Net in `map-controls.css`: down from 10 to 6 `!important` declarations (-4, -40.0%). Authored lines steady at 271.
+  5. Mobile Chrome (`frontend/src/styles/shell/mobile-chrome.css`):
+     - Confirmed preservation of all 48 `!important` declarations:
+       - 11 contract-tested declarations: `.rotate-map-btn svg` (flex, height, width) and `.rotate-map-btn span` (display, font-size, letter-spacing, line-height) per `subway-closing-soon.test.mjs:75-81`; `.mobile-alert-history-shortcut, .mobile-my-stations-shortcut` (border, height, width) per `alert-history-ui.test.mjs:62`; and mobile chrome button background per `mobile-bottom-sheet-ux.test.mjs:181`.
+       - 32 high-contrast accessibility overrides across active bottom nav items (5), status peek info button (3), muted alert icon (1), status peek count badge/circle (6), mobile map recenter button / zoom capsule / divider / SVG (10), compact vertical network selector (3), shortcut hover states (2), and mobile button borders / background-images (2).
+       - 5 structural visibility rules: mobile hiding of desktop top chrome, desktop map utilities, desktop map control rail, and zoom group; and desktop hiding of mobile top action shortcuts.
+     - Net in `mobile-chrome.css`: steady at 48 `!important` declarations. Authored lines steady at 1,423.
+  6. Mobile Sheets (`frontend/src/styles/shell/mobile-sheets.css`):
+     - Confirmed preservation of all 22 `!important` declarations:
+       - 8 contract-tested declarations: `color: #4ade80 !important` on `.mobile-sheet-source--updated` per `mobile-bottom-sheet-ux.test.mjs:77`; virtual keyboard bottom nav `display: none !important` and popover `bottom: auto !important` per `mobile-bottom-sheet-ux.test.mjs:243,246`; `scrollbar-width: thin !important` per `mobile-bottom-sheet-ux.test.mjs:186`; webkit scrollbar `display: block !important` per `mobile-bottom-sheet-ux.test.mjs:322`; closure heading `max-width: none !important` and `overflow: visible !important` per `drawer-layout.test.mjs:302`; station inspector main `bottom: 0 !important` per `mobile-station-draggable-sheet.test.mjs:208`; and `.mobile-status-content-scroll` `margin-top: -12px !important` / `padding-top: 12px !important` per `mobile-bottom-sheet-ux.test.mjs:401`.
+       - 10 high-contrast accessibility overrides across status button count circles (3), line status impact labels (2), and mobile More items / health grids (5).
+       - 2 structural visibility rules for mobile inspector mode: hiding bottom nav / peek / controls and keeping legend pill visible.
+     - Net in `mobile-sheets.css`: steady at 22 `!important` declarations. Authored lines steady at 1,759.
+  7. Mobile Landscape (`frontend/src/styles/shell/mobile-landscape.css`):
+     - Eliminated 1 redundant `!important` declaration:
+       - `right: 0 !important` on `.linewatch-shell.mobile-map-rotated > main` (no conflicting right rule exists in the application; consistent with plain `left: 0; top: 0;`).
+     - Strictly preserved 7 declarations:
+       - 3 structural rules in rotated mode: hiding bottom nav / peek / controls, `bottom: 0 !important` on `> main` defeating mobile inspector height, and hiding desktop map control rail.
+       - 4 high-contrast accessibility overrides on `.high-contrast .rotated-map-selection-card` (background, border, box-shadow, color).
+     - Net in `mobile-landscape.css`: down from 8 to 7 `!important` declarations (-1, -12.5%). Authored lines steady at 588.
+  8. Responsive Density (`frontend/src/styles/shell/responsive-density.css`):
+     - Confirmed preservation of all 17 `!important` declarations:
+       - 13 contract-tested declarations: narrow rotate button span clamps per `subway-closing-soon.test.mjs:79-81` (3); compact/landscape mobile bottom nav `display: grid !important` per `mobile-landscape-mode.test.mjs:52` (1); landscape rotate map button `display: none !important` per `mobile-landscape-mode.test.mjs:45` (1); landscape station sheet drag handle `display: flex !important` per `mobile-landscape-mode.test.mjs:59` (1); landscape station detail panel positioning per `mobile-landscape-mode.test.mjs:63` (5); narrow desktop status capsule anchor `top: 104px !important` per `narrow-desktop-layout.test.mjs:10` (1); and narrow desktop map control rail `top: 176px !important` per `narrow-desktop-layout.test.mjs:14` (1).
+       - 4 essential landscape/tablet overrides: hiding desktop alert history button on landscape phones, showing mobile action shortcuts on landscape phones, and landscape station detail panel `max-width: 100% !important` and `border-radius: 8px 8px 0 0 !important` defeating subsequent desktop panel styles.
+     - Net in `responsive-density.css`: steady at 17 `!important` declarations. Authored lines steady at 886.
+  9. Cascade Debt:
+     - Net elimination of 5 `!important` declarations across mobile shell and desktop chrome stylesheets (116 -> 111, -4.3%).
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 540 down to 535 (-5 declarations).
+- Files changed:
+  - `frontend/src/styles/shell/map-controls.css`
+  - `frontend/src/styles/shell/mobile-landscape.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (200/200 suites, 0 failures).
+  - `npm run typecheck`: Passed (0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.1s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 17.6s).
+  - `npm run test:visual`: Passed (11/11 passed, 0 pixel differences across all baseline scenarios in 23.7s).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 18.6s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,568; authored CSS bytes reduced from 801,731 to 801,676 (-55 B); graph `!important` declarations reduced from 540 to 535 (-5); production chunk raw bytes reduced from 675,433 to 675,383 (-50 B); production gzip bytes reduced from 103,763 to 103,751 (-12 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `desktop-chrome.css` (`desktop-status-capsule.test.mjs:68-71`), `map-controls.css` (`desktop-status-capsule.test.mjs:108-109`), `mobile-chrome.css` (`subway-closing-soon.test.mjs:75-81`, `alert-history-ui.test.mjs:62`, `mobile-bottom-sheet-ux.test.mjs:181`), `mobile-sheets.css` (`mobile-bottom-sheet-ux.test.mjs:77,186,243,246,322,401`, `drawer-layout.test.mjs:302`, `mobile-station-draggable-sheet.test.mjs:208`), and `responsive-density.css` (`subway-closing-soon.test.mjs:79-81`, `mobile-landscape-mode.test.mjs:45,52,59,63`, `narrow-desktop-layout.test.mjs:10,14`).
+  - Preserved defensive `!important` declarations in `desktop-chrome.css` (`.desktop-status-chip--alerts:hover`), `responsive-density.css` (`.station-detail-panel` on landscape phones), and structural visibility overrides across mobile/desktop mode boundaries.
+  - Preserved all high-contrast accessibility overrides across all eight stylesheets.
+  - Eliminated redundant `!important` declarations on `.regional-map-control-rail` `top`, `left`, and `transform`, mobile `.map-control-button svg` `color`, and `.linewatch-shell.mobile-map-rotated > main` `right`.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 540 to 535 (-5 declarations).
+- Risks or blockers:
+  - None. Mobile shell and desktop chrome stylesheets are consolidated, cascade debt ceiling is lowered by 5 declarations, and all quality gates pass cleanly.
+- Next session: S30 — Consolidate Shell Overlays, Late Rules, and Utilities (`utilities/scroll.css`, `utilities/motion.css`, `shell/header-flare.css`, `shell/card-elevation.css`, `shell/search-bar.css`, `shell/badges.css`, `map/map-legends.css`, `shell/status-notices.css`, `shell/error-screen.css`, `shell/subway-closed.css`, `shell/map-mode-control.css`).
