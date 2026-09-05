@@ -93,8 +93,8 @@
 /* Generic TTC selection rules are optimized for markers that only exist while
    selected. Regional markers stay mounted, so their explicit state must win. */
 .linewatch-shell .regional-station-selected-indicator:not([data-regional-station-selected="true"]) {
-  animation: none !important;
-  filter: none !important;
+  animation: none;
+  filter: none;
   opacity: 0 !important;
 }
 
@@ -143,7 +143,7 @@
 .regional-impact-path,
 .regional-impact-glow,
 .regional-impact-hover-boundary {
-  display: inline !important;
+  display: inline;
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
@@ -152,7 +152,7 @@
 
 .regional-overlay-segment-group .regional-impact-path {
   opacity: 0.95;
-  stroke: var(--regional-impact-color) !important;
+  stroke: var(--regional-impact-color);
   stroke-dasharray: var(--regional-impact-dasharray);
   stroke-width: var(--regional-impact-width);
 }
@@ -183,13 +183,13 @@
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-aura {
-  display: none !important;
+  display: none;
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="delay"] .regional-impact-path {
   animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
-  stroke: #0ea5e9 !important;
+  stroke: #0ea5e9;
   stroke-dasharray: none;
   stroke-width: var(--regional-impact-width);
 }
@@ -221,7 +221,7 @@
 
 .regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-path {
   opacity: 1;
-  stroke: var(--planned-preview-rail, #ffffff) !important;
+  stroke: var(--planned-preview-rail, #ffffff);
   stroke-dasharray: none;
   stroke-width: var(--regional-impact-width);
   animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
@@ -255,10 +255,10 @@
 }
 
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-aura {
-  animation: none !important;
-  opacity: 0.55 !important;
-  filter: blur(18px) !important;
-  stroke-width: calc(var(--regional-impact-width) + 169px) !important;
+  animation: none;
+  opacity: 0.55;
+  filter: blur(18px);
+  stroke-width: calc(var(--regional-impact-width) + 169px);
 }
 
 /* Hover is rendered once in the foreground layer for the whole alert. Keep
@@ -268,15 +268,15 @@
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:hover) .regional-impact-glow,
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:focus-visible) .regional-impact-glow,
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:active) .regional-impact-glow {
-  filter: blur(16px) !important;
-  opacity: 0.4 !important;
-  stroke-width: calc(var(--regional-impact-width) + 102px) !important;
+  filter: blur(16px);
+  opacity: 0.4;
+  stroke-width: calc(var(--regional-impact-width) + 102px);
 }
 
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:hover) .regional-impact-interactive-glow,
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:focus-visible) .regional-impact-interactive-glow,
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:active) .regional-impact-interactive-glow {
-  opacity: 0 !important;
+  opacity: 0;
 }
 
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:hover) .regional-impact-hover-boundary,
@@ -341,24 +341,24 @@
 
 .regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-aura {
   animation: none !important;
-  display: none !important;
+  display: none;
 }
 
 .regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-path {
-  animation: none !important;
-  stroke-opacity: 1 !important;
+  animation: none;
+  stroke-opacity: 1;
 }
 
 .regional-overlay-segment-group[data-selected-commute-impact-overlay] .regional-impact-interactive-glow {
-  animation: none !important;
-  display: none !important;
-  opacity: 0 !important;
+  animation: none;
+  display: none;
+  opacity: 0;
 }
 
 .regional-station-impact-ring[data-selected-commute-impact-overlay],
 .regional-station-impact-ring[data-selected-commute-impact-overlay] :is(circle, rect, ellipse),
 .regional-station-impact-ring[data-selected-commute-impact-overlay]:is(circle, rect, ellipse) {
-  animation: none !important;
+  animation: none;
 }
 
 .regional-station-impact-ring {
@@ -442,8 +442,8 @@
 .motion-paused .regional-impact-path,
 .motion-paused .regional-delay-glyph,
 .motion-paused .regional-impact-interactive-glow {
-  animation: none !important;
-  transition: none !important;
+  animation: none;
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -458,8 +458,8 @@
   .regional-station-impact-beacon-group .station-impact-dot-red-ping,
   .regional-impact-hover-foreground,
   .regional-station-impact-hover-foreground {
-    animation: none !important;
-    transition: none !important;
+    animation: none;
+    transition: none;
   }
 
   .regional-impact-aura {

@@ -18,6 +18,7 @@ export async function setStubMode(request: APIRequestContext, mode: StubMode) {
 }
 
 export async function installDismissedTransientUi(page: Page) {
+  await page.clock.setFixedTime("2026-08-14T16:00:00.000Z");
   await page.addInitScript(() => {
     window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
     window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");

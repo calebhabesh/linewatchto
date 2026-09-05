@@ -316,7 +316,7 @@
 
 .map-layer-exiting {
   opacity: 0;
-  pointer-events: none !important;
+  pointer-events: none;
   transition: opacity 240ms ease;
 }
 

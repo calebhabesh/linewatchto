@@ -119,7 +119,7 @@
 
 .linewatch-shell.mobile-performance-mode .delay-hourglass-mask-path,
 .linewatch-shell.mobile-performance-mode .suspension-mask-path {
-  stroke-width: 108 !important;
+  stroke-width: 108;
 }
 
 .linewatch-shell.mobile-performance-mode .delay-static-path {
@@ -155,8 +155,8 @@
 }
 
 .linewatch-shell.mobile-performance-mode .regional-station-selected-indicator {
-  animation: none !important;
-  filter: none !important;
+  animation: none;
+  filter: none;
   opacity: 0.85;
   transform: scale(1);
 }
@@ -199,11 +199,11 @@
 .linewatch-shell.mobile-performance-mode .commute-path-preview-path {
   animation: none !important;
   stroke-width: 112;
-  transition: none !important;
+  transition: none;
 }
 
 .linewatch-shell.mobile-performance-mode .station-hit-target {
-  transition: none !important;
+  transition: none;
 }
 
 .linewatch-shell.mobile-performance-mode .regional-station-hover-indicator,
@@ -325,7 +325,7 @@
 .motion-paused .asset-alert-path.delay-static-base,
 .motion-paused .delay-static-path,
 .motion-paused .commute-path-preview-glow {
-  animation: none !important;
+  animation: none;
 }
 
 /* Keep high-alert snapshots responsive by pausing continuous corridor pulses.
@@ -341,16 +341,16 @@
 }
 
 .motion-paused .asset-alert-path-glow {
-  opacity: 0.18 !important;
+  opacity: 0.18;
 }
 
 .motion-paused .asset-alert-path-glow.selected,
 .motion-paused .interactive-glow.selected {
-  opacity: 0.26 !important;
+  opacity: 0.26;
 }
 
 .motion-paused .commute-path-preview-glow {
-  opacity: 0.12 !important;
+  opacity: 0.12;
 }
 
 .motion-paused .commute-path-preview-path {
@@ -370,20 +370,20 @@
   .regional-station-top-selection,
   .asset-alert-path.map-selection-flash,
   .commute-path-preview-glow {
-    animation: none !important;
+    animation: none;
   }
 
   .asset-alert-path-glow {
-    opacity: 0.18 !important;
+    opacity: 0.18;
   }
 
   .asset-alert-path-glow.selected,
   .interactive-glow.selected {
-    opacity: 0.26 !important;
+    opacity: 0.26;
   }
 
   .commute-path-preview-glow {
-    opacity: 0.12 !important;
+    opacity: 0.12;
   }
 
   .commute-path-preview-path {
@@ -408,7 +408,7 @@
 
 .interactive-glow:not(.map-selection-attention) {
   opacity: 0;
-  animation: none !important;
+  animation: none;
 }
 
 .asset-alert-path-hover-boundary {
@@ -524,15 +524,15 @@
 
 .motion-paused .delay-hourglass-mask-path,
 .motion-paused .suspension-mask-path {
-  animation: none !important;
-  stroke-width: 102 !important;
+  animation: none;
+  stroke-width: 102;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .delay-hourglass-mask-path,
   .suspension-mask-path {
-    animation: none !important;
-    stroke-width: 102 !important;
+    animation: none;
+    stroke-width: 102;
   }
 }
 
@@ -631,7 +631,7 @@
   }
 
   .asset-alert-path-glow.hover-priority-glow {
-    animation: hover-priority-glow-in 240ms ease-out both !important;
+    animation: hover-priority-glow-in 240ms ease-out both;
     display: block;
     filter: blur(18px);
     opacity: 0.55;
@@ -672,8 +672,8 @@
   .asset-alert-path.planned-preview,
   .hover-priority-glow,
   .hover-priority-boundary {
-    animation: none !important;
-    transition: none !important;
+    animation: none;
+    transition: none;
   }
 }
 
@@ -706,14 +706,14 @@
 }
 
 .motion-paused .rsz-chevron {
-  animation: none !important;
+  animation: none;
   transform: translate(0, 0);
   opacity: 0.95;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .rsz-chevron {
-    animation: none !important;
+    animation: none;
     transform: translate(0, 0);
     opacity: 0.95;
   }

@@ -15,7 +15,7 @@
   animation-delay: var(--map-pulse-offset);
   filter: blur(16px);
   opacity: 0.4;
-  stroke: rgba(37, 99, 235, 0.7) !important;
+  stroke: rgba(37, 99, 235, 0.7);
   stroke-width: 155;
 }
 
@@ -25,7 +25,7 @@
   opacity: 0.72;
   stroke: #1d4ed8;
   stroke-width: 102;
-  transition: none !important;
+  transition: none;
 }
 
 .commute-path-preview-endpoint {
@@ -47,7 +47,7 @@
 .regional-map .regional-commute-path-preview-layer .commute-path-preview-glow {
   filter: blur(26px);
   stroke-linecap: butt;
-  stroke-width: 360px !important;
+  stroke-width: 360px;
 }
 
 .regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
@@ -57,24 +57,24 @@
 }
 
 .regional-map .regional-commute-path-preview-endpoint {
-  stroke-width: 18px !important;
+  stroke-width: 18px;
 }
 
 .linewatch-shell.mobile-performance-mode[data-network="regional"]
   .regional-commute-path-preview-layer .commute-path-preview-glow {
-  stroke-width: 320px !important;
+  stroke-width: 320px;
 }
 
 .linewatch-shell.mobile-performance-mode[data-network="regional"]
   .regional-commute-path-preview-layer .commute-path-preview-path,
 .motion-paused .regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
-  animation: none !important;
+  animation: none;
   stroke-width: 245px !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
-    animation: none !important;
+    animation: none;
     stroke-width: 245px !important;
   }
 }
