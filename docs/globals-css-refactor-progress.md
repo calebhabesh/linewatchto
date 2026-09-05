@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S18B
-- Last completed session: S18A
-- Next recommended session: S18B — Consolidate Remaining Station Stylesheets (`station/station-picker-popover.css`, `station/station-search.css`)
+- Current session: S19A
+- Last completed session: S18B
+- Next recommended session: S19A — Consolidate Account & Dialog Stylesheets (`account/account-dialogs.css`, `account/my-stations.css`, `account/notification-settings.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,717 |
-| Total authored app CSS bytes | 784,128 | 819,588 |
+| Total authored app CSS lines | 31,414 | 31,708 |
+| Total authored app CSS bytes | 784,128 | 818,297 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 692,438 |
-| Production CSS gzip bytes | 108,667 | 105,047 |
+| Production CSS bytes | 705,472 | 691,331 |
+| Production CSS gzip bytes | 108,667 | 105,030 |
 
 
 
@@ -2386,3 +2386,81 @@
 - Risks or blockers:
   - None. All 4 target station stylesheets are consolidated and cleanly verified.
 - Next session: S18B — Consolidate Remaining Station Stylesheets (`station/station-picker-popover.css`, `station/station-search.css`).
+
+### S18B — Consolidate Remaining Station Stylesheets
+
+- Status: completed
+- Commit: 11846dd6
+- Scope: Consolidate the remaining batch of station stylesheets (`station/station-picker-popover.css`, `station/station-search.css`), eliminating duplicate rule blocks, redundant media queries, unnecessary `!important` declarations on layout, background, box-shadow, and borders while strictly preserving contract-tested selectors and visual regression baselines:
+  1. Station Picker Popover (`station/station-picker-popover.css`):
+     - Removed `!important` from `animation: none` on `.motion-paused .commute-station-popover`.
+     - Removed `!important` from `flex: 0 0 auto` on `.commute-station-search-row`.
+     - Removed 9 redundant `!important` declarations from mobile column browsing rules on `.commute-station-browse-container`, `.commute-station-lines-column`, and expanded lines column hiding.
+     - Removed 8 redundant `!important` declarations from `.commute-station-stations-column` layout/reset declarations and unexpanded stations column hiding.
+     - Removed `!important` from `scroll-behavior: auto` on `html:has(...)`.
+     - Strictly preserved contract-tested declarations:
+       - `.commute-station-popover .commute-station-search-row input[type="search"] { background: transparent !important; }` (`account-ui-source.test.mjs:385`)
+       - `.commute-station-popover[data-mobile-inline="true"] { position: absolute !important; top: calc(100% + 6px) !important; }` (`mobile-bottom-sheet-ux.test.mjs:294`)
+       - `.saved-commute-account-prompt:not(.account-feature-preview)` (`account-feature-preview.test.mjs:18`)
+       - Mobile commutes panel and grid promotion properties (`mobile-bottom-sheet-ux.test.mjs:298-299`).
+     - Net: eliminated 21 `!important` declarations (down from 65 to 44).
+  2. Station Search (`station/station-search.css`):
+     - Removed 100% duplicate `.station-search-panel { display: flex !important; flex-direction: column !important; }` rule block and merged trailing `@media (max-width: 767px)` block.
+     - Removed redundant `border-bottom: none` `!important` on `.station-search-input-row` in light and dark modes, and removed `!important` from mobile input row borders.
+     - Removed `!important` from `box-shadow` on `.station-search-input` (base and focus), `.dark` background, and `.dark` box-shadow.
+     - Removed 12 redundant `!important` declarations from `.station-search-amenity-chip` box-shadow, hover, active, and dark states.
+     - Removed 5 redundant `!important` declarations from `.global-search-impact-result` box-shadow and hover/dark backgrounds.
+     - Removed 9 redundant `!important` declarations from `.global-search-resource-result` borders, box-shadows, and hover/dark backgrounds.
+     - Removed 8 redundant `!important` declarations from `.global-search-category-shortcuts button` and `.global-search-browse-alerts button`.
+     - Removed `!important` from unexpanded `.station-search-stations-column` `display: none`.
+     - Removed 7 redundant `!important` declarations from `.station-search-line-trigger` box-shadows, hover, and dark backgrounds.
+     - Removed 10 redundant `!important` declarations from `.station-search-station` box-shadows, hover, selected, and dark states.
+     - Removed 7 redundant `!important` declarations from `.station-search-bookmark` box-shadows, hover, and dark states.
+     - Removed 7 redundant `!important` declarations from `.global-search-network-heading` and `.station-search-stations-column-header` backgrounds and box-shadows.
+     - Removed 5 redundant `!important` declarations from `.station-search-mobile-back` border, box-shadow, and dark states.
+     - Strictly preserved contract-tested declarations:
+       - `.station-search-input { border: none !important; }` (`unified-search-ui.test.mjs:134`)
+       - `.dark .station-search-input { border: none !important; }` (`unified-search-ui.test.mjs:135`)
+       - `.station-search-amenity-chip { border: none !important; }` (`unified-search-ui.test.mjs:128`)
+       - `.dark .station-search-amenity-chip { border: none !important; }` (`unified-search-ui.test.mjs:129`)
+       - `.global-search-impact-result { border: none !important; border-left: 2px solid var(--impact-accent...); }` (`unified-search-ui.test.mjs:138-139`)
+       - `.global-search-category-shortcuts button, .global-search-browse-alerts button { border: none !important; }` (`unified-search-ui.test.mjs:137`)
+       - `.station-search-line-trigger { border: none !important; }` (`unified-search-ui.test.mjs:131`)
+       - `.dark .station-search-line-trigger { border: none !important; }` (`unified-search-ui.test.mjs:132`)
+       - `.station-search-station { border: none !important; }` (`unified-search-ui.test.mjs:120`)
+       - `.station-search-station { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85)... }` (`unified-search-ui.test.mjs:121`)
+       - `.dark .station-search-station { border: none !important; background: #161a23 !important; }` (`unified-search-ui.test.mjs:122-123`)
+       - `.station-search-bookmark { border: none !important; }` (`unified-search-ui.test.mjs:125`)
+       - `.dark .station-search-bookmark { border: none !important; }` (`unified-search-ui.test.mjs:126`)
+       - `.station-search-stations-column-header { opacity: 1 !important; }` (`unified-search-ui.test.mjs:142`)
+       - `.dark .global-search-network-heading, .dark .station-search-stations-column-header { background: #26171a !important; opacity: 1 !important; }` (`unified-search-ui.test.mjs:143-144`)
+       - `.station-search-stations-column-header { margin-top: 0 !important; margin-bottom: 12px !important; }` (`unified-search-ui.test.mjs:58`)
+       - `.station-search-mobile-back { margin-top: 12px !important; margin-bottom: 12px !important; }` (`unified-search-ui.test.mjs:95`)
+       - `.station-search-panel { flex-direction: column !important; }` (`mobile-bottom-sheet-ux.test.mjs:252`).
+     - Net: eliminated 84 `!important` declarations (down from 121 to 37).
+  3. Cascade Debt:
+     - Eliminated 105 `!important` declarations total across the remaining station stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,729 to 1,624 (-105 declarations).
+- Files changed:
+  - `frontend/src/styles/station/station-picker-popover.css`
+  - `frontend/src/styles/station/station-search.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.4s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 19.0s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`dashboard.spec.ts` station search & saved commute tests): Passed (19/19 passed, 1 skipped in 1.1m).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,717 to 31,708 (-9 lines); authored CSS bytes reduced from 819,588 to 818,297 (-1,291 B); graph `!important` declarations reduced from 1,729 to 1,624 (-105); production chunk raw bytes reduced from 692,438 to 691,331 (-1,107 B); production gzip bytes reduced from 105,047 to 105,030 (-17 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `station-search.css` (`unified-search-ui.test.mjs`, `mobile-bottom-sheet-ux.test.mjs`) and `station-picker-popover.css` (`account-ui-source.test.mjs`, `mobile-bottom-sheet-ux.test.mjs`, `account-feature-preview.test.mjs`).
+  - Merged redundant trailing `@media (max-width: 767px)` block in `station-search.css` and removed 100% duplicated `.station-search-panel` rule block.
+- Risks or blockers:
+  - None. All remaining station stylesheets are consolidated and cleanly verified.
+- Next session: S19A — Consolidate Account & Dialog Stylesheets (`account/account-dialogs.css`, `account/my-stations.css`, `account/notification-settings.css`).
