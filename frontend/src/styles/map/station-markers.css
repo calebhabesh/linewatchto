@@ -313,12 +313,12 @@
   .station-impact-ring,
   .station-impact-dot-red-glow,
   .station-impact-dot-red-ping {
-    animation: none !important;
+    animation: none;
   }
 
   .station-selected-indicator:not(.multi-anchor),
   .station-selected-indicator.multi-anchor.active {
-    opacity: 0.55 !important;
-    transform: scale(1) !important;
+    opacity: 0.55;
+    transform: scale(1);
   }
 }

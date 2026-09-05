@@ -85,16 +85,16 @@
    join the breathing phase instead of replaying the fast flashes. */
 .map-selection-attention.selection-intro-complete {
   animation-name: var(--selection-breathe-name) !important;
-  animation-duration: var(--selection-breathe-duration) !important;
-  animation-delay: 0s !important;
-  animation-timing-function: ease-in-out !important;
-  animation-iteration-count: infinite !important;
-  animation-direction: alternate !important;
-  animation-fill-mode: none !important;
+  animation-duration: var(--selection-breathe-duration);
+  animation-delay: 0s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-fill-mode: none;
 }
 
 .regional-station-top-selection.map-selection-attention.selection-intro-complete {
-  animation-name: map-selection-station-breathe !important;
+  animation-name: map-selection-station-breathe;
 }
 
 @keyframes map-selection-path-intro {
@@ -132,7 +132,7 @@
   stroke-linejoin: round;
   stroke-opacity: 0.95;
   stroke-width: 118;
-  stroke-dasharray: none !important;
+  stroke-dasharray: none;
   filter: drop-shadow(0 0 16px rgba(2, 132, 199, 0.9));
 }
 
@@ -224,7 +224,7 @@
 .motion-paused.linewatch-shell.mobile-performance-mode .station-selection-flash,
 .motion-paused.linewatch-shell.mobile-performance-mode .regional-station-top-selection,
 .motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
-  animation: none !important;
+  animation: none;
 }
 
 /* Match the non-animated mobile selection treatment without making it more saturated. */
