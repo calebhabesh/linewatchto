@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S18A
-- Last completed session: S17B
-- Next recommended session: S18A — Consolidate Station Stylesheets (`station/station-accessibility.css`, `station/station-arrivals.css`, `station/station-detail.css`, `station/surface-connections.css`)
+- Current session: S18B
+- Last completed session: S18A
+- Next recommended session: S18B — Consolidate Remaining Station Stylesheets (`station/station-picker-popover.css`, `station/station-search.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,758 |
-| Total authored app CSS bytes | 784,128 | 822,248 |
+| Total authored app CSS lines | 31,414 | 31,717 |
+| Total authored app CSS bytes | 784,128 | 819,588 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 694,460 |
-| Production CSS gzip bytes | 108,667 | 105,162 |
+| Production CSS bytes | 705,472 | 692,438 |
+| Production CSS gzip bytes | 108,667 | 105,047 |
 
 
 
@@ -2309,3 +2309,80 @@
 - Risks or blockers:
   - None. All 6 remaining shell stylesheets are consolidated and cleanly verified.
 - Next session: S18A — Consolidate Station Stylesheets (`station/station-accessibility.css`, `station/station-arrivals.css`, `station/station-detail.css`, `station/surface-connections.css`).
+
+### S18A — Consolidate Station Stylesheets
+
+- Status: completed
+- Commit: 5fd58fa6
+- Scope: Consolidate the first batch of station stylesheets (`station/station-accessibility.css`, `station/station-arrivals.css`, `station/station-detail.css`, `station/surface-connections.css`), eliminating dead overrides, duplicate rules, redundant `!important` declarations, and duplicate border declarations while strictly preserving contract-tested selectors and visual regression baselines:
+  1. Station Accessibility (`station/station-accessibility.css`):
+     - Removed redundant `!important` from hover backgrounds on `[data-station-access-outage-summary]`.
+     - Removed 100% duplicate high-contrast overrides block (6 selectors) already established identically in `shell/card-elevation.css:713-714, 721, 729-730, 737`.
+     - Net: eliminated 5 `!important` declarations (down from 14 to 9).
+  2. Surface Connections (`station/surface-connections.css`):
+     - Removed redundant `!important` from `border-radius: 6px` and `background: rgba(...)` on base `.station-connection-row`.
+     - Removed 100% duplicate high-contrast overrides block (4 selectors) already established identically in `shell/card-elevation.css:719, 724, 735, 740`.
+     - Strictly preserved contract-tested declarations:
+       - `.station-connection-row { border: none !important; }` (`station-panel-layout.test.mjs:203`)
+       - `.dark .station-connection-row { background: #12151c !important; }` (`station-panel-layout.test.mjs:204`)
+       - `.dark .station-connection-row, .high-contrast ... { background: rgba(255, 255, 255, 0.035); }` (`station-connections.test.mjs:158`).
+     - Net: eliminated 5 `!important` declarations (down from 16 to 11).
+  3. Station Arrivals (`station/station-arrivals.css`):
+     - Removed `opacity: 1 !important;` from `.station-arrival-track-spine` (opacity is never altered).
+     - Preserved `.high-contrast .station-arrival-track-spine { background-color: #ffffff !important; }` to override inline `style={{ backgroundColor: lineColor }}`.
+     - Removed `!important` from `background-color`, `border`, and light/dark/high-contrast `box-shadow` on `.station-arrival-track-node` where cascade specificity resolves naturally.
+     - Removed 6 redundant `background: transparent !important;` declarations across hovered, pinned, dark, and fine-pointer states of `.arrival-line-pin` already established by its base rule.
+     - Removed duplicate `[data-arrival-group]` selector from high-contrast arrival tiles (already in `card-elevation.css:723, 739`), keeping `[data-regional-arrival-direction]`.
+     - Strictly preserved contract-tested declarations:
+       - `.arrival-line-pin { color: rgb(245, 158, 11); }` (`station-panel-layout.test.mjs:445`)
+       - `.arrival-line-pin svg ... { fill: rgba(245, 158, 11, 0.15) !important; stroke: rgb(245, 158, 11) !important; }` (`station-panel-layout.test.mjs:446`)
+       - `.arrival-line-pin.is-pinned svg ... { fill: currentColor !important; stroke: currentColor !important; }` (`station-panel-layout.test.mjs:447`)
+       - `.dark .arrival-line-pin { color: rgb(251, 191, 36); }` (`station-panel-layout.test.mjs:448`).
+     - Net: eliminated 13 `!important` declarations (down from 33 to 20).
+  4. Station Detail (`station/station-detail.css`):
+     - Removed all 25 redundant `!important` declarations from legacy `.station-detail-map-button` rules while preserving selector shapes for `stylesheet-graph.test.mjs:540`.
+     - Removed redundant `border: none !important;` on `.dark` header buttons and `.dark` panel rules already covered by base rules.
+     - Removed `!important` from `border-radius`, `color`, and hover backgrounds on save/close header buttons and submenu quick-jump buttons.
+     - Removed `!important` from `.station-header-line-badge` size variables and declarations, and from `.station-line-directions span` color inheritance.
+     - Removed `!important` from desktop panel `transform: none; transition: none;` and `border-radius: 8px`.
+     - Removed 12 `!important` declarations from `.motion-paused` and `@media (prefers-reduced-motion: reduce)` overrides across panel, scroll, body-wrapper, and content-swap.
+     - Strictly preserved contract-tested declarations:
+       - `.station-detail-save-control button, .station-detail-close-button { border: none !important; }` (`station-panel-layout.test.mjs:183`)
+       - `.dark ... { background: #161a23 !important; }` (`station-panel-layout.test.mjs:184`)
+       - `.station-submenu-nav-btn, .station-detail-panel [data-station-submenu-nav] button { border: none !important; }` (`station-panel-layout.test.mjs:187`)
+       - `.dark ... { background: #161a23 !important; }` (`station-panel-layout.test.mjs:188`)
+       - `.station-detail-panel { border: none !important; }` (`station-panel-layout.test.mjs:178`, `mobile-bottom-sheet-ux.test.mjs:386`)
+       - `@media (min-width: 768px) .station-detail-panel { border: none !important; height: auto !important; }` (`station-panel-layout.test.mjs:179`, `mobile-station-draggable-sheet.test.mjs:123`)
+       - `@media (min-width: 768px) .station-sheet-drag-handle-container { display: none !important; }` (`mobile-station-draggable-sheet.test.mjs:122`)
+       - `.dark .station-detail-panel { background: #12151c !important; }` (`station-panel-layout.test.mjs:180`)
+       - `.high-contrast .station-detail-panel, .linewatch-shell.high-contrast .station-detail-panel { border: 1px solid #ffffff !important; }` (`mobile-bottom-sheet-ux.test.mjs:387`)
+       - `.station-detail-panel.station-detail-sheet-dragging { transition: none !important; }` (`mobile-station-draggable-sheet.test.mjs:116`).
+     - Net: eliminated 67 `!important` declarations (down from 112 to 45).
+  5. Cascade Debt:
+     - Eliminated 90 `!important` declarations total across the station stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,819 to 1,729 (-90 declarations).
+- Files changed:
+  - `frontend/src/styles/station/station-accessibility.css`
+  - `frontend/src/styles/station/station-arrivals.css`
+  - `frontend/src/styles/station/station-detail.css`
+  - `frontend/src/styles/station/surface-connections.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 3.5s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 27.2s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`dashboard.spec.ts` 44 targeted station tests): Passed (32/32 passed, 12 skipped across browser projects in 1.7m).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,758 to 31,717 (-41 lines); authored CSS bytes reduced from 822,248 to 819,588 (-2,660 B); graph `!important` declarations reduced from 1,819 to 1,729 (-90); production chunk raw bytes reduced from 694,460 to 692,438 (-2,022 B); production gzip bytes reduced from 105,162 to 105,047 (-115 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `station-detail.css` (`station-panel-layout.test.mjs`, `mobile-bottom-sheet-ux.test.mjs`, `mobile-station-draggable-sheet.test.mjs`), `station-arrivals.css` (`station-panel-layout.test.mjs`), and `surface-connections.css` (`station-connections.test.mjs`, `station-panel-layout.test.mjs`).
+  - Preserved `.high-contrast .station-arrival-track-spine { background-color: #ffffff !important; }` because it overrides an inline style (`style={{ backgroundColor: lineColor }}`).
+- Risks or blockers:
+  - None. All 4 target station stylesheets are consolidated and cleanly verified.
+- Next session: S18B — Consolidate Remaining Station Stylesheets (`station/station-picker-popover.css`, `station/station-search.css`).
