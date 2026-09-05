@@ -4,8 +4,8 @@
 
 - Branch: `refactor/css-architecture`
 - Current session: S19B
-- Last completed session: S19A
-- Next recommended session: S19B — Consolidate Commute Stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`)
+- Last completed session: S19B
+- Next recommended session: S20A — Consolidate Alert & Outage Panel Stylesheets (`panels/alerts.css`, `panels/alert-history.css`, `panels/accessibility-outages.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,685 |
-| Total authored app CSS bytes | 784,128 | 817,221 |
+| Total authored app CSS lines | 31,414 | 31,637 |
+| Total authored app CSS bytes | 784,128 | 815,095 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 690,365 |
-| Production CSS gzip bytes | 108,667 | 104,959 |
+| Production CSS bytes | 705,472 | 688,507 |
+| Production CSS gzip bytes | 108,667 | 104,794 |
 
 
 
@@ -2528,3 +2528,67 @@
 - Risks or blockers:
   - None. All target account & dialog stylesheets are consolidated and cleanly verified.
 - Next session: S19B — Consolidate Commute Stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`).
+
+### S19B — Consolidate Commute Stylesheets
+
+- Status: completed
+- Commit: 30943767
+- Scope: Consolidate the commute stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`), eliminating dead overrides, redundant compound selectors, duplicate declarations, and unnecessary `!important` declarations while strictly preserving contract-tested selectors and visual regression baselines:
+  1. Saved Commutes (`account/saved-commutes.css`):
+     - Removed redundant `!important` declarations on `.high-contrast .saved-commute-map-action` (`background`, `border`, `box-shadow`, `color`).
+     - Removed redundant `background`, `border-color`, and `box-shadow` `!important` declarations from `.commute-leg-toggle button[aria-selected="true"]` and its high-contrast rule (retaining `color: #ffffff !important;`).
+     - Removed `!important` from `.high-contrast .saved-commute-time-estimate-grid strong, ...`.
+     - Removed duplicate `.high-contrast .saved-commute-time-estimate-grid em, ... { color: #ffffff !important; }` rule block.
+     - Removed `!important` from 5 high-contrast time estimate severity rules (`severity-good`, `severity-decent`, `severity-moderate`, `severity-poor`, `severity-severe`).
+     - Simplified `.commute-route-edit-button svg` by removing redundant `.commute-route-actions` qualifier.
+     - Streamlined delete button rules: removed redundant `.commute-route-actions` parent qualifiers from `.commute-route-delete-button`, `.commute-route-delete-confirm-button`, and `.commute-route-delete-cancel-button` across base, hover, dark, and high-contrast rules.
+     - Removed `!important` from `transition: none` and `animation: none` on `.motion-paused` and `@media (prefers-reduced-motion: reduce)`.
+     - Strictly preserved contract-tested declarations:
+       - `.saved-commute-map-action, .commute-route-actions .commute-route-map-button { font-size: 0.64rem; }` inside `@media (max-width: 30rem)` (`account-ui-source.test.mjs:200`)
+       - `.saved-commute-time-estimate.unreliable p > strong, ... p > span { font-size: 1rem !important; font-weight: 850; text-transform: none !important; }` (`account-ui-source.test.mjs:298`).
+     - Net: eliminated 20 `!important` declarations (down from 34 to 14). Authored lines reduced from 1,957 to 1,930 (-27 lines).
+  2. Saved Commute Rules (`account/saved-commute-rules.css`):
+     - Removed redundant `!important` declarations from `.high-contrast .saved-commute-sort-control select` (`border-color`, `box-shadow`), `.high-contrast .saved-commute-sort-trigger` (`border`, `box-shadow`), and `.high-contrast .saved-commute-sort-options` (`border`).
+     - Removed redundant `!important` from `.commute-station-trigger` box-shadow and hover states (`base` and `.dark`).
+     - Removed redundant `!important` from `.commute-station-line-trigger, .commute-station-option` box-shadow and hover/expanded states (strictly preserving `border: none !important;`).
+     - Removed redundant `!important` from `.dark .commute-station-trigger, ...` background and box-shadow (strictly preserving `border: none !important;`).
+     - Removed redundant `!important` from `.high-contrast .commute-station-trigger, ...` background, box-shadow, and color (strictly preserving `border: 1px solid #ffffff !important;`).
+     - Removed redundant rule block `.saved-commute-primary-button, .commute-route-actions button { align-items: center; display: inline-flex; gap: 0.35rem; justify-content: center; }`.
+     - Merged duplicate `.saved-commute-event-types` rule block into a single consolidated rule (`border: 0; container-type: inline-size; gap: 0.55rem; padding-top: 0;`).
+     - Merged duplicate `.saved-commute-customize-toggle` rule block into a single block.
+     - Removed redundant `height: 34px;` overrides on `.saved-commute-sort-control select` and `.saved-commute-sort-trigger` in `@media (max-width: 767px)`.
+     - Removed `!important` from `.motion-paused .station-commute-green-flash` (`animation`, `filter`) and `@media (prefers-reduced-motion: reduce) .station-commute-green-flash` (`filter`).
+     - Strictly preserved contract-tested declarations:
+       - `.saved-commute-event-types { border: 0; }` (`account-ui-source.test.mjs:349`)
+       - `.commute-station-trigger, .commute-station-search-row, .commute-station-popover { border: none !important; }` (`unified-search-ui.test.mjs:147`)
+       - `.commute-station-line-trigger, .commute-station-option { border: none !important; }` (`unified-search-ui.test.mjs:148`)
+       - `.dark .commute-station-trigger, .dark .commute-station-popover` (`unified-search-ui.test.mjs:149`)
+       - `@media (prefers-reduced-motion: reduce) { ... .station-commute-green-flash ... animation: none !important; }` (`map-layering.test.mjs:962`)
+       - `@media (max-width: 767px) { ... .station-commute-green-flash { ... fill: #4ade80 !important; stroke-width: 3.5 !important; transform: scale(1.4); }` (`map-layering.test.mjs:966`).
+     - Net: eliminated 18 `!important` declarations (down from 29 to 11). Authored lines reduced from 1,765 to 1,744 (-21 lines).
+  3. Cascade Debt:
+     - Eliminated 38 `!important` declarations total across the commute stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,618 to 1,580 (-38 declarations).
+- Files changed:
+  - `frontend/src/styles/account/saved-commutes.css`
+  - `frontend/src/styles/account/saved-commute-rules.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 18.8s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`dashboard.spec.ts -g "commute"`): Passed (5/5 passed in 27.2s).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,685 to 31,637 (-48 lines); authored CSS bytes reduced from 817,221 to 815,095 (-2,126 B); graph `!important` declarations reduced from 1,618 to 1,580 (-38); production chunk raw bytes reduced from 690,365 to 688,507 (-1,858 B); production gzip bytes reduced from 104,959 to 104,794 (-165 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `saved-commutes.css` (`account-ui-source.test.mjs`) and `saved-commute-rules.css` (`account-ui-source.test.mjs`, `unified-search-ui.test.mjs`, `map-layering.test.mjs`).
+  - Maintained necessary `!important` declarations on `.commute-station-*` border rules per `unified-search-ui.test.mjs` and `.station-commute-green-flash` animation/stroke per `map-layering.test.mjs`.
+- Risks or blockers:
+  - None. All commute stylesheets are consolidated and cleanly verified.
+- Next session: S20A — Consolidate Alert & Outage Panel Stylesheets (`panels/alerts.css`, `panels/alert-history.css`, `panels/accessibility-outages.css`).
