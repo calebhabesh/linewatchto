@@ -651,7 +651,7 @@
 .dark .commute-station-line-trigger,
 .dark .commute-station-option {
   background: #161a23;
-  border: none !important;
+  border: none;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.25);
@@ -1615,9 +1615,9 @@
 }
 
 .station-commute-green-flash {
-  fill: rgba(134, 239, 172, 0.85) !important; /* brighter green-300 fill pulse */
-  stroke: #86efac !important; /* bright green-300 stroke */
-  stroke-width: 2.0 !important; /* clean, crisp outline weight */
+  fill: rgba(134, 239, 172, 0.85); /* brighter green-300 fill pulse */
+  stroke: #86efac; /* bright green-300 stroke */
+  stroke-width: 2.0; /* clean, crisp outline weight */
   transform-box: fill-box;
   transform-origin: center;
   animation: station-commute-green-flash-anim 1.2s infinite alternate ease-in-out;
@@ -1691,7 +1691,7 @@
   .station-commute-green-flash {
     fill: #4ade80 !important;
     opacity: 1;
-    stroke: #dcfce7 !important;
+    stroke: #dcfce7;
     stroke-width: 3.5 !important;
     transform: scale(1.4);
   }

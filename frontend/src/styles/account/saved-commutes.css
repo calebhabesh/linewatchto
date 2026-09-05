@@ -944,7 +944,7 @@
 }
 
 .commute-leg-toggle button[aria-selected="true"] {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .high-contrast .commute-leg-toggle button[aria-selected="true"] {

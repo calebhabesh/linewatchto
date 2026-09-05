@@ -445,11 +445,11 @@
 }
 
 .notification-follow-up-option[data-selected="true"] {
-  background: #e7f7f1 !important;
+  background: #e7f7f1;
 }
 
 .dark .notification-follow-up-option[data-selected="true"] {
-  background: #12251f !important;
+  background: #12251f;
 }
 
 .high-contrast .notification-follow-up-option[data-selected="true"] {
