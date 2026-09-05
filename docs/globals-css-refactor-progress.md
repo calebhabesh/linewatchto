@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S16A
-- Last completed session: S16A
-- Next recommended session: S16B — Consolidate Remaining Map Stylesheets (`map/impact-overlays.css`, `map/overlap-chooser.css`, `map/map-legends.css`)
+- Current session: S16B
+- Last completed session: S16B
+- Next recommended session: S17A — Consolidate Shell Stylesheets (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/card-elevation.css`, `shell/header-flare.css`, `shell/search-bar.css`, `shell/status-notices.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,993 |
-| Total authored app CSS bytes | 784,128 | 831,791 |
+| Total authored app CSS lines | 31,414 | 31,964 |
+| Total authored app CSS bytes | 784,128 | 830,597 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 701,238 |
-| Production CSS gzip bytes | 108,667 | 105,539 |
+| Production CSS bytes | 705,472 | 700,508 |
+| Production CSS gzip bytes | 108,667 | 105,504 |
 
 
 
@@ -2108,4 +2108,58 @@
 - Risks or blockers:
   - None. All 6 core map stylesheets in `src/styles/map/` are consolidated and cleanly verified.
 - Next session: S16B — Consolidate Remaining Map Stylesheets (`map/impact-overlays.css`, `map/overlap-chooser.css`, `map/map-legends.css`).
+
+### S16B — Consolidate Remaining Map Stylesheets (2026-09-04)
+
+- Status: completed
+- Commit: 5c4ff3df
+- Scope: Consolidate the remaining map stylesheets (`map/impact-overlays.css`, `map/overlap-chooser.css`, `map/map-legends.css`), eliminating duplicate rules, redundant `mobile-performance-mode` declarations, duplicate borders, redundant hover/focus outlines, and unnecessary `!important` declarations while strictly preserving interactive SVG behaviors, contract selectors, and visual regression baselines:
+  1. Impact Overlays (`map/impact-overlays.css`):
+     - Eliminated duplicate `filter: none !important;` on `.linewatch-shell.mobile-performance-mode .asset-alert-path-glow` and `.asset-alert-path-glow.selected` already established by earlier blanket rule.
+     - Consolidated `.station-impact-ring`, `.station-impact-dot-red-glow`, and `.station-impact-dot-red-ping` under `.mobile-performance-mode`, removing redundant duplicate `animation: none !important;` and `filter: none !important;` declarations.
+     - Safely removed the 100% duplicate `.station-commute-green-flash, .commute-path-preview-glow` block under `.mobile-performance-mode`.
+     - Removed redundant `!important` from `transition: none` on `.asset-alert-path.suspension-candy`, `.asset-alert-path.delay-candy`, and `.asset-alert-path.delay-static-base` where specificity `(0,2,0)` naturally overrides base `(0,1,0)`.
+     - Removed redundant `!important` from `transform` and `opacity` overrides on `.motion-paused .rsz-chevron` and `@media (prefers-reduced-motion: reduce) .rsz-chevron`.
+     - Strictly preserved contract-tested declarations on `.asset-alert-path.map-selection-flash`, `.station-selection-flash`, `.regional-station-top-selection`, and `.planned-closure-map-icon :is(rect, path)`.
+  2. Overlap Chooser (`map/overlap-chooser.css`):
+     - Removed redundant `opacity: 1 !important;` from `.overlap-chooser-surface` and dropped duplicate `border: none !important;` and `opacity: 1 !important;` from `.dark .overlap-chooser-surface`.
+     - Removed duplicate `border: none !important;` from `.dark .overlap-chooser-close, .dark .overlap-chooser-close-btn` and stripped redundant `!important` from `outline: none` on hover/focus states.
+     - Safely eliminated `!important` from `border-top-color`, `border-right-color`, and `border-bottom-color` on `.overlap-chooser-choice`.
+     - Eliminated 12 redundant `border-top/right/bottom: none !important;` declarations across the four choice kinds (`reduced-speed-zone`, `delay`, `suspension`, `planned-closure`), since base `.overlap-chooser-choice` already specifies `border: none !important;`.
+     - Safely removed `!important` from `outline: none` on `.overlap-chooser-choice:hover, :focus-visible, .selected`.
+     - Safely removed `!important` from `border: none` and `outline: none` on `.impact-overlap-refs`.
+     - Strictly preserved contract-tested `border: none !important;` on `.overlap-chooser-surface`, `.overlap-chooser-portal`, `.overlap-chooser-choice`, and kind-specific left borders.
+  3. Map Legends (`map/map-legends.css`):
+     - Safely eliminated `!important` from `display: flex` on `.desktop-legend-route-badge`, `.desktop-legend-route-badge .desktop-legend-route-number`, `.mobile-legend-compact-row`, and `.mobile-legend-route-badge`.
+     - Safely eliminated `!important` from `color: var(...)` on `.desktop-legend-route-number` and `.mobile-legend-route-number`.
+     - Safely eliminated `!important` from `border-radius: 7px;` on `.desktop-legend-route-badge--regional` and `border-radius: 4px; height: 100%; width: 100%;` on `.desktop-legend-route-badge--regional > span`.
+     - Strictly preserved all contract-tested layout and sizing rules for `.mobile-legend-pill`, `.mobile-legend-route-badge--regional`, and `.mobile-legend-route-badge--regional > img.transit-line-badge` required by `drawer-layout.test.mjs` and `mobile-bottom-sheet-ux.test.mjs`.
+  4. Cascade Debt:
+     - Eliminated 52 `!important` declarations total across the three map stylesheets (17 in `impact-overlays.css`, 24 in `overlap-chooser.css`, 11 in `map-legends.css`).
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,072 to 2,020 (-52 declarations).
+- Files changed:
+  - `frontend/src/styles/map/impact-overlays.css`
+  - `frontend/src/styles/map/map-legends.css`
+  - `frontend/src/styles/map/overlap-chooser.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 3.0s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 20.6s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping count badges`): Passed (4/4 passed in 19.9s).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,993 to 31,964 (-29 lines); authored CSS bytes reduced from 831,791 to 830,597 (-1,194 B); graph `!important` declarations reduced from 2,072 to 2,020 (-52); production chunk raw bytes reduced from 701,238 to 700,508 (-730 B); production gzip bytes reduced from 105,539 to 105,504 (-35 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `impact-overlays.css` and `map-legends.css` required by `regional-network.test.mjs`, `drawer-layout.test.mjs`, and `mobile-bottom-sheet-ux.test.mjs`.
+  - Kept essential `!important` overrides for `.mobile-legend-pill` position/width coordinates to ensure reliable layout behavior over Tailwind utility classes.
+  - Eliminated 12 redundant border declarations across choice kinds in `overlap-chooser.css`.
+- Risks or blockers:
+  - None. All 9 map stylesheets in `src/styles/map/` are now consolidated and cleanly verified.
+- Next session: S17A — Consolidate Shell Stylesheets (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/card-elevation.css`, `shell/header-flare.css`, `shell/search-bar.css`, `shell/status-notices.css`).
 
