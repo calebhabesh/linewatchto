@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S20B
-- Last completed session: S20B
-- Next recommended session: S21A — Consolidate Utility Stylesheets (`utilities/scroll.css`, `utilities/motion.css`)
+- Current session: S21A
+- Last completed session: S21A
+- Next recommended session: S21B — Consolidate Late Shell Stylesheets (`shell/header-flare.css`, `shell/card-elevation.css`, `shell/search-bar.css`, `shell/badges.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,622 |
-| Total authored app CSS bytes | 784,128 | 813,807 |
+| Total authored app CSS lines | 31,414 | 31,599 |
+| Total authored app CSS bytes | 784,128 | 812,844 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 687,409 |
-| Production CSS gzip bytes | 108,667 | 104,671 |
+| Production CSS bytes | 705,472 | 685,083 |
+| Production CSS gzip bytes | 108,667 | 104,562 |
 
 
 
@@ -2696,3 +2696,53 @@
   - None. All panel stylesheets are consolidated and cleanly verified.
 - Next session: S21A — Consolidate Utility Stylesheets (`utilities/scroll.css`, `utilities/motion.css`).
 
+### S21A — Consolidate Utility Stylesheets
+
+- Status: completed
+- Commit: f9589c0f
+- Scope: Consolidate utility stylesheets (`utilities/scroll.css`, `utilities/motion.css`), eliminating all redundant scrollbar overrides, duplicate wrapper motion-paused/reduced-motion rules, and non-essential `!important` declarations while strictly preserving contract-tested selectors, keyframes, and visual regression baselines:
+  1. Scroll Affordances & Unified Scrollbars (`utilities/scroll.css`):
+     - Removed all 34 redundant `!important` declarations:
+       - `.stealth-scrollbar::-webkit-scrollbar-button`: `display: none`.
+       - Desktop scroll container rules (`scrollbar-width`, `scrollbar-color`, `-ms-overflow-style`).
+       - Desktop scrollbar track, thumb, and hover states (`display`, `width`, `height`, `background`, `border-radius`, `border`).
+       - Desktop main menu scrollbar decrement/increment button rules and SVG background arrows.
+       - High-contrast scrollbar color, thumb background, and button SVG arrows.
+       - `.linewatch-shell [data-scroll-more-below]` overflow fade gradient mask (`-webkit-mask-image`, `mask-image`).
+     - Net: eliminated 34 `!important` declarations (down from 34 to 0). Authored lines steady at 241 (-1 line).
+  2. Motion & View Transitions (`utilities/motion.css`):
+     - Removed 10 redundant `!important` declarations from `.live-signal-icon` in `@media (prefers-reduced-motion: reduce)` and `.motion-paused`, while pruning unnecessary `transform`, `stroke-width`, and `filter` resets.
+     - Pruned duplicate `.desktop-view-content-wrapper` and `.mobile-view-content-wrapper` animation suppression rules from lines 238-246 and 273-286 (consolidated into the shared container safety block at lines 456-485).
+     - Removed redundant `!important` from `.menu-attention-beam[data-menu-attention="true"]` (`border-color: transparent`).
+     - Removed redundant `!important` from `.motion-paused .saved-station-global-notice` (`animation: none`).
+     - Strictly preserved contract-tested declarations:
+       - `html[data-network-transition-direction] :is(.ttc-map-stage, .regional-map-stage) * { animation-play-state: paused !important; }` (view transitions).
+       - `.mobile-bottom-nav` transition suppression in `.motion-paused` and `@media (prefers-reduced-motion: reduce)` (`mobile-nav-motion.test.mjs:27-28`).
+       - Exit animation forwards rules (`floating-panel-back-exit`, `mobile-sheet-slide-down-exit`, `floating-panel-exit-desktop`).
+       - Panel container motion paused safety overrides (`animation: none !important; transform: none !important;`).
+     - Net: eliminated 16 `!important` declarations (down from 26 to 10). Authored lines reduced from 589 to 566 (-23 lines).
+  3. Cascade Debt:
+     - Eliminated 50 `!important` declarations total across utility stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,493 to 1,443 (-50 declarations).
+- Files changed:
+  - `frontend/src/styles/utilities/scroll.css`
+  - `frontend/src/styles/utilities/motion.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.2s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 19.4s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,622 to 31,599 (-23 lines); authored CSS bytes reduced from 813,807 to 812,844 (-963 B); graph `!important` declarations reduced from 1,493 to 1,443 (-50); production chunk raw bytes reduced from 687,409 to 685,083 (-2,326 B); production gzip bytes reduced from 104,671 to 104,562 (-109 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Maintained necessary `!important` declarations on network-map view transitions and container exit animations to ensure reliable compositor transitions and browser evaluation.
+  - Eliminated all cargo-culted `!important` declarations in `scroll.css` since cascade hierarchy and ID/class specificity already properly supersede `reset.css`'s universal scrollbar defaults on desktop.
+- Risks or blockers:
+  - None. All utility stylesheets are consolidated and cleanly verified.
+- Next session: S21B — Consolidate Late Shell Stylesheets (`shell/header-flare.css`, `shell/card-elevation.css`, `shell/search-bar.css`, `shell/badges.css`).
