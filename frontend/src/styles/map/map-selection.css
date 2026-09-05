@@ -84,7 +84,7 @@
    Once a selection has finished its one-time intro, recreated SVG nodes must
    join the breathing phase instead of replaying the fast flashes. */
 .map-selection-attention.selection-intro-complete {
-  animation-name: var(--selection-breathe-name) !important;
+  animation-name: var(--selection-breathe-name);
   animation-duration: var(--selection-breathe-duration);
   animation-delay: 0s;
   animation-timing-function: ease-in-out;

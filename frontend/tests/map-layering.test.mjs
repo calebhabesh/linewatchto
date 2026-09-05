@@ -869,7 +869,7 @@ describe("asset-backed map layering", () => {
     );
     assert.match(interactiveRegionalMapSource, /selectionIntroCompletedRef/);
     assert.match(interactiveRegionalMapSource, /markCompletedSelectionIntro\(svg\)/);
-    assert.match(globalCss, /\.map-selection-attention\.selection-intro-complete\s*\{[^}]*animation-name:\s*var\(--selection-breathe-name\) !important;/s);
+    assert.match(globalCss, /\.map-selection-attention\.selection-intro-complete\s*\{[^}]*animation-name:\s*var\(--selection-breathe-name\);/s);
     assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
     assert.match(interactiveMapSource, /data-station-impact-selection-id=\{impact\.cardId\}/);
     assert.match(interactiveMapSource, /foreground\.dataset\.stationImpactHoverId = identity\.id/);
