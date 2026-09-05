@@ -86,7 +86,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ttc-map-entrance-reveal--ready {
-    animation: none !important;
+    animation: none;
     background-color: transparent;
   }
 }
@@ -323,7 +323,7 @@
 .motion-paused .map-layer-entering,
 .motion-paused .map-layer-current,
 .motion-paused .map-layer-exiting {
-  transition: none !important;
+  transition: none;
 }
 
 .map-attribution-notice {
@@ -440,7 +440,12 @@
   opacity: 0 !important;
 }
 
-:is([data-map-gesture-active="true"], [data-map-zoom-active="true"]) :is(
+:is(
+  [data-map-gesture-active="true"],
+  [data-map-zoom-active="true"],
+  [data-map-camera-moving="true"],
+  [data-regional-map-camera-moving="true"]
+) :is(
   .ttc-impact-hover-foreground,
   .station-impact-hover-priority,
   .station-hover-indicator,
@@ -473,19 +478,5 @@
 [data-map-camera-moving="true"] .commute-path-preview-glow,
 [data-map-camera-moving="true"] .commute-path-preview-path {
   animation-play-state: paused !important;
-  transition: none !important;
-}
-
-:is([data-map-camera-moving="true"], [data-regional-map-camera-moving="true"]) :is(
-  .ttc-impact-hover-foreground,
-  .station-impact-hover-priority,
-  .station-hover-indicator,
-  .raster-station-label-text-hover,
-  .regional-impact-hover-foreground,
-  .regional-station-impact-hover-foreground,
-  .regional-station-hover-indicator
-) {
-  opacity: 0 !important;
-  visibility: hidden !important;
   transition: none !important;
 }

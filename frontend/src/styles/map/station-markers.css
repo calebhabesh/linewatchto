@@ -55,24 +55,10 @@
   transition: none;
 }
 
-.motion-paused .station-label-hover-effect-active,
-.motion-paused .station-label-hover-effect:has(.station-label-hovered),
-.motion-paused .station-label-hover-effect:has(.regional-station-label-hovered) {
-  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
-  transform: scale(1.045);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .station-label-hover-effect {
     animation: none;
     transition: none;
-  }
-
-  .station-label-hover-effect-active,
-  .station-label-hover-effect:has(.station-label-hovered),
-  .station-label-hover-effect:has(.regional-station-label-hovered) {
-    filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
-    transform: scale(1.045);
   }
 }
 

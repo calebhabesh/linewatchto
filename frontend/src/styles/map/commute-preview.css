@@ -182,7 +182,7 @@
 
 .dark .commute-path-preview-chip strong,
 .high-contrast .commute-path-preview-chip strong {
-  color: #93c5fd !important; /* light sky blue in dark mode */
+  color: #93c5fd; /* light sky blue in dark mode */
 }
 
 .dark .commute-path-preview-chip button,
@@ -269,17 +269,15 @@
   cursor: pointer;
 }
 
-.motion-paused .commute-path-preview-chip,
-.motion-paused .commute-path-preview-chip.commute-path-preview-embedded {
-  animation: none !important;
-  transition: none !important;
+.motion-paused .commute-path-preview-chip {
+  animation: none;
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .commute-path-preview-chip,
-  .commute-path-preview-chip.commute-path-preview-embedded {
-    animation: none !important;
-    transition: none !important;
+  .commute-path-preview-chip {
+    animation: none;
+    transition: none;
   }
 }
 

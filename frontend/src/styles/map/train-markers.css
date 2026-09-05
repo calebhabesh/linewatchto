@@ -172,8 +172,8 @@
 }
 
 .high-contrast .train-layer-toggle.active {
-  background: #ffffff !important;
-  color: #000000 !important;
+  background: #ffffff;
+  color: #000000;
 }
 
 .mobile-train-toggle {
@@ -205,14 +205,6 @@
   position: absolute !important;
   width: 18px !important;
   z-index: 2 !important;
-}
-
-.dark .mobile-train-pending-spinner {
-  color: #f5f5f5 !important;
-}
-
-.high-contrast .mobile-train-pending-spinner {
-  color: #f5f5f5 !important;
 }
 
 .motion-paused .mobile-train-pending-spinner {

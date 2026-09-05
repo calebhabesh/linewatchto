@@ -255,6 +255,7 @@
 }
 
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-aura {
+  animation: none !important;
   opacity: 0.55 !important;
   filter: blur(18px) !important;
   stroke-width: calc(var(--regional-impact-width) + 169px) !important;
@@ -282,11 +283,6 @@
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:focus-visible) .regional-impact-hover-boundary,
 .regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:active) .regional-impact-hover-boundary {
   opacity: 0 !important;
-}
-
-.regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-aura {
-  animation: none !important;
-  opacity: 0.55 !important;
 }
 
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-interactive-glow {
@@ -359,10 +355,7 @@
   opacity: 0 !important;
 }
 
-.regional-station-impact-ring[data-selected-commute-impact-overlay] {
-  animation: none !important;
-}
-
+.regional-station-impact-ring[data-selected-commute-impact-overlay],
 .regional-station-impact-ring[data-selected-commute-impact-overlay] :is(circle, rect, ellipse),
 .regional-station-impact-ring[data-selected-commute-impact-overlay]:is(circle, rect, ellipse) {
   animation: none !important;
