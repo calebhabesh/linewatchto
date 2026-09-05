@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S23B
-- Last completed session: S23B
-- Next recommended session: S24A — Consolidate Mobile Chrome and Shell Utilities (`shell/mobile-chrome.css`, `shell/search-bar.css`, `shell/header-flare.css`, `shell/error-screen.css`)
+- Current session: S24A
+- Last completed session: S24A
+- Next recommended session: S24B — Consolidate Subway Closed Overnight Shell (`shell/subway-closed.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 805,957 |
+| Total authored app CSS bytes | 784,128 | 804,824 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 679,042 |
-| Production CSS gzip bytes | 108,667 | 104,059 |
+| Production CSS bytes | 705,472 | 678,072 |
+| Production CSS gzip bytes | 108,667 | 103,965 |
 
 
 
@@ -3161,3 +3161,66 @@
 - Risks or blockers:
   - None. Floating panels and mobile sheet stylesheets are consolidated, cascade debt ceiling is lowered by 234 declarations, and all quality gates pass cleanly.
 - Next session: S24A — Consolidate Mobile Chrome and Shell Utilities (`shell/mobile-chrome.css`, `shell/search-bar.css`, `shell/header-flare.css`, `shell/error-screen.css`).
+
+### S24A — Consolidate Mobile Chrome and Shell Utilities
+
+- Status: completed
+- Commit: c39313e0
+- Scope: Consolidate mobile navigation chrome, status peek glassmorphic controls, map recenter and zoom clusters, and mobile utility shortcuts (`frontend/src/styles/shell/mobile-chrome.css`, `frontend/src/styles/shell/search-bar.css`, `frontend/src/styles/shell/header-flare.css`, `frontend/src/styles/shell/error-screen.css`), eliminating redundant `!important` declarations, simplifying surface materials and button states, and lowering the graph-wide migration debt ceiling while strictly preserving contract-tested selectors, high-contrast accessibility rules, mobile layout visibility constraints, and visual regression baselines:
+  1. Mobile Chrome (`frontend/src/styles/shell/mobile-chrome.css`):
+     - Eliminated 103 redundant `!important` declarations across `.mobile-status-peek` layout backing, `.mobile-status-peek-info-btn` glassmorphic materials, peek counts grid, peek count circle, `.mobile-map-recenter-btn` and `.mobile-map-zoom-capsule` controls, compact network selector border/box-shadow variants, action button dimensions, and floating button tactile active states.
+     - Strictly preserved 48 declarations:
+       - 5 high-contrast overrides on `.high-contrast .mobile-bottom-nav-item[data-active="true"]` (`background`, `border-color`, `color`, `stroke`).
+       - 3 high-contrast overrides on `.high-contrast .mobile-status-peek-info-btn` (`background`, `border`, `box-shadow`).
+       - 1 high-contrast override on `.high-contrast .mobile-status-peek-alert-icon--muted` (`color`).
+       - 6 high-contrast overrides on `.high-contrast .mobile-status-peek-count-badge` and count circle, including contract-tested `border: 1px solid #ffffff !important;` per `mobile-bottom-sheet-ux.test.mjs:384`.
+       - 10 high-contrast overrides on `.high-contrast .mobile-map-recenter-btn`, zoom capsule, divider, and SVGs (`background`, `border`, `color`, `box-shadow`, `background-image`, `stroke`, `fill`, `filter`).
+       - 4 compact vertical network selector and desktop hide rules: `.desktop-top-chrome, .desktop-map-legend, .desktop-status-chip-row-container { display: none !important; }` per `mobile-bottom-sheet-ux.test.mjs:197`, plus 3 high-contrast overrides on `.high-contrast .network-selector--compact-vertical`.
+       - 10 mobile action and rotate button rules:
+         - 3 contract-tested declarations on `.rotate-map-btn svg` (`flex: 0 0 auto !important;`, `height: clamp(20px, 6.5vw, 24px) !important;`, `width: clamp(20px, 6.5vw, 24px) !important;`) per `subway-closing-soon.test.mjs:75-77`.
+         - 4 text sizing and display rules on `.rotate-map-btn span` (`display: inline-block !important;`, `font-size: clamp(6.5px, 2.15vw, 8px) !important;`, `letter-spacing: 0.02em !important;`, `line-height: 1.05 !important;`).
+         - 3 mobile visibility rules: `.map-utility-cluster > *:not(...) { display: none !important; }`, `.map-control-rail { display: none !important; }`, and `.map-control-zoom-group { display: none !important; }` per `mobile-bottom-sheet-ux.test.mjs:197`.
+       - 6 mobile shortcut button rules:
+         - Contract-tested `border: none !important;` per `mobile-bottom-sheet-ux.test.mjs:390`.
+         - Contract-tested `height: var(--mobile-top-action-button-size) !important;` per `alert-history-ui.test.mjs:62`.
+         - Contract-tested `width: var(--mobile-top-action-button-size) !important;` per `my-stations-ui.test.mjs:31`.
+         - 2 high-contrast overrides on `.high-contrast .mobile-alert-history-shortcut` (`background: #ffffff !important;`, `color: #000000 !important;`).
+         - 1 desktop hide rule: `@media (min-width: 768px) { display: none !important; }`.
+       - 3 floating chrome button rules:
+         - Contract-tested `background: var(--mobile-chrome-background) !important;` per `mobile-bottom-sheet-ux.test.mjs:181`.
+         - Contract-tested `.high-contrast ... { border: 1px solid #ffffff !important; }` per `mobile-bottom-sheet-ux.test.mjs:391`.
+         - 1 high-contrast override: `.high-contrast ... { background-image: none !important; }`.
+     - Net: down from 151 to 48 declarations (-103). Authored lines steady at 1,423.
+  2. Search Bar (`frontend/src/styles/shell/search-bar.css`):
+     - Reviewed and verified 4 declarations, preserving contract-tested `padding-right: 16px !important;` on `.header-search-bar` per `mobile-bottom-sheet-ux.test.mjs:325` alongside 3 high-contrast overrides. Authored lines steady at 102.
+  3. Header Flare & Error Screen (`frontend/src/styles/shell/header-flare.css`, `frontend/src/styles/shell/error-screen.css`):
+     - Reviewed and confirmed clean, modular zero `!important` declarations across diffuse accent flare and 4-section error boundary screens. Authored lines steady at 116 and 169 respectively.
+  4. Cascade Debt:
+     - Eliminated 103 `!important` declarations across mobile chrome and shell utilities stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 929 down to 826 (-103 declarations, -11.1%).
+- Files changed:
+  - `frontend/src/styles/shell/mobile-chrome.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm run typecheck`: Passed (clean route types generated, 0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.5s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 19.3s).
+  - `npm run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 19.6s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,567; authored CSS bytes reduced from 805,957 to 804,824 (-1,133 B); graph `!important` declarations reduced from 929 to 826 (-103); production chunk raw bytes reduced from 679,042 to 678,072 (-970 B); production gzip bytes reduced from 104,059 to 103,965 (-94 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `mobile-chrome.css` (`mobile-bottom-sheet-ux.test.mjs:181,197,384,390,391`, `subway-closing-soon.test.mjs:75-77`, `alert-history-ui.test.mjs:62`, `my-stations-ui.test.mjs:31`).
+  - Preserved contract-tested `padding-right: 16px !important;` in `search-bar.css` per `mobile-bottom-sheet-ux.test.mjs:325`.
+  - Preserved modal visibility constraints (`display: none !important;`) on desktop header/legend and map controls when in mobile viewports.
+  - Strictly preserved all high-contrast accessibility overrides across active bottom nav items, peek info button, count badge/circle, and map recenter/zoom controls.
+  - Safely eliminated redundant `!important` declarations on mobile status peek backing, glassmorphic pill surfaces, badge counters, recenter button hover/active/light themes, zoom capsule surfaces, compact network selector variants, and floating button active compression.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 929 to 826 (-103 declarations).
+- Risks or blockers:
+  - None. Mobile chrome and shell utilities stylesheets are consolidated, cascade debt ceiling is lowered by 103 declarations, and all quality gates pass cleanly.
+- Next session: S24B — Consolidate Subway Closed Overnight Shell (`shell/subway-closed.css`).
