@@ -128,7 +128,7 @@
 }
 
 .motion-paused .commute-station-popover {
-  animation: none !important;
+  animation: none;
 }
 
 .commute-station-mobile-back {
@@ -288,7 +288,7 @@
   }
 
   .commute-station-search-row {
-    flex: 0 0 auto !important;
+    flex: 0 0 auto;
     position: sticky;
     top: 0;
     z-index: 2;
@@ -305,21 +305,21 @@
   }
 
   .commute-station-browse-container {
-    flex-direction: column !important;
-    gap: 0 !important;
-    flex: 1 !important;
-    overflow: hidden !important;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+    overflow: hidden;
   }
 
   .commute-station-lines-column {
-    flex: 1 1 auto !important;
-    max-height: min(40vh, 40dvh) !important;
-    overflow-y: auto !important;
-    padding-right: 0 !important;
+    flex: 1 1 auto;
+    max-height: min(40vh, 40dvh);
+    overflow-y: auto;
+    padding-right: 0;
   }
 
   .commute-station-popover[data-expanded="true"] .commute-station-lines-column {
-    display: none !important;
+    display: none;
   }
 
   .commute-station-popover:not([data-expanded="true"]) .commute-station-lines-column {
@@ -338,14 +338,14 @@
   }
 
   .commute-station-stations-column {
-    border-left: 0 !important;
-    flex: 1 !important;
-    opacity: 1 !important;
-    overflow: hidden !important;
-    min-height: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    width: auto !important;
+    border-left: 0;
+    flex: 1;
+    opacity: 1;
+    overflow: hidden;
+    min-height: 0;
+    padding-left: 0;
+    padding-right: 0;
+    width: auto;
   }
 
   .commute-station-popover[data-expanded="true"] .commute-station-stations-column {
@@ -364,7 +364,7 @@
   }
 
   .commute-station-popover:not([data-expanded="true"]) .commute-station-stations-column {
-    display: none !important;
+    display: none;
   }
 
   .commute-station-mobile-back {
@@ -479,7 +479,7 @@
 
   html:has(.commute-station-popover[data-input-focused="true"]),
   html:has(.commute-station-popover[data-searching="true"]) {
-    scroll-behavior: auto !important;
+    scroll-behavior: auto;
   }
 
   .commute-station-stations-column > .commute-station-mobile-back {
