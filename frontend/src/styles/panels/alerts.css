@@ -705,9 +705,9 @@
 .embedded-impact-panel > .closure-stack {
   padding-top: 6px;
   padding-bottom: 6px;
-  overflow-y: visible !important;
+  overflow-y: visible;
   max-height: none;
-  flex: none !important;
+  flex: none;
   height: auto;
 }
 
@@ -1447,7 +1447,7 @@
   justify-content: center;
   align-items: center;
   flex-grow: 1;
-  padding-bottom: 12px !important; /* Overrides the mobile 56px bottom padding to keep centering symmetric */
-  mask-image: none !important;
-  -webkit-mask-image: none !important;
+  padding-bottom: 12px; /* Overrides the mobile 56px bottom padding to keep centering symmetric */
+  mask-image: none;
+  -webkit-mask-image: none;
 }
