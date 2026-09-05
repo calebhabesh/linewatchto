@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S19A
-- Last completed session: S18B
-- Next recommended session: S19A — Consolidate Account & Dialog Stylesheets (`account/account-dialogs.css`, `account/my-stations.css`, `account/notification-settings.css`)
+- Current session: S19B
+- Last completed session: S19A
+- Next recommended session: S19B — Consolidate Commute Stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,708 |
-| Total authored app CSS bytes | 784,128 | 818,297 |
+| Total authored app CSS lines | 31,414 | 31,685 |
+| Total authored app CSS bytes | 784,128 | 817,221 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 691,331 |
-| Production CSS gzip bytes | 108,667 | 105,030 |
+| Production CSS bytes | 705,472 | 690,365 |
+| Production CSS gzip bytes | 108,667 | 104,959 |
 
 
 
@@ -2464,3 +2464,67 @@
 - Risks or blockers:
   - None. All remaining station stylesheets are consolidated and cleanly verified.
 - Next session: S19A — Consolidate Account & Dialog Stylesheets (`account/account-dialogs.css`, `account/my-stations.css`, `account/notification-settings.css`).
+
+### S19A — Consolidate Account & Dialog Stylesheets
+
+- Status: completed
+- Commit: c9409c66
+- Scope: Consolidate the account and dialog stylesheets (`account/account-dialogs.css`, `account/my-stations.css`, `account/notification-settings.css`), eliminating dead overrides, redundant compound selectors, duplicate declarations, and unnecessary `!important` declarations while strictly preserving contract-tested selectors and visual regression baselines:
+  1. Account Dialogs (`account/account-dialogs.css`):
+     - Removed redundant `!important` declarations from layout properties on `.account-feature-preview` (`border-radius: 8px`, `display: flex`, `flex-direction: column`, `gap: 1rem`).
+     - Scoped `.saved-commute-account-prompt:not(.account-feature-preview)` for base, dark, and high-contrast modes to prevent specificity conflicts with feature previews.
+     - Consolidated high-contrast signup button rules across `.saved-commute-account-prompt` and `.notification-settings-prompt` using `:is()`.
+     - Strictly preserved contract-tested declarations:
+       - `.account-feature-preview { padding: 1rem !important; }` (`account-feature-preview.test.mjs:16`)
+       - `.dark .account-feature-preview { background: #151821 !important; }` (`account-feature-preview.test.mjs:17`)
+       - `.saved-commute-account-prompt:not(.account-feature-preview)` (`account-feature-preview.test.mjs:18`).
+     - Net: eliminated 4 `!important` declarations (down from 12 to 8).
+  2. My Stations Watchlist (`account/my-stations.css`):
+     - Removed redundant `!important` declarations from `.motion-paused` on `.my-stations-panel`, `.my-stations-undo`, `.my-stations-mode-action-content`, and `.my-stations-search.picker-nudge` (`animation: none`, `transition: none`).
+     - Consolidated disruption summary selectors by removing redundant `.saved-commute-impact-summary.saved-station-disruption-summary`.
+     - Consolidated disruption icon selector by removing redundant `.saved-commute-impact-summary-heading.saved-station-disruption-heading .saved-commute-impact-summary-icon`.
+     - Consolidated disruption list selector by removing redundant `.saved-commute-impact-disclosure[open] .saved-station-disruption-list`.
+     - Consolidated divider selectors by removing duplicate `.saved-station-rich-content .saved-station-surface-divider`.
+     - Consolidated arrivals heading strong font size by removing redundant parent qualifiers `.saved-station-arrivals .saved-station-arrivals-heading strong` and `.surface-connections-details.is-saved-station .saved-station-arrivals-heading strong`.
+     - Consolidated dark network filter by removing redundant `border-color: transparent` and `box-shadow: var(--mobile-card-shadow)` already provided by base rules.
+     - Strictly preserved contract-tested declarations:
+       - `.my-stations-done { width: 54px !important; }` (`my-stations-ui.test.mjs:83`)
+       - `.dark .my-stations-row, .dark .my-stations-picker-row { background-color: rgb(21, 24, 33) !important; }` (`my-stations-ui.test.mjs:93`)
+       - `.saved-station-arrival-line-badge { height: 22px !important; width: 22px !important; }` (`my-stations-ui.test.mjs:184`)
+       - `@media (min-width: 768px) .saved-station-arrival-line-badge { height: 24px !important; width: 24px !important; }` (`my-stations-ui.test.mjs:186`)
+       - `@media (max-width: 767px) .my-stations-title h2 > span { line-height: 1.2 !important; }` (`my-stations-ui.test.mjs:265`).
+     - Net: eliminated 2 `!important` declarations (down from 9 to 7).
+  3. Notification Settings (`account/notification-settings.css`):
+     - Consolidated `.notification-follow-up-option` card surface with `.notification-settings-card`, `.notification-settings-row`, and `.notification-settings-prompt`.
+     - Removed redundant background declaration from `.dark .push-settings-card` and `.high-contrast .push-settings-card`.
+     - Removed redundant `.high-contrast` overrides from `.dark .notification-settings-card, ...` that were overridden by card elevation.
+     - Streamlined `.push-diagnostics-item .notification-line-badge` by removing redundant alignment, display, font-weight, and border-radius rules already inherited from `.notification-line-badge`.
+     - Strictly preserved contract-tested declarations and necessary overrides:
+       - `.notification-follow-up-option[data-selected="true"]` light, dark, and high-contrast background overrides against `card-elevation.css:52`'s `!important` surface rule.
+  4. Cascade Debt:
+     - Eliminated 6 `!important` declarations total across the account stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,624 to 1,618 (-6 declarations).
+- Files changed:
+  - `frontend/src/styles/account/account-dialogs.css`
+  - `frontend/src/styles/account/my-stations.css`
+  - `frontend/src/styles/account/notification-settings.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed, 0 failures).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 18.9s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`dashboard.spec.ts` station, account, commute, notification tests): Passed (47/47 passed, 13 skipped in 2.5m).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,708 to 31,685 (-23 lines); authored CSS bytes reduced from 818,297 to 817,221 (-1,076 B); graph `!important` declarations reduced from 1,624 to 1,618 (-6); production chunk raw bytes reduced from 691,331 to 690,365 (-966 B); production gzip bytes reduced from 105,030 to 104,959 (-71 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `account-dialogs.css` (`account-feature-preview.test.mjs`, `account-ui-source.test.mjs`), `my-stations.css` (`my-stations-ui.test.mjs`), and `notification-settings.css` (`notification-settings-navigation.test.mjs`, `stylesheet-graph.test.mjs`).
+  - Maintained necessary `!important` background declarations on `.notification-follow-up-option[data-selected="true"]` to cleanly override late-cascade card elevation rules.
+- Risks or blockers:
+  - None. All target account & dialog stylesheets are consolidated and cleanly verified.
+- Next session: S19B — Consolidate Commute Stylesheets (`account/saved-commutes.css`, `account/saved-commute-rules.css`).
