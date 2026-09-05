@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S26
-- Last completed session: S26
-- Next recommended session: S27 — Consolidate Account Dialogs, My Stations, Saved Commutes, Commute Rules, and Notification Settings (`account/account-dialogs.css`, `account/my-stations.css`, `account/saved-commutes.css`, `account/saved-commute-rules.css`, `account/notification-settings.css`)
+- Current session: S27
+- Last completed session: S27
+- Next recommended session: S28 — Consolidate Panels (`panels/alerts.css`, `panels/accessibility-outages.css`, `panels/surface-notices.css`, `panels/reliability.css`, `panels/alert-history.css`, `panels/feedback.css`, `panels/info-modals.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,568 |
-| Total authored app CSS bytes | 784,128 | 801,874 |
+| Total authored app CSS bytes | 784,128 | 801,786 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 675,574 |
-| Production CSS gzip bytes | 108,667 | 103,779 |
+| Production CSS bytes | 705,472 | 675,483 |
+| Production CSS gzip bytes | 108,667 | 103,773 |
 
 
 
@@ -3394,3 +3394,78 @@
 - Risks or blockers:
   - None. Station detail, arrivals, accessibility, and surface connections stylesheets are consolidated, cascade debt ceiling is lowered by 53 declarations, and all quality gates pass cleanly.
 - Next session: S27 — Consolidate Account Dialogs, My Stations, Saved Commutes, Commute Rules, and Notification Settings (`account/account-dialogs.css`, `account/my-stations.css`, `account/saved-commutes.css`, `account/saved-commute-rules.css`, `account/notification-settings.css`).
+
+### S27 — Consolidate Account Dialogs, My Stations, Saved Commutes, Commute Rules, and Notification Settings
+
+- Status: completed
+- Scope: Consolidate account dialogs, my stations, saved commutes, commute rules, and notification settings stylesheets (`frontend/src/styles/account/account-dialogs.css`, `frontend/src/styles/account/my-stations.css`, `frontend/src/styles/account/saved-commutes.css`, `frontend/src/styles/account/saved-commute-rules.css`, `frontend/src/styles/account/notification-settings.css`), eliminating 8 redundant `!important` declarations while strictly preserving contract-tested selectors, high-contrast accessibility overrides, defensive card-elevation overrides, and visual regression baselines:
+  1. Account Dialogs (`frontend/src/styles/account/account-dialogs.css`):
+     - Reviewed and confirmed preservation of all 8 `!important` declarations:
+       - Contract-tested `padding: 1rem !important` on `.account-feature-preview` per `account-feature-preview.test.mjs:16`.
+       - Contract-tested `background: #151821 !important` on `.dark .account-feature-preview` per `account-feature-preview.test.mjs:17`.
+       - Defensive overrides against subsequent `card-elevation.css` (`.saved-commute-account-prompt` / `.notification-settings-prompt`): `background`, `border`, and `box-shadow` on light mode, and `border-color` on dark mode.
+       - High-contrast accessibility overrides: `background: #000000 !important` and `border-color: #ffffff !important`.
+     - Net in `account-dialogs.css`: steady at 8 `!important` declarations. Authored lines steady at 507.
+  2. My Stations (`frontend/src/styles/account/my-stations.css`):
+     - Reviewed and confirmed preservation of all 7 `!important` declarations as strictly contract-tested:
+       - `width: 54px !important` on `.my-stations-done` per `my-stations-ui.test.mjs:83`.
+       - `background-color: rgb(21, 24, 33) !important` on `.dark .my-stations-row, .dark .my-stations-picker-row` per `my-stations-ui.test.mjs:93`.
+       - `height: 22px !important` and `width: 22px !important` on `.saved-station-arrival-line-badge` per `my-stations-ui.test.mjs:184`.
+       - Desktop `height: 24px !important` and `width: 24px !important` on `.saved-station-arrival-line-badge` per `my-stations-ui.test.mjs:186`.
+       - Mobile `line-height: 1.2 !important` on `.my-stations-title h2 > span` per `my-stations-ui.test.mjs:265`.
+     - Net in `my-stations.css`: steady at 7 `!important` declarations. Authored lines steady at 1,635.
+  3. Saved Commutes (`frontend/src/styles/account/saved-commutes.css`):
+     - Eliminated 1 redundant `!important` declaration on `.commute-leg-toggle button[aria-selected="true"]` `color: #ffffff`, fixing a cascade conflict where `#ffffff !important` would defeat high-contrast `[data-selected-state="filtered"]` `color: #000000`.
+     - Strictly preserved 13 declarations:
+       - Contract-tested `font-size: 1rem !important` and `text-transform: none !important` on `.saved-commute-time-estimate.unreliable p > strong, ... p > span` per `account-ui-source.test.mjs:298`.
+       - High-contrast accessibility overrides across route delete/delete confirm buttons (3), add button (3), and cancel button (5).
+     - Net in `saved-commutes.css`: down from 14 to 13 `!important` declarations (-1, -7.1%). Authored lines steady at 1,930.
+  4. Saved Commute Rules (`frontend/src/styles/account/saved-commute-rules.css`):
+     - Eliminated 5 redundant `!important` declarations:
+       - `border: none !important` on `.dark .commute-station-trigger, .dark .commute-station-popover, .dark .commute-station-search-row, .dark .commute-station-line-trigger, .dark .commute-station-option` (redundant with base styles).
+       - Base `fill`, `stroke`, and `stroke-width` on `.station-commute-green-flash`.
+       - Mobile `stroke: #dcfce7 !important` on `.station-commute-green-flash`.
+     - Strictly preserved 6 declarations:
+       - Contract-tested `border: none !important` on `.commute-station-trigger, .commute-station-search-row, .commute-station-popover` per `unified-search-ui.test.mjs:147`.
+       - Contract-tested `border: none !important` on `.commute-station-line-trigger, .commute-station-option` per `unified-search-ui.test.mjs:148`.
+       - High-contrast `border: 1px solid #ffffff !important` on commute station selectors.
+       - Contract-tested mobile `fill: #4ade80 !important` and `stroke-width: 3.5 !important` on `.station-commute-green-flash` per `map-layering.test.mjs:966`.
+       - Contract-tested reduced-motion `animation: none !important` on `.station-commute-green-flash` per `map-layering.test.mjs:962`.
+     - Net in `saved-commute-rules.css`: down from 11 to 6 `!important` declarations (-5, -45.5%). Authored lines steady at 1,744.
+  5. Notification Settings (`frontend/src/styles/account/notification-settings.css`):
+     - Eliminated 2 redundant `!important` declarations:
+       - `background: #e7f7f1 !important` on `.notification-follow-up-option[data-selected="true"]` (specificity (0, 2, 0) naturally wins over card-elevation (0, 1, 0)).
+       - `background: #12251f !important` on `.dark .notification-follow-up-option[data-selected="true"]` (specificity (0, 3, 0) naturally wins over `.dark .notification-follow-up-option` (0, 2, 0)).
+     - Strictly preserved 1 declaration:
+       - High-contrast `background: #000000 !important` on `.high-contrast .notification-follow-up-option[data-selected="true"]`.
+     - Net in `notification-settings.css`: down from 3 to 1 `!important` declaration (-2, -66.7%). Authored lines steady at 990.
+  6. Cascade Debt:
+     - Net elimination of 8 `!important` declarations across account stylesheets (43 -> 35, -18.6%).
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 553 down to 545 (-8 declarations).
+- Files changed:
+  - `frontend/src/styles/account/notification-settings.css`
+  - `frontend/src/styles/account/saved-commutes.css`
+  - `frontend/src/styles/account/saved-commute-rules.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (200/200 suites, 0 failures).
+  - `npm run typecheck`: Passed (0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.2s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 19.5s).
+  - `npm run test:visual`: Passed (11/11 passed, 0 pixel differences across all baseline scenarios).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 19.6s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,568; authored CSS bytes reduced from 801,874 to 801,786 (-88 B); graph `!important` declarations reduced from 553 to 545 (-8); production chunk raw bytes reduced from 675,574 to 675,483 (-91 B); production gzip bytes reduced from 103,779 to 103,773 (-6 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `account-dialogs.css` (`account-feature-preview.test.mjs:16-17`), `my-stations.css` (`my-stations-ui.test.mjs:83,93,184,186,265`), `saved-commutes.css` (`account-ui-source.test.mjs:298`), and `saved-commute-rules.css` (`unified-search-ui.test.mjs:147-148`, `map-layering.test.mjs:962,966`).
+  - Preserved defensive `!important` declarations in `account-dialogs.css` (`.account-feature-preview`) protecting against subsequent `.saved-commute-account-prompt` / `.notification-settings-prompt` rules in `card-elevation.css`.
+  - Preserved all high-contrast accessibility overrides across all five stylesheets.
+  - Eliminated redundant `!important` declarations on `.commute-leg-toggle` active button color (resolving a high-contrast override conflict), dark commute station borders, `.station-commute-green-flash` base stroke/fill/stroke-width and mobile stroke, and notification follow-up option selected backgrounds.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 553 to 545 (-8 declarations).
+- Risks or blockers:
+  - None. Account dialogs, my stations, saved commutes, commute rules, and notification settings stylesheets are consolidated, cascade debt ceiling is lowered by 8 declarations, and all quality gates pass cleanly.
+- Next session: S28 — Consolidate Panels (`panels/alerts.css`, `panels/accessibility-outages.css`, `panels/surface-notices.css`, `panels/reliability.css`, `panels/alert-history.css`, `panels/feedback.css`, `panels/info-modals.css`).
