@@ -172,7 +172,7 @@
   flex-wrap: wrap;
 }
 
-.feedback-support-card.feedback-support-inline {
+.feedback-support-card {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -248,10 +248,9 @@
 
   .feedback-submit-button {
     align-self: flex-end;
-    margin-left: auto;
   }
 
-  .feedback-support-card.feedback-support-inline {
+  .feedback-support-card {
     align-self: stretch;
     justify-content: space-between;
     background-color: var(--panel-soft);
