@@ -187,22 +187,16 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   .live-signal-icon .live-signal-dot,
   .live-signal-icon .live-signal-arc-inner,
   .live-signal-icon .live-signal-arc-outer {
-    animation: none !important;
-    opacity: 0.85 !important;
-    transform: none !important;
-    stroke-width: 2 !important;
-    filter: none !important;
+    animation: none;
+    opacity: 0.85;
   }
 }
 
 .motion-paused .live-signal-icon .live-signal-dot,
 .motion-paused .live-signal-icon .live-signal-arc-inner,
 .motion-paused .live-signal-icon .live-signal-arc-outer {
-  animation: none !important;
-  opacity: 0.85 !important;
-  transform: none !important;
-  stroke-width: 2 !important;
-  filter: none !important;
+  animation: none;
+  opacity: 0.85;
 }
 
 /* --- 3. View Content Fade-In Animations & Navigation Wrappers --- */
@@ -241,15 +235,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   }
 }
 
-.motion-paused .desktop-view-content-wrapper {
-  animation: none !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .desktop-view-content-wrapper {
-    animation: none !important;
-  }
-}
 
 /* --- Mobile Web Menu & Transition Enhancements --- */
 
@@ -285,10 +270,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   }
 }
 
-.motion-paused .mobile-view-content-wrapper {
-  animation: none !important;
-}
-
 .motion-paused .mobile-bottom-nav::before,
 .motion-paused .mobile-bottom-nav-icon,
 .motion-paused .mobile-bottom-nav-label {
@@ -296,10 +277,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobile-view-content-wrapper {
-    animation: none !important;
-  }
-
   .mobile-bottom-nav::before,
   .mobile-bottom-nav-icon,
   .mobile-bottom-nav-label {
@@ -311,7 +288,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 /* A restrained pulse makes the closed desktop menu discoverable without
    introducing another shape around the control. */
 .menu-attention-beam[data-menu-attention="true"] {
-  border-color: transparent !important;
+  border-color: transparent;
 }
 
 .menu-attention-beam[data-menu-attention="true"]::before {
@@ -375,7 +352,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .motion-paused .saved-station-global-notice {
-  animation: none !important;
+  animation: none;
 }
 
 /* --- 6. Panel Container Navigation Transitions --- */

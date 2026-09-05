@@ -25,7 +25,7 @@
   background: #4d5667;
 }
 .stealth-scrollbar::-webkit-scrollbar-button {
-  display: none !important;
+  display: none;
   width: 0;
   height: 0;
 }
@@ -51,9 +51,9 @@
   .release-notes-content,
   .privacy-acknowledgements-scroll,
   .saved-commute-sort-options {
-    scrollbar-width: thin !important; /* Firefox */
-    scrollbar-color: #303641 transparent !important; /* Firefox */
-    -ms-overflow-style: auto !important; /* IE 10+ */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #303641 transparent; /* Firefox */
+    -ms-overflow-style: auto; /* IE 10+ */
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar,
@@ -74,15 +74,15 @@
   .release-notes-content::-webkit-scrollbar,
   .privacy-acknowledgements-scroll::-webkit-scrollbar,
   .saved-commute-sort-options::-webkit-scrollbar {
-    display: block !important;
-    width: 8px !important;
-    height: 8px !important;
+    display: block;
+    width: 8px;
+    height: 8px;
   }
 
   .station-detail-scroll::-webkit-scrollbar {
-    display: block !important;
-    width: 6px !important;
-    height: 6px !important;
+    display: block;
+    width: 6px;
+    height: 6px;
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-track,
@@ -104,7 +104,7 @@
   .release-notes-content::-webkit-scrollbar-track,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-track,
   .saved-commute-sort-options::-webkit-scrollbar-track {
-    background: transparent !important;
+    background: transparent;
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
@@ -126,9 +126,9 @@
   .release-notes-content::-webkit-scrollbar-thumb,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
   .saved-commute-sort-options::-webkit-scrollbar-thumb {
-    background: #303641 !important;
-    border-radius: 999px !important;
-    border: 1px solid transparent !important;
+    background: #303641;
+    border-radius: 999px;
+    border: 1px solid transparent;
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-thumb:hover,
@@ -150,38 +150,38 @@
   .release-notes-content::-webkit-scrollbar-thumb:hover,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb:hover,
   .saved-commute-sort-options::-webkit-scrollbar-thumb:hover {
-    background: #4d5667 !important;
+    background: #4d5667;
   }
 
   /* Enable top and bottom buttons (arrows) on desktop main menu */
   #linewatch-main-menu-scroll::-webkit-scrollbar-button {
-    display: block !important;
-    width: 8px !important;
-    height: 12px !important;
+    display: block;
+    width: 8px;
+    height: 12px;
   }
 
   /* Decrement button (up arrow) */
   #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>") !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-    background-size: 8px !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 8px;
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement:hover {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>") !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>");
   }
 
   /* Increment button (down arrow) */
   #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-    background-size: 8px !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 8px;
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment:hover {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
   }
 
   /* High contrast support */
@@ -194,7 +194,7 @@
   .linewatch-shell.high-contrast .surface-notices-scroll,
   .linewatch-shell.high-contrast .release-notes-content,
   .linewatch-shell.high-contrast .privacy-acknowledgements-scroll {
-    scrollbar-color: #ffffff #000000 !important;
+    scrollbar-color: #ffffff #000000;
   }
 
   .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
@@ -206,15 +206,15 @@
   .linewatch-shell.high-contrast .surface-notices-scroll::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .release-notes-content::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb {
-    background: #ffffff !important;
+    background: #ffffff;
   }
 
   .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>") !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>");
   }
 
   .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
   }
 }
 
@@ -229,7 +229,7 @@
     rgba(0, 0, 0, 0.72) calc(100% - 24px),
     rgba(0, 0, 0, 0.32) calc(100% - 10px),
     transparent 100%
-  ) !important;
+  );
   mask-image: linear-gradient(
     to bottom,
     #000 0,
@@ -237,5 +237,5 @@
     rgba(0, 0, 0, 0.72) calc(100% - 24px),
     rgba(0, 0, 0, 0.32) calc(100% - 10px),
     transparent 100%
-  ) !important;
+  );
 }
