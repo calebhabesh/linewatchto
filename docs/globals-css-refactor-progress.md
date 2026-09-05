@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S22B
-- Last completed session: S22B
-- Next recommended session: S22C — Consolidate Base Map and Impact Overlays (`map/base-map.css`, `map/impact-overlays.css`, `map/regional-map.css`, `map/commute-preview.css`)
+- Current session: S22C
+- Last completed session: S22C
+- Next recommended session: S23A — Consolidate Shell Layout and Controls (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/map-mode-control.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 810,027 |
+| Total authored app CSS bytes | 784,128 | 809,400 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 682,784 |
-| Production CSS gzip bytes | 108,667 | 104,397 |
+| Production CSS bytes | 705,472 | 682,317 |
+| Production CSS gzip bytes | 108,667 | 104,386 |
 
 
 
@@ -2925,3 +2925,94 @@
 - Risks or blockers:
   - None. All map selection, station markers, and train markers stylesheets are consolidated and cleanly verified.
 - Next session: S22C — Consolidate Base Map and Impact Overlays (`map/base-map.css`, `map/impact-overlays.css`, `map/regional-map.css`, `map/commute-preview.css`).
+
+### S22C — Consolidate Base Map and Impact Overlays
+
+- Status: completed
+- Commit: 38a5ac41
+- Scope: Consolidate base map, commute preview, impact overlays, and regional map stylesheets (`frontend/src/styles/map/base-map.css`, `frontend/src/styles/map/commute-preview.css`, `frontend/src/styles/map/impact-overlays.css`, `frontend/src/styles/map/regional-map.css`), eliminating redundant `!important` declarations, streamlining motion and performance simplifications, and lowering the graph-wide migration debt ceiling while strictly preserving contract-tested selectors, animations, inline SVG style overrides, and visual regression baselines:
+  1. Base Map (`frontend/src/styles/map/base-map.css`):
+     - Eliminated 1 redundant `!important` declaration from `.map-layer-exiting` (`pointer-events: none`).
+     - Strictly preserved 25 declarations (camera movement paused states per `regional-network.test.mjs:1099` and `pan-zoom-behavior.test.mjs:451,461`, station label hit-target `pointer-events: bounding-box !important` per `map-layering.test.mjs:106`, Mount Dennis UP fill per `station-connections.test.mjs:165`, LW-DIV divider stroke and label fills per `regional-map-asset.test.mjs:111,123,124,138`).
+     - Net: down from 26 to 25 declarations (-1). Authored lines steady at 482 (-1 line).
+  2. Commute Preview (`frontend/src/styles/map/commute-preview.css`):
+     - Eliminated 7 redundant `!important` declarations:
+       - Base `.commute-path-preview-glow` `stroke: rgba(37, 99, 235, 0.7)` (no competing stroke rule).
+       - Base `.commute-path-preview-path` `transition: none`.
+       - `.regional-map .regional-commute-path-preview-layer .commute-path-preview-glow` `stroke-width: 360px` (higher class specificity `0,3,0` vs `0,1,0`).
+       - `.regional-map .regional-commute-path-preview-endpoint` `stroke-width: 18px` (`0,2,0` vs `0,1,0`).
+       - `.linewatch-shell.mobile-performance-mode[data-network="regional"] .regional-commute-path-preview-layer .commute-path-preview-glow` `stroke-width: 320px` (`0,4,0` vs `0,3,0`).
+       - `animation: none` on mobile performance and reduced-motion regional commute path preview rules.
+     - Strictly preserved 3 declarations, including contract-tested `.regional-map .regional-commute-path-preview-layer .commute-path-preview-path` `stroke-width: 245px !important;` per `regional-commutes.test.mjs:56`.
+     - Net: down from 10 to 3 declarations (-7). Authored lines steady at 299 (-1 line).
+  3. Impact Overlays (`frontend/src/styles/map/impact-overlays.css`):
+     - Eliminated 23 redundant `!important` declarations:
+       - `stroke-width: 108` on `.mobile-performance-mode .delay-hourglass-mask-path, .suspension-mask-path` (`0,3,0` vs `0,1,0`).
+       - `animation: none` and `filter: none` on `.mobile-performance-mode .regional-station-selected-indicator` (already covered globally by prior selector block in lines 70-80).
+       - `transition: none` on `.mobile-performance-mode .commute-path-preview-path` and `.station-hit-target`.
+       - `.motion-paused` corridor animation (`animation: none`) and opacity overrides (`0.18`, `0.26`, `0.12`).
+       - `@media (prefers-reduced-motion: reduce)` animation and opacity overrides (`0.18`, `0.26`, `0.12`).
+       - `.interactive-glow:not(.map-selection-attention)` `animation: none`.
+       - `.motion-paused` and `@media (prefers-reduced-motion: reduce)` delay/suspension mask path `animation: none` and `stroke-width: 102`.
+       - Hover priority glow `animation` and reduced-motion boundary rules.
+       - `.rsz-chevron` `animation: none` in `.motion-paused` and reduced motion.
+     - Strictly preserved 37 contract-tested declarations:
+       - Mobile performance mode overlay disablement per `mobile-performance-guardrails.test.mjs:60,66,103,108,113,130,140` and `map-layering.test.mjs:295`.
+       - Ambient halo removal `.asset-alert-path-glow:not(...):not(...):not(...)` (`display: none !important; animation: none !important; filter: none !important;`) per `map-layering.test.mjs:391`.
+       - Snapshot motion paused corridor pulses per `map-layering.test.mjs:386`.
+       - Planned closure icon stroke per `map-layering.test.mjs:232`.
+       - Commute path preview opacity and animation in `.motion-paused` and reduced motion per `map-layering.test.mjs:954,958`.
+       - Regional corridor stroke-width per `regional-network.test.mjs:107`.
+     - Net: down from 60 to 37 declarations (-23). Authored lines steady at 752 (-1 line).
+  4. Regional Map (`frontend/src/styles/map/regional-map.css`):
+     - Eliminated 26 redundant `!important` declarations:
+       - `.regional-station-selected-indicator:not([data-regional-station-selected="true"])` `animation: none` and `filter: none` (preserved contract-tested `opacity: 0 !important` per `regional-network.test.mjs:93`).
+       - `.regional-impact-path, .regional-impact-glow, .regional-impact-hover-boundary` `display: inline` (paths naturally default to inline).
+       - Base `.regional-overlay-segment-group .regional-impact-path` `stroke: var(--regional-impact-color)` (cascade specificity naturally applies).
+       - Planned closure aura `display: none` (`0,2,0` vs `0,1,0`).
+       - Delay path stroke `#0ea5e9` and planned closure path stroke `var(--planned-preview-rail)`.
+       - Selected aura properties (`animation: none`, `opacity: 0.55`, `filter: blur(18px)`, `stroke-width: calc(...)`).
+       - Hover glow `filter`, `opacity`, `stroke-width` and interactive glow `opacity: 0` (`0,4,0` vs `0,2,0`).
+       - Commute impact overlay rules (`display: none` on aura, path `animation: none` & `stroke-opacity: 1`, interactive glow `animation`, `display`, `opacity`, station impact ring `animation`).
+       - Motion paused and reduced-motion animation/transition overrides.
+     - Strictly preserved 24 declarations:
+       - Contract-tested unselected regional station indicator opacity per `regional-network.test.mjs:93`.
+       - Regional station selection source artwork fill/stroke per `regional-network.test.mjs:735`.
+       - Inactive interactive glow `animation: none !important; opacity: 0 !important;` per `regional-network.test.mjs:630-631`.
+       - Hover boundary opacity per `regional-network.test.mjs:791` and hovered boundary override `opacity: 0.94 !important;`.
+       - Commute impact overlay aura `animation: none !important;` per `regional-network.test.mjs:1132`.
+       - Airport connection text fill per `station-connections.test.mjs:160`.
+       - Station hover and selection SVG inline overrides.
+     - Net: down from 50 to 24 declarations (-26). Authored lines steady at 477 (-1 line).
+  5. Cascade Debt:
+     - Eliminated 57 `!important` declarations total across base map, commute preview, impact overlays, and regional map stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,298 to 1,241 (-57 declarations).
+  6. Smoke Harness Hardening (`frontend/tests/smoke/test-support.ts`):
+     - Added `await page.clock.setFixedTime("2026-08-14T16:00:00.000Z");` in `installDismissedTransientUi` to freeze test execution time to 12:00 PM EDT, preventing the overnight subway-closed overlay modal from appearing and intercepting pointer clicks during local runs between 2:00 AM and 6:00 AM EDT.
+- Files changed:
+  - `frontend/src/styles/map/base-map.css`
+  - `frontend/src/styles/map/commute-preview.css`
+  - `frontend/src/styles/map/impact-overlays.css`
+  - `frontend/src/styles/map/regional-map.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `frontend/tests/smoke/test-support.ts`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm run typecheck`: Passed (clean route types generated, 0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 19.9s).
+  - `npm run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 19.6s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,567; authored CSS bytes reduced from 810,027 to 809,400 (-627 B); graph `!important` declarations reduced from 1,298 to 1,241 (-57); production chunk raw bytes reduced from 682,784 to 682,317 (-467 B); production gzip bytes reduced from 104,397 to 104,386 (-11 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `base-map.css` (`regional-network.test.mjs`, `pan-zoom-behavior.test.mjs`, `map-layering.test.mjs`, `regional-map-asset.test.mjs`), `commute-preview.css` (`regional-commutes.test.mjs`), `impact-overlays.css` (`mobile-performance-guardrails.test.mjs`, `map-layering.test.mjs`), and `regional-map.css` (`regional-network.test.mjs`, `station-connections.test.mjs`).
+  - Preserved `opacity: 0.94 !important;` on hovered regional impact boundaries to cleanly override the contract-tested unhovered `opacity: 0 !important;` rule.
+  - Hardened smoke test harness with fixed clock time (12:00 PM EDT) to guarantee time-invariant 24/7 reliability against nighttime subway-closed screens.
+- Risks or blockers:
+  - None. Base map and impact overlay stylesheets are consolidated, cascade debt ceiling is lowered by 57 declarations, and all quality gates pass cleanly.
+- Next session: S23A — Consolidate Shell Layout and Controls (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/map-mode-control.css`).
