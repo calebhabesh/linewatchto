@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S21B
-- Last completed session: S21B
-- Next recommended session: S22A — Consolidate Map Legends and Legend Badges (`map/map-legends.css`, `map/overlap-chooser.css`)
+- Current session: S22A
+- Last completed session: S22A
+- Next recommended session: S22B — Consolidate Map Selection and Markers (`map/map-selection.css`, `map/station-markers.css`, `map/train-markers.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 810,984 |
+| Total authored app CSS bytes | 784,128 | 810,577 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 683,654 |
-| Production CSS gzip bytes | 108,667 | 104,462 |
+| Production CSS bytes | 705,472 | 683,284 |
+| Production CSS gzip bytes | 108,667 | 104,449 |
 
 
 
@@ -2798,3 +2798,62 @@
   - None. All late shell stylesheets are consolidated and cleanly verified.
 - Next session: S22A — Consolidate Map Legends and Legend Badges (`map/map-legends.css`, `map/overlap-chooser.css`).
 
+### S22A — Consolidate Map Legends and Legend Badges
+
+- Status: completed
+- Commit: 3937b7c7
+- Scope: Consolidate map legends, badges, and overlap chooser stylesheets (`frontend/src/styles/map/map-legends.css`, `frontend/src/styles/map/overlap-chooser.css`), eliminating redundant `!important` declarations, simplifying choice hover/selected styling, and lowering the graph-wide migration debt ceiling while strictly preserving contract-tested selectors, animations, keyframes, and visual regression baselines:
+  1. Map Legends & Route Badges (`frontend/src/styles/map/map-legends.css`):
+     - Eliminated 5 redundant `!important` declarations:
+       - Removed `!important` from `.mobile-legend-pill` transition rules (`box-shadow 300ms ease`).
+       - Removed `!important` from `.mobile-legend-pill--expanded` `max-width: var(--mobile-legend-expanded-width)` (cascade order already supersedes `.mobile-legend-pill`'s un-important `max-width: 36px`).
+       - Removed `!important` from `.mobile-legend-pill--expanded` transition rules (`left 300ms ease`).
+       - Removed 2 `!important` declarations from `@media (prefers-reduced-motion: reduce)` (`transition-duration: 0.01ms` and `transition-delay: 0ms`).
+     - Strictly preserved contract-tested declarations:
+       - `.mobile-legend-pill` safe-inset offsets (`top`, `left`) and collapsed width (`width: 36px !important;`) per `mobile-bottom-sheet-ux.test.mjs:220-221` and `drawer-layout.test.mjs:91`.
+       - `.mobile-legend-route-badge--regional` dimensions (`border-radius: 5px !important;`, `height: 24px !important;`, `width: 24px !important;`) per `drawer-layout.test.mjs:99`.
+       - `.mobile-legend-route-badge--regional > img.transit-line-badge` dimensions and reset (`border-radius: 3px !important;`, `height: 100% !important;`, `outline: none !important;`, `width: 100% !important;`) per `drawer-layout.test.mjs:101`.
+       - Announcement displacement offsets (`.mobile-legend-pill--announcement` and `.mobile-legend-pill--regional.mobile-legend-pill--announcement` `top: calc(...) !important;`) to cleanly override the base `top` contract.
+     - Net: eliminated 5 `!important` declarations (down from 18 to 13). Authored lines steady at 621.
+  2. Overlap Chooser & Indicators (`frontend/src/styles/map/overlap-chooser.css`):
+     - Eliminated 32 redundant `!important` declarations:
+       - Removed `!important` from `.overlap-chooser-surface` light, dark, and high-contrast background styling (`background: #ffffff`, `#0e1016`, `#000000`).
+       - Removed `!important` from `.overlap-chooser-close, .overlap-chooser-close-btn` (`border: none`).
+       - Eliminated 12 cascading `!important` declarations from base kind cards (`box-shadow` and `background` across `reduced-speed-zone`, `delay`, `suspension`, and `planned-closure`, both light and dark).
+       - Eliminated 16 cascading `!important` declarations from hover, focus-visible, and selected states (`box-shadow` and `background` across all 4 kinds in light and dark), allowing natural class specificity (`0,3,0` / `0,4,0`) to handle state changes.
+     - Strictly preserved contract-tested declarations:
+       - `.overlap-chooser-portal` `height: fit-content !important;` per `map-layering.test.mjs:777`.
+       - `.overlap-chooser-surface` `border: none !important;` per `map-layering.test.mjs:776`.
+       - `.overlap-chooser-choice` `border: none !important;` per `map-layering.test.mjs:783`.
+       - Base kind left borders (`border-left: 2px solid ... !important;`) per `map-layering.test.mjs:784-785`.
+       - Prominent hover/selected left border colors (`border-left-color: ... !important;`) to properly override base kind border shorthands.
+       - High-contrast choice border, background, and outline overrides.
+       - Motion paused safety overrides (`transition: none !important;`, `animation: none !important;`).
+     - Net: eliminated 32 `!important` declarations (down from 57 to 25). Authored lines steady at 775.
+  3. Cascade Debt:
+     - Eliminated 37 `!important` declarations total across map legends and overlap chooser stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,385 to 1,348 (-37 declarations).
+- Files changed:
+  - `frontend/src/styles/map/map-legends.css`
+  - `frontend/src/styles/map/overlap-chooser.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.6s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 20.3s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 22.5s).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,567; authored CSS bytes reduced from 810,984 to 810,577 (-407 B); graph `!important` declarations reduced from 1,385 to 1,348 (-37); production chunk raw bytes reduced from 683,654 to 683,284 (-370 B); production gzip bytes reduced from 104,462 to 104,449 (-13 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `map-legends.css` (`mobile-bottom-sheet-ux.test.mjs`, `drawer-layout.test.mjs`) and `overlap-chooser.css` (`map-layering.test.mjs`).
+  - Preserved hover/selected `border-left-color: ... !important;` to ensure reliable override of base kind `border-left` shorthands across all states.
+  - Eliminated cascading `!important` infection on choice background and box-shadow declarations, letting class specificity work as intended.
+- Risks or blockers:
+  - None. All map legend and overlap chooser stylesheets are consolidated and cleanly verified.
+- Next session: S22B — Consolidate Map Selection and Markers (`map/map-selection.css`, `map/station-markers.css`, `map/train-markers.css`).
