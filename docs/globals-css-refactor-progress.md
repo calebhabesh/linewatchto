@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S24A
-- Last completed session: S24A
-- Next recommended session: S24B — Consolidate Subway Closed Overnight Shell (`shell/subway-closed.css`)
+- Current session: S24B
+- Last completed session: S24B
+- Next recommended session: S25 — Consolidate Card Elevation, Badges, and Status Notices (`shell/card-elevation.css`, `shell/badges.css`, `shell/status-notices.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 804,824 |
+| Total authored app CSS bytes | 784,128 | 803,295 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 678,072 |
-| Production CSS gzip bytes | 108,667 | 103,965 |
+| Production CSS bytes | 705,472 | 676,862 |
+| Production CSS gzip bytes | 108,667 | 103,827 |
 
 
 
@@ -3224,3 +3224,48 @@
 - Risks or blockers:
   - None. Mobile chrome and shell utilities stylesheets are consolidated, cascade debt ceiling is lowered by 103 declarations, and all quality gates pass cleanly.
 - Next session: S24B — Consolidate Subway Closed Overnight Shell (`shell/subway-closed.css`).
+
+### S24B — Consolidate Subway Closed Overnight Shell
+
+- Status: completed
+- Commit: 47299aab
+- Scope: Consolidate subway closed overnight shell, GO/UP rail closed screen, closing-soon announcement chips, and mobile peek chip controls (`frontend/src/styles/shell/subway-closed.css`), eliminating redundant `!important` declarations, streamlining duplicate mobile positioning overrides across Section 1, Section 8, and Section 9, and lowering the graph-wide migration debt ceiling while strictly preserving contract-tested selectors, functional exiting state overrides, and visual regression baselines:
+  1. Subway Closed & Announcement Shell (`frontend/src/styles/shell/subway-closed.css`):
+     - Eliminated 140 redundant `!important` declarations across `.subway-closing-countdown-badge svg` dimensions, `.subway-closing-soon-chip` mobile layout, countdown badge sizing, details flexbox, text ellipsis, light mode countdown SVG color, `.subway-closed-peek-chip` mobile placement, peek title/subtitle typography, mobile full-chip touch target buttons, light mode peek chip overrides, and Section 9 shared positioning clamps.
+     - Strictly preserved 6 declarations:
+       - 3 functional pointer-events safety overrides on exiting animations: `.subway-closed-backdrop--exiting { pointer-events: none !important; }`, `.subway-closed-content--exiting { pointer-events: none !important; }`, and `.subway-closed-peek-chip--exiting { pointer-events: none !important; }`.
+       - 3 contract-tested mobile notice rules:
+         - Contract-tested `overflow: hidden !important;` on `.subway-closing-soon-chip, .subway-closed-peek-chip, .go-up-closed-peek-chip` per `regional-network.test.mjs:123`.
+         - Contract-tested `overflow: hidden !important;` on `.subway-closing-soon-copy, .subway-closed-peek-text` per `regional-network.test.mjs:124`.
+         - Contract-tested `white-space: normal !important;` on `.go-up-closed-peek-chip .subway-closed-peek-subtitle` per `regional-network.test.mjs:164`.
+     - Net in `subway-closed.css`: down from 146 to 6 `!important` declarations (-140, -95.9%). Authored lines steady at 1,027.
+  2. Mobile Sheets Scrollbar Seam (`frontend/src/styles/shell/mobile-sheets.css`):
+     - Restored contract-tested `display: block !important;` on `.mobile-status-content-scroll::-webkit-scrollbar` per `mobile-bottom-sheet-ux.test.mjs:322` (+1 declaration). Authored lines steady at 1,759.
+  3. Cascade Debt:
+     - Net elimination of 139 `!important` declarations across the stylesheet graph.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 826 down to 687 (-139 declarations, -16.8%).
+- Files changed:
+  - `frontend/src/styles/shell/subway-closed.css`
+  - `frontend/src/styles/shell/mobile-sheets.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm run typecheck`: Passed (clean route types generated, 0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 3.3s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 19.1s).
+  - `npm run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 20.1s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,567; authored CSS bytes reduced from 804,824 to 803,295 (-1,529 B); graph `!important` declarations reduced from 826 to 687 (-139); production chunk raw bytes reduced from 678,072 to 676,862 (-1,210 B); production gzip bytes reduced from 103,965 to 103,827 (-138 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `subway-closed.css` (`regional-network.test.mjs:123,124,164`) and `mobile-sheets.css` (`mobile-bottom-sheet-ux.test.mjs:322`).
+  - Preserved functional exit safety constraints (`pointer-events: none !important;`) on exiting backdrop, modal content, and peek chip to prevent phantom clicks during exit transitions.
+  - Safely eliminated redundant `!important` declarations on closing-soon chips, mobile chip positioning, countdown SVGs, peek title/subtitle typography, full-chip tap buttons, light mode overrides, and duplicate Section 9 declarations.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 826 to 687 (-139 declarations).
+- Risks or blockers:
+  - None. Subway closed overnight shell stylesheet is consolidated, cascade debt ceiling is lowered by 139 declarations, and all quality gates pass cleanly.
+- Next session: S25 — Consolidate Card Elevation, Badges, and Status Notices (`shell/card-elevation.css`, `shell/badges.css`, `shell/status-notices.css`).
