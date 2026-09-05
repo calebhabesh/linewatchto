@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S27
-- Last completed session: S27
-- Next recommended session: S28 — Consolidate Panels (`panels/alerts.css`, `panels/accessibility-outages.css`, `panels/surface-notices.css`, `panels/reliability.css`, `panels/alert-history.css`, `panels/feedback.css`, `panels/info-modals.css`)
+- Current session: S28
+- Last completed session: S28
+- Next recommended session: S29 — Consolidate Mobile Shell and Desktop Chrome (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/floating-panels.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,568 |
-| Total authored app CSS bytes | 784,128 | 801,786 |
+| Total authored app CSS bytes | 784,128 | 801,731 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 675,483 |
-| Production CSS gzip bytes | 108,667 | 103,773 |
+| Production CSS bytes | 705,472 | 675,433 |
+| Production CSS gzip bytes | 108,667 | 103,763 |
 
 
 
@@ -3469,3 +3469,70 @@
 - Risks or blockers:
   - None. Account dialogs, my stations, saved commutes, commute rules, and notification settings stylesheets are consolidated, cascade debt ceiling is lowered by 8 declarations, and all quality gates pass cleanly.
 - Next session: S28 — Consolidate Panels (`panels/alerts.css`, `panels/accessibility-outages.css`, `panels/surface-notices.css`, `panels/reliability.css`, `panels/alert-history.css`, `panels/feedback.css`, `panels/info-modals.css`).
+
+### S28 — Consolidate Panels
+
+- Status: completed
+- Commit: d0e4b015
+- Scope: Consolidate panels stylesheets (`frontend/src/styles/panels/alerts.css`, `frontend/src/styles/panels/accessibility-outages.css`, `frontend/src/styles/panels/surface-notices.css`, `frontend/src/styles/panels/reliability.css`, `frontend/src/styles/panels/alert-history.css`, `frontend/src/styles/panels/feedback.css`, `frontend/src/styles/panels/info-modals.css`), eliminating 5 redundant `!important` declarations in `alerts.css` while strictly preserving contract-tested selectors, high-contrast accessibility overrides, defensive card-elevation overrides, and visual regression baselines:
+  1. Alerts (`frontend/src/styles/panels/alerts.css`):
+     - Eliminated 5 redundant `!important` declarations:
+       - `overflow-y: visible !important` and `flex: none !important` on `.embedded-impact-panel > .alert-stack, .embedded-impact-panel > .closure-stack` (compound selector specificity (0, 2, 0) naturally defeats (0, 1, 0) base mobile sheet rules without `!important`).
+       - `padding-bottom: 12px !important`, `mask-image: none !important`, and `-webkit-mask-image: none !important` on empty state alert and closure stacks (`:is(.floating-panel-scroll, .mobile-view-content-wrapper) :is(.line-impact-panel-stack.is-empty, .alert-stack.is-empty, .closure-stack.is-empty)`), which were stale overrides from an earlier 56px bottom padding/fade mask design.
+     - Strictly preserved 14 declarations:
+       - Contract-tested `border: none !important` on `.impact-card-map-btn` per `view-on-map-button.test.mjs:42`.
+       - Contract-tested `color: #ffffff !important` on `.impact-card-map-btn span` per `view-on-map-button.test.mjs:47`.
+       - Contract-tested mobile `width: 72px !important` and `height: 72px !important` on `.impact-card-map-btn` per `view-on-map-button.test.mjs:61-62`.
+       - Contract-tested `stroke: #ffffff !important` on `.jump-to-corners path` per `view-on-map-button.test.mjs:50`.
+       - Contract-tested active `background: #2563eb !important` and dark active `background: #1d4ed8 !important` on `.impact-card-map-btn.is-active` per `view-on-map-button.test.mjs:54-55`.
+       - Contract-tested active `filter: none !important` on `.impact-card-map-btn.is-active .jump-to-pin` per `view-on-map-button.test.mjs:56`.
+       - Contract-tested `display: none !important` on `.embedded-impact-panel > .panel-heading, .embedded-impact-panel > .impact-list-toolbar` per `drawer-layout.test.mjs:59`.
+       - Defensive overrides against subsequent `card-elevation.css` (`.motion-paused .station-impact-card-highlight`): `box-shadow` and `border-color`.
+       - High-contrast accessibility overrides: `.high-contrast .impact-card-map-btn` border (1) and `.high-contrast .impact-card-map-btn.is-active` background and border (2).
+     - Net in `alerts.css`: down from 19 to 14 `!important` declarations (-5, -26.3%). Authored lines steady at 1,453.
+  2. Accessibility Outages (`frontend/src/styles/panels/accessibility-outages.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 57 authored lines.
+  3. Surface Notices (`frontend/src/styles/panels/surface-notices.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 121 authored lines.
+  4. Reliability (`frontend/src/styles/panels/reliability.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 121 authored lines.
+  5. Alert History (`frontend/src/styles/panels/alert-history.css`):
+     - Confirmed preservation of 1 `!important` declaration: high-contrast accessibility override `background: #000000 !important` on `.high-contrast .alert-history-item`.
+     - Net in `alert-history.css`: steady at 1 `!important` declaration. Authored lines steady at 918.
+  6. Feedback (`frontend/src/styles/panels/feedback.css`):
+     - Confirmed clean: 0 `!important` declarations, 0 class-substring selectors across all 262 authored lines.
+  7. Info Modals (`frontend/src/styles/panels/info-modals.css`):
+     - Confirmed preservation of all 4 `!important` declarations:
+       - Contract-tested `border: none !important` on `.site-guide-panel` per `site-guide.test.mjs:206`.
+       - Contract-tested `border: none !important` on `.source-status-panel` per `site-guide.test.mjs:208`.
+       - Contract-tested `border: none !important` on `.source-status-card` per `site-guide.test.mjs:209`.
+       - High-contrast accessibility override `border: 1px solid #ffffff !important` on `.high-contrast .source-status-panel, ...`.
+     - Net in `info-modals.css`: steady at 4 `!important` declarations. Authored lines steady at 1,616.
+  8. Cascade Debt:
+     - Net elimination of 5 `!important` declarations across panels stylesheets (24 -> 19, -20.8%).
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 545 down to 540 (-5 declarations).
+- Files changed:
+  - `frontend/src/styles/panels/alerts.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (200/200 suites, 0 failures).
+  - `npm run typecheck`: Passed (0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.2s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 19.1s).
+  - `npm run test:visual`: Passed (11/11 passed, 0 pixel differences across all baseline scenarios).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 21.2s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,568; authored CSS bytes reduced from 801,786 to 801,731 (-55 B); graph `!important` declarations reduced from 545 to 540 (-5); production chunk raw bytes reduced from 675,483 to 675,433 (-50 B); production gzip bytes reduced from 103,773 to 103,763 (-10 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `alerts.css` (`view-on-map-button.test.mjs:42,47,50,54-56,61-62`, `drawer-layout.test.mjs:59`) and `info-modals.css` (`site-guide.test.mjs:206-209`).
+  - Preserved defensive `!important` declarations in `alerts.css` (`.station-impact-card-highlight`) protecting against subsequent `.alert-card.*-card-border` rules in `card-elevation.css`.
+  - Preserved all high-contrast accessibility overrides across all seven stylesheets.
+  - Eliminated redundant `!important` declarations on `.embedded-impact-panel` stack `overflow-y` and `flex`, and empty state `padding-bottom` and `mask-image`.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 545 to 540 (-5 declarations).
+- Risks or blockers:
+  - None. Panels stylesheets are consolidated, cascade debt ceiling is lowered by 5 declarations, and all quality gates pass cleanly.
+- Next session: S29 — Consolidate Mobile Shell and Desktop Chrome (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/floating-panels.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`).
