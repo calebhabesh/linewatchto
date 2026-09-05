@@ -37,9 +37,9 @@
    ========================================================================== */
 
 .station-detail-panel [data-arrival-group] {
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
+  border: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 /* ==========================================================================
@@ -91,17 +91,17 @@
 
 .station-detail-panel [data-arrival-group] .station-arrival-tile,
 .station-detail-panel [data-regional-arrival-direction] .station-arrival-tile {
-  border: none !important;
+  border: none;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .dark .station-detail-panel [data-arrival-group] .station-arrival-tile,
 .dark .station-detail-panel [data-regional-arrival-direction] .station-arrival-tile {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.25) !important;
+    0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* High Contrast overrides for arrival tiles */
@@ -142,7 +142,7 @@
 .arrival-line-pin svg polygon,
 .arrival-line-pin svg path {
   fill: rgba(245, 158, 11, 0.15) !important;
-  stroke: rgb(245, 158, 11) !important;
+  stroke: rgb(245, 158, 11);
 }
 
 .arrival-line-pin.is-hovered,
@@ -183,7 +183,7 @@
 .arrival-line-pin.is-pinned svg polygon,
 .arrival-line-pin.is-pinned svg path {
   fill: currentColor !important;
-  stroke: currentColor !important;
+  stroke: currentColor;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -207,7 +207,7 @@
 .dark .arrival-line-pin svg polygon,
 .dark .arrival-line-pin svg path {
   fill: rgba(251, 191, 36, 0.15) !important;
-  stroke: rgb(251, 191, 36) !important;
+  stroke: rgb(251, 191, 36);
 }
 
 .dark .arrival-line-pin.is-hovered,
@@ -235,7 +235,7 @@
 .dark .arrival-line-pin.is-pinned svg polygon,
 .dark .arrival-line-pin.is-pinned svg path {
   fill: currentColor !important;
-  stroke: currentColor !important;
+  stroke: currentColor;
 }
 
 @media (hover: hover) and (pointer: fine) {
