@@ -3,24 +3,24 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S15J
-- Last completed session: S15J
-- Next recommended session: S16A — Consolidate Map Stylesheets (`map/base-map.css`, `map/regional-map.css`, `map/station-markers.css`, `map/map-selection.css`, `map/commute-preview.css`, `map/train-markers.css`)
-- Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and Chromium E2E gates.
+- Current session: S16A
+- Last completed session: S16A
+- Next recommended session: S16B — Consolidate Remaining Map Stylesheets (`map/impact-overlays.css`, `map/overlap-chooser.css`, `map/map-legends.css`)
+- Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
 
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 32,033 |
-| Total authored app CSS bytes | 784,128 | 833,269 |
+| Total authored app CSS lines | 31,414 | 31,993 |
+| Total authored app CSS bytes | 784,128 | 831,791 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 702,549 |
-| Production CSS gzip bytes | 108,667 | 105,605 |
+| Production CSS bytes | 705,472 | 701,238 |
+| Production CSS gzip bytes | 108,667 | 105,539 |
 
 
 
@@ -2055,3 +2055,57 @@
 - Risks or blockers:
   - None. All panel stylesheets in `src/styles/panels/` are now consolidated and cleanly verified.
 - Next session: S16A — Consolidate Map Stylesheets (`map/base-map.css`, `map/regional-map.css`, `map/station-markers.css`, `map/map-selection.css`, `map/commute-preview.css`, `map/train-markers.css`).
+
+### S16A — Consolidate Map Stylesheets (2026-09-04)
+
+- Status: completed
+- Commit: 27a85ffd
+- Scope: Consolidate the core map stylesheets (`map/base-map.css`, `map/regional-map.css`, `map/station-markers.css`, `map/map-selection.css`, `map/commute-preview.css`, `map/train-markers.css`), eliminating duplicate rules, redundant motion-paused declarations, duplicate hover suppression blocks, and unnecessary `!important` declarations while strictly preserving interactive SVG behaviors, contract selectors, reduced-motion adaptations, and visual regression baselines:
+  1. Base Map (`map/base-map.css`):
+     - Safely eliminated `!important` from `@media (prefers-reduced-motion: reduce) .ttc-map-entrance-reveal--ready { animation: none; }` where natural cascade order naturally overrides the earlier animation definition.
+     - Safely eliminated `!important` from `.motion-paused .map-layer-entering, .motion-paused .map-layer-current, .motion-paused .map-layer-exiting { transition: none; }` where specificity `(0,2,0)` naturally beats `(0,1,0)`.
+     - Consolidated duplicate hover suppression blocks (`:is([data-map-gesture-active="true"], [data-map-zoom-active="true"])` and `:is([data-map-camera-moving="true"], [data-regional-map-camera-moving="true"])`) into a single unified `:is()` selector, eliminating 13 duplicate lines and 3 `!important` declarations.
+  2. Regional Map (`map/regional-map.css`):
+     - Merged duplicate `.regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-aura` rules, eliminating the duplicate `opacity: 0.55 !important;` declaration.
+     - Combined `.regional-station-impact-ring[data-selected-commute-impact-overlay]` and its `:is(circle, rect, ellipse)` children animation overrides, eliminating 1 redundant `!important` declaration.
+  3. Station Markers (`map/station-markers.css`):
+     - Removed redundant duplicate `filter` and `transform` overrides under `.motion-paused` and `@media (prefers-reduced-motion: reduce)` for `.station-label-hover-effect-active, .station-label-hover-effect:has(...)`, which identically repeated base declarations without modifying any properties, saving 14 lines of CSS while preserving `animation: none; transition: none;`.
+  4. Commute Preview (`map/commute-preview.css`):
+     - Removed redundant `!important` from `.dark .commute-path-preview-chip strong, .high-contrast .commute-path-preview-chip strong { color: #93c5fd; }` where specificity `(0,3,0)` naturally beats `(0,2,0)`.
+     - Simplified `.motion-paused .commute-path-preview-chip` and `@media (prefers-reduced-motion: reduce) .commute-path-preview-chip`, eliminating 4 unnecessary `!important` declarations and redundant descendant selectors.
+  5. Train Markers (`map/train-markers.css`):
+     - Removed redundant duplicate `.dark .mobile-train-pending-spinner` and `.high-contrast .mobile-train-pending-spinner` rules, eliminating 2 duplicate `!important` declarations.
+     - Safely eliminated `!important` from `.high-contrast .train-layer-toggle.active` (`background: #ffffff; color: #000000;`) where specificity `(0,3,0)` and natural cascade order override base `(0,2,0)`.
+  6. Map Selection & Contract Verification (`map/map-selection.css`):
+     - Verified that all exact selector contracts (e.g. in `map-layering.test.mjs` and `stylesheet-graph.test.mjs`) remain fully intact.
+  7. Cascade Debt:
+     - Eliminated 16 `!important` declarations total across the map stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,088 to 2,072 (-16 declarations).
+- Files changed:
+  - `frontend/src/styles/map/base-map.css`
+  - `frontend/src/styles/map/commute-preview.css`
+  - `frontend/src/styles/map/regional-map.css`
+  - `frontend/src/styles/map/station-markers.css`
+  - `frontend/src/styles/map/train-markers.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 18.8s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`train marker | regional map | disruption`): Passed (3/3 passed in 37.1s).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 32,033 to 31,993 (-40 lines); authored CSS bytes reduced from 833,269 to 831,791 (-1,478 B); graph `!important` declarations reduced from 2,088 to 2,072 (-16); production chunk raw bytes reduced from 702,549 to 701,238 (-1,311 B); production gzip bytes reduced from 105,605 to 105,539 (-66 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `map-selection.css` and `train-markers.css` required by `map-layering.test.mjs`.
+  - Consolidated duplicate hover suppression blocks in `base-map.css` by grouping camera moving and gesture active states into a single `:is()` rule.
+  - Eliminated duplicate rules in `regional-map.css` and `train-markers.css` where identical selectors or identical color declarations existed.
+- Risks or blockers:
+  - None. All 6 core map stylesheets in `src/styles/map/` are consolidated and cleanly verified.
+- Next session: S16B — Consolidate Remaining Map Stylesheets (`map/impact-overlays.css`, `map/overlap-chooser.css`, `map/map-legends.css`).
+
