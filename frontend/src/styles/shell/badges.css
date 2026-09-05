@@ -150,28 +150,28 @@ img.transit-line-badge {
 /* Category background tints for System Status & Line Status impact buttons */
 .mobile-line-status-impacts button.mobile-line-status-btn-alerts,
 .mobile-status-actions button.mobile-status-btn-alerts {
-  background: #fef2f2 !important;
+  background: #fef2f2;
 }
 .mobile-line-status-impacts button.mobile-line-status-btn-delays,
 .mobile-status-actions button.mobile-status-btn-delays {
-  background: #fefce8 !important;
+  background: #fefce8;
 }
 .mobile-line-status-impacts button.mobile-line-status-btn-rsz,
 .mobile-status-actions button.mobile-status-btn-rsz {
-  background: #fffbeb !important;
+  background: #fffbeb;
 }
 .mobile-line-status-impacts button.mobile-line-status-btn-closures,
 .mobile-status-actions button.mobile-status-btn-closures {
-  background: #eff6ff !important;
+  background: #eff6ff;
 }
 .mobile-status-actions button.mobile-status-btn-trip-changes {
-  background: #fffbeb !important;
+  background: #fffbeb;
 }
 .mobile-status-actions button.mobile-status-btn-accessibility {
-  background: #faf5ff !important;
+  background: #faf5ff;
 }
 .mobile-status-actions button.mobile-status-btn-surface {
-  background: #f0fdf4 !important;
+  background: #f0fdf4;
 }
 
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts,
@@ -180,52 +180,52 @@ img.transit-line-badge {
 }
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays,
 .dark .mobile-status-actions button.mobile-status-btn-delays {
-  background: #2a2808 !important;
+  background: #2a2808;
 }
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz,
 .dark .mobile-status-actions button.mobile-status-btn-rsz {
-  background: #2a1f08 !important;
+  background: #2a1f08;
 }
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures,
 .dark .mobile-status-actions button.mobile-status-btn-closures {
-  background: #0e1c30 !important;
+  background: #0e1c30;
 }
 .dark .mobile-status-actions button.mobile-status-btn-trip-changes {
-  background: #2a1f08 !important;
+  background: #2a1f08;
 }
 .dark .mobile-status-actions button.mobile-status-btn-accessibility {
-  background: #20132c !important;
+  background: #20132c;
 }
 .dark .mobile-status-actions button.mobile-status-btn-surface {
-  background: #0f291e !important;
+  background: #0f291e;
 }
 
 /* Hover and active states for status action and line impact buttons */
 @media (hover: hover) {
   .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover,
   .mobile-status-actions button.mobile-status-btn-alerts:hover {
-    background: #fee2e2 !important;
+    background: #fee2e2;
   }
   .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover,
   .mobile-status-actions button.mobile-status-btn-delays:hover {
-    background: #fef9c3 !important;
+    background: #fef9c3;
   }
   .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover,
   .mobile-status-actions button.mobile-status-btn-rsz:hover {
-    background: #fef3c7 !important;
+    background: #fef3c7;
   }
   .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover,
   .mobile-status-actions button.mobile-status-btn-closures:hover {
-    background: #dbeafe !important;
+    background: #dbeafe;
   }
   .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
-    background: #fef3c7 !important;
+    background: #fef3c7;
   }
   .mobile-status-actions button.mobile-status-btn-accessibility:hover {
-    background: #f3e8ff !important;
+    background: #f3e8ff;
   }
   .mobile-status-actions button.mobile-status-btn-surface:hover {
-    background: #dcfce7 !important;
+    background: #dcfce7;
   }
 
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover,
@@ -234,57 +234,57 @@ img.transit-line-badge {
   }
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover,
   .dark .mobile-status-actions button.mobile-status-btn-delays:hover {
-    background: #38360d !important;
+    background: #38360d;
   }
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover,
   .dark .mobile-status-actions button.mobile-status-btn-rsz:hover {
-    background: #38280d !important;
+    background: #38280d;
   }
   .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover,
   .dark .mobile-status-actions button.mobile-status-btn-closures:hover {
-    background: #132540 !important;
+    background: #132540;
   }
   .dark .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
-    background: #38280d !important;
+    background: #38280d;
   }
   .dark .mobile-status-actions button.mobile-status-btn-accessibility:hover {
-    background: #2e1b3f !important;
+    background: #2e1b3f;
   }
   .dark .mobile-status-actions button.mobile-status-btn-surface:hover {
-    background: #163929 !important;
+    background: #163929;
   }
 }
 
 .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active,
 .mobile-status-actions button.mobile-status-btn-alerts:active {
-  background: #fecaca !important;
+  background: #fecaca;
   transform: scale(0.98);
 }
 .mobile-line-status-impacts button.mobile-line-status-btn-delays:active,
 .mobile-status-actions button.mobile-status-btn-delays:active {
-  background: #fef08a !important;
+  background: #fef08a;
   transform: scale(0.98);
 }
 .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active,
 .mobile-status-actions button.mobile-status-btn-rsz:active {
-  background: #fde68a !important;
+  background: #fde68a;
   transform: scale(0.98);
 }
 .mobile-line-status-impacts button.mobile-line-status-btn-closures:active,
 .mobile-status-actions button.mobile-status-btn-closures:active {
-  background: #bfdbfe !important;
+  background: #bfdbfe;
   transform: scale(0.98);
 }
 .mobile-status-actions button.mobile-status-btn-trip-changes:active {
-  background: #fde68a !important;
+  background: #fde68a;
   transform: scale(0.98);
 }
 .mobile-status-actions button.mobile-status-btn-accessibility:active {
-  background: #e9d5ff !important;
+  background: #e9d5ff;
   transform: scale(0.98);
 }
 .mobile-status-actions button.mobile-status-btn-surface:active {
-  background: #bbf7d0 !important;
+  background: #bbf7d0;
   transform: scale(0.98);
 }
 
@@ -295,29 +295,29 @@ img.transit-line-badge {
 }
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:active,
 .dark .mobile-status-actions button.mobile-status-btn-delays:active {
-  background: #474410 !important;
+  background: #474410;
   transform: scale(0.98);
 }
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active,
 .dark .mobile-status-actions button.mobile-status-btn-rsz:active {
-  background: #473410 !important;
+  background: #473410;
   transform: scale(0.98);
 }
 .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:active,
 .dark .mobile-status-actions button.mobile-status-btn-closures:active {
-  background: #1a3254 !important;
+  background: #1a3254;
   transform: scale(0.98);
 }
 .dark .mobile-status-actions button.mobile-status-btn-trip-changes:active {
-  background: #473410 !important;
+  background: #473410;
   transform: scale(0.98);
 }
 .dark .mobile-status-actions button.mobile-status-btn-accessibility:active {
-  background: #3b2352 !important;
+  background: #3b2352;
   transform: scale(0.98);
 }
 .dark .mobile-status-actions button.mobile-status-btn-surface:active {
-  background: #1e4734 !important;
+  background: #1e4734;
   transform: scale(0.98);
 }
 
