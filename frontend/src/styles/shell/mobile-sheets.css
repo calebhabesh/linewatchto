@@ -1139,7 +1139,7 @@
   .privacy-acknowledgements-scroll::-webkit-scrollbar,
   .mobile-impact-inspector-scroll::-webkit-scrollbar,
   .mobile-status-content-scroll::-webkit-scrollbar {
-    display: block;
+    display: block !important;
     height: 4px;
     width: 4px;
   }
