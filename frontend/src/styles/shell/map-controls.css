@@ -30,10 +30,10 @@
     top: 96px !important;
   }
   .regional-map-control-rail {
-    top: 176px !important;
+    top: 176px;
     right: 24px !important;
-    left: auto !important;
-    transform: none !important;
+    left: auto;
+    transform: none;
   }
 }
 
@@ -262,7 +262,7 @@
     transition: transform 0.2s ease, background-color 0.2s ease;
   }
   .map-control-rail .map-control-button svg {
-    color: #0f172a !important;
+    color: #0f172a;
   }
   .high-contrast .map-control-rail .map-control-button,
   .linewatch-shell.high-contrast .map-control-rail .map-control-button {
