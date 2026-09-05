@@ -97,8 +97,8 @@
 }
 
 .high-contrast .saved-commute-sort-control select {
-  border-color: #ffffff !important;
-  box-shadow: none !important;
+  border-color: #ffffff;
+  box-shadow: none;
 }
 
 .saved-commute-sort-trigger {
@@ -136,8 +136,8 @@
 
 .high-contrast .saved-commute-sort-trigger {
   background: #000000;
-  border: 1px solid #ffffff !important;
-  box-shadow: none !important;
+  border: 1px solid #ffffff;
+  box-shadow: none;
 }
 
 .saved-commute-sort-options {
@@ -174,7 +174,7 @@
 
 .high-contrast .saved-commute-sort-options {
   background: #000000;
-  border: 1px solid #ffffff !important;
+  border: 1px solid #ffffff;
 }
 
 .saved-commute-sort-option {
@@ -471,7 +471,7 @@
   background: rgba(255, 255, 255, 0.95);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 2px rgba(0, 0, 0, 0.06) !important;
+    0 1px 2px rgba(0, 0, 0, 0.06);
   color: rgb(15, 23, 42);
   display: flex;
   font-size: 0.78rem;
@@ -486,11 +486,11 @@
 }
 
 .commute-station-trigger:hover {
-  background: rgba(239, 246, 255, 0.95) !important;
+  background: rgba(239, 246, 255, 0.95);
 }
 
 .dark .commute-station-trigger:hover {
-  background: rgba(30, 58, 138, 0.35) !important;
+  background: rgba(30, 58, 138, 0.35);
 }
 
 .commute-station-trigger span {
@@ -570,7 +570,7 @@
   border-radius: 7px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    0 1px 2px rgba(0, 0, 0, 0.05);
   color: rgb(15, 23, 42);
   display: flex;
   font-size: 0.74rem;
@@ -605,7 +605,7 @@
 .commute-station-option:hover,
 .commute-station-option:focus-visible,
 .commute-station-option.selected {
-  background: rgba(239, 246, 255, 0.95) !important;
+  background: rgba(239, 246, 255, 0.95);
   outline: none;
 }
 
@@ -650,11 +650,11 @@
 .dark .commute-station-search-row,
 .dark .commute-station-line-trigger,
 .dark .commute-station-option {
-  background: #161a23 !important;
+  background: #161a23;
   border: none !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.25) !important;
+    0 1px 2px rgba(0, 0, 0, 0.25);
   color: rgb(248, 250, 252);
 }
 
@@ -663,10 +663,10 @@
 .high-contrast .commute-station-search-row,
 .high-contrast .commute-station-line-trigger,
 .high-contrast .commute-station-option {
-  background: #000000 !important;
+  background: #000000;
   border: 1px solid #ffffff !important;
-  box-shadow: none !important;
-  color: #ffffff !important;
+  box-shadow: none;
+  color: #ffffff;
 }
 
 .saved-commute-station-grid {
@@ -679,14 +679,6 @@
   .saved-commute-station-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-.saved-commute-primary-button,
-.commute-route-actions button {
-  align-items: center;
-  display: inline-flex;
-  gap: 0.35rem;
-  justify-content: center;
 }
 
 .saved-commute-return-toggle {
@@ -1098,7 +1090,10 @@
 }
 
 .saved-commute-event-types {
+  border: 0;
   container-type: inline-size;
+  gap: 0.55rem;
+  padding-top: 0;
 }
 
 @container (min-width: 34rem) {
@@ -1170,12 +1165,6 @@
 .saved-commute-notification-note svg {
   flex: 0 0 auto;
   margin-top: 0.05rem;
-}
-
-.saved-commute-event-types {
-  border: 0;
-  gap: 0.55rem;
-  padding-top: 0;
 }
 
 .saved-commute-notification-divider {
@@ -1641,7 +1630,10 @@
 
 .saved-commute-customize-toggle {
   align-items: center;
+  background: rgb(255, 255, 255);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
+  color: rgb(51, 65, 85);
   display: flex;
   font-size: 0.75rem;
   font-weight: 900;
@@ -1652,12 +1644,6 @@
   padding: 0.6rem 0.625rem;
   transition: all 0.18s ease;
   width: 100%;
-}
-
-.saved-commute-customize-toggle {
-  background: rgb(255, 255, 255);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: rgb(51, 65, 85);
 }
 
 .saved-commute-customize-toggle[aria-expanded="true"] {
@@ -1695,14 +1681,6 @@
   .saved-commute-sort-control {
     flex: 0 0 auto;
     width: 10.5rem;
-  }
-
-  .saved-commute-sort-control select {
-    height: 34px;
-  }
-
-  .saved-commute-sort-trigger {
-    height: 34px;
   }
 
   .saved-commute-list-actions .saved-commute-add-btn {
@@ -1750,8 +1728,8 @@
 }
 
 .motion-paused .station-commute-green-flash {
-  animation: none !important;
-  filter: none !important;
+  animation: none;
+  filter: none;
   opacity: 0.95;
   transform: scale(1);
 }
@@ -1759,7 +1737,7 @@
 @media (prefers-reduced-motion: reduce) {
   .station-commute-green-flash {
     animation: none !important;
-    filter: none !important;
+    filter: none;
     opacity: 0.95;
     transform: scale(1);
   }

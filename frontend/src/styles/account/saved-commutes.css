@@ -701,7 +701,6 @@
   padding-right: 0.25rem;
 }
 
-.commute-route-actions .commute-route-edit-button svg,
 .commute-route-edit-button svg {
   position: relative;
   top: -1px;
@@ -753,10 +752,10 @@
 }
 
 .high-contrast .saved-commute-map-action {
-  background: #000000 !important;
-  border: 2px solid #60a5fa !important;
-  box-shadow: none !important;
-  color: #ffffff !important;
+  background: #000000;
+  border: 2px solid #60a5fa;
+  box-shadow: none;
+  color: #ffffff;
 }
 
 .commute-leg-toggle {
@@ -946,15 +945,10 @@
 
 .commute-leg-toggle button[aria-selected="true"] {
   color: #ffffff !important;
-  background: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
 }
 
 .high-contrast .commute-leg-toggle button[aria-selected="true"] {
   color: #ffffff;
-  background: transparent !important;
-  border-color: transparent !important;
 }
 
 .high-contrast .commute-leg-toggle[data-selected-state="filtered"] button[aria-selected="true"] {
@@ -1223,7 +1217,7 @@
 
 .high-contrast .saved-commute-time-estimate-grid strong,
 .high-contrast .saved-commute-time-estimate p strong {
-  color: rgb(212, 212, 216) !important; /* Muted zinc-300 keys in high-contrast mode */
+  color: rgb(212, 212, 216); /* Muted zinc-300 keys in high-contrast mode */
 }
 
 .dark .saved-commute-time-estimate-grid em,
@@ -1231,11 +1225,6 @@
 .high-contrast .saved-commute-time-estimate-grid em,
 .high-contrast .saved-commute-time-estimate p em {
   color: rgb(255, 255, 255); /* Pure white values in dark mode */
-}
-
-.high-contrast .saved-commute-time-estimate-grid em,
-.high-contrast .saved-commute-time-estimate p em {
-  color: #ffffff !important; /* Pure white values in high-contrast mode */
 }
 
 .dark .saved-commute-time-estimate p span,
@@ -1270,27 +1259,27 @@
 
 .high-contrast .saved-commute-time-estimate.severity-good .saved-commute-time-verdict,
 .high-contrast .saved-commute-time-headline-clock.severity-good {
-  color: #86efac !important;
+  color: #86efac;
 }
 
 .high-contrast .saved-commute-time-estimate.severity-decent .saved-commute-time-verdict,
 .high-contrast .saved-commute-time-headline-clock.severity-decent {
-  color: #d9f99d !important;
+  color: #d9f99d;
 }
 
 .high-contrast .saved-commute-time-estimate.severity-moderate .saved-commute-time-verdict,
 .high-contrast .saved-commute-time-headline-clock.severity-moderate {
-  color: #fde047 !important;
+  color: #fde047;
 }
 
 .high-contrast .saved-commute-time-estimate.severity-poor .saved-commute-time-verdict,
 .high-contrast .saved-commute-time-headline-clock.severity-poor {
-  color: #fdba74 !important;
+  color: #fdba74;
 }
 
 .high-contrast .saved-commute-time-estimate.severity-severe .saved-commute-time-verdict,
 .high-contrast .saved-commute-time-headline-clock.severity-severe {
-  color: #fecaca !important;
+  color: #fecaca;
 }
 
 .saved-commute-leg-row {
@@ -1438,8 +1427,6 @@
 /* ==========================================================================
    Saved Route Delete Actions & Confirmations
    ========================================================================== */
-.commute-route-actions .commute-route-delete-button,
-.commute-route-actions .commute-route-delete-confirm-button,
 .commute-route-delete-button,
 .commute-route-delete-confirm-button {
   margin-left: auto; /* right aligned */
@@ -1482,7 +1469,6 @@
   margin-left: auto;
 }
 
-.commute-route-actions .commute-route-delete-confirmation .commute-route-delete-confirm-button,
 .commute-route-delete-confirmation .commute-route-delete-confirm-button {
   margin-left: 0;
 }
@@ -1492,8 +1478,6 @@
   position: relative;
 }
 
-.commute-route-actions .commute-route-delete-button:hover,
-.commute-route-actions .commute-route-delete-confirm-button:hover,
 .commute-route-delete-button:hover,
 .commute-route-delete-confirm-button:hover {
   background-color: #f8fafc;
@@ -1501,7 +1485,6 @@
   border-color: rgba(15, 23, 42, 0.25);
 }
 
-.commute-route-actions .commute-route-delete-cancel-button,
 .commute-route-delete-cancel-button {
   background-color: transparent;
   color: rgb(100, 116, 139); /* slate-500 */
@@ -1515,15 +1498,12 @@
   transition: all 0.2s ease;
 }
 
-.commute-route-actions .commute-route-delete-cancel-button:hover,
 .commute-route-delete-cancel-button:hover {
   background-color: rgba(15, 23, 42, 0.05);
   color: rgb(15, 23, 42);
 }
 
 /* Dark mode overrides for buttons to keep the white container/red text aesthetic readable and premium */
-.dark .commute-route-actions .commute-route-delete-button,
-.dark .commute-route-actions .commute-route-delete-confirm-button,
 .dark .commute-route-delete-button,
 .dark .commute-route-delete-confirm-button {
   background-color: #ffffff;
@@ -1531,29 +1511,23 @@
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.dark .commute-route-actions .commute-route-delete-button:hover,
-.dark .commute-route-actions .commute-route-delete-confirm-button:hover,
 .dark .commute-route-delete-button:hover,
 .dark .commute-route-delete-confirm-button:hover {
   background-color: #f1f5f9;
   color: #b91c1c;
 }
 
-.dark .commute-route-actions .commute-route-delete-cancel-button,
 .dark .commute-route-delete-cancel-button {
   color: rgb(148, 163, 184); /* slate-400 */
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-.dark .commute-route-actions .commute-route-delete-cancel-button:hover,
 .dark .commute-route-delete-cancel-button:hover {
   background-color: rgba(255, 255, 255, 0.05);
   color: rgb(255, 255, 255);
 }
 
 /* High Contrast Mode overrides */
-.high-contrast .commute-route-actions .commute-route-delete-button,
-.high-contrast .commute-route-actions .commute-route-delete-confirm-button,
 .high-contrast .commute-route-delete-button,
 .high-contrast .commute-route-delete-confirm-button {
   background-color: #ffffff !important;
@@ -1938,8 +1912,8 @@
 .motion-paused .saved-commute-impact-content,
 .motion-paused .commute-leg-glider,
 .motion-paused .commute-toast-success {
-  transition: none !important;
-  animation: none !important;
+  transition: none;
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1950,7 +1924,7 @@
   .saved-commute-impact-content-wrapper,
   .saved-commute-impact-content,
   .commute-leg-glider {
-    transition: none !important;
-    animation: none !important;
+    transition: none;
+    animation: none;
   }
 }
