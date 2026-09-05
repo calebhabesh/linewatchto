@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S22C
-- Last completed session: S22C
-- Next recommended session: S23A — Consolidate Shell Layout and Controls (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/map-mode-control.css`)
+- Current session: S23A
+- Last completed session: S23A
+- Next recommended session: S23B — Consolidate Floating Panels and Mobile Sheets (`shell/floating-panels.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 809,400 |
+| Total authored app CSS bytes | 784,128 | 808,542 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 682,317 |
-| Production CSS gzip bytes | 108,667 | 104,386 |
+| Production CSS bytes | 705,472 | 681,547 |
+| Production CSS gzip bytes | 108,667 | 104,279 |
 
 
 
@@ -3016,3 +3016,82 @@
 - Risks or blockers:
   - None. Base map and impact overlay stylesheets are consolidated, cascade debt ceiling is lowered by 57 declarations, and all quality gates pass cleanly.
 - Next session: S23A — Consolidate Shell Layout and Controls (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/map-controls.css`, `shell/map-mode-control.css`).
+
+### S23A — Consolidate Shell Layout and Controls
+
+- Status: completed
+- Commit: 572168e2
+- Scope: Consolidate outer app layout containers, header chrome, map mode selector, and zoom/pan controls stylesheets (`frontend/src/styles/shell/dashboard-shell.css`, `frontend/src/styles/shell/desktop-chrome.css`, `frontend/src/styles/shell/map-controls.css`, `frontend/src/styles/shell/map-mode-control.css`), eliminating redundant `!important` declarations, simplifying chip backgrounds and hovers, streamlining control dimensions and transitions, and lowering the graph-wide migration debt ceiling while strictly preserving contract-tested selectors, animations, keyframes, and visual regression baselines:
+  1. Dashboard Shell (`frontend/src/styles/shell/dashboard-shell.css`):
+     - Maintained zero `!important` declarations across all 343 authored lines.
+     - Preserved all layout and typography definitions, map stage animations (`@keyframes map-center-fade-in`, `@keyframes drift-network`, `@keyframes highlight-glow`), and responsive breakpoints.
+  2. Map Mode Control (`frontend/src/styles/shell/map-mode-control.css`):
+     - Eliminated 4 redundant `!important` declarations:
+       - Removed `!important` from `.default-map-mode-glider` `border: none`.
+       - Removed `!important` from `.default-map-mode-btn-ttc.is-selected` and `.default-map-mode-btn-regional.is-selected` `color: #ffffff` (class specificity `0,2,0` naturally supersedes `0,1,0`).
+       - Removed `!important` from `.dark .default-map-mode-btn.is-selected` `color: #ffffff` (`0,3,0` vs `0,2,0`).
+     - Strictly preserved 0 declarations (no contracts mandated `!important` in this stylesheet).
+     - Net: down from 4 to 0 declarations (-4). Authored lines steady at 237.
+  3. Map Controls (`frontend/src/styles/shell/map-controls.css`):
+     - Eliminated 27 redundant `!important` declarations:
+       - `.regional-map-control-rail` `width: 62px`, `border-radius: 12px`, and `padding: 4px` (3 declarations).
+       - `.regional-map-control-rail .map-control-button` `height: 52px`, `min-height: 52px`, `min-width: 52px`, `width: 52px` (4 declarations).
+       - `.regional-map-control-rail .map-control-slider` `height: auto`, `min-height: 84px`, `min-width: 52px`, `width: 52px`, `padding: 4px 0` (5 declarations).
+       - `.regional-map-control-rail .map-control-recenter-desktop-label` `font-size: 8.5px`, `letter-spacing: 0.04em` (2 declarations).
+       - `.map-control-recenter-mobile-label` desktop `display: none` (1 declaration).
+       - `.map-control-recenter-container` mobile `display: flex`, `flex-direction: column`, `align-items: center`, `gap: 6px` (4 declarations).
+       - `.map-control-recenter-mobile-label` mobile `display: block` (1 declaration).
+       - `.map-control-rail .map-control-button` mobile `background-color: #ffffff`, `color: #0f172a`, `border: none`, `box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15)`, `border-radius: 9999px`, `width: 48px`, `height: 48px` (7 declarations).
+     - Strictly preserved 10 declarations:
+       - `.desktop-map-control-rail` `top: 96px !important;` per `desktop-status-capsule.test.mjs:108`.
+       - `.regional-map-control-rail` `top: 176px !important;`, `right: 24px !important;`, `left: auto !important;`, `transform: none !important;` per `desktop-status-capsule.test.mjs:109`.
+       - High-contrast recenter icon styling (`color: #ffffff !important;`, `stroke: #ffffff !important;`, `fill: #000000 !important;`) per accessibility guidelines (3 declarations).
+       - Mobile `.map-control-rail .map-control-button svg` `color: #0f172a !important;` to ensure consistent icon tint against higher-specificity shell rules.
+       - Mobile `.high-contrast .map-control-rail .map-control-button` `border: 1px solid #ffffff !important;`.
+     - Net: down from 37 to 10 declarations (-27). Authored lines steady at 271.
+  4. Desktop Chrome (`frontend/src/styles/shell/desktop-chrome.css`):
+     - Eliminated 47 redundant `!important` declarations:
+       - Light chip counts: `color: #b91c1c` on alerts; `background` and `color` on delays, reduced-speed-zone, closures, and trip-changes (9 declarations).
+       - Dark chip counts: `color: #fca5a5` on alerts; `background` and `color` on delays, reduced-speed-zone, closures, and trip-changes (9 declarations).
+       - Hover states: light alerts, light/dark delays, light/dark reduced-speed-zones, light/dark closures, and light/dark trip changes (9 declarations).
+       - `.desktop-header-impact-chips .desktop-status-chip` `box-shadow: var(--mobile-card-shadow)` (1 declaration).
+       - Base and dark chip backgrounds and text colors: light alerts `background` and `color`; light delays `background` and `color`; light RSZ `background` and `color`; light closures `background` and `color`; light trip changes `background` and `color`; dark alerts `color`; dark delays `background` and `color`; dark RSZ `background` and `color`; dark closures `background` and `color`; dark trip changes `background` and `color` (19 declarations).
+     - Strictly preserved 11 declarations:
+       - Contract-tested `.desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count` `background: rgba(239, 68, 68, 0.14) !important;` per `desktop-status-capsule.test.mjs:70`.
+       - Contract-tested `.dark .desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count` `background: rgba(239, 68, 68, 0.28) !important;` per `desktop-status-capsule.test.mjs:71`.
+       - High-contrast chip count overrides: `border`, `background`, `color` (3 declarations).
+       - `.dark .desktop-header-impact-chips .desktop-status-chip--alerts:hover` `background: #3d1b1b !important;` to cleanly override the contract-tested dark alerts rule.
+       - Contract-tested `.desktop-header-impact-chips .desktop-status-chip` `border: none !important;` per `desktop-status-capsule.test.mjs:68`.
+       - Contract-tested `.dark .desktop-status-chip--alerts` `background: #2d1414 !important;` per `desktop-status-capsule.test.mjs:69`.
+       - High-contrast chip overrides: `border`, `box-shadow`, `background` (3 declarations).
+     - Net: down from 58 to 11 declarations (-47). Authored lines steady at 854.
+  5. Cascade Debt:
+     - Eliminated 78 `!important` declarations total across dashboard shell, map mode control, map controls, and desktop chrome stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,241 to 1,163 (-78 declarations).
+- Files changed:
+  - `frontend/src/styles/shell/desktop-chrome.css`
+  - `frontend/src/styles/shell/map-controls.css`
+  - `frontend/src/styles/shell/map-mode-control.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm run typecheck`: Passed (clean route types generated, 0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.5s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 19.4s).
+  - `npm run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 22.6s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,567; authored CSS bytes reduced from 809,400 to 808,542 (-858 B); graph `!important` declarations reduced from 1,241 to 1,163 (-78); production chunk raw bytes reduced from 682,317 to 681,547 (-770 B); production gzip bytes reduced from 104,386 to 104,279 (-107 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `desktop-chrome.css` (`desktop-status-capsule.test.mjs:68,69,70,71`) and `map-controls.css` (`desktop-status-capsule.test.mjs:108,109`).
+  - Preserved `background: #3d1b1b !important;` on dark alerts chip hover to guarantee seamless override of the contract-tested `.dark .desktop-status-chip--alerts` background rule.
+  - Strictly preserved all high-contrast overrides across recenter icons and impact chips.
+  - Eliminated redundant `!important` declarations on glider border, selected mode buttons, regional map rail dimensions, mobile recenter flex container, and desktop status chip counts and colors.
+- Risks or blockers:
+  - None. Shell layout and controls stylesheets are consolidated, cascade debt ceiling is lowered by 78 declarations, and all quality gates pass cleanly.
+- Next session: S23B — Consolidate Floating Panels and Mobile Sheets (`shell/floating-panels.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`).
+
