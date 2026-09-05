@@ -65,9 +65,9 @@
 .floating-panel-shell .commute-panel,
 .floating-panel-shell .analytics-panel,
 .floating-panel-shell .health-panel {
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  border: none;
+  background: transparent;
+  box-shadow: none;
   border-radius: 8px;
   display: flex;
   flex-direction: column;

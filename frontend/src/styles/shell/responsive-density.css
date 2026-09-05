@@ -5,21 +5,21 @@
    ============================================================ */
 @media (max-width: 480px) {
   .rotate-map-btn {
-    width: var(--mobile-rotate-action-width) !important;
-    padding: 0 clamp(4px, 1.7vw, 7px) !important;
-    gap: clamp(3px, 1.2vw, 5px) !important;
-    justify-content: center !important;
+    width: var(--mobile-rotate-action-width);
+    padding: 0 clamp(4px, 1.7vw, 7px);
+    gap: clamp(3px, 1.2vw, 5px);
+    justify-content: center;
   }
   .rotate-map-btn span {
     display: inline-block !important;
     font-size: clamp(6.5px, 2.15vw, 8px) !important;
     letter-spacing: 0.02em !important;
-    line-height: 1.05 !important;
+    line-height: 1.05;
   }
 
   .mobile-legend-pill--expanded {
-    max-width: var(--mobile-legend-expanded-width) !important;
-    z-index: 55 !important;
+    max-width: var(--mobile-legend-expanded-width);
+    z-index: 55;
   }
 }
 
@@ -123,8 +123,8 @@
   }
 
   .opening-welcome-account-copy {
-    font-size: 0.76rem !important;
-    line-height: 1.32 !important;
+    font-size: 0.76rem;
+    line-height: 1.32;
     margin-top: 6px;
   }
 
@@ -315,28 +315,28 @@
   }
 
   .floating-panel-shell .panel-heading {
-    min-height: 48px !important;
-    padding: 9px 10px !important;
+    min-height: 48px;
+    padding: 9px 10px;
   }
 
   .floating-panel-shell .panel-heading h2 {
-    font-size: clamp(13px, 4vw, 16px) !important;
-    gap: 6px !important;
+    font-size: clamp(13px, 4vw, 16px);
+    gap: 6px;
   }
 
   .floating-panel-shell .panel-heading h2 svg,
   .floating-panel-shell .panel-heading h2 img,
   .floating-panel-shell .panel-heading h2 .delay-tone,
   .floating-panel-shell .panel-heading h2 .rsz-tone {
-    height: 16px !important;
-    width: 16px !important;
+    height: 16px;
+    width: 16px;
   }
 
   .mobile-view-content-wrapper[data-active-view="reduced-speed-zones"] .panel-heading h2,
   .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading h2,
   .mobile-view-content-wrapper[data-active-view="closures"] .panel-heading h2,
   .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2 {
-    font-size: clamp(10.5px, 3.15vw, 13px) !important;
+    font-size: clamp(10.5px, 3.15vw, 13px);
   }
 
   .alert-stack,
@@ -349,8 +349,8 @@
   .surface-notices-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll {
-    gap: 8px !important;
-    padding: 8px !important;
+    gap: 8px;
+    padding: 8px;
   }
 
   .mobile-status-sheet,
@@ -379,11 +379,11 @@
 
   .mobile-sheet-heading p,
   .mobile-more-build-label {
-    font-size: 9px !important;
+    font-size: 9px;
   }
 
   .mobile-sheet-kicker {
-    font-size: 12px !important;
+    font-size: 12px;
     gap: 5.5px;
   }
 
@@ -398,29 +398,29 @@
   }
 
   .station-header-line-badge {
-    --transit-line-badge-size: 28px !important;
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
+    --transit-line-badge-size: 28px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
   }
 
   .station-header-line-name {
-    font-size: 12.5px !important;
+    font-size: 12.5px;
   }
 
   .station-line-directions {
-    padding: 2px 8px !important;
-    font-size: 10.5px !important;
-    gap: 4px !important;
+    padding: 2px 8px;
+    font-size: 10.5px;
+    gap: 4px;
   }
 
   .mobile-status-content-scroll,
   .mobile-more-content-scroll {
-    gap: 10px !important;
-    margin-right: -9px !important;
-    padding-right: 9px !important;
-    margin-top: -9px !important;
-    padding-top: 9px !important;
+    gap: 10px;
+    margin-right: -9px;
+    padding-right: 9px;
+    margin-top: -9px;
+    padding-top: 9px;
   }
 
   .mobile-status-actions {
@@ -518,7 +518,7 @@
   .notification-follow-up-option,
   .account-feature-preview,
   .feedback-content {
-    padding: 9px !important;
+    padding: 9px;
   }
 
   .alert-card > p,
@@ -588,7 +588,7 @@
   }
 
   .commute-card {
-    padding: 10px !important;
+    padding: 10px;
   }
 
   .commute-card h3 {
@@ -633,23 +633,23 @@
   }
 
   .accessibility-outages-scroll > div {
-    gap: 10px !important;
+    gap: 10px;
   }
 
   .accessibility-outages-scroll > div > button {
-    gap: 8px !important;
-    padding: 10px !important;
+    gap: 8px;
+    padding: 10px;
   }
 
   .accessibility-outages-scroll > div > button img {
-    height: 28px !important;
-    width: 28px !important;
+    height: 28px;
+    width: 28px;
   }
 
   .surface-notices-body > div:not(.surface-notices-scroll) {
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-    padding-top: 8px !important;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 8px;
   }
 
   .surface-notices-body .submenu-search-input {
@@ -663,16 +663,16 @@
   }
 
   .surface-notice-route-group > div {
-    padding: 9px 10px !important;
+    padding: 9px 10px;
   }
 
   .reliability-list h3 {
-    font-size: 13px !important;
+    font-size: 13px;
   }
 
   .reliability-row strong,
   .health-item strong {
-    font-size: 0.72rem !important;
+    font-size: 0.72rem;
   }
 
   .my-stations-body,
@@ -688,7 +688,7 @@
 
   .my-stations-card,
   .my-stations-list-item {
-    padding: 9px !important;
+    padding: 9px;
   }
 
   /* Search, station details, and map inspectors */
@@ -731,7 +731,7 @@
   }
 
   .station-detail-scroll {
-    margin-top: 8px !important;
+    margin-top: 8px;
   }
 
   .station-detail-scroll > div,
@@ -813,13 +813,13 @@
    keep desktop navigation while reflowing the dense top chrome into two rows. */
 @media (min-width: 768px) and (max-width: 1099px) {
   .linewatch-shell > header {
-    padding: 16px !important;
+    padding: 16px;
   }
 
   .desktop-status-capsule-anchor {
     flex-direction: column;
-    gap: 6px !important;
-    left: 50% !important;
+    gap: 6px;
+    left: 50%;
     max-width: calc(100vw - 32px);
     top: 104px !important;
     transform: translateX(-50%);
