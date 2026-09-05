@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S17A
-- Last completed session: S17A
-- Next recommended session: S17B — Consolidate Remaining Shell Stylesheets (`shell/floating-panels.css`, `shell/map-controls.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`)
+- Current session: S18A
+- Last completed session: S17B
+- Next recommended session: S18A — Consolidate Station Stylesheets (`station/station-accessibility.css`, `station/station-arrivals.css`, `station/station-detail.css`, `station/surface-connections.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,846 |
-| Total authored app CSS bytes | 784,128 | 825,905 |
+| Total authored app CSS lines | 31,414 | 31,758 |
+| Total authored app CSS bytes | 784,128 | 822,248 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 696,797 |
-| Production CSS gzip bytes | 108,667 | 105,275 |
+| Production CSS bytes | 705,472 | 694,460 |
+| Production CSS gzip bytes | 108,667 | 105,162 |
 
 
 
@@ -2228,3 +2228,84 @@
 - Risks or blockers:
   - None. All 6 target shell stylesheets are consolidated and cleanly verified.
 - Next session: S17B — Consolidate Remaining Shell Stylesheets (`shell/floating-panels.css`, `shell/map-controls.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`).
+
+### S17B — Consolidate Remaining Shell Stylesheets
+
+- Status: completed
+- Commit: e3810d84
+- Scope: Consolidate the remaining batch of shell stylesheets (`shell/floating-panels.css`, `shell/map-controls.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`), eliminating dead overrides, duplicate rules, redundant `!important` declarations, and duplicate border declarations while strictly preserving contract-tested selectors and visual regression baselines:
+  1. Floating Panels (`shell/floating-panels.css`):
+     - Removed `!important` from `animation: none` on `.motion-paused` and `@media (prefers-reduced-motion: reduce)`.
+     - Net: eliminated 2 `!important` declarations (down from 5 to 3).
+  2. Map Controls (`shell/map-controls.css`):
+     - Removed redundant `width: 62px !important;` and `border-radius: 12px !important;` inside `@media (min-width: 1024px)`.
+     - Removed redundant `filter: none !important;` on recenter SVGs.
+     - Removed `!important` from `border-radius` and `padding` on `.regional-map-control-rail .map-control-button`.
+     - Removed 15 redundant `!important` declarations from `.map-control-recenter-mobile-label` and `.map-control-rail .map-control-button` flex layout and transitions.
+     - Strictly preserved contract-tested `.desktop-map-control-rail { top: 96px !important; }` (`desktop-status-capsule.test.mjs:74`) and `.regional-map-control-rail { right: 24px !important; }` (`desktop-status-capsule.test.mjs:75`).
+     - Net: eliminated 18 `!important` declarations (down from 62 to 44).
+  3. Mobile Landscape (`shell/mobile-landscape.css`):
+     - Removed 18 redundant `border-top/right/bottom: none !important;` declarations across rotated card variants (`dark`, `critical`, `warning/rsz`, `delay`, `planned`, `normal`) already set on base card.
+     - Removed duplicate `border-left` on `.rotated-map-selection-card-station`.
+     - Removed 100% duplicate `.dark .rotated-map-selection-disruption, .high-contrast .rotated-map-selection-disruption { color: #ffffff; }` rule block.
+     - Net: eliminated 19 `!important` declarations (down from 60 to 41).
+  4. Responsive Density (`shell/responsive-density.css`):
+     - Removed redundant `border: none !important; border-top: none !important; outline: none !important; box-shadow: none !important;` on `.mobile-status-peek-counts` already established in `mobile-chrome.css`.
+     - Removed dead overridden `.mobile-sheet-kicker` selector from `.mobile-sheet-heading p, .mobile-more-build-label` 9px rule block.
+     - Net: eliminated 4 `!important` declarations (down from 72 to 68).
+  5. Mobile Sheets (`shell/mobile-sheets.css`):
+     - Removed `!important` from `color`, `font-size`, `font-weight`, and `letter-spacing` on `.mobile-sheet-kicker`.
+     - Removed `!important` from `animation: none` on `.motion-paused .mobile-status-sheet-live-blip`.
+     - Removed `!important` from `.mobile-more-build-label`.
+     - Removed 16 `!important` declarations from category backgrounds and text colors on `.mobile-line-status-impact-label` in light and dark modes.
+     - Merged identical `.mobile-more-content-scroll` and `.mobile-status-content-scroll` flex layout rules into a single selector list.
+     - Removed redundant `max-width: none !important;` overrides on `.panel-heading span.whitespace-nowrap` for surface notices.
+     - Merged duplicate `.mobile-impact-inspector` base rule definitions into a single consolidated rule.
+     - Strictly preserved exact contract matches:
+       - `.mobile-more-row` (`mobile-bottom-sheet-ux.test.mjs:399`)
+       - `.linewatch-shell.mobile-map-inspector-impact.mobile-map-inspector-map-focus .mobile-impact-inspector` (`mobile-show-on-map-inspector.test.mjs:102`)
+       - Closures source-label max-width (`drawer-layout.test.mjs:302`).
+     - Net: eliminated 25 `!important` declarations (down from 202 to 177).
+  6. Mobile Chrome (`shell/mobile-chrome.css`):
+     - Removed 100% duplicate `.high-contrast .mobile-status-peek` rule block.
+     - Removed `!important` from `animation: none` on `.motion-paused .mobile-status-peek`.
+     - Removed redundant `border-top: none !important;` from `.mobile-status-peek-counts`.
+     - Removed 40 `!important` declarations from category backgrounds and text colors on `.mobile-status-peek-count-badge` and count circle across all alert kinds.
+     - Removed duplicate `border: none !important;` and `box-shadow: var(--mobile-chrome-shadow) !important;` on `.mobile-map-recenter-btn` and `.mobile-map-zoom-capsule`.
+     - Removed 4 redundant `background: var(--mobile-chrome-background) !important;` declarations on vertical network selector variants.
+     - Merged 6 identical hover, dark, and high-contrast rules for `.mobile-alert-history-shortcut` and `.mobile-my-stations-shortcut` into 3 shared selector rules.
+     - Strictly preserved contract-tested declarations:
+       - Floating buttons background `!important` (`mobile-bottom-sheet-ux.test.mjs:181`)
+       - High-contrast peek badge border `!important` (`mobile-bottom-sheet-ux.test.mjs:384`)
+       - Shortcut borders `!important` (`mobile-bottom-sheet-ux.test.mjs:390-391`).
+     - Net: eliminated 76 `!important` declarations (down from 211 to 135).
+  7. Cascade Debt:
+     - Eliminated 144 `!important` declarations total across the remaining shell stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,963 to 1,819 (-144 declarations).
+- Files changed:
+  - `frontend/src/styles/shell/floating-panels.css`
+  - `frontend/src/styles/shell/map-controls.css`
+  - `frontend/src/styles/shell/mobile-chrome.css`
+  - `frontend/src/styles/shell/mobile-landscape.css`
+  - `frontend/src/styles/shell/mobile-sheets.css`
+  - `frontend/src/styles/shell/responsive-density.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.3s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 19.0s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`rotated map mode` & `mobile bottom navigation`): Passed (2/2 passed in 16.0s).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,846 to 31,758 (-88 lines); authored CSS bytes reduced from 825,905 to 822,248 (-3,657 B); graph `!important` declarations reduced from 1,963 to 1,819 (-144); production chunk raw bytes reduced from 696,797 to 694,460 (-2,337 B); production gzip bytes reduced from 105,275 to 105,162 (-113 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `mobile-chrome.css` (`mobile-bottom-sheet-ux.test.mjs`), `map-controls.css` (`desktop-status-capsule.test.mjs`), and `mobile-sheets.css` (`mobile-show-on-map-inspector.test.mjs`, `drawer-layout.test.mjs`).
+  - Preserved standalone selector `.linewatch-shell.mobile-map-inspector-impact.mobile-map-inspector-map-focus .mobile-impact-inspector` because regex contract testing checks for literal selector text.
+- Risks or blockers:
+  - None. All 6 remaining shell stylesheets are consolidated and cleanly verified.
+- Next session: S18A — Consolidate Station Stylesheets (`station/station-accessibility.css`, `station/station-arrivals.css`, `station/station-detail.css`, `station/surface-connections.css`).
