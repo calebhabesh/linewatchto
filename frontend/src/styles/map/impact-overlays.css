@@ -84,13 +84,11 @@
 }
 
 .linewatch-shell.mobile-performance-mode .asset-alert-path-glow {
-  filter: none !important;
   opacity: 0.34;
   stroke-width: 132;
 }
 
 .linewatch-shell.mobile-performance-mode .asset-alert-path-glow.selected {
-  filter: none !important;
   opacity: 0.54;
   stroke-width: 162;
 }
@@ -172,23 +170,17 @@
 }
 
 .linewatch-shell.mobile-performance-mode .station-impact-ring {
-  animation: none !important;
-  filter: none !important;
   stroke-width: 5;
   opacity: 0.95;
 }
 
 .linewatch-shell.mobile-performance-mode .station-impact-dot-red-glow {
-  animation: none !important;
-  filter: none !important;
   transform: scale(1);
   opacity: 0.95;
 }
 
 .linewatch-shell.mobile-performance-mode .station-impact-dot-red-ping {
-  animation: none !important;
   display: none;
-  filter: none !important;
 }
 
 .linewatch-shell.mobile-performance-mode .station-impact-dot-red-beacon {
@@ -202,12 +194,6 @@
   transform-box: fill-box;
   transform: scale(2.2);
   pointer-events: none;
-}
-
-.linewatch-shell.mobile-performance-mode .station-commute-green-flash,
-.linewatch-shell.mobile-performance-mode .commute-path-preview-glow {
-  animation: none !important;
-  filter: none !important;
 }
 
 .linewatch-shell.mobile-performance-mode .commute-path-preview-path {
@@ -284,7 +270,7 @@
   stroke-width: var(--map-overlay-rail-width);
   animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
-  transition: none !important;
+  transition: none;
 }
 
 .suspension-no-entry-lane {
@@ -325,7 +311,7 @@
   stroke-width: var(--map-overlay-rail-width);
   animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
-  transition: none !important;
+  transition: none;
 }
 
 .asset-alert-path-glow.planned-preview {
@@ -509,7 +495,7 @@
   stroke-width: var(--map-overlay-rail-width);
   animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
-  transition: none !important;
+  transition: none;
 }
 
 .delay-static-path {
@@ -721,15 +707,15 @@
 
 .motion-paused .rsz-chevron {
   animation: none !important;
-  transform: translate(0, 0) !important;
-  opacity: 0.95 !important;
+  transform: translate(0, 0);
+  opacity: 0.95;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .rsz-chevron {
     animation: none !important;
-    transform: translate(0, 0) !important;
-    opacity: 0.95 !important;
+    transform: translate(0, 0);
+    opacity: 0.95;
   }
 }
 

@@ -53,7 +53,7 @@
   animation: desktop-legend-badge-pulse 5.0s ease-in-out infinite;
   box-shadow: 0 0 4px color-mix(in srgb, var(--desktop-legend-ring-color) 40%, transparent);
   box-sizing: border-box;
-  display: flex !important;
+  display: flex;
   height: 44px;
   justify-content: center;
   position: relative;
@@ -79,8 +79,8 @@
 
 .desktop-legend-route-badge .desktop-legend-route-number {
   align-items: center;
-  color: var(--desktop-legend-badge-number-color) !important;
-  display: flex !important;
+  color: var(--desktop-legend-badge-number-color);
+  display: flex;
   font-size: 24px;
   font-variant-numeric: lining-nums tabular-nums;
   font-weight: 900;
@@ -96,15 +96,15 @@
 .desktop-legend-route-badge--regional {
   background: linear-gradient(var(--desktop-legend-ring-color), var(--desktop-legend-ring-color)) border-box;
   border: var(--desktop-legend-outline-width) solid transparent;
-  border-radius: 7px !important;
+  border-radius: 7px;
   overflow: hidden;
 }
 
 .desktop-legend-route-badge--regional > span {
-  border-radius: 4px !important;
+  border-radius: 4px;
   display: flex;
-  height: 100% !important;
-  width: 100% !important;
+  height: 100%;
+  width: 100%;
 }
 
 .desktop-legend-route-badge.service-tone-affected {
@@ -304,7 +304,7 @@
 
   .mobile-legend-compact-row {
     align-items: center;
-    display: flex !important;
+    display: flex;
     height: 24px;
     justify-content: center;
     width: 24px;
@@ -315,7 +315,7 @@
     animation: mobile-legend-badge-pulse 5.0s ease-in-out infinite;
     box-shadow: 0 0 3px color-mix(in srgb, var(--mobile-legend-ring-color) 40%, transparent);
     box-sizing: border-box;
-    display: flex !important;
+    display: flex;
     justify-content: center;
     position: relative;
     border-radius: 999px;
@@ -346,8 +346,8 @@
 
   .mobile-legend-route-badge .mobile-legend-route-number {
     align-items: center;
-    color: var(--mobile-legend-badge-number-color) !important;
-    display: flex !important;
+    color: var(--mobile-legend-badge-number-color);
+    display: flex;
     font-variant-numeric: lining-nums tabular-nums;
     height: 100%;
     justify-content: center;
