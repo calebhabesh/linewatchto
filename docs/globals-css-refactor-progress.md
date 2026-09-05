@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S22A
-- Last completed session: S22A
-- Next recommended session: S22B — Consolidate Map Selection and Markers (`map/map-selection.css`, `map/station-markers.css`, `map/train-markers.css`)
+- Current session: S22B
+- Last completed session: S22B
+- Next recommended session: S22C — Consolidate Base Map and Impact Overlays (`map/base-map.css`, `map/impact-overlays.css`, `map/regional-map.css`, `map/commute-preview.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 810,577 |
+| Total authored app CSS bytes | 784,128 | 810,027 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 683,284 |
-| Production CSS gzip bytes | 108,667 | 104,449 |
+| Production CSS bytes | 705,472 | 682,784 |
+| Production CSS gzip bytes | 108,667 | 104,397 |
 
 
 
@@ -2854,6 +2854,74 @@
   - Preserved contract-tested `!important` declarations in `map-legends.css` (`mobile-bottom-sheet-ux.test.mjs`, `drawer-layout.test.mjs`) and `overlap-chooser.css` (`map-layering.test.mjs`).
   - Preserved hover/selected `border-left-color: ... !important;` to ensure reliable override of base kind `border-left` shorthands across all states.
   - Eliminated cascading `!important` infection on choice background and box-shadow declarations, letting class specificity work as intended.
-- Risks or blockers:
-  - None. All map legend and overlap chooser stylesheets are consolidated and cleanly verified.
 - Next session: S22B — Consolidate Map Selection and Markers (`map/map-selection.css`, `map/station-markers.css`, `map/train-markers.css`).
+
+### S22B — Consolidate Map Selection and Markers
+
+- Status: completed
+- Commit: b60b653b
+- Scope: Consolidate map selection, station markers, and train markers stylesheets (`frontend/src/styles/map/map-selection.css`, `frontend/src/styles/map/station-markers.css`, `frontend/src/styles/map/train-markers.css`), eliminating redundant `!important` declarations, streamlining keyframe animation properties and toggle controls, and lowering the graph-wide migration debt ceiling while strictly preserving contract-tested selectors, animations, keyframes, and visual regression baselines:
+  1. Map Selection & Attention Lifecycles (`frontend/src/styles/map/map-selection.css`):
+     - Eliminated 9 redundant `!important` declarations:
+       - Removed `!important` from `.map-selection-attention.selection-intro-complete` animation properties (`animation-duration`, `animation-delay`, `animation-timing-function`, `animation-iteration-count`, `animation-direction`, `animation-fill-mode`).
+       - Removed `!important` from `.regional-station-top-selection.map-selection-attention.selection-intro-complete` (`animation-name: map-selection-station-breathe`).
+       - Removed `!important` from `.asset-alert-path.map-selection-flash` (`stroke-dasharray: none`).
+       - Removed `!important` from `.motion-paused.linewatch-shell.mobile-performance-mode` selection highlights (`animation: none`).
+     - Strictly preserved contract-tested declarations:
+       - `.map-selection-attention.selection-intro-complete` `animation-name: var(--selection-breathe-name) !important;` per `map-layering.test.mjs:872`.
+       - `.linewatch-shell .station-selected-indicator.foreground-flash-active` (`animation: none !important;`, `opacity: 0 !important;`) per `map-layering.test.mjs:883-885`.
+       - `.regional-station-selection-source-artwork` (`animation: none !important;`, `opacity: 1 !important;`, `fill: var(--station-selection-accent) !important;`, `stroke: none !important;`) per `map-layering.test.mjs:895-897` and `regional-network.test.mjs:735`.
+       - `.motion-paused .station-selected-indicator:not(...)` (`animation: none !important;`, `opacity: 0.55 !important;`, `transform: scale(1) !important;`) per `map-layering.test.mjs:898`.
+     - Net: eliminated 9 `!important` declarations (down from 19 to 10). Authored lines steady at 238 (-1 line).
+  2. Station Markers & Touch Targets (`frontend/src/styles/map/station-markers.css`):
+     - Eliminated 3 redundant `!important` declarations:
+       - Removed `!important` from `@media (prefers-reduced-motion: reduce)` block (`animation: none`, `opacity: 0.55`, `transform: scale(1)`).
+     - Strictly preserved contract-tested declarations:
+       - `#ttc-station-labels-layer [data-station-label-for]` (`stroke: #000000 !important;`, `stroke-width: 2px !important;`, `.dark ... stroke: #ffffff !important;`) per `map-layering.test.mjs:85,89`.
+     - Net: eliminated 3 `!important` declarations (down from 6 to 3). Authored lines steady at 324 (-1 line).
+  3. Train Markers & Toggle Controls (`frontend/src/styles/map/train-markers.css`):
+     - Eliminated 38 redundant `!important` declarations:
+       - Removed `!important` from `transition: none` on `.estimated-train-marker-layer`.
+       - Removed 12 `!important` declarations from `.mobile-train-toggle` base rule (`width`, `height`, `display`, `flex-direction`, `align-items`, `justify-content`, `gap`, `padding`, `border-radius`, `border`, `background`, `color`).
+       - Removed 9 `!important` declarations from `.mobile-train-pending-spinner` (`animation`, `color`, `height`, `inset`, `margin`, `pointer-events`, `position`, `width`, `z-index`).
+       - Removed `!important` from `.motion-paused .mobile-train-pending-spinner` (`animation: none`).
+       - Removed 4 `!important` declarations from `.mobile-train-toggle svg` (`color`, `flex`, `height`, `width`).
+       - Removed 3 `!important` declarations from `.mobile-train-toggle.active svg`, `.dark ... active svg`, and `.high-contrast ... active svg` (`color`).
+       - Removed 6 `!important` declarations from `.mobile-train-toggle span` (`display`, `font-size`, `letter-spacing`, `line-height`, `font-weight`, `color`).
+       - Removed 2 `!important` declarations from loading state (`opacity: 0.22`, `visibility: visible`).
+     - Strictly preserved contract-tested declarations:
+       - `.estimated-train-marker-layer` and `.estimated-train-marker` `pointer-events: none !important;` per `map-layering.test.mjs:1072-1073`.
+       - `.linewatch-shell.mobile-performance-mode .estimated-train-marker` `filter: none !important;` per `map-layering.test.mjs:1084`.
+       - `.mobile-train-toggle--legend-expanded` `pointer-events: none !important;` per `drawer-layout.test.mjs:114` (and `opacity: 0 !important;`).
+       - `.mobile-train-toggle.active span` text colors and active backgrounds / loading backgrounds.
+       - Mobile safe-inset placement offsets (`top: calc(...) !important;`, `left: calc(...) !important;`).
+       - Desktop `.mobile-train-toggle` hidden override (`display: none !important;`).
+     - Net: eliminated 38 `!important` declarations (down from 66 to 28). Authored lines steady at 344 (-1 line).
+  4. Cascade Debt:
+     - Eliminated 50 `!important` declarations total across map selection, station markers, and train markers stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,348 to 1,298 (-50 declarations).
+- Files changed:
+  - `frontend/src/styles/map/map-selection.css`
+  - `frontend/src/styles/map/station-markers.css`
+  - `frontend/src/styles/map/train-markers.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm run typecheck`: Passed (0 type errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.0s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 20.3s).
+  - `npm run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 20.1s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,567; authored CSS bytes reduced from 810,577 to 810,027 (-550 B); graph `!important` declarations reduced from 1,348 to 1,298 (-50); production chunk raw bytes reduced from 683,284 to 682,784 (-500 B); production gzip bytes reduced from 104,449 to 104,397 (-52 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Strictly preserved contract-tested `!important` declarations in `map-selection.css` (`map-layering.test.mjs`, `regional-network.test.mjs`), `station-markers.css` (`map-layering.test.mjs`), and `train-markers.css` (`map-layering.test.mjs`, `drawer-layout.test.mjs`).
+  - Preserved mobile safe-inset coordinate overrides (`top`, `left`) and active button backgrounds to prevent cascade leakage with `mobile-chrome.css`.
+  - Eliminated pervasive `!important` infection on `.mobile-train-toggle` dimensions, layout, spinner keyframes, and SVG/span styling.
+- Risks or blockers:
+  - None. All map selection, station markers, and train markers stylesheets are consolidated and cleanly verified.
+- Next session: S22C — Consolidate Base Map and Impact Overlays (`map/base-map.css`, `map/impact-overlays.css`, `map/regional-map.css`, `map/commute-preview.css`).
