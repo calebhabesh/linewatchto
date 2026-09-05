@@ -9,7 +9,7 @@
 .linewatch-wordmark {
   font-family: "Chillax", var(--font-wordmark), Arial, Helvetica, sans-serif;
   font-size: 1.3em;
-  font-weight: 600 !important;
+  font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1;
 }
@@ -51,21 +51,15 @@
   padding: 14px 16px;
 }
 
+/* Ensure heading text and icons are center-aligned with clean zero margins */
 .panel-heading h1,
-.panel-heading h2,
-.panel-title-row h2 {
+.panel-heading h2 {
+  align-items: center;
+  display: flex;
   font-size: clamp(1.1rem, 1.8vw, 1.75rem);
   letter-spacing: 0;
   line-height: 1.1;
-  margin: 3px 0 0;
-}
-
-/* Ensure heading text and icons are perfectly center-aligned and remove off-center top margin */
-.panel-heading h1,
-.panel-heading h2 {
-  display: flex !important;
-  align-items: center !important;
-  margin: 0 !important;
+  margin: 0;
 }
 
 .panel-heading h1 > svg,
@@ -74,19 +68,21 @@
 .panel-heading h2 > img,
 .panel-heading h2 > .delay-tone,
 .panel-heading h2 > .rsz-tone {
-  align-self: center !important;
-  display: inline-block !important;
+  align-self: center;
+  display: inline-block;
 }
 
 .panel-heading h1 > span,
 .panel-heading h2 > span {
-  align-self: center !important;
-  line-height: 1.2 !important;
-  display: inline-block !important;
+  align-self: center;
+  display: inline-block;
+  line-height: 1.2;
 }
 
 .panel-title-row h2 {
   font-size: 1rem;
+  letter-spacing: 0;
+  line-height: 1.1;
   margin: 0;
 }
 
@@ -132,12 +128,12 @@
 
 .linewatch-shell.mobile-performance-mode .animate-map-center-fade,
 .reduced-motion .animate-map-center-fade {
-  animation: none !important;
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-map-center-fade {
-    animation: none !important;
+    animation: none;
   }
 }
 

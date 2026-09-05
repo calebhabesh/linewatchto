@@ -1,5 +1,4 @@
 /* Network-scoped TTC / GO/UP selector inside top console bar. */
-/* Network-scoped TTC / GO/UP selector inside top console bar. */
 .network-selector {
   display: inline-grid;
   grid-template-columns: repeat(2, var(--network-option-width));
@@ -75,7 +74,7 @@
   transition: color 140ms ease-out, background-color 140ms ease-out, transform 100ms ease-out;
   cursor: pointer;
   background: transparent;
-  box-shadow: none !important;
+  box-shadow: none;
   position: relative;
   z-index: 1;
   user-select: none;
@@ -83,7 +82,7 @@
 
 .network-selector-btn:hover:not([aria-pressed="true"]) {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.09) !important;
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .network-selector-btn:active {
@@ -167,7 +166,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .network-selector-glider {
-    transition: none !important;
+    transition: none;
   }
 }
 
@@ -334,11 +333,11 @@
 }
 
 .estimated-train-pending-spinner {
-  animation: train-spinner-rotate 1.6s linear infinite !important;
+  animation: train-spinner-rotate 1.6s linear infinite;
 }
 
 .motion-paused .estimated-train-pending-spinner {
-  animation: none !important;
+  animation: none;
 }
 
 .desktop-status-train-switch {
@@ -431,7 +430,7 @@
 }
 
 .motion-paused .desktop-status-live-dot {
-  animation: none !important;
+  animation: none;
 }
 
 .desktop-status-chip-row {
@@ -488,8 +487,8 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
   letter-spacing: -0.02em;
-  border: none !important;
-  box-shadow: none !important;
+  border: none;
+  box-shadow: none;
   text-shadow: none;
   line-height: 1;
   text-align: center;
@@ -520,27 +519,22 @@
 .dark .desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count {
   background: rgba(239, 68, 68, 0.28) !important;
   color: #fca5a5 !important;
-  box-shadow: none !important;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--delays .desktop-status-chip-count {
   background: rgba(234, 179, 8, 0.28) !important;
   color: #fef08a !important;
-  box-shadow: none !important;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone .desktop-status-chip-count {
   background: rgba(245, 158, 11, 0.28) !important;
   color: var(--impact-rsz) !important;
-  box-shadow: none !important;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--closures .desktop-status-chip-count {
   background: rgba(59, 130, 246, 0.28) !important;
   color: #bfdbfe !important;
-  box-shadow: none !important;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--trip-changes .desktop-status-chip-count {
   background: rgba(245, 158, 11, 0.28) !important;
   color: var(--trip-change) !important;
-  box-shadow: none !important;
 }
 
 .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count {
@@ -552,7 +546,6 @@
   border: 1px solid #ffffff !important;
   background: transparent !important;
   color: #ffffff !important;
-  box-shadow: none !important;
 }
 
 .desktop-status-chip-count-value {
@@ -639,11 +632,6 @@
 }
 
 .desktop-header-impact-chips .desktop-status-chip {
-  border: none !important;
-  box-shadow: var(--mobile-card-shadow) !important;
-}
-
-.dark .desktop-header-impact-chips .desktop-status-chip {
   border: none !important;
   box-shadow: var(--mobile-card-shadow) !important;
 }
