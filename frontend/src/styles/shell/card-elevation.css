@@ -333,7 +333,6 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
     var(--mobile-card-shadow);
-  background-image: none !important;
 }
 
 .dark .mobile-status-actions button,
@@ -358,7 +357,6 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     var(--mobile-card-shadow);
-  background-image: none !important;
 }
 
 .high-contrast .mobile-status-actions button,
@@ -429,7 +427,6 @@
 .linewatch-shell.high-contrast .commute-station-option,
 .linewatch-shell.high-contrast .commute-station-line-trigger,
 .linewatch-shell.high-contrast .commute-station-mobile-back {
-  background-image: none !important;
   box-shadow: none !important;
 }
 
@@ -441,8 +438,7 @@
 .desktop-line-status-row {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 3px rgba(0, 0, 0, 0.08) !important;
-  background-image: none !important;
+    0 1px 3px rgba(0, 0, 0, 0.08);
   transition: background-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
 }
 
@@ -453,13 +449,11 @@
 .dark .desktop-line-status-row {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.3) !important;
-  background-image: none !important;
+    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .high-contrast .desktop-line-status-row,
 .linewatch-shell.high-contrast .desktop-line-status-row {
-  background-image: none !important;
   box-shadow: none !important;
   border: 1px solid #ffffff !important;
 }
@@ -494,7 +488,7 @@
 .dark .map-control-rail {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 10px 25px -3px rgba(0, 0, 0, 0.45) !important;
+    0 10px 25px -3px rgba(0, 0, 0, 0.45);
 }
 
 .high-contrast .menu-toggle-btn,
@@ -531,73 +525,60 @@
     border: none !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.75),
-      var(--shadow) !important;
+      var(--shadow);
   }
   .dark .floating-panel-scroll {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      var(--shadow) !important;
+      var(--shadow);
   }
   .floating-panel-shell .panel-heading {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
-    background-image: none !important;
   }
   .dark .floating-panel-shell .panel-heading {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    background-image: none !important;
   }
   #linewatch-main-menu {
     border: none !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.85),
       0 20px 25px -5px rgba(0, 0, 0, 0.1),
-      0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+      0 8px 10px -6px rgba(0, 0, 0, 0.05);
   }
   .dark #linewatch-main-menu {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.1),
       0 20px 25px -5px rgba(0, 0, 0, 0.5),
-      0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+      0 8px 10px -6px rgba(0, 0, 0, 0.4);
   }
   .desktop-status-capsule {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.75),
-      var(--shadow) !important;
-    background-image: none !important;
+      var(--shadow);
   }
   .dark .desktop-status-capsule {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      var(--shadow) !important;
-    background-image: none !important;
+      var(--shadow);
   }
   .menu-toggle-btn.desktop-top-chrome,
   .header-search-bar.desktop-top-chrome {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.75),
-      0 10px 15px -3px rgba(0, 0, 0, 0.08) !important;
-    background-image: none !important;
+      0 10px 15px -3px rgba(0, 0, 0, 0.08);
   }
   .dark .menu-toggle-btn.desktop-top-chrome,
   .dark .header-search-bar.desktop-top-chrome {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
-    background-image: none !important;
+      0 10px 15px -3px rgba(0, 0, 0, 0.3);
   }
   .high-contrast .floating-panel-scroll,
   .high-contrast #linewatch-main-menu,
-  .high-contrast .desktop-status-capsule,
-  .high-contrast .menu-toggle-btn.desktop-top-chrome,
-  .high-contrast .header-search-bar.desktop-top-chrome,
   .high-contrast .floating-panel-shell .panel-heading,
   .linewatch-shell.high-contrast .floating-panel-scroll,
   .linewatch-shell.high-contrast #linewatch-main-menu,
-  .linewatch-shell.high-contrast .desktop-status-capsule,
-  .linewatch-shell.high-contrast .menu-toggle-btn.desktop-top-chrome,
-  .linewatch-shell.high-contrast .header-search-bar.desktop-top-chrome,
   .linewatch-shell.high-contrast .floating-panel-shell .panel-heading {
-    background-image: none !important;
     box-shadow: none !important;
     border: 1px solid #ffffff !important;
   }
@@ -638,20 +619,17 @@
 .station-detail-disruption-card {
   align-items: center !important;
   border: none !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 3px rgba(0, 0, 0, 0.08) !important;
-  background: #fffbeb !important;
-  display: flex !important;
-  justify-content: flex-start !important;
-  padding: 8px 10px !important;
+  background: #fffbeb;
+  display: flex;
+  justify-content: flex-start;
+  padding: 8px 10px;
 }
 
 .dark .station-detail-disruption-card {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.3) !important;
-  background: #251d0d !important;
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  background: #251d0d;
 }
 
 .station-detail-disruption-card .station-disruption-heading {
@@ -683,17 +661,17 @@
 /* Station Impact Jump Buttons */
 .station-impact-jump-button {
   border: none !important;
-  border-radius: 6px !important;
+  border-radius: 6px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 2px rgba(0, 0, 0, 0.08) !important;
-  background: rgba(255, 255, 255, 0.95) !important;
+    0 1px 2px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .dark .station-impact-jump-button {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    0 1px 2px rgba(0, 0, 0, 0.3);
   background: #161a23 !important;
 }
 
@@ -741,16 +719,4 @@
 .linewatch-shell.high-contrast .station-line-directions {
   border: 1px solid #ffffff !important;
   box-shadow: none !important;
-  background-image: none !important;
-}
-
-/* --------------------------------------------------------------------------
-   Section 9: High-Contrast Preservation for Mobile Floating Chrome Controls
-   -------------------------------------------------------------------------- */
-
-.high-contrast .mobile-legend-pill,
-.high-contrast .mobile-train-toggle,
-.high-contrast .mobile-alert-history-shortcut,
-.high-contrast .mobile-my-stations-shortcut {
-  border: 1px solid #ffffff !important;
 }

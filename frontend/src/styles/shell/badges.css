@@ -21,7 +21,7 @@
   box-sizing: border-box;
   flex: none;
   font-size: 0 !important;
-  line-height: 1 !important;
+  line-height: 1;
   overflow: hidden;
   text-size-adjust: none;
   white-space: nowrap;
@@ -92,16 +92,16 @@
 }
 
 img.transit-line-badge {
-  background: transparent !important;
-  border: 0 !important;
-  border-radius: 0 !important;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-sizing: border-box;
   display: inline-block;
   flex: 0 0 auto;
   max-width: none;
   min-width: var(--transit-line-badge-size);
   object-fit: contain;
-  padding: 0 !important;
+  padding: 0;
 }
 
 .transit-line-badge--fallback {

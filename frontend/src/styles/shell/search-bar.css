@@ -18,6 +18,8 @@
 /* --- Header inline search bar -------------------------------------------- */
 
 .header-search-bar {
+  position: relative;
+  z-index: 25;
   min-width: 0;
   max-width: 390px;
   width: 290px;
@@ -33,7 +35,7 @@
 .header-search-bar:focus-within,
 .header-search-bar[data-active="true"] {
   width: var(--desktop-global-search-width);
-  padding-right: 12px !important;
+  padding-right: 12px;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
@@ -44,17 +46,17 @@
 
 /* Active state — search panel is open */
 .header-search-bar[data-active="true"] {
-  border-color: #3b82f6 !important;
-  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: #3b82f6;
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .dark .header-search-bar[data-active="true"] {
-  border-color: #60a5fa !important;
-  background: rgba(18, 21, 28, 0.95) !important;
+  border-color: #60a5fa;
+  background: rgba(18, 21, 28, 0.95);
 }
 
 .high-contrast .header-search-bar[data-active="true"] {
-  border-color: #ffffff !important;
+  border-color: #ffffff;
 }
 
 .header-search-input[type=search]::-webkit-search-cancel-button,
@@ -76,25 +78,25 @@
   .header-search-bar {
     min-width: unset;
     max-width: unset;
-    width: var(--mobile-top-action-button-size, 44px) !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    justify-content: center !important;
-    border-radius: clamp(8px, 3vw, 12px) !important;
-    height: var(--mobile-top-action-button-size, 44px) !important;
+    width: var(--mobile-top-action-button-size, 44px);
+    padding-left: 0;
+    padding-right: 0;
+    justify-content: center;
+    border-radius: clamp(8px, 3vw, 12px);
+    height: var(--mobile-top-action-button-size, 44px);
   }
 
   .header-search-bar:focus-within {
     box-shadow: none;
-    width: var(--mobile-top-action-button-size, 44px) !important;
+    width: var(--mobile-top-action-button-size, 44px);
   }
 
   .header-search-input {
-    display: none !important;
+    display: none;
   }
 
   .header-search-bar svg {
-    height: clamp(18px, 6vw, 24px) !important;
-    width: clamp(18px, 6vw, 24px) !important;
+    height: clamp(18px, 6vw, 24px);
+    width: clamp(18px, 6vw, 24px);
   }
 }
