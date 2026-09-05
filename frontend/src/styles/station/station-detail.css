@@ -32,12 +32,12 @@
 .station-detail-close-button {
   align-items: center;
   border: none !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
     0 1px 3px rgba(0, 0, 0, 0.08) !important;
   background: rgba(255, 255, 255, 0.95) !important;
-  color: rgb(51, 65, 85) !important;
+  color: rgb(51, 65, 85);
   display: inline-flex;
   flex-direction: column;
   gap: 1px;
@@ -53,22 +53,21 @@
 
 .dark .station-detail-save-control button,
 .dark .station-detail-close-button {
-  border: none !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.3) !important;
   background: #161a23 !important;
-  color: rgb(226, 232, 240) !important;
+  color: rgb(226, 232, 240);
 }
 
 .station-detail-save-control button:hover,
 .station-detail-close-button:hover {
-  background: rgba(239, 246, 255, 0.95) !important;
+  background: rgba(239, 246, 255, 0.95);
 }
 
 .dark .station-detail-save-control button:hover,
 .dark .station-detail-close-button:hover {
-  background: rgba(30, 58, 138, 0.35) !important;
+  background: rgba(30, 58, 138, 0.35);
 }
 
 .station-detail-save-control button.saved {
@@ -112,11 +111,11 @@
 }
 
 .station-header-line-badge {
-  --transit-line-badge-size: 32px !important;
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  flex-shrink: 0 !important;
+  --transit-line-badge-size: 32px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  flex-shrink: 0;
 }
 
 .station-header-line-name {
@@ -127,10 +126,10 @@
 
 @media (min-width: 640px) {
   .station-header-line-badge {
-    --transit-line-badge-size: 40px !important;
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
+    --transit-line-badge-size: 40px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
   }
 }
 
@@ -146,12 +145,12 @@
 }
 
 .station-line-directions span {
-  color: var(--line-direction-text, #ffffff) !important;
+  color: var(--line-direction-text, #ffffff);
 }
 
 .station-line-directions .station-line-directions-divider {
-  color: var(--line-direction-text, #ffffff) !important;
-  opacity: 0.55 !important;
+  color: var(--line-direction-text, #ffffff);
+  opacity: 0.55;
 }
 
 .dark .station-line-directions {
@@ -165,32 +164,31 @@
 .station-submenu-nav-btn,
 .station-detail-panel [data-station-submenu-nav] button {
   border: none !important;
-  border-radius: 6px !important;
+  border-radius: 6px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
     0 1px 2px rgba(0, 0, 0, 0.06) !important;
   background: rgba(255, 255, 255, 0.95) !important;
-  color: rgb(51, 65, 85) !important;
+  color: rgb(51, 65, 85);
 }
 
 .dark .station-submenu-nav-btn,
 .dark .station-detail-panel [data-station-submenu-nav] button {
-  border: none !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.25) !important;
   background: #161a23 !important;
-  color: rgb(226, 232, 240) !important;
+  color: rgb(226, 232, 240);
 }
 
 .station-submenu-nav-btn:hover,
 .station-detail-panel [data-station-submenu-nav] button:hover {
-  background: rgba(239, 246, 255, 0.95) !important;
+  background: rgba(239, 246, 255, 0.95);
 }
 
 .dark .station-submenu-nav-btn:hover,
 .dark .station-detail-panel [data-station-submenu-nav] button:hover {
-  background: rgba(30, 58, 138, 0.35) !important;
+  background: rgba(30, 58, 138, 0.35);
 }
 
 /* ==========================================================================
@@ -199,12 +197,12 @@
 
 .station-detail-map-button {
   align-items: center;
-  background: rgba(37, 99, 235, 0.08) !important;
-  background-image: none !important;
-  border: none !important;
-  outline: none !important;
-  border-radius: 9999px !important;
-  box-shadow: none !important;
+  background: rgba(37, 99, 235, 0.08);
+  background-image: none;
+  border: none;
+  outline: none;
+  border-radius: 9999px;
+  box-shadow: none;
   color: #2563eb;
   cursor: pointer;
   display: flex;
@@ -220,25 +218,25 @@
 }
 
 .dark .station-detail-map-button {
-  background: rgba(56, 189, 248, 0.09) !important;
+  background: rgba(56, 189, 248, 0.09);
   color: #38bdf8;
 }
 
 .station-detail-map-button:hover {
-  background: rgba(37, 99, 235, 0.14) !important;
+  background: rgba(37, 99, 235, 0.14);
 }
 
 .dark .station-detail-map-button:hover {
-  background: rgba(56, 189, 248, 0.16) !important;
+  background: rgba(56, 189, 248, 0.16);
 }
 
 .station-detail-map-button:active {
   transform: scale(0.93);
-  background: rgba(37, 99, 235, 0.2) !important;
+  background: rgba(37, 99, 235, 0.2);
 }
 
 .dark .station-detail-map-button:active {
-  background: rgba(56, 189, 248, 0.22) !important;
+  background: rgba(56, 189, 248, 0.22);
 }
 
 .station-detail-map-button svg {
@@ -253,12 +251,12 @@
   letter-spacing: 0.03em;
   text-align: center;
   line-height: 1.05;
-  color: #ffffff !important;
+  color: #ffffff;
   max-width: 40px;
 }
 
 .station-detail-map-button .jump-to-corners path {
-  stroke: #ffffff !important;
+  stroke: #ffffff;
 }
 
 .station-detail-map-button .jump-to-pin {
@@ -267,13 +265,13 @@
 }
 
 .station-detail-map-button .jump-to-pin path {
-  stroke: currentColor !important;
-  fill: none !important;
+  stroke: currentColor;
+  fill: none;
 }
 
 .station-detail-map-button .jump-to-pin circle {
-  fill: currentColor !important;
-  stroke: none !important;
+  fill: currentColor;
+  stroke: none;
 }
 
 .linewatch-shell:not(.dark) .station-detail-map-button .jump-to-pin {
@@ -284,22 +282,22 @@
 /* High contrast mode support for station-detail-map-button */
 .high-contrast .station-detail-map-button,
 .linewatch-shell.high-contrast .station-detail-map-button {
-  background: #000000 !important;
-  border: 1px solid #ffffff !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
+  background: #000000;
+  border: 1px solid #ffffff;
+  color: #ffffff;
+  box-shadow: none;
 }
 
 .high-contrast .station-detail-map-button .jump-to-corners path,
 .high-contrast .station-detail-map-button .jump-to-pin {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  filter: none !important;
+  color: #ffffff;
+  stroke: #ffffff;
+  filter: none;
 }
 
 .high-contrast .station-detail-map-button span,
 .linewatch-shell.high-contrast .station-detail-map-button span {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 /* ==========================================================================
@@ -345,7 +343,6 @@
 
 @media (max-width: 767px) {
   .station-detail-panel {
-    border: none !important;
     border-radius: 8px 8px 0 0 !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.85),
@@ -363,7 +360,6 @@
   }
 
   .dark .station-detail-panel {
-    border: none !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 -18px 44px rgba(0, 0, 0, 0.45) !important;
@@ -426,7 +422,7 @@
 
   .station-detail-panel {
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 8px;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.85),
       0 20px 25px -5px rgba(0, 0, 0, 0.1),
@@ -434,12 +430,11 @@
     background: #ffffff !important;
     height: auto !important;
     max-height: calc(var(--visual-viewport-height, 100dvh) - 128px) !important;
-    transform: none !important;
-    transition: none !important;
+    transform: none;
+    transition: none;
   }
 
   .dark .station-detail-panel {
-    border: none !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.1),
       0 20px 25px -5px rgba(0, 0, 0, 0.5),
@@ -517,12 +512,12 @@
    ========================================================================== */
 
 .motion-paused .station-detail-panel {
-  animation: none !important;
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .station-detail-panel {
-    animation: none !important;
+    animation: none;
   }
 }
 
@@ -540,12 +535,12 @@
 }
 
 .motion-paused .station-detail-scroll {
-  scroll-behavior: auto !important;
+  scroll-behavior: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .station-detail-scroll {
-    scroll-behavior: auto !important;
+    scroll-behavior: auto;
   }
 }
 
@@ -564,16 +559,16 @@
 }
 
 .motion-paused .station-detail-body-wrapper {
-  transition: none !important;
-  transform: none !important;
-  filter: none !important;
+  transition: none;
+  transform: none;
+  filter: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .station-detail-body-wrapper {
-    transition: none !important;
-    transform: none !important;
-    filter: none !important;
+    transition: none;
+    transform: none;
+    filter: none;
   }
 }
 
@@ -611,12 +606,12 @@
 }
 
 .motion-paused .station-detail-content-swap {
-  animation: none !important;
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .station-detail-content-swap {
-    animation: none !important;
+    animation: none;
   }
 }
 

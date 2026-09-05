@@ -52,7 +52,7 @@
   transform: translateX(-50%);
   width: 2px;
   pointer-events: none;
-  opacity: 1 !important;
+  opacity: 1;
 }
 
 .station-arrival-track-node {
@@ -64,21 +64,21 @@
   height: 16px;
   border-radius: 9999px;
   pointer-events: none;
-  background-color: #ffffff !important;
-  border: 2.5px solid #000000 !important;
+  background-color: #ffffff;
+  border: 2.5px solid #000000;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 2;
 }
 
 .dark .station-arrival-track-node {
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.18),
-    0 2px 5px rgba(0, 0, 0, 0.45) !important;
+    0 2px 5px rgba(0, 0, 0, 0.45);
 }
 
 .high-contrast .station-arrival-track-node {
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 .high-contrast .station-arrival-track-spine {
@@ -105,9 +105,7 @@
 }
 
 /* High Contrast overrides for arrival tiles */
-.high-contrast .station-detail-panel [data-arrival-group] .station-arrival-tile,
 .high-contrast .station-detail-panel [data-regional-arrival-direction] .station-arrival-tile,
-.linewatch-shell.high-contrast .station-detail-panel [data-arrival-group] .station-arrival-tile,
 .linewatch-shell.high-contrast .station-detail-panel [data-regional-arrival-direction] .station-arrival-tile {
   border: 1px solid #ffffff !important;
   box-shadow: none !important;
@@ -120,7 +118,7 @@
 
 .arrival-line-pin {
   align-items: center;
-  background: transparent !important;
+  background: transparent;
   border: none;
   border-radius: 4px;
   box-sizing: content-box;
@@ -150,7 +148,6 @@
 .arrival-line-pin.is-hovered,
 .arrival-line-pin:hover,
 .arrival-line-pin:active {
-  background: transparent !important;
   color: rgb(245, 158, 11);
 }
 
@@ -179,7 +176,6 @@
 }
 
 .arrival-line-pin.is-pinned {
-  background: transparent !important;
   color: rgb(245, 158, 11);
 }
 
@@ -192,7 +188,6 @@
 
 @media (hover: hover) and (pointer: fine) {
   .arrival-line-pin.is-pinned:hover {
-    background: transparent !important;
     color: rgb(217, 119, 6);
   }
 }
@@ -218,7 +213,6 @@
 .dark .arrival-line-pin.is-hovered,
 .dark .arrival-line-pin:hover,
 .dark .arrival-line-pin:active {
-  background: transparent !important;
   color: rgb(251, 191, 36);
 }
 
@@ -234,7 +228,6 @@
 }
 
 .dark .arrival-line-pin.is-pinned {
-  background: transparent !important;
   color: rgb(251, 191, 36);
 }
 
@@ -247,7 +240,6 @@
 
 @media (hover: hover) and (pointer: fine) {
   .dark .arrival-line-pin.is-pinned:hover {
-    background: transparent !important;
     color: rgb(253, 224, 71);
   }
 }
