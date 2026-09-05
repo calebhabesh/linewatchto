@@ -358,14 +358,12 @@
   background: rgb(5, 150, 105);
 }
 
-.high-contrast .saved-commute-account-prompt button.saved-commute-signup-btn,
-.high-contrast .notification-settings-prompt button.saved-commute-signup-btn {
+.high-contrast :is(.saved-commute-account-prompt, .notification-settings-prompt) button.saved-commute-signup-btn {
   background: rgb(226, 232, 240);
   color: rgb(15, 23, 42);
 }
 
-.high-contrast .saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
-.high-contrast .notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
+.high-contrast :is(.saved-commute-account-prompt, .notification-settings-prompt) button.saved-commute-signup-btn:hover:not(:disabled) {
   background: rgb(241, 245, 249);
 }
 
@@ -466,16 +464,35 @@
   gap: 0.375rem;
 }
 
+.saved-commute-account-prompt:not(.account-feature-preview) {
+  background: rgb(248, 250, 252);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.75rem;
+}
+
+.dark .saved-commute-account-prompt:not(.account-feature-preview) {
+  background: #12151c;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.high-contrast .saved-commute-account-prompt:not(.account-feature-preview) {
+  background: #000000;
+  border-color: #ffffff;
+}
+
 /* Keep signed-out feature previews visually identical across Notifications,
    My Commutes, and My Stations. */
 .account-feature-preview {
   background: rgba(255, 255, 255, 0.82) !important;
   border: 1px solid rgba(15, 23, 42, 0.08) !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   box-shadow: none !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 1rem !important;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   padding: 1rem !important;
 }
 
@@ -487,23 +504,4 @@
 .high-contrast .account-feature-preview {
   background: #000000 !important;
   border-color: #ffffff !important;
-}
-
-.saved-commute-account-prompt {
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 8px;
-  display: grid;
-  gap: 0.625rem;
-  padding: 0.75rem;
-  background: rgb(248, 250, 252);
-}
-
-.dark .saved-commute-account-prompt {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: #12151c;
-}
-
-.high-contrast .saved-commute-account-prompt {
-  border-color: #ffffff;
-  background: #000000;
 }

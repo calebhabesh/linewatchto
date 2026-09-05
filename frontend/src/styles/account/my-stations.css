@@ -651,8 +651,7 @@
    Station Disruption Summaries, Chips & Disclosure
    ========================================================================== */
 
-.saved-station-disruption-summary,
-.saved-commute-impact-summary.saved-station-disruption-summary {
+.saved-station-disruption-summary {
   align-items: center;
   cursor: pointer;
   display: grid;
@@ -678,8 +677,7 @@
   min-width: 0;
 }
 
-.saved-station-disruption-heading .saved-commute-impact-summary-icon,
-.saved-commute-impact-summary-heading.saved-station-disruption-heading .saved-commute-impact-summary-icon {
+.saved-station-disruption-heading .saved-commute-impact-summary-icon {
   height: 1.15rem;
   width: 1.15rem;
 }
@@ -839,8 +837,7 @@
   padding: 8px;
 }
 
-.saved-station-disruption-list,
-.saved-commute-impact-disclosure[open] .saved-station-disruption-list {
+.saved-station-disruption-list {
   margin-top: 0;
   padding: 8px 0 4px;
 }
@@ -886,7 +883,6 @@
 .saved-station-section-divider,
 .saved-station-surface-divider,
 .saved-station-line-divider,
-.saved-station-rich-content .saved-station-surface-divider,
 .station-arrival-line-divider.saved-station-surface-divider,
 .station-arrival-line-divider.saved-station-section-divider,
 .station-arrival-line-divider.saved-station-line-divider {
@@ -904,7 +900,6 @@
 }
 
 .saved-station-surface-divider,
-.saved-station-rich-content .saved-station-surface-divider,
 .station-arrival-line-divider.saved-station-surface-divider {
   margin: 8px 0 6px;
 }
@@ -931,9 +926,7 @@
   text-align: left;
 }
 
-.saved-station-arrivals .saved-station-arrivals-heading strong,
-.saved-station-arrivals-heading strong,
-.surface-connections-details.is-saved-station .saved-station-arrivals-heading strong {
+.saved-station-arrivals-heading strong {
   font-size: 0.98rem;
   font-weight: 850;
   text-align: left;
@@ -1335,8 +1328,8 @@
 .motion-paused .my-stations-undo,
 .motion-paused .my-stations-mode-action-content,
 .motion-paused .my-stations-search.picker-nudge {
-  animation: none !important;
-  transition: none !important;
+  animation: none;
+  transition: none;
 }
 
 @media (max-width: 30rem) {
@@ -1478,8 +1471,6 @@
 
 .dark .account-network-filter {
   background: rgb(15 23 42 / 0.75);
-  border-color: transparent;
-  box-shadow: var(--mobile-card-shadow);
 }
 
 .account-network-glider {
