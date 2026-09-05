@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S24B
-- Last completed session: S24B
-- Next recommended session: S25 — Consolidate Card Elevation, Badges, and Status Notices (`shell/card-elevation.css`, `shell/badges.css`, `shell/status-notices.css`)
+- Current session: S25
+- Last completed session: S25
+- Next recommended session: S26 — Consolidate Station Detail, Arrivals, and Accessibility (`station/station-detail.css`, `station/station-arrivals.css`, `station/station-accessibility.css`, `station/surface-connections.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 803,295 |
+| Total authored app CSS bytes | 784,128 | 802,404 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 676,862 |
-| Production CSS gzip bytes | 108,667 | 103,827 |
+| Production CSS bytes | 705,472 | 676,052 |
+| Production CSS gzip bytes | 108,667 | 103,806 |
 
 
 
@@ -3269,3 +3269,62 @@
 - Risks or blockers:
   - None. Subway closed overnight shell stylesheet is consolidated, cascade debt ceiling is lowered by 139 declarations, and all quality gates pass cleanly.
 - Next session: S25 — Consolidate Card Elevation, Badges, and Status Notices (`shell/card-elevation.css`, `shell/badges.css`, `shell/status-notices.css`).
+
+### S25 — Consolidate Card Elevation, Badges, and Status Notices
+
+- Status: completed
+- Commit: b264b0ba
+- Scope: Consolidate tactile card elevation, left-edge light filament system, status and line impact buttons, and status notices (`frontend/src/styles/shell/card-elevation.css`, `frontend/src/styles/shell/badges.css`, `frontend/src/styles/shell/status-notices.css`), eliminating redundant `!important` declarations, streamlining container elevation and button background rules, and lowering the graph-wide migration debt ceiling while strictly preserving contract-tested selectors, dark alert background rules, high-contrast accessibility overrides, and visual regression baselines:
+  1. Badges and Status Action Buttons (`frontend/src/styles/shell/badges.css`):
+     - Eliminated 39 redundant `!important` declarations across base light, dark, hover, and active states for delay, RSZ, planned closure, GO trip changes, accessibility, and surface connection buttons.
+     - Strictly preserved 15 declarations:
+       - 5 contract-tested SVG badge layout declarations: `.overlapping-count-badge { font-size: 0 !important; }` per `overlapping-count-badges.test.mjs:26`, single-digit count padding (`padding-left: 0 !important; padding-right: 0 !important;`) per `overlapping-count-badges.test.mjs:45`, and desktop menu single-digit count padding per `overlapping-count-badges.test.mjs:53`.
+       - 3 dark alerts button background rules: contract-tested `.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts, .dark .mobile-status-actions button.mobile-status-btn-alerts { background: #2d1414 !important; }` per `mobile-bottom-sheet-ux.test.mjs:398`, plus hover (`#3d1b1b !important;`) and active (`#4a2020 !important;`) overrides to ensure smooth interactive feedback over the base dark `!important` value.
+       - 7 high-contrast overrides: `.high-contrast .desktop-menu-count-badge` (`box-shadow: none !important; border: 1px solid #ffffff !important;`) and 5 distinct border-color overrides matching alert tones for alerts, delays, RSZ, closures, and trip changes.
+     - Net in `badges.css`: down from 54 to 15 `!important` declarations (-39, -72.2%). Authored lines steady at 497.
+  2. Card Elevation and Light Filament System (`frontend/src/styles/shell/card-elevation.css`):
+     - Eliminated 42 redundant `!important` declarations across Section 1 mobile card border colors, Section 2 opaque card background and hover/active states, Section 2 cross-platform borderless rules, Section 2 left-edge light filament system (RSZ, delay, suspension, planned closure, cleared/ok, and active card backgrounds), Section 3 transparent border-colors and card shadows, Section 7 floating panel borders, and Section 8 station detail section borders/radii.
+     - Strictly preserved 29 declarations:
+       - 9 contract-tested border and background declarations:
+         - Contract-tested `border-top-color: transparent !important;` on `.alert-card, .closure-card, .compact-impact-list-item, .commute-card` per `mobile-bottom-sheet-ux.test.mjs:388`.
+         - Contract-tested `border: none !important;` on `.mobile-status-actions button, .mobile-line-status-row` per `mobile-bottom-sheet-ux.test.mjs:395`.
+         - Contract-tested `border: none !important;` on `.mobile-more-account, .mobile-more-row, .mobile-more-health-grid div, .mobile-more-install-help` per `mobile-bottom-sheet-ux.test.mjs:399`.
+         - Contract-tested `border: none !important;` on `.menu-toggle-btn, .header-search-bar, .desktop-status-capsule, ...` per `desktop-status-capsule.test.mjs:72`.
+         - Contract-tested `border: none !important;` on `.station-detail-panel [data-station-section]` per `station-panel-layout.test.mjs:191`.
+         - Contract-tested `background: #161a23 !important;` on `.dark .station-detail-panel [data-station-section]` per `station-panel-layout.test.mjs:192`.
+         - Contract-tested `align-items: center !important;` and `border: none !important;` on `.station-detail-disruption-card` per `station-panel-layout.test.mjs:195, 196`.
+         - Contract-tested `border: none !important;` on `.station-impact-jump-button` per `station-panel-layout.test.mjs:199`.
+         - Contract-tested `background: #161a23 !important;` on `.dark .station-impact-jump-button` per `station-panel-layout.test.mjs:200`.
+       - 20 high-contrast accessibility preservation declarations across Section 1 mobile cards, Section 2 mobile sheet cards, Section 2 borderless cards, Section 4 container shadows, Section 5 desktop line status rows, Section 6 top chrome controls, Section 7 desktop floating panels, and Section 8 station detail section containers.
+     - Net in `card-elevation.css`: down from 71 to 29 `!important` declarations (-42, -59.2%). Authored lines steady at 722.
+  3. Status Notices (`frontend/src/styles/shell/status-notices.css`):
+     - Reviewed and confirmed clean, modular zero `!important` declarations across dashboard availability notice and app update banner. Authored lines steady at 230.
+  4. Cascade Debt:
+     - Net elimination of 81 `!important` declarations across card elevation, badges, and status notices stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 687 down to 606 (-81 declarations, -11.8%).
+- Files changed:
+  - `frontend/src/styles/shell/badges.css`
+  - `frontend/src/styles/shell/card-elevation.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm run typecheck`: Passed (clean route types generated, 0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 3.7s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 17.8s).
+  - `npm run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 28.1s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,567; authored CSS bytes reduced from 803,295 to 802,404 (-891 B); graph `!important` declarations reduced from 687 to 606 (-81); production chunk raw bytes reduced from 676,862 to 676,052 (-810 B); production gzip bytes reduced from 103,827 to 103,806 (-21 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `badges.css` (`overlapping-count-badges.test.mjs:26,45,53`, `mobile-bottom-sheet-ux.test.mjs:398`) and `card-elevation.css` (`mobile-bottom-sheet-ux.test.mjs:388,395,399`, `desktop-status-capsule.test.mjs:72`, `station-panel-layout.test.mjs:191,192,195,196,199,200`).
+  - Preserved hover/active interactive override rules for dark alert buttons in `badges.css` to prevent state lock-in against the contract-tested dark base `!important` rule.
+  - Strictly preserved all 27 high-contrast accessibility overrides across mobile sheet actions, count badges, desktop top chrome, floating panels, and station detail sections.
+  - Safely eliminated redundant `!important` declarations on light filament tone borders, card backgrounds, hover/active states, and non-contract station section borders.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 687 to 606 (-81 declarations).
+- Risks or blockers:
+  - None. Card elevation, badges, and status notices stylesheets are consolidated, cascade debt ceiling is lowered by 81 declarations, and all quality gates pass cleanly.
+- Next session: S26 — Consolidate Station Detail, Arrivals, and Accessibility (`station/station-detail.css`, `station/station-arrivals.css`, `station/station-accessibility.css`, `station/surface-connections.css`).
