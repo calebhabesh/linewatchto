@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S23A
-- Last completed session: S23A
-- Next recommended session: S23B — Consolidate Floating Panels and Mobile Sheets (`shell/floating-panels.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`)
+- Current session: S23B
+- Last completed session: S23B
+- Next recommended session: S24A — Consolidate Mobile Chrome and Shell Utilities (`shell/mobile-chrome.css`, `shell/search-bar.css`, `shell/header-flare.css`, `shell/error-screen.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -14,13 +14,13 @@
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
 | Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 808,542 |
+| Total authored app CSS bytes | 784,128 | 805,957 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 681,547 |
-| Production CSS gzip bytes | 108,667 | 104,279 |
+| Production CSS bytes | 705,472 | 679,042 |
+| Production CSS gzip bytes | 108,667 | 104,059 |
 
 
 
@@ -3095,3 +3095,69 @@
   - None. Shell layout and controls stylesheets are consolidated, cascade debt ceiling is lowered by 78 declarations, and all quality gates pass cleanly.
 - Next session: S23B — Consolidate Floating Panels and Mobile Sheets (`shell/floating-panels.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`).
 
+### S23B — Consolidate Floating Panels and Mobile Sheets
+
+- Status: completed
+- Commit: 7ae6f3bd
+- Scope: Consolidate layout containers, floating panel shells, mobile drawer sheets, rotated landscape HUD controls, and responsive density typography/padding rules (`frontend/src/styles/shell/floating-panels.css`, `frontend/src/styles/shell/mobile-sheets.css`, `frontend/src/styles/shell/mobile-landscape.css`, `frontend/src/styles/shell/responsive-density.css`), eliminating redundant `!important` declarations, simplifying component sizing and scroll containers, streamlining mobile sheet headings and count badges, and lowering the graph-wide migration debt ceiling while strictly preserving contract-tested selectors, animations, keyframes, accessibility rules, and visual regression baselines:
+  1. Floating Panels (`frontend/src/styles/shell/floating-panels.css`):
+     - Eliminated 3 redundant `!important` declarations on `.floating-panel-shell .panel, .commute-panel, .analytics-panel, .health-panel` (`border: none`, `background: transparent`, `box-shadow: none`).
+     - Maintained clean zero `!important` declarations across all 148 lines.
+     - Net: down from 3 to 0 declarations (-3). Authored lines steady at 148.
+  2. Mobile Landscape (`frontend/src/styles/shell/mobile-landscape.css`):
+     - Eliminated 32 redundant `!important` declarations on `.rotated-map-selection-card` and all its severity variants (`critical`, `warning`, `rsz`, `delay`, `planned`, `normal`, and `.rotated-map-selection-card-station`).
+     - Strictly preserved 8 declarations:
+       - 4 modal visibility/geometry rules: `.linewatch-shell.mobile-map-rotated .mobile-bottom-nav, ... { display: none !important; }`, `bottom: 0 !important;`, `right: 0 !important;`, and `.map-control-rail { display: none !important; }`.
+       - 4 high-contrast accessibility overrides on `.high-contrast .rotated-map-selection-card` (`background`, `border`, `box-shadow`, `color`).
+     - Net: down from 40 to 8 declarations (-32). Authored lines steady at 588.
+  3. Responsive Density (`frontend/src/styles/shell/responsive-density.css`):
+     - Eliminated 51 redundant `!important` declarations across rotate button dimensions, welcome account copy, panel headings, cards, amenity chips, station detail, header padding, and status capsule anchor.
+     - Strictly preserved 17 contract-tested declarations:
+       - `.rotate-map-btn span` (`display: inline-block !important;`, `font-size: clamp(6.5px, 2.15vw, 8px) !important;`, `letter-spacing: 0.02em !important;`) per `subway-closing-soon.test.mjs:79-81`.
+       - `.mobile-bottom-nav { display: grid !important; }` per `mobile-landscape-mode.test.mjs:52`.
+       - Physical landscape phone overrides (10 declarations) per `mobile-landscape-mode.test.mjs:45,59,63`.
+       - `.desktop-status-capsule-anchor { top: 104px !important; }` and `.desktop-map-control-rail { top: 176px !important; }` per `narrow-desktop-layout.test.mjs:10,14`.
+     - Net: down from 68 to 17 declarations (-51). Authored lines steady at 886.
+  4. Mobile Sheets (`frontend/src/styles/shell/mobile-sheets.css`):
+     - Eliminated 148 redundant `!important` declarations across `.mobile-more-*` rows/accounts, panel headings, scroll containers, buttons, and submenus.
+     - Strictly preserved 21 declarations:
+       - Contract-tested `.mobile-sheet-source--updated { color: #4ade80 !important; }` per `mobile-bottom-sheet-ux.test.mjs:77`.
+       - Contract-tested `html[data-visual-keyboard="open"] .mobile-bottom-nav { display: none !important; }` and `html[data-visual-keyboard="open"] .commute-station-popover { bottom: auto !important; }` per `mobile-bottom-sheet-ux.test.mjs:243,246`.
+       - Contract-tested `.mobile-more-content-scroll, ... .mobile-status-content-scroll { scrollbar-width: thin !important; }` per `mobile-bottom-sheet-ux.test.mjs:186`.
+       - Contract-tested `.mobile-status-content-scroll { margin-top: -12px !important; padding-top: 12px !important; }` per `mobile-bottom-sheet-ux.test.mjs:401`.
+       - Contract-tested `.mobile-view-content-wrapper[data-active-view="closures"] .panel-heading span.whitespace-nowrap { max-width: none !important; overflow: visible !important; }` per `drawer-layout.test.mjs:302`.
+       - Contract-tested `.linewatch-shell.mobile-map-inspector-station > main { bottom: 0 !important; }` per `mobile-station-draggable-sheet.test.mjs:208`.
+       - Layout visibility rules: `.linewatch-shell.mobile-map-inspector .mobile-bottom-nav { display: none !important; }` and `.linewatch-shell.mobile-map-inspector-station .station-detail-panel { display: flex !important; }`.
+       - High-contrast accessibility overrides (10 declarations) on buttons, line status rows, and More menu items.
+     - Net: down from 169 to 21 declarations (-148). Authored lines steady at 1,759.
+  5. Cascade Debt:
+     - Eliminated 234 `!important` declarations total across floating panels, mobile landscape, responsive density, and mobile sheets stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,163 down to 929 (-234 declarations, -20.1%).
+- Files changed:
+  - `frontend/src/styles/shell/floating-panels.css`
+  - `frontend/src/styles/shell/mobile-landscape.css`
+  - `frontend/src/styles/shell/mobile-sheets.css`
+  - `frontend/src/styles/shell/responsive-density.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm run typecheck`: Passed (clean route types generated, 0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.7s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 17.7s).
+  - `npm run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 21.2s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines steady at 31,567; authored CSS bytes reduced from 808,542 to 805,957 (-2,585 B); graph `!important` declarations reduced from 1,163 to 929 (-234); production chunk raw bytes reduced from 681,547 to 679,042 (-2,505 B); production gzip bytes reduced from 104,279 to 104,059 (-220 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `mobile-sheets.css` (`mobile-bottom-sheet-ux.test.mjs:77,186,243,246,401`, `drawer-layout.test.mjs:302`, `mobile-station-draggable-sheet.test.mjs:208`) and `responsive-density.css` (`subway-closing-soon.test.mjs:79-81`, `mobile-landscape-mode.test.mjs:45,52,59,63`, `narrow-desktop-layout.test.mjs:10,14`).
+  - Preserved modal visibility constraints (`display: none !important;`, `bottom: 0 !important;`) on rotated map mode and split map inspector to prevent desktop bottom nav / rail overlap during mobile modal states.
+  - Strictly preserved all high-contrast overrides across rotated cards, status actions, and mobile More rows.
+  - Safely eliminated redundant `!important` declarations on floating panels, rotated selection card variants, density typography/padding rules, and mobile sheet buttons/headings.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 1,163 to 929 (-234 declarations).
+- Risks or blockers:
+  - None. Floating panels and mobile sheet stylesheets are consolidated, cascade debt ceiling is lowered by 234 declarations, and all quality gates pass cleanly.
+- Next session: S24A — Consolidate Mobile Chrome and Shell Utilities (`shell/mobile-chrome.css`, `shell/search-bar.css`, `shell/header-flare.css`, `shell/error-screen.css`).
