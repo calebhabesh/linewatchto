@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S16B
-- Last completed session: S16B
-- Next recommended session: S17A — Consolidate Shell Stylesheets (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/card-elevation.css`, `shell/header-flare.css`, `shell/search-bar.css`, `shell/status-notices.css`)
+- Current session: S17A
+- Last completed session: S17A
+- Next recommended session: S17B — Consolidate Remaining Shell Stylesheets (`shell/floating-panels.css`, `shell/map-controls.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,964 |
-| Total authored app CSS bytes | 784,128 | 830,597 |
+| Total authored app CSS lines | 31,414 | 31,846 |
+| Total authored app CSS bytes | 784,128 | 825,905 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 700,508 |
-| Production CSS gzip bytes | 108,667 | 105,504 |
+| Production CSS bytes | 705,472 | 696,797 |
+| Production CSS gzip bytes | 108,667 | 105,275 |
 
 
 
@@ -2163,3 +2163,68 @@
   - None. All 9 map stylesheets in `src/styles/map/` are now consolidated and cleanly verified.
 - Next session: S17A — Consolidate Shell Stylesheets (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/card-elevation.css`, `shell/header-flare.css`, `shell/search-bar.css`, `shell/status-notices.css`).
 
+### S17A — Consolidate Shell Stylesheets (2026-09-04)
+
+- Status: completed
+- Commit: 88f72cd7
+- Scope: Consolidate the first batch of shell stylesheets (`shell/dashboard-shell.css`, `shell/desktop-chrome.css`, `shell/card-elevation.css`, `shell/header-flare.css`, `shell/search-bar.css`, `shell/status-notices.css`), eliminating dead overrides, duplicate rules, redundant `!important` declarations, and duplicate border declarations while strictly preserving contract-tested selectors and visual regression baselines:
+  1. Dashboard Shell (`shell/dashboard-shell.css`):
+     - Removed `!important` from `font-weight: 600` on `.linewatch-wordmark`.
+     - Consolidated typography and flex layout on `.panel-heading h1, .panel-heading h2`, eliminating 8 `!important` declarations across `display: flex`, `align-items: center`, `margin: 0`, and child icon/text alignment.
+     - Removed redundant `!important` from `animation: none` on `.linewatch-shell.mobile-performance-mode`, `.reduced-motion`, and `@media (prefers-reduced-motion: reduce)`.
+     - Net: eliminated 11 `!important` declarations (down from 11 to 0).
+  2. Search Bar (`shell/search-bar.css`):
+     - Removed redundant `!important` from `border-color` across `.search-btn[aria-expanded="true"]`, `.dark ...`, and `.high-contrast ...`.
+     - Net: eliminated 3 `!important` declarations (down from 23 to 20).
+  3. Desktop Chrome (`shell/desktop-chrome.css`):
+     - Eliminated duplicate comment on lines 1-2.
+     - Removed `!important` from `.network-selector-btn` (`box-shadow: none;` and hover background) and `.network-selector-glider` reduced-motion transition.
+     - Removed `!important` from `.estimated-train-pending-spinner` and `.desktop-status-live-dot` motion/animation overrides.
+     - Removed `!important` from base `.desktop-header-impact-chips .desktop-status-chip-count` (`border: none; box-shadow: none;`).
+     - Removed 5 duplicate dark chip-count `box-shadow: none !important;` declarations and 1 high-contrast chip-count `box-shadow: none !important;`.
+     - Eliminated 100% duplicate `.dark .desktop-header-impact-chips .desktop-status-chip` rule block.
+     - Strictly preserved contract-tested declarations:
+       - `.desktop-header-impact-chips .desktop-status-chip { border: none !important; ... }` (`desktop-status-capsule.test.mjs:68`)
+       - `.dark .desktop-status-chip--alerts { background: #2d1414 !important; }` (`desktop-status-capsule.test.mjs:69`)
+       - Light and dark alerts chip count background `!important` (`desktop-status-capsule.test.mjs:70-71`).
+     - Net: eliminated 16 `!important` declarations (down from 74 to 58).
+  4. Card Elevation (`shell/card-elevation.css`):
+     - Preserved exact contract-tested mobile cards block in Section 1 required by `mobile-bottom-sheet-ux.test.mjs:388-389`.
+     - Removed dead `opacity: 1 !important;` declaration in Section 2.
+     - Set `border-top: none !important; border-right: none !important; border-bottom: none !important;` on the base cross-platform card selector, eliminating 15 duplicate `border-top/right/bottom: none !important;` declarations across all 5 left-edge filament kinds (`rsz-card-border`, `delay-card-border`, `suspension-card-border`, `planned-closure-card-border`, `commute-card.ok`).
+     - Unified search and commute station items in Section 2.
+     - Removed duplicate `border: none !important;` in `.dark .floating-panel-scroll`, `.dark #linewatch-main-menu`, `.dark .station-detail-panel`, `.dark .station-detail-disruption-card`, and `.dark .station-impact-jump-button`.
+     - Pruned redundant selectors in Section 9 already established by Section 6.
+     - Net: eliminated 27 `!important` declarations (down from 135 to 108).
+  5. Status Notices (`shell/status-notices.css`):
+     - Reordered responsive media queries to place `@media (max-width: 767px)` before `@media (max-width: 520px)` in standard descending order.
+  6. Cascade Debt:
+     - Eliminated 57 `!important` declarations total across the shell stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 2,020 to 1,963 (-57 declarations).
+- Files changed:
+  - `frontend/src/styles/shell/card-elevation.css`
+  - `frontend/src/styles/shell/dashboard-shell.css`
+  - `frontend/src/styles/shell/desktop-chrome.css`
+  - `frontend/src/styles/shell/search-bar.css`
+  - `frontend/src/styles/shell/status-notices.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.2s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 19.5s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - Targeted Playwright E2E (`dashboard.spec.ts` 10 targeted network/search/view-on-map tests): Passed (9/9 passed, 1 skipped in 47.9s).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,964 to 31,846 (-118 lines); authored CSS bytes reduced from 830,597 to 825,905 (-4,692 B); graph `!important` declarations reduced from 2,020 to 1,963 (-57); production chunk raw bytes reduced from 700,508 to 696,797 (-3,711 B); production gzip bytes reduced from 105,504 to 105,275 (-229 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested selectors in `desktop-chrome.css` required by `desktop-status-capsule.test.mjs` (`border: none !important;` on `.desktop-header-impact-chips .desktop-status-chip`, `#2d1414 !important;` for dark alert chip background, and alert count background color).
+  - Preserved exact contract-tested mobile cards selector block in `card-elevation.css` required by `mobile-bottom-sheet-ux.test.mjs`.
+  - Reordered breakpoint queries in `status-notices.css` to standard descending order (767px then 520px).
+- Risks or blockers:
+  - None. All 6 target shell stylesheets are consolidated and cleanly verified.
+- Next session: S17B — Consolidate Remaining Shell Stylesheets (`shell/floating-panels.css`, `shell/map-controls.css`, `shell/mobile-chrome.css`, `shell/mobile-sheets.css`, `shell/mobile-landscape.css`, `shell/responsive-density.css`).
