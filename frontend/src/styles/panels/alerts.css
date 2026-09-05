@@ -19,12 +19,12 @@
 
 .impact-card-map-btn {
   align-items: center;
-  background: rgba(37, 99, 235, 0.08) !important;
-  background-image: none !important;
+  background: rgba(37, 99, 235, 0.08);
+  background-image: none;
   border: none !important;
-  outline: none !important;
-  border-radius: 9999px !important;
-  box-shadow: none !important;
+  outline: none;
+  border-radius: 9999px;
+  box-shadow: none;
   color: #2563eb;
   cursor: pointer;
   display: flex;
@@ -40,25 +40,25 @@
 }
 
 .dark .impact-card-map-btn {
-  background: rgba(56, 189, 248, 0.09) !important;
+  background: rgba(56, 189, 248, 0.09);
   color: #38bdf8;
 }
 
 .impact-card-map-btn:hover {
-  background: rgba(37, 99, 235, 0.14) !important;
+  background: rgba(37, 99, 235, 0.14);
 }
 
 .dark .impact-card-map-btn:hover {
-  background: rgba(56, 189, 248, 0.16) !important;
+  background: rgba(56, 189, 248, 0.16);
 }
 
 .impact-card-map-btn:active {
   transform: scale(0.93);
-  background: rgba(37, 99, 235, 0.2) !important;
+  background: rgba(37, 99, 235, 0.2);
 }
 
 .dark .impact-card-map-btn:active {
-  background: rgba(56, 189, 248, 0.22) !important;
+  background: rgba(56, 189, 248, 0.22);
 }
 
 .impact-card-map-btn svg {
@@ -80,24 +80,24 @@
 
 @media (max-width: 767px) {
   .impact-card-map-btn {
-    flex: 0 0 72px !important;
+    flex: 0 0 72px;
     height: 72px !important;
-    min-width: 72px !important;
+    min-width: 72px;
     width: 72px !important;
-    gap: 3px !important;
-    padding: 0 4px !important;
+    gap: 3px;
+    padding: 0 4px;
   }
 
   .impact-card-map-btn svg {
-    height: 24px !important;
-    width: 24px !important;
+    height: 24px;
+    width: 24px;
   }
 
   .impact-card-map-btn span {
-    font-size: 9px !important;
-    letter-spacing: 0.04em !important;
-    line-height: 1.1 !important;
-    max-width: 56px !important;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    max-width: 56px;
   }
 }
 
@@ -118,15 +118,15 @@
 .jump-to-location-icon .jump-to-pin path,
 .impact-card-map-btn .jump-to-pin path,
 .compact-impact-list-item__map-action .jump-to-pin path {
-  stroke: currentColor !important;
-  fill: none !important;
+  stroke: currentColor;
+  fill: none;
 }
 
 .jump-to-location-icon .jump-to-pin circle,
 .impact-card-map-btn .jump-to-pin circle,
 .compact-impact-list-item__map-action .jump-to-pin circle {
-  fill: currentColor !important;
-  stroke: none !important;
+  fill: currentColor;
+  stroke: none;
 }
 
 .linewatch-shell:not(.dark) .impact-card-map-btn .jump-to-pin,
@@ -138,60 +138,60 @@
 /* Active / Focused on map */
 .impact-card-map-btn.is-active {
   background: #2563eb !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.20) !important;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.20);
 }
 
 .dark .impact-card-map-btn.is-active {
   background: #1d4ed8 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .impact-card-map-btn.is-active .jump-to-pin {
-  color: #ffffff !important;
+  color: #ffffff;
   filter: none !important;
 }
 
 .impact-card-map-btn.is-active:hover {
-  background: #1d4ed8 !important;
+  background: #1d4ed8;
 }
 
 .dark .impact-card-map-btn.is-active:hover {
-  background: #2563eb !important;
-  border: none !important;
+  background: #2563eb;
+  border: none;
 }
 
 
 /* High contrast mode support */
 .high-contrast .impact-card-map-btn {
-  background: #000000 !important;
+  background: #000000;
   border: 1px solid #ffffff !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
+  color: #ffffff;
+  box-shadow: none;
 }
 
 .high-contrast .impact-card-map-btn .jump-to-corners path,
 .high-contrast .impact-card-map-btn .jump-to-pin {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  filter: none !important;
+  color: #ffffff;
+  stroke: #ffffff;
+  filter: none;
 }
 
 .high-contrast .impact-card-map-btn.is-active {
   background: #ffffff !important;
   border: 1px solid #ffffff !important;
-  color: #000000 !important;
-  box-shadow: none !important;
+  color: #000000;
+  box-shadow: none;
 }
 
 .high-contrast .impact-card-map-btn.is-active .jump-to-corners path,
 .high-contrast .impact-card-map-btn.is-active .jump-to-pin {
-  color: #000000 !important;
-  stroke: #000000 !important;
+  color: #000000;
+  stroke: #000000;
 }
 
 .high-contrast .impact-card-map-btn.is-active span {
-  color: #000000 !important;
+  color: #000000;
 }
 
 
@@ -464,12 +464,11 @@
 }
 
 .impact-metadata-grid > .is-window-row {
-  grid-column: 1 / -1 !important;
-  grid-column: span 2 / span 2 !important;
+  grid-column: 1 / -1;
 }
 
 .planned-closure-metadata .is-window-row {
-  grid-column: span 2 / span 2 !important;
+  grid-column: 1 / -1;
 }
 
 .closure-window-value {
@@ -477,15 +476,15 @@
   column-gap: 0.28em;
   display: inline-flex;
   flex-direction: row;
-  flex-wrap: nowrap !important;
-  white-space: nowrap !important;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .closure-window-date {
   color: var(--text);
   font-weight: 850;
   line-height: 1.25;
-  white-space: nowrap !important;
+  white-space: nowrap;
 }
 
 .closure-window-time {
@@ -493,7 +492,7 @@
   font-variant-numeric: tabular-nums;
   font-weight: 750;
   line-height: 1.25;
-  white-space: nowrap !important;
+  white-space: nowrap;
 }
 
 @media (max-width: 639px) {
@@ -503,7 +502,7 @@
 
   .planned-closure-metadata .is-emphasized dd,
   .impact-metadata-grid > .is-window-row dd {
-    font-size: 0.74rem !important;
+    font-size: 0.74rem;
     letter-spacing: -0.015em;
   }
 }
@@ -687,14 +686,14 @@
 }
 
 .embedded-impact-panel {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
-  flex: 0 0 auto !important;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  flex: 0 0 auto;
 }
 
 .embedded-impact-panel > .panel-heading,
@@ -702,21 +701,14 @@
   display: none !important;
 }
 
-@media (max-width: 767px) {
-  .floating-panel-shell .embedded-impact-panel > .panel-heading,
-  .floating-panel-shell .embedded-impact-panel > .impact-list-toolbar {
-    display: none !important;
-  }
-}
-
 .embedded-impact-panel > .alert-stack,
 .embedded-impact-panel > .closure-stack {
   padding-top: 6px;
   padding-bottom: 6px;
   overflow-y: visible !important;
-  max-height: none !important;
+  max-height: none;
   flex: none !important;
-  height: auto !important;
+  height: auto;
 }
 
 .embedded-impact-panel + .embedded-impact-panel > .alert-stack,
@@ -764,8 +756,8 @@
 }
 
 .high-contrast .impact-list-search {
-  border: 1px solid #ffffff !important;
-  box-shadow: none !important;
+  border: 1px solid #ffffff;
+  box-shadow: none;
 }
 
 .impact-list-search:focus-within {
@@ -1192,16 +1184,16 @@
   height: 32px;
   align-items: center;
   justify-content: center;
-  border: none !important;
-  outline: none !important;
+  border: none;
+  outline: none;
   border-radius: 9999px;
-  background: rgba(37, 99, 235, 0.08) !important;
+  background: rgba(37, 99, 235, 0.08);
   color: #2563eb;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .dark .compact-impact-list-item__map-action {
-  background: rgba(56, 189, 248, 0.09) !important;
+  background: rgba(56, 189, 248, 0.09);
   color: #38bdf8;
 }
 
@@ -1319,7 +1311,7 @@
 }
 
 .motion-paused .station-impact-card-highlight {
-  animation: none !important;
+  animation: none;
   box-shadow: 0 0 0 3px var(--highlight-color, rgba(245, 158, 11, 0.9)) !important;
   border-color: var(--highlight-color, rgba(245, 158, 11, 0.9)) !important;
 }
@@ -1350,10 +1342,6 @@
 .dark .rsz-count-badge,
 .high-contrast .rsz-count-badge {
   color: var(--impact-rsz);
-}
-
-.rsz-card-border {
-  border-left-color: var(--impact-rsz);
 }
 
 .delay-tone,
@@ -1454,11 +1442,11 @@
   .alert-stack.is-empty,
   .closure-stack.is-empty
 ) {
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: center !important;
-  flex-grow: 1 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
   padding-bottom: 12px !important; /* Overrides the mobile 56px bottom padding to keep centering symmetric */
   mask-image: none !important;
   -webkit-mask-image: none !important;
