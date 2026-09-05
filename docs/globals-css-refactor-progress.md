@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S25
-- Last completed session: S25
-- Next recommended session: S26 — Consolidate Station Detail, Arrivals, and Accessibility (`station/station-detail.css`, `station/station-arrivals.css`, `station/station-accessibility.css`, `station/surface-connections.css`)
+- Current session: S26
+- Last completed session: S26
+- Next recommended session: S27 — Consolidate Account Dialogs, My Stations, Saved Commutes, Commute Rules, and Notification Settings (`account/account-dialogs.css`, `account/my-stations.css`, `account/saved-commutes.css`, `account/saved-commute-rules.css`, `account/notification-settings.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,567 |
-| Total authored app CSS bytes | 784,128 | 802,404 |
+| Total authored app CSS lines | 31,414 | 31,568 |
+| Total authored app CSS bytes | 784,128 | 801,874 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 676,052 |
-| Production CSS gzip bytes | 108,667 | 103,806 |
+| Production CSS bytes | 705,472 | 675,574 |
+| Production CSS gzip bytes | 108,667 | 103,779 |
 
 
 
@@ -3328,3 +3328,69 @@
 - Risks or blockers:
   - None. Card elevation, badges, and status notices stylesheets are consolidated, cascade debt ceiling is lowered by 81 declarations, and all quality gates pass cleanly.
 - Next session: S26 — Consolidate Station Detail, Arrivals, and Accessibility (`station/station-detail.css`, `station/station-arrivals.css`, `station/station-accessibility.css`, `station/surface-connections.css`).
+
+### S26 — Consolidate Station Detail, Arrivals, and Accessibility
+
+- Status: completed
+- Scope: Consolidate station detail panel, station arrivals, station accessibility, and surface connections stylesheets (`frontend/src/styles/station/station-detail.css`, `frontend/src/styles/station/station-arrivals.css`, `frontend/src/styles/station/station-accessibility.css`, `frontend/src/styles/station/surface-connections.css`), eliminating 53 redundant `!important` declarations while strictly preserving contract-tested selectors, dragging safety overrides, dark backgrounds, high-contrast accessibility overrides, and visual regression baselines:
+  1. Station Detail (`frontend/src/styles/station/station-detail.css`):
+     - Eliminated 25 redundant `!important` declarations across save/close button `box-shadow` and `background`, direction badge `box-shadow`/`background-color`/`color`, quick jump button `box-shadow` and `background`, mobile panel `border-radius`/`box-shadow`/`background`/`height`/`max-height`/`padding-bottom` and dark `box-shadow`, desktop panel `box-shadow`/`background`/`max-height`/`padding-bottom`, and exit animation declarations.
+     - Strictly preserved 20 declarations:
+       - Contract-tested `border: none !important` on save/close buttons per `station-panel-layout.test.mjs:178-179`.
+       - Contract-tested `background: #161a23 !important` on dark save/close buttons per `station-panel-layout.test.mjs:178-179`.
+       - Contract-tested `border: none !important` and `border-radius: 999px !important` on direction badges per `station-line-direction-indicator.test.mjs:23-24`.
+       - Contract-tested `display: none !important` on `.station-sheet-drag-handle-container` at desktop per `mobile-station-draggable-sheet.test.mjs:121-122`.
+       - Contract-tested `height: auto !important` on desktop station panel per `mobile-station-draggable-sheet.test.mjs:123`.
+       - Dragging safety: `transition: none !important`, `pointer-events: none !important`, `user-select: none !important`, `overflow: hidden !important` on `.is-dragging` state.
+       - Exit animation safety: `pointer-events: none !important`.
+       - Dark mode backgrounds and high-contrast overrides.
+     - Net in `station-detail.css`: down from 45 to 20 `!important` declarations (-25, -55.6%). Authored lines steady at 691.
+  2. Station Arrivals (`frontend/src/styles/station/station-arrivals.css`):
+     - Eliminated 10 redundant `!important` declarations across `[data-arrival-group]` `border`/`box-shadow`/`background`, `.station-arrival-tile` `border`/`box-shadow`, and 4 `stroke` declarations on arrival line pin SVGs (light/dark × idle/pinned).
+     - Strictly preserved 10 declarations:
+       - Contract-tested `fill: ... !important` declarations per `station-panel-layout.test.mjs:446-447`.
+       - High-contrast `!important` overrides.
+       - `background-color: #ffffff !important` on track spine.
+     - Net in `station-arrivals.css`: down from 20 to 10 `!important` declarations (-10, -50.0%). Authored lines steady at 246.
+  3. Station Accessibility (`frontend/src/styles/station/station-accessibility.css`):
+     - Eliminated all 9 `!important` declarations from `[data-station-access-outage-summary]` and notice/accessibility card styles.
+     - Net in `station-accessibility.css`: down from 9 to 0 `!important` declarations (-9, -100%). Authored lines steady at 175.
+  4. Surface Connections (`frontend/src/styles/station/surface-connections.css`):
+     - Eliminated 9 redundant `!important` declarations from `.saved-station-arrival-group.is-surface-group` (`background`/`border`/`box-shadow`/`padding`), `.station-connection-row` `box-shadow`, dark `.station-connection-row` `box-shadow`, and surface departure tile styles.
+     - Added `.dark .saved-station-arrival-group.is-surface-group` compound selector to win specificity over `.dark .saved-station-arrival-group` in `my-stations.css` without `!important`.
+     - Strictly preserved 2 declarations:
+       - Contract-tested `border: none !important` on `.station-connection-row` per `station-panel-layout.test.mjs:203`.
+       - Contract-tested `background: #12151c !important` on `.dark .station-connection-row` per `station-panel-layout.test.mjs:204`.
+     - Net in `surface-connections.css`: down from 11 to 2 `!important` declarations (-9, -81.8%). Authored lines +1 at 235.
+  5. Cascade Debt:
+     - Net elimination of 53 `!important` declarations across station detail, arrivals, accessibility, and surface connections stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 606 down to 553 (-53 declarations, -8.7%).
+- Files changed:
+  - `frontend/src/styles/station/station-detail.css`
+  - `frontend/src/styles/station/station-arrivals.css`
+  - `frontend/src/styles/station/station-accessibility.css`
+  - `frontend/src/styles/station/surface-connections.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm run test:fast`: Passed (200/200 suites, 0 failures).
+  - `npm run typecheck`: Passed (0 TypeScript errors).
+  - `npm run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm run build`: Passed (Next.js Turbopack production build succeeded in 2.2s, 208/208 static routes generated).
+  - `npm run test:smoke`: Passed (6/6 in 18.6s).
+  - `npm run test:visual`: Passed (11/11 passed, 0 pixel differences).
+  - Targeted Playwright E2E (`overlapping-count-badges.spec.ts`): Passed (4/4 passed across desktop-chrome and mobile-chromium in 20.1s).
+  - `npm run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS lines at 31,568 (+1); authored CSS bytes reduced from 802,404 to 801,874 (-530 B); graph `!important` declarations reduced from 606 to 553 (-53); production chunk raw bytes reduced from 676,052 to 675,574 (-478 B); production gzip bytes reduced from 103,806 to 103,779 (-27 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved contract-tested `!important` declarations in `station-detail.css` (`station-panel-layout.test.mjs:178-179`, `station-line-direction-indicator.test.mjs:23-24`, `mobile-station-draggable-sheet.test.mjs:121-123`), `station-arrivals.css` (`station-panel-layout.test.mjs:446-447`), and `surface-connections.css` (`station-panel-layout.test.mjs:203-204`).
+  - Preserved dragging safety overrides (`transition`, `pointer-events`, `user-select`, `overflow`) on `.is-dragging` state to prevent visual glitches during touch gestures.
+  - Preserved exit animation `pointer-events: none !important` to prevent click-through during panel close.
+  - Added `.dark` compound selector on `.saved-station-arrival-group.is-surface-group` in `surface-connections.css` to win specificity over `my-stations.css` dark backgrounds without `!important`.
+  - Confirmed `station-accessibility.css` was fully cleaned to 0 `!important` declarations with no contract-tested overrides.
+  - Lowered `BASELINE_CEILINGS.GRAPH_IMPORTANT_DECLARATIONS` in `css-architecture-guardrails.test.mjs` from 606 to 553 (-53 declarations).
+- Risks or blockers:
+  - None. Station detail, arrivals, accessibility, and surface connections stylesheets are consolidated, cascade debt ceiling is lowered by 53 declarations, and all quality gates pass cleanly.
+- Next session: S27 — Consolidate Account Dialogs, My Stations, Saved Commutes, Commute Rules, and Notification Settings (`account/account-dialogs.css`, `account/my-stations.css`, `account/saved-commutes.css`, `account/saved-commute-rules.css`, `account/notification-settings.css`).
