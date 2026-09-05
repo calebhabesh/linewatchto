@@ -3,9 +3,9 @@
 ## Current state
 
 - Branch: `refactor/css-architecture`
-- Current session: S21A
-- Last completed session: S21A
-- Next recommended session: S21B — Consolidate Late Shell Stylesheets (`shell/header-flare.css`, `shell/card-elevation.css`, `shell/search-bar.css`, `shell/badges.css`)
+- Current session: S21B
+- Last completed session: S21B
+- Next recommended session: S22A — Consolidate Map Legends and Legend Badges (`map/map-legends.css`, `map/overlap-chooser.css`)
 - Blockers: None; full test suite passing cleanly across unit, typecheck, lint, build, smoke, visual, and targeted Playwright E2E gates.
 
 ## Current metrics
@@ -13,14 +13,14 @@
 | Metric | Baseline | Current |
 |---|---:|---:|
 | Global entry lines | 30,011 | 53 |
-| Total authored app CSS lines | 31,414 | 31,599 |
-| Total authored app CSS bytes | 784,128 | 812,844 |
+| Total authored app CSS lines | 31,414 | 31,567 |
+| Total authored app CSS bytes | 784,128 | 810,984 |
 | Parsed rules | 4,221 | 0 |
 | Declarations | 14,093 | 0 |
 | !important | 2,356 | 0 |
 | Class-substring selectors | 32 | 0 |
-| Production CSS bytes | 705,472 | 685,083 |
-| Production CSS gzip bytes | 108,667 | 104,562 |
+| Production CSS bytes | 705,472 | 683,654 |
+| Production CSS gzip bytes | 108,667 | 104,462 |
 
 
 
@@ -2746,3 +2746,55 @@
 - Risks or blockers:
   - None. All utility stylesheets are consolidated and cleanly verified.
 - Next session: S21B — Consolidate Late Shell Stylesheets (`shell/header-flare.css`, `shell/card-elevation.css`, `shell/search-bar.css`, `shell/badges.css`).
+
+### S21B — Consolidate Late Shell Stylesheets
+
+- Status: completed
+- Commit: 2efdf49c
+- Scope: Consolidate late shell stylesheets (`frontend/src/styles/shell/header-flare.css`, `frontend/src/styles/shell/card-elevation.css`, `frontend/src/styles/shell/search-bar.css`, `frontend/src/styles/shell/badges.css`), eliminate redundant `!important` declarations, deduplicate rules, and ratchet down migration debt ceiling.
+- Details:
+  1. Audited late shell stylesheets (`header-flare.css`, `card-elevation.css`, `search-bar.css`, `badges.css`).
+  2. `header-flare.css` (116 lines):
+     - Confirmed clean of any `!important` declarations (0 declarations). Maintained all flare gradient geometries and contract z-indices.
+  3. `search-bar.css` (102 lines):
+     - Eliminated 16 redundant `!important` declarations across desktop focus-within and active states (padding, border, background) and mobile query rules (width, padding, justify-content, border-radius, height, input display, svg dimensions).
+     - Preserved required contract-tested `padding-right: 16px !important;` on `.header-search-bar` to satisfy `mobile-bottom-sheet-ux.test.mjs:325` global CSS regex expectations.
+     - Added `position: relative; z-index: 25;` to `.header-search-bar` to establish clear stacking precedence over `.desktop-status-capsule-anchor` (`z-20`), eliminating click interception when the closing-soon chip widens the capsule anchor across medium viewports.
+  4. `badges.css` (497 lines):
+     - Eliminated 5 redundant `!important` declarations: removed `line-height: 1 !important` from `.overlapping-count-badge` and 4 declarations (`background`, `border`, `border-radius`, `padding`) from `img.transit-line-badge`.
+     - Preserved critical contract-tested declarations (`font-size: 0 !important`, single-digit count padding, and dark mobile alert button background).
+  5. `card-elevation.css` (722 lines):
+     - Eliminated 37 redundant `!important` declarations:
+       - Pruned duplicate Section 9 high-contrast mobile floating controls (already covered in `mobile-chrome.css`, -4 declarations).
+       - Removed 14 redundant `background-image: none !important;` declarations across Sections 4, 5, 7, and 8.
+       - Removed non-contract `box-shadow ... !important` from Section 5 (`.desktop-line-status-row`) and Section 7 (`.floating-panel-scroll`, `#linewatch-main-menu`, `.desktop-status-capsule`, `.menu-toggle-btn.desktop-top-chrome`).
+       - Deduplicated Section 7 high-contrast top-chrome selectors already defined in Section 6.
+       - Cleaned up Section 8 `.station-detail-disruption-card` and `.station-impact-jump-button`, preserving required contract `border: none !important;` and `align-items: center !important;`.
+     - Authored lines reduced from 756 to 722 (-34 lines).
+  6. Cascade Debt:
+     - Eliminated 58 `!important` declarations total across late shell stylesheets.
+     - Lowered the graph-wide `!important` migration debt ceiling in `frontend/tests/css-architecture-guardrails.test.mjs` from 1,443 to 1,385 (-58 declarations).
+- Files changed:
+  - `frontend/src/styles/shell/search-bar.css`
+  - `frontend/src/styles/shell/badges.css`
+  - `frontend/src/styles/shell/card-elevation.css`
+  - `frontend/tests/css-architecture-guardrails.test.mjs`
+  - `docs/globals-css-refactor-progress.md`
+- Verification:
+  - `npm --prefix frontend run test:fast`: Passed (100% unit tests passed, 0 failures; 200/200 passing suites).
+  - `npm --prefix frontend run typecheck`: Passed (0 type errors).
+  - `npm --prefix frontend run lint`: Passed (0 errors, 3 known unrelated warnings).
+  - `npm --prefix frontend run build`: Passed (Next.js Turbopack production build succeeded in 2.1s, 208/208 static routes generated).
+  - `npm --prefix frontend run test:smoke`: Passed (6/6 in 17.6s).
+  - `npm --prefix frontend run test:visual`: Passed (11/11 passed, 11 skipped across projects, 0 pixel differences).
+  - `npm --prefix frontend run metrics:css`: Passed (`globals.css` lines steady at 53; total authored app CSS reduced from 31,599 to 31,567 (-32 lines); authored CSS bytes reduced from 812,844 to 810,984 (-1,860 B); graph `!important` declarations reduced from 1,443 to 1,385 (-58); production chunk raw bytes reduced from 685,083 to 683,654 (-1,429 B); production gzip bytes reduced from 104,562 to 104,462 (-100 B)).
+  - `git diff --check`: Passed (0 whitespace or formatting errors).
+- Visual checks:
+  - Re-verified all 11 visual regression scenarios across desktop light/dark, GO/UP, mobile portrait, compact/short viewport, high contrast, current alerts, station detail, My Commutes, selected impacts, and mobile Status/More sheets with 0 pixel differences.
+- Decisions:
+  - Preserved `.header-search-bar` `padding-right: 16px !important;` to satisfy the loose cross-CSS regex in `mobile-bottom-sheet-ux.test.mjs:325`.
+  - Added explicit stacking context `z-index: 25` to `.header-search-bar` to cleanly solve the desktop Chrome closing-soon pointer interception on 1280px viewports without modifying DOM structure.
+- Risks or blockers:
+  - None. All late shell stylesheets are consolidated and cleanly verified.
+- Next session: S22A — Consolidate Map Legends and Legend Badges (`map/map-legends.css`, `map/overlap-chooser.css`).
+
