@@ -311,4 +311,31 @@ describe("mobile station draggable sheet UX", () => {
     const focus = computeInsetViewportFocus(390, viewportHeight, insets);
     assert.equal(focus.focusY, remainingHeight / 2);
   });
+
+  it("establishes a minimum height floor (0.50) preventing downward over-drag while allowing upward resizing to 0.92", () => {
+    // 1. Station panel stylesheet enforces 0.92 base height for mobile-map-inspector-station
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-map-inspector-station \.station-detail-panel[\s\S]*?height:\s*calc\(var\(--visual-viewport-height,\s*100dvh\)\s*\*\s*0\.92\)/,
+    );
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-map-inspector-station \.station-detail-panel[\s\S]*?max-height:\s*calc\(var\(--visual-viewport-height,\s*100dvh\)\s*\*\s*0\.92\)/,
+    );
+
+    // 2. Minimum point (floor) is established at 50%
+    assert.equal(MOBILE_SHEET_FLOOR_RATIO, 0.50);
+    assert.equal(MOBILE_SHEET_DEFAULT_RATIO, 0.50);
+
+    // 3. User cannot drag down past minimum floor: 0.30, 0.10, 0.00 all clamp to 0.50
+    assert.equal(clampSheetRatio(0.40), 0.50);
+    assert.equal(clampSheetRatio(0.20), 0.50);
+    assert.equal(clampSheetRatio(0.05), 0.50);
+
+    // 4. User can drag upwards from 0.50 towards 0.92 to see more of the station submenu
+    assert.equal(clampSheetRatio(0.60), 0.60);
+    assert.equal(clampSheetRatio(0.75), 0.75);
+    assert.equal(clampSheetRatio(0.90), 0.90);
+    assert.equal(clampSheetRatio(0.92), 0.92);
+  });
 });

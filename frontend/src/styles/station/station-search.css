@@ -1284,8 +1284,8 @@
   top: -4px;
   right: -5px;
   display: flex;
-  min-width: 14px;
-  height: 14px;
+  min-width: 20px;
+  height: 20px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
@@ -1300,7 +1300,7 @@
 
 .station-search-outage-count[data-single-digit="true"] {
   padding: 0;
-  width: 14px;
+  width: 20px;
 }
 
 .dark .station-search-outage-count {

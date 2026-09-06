@@ -17,7 +17,7 @@ describe("overlapping count badge sizing", () => {
   it("renders the count in an SVG coordinate system instead of live HTML text", () => {
     assert.match(badge, /<svg[\s\S]*viewBox=/);
     assert.match(badge, /<text[\s\S]*dominantBaseline="central"[\s\S]*textAnchor="middle"/);
-    assert.match(badge, /const viewBoxWidth = Math\.max\(7, label\.length \* 5\.5 \+ 1\)/);
+    assert.match(badge, /const viewBoxWidth = Math\.max\(9, label\.length \* 7 \+ 2\)/);
   });
 
   it("keeps the SVG glyph clipped to the stable badge box", () => {
@@ -46,19 +46,19 @@ describe("overlapping count badge sizing", () => {
     );
     assert.match(
       css,
-      /\.mobile-bottom-nav-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*17px;)[^}]*\}/s,
+      /\.mobile-bottom-nav-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*21px;)[^}]*\}/s,
     );
     assert.match(
       css,
-      /\.desktop-menu-count-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding-left:\s*0\s*!important;)(?=[^}]*padding-right:\s*0\s*!important;)(?=[^}]*width:\s*26px;)[^}]*\}/s,
+      /\.desktop-menu-count-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding-left:\s*0\s*!important;)(?=[^}]*padding-right:\s*0\s*!important;)(?=[^}]*width:\s*28px;)[^}]*\}/s,
     );
     assert.match(
       css,
-      /\.station-access-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*16px;)[^}]*\}/s,
+      /\.station-access-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*20px;)[^}]*\}/s,
     );
     assert.match(
       css,
-      /\.station-search-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*14px;)[^}]*\}/s,
+      /\.station-search-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*20px;)[^}]*\}/s,
     );
   });
 

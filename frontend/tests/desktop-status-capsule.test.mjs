@@ -52,7 +52,7 @@ describe("desktop status capsule", () => {
     assert.match(globalCss, /\.desktop-status-chip--reduced-speed-zone/);
     assert.match(
       globalCss,
-      /\.desktop-header-impact-chips \.desktop-status-chip-count\s*\{(?=[^}]*display:\s*inline-grid;)(?=[^}]*place-items:\s*center;)(?=[^}]*box-sizing:\s*border-box;)(?=[^}]*width:\s*32px;)(?=[^}]*height:\s*32px;)(?=[^}]*min-width:\s*32px;)(?=[^}]*font-family:\s*inherit;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)[^}]*\}/s,
+      /\.desktop-header-impact-chips \.desktop-status-chip-count\s*\{(?=[^}]*display:\s*inline-grid;)(?=[^}]*place-items:\s*center;)(?=[^}]*box-sizing:\s*border-box;)(?=[^}]*width:\s*auto;)(?=[^}]*height:\s*36px;)(?=[^}]*min-width:\s*36px;)(?=[^}]*font-family:\s*inherit;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)[^}]*\}/s,
     );
     assert.doesNotMatch(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip-count\s*\{[^}]*font-family:\s*Arial/s);
     assert.match(

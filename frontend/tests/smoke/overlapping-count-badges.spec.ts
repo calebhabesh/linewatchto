@@ -15,6 +15,7 @@ async function expectGlyphInsideBadge(badge: Locator) {
       htmlTextNodeCount: [...element.childNodes].filter((node) => (
         node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
       )).length,
+      glyphHeight: glyphBounds.height,
       leftInset: glyphBounds.left - badgeBounds.left,
       rightInset: badgeBounds.right - glyphBounds.right,
       topInset: glyphBounds.top - badgeBounds.top,
@@ -23,6 +24,7 @@ async function expectGlyphInsideBadge(badge: Locator) {
   });
 
   expect(bounds.htmlTextNodeCount).toBe(0);
+  expect(bounds.glyphHeight).toBeGreaterThanOrEqual(12);
   expect(bounds.leftInset).toBeGreaterThanOrEqual(0);
   expect(bounds.rightInset).toBeGreaterThanOrEqual(0);
   expect(bounds.topInset).toBeGreaterThanOrEqual(0);

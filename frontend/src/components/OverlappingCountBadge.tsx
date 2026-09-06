@@ -7,7 +7,7 @@ type OverlappingCountBadgeProps = {
 
 export function OverlappingCountBadge({ className, count }: OverlappingCountBadgeProps) {
   const label = String(count);
-  const viewBoxWidth = Math.max(7, label.length * 5.5 + 1);
+  const viewBoxWidth = Math.max(9, label.length * 7 + 2);
   const isSingleDigit = label.length <= 1;
 
   return (

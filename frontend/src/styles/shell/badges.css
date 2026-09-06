@@ -16,7 +16,7 @@
    keeps the glyph and badge geometry in lockstep.
    ------------------------------------------------------------ */
 .overlapping-count-badge {
-  --overlapping-count-font-size: 9px;
+  --overlapping-count-font-size: 11px;
   -webkit-text-size-adjust: none;
   box-sizing: border-box;
   flex: none;
@@ -34,7 +34,7 @@
 }
 
 .overlapping-count-badge__svg {
-  aspect-ratio: var(--overlapping-count-viewbox-width, 7) / 16;
+  aspect-ratio: var(--overlapping-count-viewbox-width, 9) / 16;
   display: block;
   flex: none;
   height: 100%;
@@ -54,13 +54,18 @@
 }
 
 .desktop-menu-count-badge {
-  --overlapping-count-font-size: 9px;
+  --overlapping-count-font-size: 11px;
+  height: 28px;
+  min-width: 28px;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .desktop-menu-count-badge[data-single-digit="true"] {
   padding-left: 0 !important;
   padding-right: 0 !important;
-  width: 26px;
+  width: 28px;
 }
 
 /* ------------------------------------------------------------
@@ -356,31 +361,45 @@ img.transit-line-badge {
 
 .dark .mobile-status-actions button.mobile-status-btn-alerts .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(239, 68, 68, 0.28);
-  color: #fca5a5;
+  color: #ffffff;
+  font-weight: 950;
+  text-shadow: 0 0 4px rgba(239, 68, 68, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-delays .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(234, 179, 8, 0.28);
-  color: #fef08a;
+  color: #ffffff;
+  font-weight: 950;
+  text-shadow: 0 0 4px rgba(234, 179, 8, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-rsz .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(245, 158, 11, 0.28);
-  color: var(--impact-rsz);
+  color: #ffffff;
+  font-weight: 950;
+  text-shadow: 0 0 4px rgba(245, 158, 11, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-closures .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(59, 130, 246, 0.28);
-  color: #bfdbfe;
+  color: #ffffff;
+  font-weight: 950;
+  text-shadow: 0 0 4px rgba(59, 130, 246, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-trip-changes .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(245, 158, 11, 0.28);
-  color: var(--trip-change);
+  color: #ffffff;
+  font-weight: 950;
+  text-shadow: 0 0 4px rgba(245, 158, 11, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-accessibility .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(168, 85, 247, 0.28);
-  color: #e9d5ff;
+  color: #ffffff;
+  font-weight: 950;
+  text-shadow: 0 0 4px rgba(168, 85, 247, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-surface .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(16, 185, 129, 0.28);
-  color: #a7f3d0;
+  color: #ffffff;
+  font-weight: 950;
+  text-shadow: 0 0 4px rgba(16, 185, 129, 0.70);
 }
 
 .mobile-status-actions button[data-count="zero"] .mobile-status-btn-circle {
