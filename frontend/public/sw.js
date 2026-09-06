@@ -89,6 +89,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (isVersionedMapAsset(url)) {
+    event.respondWith(cacheFirstMapAsset(request));
+    return;
+  }
+
   if (isStaticAsset(url)) {
     event.respondWith(networkFirstStatic(request));
   }
@@ -150,6 +155,20 @@ async function networkFirstNavigation(request) {
     const offlineResponse = await caches.match(OFFLINE_URL);
     return offlineResponse || Response.error();
   }
+}
+
+function isVersionedMapAsset(url) {
+  const version = url.searchParams.get("v");
+  if (!version || version === "local" || version === "dev") return false;
+  return url.pathname === "/assets/linewatch/ttc-subway-map-custom.svg"
+    || url.pathname === "/assets/linewatch/regional-rail-map.svg"
+    || (url.pathname.startsWith("/assets/linewatch/raster-maps/") && url.pathname.endsWith(".png"));
+}
+
+async function cacheFirstMapAsset(request) {
+  // Match the complete URL: a new release must never reuse an older map.
+  const cachedResponse = await caches.match(request);
+  return cachedResponse || networkFirstStatic(request);
 }
 
 async function networkFirstStatic(request) {

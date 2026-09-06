@@ -12,6 +12,38 @@ test.describe("vertical centering and mode switch stability", () => {
     }, { disclaimerKey: disclaimerStorageKey, welcomeKey: welcomeStorageKey });
   });
 
+  test("mobile preloads artwork and keeps shared controls live across network switches", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "mobile project only");
+    await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+    await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible();
+    await expect.poll(() => page.evaluate(() =>
+      performance.getEntriesByType("resource").filter((entry) =>
+        entry.name.includes("regional-") && entry.name.includes("mobile.png")).length,
+    )).toBe(3);
+    const preloads = await page.evaluate(() =>
+      performance.getEntriesByType("resource").filter((entry) =>
+        entry.name.includes("ttc-") && entry.name.includes("mobile.png"))
+        .map((entry) => ({
+          name: entry.name,
+          initiator: (entry as PerformanceResourceTiming).initiatorType,
+          transferSize: (entry as PerformanceResourceTiming).transferSize,
+        })));
+    expect(preloads.slice(0, 3).map((entry) => entry.initiator)).toEqual(["link", "link", "link"]);
+    expect(new Set(preloads.map((entry) => entry.name)).size).toBe(3);
+    expect(preloads.slice(3).every((entry) => entry.transferSize === 0)).toBe(true);
+    const rotate = await page.getByRole("button", { name: "Rotate map", exact: true }).elementHandle();
+    for (const network of ["regional", "ttc"]) {
+      await page.locator(`.mobile-network-selector-slot .network-btn-${network}`).click();
+      await expect.poll(() => page.evaluate(() =>
+        document.documentElement.dataset.networkTransitionDirection ?? "")).not.toBe("");
+      expect(await page.evaluate(() => getComputedStyle(document.documentElement).viewTransitionName)).toBe("none");
+      expect(await rotate?.evaluate((node) => node.isConnected)).toBe(true);
+      await expect(page.locator(`.${network === "regional" ? "regional" : "ttc"}-map-stage[data-raster-map-ready="true"]`)).toBeVisible();
+      await expect.poll(() => page.evaluate(() =>
+        document.documentElement.dataset.networkTransitionDirection ?? "")).toBe("");
+    }
+  });
+
   test("desktop TTC and Regional maps are vertically centered between their top console and bottom badges, and stay centered across switches", async ({ page, isMobile }) => {
     test.skip(isMobile, "desktop project only");
     await page.setViewportSize({ width: 1920, height: 1080 });

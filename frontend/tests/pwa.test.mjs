@@ -209,6 +209,7 @@ async function serviceWorkerFetch(requestUrl, { cachedResponse, networkResponse 
   const listeners = new Map();
   const waitUntilPromises = [];
   const cacheWrites = [];
+  let networkRequests = 0;
   const context = {
     URL,
     Promise,
@@ -226,7 +227,7 @@ async function serviceWorkerFetch(requestUrl, { cachedResponse, networkResponse 
         },
       }),
     },
-    fetch: async () => networkResponse,
+    fetch: async () => { networkRequests += 1; return networkResponse; },
     self: {
       location: new URL(locationUrl),
       addEventListener: (type, listener) => {
@@ -271,7 +272,7 @@ async function serviceWorkerFetch(requestUrl, { cachedResponse, networkResponse 
   const response = await event.responsePromise;
   await Promise.all(waitUntilPromises);
 
-  return { response, cacheWrites };
+  return { response, cacheWrites, networkRequests };
 }
 
 async function serviceWorkerPush({
@@ -1466,5 +1467,34 @@ describe("LineWatch PWA configuration", () => {
     assert.match(shellSource, /setSelection\(impactSelection\)/);
     assert.match(shellSource, /setMobileInspectorDetent\("details-focus"\)/);
     assert.match(shellSource, /setActiveView\("map"\)/);
+  });
+});
+
+
+describe("versioned map caching", () => {
+  const cachedResponse = { source: "cached-map" };
+  const networkResponse = { ok: true, source: "new-map", clone() { return this; } };
+
+  it("opens cached release map assets without a network round trip", async () => {
+    for (const path of ["ttc-subway-map-custom.svg", "regional-rail-map.svg", "raster-maps/regional-labels-dark-mobile.png"]) {
+      const result = await serviceWorkerFetch(`https://linewatch.test/assets/linewatch/${path}?v=release-a`, { cachedResponse, networkResponse });
+      assert.equal(result.response, cachedResponse);
+      assert.equal(result.networkRequests, 0);
+    }
+  });
+
+  it("fetches and caches a release map missing from the cache", async () => {
+    const result = await serviceWorkerFetch("https://linewatch.test/assets/linewatch/regional-rail-map.svg?v=release-b", { networkResponse });
+    assert.equal(result.response, networkResponse);
+    assert.equal(result.networkRequests, 1);
+    assert.deepEqual(result.cacheWrites, [networkResponse]);
+  });
+
+  it("keeps unversioned and local development maps network-first", async () => {
+    for (const suffix of ["", "?v=local", "?v=dev"]) {
+      const result = await serviceWorkerFetch(`https://linewatch.test/assets/linewatch/regional-rail-map.svg${suffix}`, { cachedResponse, networkResponse });
+      assert.equal(result.response, networkResponse);
+      assert.equal(result.networkRequests, 1);
+    }
   });
 });

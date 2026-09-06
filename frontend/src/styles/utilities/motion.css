@@ -4,6 +4,11 @@
    ========================================================================== */
 
 /* --- 1. Network Map View Transitions --- */
+/* Keep shared chrome live instead of replacing it with a root snapshot. */
+html[data-network-transition-direction] {
+  view-transition-name: none;
+}
+
 html[data-network-transition-direction] .network-map-transition-surface {
   view-transition-name: network-map;
 }

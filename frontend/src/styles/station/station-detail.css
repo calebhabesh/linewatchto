@@ -146,6 +146,8 @@
 
 .station-line-directions span {
   color: var(--line-direction-text, #ffffff);
+  /* Optically center the glyphs within the font's line box at every badge size. */
+  transform: translateY(0.08em);
 }
 
 .station-line-directions .station-line-directions-divider {

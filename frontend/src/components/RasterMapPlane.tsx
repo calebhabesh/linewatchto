@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { lineWatchBuildLabel } from "../app/app-build";
-
-export type RasterMapTheme = "light" | "dark" | "high-contrast";
-export type RasterMapDensity = "mobile" | "balanced" | "desktop";
+import { rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "../app/map-assets";
+export { rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "../app/map-assets";
 
 type RasterMapPlaneProps = {
   network: "ttc" | "regional";
@@ -54,16 +52,6 @@ export function preloadRasterMapSource(source: string): Promise<void> {
 
 export function rasterMapSourceIsDecoded(source: string): boolean {
   return decodedRasterSources.has(source);
-}
-
-export function rasterMapSource(
-  network: "ttc" | "regional",
-  plane: "background" | "foreground" | "labels",
-  theme: RasterMapTheme,
-  density: RasterMapDensity,
-) {
-  const asset = `/assets/linewatch/raster-maps/${network}-${plane}-${theme}-${density}.png`;
-  return `${asset}?v=${encodeURIComponent(lineWatchBuildLabel)}`;
 }
 
 export function RasterMapPlane({

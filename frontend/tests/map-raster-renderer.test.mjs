@@ -41,8 +41,9 @@ describe("stable raster map renderer", () => {
 
   it("reuses decoded textures across map remounts and keeps the previous texture until replacements decode", async () => {
     const source = await readFile(`${frontendRoot}/src/components/RasterMapPlane.tsx`, "utf8");
-    assert.match(source, /import \{ lineWatchBuildLabel \} from "\.\.\/app\/app-build"/);
-    assert.match(source, /\?v=\$\{encodeURIComponent\(lineWatchBuildLabel\)\}/);
+    const assets = await readFile(`${frontendRoot}/src/app/map-assets.ts`, "utf8");
+    assert.match(assets, /import \{ lineWatchBuildLabel \} from "\.\/app-build"/);
+    assert.match(assets, /\?v=\$\{encodeURIComponent\(lineWatchBuildLabel\)\}/);
     assert.match(source, /const decodedRasterSources = new Set<string>\(\)/);
     assert.match(source, /rasterMapSourceIsDecoded\(desiredSource\) \? desiredSource : null/);
     assert.match(source, /const decode = image\.decode\(\)\.then/);
@@ -66,7 +67,7 @@ describe("stable raster map renderer", () => {
     assert.match(regional, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
     assert.match(ttc, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
     assert.match(regional, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
-    assert.match(plane, /"mobile" \| "balanced" \| "desktop"/);
+    assert.match(await readFile(`${frontendRoot}/src/app/map-assets.ts`, "utf8"), /"mobile" \| "balanced" \| "desktop"/);
     assert.match(ttc, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(regional, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(ttc, /reducedMotion=\{mapEffectMotionPaused\}/);

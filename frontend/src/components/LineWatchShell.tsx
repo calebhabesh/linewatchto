@@ -7,6 +7,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
+import { preloadRegionalMapMarkup } from "./InteractiveRegionalMap";
+import { preloadTtcMapMarkup } from "./InteractiveTtcMap";
+import { preloadRasterMapSource, rasterMapSource } from "./RasterMapPlane";
 import { NetworkMap } from "./NetworkMap";
 import { NetworkSelector } from "./NetworkSelector";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
@@ -457,6 +460,22 @@ export function LineWatchShell({
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
   const [initialMapReady, setInitialMapReady] = useState(false);
+  useEffect(() => {
+    if (!initialMapReady) return;
+    // Warm only the other network's current visual variant after the entrance.
+    const timer = window.setTimeout(() => {
+      const network = selectedNetwork === "ttc" ? "regional" : "ttc";
+      const theme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
+      const density = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches ? "mobile" : "balanced";
+      void Promise.allSettled([
+        network === "regional" ? preloadRegionalMapMarkup() : preloadTtcMapMarkup("/assets/linewatch/ttc-subway-map-custom.svg"),
+        ...(["background", "foreground", "labels"] as const).map((plane) =>
+          preloadRasterMapSource(rasterMapSource(network, plane, theme, density))),
+      ]);
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [initialMapReady, selectedNetwork, highContrast, isDark]);
+
   const [impactListLaunch, setImpactListLaunch] = useState({ lineId: null as string | null, requestId: 0 });
   const [lineImpactLaunch, setLineImpactLaunch] = useState({ lineId: null as string | null, requestId: 0 });
   const [navDirection, setNavDirection] = useState<"root" | "forward" | "back">("root");
