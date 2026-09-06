@@ -1281,16 +1281,16 @@
 .station-search-outage-count {
   --overlapping-count-font-size: 10px;
   position: absolute;
-  top: -4px;
-  right: -5px;
+  top: -6px;
+  right: -6px;
   display: flex;
-  min-width: 20px;
-  height: 20px;
+  min-width: 15px;
+  height: 15px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   background: rgb(220, 38, 38);
-  padding: 0 4px;
+  padding: 0 3px;
   color: white;
   font-size: 8px;
   font-weight: 950;
@@ -1300,7 +1300,7 @@
 
 .station-search-outage-count[data-single-digit="true"] {
   padding: 0;
-  width: 20px;
+  width: 15px;
 }
 
 .dark .station-search-outage-count {

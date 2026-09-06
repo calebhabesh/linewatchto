@@ -170,7 +170,7 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /station-access-outage-badge/);
     assert.match(panelSource, /station-access-outage-count/);
     assert.match(globalCss, /\.station-access-outage-badge\s*\{[^}]*width:\s*30px;[^}]*height:\s*30px;[^}]*flex:\s*0 0 30px;/s);
-    assert.match(globalCss, /\.station-access-outage-count\s*\{[^}]*min-width:\s*20px;[^}]*height:\s*20px;[^}]*font-size:\s*8px;/s);
+    assert.match(globalCss, /\.station-access-outage-count\s*\{[^}]*min-width:\s*16px;[^}]*height:\s*16px;[^}]*font-size:\s*8px;/s);
   });
 
   it("applies borderless tactile container styling across station submenu containers and controls", () => {

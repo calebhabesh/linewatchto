@@ -24,7 +24,7 @@ async function expectGlyphInsideBadge(badge: Locator) {
   });
 
   expect(bounds.htmlTextNodeCount).toBe(0);
-  expect(bounds.glyphHeight).toBeGreaterThanOrEqual(12);
+  expect(bounds.glyphHeight).toBeGreaterThanOrEqual(9);
   expect(bounds.leftInset).toBeGreaterThanOrEqual(0);
   expect(bounds.rightInset).toBeGreaterThanOrEqual(0);
   expect(bounds.topInset).toBeGreaterThanOrEqual(0);

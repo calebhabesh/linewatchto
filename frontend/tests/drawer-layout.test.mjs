@@ -189,7 +189,7 @@ describe("floating menu layout", () => {
     assert.match(stationOutageBadgeSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
     assert.match(stationOutageBadgeSource, /\/assets\/linewatch\/outages\/escalator\.svg/);
     assert.match(globalCss, /\.station-search-outage-badge\s*\{[^}]*width:\s*22px;[^}]*height:\s*22px;[^}]*flex:\s*0 0 22px;/s);
-    assert.match(globalCss, /\.station-search-outage-count\s*\{[^}]*min-width:\s*20px;[^}]*height:\s*20px;[^}]*font-size:\s*8px;/s);
+    assert.match(globalCss, /\.station-search-outage-count\s*\{[^}]*min-width:\s*15px;[^}]*height:\s*15px;[^}]*font-size:\s*8px;/s);
     assert.doesNotMatch(stationSearchSource, /station-search-flag-access/);
     assert.doesNotMatch(stationSearchSource, />\s*Access\s*</);
 

@@ -667,8 +667,9 @@
 .commute-route-actions {
   align-items: center;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.45rem;
+  justify-content: space-evenly;
   margin-top: 0.75rem;
   width: 100%;
 }
@@ -1797,24 +1798,18 @@
   .commute-route-actions {
     align-items: center;
     display: flex;
-    flex-wrap: nowrap;
-    gap: 0.35rem;
-    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: space-evenly;
     margin-top: 0.65rem;
-    overflow-x: auto;
-    scrollbar-width: none;
     width: 100%;
-  }
-
-  .commute-route-actions::-webkit-scrollbar {
-    display: none;
   }
 
   .commute-route-actions button {
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-    font-size: 0.64rem;
+    font-size: 0.6rem;
     min-height: 27px;
   }
 
@@ -1822,34 +1817,34 @@
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-    font-size: 0.64rem;
-    gap: 0.22rem;
+    font-size: 0.6rem;
+    gap: 0.18rem;
     letter-spacing: 0;
     padding-left: 0;
-    padding-right: 0.22rem;
+    padding-right: 0.12rem;
   }
 
   .commute-route-actions .commute-route-stop-toggle svg {
     flex-shrink: 0;
-    height: 13px;
-    width: 13px;
+    height: 12px;
+    width: 12px;
   }
 
   .commute-route-actions .commute-route-edit-button {
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-    font-size: 0.64rem;
-    gap: 0.28rem;
-    padding-right: 0.22rem;
+    font-size: 0.6rem;
+    gap: 0.18rem;
+    padding-right: 0.12rem;
   }
 
   .commute-route-actions .commute-route-edit-button svg,
   .commute-route-edit-button svg {
     flex-shrink: 0;
-    height: 13px;
-    margin-left: 2px;
-    width: 13px;
+    height: 12px;
+    margin-left: 0;
+    width: 12px;
   }
 
   .saved-commute-map-action,
@@ -1858,17 +1853,17 @@
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-    font-size: 0.64rem;
-    gap: 0.28rem;
+    font-size: 0.6rem;
+    gap: 0.18rem;
     min-height: 27px;
-    padding: 0.25rem 0.45rem;
+    padding: 0.25rem 0.3rem;
   }
 
   .saved-commute-map-action svg,
   .commute-route-actions .commute-route-map-button svg {
     flex-shrink: 0;
-    height: 13px;
-    width: 13px;
+    height: 12px;
+    width: 12px;
   }
 }
 

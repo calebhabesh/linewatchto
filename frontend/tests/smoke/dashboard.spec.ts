@@ -4030,6 +4030,23 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
   const commuteCard = page.locator('[data-commute-card-id="commute_demo_finch_union"]');
   await expect(commuteCard).toBeVisible();
+  if (isMobile) {
+    const originalViewport = page.viewportSize()!;
+    for (const width of [320, 375, 390]) {
+      await page.setViewportSize({ width, height: originalViewport.height });
+      await expect(commuteCard.locator(".commute-route-actions")).toHaveCSS("flex-wrap", "wrap");
+      const actionsFit = await commuteCard.evaluate((card) => {
+        const bounds = card.getBoundingClientRect();
+        return [...card.querySelectorAll(".commute-route-actions button")].every((button) => {
+          const action = button.getBoundingClientRect();
+          return action.left >= bounds.left && action.right <= bounds.right;
+        });
+      });
+      expect(actionsFit).toBe(true);
+    }
+    await page.setViewportSize(originalViewport);
+  }
+
   await expect(commuteCard.getByText("Stub Station", { exact: false }).first()).toBeVisible();
   await expect(commuteCard.getByText("Union", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("Default Scheduled Route · To Union")).toBeVisible();

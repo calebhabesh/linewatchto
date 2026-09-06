@@ -197,7 +197,7 @@ describe("account UI source", () => {
     assert.match(globalCss, /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-card\s*\{(?=[^}]*max-width:\s*100%;)(?=[^}]*overflow-x:\s*hidden;)(?=[^}]*width:\s*100%;)[^}]*\}/s);
     assert.match(
       globalCss,
-      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.commute-route-actions\s*\{[^}]*gap:\s*0\.35rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-stop-toggle\s*\{[^}]*font-size:\s*0\.64rem;)(?=[\s\S]*?\.saved-commute-map-action,\s*\.commute-route-actions \.commute-route-map-button\s*\{[^}]*font-size:\s*0\.64rem;)/s,
+      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.commute-route-actions\s*\{[^}]*gap:\s*0\.25rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-stop-toggle\s*\{[^}]*font-size:\s*0\.6rem;)(?=[\s\S]*?\.saved-commute-map-action,\s*\.commute-route-actions \.commute-route-map-button\s*\{[^}]*font-size:\s*0\.6rem;)/s,
     );
     assert.match(
       globalCss,

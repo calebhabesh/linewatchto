@@ -217,19 +217,19 @@
     display: inline-flex;
     font-size: 11px;
     font-weight: 1000;
-    height: 21px;
+    height: 16px;
     justify-content: center;
     line-height: 1;
-    min-width: 21px;
-    padding: 0 4px;
+    min-width: 16px;
+    padding: 0 3px;
     position: absolute;
-    right: -12px;
+    right: -10px;
     top: -8px;
   }
 
   .mobile-bottom-nav-badge[data-single-digit="true"] {
     padding: 0;
-    width: 21px;
+    width: 16px;
   }
 
   .mobile-bottom-nav-label {

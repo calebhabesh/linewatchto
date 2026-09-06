@@ -46,7 +46,7 @@ describe("overlapping count badge sizing", () => {
     );
     assert.match(
       css,
-      /\.mobile-bottom-nav-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*21px;)[^}]*\}/s,
+      /\.mobile-bottom-nav-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*16px;)[^}]*\}/s,
     );
     assert.match(
       css,
@@ -54,11 +54,11 @@ describe("overlapping count badge sizing", () => {
     );
     assert.match(
       css,
-      /\.station-access-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*20px;)[^}]*\}/s,
+      /\.station-access-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*16px;)[^}]*\}/s,
     );
     assert.match(
       css,
-      /\.station-search-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*20px;)[^}]*\}/s,
+      /\.station-search-outage-count\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*15px;)[^}]*\}/s,
     );
   });
 
