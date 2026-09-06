@@ -109,4 +109,10 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(shellSource, /Trip Changes/);
     assert.match(statusSheetSource, /mobile-status-btn-trip-changes/);
   });
+
+  it("uses Megaphone icon for regional Service Notices and Bus icon for TTC Streetcar & Bus Notices", () => {
+    assert.match(shellSource, /selectedNetwork === "regional" \? \(\s*<Megaphone size=\{18\} className="text-slate-500 dark:text-slate-400" \/>\s*\) : \(\s*<Bus size=\{18\} className="text-slate-500 dark:text-slate-400" \/>\s*\)/);
+    assert.match(statusSheetSource, /regional \? \(\s*<Megaphone size=\{16\} className="text-emerald-600 dark:text-emerald-400 shrink-0" \/>\s*\) : \(\s*<Bus size=\{16\} className="text-emerald-600 dark:text-emerald-400 shrink-0" \/>\s*\)/);
+    assert.match(panelSource, /regional \? \(\s*<Megaphone className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" \/>\s*\) : \(\s*<Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" \/>\s*\)/);
+  });
 });

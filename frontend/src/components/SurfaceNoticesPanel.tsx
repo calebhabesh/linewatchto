@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, ChevronLeft, CircleAlert, ExternalLink, Info, MapPin, Search, X, Bus } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, ChevronLeft, CircleAlert, ExternalLink, Info, MapPin, Megaphone, Search, X, Bus } from "lucide-react";
 import {
   getSurfaceNotices,
   SurfaceNoticeResponse,
@@ -314,7 +314,11 @@ export function SurfaceNoticesPanel({
             <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
           </button>
           <h2 className="text-[clamp(14px,4.5cqw,18px)] font-bold text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-2">
-            <Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" />
+            {regional ? (
+              <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" />
+            ) : (
+              <Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" />
+            )}
             <span>{regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}</span>
           </h2>
         </div>

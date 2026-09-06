@@ -4078,7 +4078,11 @@ export function LineWatchShell({
                     className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <Bus size={18} className="text-slate-500 dark:text-slate-400" /> {selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus Notices"}
+                      {selectedNetwork === "regional" ? (
+                        <Megaphone size={18} className="text-slate-500 dark:text-slate-400" />
+                      ) : (
+                        <Bus size={18} className="text-slate-500 dark:text-slate-400" />
+                      )} {selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus Notices"}
                     </div>
                     {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
                       <span

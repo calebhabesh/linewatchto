@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { AlertTriangle, ChevronRight, CircleCheck, Construction, X, Bus, TrainFront } from "lucide-react";
+import { AlertTriangle, ChevronRight, CircleCheck, Construction, Megaphone, X, Bus, TrainFront } from "lucide-react";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
@@ -105,7 +105,11 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
             </span>
           </button>
           <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")} data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}>
-            <Bus size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            {regional ? (
+              <Megaphone size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            ) : (
+              <Bus size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            )}
             <span className="mobile-status-btn-text">{regional ? "Service Notices" : "Streetcar & Bus Notices"}</span>
             <span className="mobile-status-btn-circle" data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}>
               {surfaceNoticeCount}

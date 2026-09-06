@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { Bookmark, Bus, ChevronRight, LoaderCircle, Navigation, Search, X } from "lucide-react";
+import { Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, Navigation, Search, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import {
   IMPACT_SEARCH_CATEGORIES,
@@ -138,7 +138,7 @@ function StationLineBadge({ line, size = 18 }: { line: StationSearchLine; size?:
   return <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={size} />;
 }
 
-function GlobalDestinationBadge({ view }: { view: GlobalDestinationView }) {
+function GlobalDestinationBadge({ view, network }: { view: GlobalDestinationView; network?: NetworkId }) {
   if (view === "accessibility-outages") {
     return (
       <span className="global-search-resource-icon global-search-resource-icon--standard">
@@ -157,7 +157,7 @@ function GlobalDestinationBadge({ view }: { view: GlobalDestinationView }) {
     ? Navigation
     : view === "my-stations"
       ? Bookmark
-      : Bus;
+      : (view === "surface-notices" && network === "regional" ? Megaphone : Bus);
 
   return (
     <span className="global-search-resource-icon">
@@ -947,7 +947,7 @@ export function StationSearchPanel({
                           onClick={() => onOpenDestination(destination.view)}
                           onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
                         >
-                          <GlobalDestinationBadge view={destination.view} />
+                          <GlobalDestinationBadge view={destination.view} network={currentNetwork} />
                           <span>
                             <strong>{destination.label}</strong>
                             <small>{destination.description}</small>
@@ -1164,7 +1164,9 @@ export function StationSearchPanel({
                           onClick={() => onOpenSurfaceNotice(notice)}
                           onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
                         >
-                          <span className="global-search-resource-icon"><Bus size={18} /></span>
+                          <span className="global-search-resource-icon">
+                            {currentNetwork === "regional" ? <Megaphone size={18} /> : <Bus size={18} />}
+                          </span>
                           <span>
                             <strong>{notice.title}</strong>
                             <small>{routes}{notice.location ? ` · ${notice.location}` : ""}</small>
