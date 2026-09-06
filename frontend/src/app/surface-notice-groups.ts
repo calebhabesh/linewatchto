@@ -114,7 +114,7 @@ export function deriveDisplayLocation(
     return `${displayStops[0].stopName} to ${displayStops[displayStops.length - 1].stopName}`;
   }
 
-  return notice.location?.trim() || "Route-wide Notice";
+  return notice.scheduleAnnouncement ? "Schedule announcement" : notice.location?.trim() || "Route-wide Notice";
 }
 
 export function deriveSurfaceNoticeCause(notice: SurfaceNoticeDetail): string | null {
@@ -588,4 +588,31 @@ function splitLocationEndpoints(location: string): string[] {
 
 function isNumeric(value: string | null | undefined): boolean {
   return Boolean(value && /^\d+$/.test(value));
+}
+
+// Presentation priority only; this does not create a current service impact.
+export function surfaceNoticeEmphasis(notice: SurfaceNoticeDetail): string {
+  if (notice.category === "no-service") return "no-service";
+  if (notice.scheduleAnnouncement && /\b(?:no (?:GO |UP Express )?(?:train |bus |rail )?service(?! changes?\b| disruptions?\b| interruptions?\b)|(?:trains|buses) will not (?:run|operate))\b/i.test(
+    notice.title + " " + notice.description,
+  )) return "no-service";
+  return notice.scheduleAnnouncement ? "schedule" : notice.category;
+}
+
+export function compareSurfaceNotices(
+  a: SurfaceNoticeDetail,
+  b: SurfaceNoticeDetail,
+  sort: "importance" | "recent" = "importance",
+): number {
+  const priorities: Record<string, number> = {
+    "no-service": 0, schedule: 1, bypass: 2, detour: 2, "service-change": 3, notice: 4,
+  };
+  const priority = sort === "importance"
+    ? (priorities[surfaceNoticeEmphasis(a)] ?? 4) - (priorities[surfaceNoticeEmphasis(b)] ?? 4)
+    : 0;
+  const timestamp = (value: string) => {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  return priority || timestamp(b.updatedAt) - timestamp(a.updatedAt) || a.id.localeCompare(b.id);
 }

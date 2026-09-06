@@ -97,7 +97,7 @@ Not implemented yet:
 
 The UI demonstrates the intended product behavior with realistic local data and an opt-in fresh-ingestion live alert path. Additional backend-backed live data will be added incrementally.
 
-Explicit GO timetable announcements (such as “Service changes start Sept. 8”) are shown as corridor-tagged Service Notices from fresh GO service-alert or GTFS-RT rail records, deduplicated across those sources. They do not infer a station-to-station span or drive current delays, map overlays, commute impacts, reliability incidents, or push candidates. Generic operational disruptions and planned closures retain their existing classification.
+Explicit GO timetable announcements (such as “Service changes start Sept. 8” or “We are running on a Saturday schedule on September 7 for Labour Day”) are shown as corridor-tagged Service Notices from fresh GO service-alert or GTFS-RT rail records, deduplicated across those sources. They do not infer a station-to-station span or drive current delays, map overlays, commute impacts, reliability incidents, or push candidates. Generic operational disruptions and planned closures retain their existing classification.
 
 ## Stack
 

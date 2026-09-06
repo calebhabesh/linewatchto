@@ -538,6 +538,46 @@ class MetrolinxAlertNormalizerTest {
         }
     }
 
+    @Test
+    void holidaySchedulesStayInformationalDespiteOtherCorridorsHavingNoService() throws Exception {
+        String title = "We are running on a Saturday schedule on September 7 for Labour Day";
+        String description = "There will be no GO train service on Richmond Hill or Milton lines."
+            + "GO bus service will also be running on a Saturday schedule.";
+        MetrolinxFetchedRecord rest = serviceAlert("""
+            {"Code":"M0000525000","SubjectEnglish":%s,"BodyEnglish":%s,
+             "SubCategory":"Train Delay","Lines":[{"Code":"LE"}],"Stops":[]}
+            """.formatted(objectMapper.writeValueAsString(title), objectMapper.writeValueAsString(description)));
+        MetrolinxFetchedRecord gtfs = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_GTFS_ALERTS, "525000", """
+            {"id":"525000","alert":{"effect":"NO_SERVICE",
+             "header_text":{"translation":[{"language":"en","text":%s}]},
+             "description_text":{"translation":[{"language":"en","text":%s}]},
+             "informed_entity":[{"route_id":"202609-LE"}]}}
+            """.formatted(objectMapper.writeValueAsString(title), objectMapper.writeValueAsString(description)));
+        for (MetrolinxFeed input : List.of(feed(rest), feed(gtfs), feed(rest, gtfs))) {
+            assertThat(normalizer.classify(input)).singleElement().satisfies(event -> {
+                assertThat(event.serviceEffect()).isEqualTo("service-adjustment");
+                assertThat(event.lineIds()).containsExactly("regional-le");
+                assertThat(event.spanStationIds()).isEmpty();
+            });
+            assertThat(normalizer.normalize(input)).isEmpty();
+        }
+    }
+
+    @Test
+    void closureMentioningReplacementBusScheduleStillProducesAnOverlay() throws Exception {
+        var input = feed(serviceAlert("""
+            {"Code":"M0000525001","SubjectEnglish":"Lakeshore East planned closure September 7",
+             "BodyEnglish":"No GO train service on the Lakeshore East line. Replacement buses are running on a Saturday schedule.",
+             "Lines":[{"Code":"LE"}],"Stops":[]}
+            """));
+        assertThat(normalizer.normalize(input)).singleElement().satisfies(alert -> {
+            assertThat(alert.impactKind()).isEqualTo("planned-closure");
+            assertThat(alert.lineId()).isEqualTo("regional-le");
+            assertThat(alert.affectedSegmentIds()).isNotEmpty();
+        });
+    }
+
     private MetrolinxFeed feed(MetrolinxFetchedRecord... records) {
         return new MetrolinxFeed(
             OffsetDateTime.parse("2026-07-28T18:12:32Z"),

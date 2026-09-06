@@ -35,7 +35,8 @@ public class SurfaceServiceNoticeResponses {
         OffsetDateTime endAt,
         OffsetDateTime updatedAt,
         String url,
-        String source
+        String source,
+        boolean scheduleAnnouncement
     ) {}
 
     public record StopDetail(

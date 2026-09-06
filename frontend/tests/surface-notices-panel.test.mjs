@@ -32,23 +32,13 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /renderCompactField\(stopFieldHeading\(notice\), stopFieldLabel\(notice\)/);
   });
 
-  it("shows route-wide notices in title case and includes a details hint on each notice row", () => {
-    assert.match(panelSource, /Route-wide Notice/);
-    assert.doesNotMatch(panelSource, /Route-wide notice/);
-    assert.match(panelSource, /Info/);
-    assert.match(panelSource, /Make sure to check details for more info on routes affected\./);
-  });
-
-  it("labels the expandable control as a dropdown instead of an outbound link", () => {
-    assert.match(panelSource, /More Details/);
-    assert.match(panelSource, /Less Details/);
-    assert.match(panelSource, /Show more details for/);
-    assert.match(panelSource, /Show fewer details for/);
-    assert.match(panelSource, /ChevronDown/);
-    assert.match(panelSource, /w-\[calc\(100%-1\.75rem\)\][^"]*rounded-lg border border-slate-300 bg-slate-100[^"]*dark:bg-white\/10/);
-    assert.match(panelSource, /<span className="text-sm font-bold leading-none">\{expanded \? "Less Details" : "More Details"\}<\/span>/);
-    assert.doesNotMatch(panelSource, /w-\[calc\(100%-1\.75rem\)\][^"]*uppercase/);
-    assert.doesNotMatch(panelSource, /<ExternalLink className="h-3 w-3" aria-hidden="true" \/>/);
+  it("shows full notice details above metadata with a plain footnote", () => {
+    assert.match(panelSource, /surface-notice-description/);
+    assert.match(panelSource, /surface-notice-footnote/);
+    assert.doesNotMatch(panelSource, /More Details|Less Details|line-clamp-3|expandedNoticeIds/);
+    assert.ok(panelSource.indexOf('className="surface-notice-description') < panelSource.indexOf('<dl className='));
+    assert.match(panelSource, /Sort notices/);
+    assert.match(panelSource, /Most Recent/);
   });
 
   it("uses compact timestamp formatting for notice update fields and exact formatting for active windows", () => {
@@ -88,8 +78,8 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /GO Bus \{routeId\}/);
     assert.match(panelSource, /regional \? "pt-3" : ""/);
     assert.match(panelSource, /Filter GO \/ UP notices by service/);
-    assert.match(panelSource, /\["train", "Train"\]/);
-    assert.match(panelSource, /\["bus", "Bus"\]/);
+    assert.match(panelSource, /value: "train", label: "Train"/);
+    assert.match(panelSource, /value: "bus", label: "Bus"/);
     assert.match(panelSource, /notice\.routeType === "GO Bus"/);
   });
 
@@ -110,9 +100,9 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(statusSheetSource, /mobile-status-btn-trip-changes/);
   });
 
-  it("uses Megaphone icon for regional Service Notices and Bus icon for TTC Streetcar & Bus Notices", () => {
+  it("uses Megaphone icon for regional Service Notices and Bus icon for TTC Streetcar & Bus Notices with grey menu icons and emerald panel heading", () => {
     assert.match(shellSource, /selectedNetwork === "regional" \? \(\s*<Megaphone size=\{18\} className="text-slate-500 dark:text-slate-400" \/>\s*\) : \(\s*<Bus size=\{18\} className="text-slate-500 dark:text-slate-400" \/>\s*\)/);
     assert.match(statusSheetSource, /regional \? \(\s*<Megaphone size=\{16\} className="text-emerald-600 dark:text-emerald-400 shrink-0" \/>\s*\) : \(\s*<Bus size=\{16\} className="text-emerald-600 dark:text-emerald-400 shrink-0" \/>\s*\)/);
-    assert.match(panelSource, /regional \? \(\s*<Megaphone className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" \/>\s*\) : \(\s*<Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" \/>\s*\)/);
+    assert.match(panelSource, /regional \? \(\s*<Megaphone className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" \/>\s*\) : \(\s*<Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" \/>\s*\)/);
   });
 });

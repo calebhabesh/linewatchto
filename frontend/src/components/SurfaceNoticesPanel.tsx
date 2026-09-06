@@ -1,19 +1,76 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useId } from "react";
 import Image from "next/image";
-import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, ChevronLeft, CircleAlert, ExternalLink, Info, MapPin, Megaphone, Search, X, Bus } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, ChevronLeft, CircleAlert, ExternalLink, MapPin, Megaphone, Search, X, Bus } from "lucide-react";
 import {
   getSurfaceNotices,
   SurfaceNoticeResponse,
   SurfaceNoticeCategory,
 } from "../app/surface-notice-data";
-import { groupSurfaceNoticesByRoute, SurfaceNoticeGroupItem } from "../app/surface-notice-groups";
+import { groupSurfaceNoticesByRoute, compareSurfaceNotices, surfaceNoticeEmphasis, SurfaceNoticeGroupItem } from "../app/surface-notice-groups";
 import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
 import type { NetworkId } from "../app/regional-data";
 import { REGIONAL_STATION_SEARCH_LINES } from "../app/station-search";
 import { getRegionalTripChanges, type RegionalTripChangeResponse } from "../app/regional-trip-changes";
 import { RegionalTripChangesList } from "./RegionalTripChangesList";
+
+function NoticeFilter({ label, prefix, value, options, onChange }: {
+  label: string;
+  prefix: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, [open]);
+  useEffect(() => {
+    if (open) root.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
+  }, [open]);
+  return (
+    <div className="alert-history-line-filter relative" ref={root}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
+      onKeyDown={(event) => {
+        if (open && event.key === "Escape") { event.stopPropagation(); setOpen(false); trigger.current?.focus(); }
+        if (!open && event.key === "ArrowDown") { event.preventDefault(); setOpen(true); }
+        if (open && ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+          event.preventDefault();
+          const items = Array.from(root.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? []);
+          const current = items.indexOf(document.activeElement as HTMLButtonElement);
+          const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1
+            : (current + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+          items[next]?.focus();
+        }
+      }}>
+      <span className="alert-history-control-prefix">{prefix}</span>
+      <button ref={trigger} type="button" className="alert-history-line-filter-trigger"
+        aria-label={label} aria-haspopup="menu" aria-expanded={open} aria-controls={menuId}
+        onClick={() => setOpen(!open)}>
+        <span className="truncate">{options.find((option) => option.value === value)?.label}</span>
+        <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
+      </button>
+      {open ? <ul id={menuId} role="menu" aria-label={label} className="alert-history-line-filter-options">
+        {options.map((option) => <li key={option.value} role="none">
+          <button type="button" role="menuitemradio" aria-checked={option.value === value}
+            className={`alert-history-line-filter-option ${option.value === value ? "selected" : ""}`}
+            onClick={() => { onChange(option.value); setOpen(false); trigger.current?.focus(); }}>
+            {option.label}
+          </button>
+        </li>)}
+      </ul> : null}
+    </div>
+  );
+}
 
 interface Props {
   onBack: () => void;
@@ -38,7 +95,7 @@ export function SurfaceNoticesPanel({
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [data, setData] = useState<SurfaceNoticeResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [expandedNoticeIds, setExpandedNoticeIds] = useState<Record<string, boolean>>({});
+  const [sortOrder, setSortOrder] = useState<"importance" | "recent">("importance");
   const [tripChangesState, setTripChangesState] = useState<{
     query: string;
     response: RegionalTripChangeResponse;
@@ -150,7 +207,7 @@ export function SurfaceNoticesPanel({
   const totalCount = data ? data.categories.reduce((sum, c) => sum + c.count, 0) : 0;
   const visibleCategories = regional
     ? (["service-change", "bypass", "detour", "no-service", "notice"] as SurfaceNoticeCategory[]).filter((cat) => getCategoryCount(cat) > 0)
-    : (["service-change", "bypass", "detour"] as SurfaceNoticeCategory[]);
+    : (["service-change", "bypass", "detour", "no-service", "notice"] as SurfaceNoticeCategory[]);
 
   const isFallback = data?.source?.toLowerCase().includes("fixture") || false;
   const serviceFilteredNotices = data?.notices.filter((notice) => {
@@ -159,20 +216,14 @@ export function SurfaceNoticesPanel({
     return serviceType === "bus" ? busNotice : !busNotice;
   }) ?? [];
   const routeGroups = groupSurfaceNoticesByRoute(serviceFilteredNotices);
-  const displayRouteGroups = regional
+  const displayRouteGroups = (regional
     ? routeGroups.flatMap((group) => group.notices.map((notice) => ({
         ...group,
         key: `${group.key}:${notice.id}`,
         notices: [notice],
       })))
-    : routeGroups;
-
-  const toggleNotice = (noticeId: string) => {
-    setExpandedNoticeIds((current) => ({
-      ...current,
-      [noticeId]: !current[noticeId],
-    }));
-  };
+    : routeGroups).map((group) => ({ ...group, notices: [...group.notices].sort((a, b) => compareSurfaceNotices(a, b, sortOrder)) }))
+    .sort((a, b) => compareSurfaceNotices(a.notices[0], b.notices[0], sortOrder));
 
   const renderCompactField = (
     label: string,
@@ -315,9 +366,9 @@ export function SurfaceNoticesPanel({
           </button>
           <h2 className="text-[clamp(14px,4.5cqw,18px)] font-bold text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-2">
             {regional ? (
-              <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" />
+              <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" />
+              <Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
             )}
             <span>{regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}</span>
           </h2>
@@ -359,10 +410,11 @@ export function SurfaceNoticesPanel({
         {regional ? (
           <div className="px-3 pt-3 sm:px-4" role="group" aria-label="GO / UP notice content">
             <div
-              className="regional-notices-filter relative grid grid-cols-2 gap-1 rounded-lg border border-transparent bg-slate-100 p-1 dark:border-transparent dark:bg-white/5"
+              className="account-network-filter regional-notices-filter"
+              data-options-count={2}
               data-content={regionalContent}
             >
-              <div className="regional-notices-glider" aria-hidden="true" />
+              <div className="account-network-glider regional-notices-glider" aria-hidden="true" />
               {([[
                 "notices", "Service Notices",
               ], [
@@ -373,9 +425,7 @@ export function SurfaceNoticesPanel({
                   type="button"
                   onClick={() => setRegionalContent(value)}
                   aria-pressed={regionalContent === value}
-                  className={`relative z-10 min-h-9 rounded-md px-2 text-xs font-black transition-colors ${regionalContent === value
-                    ? "text-slate-950 dark:text-white"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"}`}
+
                 >
                   {label}
                 </button>
@@ -384,67 +434,23 @@ export function SurfaceNoticesPanel({
           </div>
         ) : null}
 
-        {regional && regionalContent === "notices" ? (
-          <div
-            className="px-3 pt-3 sm:px-4 sm:pt-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0"
-            role="group"
-            aria-label="Filter GO / UP notices by service"
-          >
-            {([
-              ["all", "All services"],
-              ["train", "Train"],
-              ["bus", "Bus"],
-            ] as const).map(([value, label]) => {
-              const active = serviceType === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setServiceType(value)}
-                  aria-pressed={active}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
-                    active
-                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
-                      : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-transparent shadow-xs hover:bg-slate-200 dark:hover:bg-white/10"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+        {(!regional || regionalContent === "notices") ? (
+          <div className="px-3 pt-3 sm:px-4 shrink-0">
+            <div className="alert-history-selects-row surface-notice-filters">
+              {regional ? <NoticeFilter label="Filter GO / UP notices by service" prefix="Service"
+                value={serviceType} onChange={(value) => setServiceType(value as typeof serviceType)}
+                options={[{ value: "all", label: "All services" }, { value: "train", label: "Train" }, { value: "bus", label: "Bus" }]} /> : null}
+              <NoticeFilter label="Notice type" prefix="Type" value={category}
+                onChange={(value) => setCategory(value as typeof category)}
+                options={[{ value: "all", label: `All Types (${totalCount})` },
+                  ...visibleCategories.map((cat) => ({ value: cat, label: `${getCategoryLabel(cat)} (${getCategoryCount(cat)})` }))]} />
+              <NoticeFilter label="Sort notices" prefix="Sort" value={sortOrder}
+                onChange={(value) => setSortOrder(value as typeof sortOrder)}
+                options={[{ value: "importance", label: "Importance" }, { value: "recent", label: "Most Recent" }]} />
+            </div>
+            {!loading && !isFallback ? <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400" role="status">Showing {serviceFilteredNotices.length} notices{sortOrder === "importance" ? " · Important first, then newest updates" : " · Newest updates first"}</p> : null}
           </div>
         ) : null}
-
-        {/* Segmented Category Buttons */}
-        {(!regional || regionalContent === "notices") ? <div className="px-3 pt-3 pb-3 sm:px-4 sm:pt-3 sm:pb-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
-          <button
-            onClick={() => setCategory("all")}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
-              category === "all"
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
-                : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-transparent shadow-xs hover:bg-slate-200 dark:hover:bg-white/10"
-            }`}
-          >
-            All {totalCount > 0 && `(${totalCount})`}
-          </button>
-          {visibleCategories.map((cat) => {
-            const active = category === cat;
-            const count = getCategoryCount(cat);
-            return (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
-                  active
-                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
-                    : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-transparent shadow-xs hover:bg-slate-200 dark:hover:bg-white/10"
-                }`}
-              >
-                {getCategoryLabel(cat)} {count > 0 && `(${count})`}
-              </button>
-            );
-          })}
-        </div> : null}
 
         {/* Notices Content */}
         <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 surface-notices-scroll">
@@ -467,24 +473,28 @@ export function SurfaceNoticesPanel({
               {displayRouteGroups.map((group) => (
                 <section
                   key={group.key}
-                  className="surface-notice-route-group overflow-hidden rounded-xl border border-transparent bg-slate-50 dark:border-transparent dark:bg-[#12151c] shadow-sm"
+                  data-emphasis={surfaceNoticeEmphasis(group.notices[0])}
+                  className="surface-notice-route-group overflow-hidden rounded-lg border border-transparent bg-slate-50 dark:border-transparent dark:bg-[#12151c] shadow-sm"
                 >
-                  <div className="flex items-start justify-between gap-2 border-b border-black/5 px-3.5 py-3 dark:border-white/5">
+                  <div className="flex items-start justify-between gap-2 px-3.5 pt-3 pb-2">
                     <div className="min-w-0 flex flex-col gap-1">
                       <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        {regional && group.routeType !== "GO Bus" ? "Station / Lines Affected" : "Routes Affected"}
+                        {regional && group.notices[0].scheduleAnnouncement ? "Schedule announcement" : regional && group.routeType !== "GO Bus" ? "Station / Lines Affected" : "Routes Affected"}
                       </p>
                       {regional ? (
                         <>
-                          {group.routeType !== "GO Bus" ? (
+                          {group.routeType !== "GO Bus" && !group.notices[0].scheduleAnnouncement ? (
                             <div className="min-w-0 text-sm font-semibold text-slate-900 dark:text-white">
                               {renderStopDisplay(group.notices[0])}
                             </div>
                           ) : null}
                           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                            {group.notices[0].scheduleAnnouncement ? (
+                              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Published for:</span>
+                            ) : null}
                             {renderRegionalRouteList(group.routeIds)}
                           </div>
-                          <p className="text-xs font-semibold leading-snug text-slate-600 dark:text-slate-300">
+                          <p className="text-sm font-bold leading-snug text-slate-900 dark:text-white">
                             {group.notices[0].title}
                           </p>
                         </>
@@ -511,11 +521,6 @@ export function SurfaceNoticesPanel({
 
                   <div className="divide-y divide-black/5 dark:divide-white/5">
                     {group.notices.map((notice) => {
-                      const expanded = Boolean(expandedNoticeIds[notice.id]);
-                      const detailControlLabel = expanded
-                        ? `Show fewer details for ${stopFieldLabel(notice)}`
-                        : `Show more details for ${stopFieldLabel(notice)}`;
-                      const detailsPanelId = `surface-notice-details-${notice.id}`;
                       return (
                         <article key={notice.id} className="surface-notice-stop-row">
                           {!regional ? (
@@ -526,6 +531,14 @@ export function SurfaceNoticesPanel({
                             </div>
                           ) : null}
 
+                          <div className="surface-notice-description mx-3.5 mb-3 border-b border-black/10 pb-3 dark:border-white/10">
+                            {!regional ? <p className="mb-2 text-sm font-bold text-slate-900 dark:text-white">{notice.title}</p> : null}
+                            {surfaceNoticeEmphasis(notice) === "no-service" && notice.category !== "no-service" ? <p className="mb-2 text-xs font-bold text-red-700 dark:text-red-300">Includes no-service periods</p> : null}
+                            {notice.description && notice.description !== notice.title ? <p className="whitespace-pre-line break-words text-sm leading-relaxed text-slate-600 dark:text-slate-300">{notice.description}</p> : null}
+                            {notice.url ? <a href={notice.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400">
+                              View {regional ? "Metrolinx" : "TTC"} details <ExternalLink size={11} />
+                            </a> : null}
+                          </div>
                           <dl className={`grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2 ${regional ? "pt-3" : ""}`}>
                             {!regional ? renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />) : null}
                             {renderCompactField("Active", activeTimeLabel(notice), <CalendarClock size={13} />)}
@@ -534,49 +547,11 @@ export function SurfaceNoticesPanel({
                             {renderCompactField("Cause", notice.compactCause, <CircleAlert size={13} />)}
                           </dl>
 
-                          <p className="mx-3.5 mb-3 flex items-start gap-1.5 rounded-lg border border-transparent bg-white/60 px-2.5 py-2 text-[11px] font-semibold leading-snug text-slate-500 dark:border-transparent dark:bg-white/[0.03] dark:text-slate-400">
-                            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                            <span>Make sure to check details for more info on routes affected.</span>
+                          <p className="surface-notice-footnote px-3.5 pb-3 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
+                            {regional && notice.scheduleAnnouncement
+                              ? "Corridor tags are source-published. Check the notice for service changes and exceptions."
+                              : "Check the notice for details on affected routes."}
                           </p>
-
-                          <button
-                            type="button"
-                            onClick={() => toggleNotice(notice.id)}
-                            className="mx-3.5 mb-3 flex min-h-[34px] w-[calc(100%-1.75rem)] items-center justify-center gap-2 rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer dark:border-white/15 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
-                            aria-expanded={expanded}
-                            aria-controls={detailsPanelId}
-                            aria-label={detailControlLabel}
-                          >
-                            <span className="text-sm font-bold leading-none">{expanded ? "Less Details" : "More Details"}</span>
-                            <ChevronDown
-                              className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-                              aria-hidden="true"
-                            />
-                          </button>
-
-                          {expanded ? (
-                            <div id={detailsPanelId} className="border-t border-black/5 px-3.5 pb-3 pt-3 dark:border-white/5">
-                              <p className="text-xs font-semibold leading-relaxed text-slate-800 dark:text-slate-100">
-                                {notice.title}
-                              </p>
-                              {notice.description && notice.description !== notice.title ? (
-                                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                                  {notice.description}
-                                </p>
-                              ) : null}
-                              {notice.url ? (
-                                <a
-                                  href={notice.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline dark:text-blue-400"
-                                >
-                                  View {regional ? "Metrolinx" : "TTC"} details
-                                  <ExternalLink size={11} />
-                                </a>
-                              ) : null}
-                            </div>
-                          ) : null}
                         </article>
                       );
                     })}

@@ -842,8 +842,23 @@ test("mobile preserves status and station interaction language across network sw
   await expect(stationPanel.getByRole("button", { name: "Close station details" })).toBeVisible();
 });
 
+test.describe("regional notice source labels", () => {
+  test.use({ serviceWorkers: "block" });
+
 test("opens fresh regional notices from desktop and mobile navigation", async ({ page, request, isMobile }) => {
   await setStubMode(request, "regional-live");
+  await page.route(url => url.pathname === "/api/surface-notices" && url.searchParams.get("network") === "regional", async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.notices.push({
+      id: "holiday-schedule", category: "service-change", routeType: "GO / UP",
+      routeIds: ["LE"], title: "We are running on a Saturday schedule for Labour Day",
+      description: "There will be no GO train service on Richmond Hill or Milton lines.",
+      location: "", stopIds: [], stops: [], updatedAt: data.generatedAt,
+      source: "Metrolinx GO service notices", scheduleAnnouncement: true,
+    });
+    await route.fulfill({ response, json: data });
+  });
   await page.goto("/");
 
   if (isMobile) {
@@ -872,11 +887,38 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await expect(page.getByText("GO Bus 31", { exact: true })).toBeVisible();
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toBeVisible();
 
-  const serviceFilter = page.getByRole("group", { name: "Filter GO / UP notices by service" });
-  await serviceFilter.getByRole("button", { name: "Bus", exact: true }).click();
+  const scheduleCard = page.locator(".surface-notice-route-group").filter({
+    hasText: "We are running on a Saturday schedule for Labour Day",
+  });
+  await expect(scheduleCard.getByText("Schedule announcement", { exact: true })).toBeVisible();
+  await expect(scheduleCard.getByText("Published for:", { exact: true })).toBeVisible();
+  await expect(scheduleCard.getByText("Lakeshore East", { exact: true })).toBeVisible();
+  await expect(scheduleCard).not.toContainText("Station / Lines Affected");
+  await expect(scheduleCard).not.toContainText("Route-wide Notice");
+  await expect(scheduleCard.getByRole("button", { name: /Show more details/ })).toHaveCount(0);
+  await expect(scheduleCard).toHaveAttribute("data-emphasis", "no-service");
+  await expect(page.locator(".surface-notice-route-group").first()).toContainText("Saturday schedule");
+  await expect(scheduleCard).toHaveCSS("border-left-style", "solid");
+  await page.getByRole("button", { name: "Sort notices" }).click();
+  await page.getByRole("menuitemradio", { name: "Most Recent" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Newest updates first" })).toBeVisible();
+  await page.getByRole("button", { name: "Sort notices" }).click();
+  await page.getByRole("menuitemradio", { name: "Importance" }).click();
+  await page.screenshot({ path: `/tmp/notices-${isMobile ? "mobile" : "desktop"}.png` });
+  await expect(scheduleCard.getByText("There will be no GO train service on Richmond Hill or Milton lines.", { exact: true })).toBeVisible();
+
+  const serviceFilter = page.getByRole("button", { name: "Filter GO / UP notices by service" });
+  await serviceFilter.click();
+  await page.screenshot({ path: `/tmp/notices-menu-${isMobile ? "mobile" : "desktop"}.png` });
+  await page.keyboard.press("Escape");
+  await expect(serviceFilter).toBeFocused();
+  await expect(page.getByRole("heading", { name: "GO / UP Notices" })).toBeVisible();
+  await serviceFilter.press("ArrowDown");
+  await page.getByRole("menuitemradio", { name: "Bus", exact: true }).click();
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toBeVisible();
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toHaveCount(0);
-  await serviceFilter.getByRole("button", { name: "Train", exact: true }).click();
+  await serviceFilter.click();
+  await page.getByRole("menuitemradio", { name: "Train", exact: true }).click();
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toHaveCount(0);
 
@@ -890,6 +932,8 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await expect(page.locator(
     '[data-regional-impact-id="regional-trip-change-2026-06-04-BR681-cancellation"]',
   )).toHaveCount(0);
+});
+
 });
 
 test("opens the dedicated regional Trip Changes entry", async ({ page, request, isMobile }) => {

@@ -261,7 +261,8 @@ public class SurfaceServiceNoticeService {
             notice.activePeriodEnd(),
             notice.sourceUpdatedAt(),
             notice.url(),
-            "TTC Live Alerts + GTFS-RT"
+            "TTC Live Alerts + GTFS-RT",
+            false
         );
     }
 

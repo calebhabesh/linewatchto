@@ -26,6 +26,7 @@ export type SurfaceNoticeDetail = {
   url?: string | null;
   source: string;
   stops?: SurfaceNoticeStopDetail[];
+  scheduleAnnouncement?: boolean;
 };
 
 export type SurfaceNoticeStopDetail = {

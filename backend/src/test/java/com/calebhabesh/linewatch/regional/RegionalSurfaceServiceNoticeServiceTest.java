@@ -199,6 +199,36 @@ class RegionalSurfaceServiceNoticeServiceTest {
         });
     }
 
+    @Test
+    void holidayScheduleIsVisibleFromEitherFeedAndDeduplicatedAcrossFeeds() {
+        var rest = record(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000525000", """
+            {"Code":"M0000525000",
+             "SubjectEnglish":"We are running on a Saturday schedule on September 7 for Labour Day",
+             "BodyEnglish":"There will be no GO train service on Richmond Hill or Milton lines.GO bus service will also be running on a Saturday schedule.",
+             "Lines":[{"Code":"LE"}],"Stops":[]}
+            """);
+        var gtfs = record(MetrolinxSourceSystem.GO_GTFS_ALERTS, "525000", """
+            {"id":"525000","alert":{"effect":"NO_SERVICE",
+             "header_text":{"translation":[{"language":"en","text":"We are running on a Saturday schedule on September 7 for Labour Day"}]},
+             "description_text":{"translation":[{"language":"en","text":"There will be no GO train service on Richmond Hill or Milton lines."}]},
+             "informed_entity":[{"route_id":"202609-LE"}]}}
+            """);
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        for (var records : List.of(List.of(rest), List.of(gtfs), List.of(rest, gtfs))) {
+            when(repository.findActiveRecords(any())).thenReturn(records);
+            assertThat(service().getSurfaceNotices("service-change", "LE", null).notices())
+                .singleElement().satisfies(notice -> {
+                    assertThat(notice.id()).isEqualTo("regional-notice-525000");
+                    assertThat(notice.scheduleAnnouncement()).isTrue();
+                    assertThat(notice.routeIds()).containsExactly("LE");
+                    assertThat(notice.description()).contains("Richmond Hill or Milton");
+                    assertThat(notice.location()).isEmpty();
+                    assertThat(notice.stopIds()).isEmpty();
+                });
+        }
+    }
+
     private RegionalSurfaceServiceNoticeReadRepository.SourceRecord record(String source, String id, String payload) {
         return new RegionalSurfaceServiceNoticeReadRepository.SourceRecord(
             source, id, payload, OffsetDateTime.parse("2026-07-30T13:55:00Z")

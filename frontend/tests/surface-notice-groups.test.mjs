@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 
 import {
   deriveSurfaceNoticeCause,
+  compareSurfaceNotices,
+  surfaceNoticeEmphasis,
   groupSurfaceNoticesByRoute,
 } from "../src/app/surface-notice-groups.ts";
 
@@ -286,4 +288,38 @@ describe("surface notice route grouping", () => {
       ],
     );
   });
+});
+
+
+it("uses the backend schedule classification without inferring affected corridors from prose", () => {
+  const notice = {
+    ...baseNotice,
+    category: "service-change",
+    routeType: "GO / UP",
+    routeIds: ["LE"],
+    title: "We are running on a Saturday schedule",
+    description: "No GO train service on Richmond Hill or Milton lines.",
+    location: "",
+    stopIds: [],
+    scheduleAnnouncement: true,
+  };
+  const [group] = groupSurfaceNoticesByRoute([notice]);
+  assert.deepEqual(group.routeIds, ["LE"]);
+  assert.equal(group.notices[0].displayLocation, "Schedule announcement");
+  assert.equal(group.notices[0].scheduleAnnouncement, true);
+  const [ordinary] = groupSurfaceNoticesByRoute([{ ...notice, scheduleAnnouncement: false }]);
+  assert.equal(ordinary.notices[0].displayLocation, "Route-wide Notice");
+});
+
+
+it("prioritizes explicit no-service schedule notices, then newest updates", () => {
+  const announcement = { ...baseNotice, id: "schedule", category: "service-change", scheduleAnnouncement: true,
+    title: "Holiday schedule", description: "There will be no GO train service on Milton.",
+    updatedAt: "2026-06-10T10:00:00Z" };
+  const recent = { ...baseNotice, id: "recent", updatedAt: "2026-06-12T10:00:00Z" };
+  assert.equal(surfaceNoticeEmphasis(announcement), "no-service");
+  assert.ok(compareSurfaceNotices(announcement, recent) < 0);
+  assert.ok(compareSurfaceNotices(announcement, recent, "recent") > 0);
+  assert.equal(surfaceNoticeEmphasis({ ...announcement, description: "No service changes are planned." }), "schedule");
+  assert.ok(compareSurfaceNotices(recent, { ...recent, id: "old", updatedAt: "invalid" }) < 0);
 });
