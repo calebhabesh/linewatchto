@@ -1177,7 +1177,7 @@ export function RegionalStationDetailPanel({
                                                       <span className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-85">
                                                         {tripChange.kind === "cancellation" || tripChange.kind === "skipped-stop" ? (
                                                           <>
-                                                            Scheduled <span className="line-through decoration-[1.5px] opacity-75">{scheduledClockTime || timeDisplay.secondary}</span>
+                                                            Scheduled <span className="text-xs font-semibold tracking-normal line-through decoration-[1px] opacity-75">{scheduledClockTime || timeDisplay.secondary}</span>
                                                           </>
                                                         ) : (
                                                           <>
