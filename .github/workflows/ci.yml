@@ -73,6 +73,11 @@ jobs:
         env:
           LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
 
+      - name: Mobile rotated map viewport fit
+        run: npm --prefix frontend run test:map-fit
+        env:
+          LINEWATCH_PLAYWRIGHT_REUSE_BUILD: "true"
+
   mobile:
     name: Mobile
     runs-on: ubuntu-latest

@@ -497,48 +497,93 @@
 
 .desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count {
   background: rgba(239, 68, 68, 0.14) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
   color: #b91c1c;
+  font-weight: 950;
 }
 .desktop-header-impact-chips .desktop-status-chip--delays .desktop-status-chip-count {
   background: rgba(234, 179, 8, 0.18);
+  border: 1.5px solid rgba(217, 119, 6, 0.45);
   color: #854d0e;
+  font-weight: 950;
 }
 .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone .desktop-status-chip-count {
   background: rgba(245, 158, 11, 0.18);
+  border: 1.5px solid rgba(245, 158, 11, 0.45);
   color: var(--impact-rsz-ink);
+  font-weight: 950;
 }
 .desktop-header-impact-chips .desktop-status-chip--closures .desktop-status-chip-count {
   background: rgba(59, 130, 246, 0.14);
+  border: 1.5px solid rgba(59, 130, 246, 0.45);
   color: #1d4ed8;
+  font-weight: 950;
 }
 .desktop-header-impact-chips .desktop-status-chip--trip-changes .desktop-status-chip-count {
   background: rgba(245, 158, 11, 0.18);
+  border: 1.5px solid rgba(245, 158, 11, 0.45);
   color: var(--trip-change-ink);
+  font-weight: 950;
 }
 
 .dark .desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count {
   background: rgba(239, 68, 68, 0.28) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.85);
   color: #fca5a5;
+  font-weight: 950;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--delays .desktop-status-chip-count {
   background: rgba(234, 179, 8, 0.28);
+  border: 1.5px solid rgba(254, 236, 65, 0.85);
   color: #fef08a;
+  font-weight: 950;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone .desktop-status-chip-count {
   background: rgba(245, 158, 11, 0.28);
+  border: 1.5px solid rgba(245, 158, 11, 0.85);
   color: var(--impact-rsz);
+  font-weight: 950;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--closures .desktop-status-chip-count {
   background: rgba(59, 130, 246, 0.28);
+  border: 1.5px solid rgba(59, 130, 246, 0.85);
   color: #bfdbfe;
+  font-weight: 950;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--trip-changes .desktop-status-chip-count {
   background: rgba(245, 158, 11, 0.28);
+  border: 1.5px solid rgba(245, 158, 11, 0.85);
   color: var(--trip-change);
+  font-weight: 950;
+}
+
+/* Crisp bold pure white numerals in dark mode for active impacts */
+.dark .desktop-header-impact-chips .desktop-status-chip:not([data-count="zero"]) .desktop-status-chip-count-value {
+  color: #ffffff;
+  font-weight: 950;
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts:not([data-count="zero"]) .desktop-status-chip-count-value {
+  text-shadow: 0 0 6px rgba(239, 68, 68, 0.65);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--delays:not([data-count="zero"]) .desktop-status-chip-count-value {
+  text-shadow: 0 0 6px rgba(234, 179, 8, 0.65);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:not([data-count="zero"]) .desktop-status-chip-count-value,
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:not([data-count="zero"]) .desktop-status-chip-count-value {
+  text-shadow: 0 0 6px rgba(245, 158, 11, 0.65);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--closures:not([data-count="zero"]) .desktop-status-chip-count-value {
+  text-shadow: 0 0 6px rgba(59, 130, 246, 0.65);
 }
 
 .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count {
+  border: 1px solid rgba(148, 163, 184, 0.22);
   opacity: 0.65;
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  opacity: 0.60;
 }
 
 .high-contrast .desktop-header-impact-chips .desktop-status-chip-count,
@@ -571,7 +616,7 @@
   line-height: 1;
   min-height: 26px;
   padding: 0 8px;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
   white-space: nowrap;
 }
 
@@ -588,37 +633,57 @@
 /* Consistent hover backgrounds for the bottom-left chips */
 .desktop-header-impact-chips .desktop-status-chip--alerts:hover {
   background: #fee2e2;
+  border-color: rgba(239, 68, 68, 0.75);
+  box-shadow: inset 0 0 9px rgba(239, 68, 68, 0.28), var(--mobile-card-shadow);
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--alerts:hover {
   background: #3d1b1b !important;
+  border-color: rgba(239, 68, 68, 0.90);
+  box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.45), var(--mobile-card-shadow);
 }
 
 .desktop-header-impact-chips .desktop-status-chip--delays:hover {
   background: #fef9c3;
+  border-color: rgba(217, 119, 6, 0.70);
+  box-shadow: inset 0 0 9px rgba(234, 179, 8, 0.28), var(--mobile-card-shadow);
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--delays:hover {
   background: #39311d;
+  border-color: rgba(254, 236, 65, 0.90);
+  box-shadow: inset 0 0 10px rgba(254, 236, 65, 0.40), var(--mobile-card-shadow);
 }
 
 .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:hover {
   background: #fef3c7;
+  border-color: rgba(245, 158, 11, 0.75);
+  box-shadow: inset 0 0 9px rgba(245, 158, 11, 0.28), var(--mobile-card-shadow);
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:hover {
   background: #3b2a1a;
+  border-color: rgba(245, 158, 11, 0.90);
+  box-shadow: inset 0 0 10px rgba(245, 158, 11, 0.45), var(--mobile-card-shadow);
 }
 
 .desktop-header-impact-chips .desktop-status-chip--closures:hover {
   background: #dbeafe;
+  border-color: rgba(59, 130, 246, 0.75);
+  box-shadow: inset 0 0 9px rgba(59, 130, 246, 0.28), var(--mobile-card-shadow);
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--closures:hover {
   background: #1f2e4f;
+  border-color: rgba(59, 130, 246, 0.90);
+  box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.45), var(--mobile-card-shadow);
 }
 
 .desktop-header-impact-chips .desktop-status-chip--trip-changes:hover {
   background: #fef3c7;
+  border-color: rgba(245, 158, 11, 0.75);
+  box-shadow: inset 0 0 9px rgba(245, 158, 11, 0.28), var(--mobile-card-shadow);
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:hover {
   background: #3b2a1a;
+  border-color: rgba(245, 158, 11, 0.90);
+  box-shadow: inset 0 0 10px rgba(245, 158, 11, 0.45), var(--mobile-card-shadow);
 }
 
 /* Active/press state — slight scale down */
@@ -632,7 +697,7 @@
 }
 
 .desktop-header-impact-chips .desktop-status-chip {
-  border: none !important;
+  border: 1.5px solid transparent;
   box-shadow: var(--mobile-card-shadow);
 }
 
@@ -684,6 +749,70 @@
 .dark .desktop-status-chip--trip-changes {
   background: #2b1a0e;
   color: var(--trip-change);
+}
+
+/* Light filament border and inward glow system for desktop bottom-left impact chips */
+.desktop-header-impact-chips .desktop-status-chip--alerts {
+  border-color: rgba(239, 68, 68, 0.50);
+  box-shadow: inset 0 0 6px rgba(239, 68, 68, 0.18), var(--mobile-card-shadow);
+}
+
+.desktop-header-impact-chips .desktop-status-chip--delays {
+  border-color: rgba(217, 119, 6, 0.50);
+  box-shadow: inset 0 0 6px rgba(234, 179, 8, 0.18), var(--mobile-card-shadow);
+}
+
+.desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone,
+.desktop-header-impact-chips .desktop-status-chip--trip-changes {
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: inset 0 0 6px rgba(245, 158, 11, 0.18), var(--mobile-card-shadow);
+}
+
+.desktop-header-impact-chips .desktop-status-chip--closures {
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: inset 0 0 6px rgba(59, 130, 246, 0.18), var(--mobile-card-shadow);
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts {
+  border-color: rgba(239, 68, 68, 0.75);
+  box-shadow: inset 0 0 8px rgba(239, 68, 68, 0.35), var(--mobile-card-shadow);
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip--delays {
+  border-color: rgba(254, 236, 65, 0.70);
+  box-shadow: inset 0 0 8px rgba(254, 236, 65, 0.30), var(--mobile-card-shadow);
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone,
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes {
+  border-color: rgba(245, 158, 11, 0.75);
+  box-shadow: inset 0 0 8px rgba(245, 158, 11, 0.35), var(--mobile-card-shadow);
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip--closures {
+  border-color: rgba(59, 130, 246, 0.75);
+  box-shadow: inset 0 0 8px rgba(59, 130, 246, 0.35), var(--mobile-card-shadow);
+}
+
+/* Subdued / calm state when count is zero */
+.desktop-header-impact-chips .desktop-status-chip[data-count="zero"] {
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: var(--mobile-card-shadow);
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] {
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: var(--mobile-card-shadow);
+}
+
+.desktop-header-impact-chips .desktop-status-chip[data-count="zero"]:hover {
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: var(--mobile-card-shadow);
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip[data-count="zero"]:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: var(--mobile-card-shadow);
 }
 
 .high-contrast .desktop-header-impact-chips .desktop-status-chip,

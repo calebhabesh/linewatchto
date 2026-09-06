@@ -753,13 +753,13 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /surfaceRef\.current\?\.animate/);
     assert.match(interactiveMapSource, /<OverlapChooser[\s\S]*?key=\{expandedOverlapBadge\.segmentId\}/);
     assert.match(interactiveMapSource, /compactMotion/);
-    assert.match(interactiveMapSource, /duration:\s*compactMotion\s*\?\s*200\s*:\s*250/);
+    assert.match(interactiveMapSource, /duration:\s*compactMotion\s*\?\s*190\s*:\s*230/);
     assert.match(interactiveMapSource, /const close = async/);
     assert.match(interactiveMapSource, /duration:\s*compactMotion\s*\?\s*190\s*:\s*230/);
     assert.match(interactiveMapSource, /animation\?\.finished/);
     assert.match(
       interactiveMapSource,
-      /opacity:\s*0,\s*transform:\s*`translate\(\$\{targetX\}px, \$\{targetY\}px\) scale\(0\.14\)`/,
+      /opacity:\s*0,\s*transform:\s*`translate\(\$\{targetX\}px, \$\{targetY\}px\) scale\(0\.08\)`/,
     );
     assert.match(
       interactiveMapSource,

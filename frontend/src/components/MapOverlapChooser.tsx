@@ -143,17 +143,17 @@ export function MapOverlapChooser({
     animatedEntranceRef.current = true;
     const targetX = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetX;
     const targetY = viewportOrientation === "rotated-landscape" ? 0 : layout.anchorOffsetY;
-    const animation = surfaceRef.current?.animate([
+    surfaceRef.current?.animate([
       {
         borderRadius: "999px",
         opacity: 0,
-        transform: `translate(${targetX}px, ${targetY}px) scale(0.14)`,
+        transform: `translate(${targetX}px, ${targetY}px) scale(0.08)`,
       },
       {
-        borderRadius: "24px",
-        opacity: 0.95,
+        borderRadius: "28px",
+        opacity: 0.85,
         offset: 0.6,
-        transform: `translate(${Math.round(targetX * 0.15)}px, ${Math.round(targetY * 0.15)}px) scale(0.88)`,
+        transform: `translate(${Math.round(targetX * 0.38)}px, ${Math.round(targetY * 0.38)}px) scale(0.68)`,
       },
       {
         borderRadius: "16px",
@@ -161,13 +161,12 @@ export function MapOverlapChooser({
         transform: "translate(0px, 0px) scale(1)",
       },
     ], {
-      duration: compactMotion ? 200 : 250,
-      easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+      duration: compactMotion ? 190 : 230,
+      easing: "cubic-bezier(0.35, 0.9, 0.65, 1)",
       fill: "both",
     });
     return () => {
       window.cancelAnimationFrame(focusFrame);
-      animation?.cancel();
     };
   }, [compactMotion, layout.anchorOffsetX, layout.anchorOffsetY, reducedMotion, viewportOrientation]);
 
@@ -192,7 +191,7 @@ export function MapOverlapChooser({
         {
           borderRadius: "999px",
           opacity: 0,
-          transform: `translate(${targetX}px, ${targetY}px) scale(0.12)`,
+          transform: `translate(${targetX}px, ${targetY}px) scale(0.08)`,
         },
       ], {
         duration: compactMotion ? 190 : 230,

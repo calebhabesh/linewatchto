@@ -600,33 +600,46 @@ const HistoryIncident = memo(function HistoryIncident({
           </summary>
           <p className="alert-history-observation-note">Times show when LineWatchTO observed changes. Cleared means the alert was no longer active in the feed.</p>
           {incident.sourceId ? <p className="alert-history-source-id">Source alert: {incident.sourceId}</p> : null}
-          <ol>
-            {events.map((event, index) => (
-              <li
-                key={event.id}
-                className={`alert-history-lifecycle-event alert-history-lifecycle-${historyLifecycleTone(event.state)}`}
-              >
-                <span>{formatHistoryStatusLabel(event.label)}</span>
-                <HistoryTimestamp timestamp={event.happenedAt} />
-                <details className="alert-history-snapshot">
-                  <summary>
-                    Source details
-                    {historyChangedFields(event, events[index + 1]).length > 0
-                      ? ` · Changed: ${historyChangedFields(event, events[index + 1]).join(", ")}`
-                      : ""}
-                  </summary>
-                  <strong>{event.title}</strong>
-                  {historyDescription(event) ? <p className="alert-history-description">{historyDescription(event)}</p> : null}
-                  {!event.description?.trim() ? <p>No description supplied in this snapshot.</p> : null}
-                  <dl>
-                    <dt>Affected area</dt><dd>{event.location || "Not supplied"}</dd>
-                    <dt>Direction</dt><dd>{event.displayDirection || "Not supplied"}</dd>
-                    <dt>Cause</dt><dd>{historyCause(event.cause) ? formatCause(event.cause!) : "Not supplied"}</dd>
-                    <dt>Source</dt><dd>{normalizeDashboardSourceLabel(event.source)}</dd>
-                  </dl>
-                </details>
-              </li>
-            ))}
+          <ol data-multiple={events.length > 1 ? "true" : undefined}>
+            {events.map((event, index) => {
+              const tone = historyLifecycleTone(event.state);
+              const nextEvent = events[index + 1];
+              const nextTone = nextEvent ? historyLifecycleTone(nextEvent.state) : null;
+              return (
+                <li
+                  key={event.id}
+                  className={`alert-history-lifecycle-event alert-history-lifecycle-${tone}`}
+                >
+                  {nextTone ? (
+                    <div
+                      className={`alert-history-lifecycle-spine alert-history-spine-${nextTone}-to-${tone}`}
+                      aria-hidden="true"
+                    >
+                      <div className="alert-history-spine-line" />
+                    </div>
+                  ) : null}
+                  <span>{formatHistoryStatusLabel(event.label)}</span>
+                  <HistoryTimestamp timestamp={event.happenedAt} />
+                  <details className="alert-history-snapshot">
+                    <summary>
+                      Source details
+                      {historyChangedFields(event, nextEvent).length > 0
+                        ? ` · Changed: ${historyChangedFields(event, nextEvent).join(", ")}`
+                        : ""}
+                    </summary>
+                    <strong>{event.title}</strong>
+                    {historyDescription(event) ? <p className="alert-history-description">{historyDescription(event)}</p> : null}
+                    {!event.description?.trim() ? <p>No description supplied in this snapshot.</p> : null}
+                    <dl>
+                      <dt>Affected area</dt><dd>{event.location || "Not supplied"}</dd>
+                      <dt>Direction</dt><dd>{event.displayDirection || "Not supplied"}</dd>
+                      <dt>Cause</dt><dd>{historyCause(event.cause) ? formatCause(event.cause!) : "Not supplied"}</dd>
+                      <dt>Source</dt><dd>{normalizeDashboardSourceLabel(event.source)}</dd>
+                    </dl>
+                  </details>
+                </li>
+              );
+            })}
           </ol>
         </details>
       </div>

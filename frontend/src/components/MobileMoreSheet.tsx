@@ -222,10 +222,20 @@ export function MobileMoreSheet({
                 </span>
                 {commuteClearCount + commuteAffectedCount > 0 ? (
                   <span className="flex items-center gap-1.5 shrink-0" data-testid="mobile-commute-status-badges">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                    <span
+                      className={`desktop-menu-count-badge desktop-menu-count-commutes-clear flex h-6 ${
+                        commuteClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } items-center justify-center rounded-full text-[11px] font-bold`}
+                      aria-label={`${commuteClearCount} clear commutes`}
+                    >
                       {commuteClearCount}
                     </span>
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                    <span
+                      className={`desktop-menu-count-badge desktop-menu-count-commutes-affected flex h-6 ${
+                        commuteAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } items-center justify-center rounded-full text-[11px] font-bold`}
+                      aria-label={`${commuteAffectedCount} affected commutes`}
+                    >
                       {commuteAffectedCount}
                     </span>
                   </span>
@@ -237,7 +247,12 @@ export function MobileMoreSheet({
                   My Stations
                 </span>
                 {savedStationCount > 0 ? (
-                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                  <span
+                    className={`desktop-menu-count-badge desktop-menu-count-stations flex h-6 ${
+                      savedStationCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                    } items-center justify-center rounded-full text-[11px] font-bold`}
+                    aria-label={`${savedStationCount} saved stations`}
+                  >
                     {savedStationCount}
                   </span>
                 ) : null}
@@ -274,10 +289,20 @@ export function MobileMoreSheet({
                 </span>
                 {commuteClearCount + commuteAffectedCount > 0 ? (
                   <span className="flex items-center gap-1.5 shrink-0" data-testid="mobile-commute-status-badges">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                    <span
+                      className={`desktop-menu-count-badge desktop-menu-count-commutes-clear flex h-6 ${
+                        commuteClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } items-center justify-center rounded-full text-[11px] font-bold`}
+                      aria-label={`${commuteClearCount} clear commutes`}
+                    >
                       {commuteClearCount}
                     </span>
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                    <span
+                      className={`desktop-menu-count-badge desktop-menu-count-commutes-affected flex h-6 ${
+                        commuteAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } items-center justify-center rounded-full text-[11px] font-bold`}
+                      aria-label={`${commuteAffectedCount} affected commutes`}
+                    >
                       {commuteAffectedCount}
                     </span>
                   </span>
@@ -289,7 +314,12 @@ export function MobileMoreSheet({
                   My Stations
                 </span>
                 {savedStationCount > 0 ? (
-                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                  <span
+                    className={`desktop-menu-count-badge desktop-menu-count-stations flex h-6 ${
+                      savedStationCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                    } items-center justify-center rounded-full text-[11px] font-bold`}
+                    aria-label={`${savedStationCount} saved stations`}
+                  >
                     {savedStationCount}
                   </span>
                 ) : null}

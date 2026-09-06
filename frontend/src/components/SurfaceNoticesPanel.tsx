@@ -302,9 +302,9 @@ export function SurfaceNoticesPanel({
   );
 
   return (
-    <section className="panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl flex flex-col h-full bg-white dark:bg-[#0a0c10]">
+    <section className="panel min-w-0 border border-transparent rounded-2xl flex flex-col h-full bg-white dark:bg-[#0a0c10]">
       {/* Panel Header */}
-      <div className="panel-heading border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0 shrink-0">
+      <div className="panel-heading border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0 shrink-0">
         <div className="flex items-center gap-1 min-w-0">
           <button
             onClick={onBack}
@@ -463,9 +463,9 @@ export function SurfaceNoticesPanel({
               {displayRouteGroups.map((group) => (
                 <section
                   key={group.key}
-                  className="surface-notice-route-group overflow-hidden rounded-lg border border-black/10 bg-slate-50 dark:border-white/10 dark:bg-[#12151c]"
+                  className="surface-notice-route-group overflow-hidden rounded-xl border border-transparent bg-slate-50 dark:border-transparent dark:bg-[#12151c] shadow-sm"
                 >
-                  <div className="flex items-start justify-between gap-2 border-b border-black/10 px-3.5 py-3 dark:border-white/10">
+                  <div className="flex items-start justify-between gap-2 border-b border-black/5 px-3.5 py-3 dark:border-white/5">
                     <div className="min-w-0 flex flex-col gap-1">
                       <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         {regional && group.routeType !== "GO Bus" ? "Station / Lines Affected" : "Routes Affected"}
@@ -530,7 +530,7 @@ export function SurfaceNoticesPanel({
                             {renderCompactField("Cause", notice.compactCause, <CircleAlert size={13} />)}
                           </dl>
 
-                          <p className="mx-3.5 mb-3 flex items-start gap-1.5 rounded border border-black/10 bg-white/60 px-2.5 py-2 text-[11px] font-semibold leading-snug text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+                          <p className="mx-3.5 mb-3 flex items-start gap-1.5 rounded-lg border border-transparent bg-white/60 px-2.5 py-2 text-[11px] font-semibold leading-snug text-slate-500 dark:border-transparent dark:bg-white/[0.03] dark:text-slate-400">
                             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                             <span>Make sure to check details for more info on routes affected.</span>
                           </p>

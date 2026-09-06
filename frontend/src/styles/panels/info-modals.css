@@ -34,7 +34,7 @@
 .opening-disclaimer-panel {
   background: var(--panel);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: 16px;
   box-shadow: 0 18px 70px rgba(0, 0, 0, 0.44);
   color: var(--text);
   max-width: 660px;
@@ -44,6 +44,24 @@
   width: min(100%, 660px);
   will-change: transform, opacity;
   backface-visibility: hidden;
+}
+
+.dark .opening-disclaimer-panel,
+.linewatch-shell.dark .opening-disclaimer-panel {
+  background-color: rgba(14, 16, 22, 0.94);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.015) 50%,
+    rgba(0, 0, 0, 0.16) 100%
+  );
+  backdrop-filter: blur(28px) saturate(190%) contrast(105%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(105%);
+  border: none;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
 }
 
 .opening-welcome-panel {
@@ -575,6 +593,7 @@
 
   .opening-disclaimer-panel {
     border: none;
+    border-radius: 16px;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.44);
     box-sizing: border-box;
     max-height: calc(100dvh - 36px);
@@ -1331,11 +1350,22 @@
 
 .release-notes-notice {
   align-items: center;
-  background: var(--notice-banner-bg, rgb(15, 23, 42));
-  border: 1px solid var(--notice-banner-border, rgba(255, 255, 255, 0.16));
-  border-radius: 8px;
+  background-color: var(--notice-banner-bg, rgba(14, 16, 22, 0.92));
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.015) 50%,
+    rgba(0, 0, 0, 0.16) 100%
+  );
+  backdrop-filter: blur(28px) saturate(190%) contrast(105%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(105%);
+  border: none;
+  border-radius: 12px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  box-shadow: var(--notice-banner-shadow, 0 18px 50px rgba(0, 0, 0, 0.34));
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
   color: white;
   display: flex;
   gap: 10px;
@@ -1347,6 +1377,12 @@
   transform: translateX(-50%);
   width: max-content;
   z-index: 88;
+}
+
+.high-contrast .release-notes-notice,
+.linewatch-shell.high-contrast .release-notes-notice {
+  border: 1px solid var(--notice-banner-border, #ffffff);
+  box-shadow: none;
 }
 
 .release-notes-notice-icon {

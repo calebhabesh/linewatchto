@@ -70,7 +70,7 @@
   --dialog-modal-border: rgba(15, 23, 42, 0.12);
   --dialog-modal-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
   --notice-banner-bg: rgb(15, 23, 42);
-  --notice-banner-border: rgba(255, 255, 255, 0.16);
+  --notice-banner-border: transparent;
   --notice-banner-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
 }
 
@@ -142,7 +142,7 @@
   --dialog-modal-border: rgba(255, 255, 255, 0.14);
   --dialog-modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.44);
   --notice-banner-bg: rgb(15, 23, 42);
-  --notice-banner-border: rgba(255, 255, 255, 0.16);
+  --notice-banner-border: transparent;
   --notice-banner-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
 }
 

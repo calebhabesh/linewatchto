@@ -287,7 +287,7 @@ export function MobileStatusPeek({
                 <span className="mobile-status-peek-count-circle-value">{item.count}</span>
               </span>
               <span className="mobile-status-peek-badge-label">{item.full}</span>
-              <ArrowRight size={11} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
+              <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
             </button>
           ))}
         </div>

@@ -13,6 +13,7 @@ flows, not repeat every data-shape or styling assertion from the fast suite.
 | E2E regression | `npm --prefix frontend run test:e2e` | Chromium desktop/mobile interaction and layout coverage; stops after five failures to avoid wasting a feedback cycle. |
 | Visual | `npm --prefix frontend run test:visual` | Deliberate screenshot baselines only. |
 | Browser compatibility | `npm --prefix frontend run test:browser-compat` | One focused SVG/map geometry contract in Chrome, Firefox, and WebKit. |
+| Mobile map fit | `npm --prefix frontend run test:map-fit` | Both rotated maps in mobile Chromium/WebKit: compact and changing viewports, safe areas, deferred gesture resizing, browser page zoom, and physical rotation. Also included in E2E and CI. |
 
 `test:fixtures` remains as a backwards-compatible alias for `test:fast`, and
 `test:regression` aliases `test:e2e`.

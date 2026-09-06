@@ -276,7 +276,7 @@
     bottom: calc(var(--mobile-bottom-nav-occupied-height) + 14px);
     gap: 4px;
     padding: 0;
-    max-width: 346px;
+    max-width: min(390px, calc(100vw - 16px));
   }
 
   .mobile-status-peek-info-btn {
@@ -301,7 +301,20 @@
   .mobile-status-peek:is([data-category-count="3"], [data-category-count="4"]) .mobile-status-peek-count-badge {
     height: 36px;
     min-height: 36px;
-    padding: 0 6px 0 5px;
+    padding: 0 4px;
+  }
+
+  .mobile-status-peek-badge-icon {
+    margin-right: 4px;
+  }
+
+  .mobile-status-peek-count-circle {
+    margin-right: 6px;
+  }
+
+  .mobile-status-peek-badge-label {
+    font-size: 9.75px;
+    letter-spacing: -0.035em;
   }
 
   /* All mobile menus and drill-in submenus */

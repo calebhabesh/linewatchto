@@ -431,6 +431,14 @@ img.transit-line-badge {
   background: rgba(14, 165, 233, 0.14);
   color: #0369a1;
 }
+.desktop-menu-count-badge.desktop-menu-count-commutes-clear {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+.desktop-menu-count-badge.desktop-menu-count-commutes-affected {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--trip-change-ink);
+}
 
 .dark .desktop-menu-count-badge.desktop-menu-count-alerts {
   background: rgba(239, 68, 68, 0.28);
@@ -464,6 +472,14 @@ img.transit-line-badge {
 .dark .desktop-menu-count-badge.desktop-menu-count-stations {
   background: rgba(14, 165, 233, 0.28);
   color: #7dd3fc;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-commutes-clear {
+  background: rgba(16, 185, 129, 0.28);
+  color: #6ee7b7;
+}
+.dark .desktop-menu-count-badge.desktop-menu-count-commutes-affected {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--trip-change);
 }
 
 .high-contrast .desktop-menu-count-badge,

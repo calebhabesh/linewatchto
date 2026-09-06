@@ -50,7 +50,7 @@
 .desktop-legend-route-badge {
   --desktop-legend-outline-width: 4.5px;
   align-items: center;
-  animation: desktop-legend-badge-pulse 5.0s ease-in-out infinite;
+  animation: desktop-legend-badge-pulse 3.5s ease-in-out infinite;
   box-shadow: 0 0 4px color-mix(in srgb, var(--desktop-legend-ring-color) 40%, transparent);
   box-sizing: border-box;
   display: flex;
@@ -113,7 +113,7 @@
 
 /* Inner red light flash on the entire transit badge area inside the red ring */
 .desktop-legend-route-badge.service-tone-affected::after {
-  animation: legend-badge-inner-red-flash 5.0s ease-in-out infinite;
+  animation: legend-badge-inner-red-flash 3.5s ease-in-out infinite;
   background: radial-gradient(circle at center, #f9385b 0%, #c41d38 100%);
   border-radius: inherit;
   content: "";
@@ -132,28 +132,28 @@
 }
 
 @keyframes desktop-legend-badge-pulse {
-  0%, 15% {
+  0% {
     box-shadow: 0 0 3px color-mix(in srgb, var(--desktop-legend-ring-color) 35%, transparent);
   }
-  36% {
-    box-shadow: 0 0 8px color-mix(in srgb, var(--desktop-legend-ring-color) 72%, transparent);
+  42% {
+    box-shadow: 0 0 9px color-mix(in srgb, var(--desktop-legend-ring-color) 78%, transparent);
   }
-  55%, 100% {
+  75%, 100% {
     box-shadow: 0 0 3px color-mix(in srgb, var(--desktop-legend-ring-color) 35%, transparent);
   }
 }
 
 @keyframes legend-badge-inner-red-flash {
-  0%, 15% {
+  0% {
     opacity: 0;
   }
-  30% {
-    opacity: 0.60;
+  38% {
+    opacity: 0.62;
   }
-  42% {
-    opacity: 0.60;
+  55% {
+    opacity: 0.62;
   }
-  55%, 100% {
+  80%, 100% {
     opacity: 0;
   }
 }
@@ -312,7 +312,7 @@
 
   .mobile-legend-route-badge {
     align-items: center;
-    animation: mobile-legend-badge-pulse 5.0s ease-in-out infinite;
+    animation: mobile-legend-badge-pulse 3.5s ease-in-out infinite;
     box-shadow: 0 0 3px color-mix(in srgb, var(--mobile-legend-ring-color) 40%, transparent);
     box-sizing: border-box;
     display: flex;
@@ -389,7 +389,7 @@
 
   /* Inner red light flash on the entire transit badge area inside the red ring */
   .mobile-legend-route-badge.service-tone-affected::after {
-    animation: legend-badge-inner-red-flash 5.0s ease-in-out infinite;
+    animation: legend-badge-inner-red-flash 3.5s ease-in-out infinite;
     background: radial-gradient(circle at center, #f9385b 0%, #c41d38 100%);
     border-radius: inherit;
     content: "";
@@ -408,13 +408,13 @@
   }
 
   @keyframes mobile-legend-badge-pulse {
-    0%, 15% {
+    0% {
       box-shadow: 0 0 2.5px color-mix(in srgb, var(--mobile-legend-ring-color) 35%, transparent);
     }
-    36% {
-      box-shadow: 0 0 6px color-mix(in srgb, var(--mobile-legend-ring-color) 72%, transparent);
+    42% {
+      box-shadow: 0 0 7px color-mix(in srgb, var(--mobile-legend-ring-color) 78%, transparent);
     }
-    55%, 100% {
+    75%, 100% {
       box-shadow: 0 0 2.5px color-mix(in srgb, var(--mobile-legend-ring-color) 35%, transparent);
     }
   }

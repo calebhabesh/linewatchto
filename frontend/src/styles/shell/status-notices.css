@@ -90,11 +90,22 @@
 
 .app-update-banner {
   align-items: center;
-  background: var(--notice-banner-bg, rgb(15, 23, 42));
-  border: 1px solid var(--notice-banner-border, rgba(255, 255, 255, 0.16));
-  border-radius: 8px;
+  background-color: var(--notice-banner-bg, rgba(14, 16, 22, 0.92));
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.015) 50%,
+    rgba(0, 0, 0, 0.16) 100%
+  );
+  backdrop-filter: blur(28px) saturate(190%) contrast(105%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(105%);
+  border: none;
+  border-radius: 12px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  box-shadow: var(--notice-banner-shadow, 0 18px 50px rgba(0, 0, 0, 0.34));
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
   color: white;
   display: flex;
   gap: 12px;
@@ -105,6 +116,12 @@
   transform: translateX(-50%);
   width: max-content;
   z-index: 90;
+}
+
+.high-contrast .app-update-banner,
+.linewatch-shell.high-contrast .app-update-banner {
+  border: 1px solid var(--notice-banner-border, #ffffff);
+  box-shadow: none;
 }
 
 .app-update-banner-copy {
@@ -187,8 +204,8 @@
   right: 0;
   height: 3px;
   background: rgba(255, 255, 255, 0.08);
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
   overflow: hidden;
 }
 

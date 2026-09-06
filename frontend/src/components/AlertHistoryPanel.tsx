@@ -12,8 +12,8 @@ type Props = {
 
 export function AlertHistoryPanel({ onBack, onClose, network }: Props) {
   return (
-    <section className="alert-history-panel panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" aria-label="Alert history panel">
-      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
+    <section className="alert-history-panel panel min-w-0 border border-transparent rounded-2xl" aria-label="Alert history panel">
+      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
         <div className="flex items-center gap-1 min-w-0">
           {onBack ? (
             <button

@@ -515,11 +515,16 @@ npm --prefix frontend run test:e2e
 npm --prefix frontend run test:e2e:full # only when a complete failure inventory is needed
 npm --prefix frontend run test:visual
 npm --prefix frontend run test:browser-compat
+npm --prefix frontend run test:map-fit
 ```
 
 The smoke command is intentionally small. The full desktop/mobile Chromium
 interaction catalog lives under `test:e2e`; visual snapshots and the focused
-Chrome/Firefox/WebKit geometry contract are separate gates. `test:fixtures`
+Chrome/Firefox/WebKit geometry contract are separate gates. `test:map-fit`
+checks both rotated maps in mobile Chromium and WebKit across compact viewport
+sizes, browser-toolbar resizing, pinch deferral, safe-area insets, page zoom,
+and physical orientation changes. CI runs this focused gate; `test:e2e` also
+includes it. `test:fixtures`
 remains an alias for the fast suite. See [`docs/testing.md`](docs/testing.md)
 for test ownership and build-reuse guidance.
 

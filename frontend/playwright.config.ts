@@ -48,6 +48,11 @@ export default defineConfig({
       use: { ...devices["Pixel 5"] },
     },
     {
+      name: "mobile-webkit",
+      testMatch: /mobile-map-fit\.spec\.ts/,
+      use: { ...devices["iPhone 13"] },
+    },
+    {
       name: "desktop-firefox",
       testMatch: /browser-compat\.spec\.ts/,
       use: { ...devices["Desktop Firefox"] },

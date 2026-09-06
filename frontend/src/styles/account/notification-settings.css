@@ -187,10 +187,11 @@
 .notification-settings-card,
 .notification-settings-row,
 .notification-settings-prompt,
-.notification-follow-up-option {
+.notification-follow-up-option,
+.notification-event-type-grid {
   background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 8px;
+  border: none;
+  border-radius: 12px;
 }
 
 .notification-settings-card {
@@ -368,17 +369,36 @@
 .dark .notification-settings-card,
 .dark .notification-settings-row,
 .dark .notification-settings-prompt,
-.dark .notification-follow-up-option {
+.dark .notification-follow-up-option,
+.dark .notification-event-type-grid {
   background: rgba(18, 21, 28, 0.94);
-  border-color: rgba(255, 255, 255, 0.1);
+  border: none;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.notification-follow-up-option[data-selected="true"] {
+  box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.4);
 }
 
 .dark .notification-follow-up-option[data-selected="true"] {
-  border-color: rgba(16, 185, 129, 0.38);
+  box-shadow:
+    0 0 0 1.5px rgba(16, 185, 129, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.high-contrast .notification-settings-card,
+.high-contrast .notification-settings-row,
+.high-contrast .notification-settings-prompt,
+.high-contrast .notification-follow-up-option,
+.high-contrast .notification-event-type-grid {
+  border: 1px solid #ffffff;
 }
 
 .high-contrast .notification-follow-up-option[data-selected="true"] {
   border-color: currentColor;
+  outline: 2px solid currentColor;
 }
 
 .dark .notification-follow-up-title strong,
@@ -528,8 +548,8 @@
 
 .push-diagnostics-panel {
   background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 8px;
+  border: none;
+  border-radius: 12px;
   gap: 10px;
   padding: 10px;
 }
@@ -539,18 +559,19 @@
 .dark .push-device-row,
 .dark .push-diagnostics-item,
 .dark .push-diagnostics-attempt {
-  border-color: rgba(255, 255, 255, 0.1);
+  border: none;
 }
 
 .dark .push-diagnostics-panel {
   background: #151821;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .high-contrast .push-diagnostics-panel,
 .high-contrast .push-device-row,
 .high-contrast .push-diagnostics-item {
   background: #000000;
-  border-color: #ffffff;
+  border: 1px solid #ffffff;
 }
 
 .push-diagnostics-header {

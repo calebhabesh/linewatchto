@@ -762,6 +762,17 @@ export function LineWatchShell({
       root.style.setProperty("--visual-viewport-scale", String(scale));
       root.style.setProperty("--visual-keyboard-inset", `${Math.round(keyboardInset)}px`);
       root.dataset.visualKeyboard = keyboardOpen ? "open" : "closed";
+      // Rotated mode shares this gesture-gated viewport reconciliation. Keep
+      // its camera and controls fitted after browser chrome or window changes,
+      // without consuming transient pinch dimensions during a map gesture.
+      setRotatedMapViewportFrame((current) => {
+        if (!current) return current;
+        const width = Math.max(1, Math.round(layoutWidth));
+        const height = Math.max(1, Math.round(layoutHeight));
+        return current.width === width && current.height === height
+          ? current
+          : { width, height };
+      });
       viewportUpdatePending = false;
       if (viewportUpdateTimer !== null) {
         window.clearTimeout(viewportUpdateTimer);
@@ -2997,9 +3008,10 @@ export function LineWatchShell({
 
   const handleOpenRotatedMap = useCallback(() => {
     const visualViewport = window.visualViewport;
+    const pageZoomed = Math.abs((visualViewport?.scale ?? 1) - 1) > 0.01;
     setRotatedMapViewportFrame({
-      width: Math.max(1, Math.round(visualViewport?.width ?? window.innerWidth)),
-      height: Math.max(1, Math.round(visualViewport?.height ?? window.innerHeight)),
+      width: Math.max(1, Math.round(pageZoomed ? window.innerWidth : visualViewport?.width ?? window.innerWidth)),
+      height: Math.max(1, Math.round(pageZoomed ? window.innerHeight : visualViewport?.height ?? window.innerHeight)),
     });
     setMapPresentationMode("rotated-landscape");
     setActiveView("map");
@@ -3759,10 +3771,20 @@ export function LineWatchShell({
                         </div>
                         {accountCommutes.length > 0 && (
                           <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                            <span
+                              className={`desktop-menu-count-badge desktop-menu-count-commutes-clear flex h-6 ${
+                                commuteClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                              } items-center justify-center rounded-full text-[11px] font-bold`}
+                              aria-label={`${commuteClearCount} clear commutes`}
+                            >
                               {commuteClearCount}
                             </span>
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                            <span
+                              className={`desktop-menu-count-badge desktop-menu-count-commutes-affected flex h-6 ${
+                                commuteAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                              } items-center justify-center rounded-full text-[11px] font-bold`}
+                              aria-label={`${commuteAffectedCount} affected commutes`}
+                            >
                               {commuteAffectedCount}
                             </span>
                           </div>
@@ -3780,7 +3802,12 @@ export function LineWatchShell({
                           My Stations
                         </span>
                         {savedStations.length > 0 ? (
-                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
+                          <span
+                            className={`desktop-menu-count-badge desktop-menu-count-stations flex h-6 ${
+                              savedStations.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                            } items-center justify-center rounded-full text-[11px] font-bold`}
+                            aria-label={`${savedStations.length} saved stations`}
+                          >
                             {savedStations.length}
                           </span>
                         ) : null}
@@ -3832,10 +3859,20 @@ export function LineWatchShell({
                         </div>
                         {accountCommutes.length > 0 && (
                           <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                            <span
+                              className={`desktop-menu-count-badge desktop-menu-count-commutes-clear flex h-6 ${
+                                commuteClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                              } items-center justify-center rounded-full text-[11px] font-bold`}
+                              aria-label={`${commuteClearCount} clear commutes`}
+                            >
                               {commuteClearCount}
                             </span>
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                            <span
+                              className={`desktop-menu-count-badge desktop-menu-count-commutes-affected flex h-6 ${
+                                commuteAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                              } items-center justify-center rounded-full text-[11px] font-bold`}
+                              aria-label={`${commuteAffectedCount} affected commutes`}
+                            >
                               {commuteAffectedCount}
                             </span>
                           </div>
@@ -3853,7 +3890,12 @@ export function LineWatchShell({
                           My Stations
                         </span>
                         {savedStations.length > 0 ? (
-                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
+                          <span
+                            className={`desktop-menu-count-badge desktop-menu-count-stations flex h-6 ${
+                              savedStations.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                            } items-center justify-center rounded-full text-[11px] font-bold`}
+                            aria-label={`${savedStations.length} saved stations`}
+                          >
                             {savedStations.length}
                           </span>
                         ) : null}
@@ -3884,141 +3926,169 @@ export function LineWatchShell({
                   >
                     <MapIcon size={18} className="text-slate-500 dark:text-slate-400" /> Map
                   </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => openImpactCategory("alerts")}
-                   aria-current={activeView === "alerts" ? "page" : undefined}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Active Alerts
-                   </div>
-                   {activeAlerts.length > 0 && (
-                     <span className="desktop-menu-count-badge desktop-menu-count-alerts flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
-                       {activeAlerts.length}
-                     </span>
-                   )}
-                 </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => openImpactCategory("delays")}
-                   aria-current={activeView === "delays" ? "page" : undefined}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
-                   </div>
-                   {delays.length > 0 && (
-                     <span className="desktop-menu-count-badge desktop-menu-count-delays flex h-6 min-w-[24px] items-center justify-center rounded-full delay-count-badge px-2 text-[11px] font-bold">
-                       {delays.length}
-                     </span>
-                   )}
-                 </button>
-                 {selectedNetwork === "ttc" ? <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => openImpactCategory("reduced-speed-zones")}
-                   aria-current={activeView === "reduced-speed-zones" ? "page" : undefined}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
-                   </div>
-                   {reducedSpeedZones.length > 0 && (
-                     <span className="desktop-menu-count-badge desktop-menu-count-rsz flex h-6 min-w-[24px] items-center justify-center rounded-full rsz-count-badge px-2 text-[11px] font-bold">
-                       {reducedSpeedZoneCount}
-                     </span>
-                   )}
-                 </button> : null}
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => openImpactCategory("closures")}
-                   aria-current={activeView === "closures" ? "page" : undefined}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <PlannedClosureIcon size={18} className="text-slate-500 dark:text-slate-400" /> Planned Closures
-                   </div>
-                   {plannedClosures.length > 0 && (
-                     <span className="desktop-menu-count-badge desktop-menu-count-closures flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
-                       {plannedClosures.length}
-                     </span>
-                   )}
-                 </button>
-                 {selectedNetwork === "regional" ? <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={openRegionalTripChanges}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <Train size={18} className="text-slate-500 dark:text-slate-400" /> Trip Changes
-                   </div>
-                   {regionalTripChangeCount !== null && regionalTripChangeCount > 0 ? (
-                     <span className="desktop-menu-count-badge desktop-menu-count-trip-changes trip-change-count-badge flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold">
-                       {regionalTripChangeCount}
-                     </span>
-                   ) : null}
-                 </button> : null}
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => navigateForward("accessibility-outages")}
-                   aria-current={activeView === "accessibility-outages" ? "page" : undefined}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <svg
-                       aria-hidden="true"
-                       viewBox="0 0 24 24"
-                       className="w-[18px] h-[18px] shrink-0 text-slate-500 dark:text-slate-400"
-                     >
-                       <path
-                         fill="currentColor"
-                         d="M11.468 6.403a1.5 1.5 0 1 1 1.064 0a2.25 2.25 0 0 1-1.064 0M9 5q.001.202.026.399L6.15 4.178a2.266 2.266 0 0 0-2.96 1.184a2.24 2.24 0 0 0 1.18 2.954l3.634 1.542v3.701l-1.88 5.458a2.25 2.25 0 1 0 4.256 1.465l.145-.422a6.5 6.5 0 0 1-.496-3.169L8.96 19.993a.75.75 0 0 1-1.418-.488l1.893-5.497a1.3 1.3 0 0 0 .068-.407V9.693c0-.502-.3-.955-.762-1.151L4.956 6.935a.74.74 0 0 1-.39-.977a.766 2.266 0 0 1 .998-.4l4.971 2.11q.24.102.487.169a3 3 0 0 0 1.956 0q.248-.066.488-.168l4.97-2.11a.766 2.266 0 0 1 1 .399a.74.74 0 0 1-.391.977l-3.78 1.605a1.25 1.25 0 0 0-.762 1.15v1.623a6.5 6.5 0 0 1 1.5-.294V9.856l3.628-1.54a2.24 2.24 0 0 0 1.18-2.954a2.266 2.266 0 0 0-2.96-1.184l-2.877 1.22Q15 5.204 15 5a3 3 0 1 0-6 0"
-                       />
-                       <path
-                         fill="currentColor"
-                         d="M22 17.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0M16.5 14a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0v-4a.5.5 0 0 0-.5-.5m0 7.125a.625.625 0 1 0 0-1.25a.625.625 0 0 0 0 1.25"
-                       />
-                     </svg>
-                     Accessibility Outages
-                   </div>
-                   {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
-                     <span className="desktop-menu-count-badge desktop-menu-count-accessibility flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold">
-                       {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
-                     </span>
-                   )}
-                 </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={openServiceNotices}
-                   aria-current={activeView === "surface-notices" ? "page" : undefined}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <Bus size={18} className="text-slate-500 dark:text-slate-400" /> {selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus Notices"}
-                   </div>
-                   {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
-                     <span className="desktop-menu-count-badge desktop-menu-count-surface flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[11px] font-bold">
-                       {surfaceNoticeCount}
-                     </span>
-                   )}
-                 </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => navigateForward("alert-history")}
-                   aria-current={activeView === "alert-history" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
-                 </button>
-                 {selectedNetwork === "ttc" ? <button
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => openImpactCategory("alerts")}
+                    aria-current={activeView === "alerts" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Active Alerts
+                    </div>
+                    {activeAlerts.length > 0 && (
+                      <span
+                        className={`desktop-menu-count-badge desktop-menu-count-alerts flex h-6 ${
+                          activeAlerts.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                        } items-center justify-center rounded-full text-[11px] font-bold`}
+                      >
+                        {activeAlerts.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => openImpactCategory("delays")}
+                    aria-current={activeView === "delays" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
+                    </div>
+                    {delays.length > 0 && (
+                      <span
+                        className={`desktop-menu-count-badge desktop-menu-count-delays flex h-6 ${
+                          delays.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                        } items-center justify-center rounded-full text-[11px] font-bold`}
+                      >
+                        {delays.length}
+                      </span>
+                    )}
+                  </button>
+                  {selectedNetwork === "ttc" ? <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => openImpactCategory("reduced-speed-zones")}
+                    aria-current={activeView === "reduced-speed-zones" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
+                    </div>
+                    {reducedSpeedZones.length > 0 && (
+                      <span
+                        className={`desktop-menu-count-badge desktop-menu-count-rsz flex h-6 ${
+                          reducedSpeedZoneCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                        } items-center justify-center rounded-full text-[11px] font-bold`}
+                      >
+                        {reducedSpeedZoneCount}
+                      </span>
+                    )}
+                  </button> : null}
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => openImpactCategory("closures")}
+                    aria-current={activeView === "closures" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <PlannedClosureIcon size={18} className="text-slate-500 dark:text-slate-400" /> Planned Closures
+                    </div>
+                    {plannedClosures.length > 0 && (
+                      <span
+                        className={`desktop-menu-count-badge desktop-menu-count-closures flex h-6 ${
+                          plannedClosures.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                        } items-center justify-center rounded-full text-[11px] font-bold`}
+                      >
+                        {plannedClosures.length}
+                      </span>
+                    )}
+                  </button>
+                  {selectedNetwork === "regional" ? <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={openRegionalTripChanges}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Train size={18} className="text-slate-500 dark:text-slate-400" /> Trip Changes
+                    </div>
+                    {regionalTripChangeCount !== null && regionalTripChangeCount > 0 ? (
+                      <span
+                        className={`desktop-menu-count-badge desktop-menu-count-trip-changes trip-change-count-badge flex h-6 ${
+                          regionalTripChangeCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                        } items-center justify-center rounded-full text-[11px] font-bold`}
+                      >
+                        {regionalTripChangeCount}
+                      </span>
+                    ) : null}
+                  </button> : null}
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => navigateForward("accessibility-outages")}
+                    aria-current={activeView === "accessibility-outages" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="w-[18px] h-[18px] shrink-0 text-slate-500 dark:text-slate-400"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M11.468 6.403a1.5 1.5 0 1 1 1.064 0a2.25 2.25 0 0 1-1.064 0M9 5q.001.202.026.399L6.15 4.178a2.266 2.266 0 0 0-2.96 1.184a2.24 2.24 0 0 0 1.18 2.954l3.634 1.542v3.701l-1.88 5.458a2.25 2.25 0 1 0 4.256 1.465l.145-.422a6.5 6.5 0 0 1-.496-3.169L8.96 19.993a.75.75 0 0 1-1.418-.488l1.893-5.497a1.3 1.3 0 0 0 .068-.407V9.693c0-.502-.3-.955-.762-1.151L4.956 6.935a.74.74 0 0 1-.39-.977a.766 2.266 0 0 1 .998-.4l4.971 2.11q.24.102.487.169a3 3 0 0 0 1.956 0q.248-.066.488-.168l4.97-2.11a.766 2.266 0 0 1 1 .399a.74.74 0 0 1-.391.977l-3.78 1.605a1.25 1.25 0 0 0-.762 1.15v1.623a6.5 6.5 0 0 1 1.5-.294V9.856l3.628-1.54a2.24 2.24 0 0 0 1.18-2.954a2.266 2.266 0 0 0-2.96-1.184l-2.877 1.22Q15 5.204 15 5a3 3 0 1 0-6 0"
+                        />
+                        <path
+                          fill="currentColor"
+                          d="M22 17.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0M16.5 14a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0v-4a.5.5 0 0 0-.5-.5m0 7.125a.625.625 0 1 0 0-1.25a.625.625 0 0 0 0 1.25"
+                        />
+                      </svg>
+                      Accessibility Outages
+                    </div>
+                    {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
+                      <span
+                        className={`desktop-menu-count-badge desktop-menu-count-accessibility flex h-6 ${
+                          accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                        } items-center justify-center rounded-full text-[11px] font-bold`}
+                      >
+                        {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={openServiceNotices}
+                    aria-current={activeView === "surface-notices" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Bus size={18} className="text-slate-500 dark:text-slate-400" /> {selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus Notices"}
+                    </div>
+                    {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
+                      <span
+                        className={`desktop-menu-count-badge desktop-menu-count-surface flex h-6 ${
+                          surfaceNoticeCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                        } items-center justify-center rounded-full text-[11px] font-bold`}
+                      >
+                        {surfaceNoticeCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => navigateForward("alert-history")}
+                    aria-current={activeView === "alert-history" ? "page" : undefined}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
+                  </button>
+                  {selectedNetwork === "ttc" ? <button
                     ref={registerMenuAction(actionIndex++)}
                     role="menuitem"
                     onClick={() => navigateForward("announcements")}
@@ -4029,7 +4099,11 @@ export function LineWatchShell({
                       <Megaphone size={18} className="text-slate-500 dark:text-slate-400" /> TTC Announcements
                     </div>
                     {announcementCount !== null && announcementCount > 0 && (
-                      <span className="desktop-menu-count-badge desktop-menu-count-announcements flex h-6 min-w-[24px] items-center justify-center rounded-full bg-sky-500/20 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                      <span
+                        className={`desktop-menu-count-badge desktop-menu-count-announcements flex h-6 ${
+                          announcementCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                        } items-center justify-center rounded-full text-[11px] font-bold`}
+                      >
                         {announcementCount}
                       </span>
                     )}

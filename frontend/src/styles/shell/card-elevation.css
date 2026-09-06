@@ -47,6 +47,7 @@
 .notification-settings-row,
 .notification-settings-prompt,
 .notification-follow-up-option,
+.notification-event-type-grid,
 .saved-commute-notification-summary,
 .saved-commute-rule-summary {
   background: var(--surface-card-opaque);

@@ -89,11 +89,14 @@
 
 /* ============================================================
    Rotated mobile map shell layout
-   Rotates the <main> viewport 90deg for landscape immersion
+   Fits the map camera and rotated controls to the mobile viewport
    ============================================================ */
 @media (max-width: 767px) {
   .linewatch-shell.mobile-map-rotated {
     background: #05070b;
+    /* A previous wider frame must not expand the mobile layout viewport while
+       visualViewport is delivering the next resize measurement. */
+    max-width: 100%;
   }
 
   .linewatch-shell.mobile-map-rotated > header,
@@ -127,6 +130,11 @@
      transform. Only this lightweight controls surface is rotated separately,
      avoiding Android Chromium's unstable nested map compositor tiles. */
   .linewatch-shell.mobile-map-rotated .rotated-map-ui-surface {
+    /* Logical edges rotate clockwise with the controls; device insets do not. */
+    --rotated-map-safe-top: var(--mobile-safe-right);
+    --rotated-map-safe-right: var(--mobile-safe-bottom);
+    --rotated-map-safe-bottom: var(--mobile-safe-left);
+    --rotated-map-safe-left: var(--mobile-safe-top);
     height: var(--rotated-map-viewport-width, 100vw);
     left: 50%;
     pointer-events: none;
@@ -158,11 +166,11 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    left: max(10px, var(--mobile-safe-left));
+    left: max(10px, var(--rotated-map-safe-left));
     pointer-events: none;
     position: absolute;
-    right: max(10px, var(--mobile-safe-right));
-    top: max(10px, var(--mobile-safe-top));
+    right: max(10px, var(--rotated-map-safe-right));
+    top: max(10px, var(--rotated-map-safe-top));
     z-index: 80;
   }
 
@@ -170,17 +178,17 @@
     align-items: center;
     display: flex;
     justify-content: center;
-    left: max(10px, var(--mobile-safe-left));
+    left: max(10px, var(--rotated-map-safe-left));
     pointer-events: none;
     position: absolute;
-    right: max(10px, var(--mobile-safe-right));
-    top: calc(max(10px, var(--mobile-safe-top)) + 58px);
+    right: max(10px, var(--rotated-map-safe-right));
+    top: calc(max(10px, var(--rotated-map-safe-top)) + 58px);
     z-index: 79;
   }
 
   .linewatch-shell.mobile-map-rotated .rotated-map-selection-hud.rotated-map-selection-hud-station-selection,
   .linewatch-shell.mobile-map-rotated .rotated-map-selection-hud.rotated-map-selection-hud-impact-selection {
-    bottom: max(10px, var(--mobile-safe-bottom));
+    bottom: max(10px, var(--rotated-map-safe-bottom));
     top: auto;
   }
 

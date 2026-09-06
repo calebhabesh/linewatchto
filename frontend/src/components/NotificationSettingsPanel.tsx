@@ -117,8 +117,8 @@ export function NotificationSettingsPanel({
   const regionalSubscriptionsVisible = subscriptionNetwork === "regional";
 
   return (
-    <section className="notification-settings-panel panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" aria-label="Notification settings">
-      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
+    <section className="notification-settings-panel panel min-w-0 border border-transparent rounded-2xl flex flex-col h-full" aria-label="Notification settings">
+      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
         <div className="flex items-center gap-1 min-w-0">
           {onBack ? (
             <button
@@ -221,7 +221,7 @@ export function NotificationSettingsPanel({
                   "Off"
                 }</span>
               </div>
-              <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2 relative">
+              <div className="notification-settings-card p-3 rounded-xl flex flex-col gap-2 relative">
                 <div className="flex items-start gap-2.5">
                   <div className="notification-settings-row-main flex-1">
                     <span className="notification-settings-icon shrink-0">
@@ -266,7 +266,7 @@ export function NotificationSettingsPanel({
                 <h3>My Commute Alerts</h3>
                 <span>Active</span>
               </div>
-              <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2">
+              <div className="notification-settings-card p-3 rounded-xl flex flex-col gap-2">
                 <div className="flex items-start gap-2.5">
                   <div className="notification-settings-row-main flex-1">
                     <span className="notification-settings-icon shrink-0">
@@ -305,7 +305,7 @@ export function NotificationSettingsPanel({
                   </div>
                 </div>
               </div>
-              <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2 mt-2">
+              <div className="notification-settings-card p-3 rounded-xl flex flex-col gap-2 mt-2">
                 <div className="flex items-start gap-2.5">
                   <div className="notification-settings-row-main flex-1">
                     <span className="notification-settings-icon shrink-0">
@@ -427,8 +427,8 @@ export function NotificationSettingsPanel({
               <p className="notification-settings-note">
                 These filters apply to My Commutes and every subscribed TTC line or GO/UP corridor. Reduced Speed Zones are TTC-only.
               </p>
-              <div className="notification-event-type-grid border border-black/10 dark:border-white/10 rounded-lg overflow-hidden bg-slate-50 dark:bg-black/25">
-                <div className="notification-event-type-header grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 items-end border-b border-black/10 dark:border-white/10 font-bold text-xs text-slate-700 dark:text-slate-300">
+              <div className="notification-event-type-grid rounded-xl overflow-hidden">
+                <div className="notification-event-type-header grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 items-end border-b border-black/5 dark:border-white/5 font-bold text-xs text-slate-700 dark:text-slate-300">
                   <span>Event Type</span>
                   <span className="text-center">My Commutes</span>
                   <span className="text-center">{regionalSubscriptionsVisible ? "Corridor Subs" : "Line Subs"}</span>
