@@ -1014,12 +1014,6 @@
   white-space: pre-line;
 }
 
-.alert-history-observation-note,
-.alert-history-source-id {
-  margin: 0.5rem 0;
-  overflow-wrap: anywhere;
-}
-
 .alert-history-details li {
   flex-wrap: wrap;
 }

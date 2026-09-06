@@ -598,8 +598,6 @@ const HistoryIncident = memo(function HistoryIncident({
             </span>
             <ChevronDown className="alert-history-details-chevron" size={13} aria-hidden="true" />
           </summary>
-          <p className="alert-history-observation-note">Times show when LineWatchTO observed changes. Cleared means the alert was no longer active in the feed.</p>
-          {incident.sourceId ? <p className="alert-history-source-id">Source alert: {incident.sourceId}</p> : null}
           <ol data-multiple={events.length > 1 ? "true" : undefined}>
             {events.map((event, index) => {
               const tone = historyLifecycleTone(event.state);
