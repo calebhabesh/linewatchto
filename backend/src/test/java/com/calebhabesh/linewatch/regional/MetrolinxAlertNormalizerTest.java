@@ -510,6 +510,34 @@ class MetrolinxAlertNormalizerTest {
         assertThat(afterClosure.normalize(feed)).isEmpty();
     }
 
+    @Test
+    void timetableAnnouncementsDoNotInventSegmentsOrCurrentDelays() throws Exception {
+        for (String route : List.of("BR", "ST", "LW", "LE")) {
+            String description = route.equals("BR")
+                ? "Weekday service will be adjusted. The train from Allandale Waterfront GO to Union Station will not run. The train from Union Station to Aurora GO will not run."
+                : "Weekday and weekend train service will be adjusted. Trains from Mount Joy to Union Station will not run. New trains from Union Station to Old Elm GO.";
+            MetrolinxFetchedRecord rest = serviceAlert("""
+                {"Code":"M0000524295","SubjectEnglish":"Service changes start Sept. 8",
+                 "BodyEnglish":%s,"SubCategory":"Train Delay","Lines":[{"Code":"%s"}],"Stops":[]}
+                """.formatted(objectMapper.writeValueAsString(description), route));
+            MetrolinxFetchedRecord gtfs = new MetrolinxFetchedRecord(
+                MetrolinxSourceSystem.GO_GTFS_ALERTS, "524295", """
+                {"id":"524295","alert":{"effect":"SIGNIFICANT_DELAYS",
+                 "header_text":{"translation":[{"language":"en","text":"Service changes start Sept. 8"}]},
+                 "description_text":{"translation":[{"language":"en","text":%s}]},
+                 "informed_entity":[{"route_id":"09261126-%s"}]}}
+                """.formatted(objectMapper.writeValueAsString(description), route));
+            for (MetrolinxFeed input : List.of(feed(rest), feed(gtfs), feed(rest, gtfs))) {
+                assertThat(normalizer.classify(input)).singleElement().satisfies(event -> {
+                    assertThat(event.serviceEffect()).isEqualTo("service-adjustment");
+                    assertThat(event.scope()).isEqualTo("corridor");
+                    assertThat(event.spanStationIds()).isEmpty();
+                });
+                assertThat(normalizer.normalize(input)).isEmpty();
+            }
+        }
+    }
+
     private MetrolinxFeed feed(MetrolinxFetchedRecord... records) {
         return new MetrolinxFeed(
             OffsetDateTime.parse("2026-07-28T18:12:32Z"),

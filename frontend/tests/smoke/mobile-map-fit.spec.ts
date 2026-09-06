@@ -91,6 +91,27 @@ for (const network of ["ttc", "regional"] as const) {
       contentType: "image/png",
     });
 
+  });
+
+  test(`rotated ${network} map preserves the app frame during browser page zoom`, async ({ page, request, isMobile }) => {
+    test.skip(!isMobile, "phone viewport regression");
+    await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+    await page.setViewportSize({ width: 393, height: 556 });
+    await page.addInitScript(() => {
+      localStorage.setItem("linewatch-welcome-seen-v1", "true");
+      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+      localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+    });
+    await page.goto(openMapPreviewUrl);
+    if (network === "regional") {
+      await page.getByRole("group", { name: "Select transit network" })
+        .getByRole("button", { name: "GO/UP", exact: true }).click();
+    }
+    await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", network);
+    await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
+    const shell = page.locator(".linewatch-shell");
+    await page.getByRole("button", { name: "Rotate map" }).click();
+
     // Browser page zoom must not shrink the app frame a second time, including
     // when the rider enters rotated mode with the page already zoomed.
     await page.evaluate(() => {
@@ -110,6 +131,27 @@ for (const network of ["ttc", "regional"] as const) {
       window.visualViewport!.dispatchEvent(new Event("resize"));
     });
 
+  });
+
+  test(`rotated ${network} map returns to portrait after physical rotation`, async ({ page, request, isMobile }) => {
+    test.skip(!isMobile, "phone viewport regression");
+    await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+    await page.setViewportSize({ width: 393, height: 556 });
+    await page.addInitScript(() => {
+      localStorage.setItem("linewatch-welcome-seen-v1", "true");
+      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+      localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+    });
+    await page.goto(openMapPreviewUrl);
+    if (network === "regional") {
+      await page.getByRole("group", { name: "Select transit network" })
+        .getByRole("button", { name: "GO/UP", exact: true }).click();
+    }
+    await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", network);
+    await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
+    const shell = page.locator(".linewatch-shell");
+    await page.getByRole("button", { name: "Rotate map" }).click();
+
     // Physical rotation must remove the software quarter-turn, even though
     // both orientations still match the mobile layout query.
     await page.setViewportSize({ width: 852, height: 393 });
@@ -122,4 +164,5 @@ for (const network of ["ttc", "regional"] as const) {
     await page.getByRole("button", { name: "Exit rotated map", exact: true }).click();
     await expect(shell).not.toHaveClass(/mobile-map-rotated/);
   });
+
 }

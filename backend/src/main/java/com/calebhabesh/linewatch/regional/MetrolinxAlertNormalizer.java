@@ -227,7 +227,10 @@ public class MetrolinxAlertNormalizer {
             "train cancellation".equals(value.subcategory().trim().toLowerCase(Locale.CANADA))
         );
 
-        String serviceEffect = serviceEffect(searchable, effects, structuredTripCancellation);
+        boolean scheduleAnnouncement = !structuredTripCancellation
+            && RegionalScheduleAnnouncement.matches(title, description);
+        String serviceEffect = scheduleAnnouncement ? "service-adjustment"
+            : serviceEffect(searchable, effects, structuredTripCancellation);
         String operatingChange = "trip-cancellation".equals(serviceEffect)
             ? "cancelled-trip"
             : searchable.contains("reduced speed") ? "reduced-speed" : null;
@@ -237,10 +240,11 @@ public class MetrolinxAlertNormalizer {
         String cause = classifiedCause(searchable, ordered);
         String replacementService = replacementService(searchable);
         Integer maximumDelayMinutes = maximumDelay(searchable);
-        List<String> spanStations = "trip-cancellation".equals(serviceEffect)
+        List<String> spanStations = scheduleAnnouncement || "trip-cancellation".equals(serviceEffect)
             ? List.of()
             : spanStations(searchable, lineIds);
-        String scope = scope(searchable, serviceEffect, lineIds, structuredStations, spanStations);
+        String scope = scheduleAnnouncement ? "corridor"
+            : scope(searchable, serviceEffect, lineIds, structuredStations, spanStations);
         Map<String, String> stationRoles = stationRoles(
             searchable, lineIds, serviceEffect, scope, replacementService, structuredStations
         );

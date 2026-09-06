@@ -25,6 +25,7 @@ public class RegionalSurfaceServiceNoticeReadRepository {
               and last_seen_at >= :seenAfter
             order by last_seen_at desc, source_system, source_id
             """, new MapSqlParameterSource("sourceSystems", List.of(
+                MetrolinxSourceSystem.GO_SERVICE_ALERTS,
                 MetrolinxSourceSystem.GO_INFORMATION_ALERTS,
                 MetrolinxSourceSystem.GO_MARKETING_ALERTS,
                 MetrolinxSourceSystem.GO_GTFS_ALERTS

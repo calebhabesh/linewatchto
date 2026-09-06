@@ -62,7 +62,7 @@ class RegionalSurfaceServiceNoticeServiceTest {
         SurfaceServiceNoticesResponse response = service.getSurfaceNotices(null, null, null);
 
         assertThat(response.fresh()).isTrue();
-        assertThat(response.source()).isEqualTo("Metrolinx GO information, marketing + GTFS-RT bus alerts");
+        assertThat(response.source()).isEqualTo("Metrolinx GO service notices");
         assertThat(response.notices()).hasSize(4);
         assertThat(response.notices()).anySatisfy(notice -> {
             assertThat(notice.id()).isEqualTo("regional-notice-M0000508515");
@@ -119,6 +119,84 @@ class RegionalSurfaceServiceNoticeServiceTest {
 
     private RegionalSurfaceServiceNoticeService service() {
         return new RegionalSurfaceServiceNoticeService(repository, freshness, new com.fasterxml.jackson.databind.ObjectMapper(), CLOCK, properties);
+    }
+
+    @Test
+    void exposesRailTimetableAnnouncementsWithoutInventingStationCoverage() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        when(repository.findActiveRecords(any())).thenReturn(List.of(
+            record(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000524298", """
+                {"Code":"M0000524298","SubjectEnglish":"Service changes start Sept. 8",
+                 "BodyEnglish":"Weekday service will be adjusted. Trains from Allandale Waterfront GO to Union Station and Union Station to Aurora GO will not run.",
+                 "SubCategory":"Train Delay","Lines":[{"Code":"BR"}],"Stops":[]}
+                """),
+            record(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000524291", """
+                {"Code":"M0000524291","SubjectEnglish":"Service changes start Sept. 8",
+                 "BodyEnglish":"Weekday service will be adjusted. Trains from Mount Joy to Union Station will not run. New trains to Old Elm GO.",
+                 "SubCategory":"Train Delay","Lines":[{"Code":"ST"}],"Stops":[]}
+                """),
+            record(MetrolinxSourceSystem.GO_GTFS_ALERTS, "524298", """
+                {"id":"524298","alert":{"effect":"SIGNIFICANT_DELAYS",
+                 "header_text":{"translation":[{"language":"en","text":"Service changes start Sept. 8"}]},
+                 "description_text":{"translation":[{"language":"en","text":"Weekday service will be adjusted."}]},
+                 "informed_entity":[{"route_id":"09261126-BR"}]}}
+                """),
+            record(MetrolinxSourceSystem.GO_SERVICE_ALERTS, "delay", """
+                {"SubjectEnglish":"Track issue","BodyEnglish":"Trains delayed between Aurora and Union.",
+                 "SubCategory":"Train Delay","Lines":[{"Code":"BR"}]}
+                """)
+        ));
+        var service = new RegionalSurfaceServiceNoticeService(repository, freshness,
+            new com.fasterxml.jackson.databind.ObjectMapper(), CLOCK, properties);
+        var response = service.getSurfaceNotices(null, null, null);
+        assertThat(response.notices()).hasSize(2).allSatisfy(notice -> {
+            assertThat(notice.category()).isEqualTo("service-change");
+            assertThat(notice.location()).isEmpty();
+            assertThat(notice.stopIds()).isEmpty();
+            assertThat(notice.routeIds()).hasSize(1);
+        });
+    }
+
+    @Test
+    void gtfsOnlyTimetableNoticeRemainsVisibleAndSearchableByCorridor() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        when(repository.findActiveRecords(any())).thenReturn(List.of(
+            record(MetrolinxSourceSystem.GO_GTFS_ALERTS, "524291", """
+                {"id":"524291","alert":{"effect":"SIGNIFICANT_DELAYS",
+                 "header_text":{"translation":[{"language":"en","text":"Service changes start Sept. 8"}]},
+                 "description_text":{"translation":[{"language":"en","text":"Weekday service will be adjusted from Mount Joy to Union Station and Old Elm."}]},
+                 "informed_entity":[{"route_id":"09261126-ST"}]}}
+                """)
+        ));
+        var service = new RegionalSurfaceServiceNoticeService(repository, freshness,
+            new com.fasterxml.jackson.databind.ObjectMapper(), CLOCK, properties);
+        assertThat(service.getSurfaceNotices("service-change", "ST", null).notices())
+            .singleElement().satisfies(notice -> {
+                assertThat(notice.routeIds()).containsExactly("ST");
+                assertThat(notice.routeType()).isEqualTo("GO / UP");
+                assertThat(notice.location()).isEmpty();
+            });
+    }
+
+    @Test
+    void busTimetableAnnouncementsRemainBusNotices() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        when(repository.findActiveRecords(any())).thenReturn(List.of(
+            record(MetrolinxSourceSystem.GO_GTFS_ALERTS, "bus-schedule", """
+                {"alert":{"header_text":{"translation":[{"language":"en","text":"Service changes start Sept. 5"}]},
+                 "description_text":{"translation":[{"language":"en","text":"Weekday bus schedules change."}]},
+                 "informed_entity":[{"route_id":"202609-31"}]}}
+                """)
+        ));
+        var service = new RegionalSurfaceServiceNoticeService(repository, freshness,
+            new com.fasterxml.jackson.databind.ObjectMapper(), CLOCK, properties);
+        assertThat(service.getSurfaceNotices(null, null, null).notices()).singleElement().satisfies(notice -> {
+            assertThat(notice.routeType()).isEqualTo("GO Bus");
+            assertThat(notice.routeIds()).containsExactly("31");
+        });
     }
 
     private RegionalSurfaceServiceNoticeReadRepository.SourceRecord record(String source, String id, String payload) {

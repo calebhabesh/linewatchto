@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RegionalSurfaceServiceNoticeService {
-    private static final String SOURCE = "Metrolinx GO information, marketing + GTFS-RT bus alerts";
+    private static final String SOURCE = "Metrolinx GO service notices";
     private static final List<String> CATEGORIES = List.of("service-change", "bypass", "detour", "no-service", "notice");
     private static final DateTimeFormatter SOURCE_TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss", Locale.CANADA);
     private static final ZoneId TORONTO = ZoneId.of("America/Toronto");
@@ -55,9 +55,14 @@ public class RegionalSurfaceServiceNoticeService {
             return new SurfaceServiceNoticesResponse(now, false, SOURCE, List.of(), List.of());
         }
 
-        List<NoticeDetail> all = repository.findActiveRecords(now.minus(properties.getMaxDashboardAge())).stream()
+        Map<String, NoticeDetail> unique = new LinkedHashMap<>();
+        repository.findActiveRecords(now.minus(properties.getMaxDashboardAge())).stream()
+            .sorted(java.util.Comparator.comparingInt(record ->
+                MetrolinxSourceSystem.GO_GTFS_ALERTS.equals(record.sourceSystem()) ? 1 : 0))
             .map(this::normalize)
             .filter(java.util.Objects::nonNull)
+            .forEach(notice -> unique.putIfAbsent(notice.id(), notice));
+        List<NoticeDetail> all = unique.values().stream()
             .sorted((left, right) -> compareTimes(right.updatedAt(), left.updatedAt()))
             .toList();
         Map<String, Integer> counts = new LinkedHashMap<>();
@@ -81,11 +86,13 @@ public class RegionalSurfaceServiceNoticeService {
         try {
             JsonNode message = objectMapper.readTree(record.rawPayload());
             if (MetrolinxSourceSystem.GO_GTFS_ALERTS.equals(record.sourceSystem())) {
-                return normalizeGtfsBusNotice(record, message);
+                return normalizeGtfsNotice(record, message);
             }
             String title = text(message, "SubjectEnglish");
             String description = text(message, "BodyEnglish");
             if (title.isBlank() && description.isBlank()) return null;
+            if (MetrolinxSourceSystem.GO_SERVICE_ALERTS.equals(record.sourceSystem())
+                && !RegionalScheduleAnnouncement.matches(title, description)) return null;
             List<String> routes = values(message.path("Lines"), "Code").stream()
                 .map(this::canonicalRouteCode)
                 .distinct()
@@ -98,10 +105,11 @@ public class RegionalSurfaceServiceNoticeService {
                 .filter(stop -> !stop.stopId().isBlank() || !stop.stopName().isBlank())
                 .toList();
             String sourceId = firstNonBlank(text(message, "Code"), record.sourceId());
+            boolean schedule = RegionalScheduleAnnouncement.matches(title, description);
             String searchable = String.join(" ", title, description, text(message, "SubCategory")).toLowerCase(Locale.CANADA);
             OffsetDateTime updatedAt = parseTime(text(message, "PostedDateTime"), record.lastSeenAt());
             return new NoticeDetail(
-                "regional-notice-" + safeId(sourceId), classify(searchable), "GO / UP", routes,
+                "regional-notice-" + safeId(schedule ? noticeId(sourceId) : sourceId), schedule ? "service-change" : classify(searchable), "GO / UP", routes,
                 EnglishClockTextFormatter.toTwelveHourClock(firstNonBlank(title, "Metrolinx notice")),
                 EnglishClockTextFormatter.toTwelveHourClock(description),
                 stops.stream().map(StopDetail::stopName).filter(value -> !value.isBlank()).distinct().reduce((a, b) -> a + " to " + b).orElse(""),
@@ -114,11 +122,16 @@ public class RegionalSurfaceServiceNoticeService {
         }
     }
 
-    private NoticeDetail normalizeGtfsBusNotice(SourceRecord record, JsonNode entity) {
+    private NoticeDetail normalizeGtfsNotice(SourceRecord record, JsonNode entity) {
         JsonNode alert = entity.path("alert");
         if (entity.path("is_deleted").asBoolean(false) || !alert.isObject()) return null;
+        String title = translation(alert.path("header_text"), "GO service notice");
+        String description = translation(alert.path("description_text"), title);
+        boolean schedule = RegionalScheduleAnnouncement.matches(title, description)
+            && elements(alert.path("informed_entity")).stream()
+                .anyMatch(node -> railRouteCode(text(node, "route_id")) != null);
         List<String> routes = elements(alert.path("informed_entity")).stream()
-            .map(node -> busRouteId(text(node, "route_id")))
+            .map(node -> schedule ? railRouteCode(text(node, "route_id")) : busRouteId(text(node, "route_id")))
             .filter(java.util.Objects::nonNull)
             .distinct()
             .toList();
@@ -131,13 +144,11 @@ public class RegionalSurfaceServiceNoticeService {
             .filter(java.util.Objects::nonNull).max(OffsetDateTime::compareTo).orElse(null);
         if (endsAt != null && !endsAt.isAfter(OffsetDateTime.now(clock))) return null;
 
-        String title = translation(alert.path("header_text"), "GO Bus service notice");
-        String description = translation(alert.path("description_text"), title);
         String effect = text(alert, "effect");
         String cause = firstNonBlank(humanize(text(alert, "cause")), humanize(effect));
         String searchable = String.join(" ", title, description, effect, cause).toLowerCase(Locale.CANADA);
         return new NoticeDetail(
-            "regional-notice-" + safeId(record.sourceId()), classify(searchable), "GO Bus", routes,
+            "regional-notice-" + safeId(schedule ? noticeId(record.sourceId()) : record.sourceId()), schedule ? "service-change" : classify(searchable), schedule ? "GO / UP" : "GO Bus", routes,
             EnglishClockTextFormatter.toTwelveHourClock(title),
             EnglishClockTextFormatter.toTwelveHourClock(description),
             "", List.of(), List.of(), null, cause,
@@ -215,6 +226,18 @@ public class RegionalSurfaceServiceNoticeService {
 
     private String firstNonBlank(String first, String fallback) {
         return first == null || first.isBlank() ? fallback : first;
+    }
+
+    private String noticeId(String sourceId) {
+        var matcher = java.util.regex.Pattern.compile("(?i)^M0*(\\d+)$").matcher(sourceId);
+        return matcher.matches() ? matcher.group(1) : sourceId;
+    }
+
+    private String railRouteCode(String sourceRouteId) {
+        String[] parts = sourceRouteId.toUpperCase(Locale.CANADA).split("[-_:]");
+        String code = parts[parts.length - 1];
+        return RegionalNetworkCatalog.lineIdForSourceCode(code)
+            .flatMap(RegionalNetworkCatalog::route).map(RegionalNetworkCatalog.Route::number).orElse(null);
     }
 
     private String canonicalRouteCode(String sourceCode) {
