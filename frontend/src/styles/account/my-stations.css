@@ -436,6 +436,9 @@
 
 .my-stations-line-badges {
   display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  min-width: 0;
   gap: 4px;
 }
 
@@ -610,7 +613,7 @@
 }
 
 .saved-station-rich-heading .my-stations-row-copy {
-  gap: 2px;
+  gap: 6px;
 }
 
 .saved-station-rich-heading .my-stations-row-heading {
@@ -629,7 +632,7 @@
 
 .saved-station-rich-heading .my-stations-line-badges {
   align-items: center;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 
 .saved-station-rich-heading .my-stations-row-heading strong {
@@ -1126,6 +1129,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.saved-station-arrival-direction .saved-station-arrival-destination {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.saved-station-arrival-direction .saved-station-arrival-terminating {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
 }
 
 .dark .saved-station-arrival-direction {

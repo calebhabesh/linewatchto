@@ -163,7 +163,7 @@ describe("My Stations UI", () => {
     assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading \.my-stations-row-heading strong\s*\{[^}]*font-size:\s*18px;/s);
     assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading\s*\{[^}]*flex-basis:\s*auto;[^}]*height:\s*auto;/s);
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*align-items:\s*center;[^}]*flex-wrap:\s*wrap;[^}]*justify-content:\s*flex-start;/s);
-    assert.match(styles, /\.saved-station-rich-heading \.my-stations-line-badges\s*\{[^}]*align-items:\s*center;[^}]*flex:\s*0 0 auto;/s);
+    assert.match(styles, /\.saved-station-rich-heading \.my-stations-line-badges\s*\{[^}]*align-items:\s*center;[^}]*flex:\s*0 1 auto;/s);
     assert.doesNotMatch(styles, /\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*grid-template-columns:/s);
     assert.match(transitLineBadge, /\/assets\/linewatch\/\$\{assetId\}-legend\.svg\?v=3/);
     assert.match(styles, /\.saved-station-disruption-total\s*\{[^}]*height:\s*24px;[^}]*min-width:\s*24px;/s);

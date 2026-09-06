@@ -145,6 +145,7 @@
 .station-impact-card[data-station-impact-tone="reduced-speed-zone"],
 .compact-impact-list-item.rsz-card-border,
 .commute-card.warning,
+.saved-station-rich-row.is-affected,
 .alert-history-item.alert-history-tone-reduced-speed-zone,
 .alert-history-item.alert-history-event-active {
   border-left: 1.5px solid rgba(245, 158, 11, 0.85);
@@ -156,6 +157,7 @@
 .dark .station-impact-card[data-station-impact-tone="reduced-speed-zone"],
 .dark .compact-impact-list-item.rsz-card-border,
 .dark .commute-card.warning,
+.dark .saved-station-rich-row.is-affected,
 .dark .alert-history-item.alert-history-tone-reduced-speed-zone,
 .dark .alert-history-item.alert-history-event-active {
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 14px, transparent 30px), #12151c;
@@ -223,12 +225,14 @@
 }
 
 .commute-card.ok,
+.saved-station-rich-row.is-clear,
 .alert-history-item.alert-history-event-cleared {
   border-left: 1.5px solid rgba(16, 185, 129, 0.85);
   box-shadow: inset 2px 0 6px -1px rgba(16, 185, 129, 0.20);
   background: linear-gradient(90deg, rgba(16, 185, 129, 0.07) 0%, rgba(16, 185, 129, 0.02) 12px, transparent 24px), #f8fafc;
 }
 .dark .commute-card.ok,
+.dark .saved-station-rich-row.is-clear,
 .dark .alert-history-item.alert-history-event-cleared {
   background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 14px, transparent 30px), #12151c;
 }

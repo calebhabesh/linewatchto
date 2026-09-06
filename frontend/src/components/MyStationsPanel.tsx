@@ -630,9 +630,9 @@ function SavedStationRow({
                                   </strong>
                                   {group.destinationLabel ? (
                                     <span className="saved-station-arrival-destination flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                      {group.destinationLabel}
+                                      <span className="min-w-0 truncate">{group.destinationLabel}</span>
                                       {group.isTerminating && (
-                                        <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                        <span className="saved-station-arrival-terminating animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                                           <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
                                           Terminating
                                         </span>
@@ -979,9 +979,9 @@ function SavedStationRow({
                                       </strong>
                                       {direction.destination ? (
                                         <span className="saved-station-arrival-destination flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                          {direction.destination}
+                                          <span className="min-w-0 truncate">{direction.destination}</span>
                                           {group.isTerminating && (
-                                            <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                            <span className="saved-station-arrival-terminating animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                                               <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
                                               Terminating
                                             </span>
