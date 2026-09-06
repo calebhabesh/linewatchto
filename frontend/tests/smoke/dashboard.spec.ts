@@ -5048,3 +5048,46 @@ test("shows train-marker connection progress until markers return on desktop and
   await expect(pendingIndicator).toHaveCount(0);
   await expect(toggle).toHaveAttribute("aria-label", /1 shown/);
 });
+
+
+test.describe("regional history source details", () => {
+  // Keep the dedicated response fixture independent of service-worker fetches.
+  test.use({ serviceWorkers: "block" });
+
+  test("regional history exposes source narrative and changed snapshots on desktop and mobile", async ({ page, request, isMobile }, testInfo) => {
+    await setStubMode(request, "seeded");
+    const openedAt = new Date(Date.now() - 120000).toISOString();
+    const updatedAt = new Date(Date.now() - 60000).toISOString();
+    const event = { id: 1, state: "opened", label: "Alert opened", happenedAt: openedAt,
+      title: "Barrie - Equipment Issue", description: "There is an equipment issue south of Rutherford GO. Repair personnel are working on the problem.",
+      location: "Union to Allandale Waterfront", displayDirection: null, cause: "Unknown Cause", source: "Metrolinx Open API" };
+    const updated = { ...event, id: 2, state: "updated", label: "Alert updated", happenedAt: updatedAt,
+      description: "There is an equipment issue south of Rutherford GO. Modifications and cancellations are possible." };
+    await page.route(url => url.pathname === "/api/alert-history", route => route.fulfill({ json: {
+      generatedAt: new Date().toISOString(), period: "today", since: new Date(Date.now() - 86400000).toISOString(), until: new Date(Date.now() + 60000).toISOString(),
+      incidents: [{ ...updated, incidentId: "regional-history-test", alertId: "regional-history-test", sourceId: "TEST-BARRIE",
+        lineId: "regional-br", lineNumber: "BR", lineName: "Barrie", eventType: "delay", status: "active", latestState: "updated",
+        latestEventAt: updatedAt, firstSeenAt: openedAt, lastUpdatedAt: updatedAt, clearedAt: null, durationMinutes: null, events: [updated, event] }],
+    } }));
+    await page.goto("/");
+    const networkSelector = isMobile ? page.locator(".mobile-network-selector-slot") : page;
+    await networkSelector.getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true }).click();
+    await waitForNetworkTransition(page, "regional");
+    await page.getByRole("button", { name: isMobile ? "More" : "Toggle menu", exact: isMobile }).click();
+    await page.getByRole(isMobile ? "button" : "menuitem", { name: "Alert History", exact: true }).click();
+    const card = page.locator(".alert-history-item");
+    await expect(card).toHaveCount(1);
+    await expect(card.locator(".alert-history-content > .alert-history-description")).toHaveText(updated.description);
+    await expect(card.getByText("Source category", { exact: true })).toBeVisible();
+    await expect(card.getByText("Unknown Cause", { exact: true })).toHaveCount(0);
+    await expect(card.getByText("Affected area", { exact: true }).first()).toBeVisible();
+    const snapshots = card.locator(".alert-history-snapshot");
+    await snapshots.first().locator("summary").click();
+    await expect(snapshots.first().locator("summary")).toHaveText("Source details · Changed: Description");
+    await snapshots.nth(1).locator("summary").click();
+    await expect(snapshots.nth(1).getByText(event.description, { exact: true })).toBeVisible();
+    expect(await card.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await card.screenshot({ path: testInfo.outputPath("regional-history.png") });
+  });
+});

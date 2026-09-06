@@ -61,6 +61,8 @@ import {
   type AlertHistoryViewItem,
 } from "./alert-history-filters";
 
+import { historyCategory, historyCause, historyChangedFields, historyDescription, historyEventsNewestFirst } from "./alert-history-details";
+
 const HISTORY_PAGE_SIZE = 50;
 const COLLAPSED_LIFECYCLE_THRESHOLD = 4;
 
@@ -512,11 +514,16 @@ const HistoryIncident = memo(function HistoryIncident({
   );
   const time = latestEvent.happenedAt ?? incident.latestEventAt ?? incident.clearedAt ?? incident.firstSeenAt ?? "";
   const title = compactHistoryTitle(incident);
+  const description = historyDescription(latestEvent);
+  const cause = historyCause(incident.cause);
+  const category = historyCategory(incident);
+  const events = historyEventsNewestFirst(incident.events);
   const latestState = historyLifecycleTone(incident.latestState || latestEvent.state);
   const statusLabel = formatHistoryStateLabel(latestState);
   const facts = [
     incident.displayDirection ? { label: "Direction", value: incident.displayDirection } : null,
-    incident.cause ? { label: "Cause", value: formatCause(incident.cause) } : null,
+    cause ? { label: "Cause", value: formatCause(cause) } : null,
+    !cause && category ? { label: "Source category", value: category } : null,
     incident.source ? { label: "Source", value: normalizeDashboardSourceLabel(incident.source) } : null,
   ].filter((fact): fact is { label: string; value: string } => Boolean(fact?.value));
 
@@ -552,10 +559,11 @@ const HistoryIncident = memo(function HistoryIncident({
           </div>
         </div>
         <strong className="alert-history-title">{title}</strong>
+        {description ? <p className="alert-history-description">{description}</p> : null}
         <div className="alert-history-fact-grid" aria-label="Alert summary">
           {incident.location ? (
             <span className="alert-history-fact alert-history-fact-location">
-              <span>Location</span>
+              <span>Affected area</span>
               <strong><CompactImpactLocation location={incident.location} /></strong>
             </span>
           ) : null}
@@ -590,14 +598,33 @@ const HistoryIncident = memo(function HistoryIncident({
             </span>
             <ChevronDown className="alert-history-details-chevron" size={13} aria-hidden="true" />
           </summary>
+          <p className="alert-history-observation-note">Times show when LineWatchTO observed changes. Cleared means the alert was no longer active in the feed.</p>
+          {incident.sourceId ? <p className="alert-history-source-id">Source alert: {incident.sourceId}</p> : null}
           <ol>
-            {incident.events.map((event) => (
+            {events.map((event, index) => (
               <li
                 key={event.id}
                 className={`alert-history-lifecycle-event alert-history-lifecycle-${historyLifecycleTone(event.state)}`}
               >
                 <span>{formatHistoryStatusLabel(event.label)}</span>
                 <HistoryTimestamp timestamp={event.happenedAt} />
+                <details className="alert-history-snapshot">
+                  <summary>
+                    Source details
+                    {historyChangedFields(event, events[index + 1]).length > 0
+                      ? ` · Changed: ${historyChangedFields(event, events[index + 1]).join(", ")}`
+                      : ""}
+                  </summary>
+                  <strong>{event.title}</strong>
+                  {historyDescription(event) ? <p className="alert-history-description">{historyDescription(event)}</p> : null}
+                  {!event.description?.trim() ? <p>No description supplied in this snapshot.</p> : null}
+                  <dl>
+                    <dt>Affected area</dt><dd>{event.location || "Not supplied"}</dd>
+                    <dt>Direction</dt><dd>{event.displayDirection || "Not supplied"}</dd>
+                    <dt>Cause</dt><dd>{historyCause(event.cause) ? formatCause(event.cause!) : "Not supplied"}</dd>
+                    <dt>Source</dt><dd>{normalizeDashboardSourceLabel(event.source)}</dd>
+                  </dl>
+                </details>
               </li>
             ))}
           </ol>

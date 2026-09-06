@@ -916,3 +916,50 @@
   align-items: center;
   gap: 0.35rem;
 }
+
+/* Preserve source narratives, including long tokens, at narrow mobile widths. */
+.alert-history-description {
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.alert-history-observation-note,
+.alert-history-source-id {
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+
+.alert-history-details li {
+  flex-wrap: wrap;
+}
+
+.alert-history-snapshot {
+  flex: 0 0 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.alert-history-snapshot > summary {
+  display: list-item;
+  list-style: disclosure-closed inside;
+  margin-bottom: 0.35rem;
+}
+
+.alert-history-snapshot[open] > summary {
+  list-style-type: disclosure-open;
+}
+
+.alert-history-snapshot dl {
+  display: grid;
+  gap: 0.2rem 0.5rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0.4rem 0;
+}
+
+.alert-history-snapshot dd {
+  margin: 0;
+}

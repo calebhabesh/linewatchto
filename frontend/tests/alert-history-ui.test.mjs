@@ -239,7 +239,7 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /visibleItems\.slice\(0, visibleCount\)/);
     assert.match(timelineSource, /Show \{Math\.min\(HISTORY_PAGE_SIZE/);
     assert.match(timelineSource, /const HistoryIncident = memo/);
-    assert.match(timelineSource, /incident\.events\.map\(\(event\) =>/);
+    assert.match(timelineSource, /events\.map\(\(event, index\) =>/);
     assert.match(cssSource, /\.alert-history-item\s*\{[^}]*content-visibility:\s*auto;/s);
   });
 });

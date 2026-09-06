@@ -996,6 +996,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 - Estimated train markers are schematic placements inferred from arrival predictions. They should not be treated as exact train locations or live train movement.
 - TTC alerts can be vague.
 - GTFS-RT service alerts can be less structured than TTC Live Alerts and may lack usable subway/LRT affected-segment detail. LineWatchTO uses only the bus and streetcar GTFS-RT service-alert feeds for surface notices by default.
+- Alert History shows source descriptions for TTC and GO/UP incidents, with expandable per-event snapshots and changed-field labels. Affected area describes the mapped impact range; more specific reported locations remain in the source narrative. Metrolinx title categories are labeled separately from structured causes. History times are observation times, and disappearance from the feed does not independently verify physical service restoration. Cards do not infer links to train cancellations from corridor/time overlap.
 - Alert history is based on LineWatch snapshots and is richer after the alert-history release; older rows may lack full line, cause, direction, or location context.
 - Some alerts name broad corridors rather than exact station-to-station segments.
 - Planned closure pages or feeds may change format.
