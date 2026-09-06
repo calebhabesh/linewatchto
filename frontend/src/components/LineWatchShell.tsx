@@ -20,7 +20,10 @@ import { LineImpactsPanel } from "./LineImpactsPanel";
 import {
   SavedCommutesPanel,
   persistedExpandedImpactDisclosures,
+  persistedCommuteDraftStore,
+  clearPersistedCommuteDraft,
   type AccountNetworkFilter,
+  type SavedCommuteDraft,
 } from "./SavedCommutesPanel";
 import { MyStationsPanel } from "./MyStationsPanel";
 import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
@@ -527,6 +530,7 @@ export function LineWatchShell({
   const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
   const savedStationNoticeTimerRef = useRef<number | null>(null);
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
+  const [commutesDraft, setCommutesDraft] = useState<SavedCommuteDraft | null>(() => persistedCommuteDraftStore.current);
   const [commutesFocusedCommuteId, setCommutesFocusedCommuteId] = useState<string | null>(null);
   const [commutesSortBy, setCommutesSortBy] = useState<SavedCommuteSort>("impact");
   const [commutesNetworkFilter, setCommutesNetworkFilter] = useState<AccountNetworkFilter>("all");
@@ -1092,6 +1096,9 @@ export function LineWatchShell({
     setSelectedStationId(null);
     commutePathPreviewRef.current = null;
     setCommutePathPreview(null);
+    setCommutesActiveTab("saved");
+    setCommutesDraft(null);
+    clearPersistedCommuteDraft();
     if (closingTimeoutRef.current) {
       window.clearTimeout(closingTimeoutRef.current);
     }
@@ -1398,9 +1405,11 @@ export function LineWatchShell({
   }, []);
 
   useEffect(() => {
-    if (activeView !== "commutes") {
+    if (activeView !== "commutes" && activeView !== "notifications") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCommutesActiveTab("saved");
+      setCommutesDraft(null);
+      clearPersistedCommuteDraft();
     }
   }, [activeView]);
 
@@ -3257,6 +3266,8 @@ export function LineWatchShell({
             notificationSummary={notificationSummary}
             activeView={commutesActiveTab}
             onActiveViewChange={setCommutesActiveTab}
+            draft={commutesDraft}
+            onDraftChange={setCommutesDraft}
             sortBy={commutesSortBy}
             onSortByChange={setCommutesSortBy}
             networkFilter={commutesNetworkFilter}
@@ -4367,11 +4378,15 @@ export function LineWatchShell({
             onOpenDestination={(view) => {
               if (view === "commutes") {
                 setCommutesActiveTab("saved");
+                setCommutesDraft(null);
+                clearPersistedCommuteDraft();
               }
               navigateForward(view);
             }}
             onOpenSavedCommute={() => {
               setCommutesActiveTab("saved");
+              setCommutesDraft(null);
+              clearPersistedCommuteDraft();
               navigateForward("commutes");
             }}
             onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}

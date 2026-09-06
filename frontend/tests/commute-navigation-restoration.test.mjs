@@ -72,4 +72,18 @@ describe("My Commutes navigation and state restoration", () => {
     assert.match(panelSource, /focusedCommuteId\?: string \| null;/);
     assert.match(panelSource, /const rawTarget = focusedCommuteId \|\| lastInteractedCommuteIdRef\.current \|\| viewedCommuteId;/);
   });
+
+  it("preserves active commute draft and create tab across notification settings drill-down and back navigation", () => {
+    assert.match(shellSource, /const \[commutesDraft, setCommutesDraft\] = useState<SavedCommuteDraft \| null>\(\(\) => persistedCommuteDraftStore\.current\);/);
+    assert.match(shellSource, /if \(activeView !== "commutes" && activeView !== "notifications"\) \{[\s\S]*?setCommutesActiveTab\("saved"\);[\s\S]*?setCommutesDraft\(null\);/);
+    assert.match(shellSource, /draft=\{commutesDraft\}/);
+    assert.match(shellSource, /onDraftChange=\{setCommutesDraft\}/);
+    assert.match(panelSource, /draft\?: SavedCommuteDraft \| null;/);
+    assert.match(panelSource, /onDraftChange\?: \(draft: SavedCommuteDraft \| null\) => void;/);
+    assert.match(panelSource, /const initialDraft = propDraft \?\? persistedCommuteDraftStore\.current;/);
+    assert.match(panelSource, /setPersistedCommuteDraft\(nextDraft\);/);
+    assert.match(panelSource, /setPersistedCommuteDraft\(null\);/);
+    assert.match(panelSource, /\+ Add Commute/);
+    assert.doesNotMatch(panelSource, /\+ Add Route/);
+  });
 });

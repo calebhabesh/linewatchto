@@ -274,7 +274,13 @@
 .commute-station-trigger,
 .commute-station-option,
 .commute-station-line-trigger,
-.commute-station-mobile-back {
+.commute-station-mobile-back,
+.my-stations-picker-row,
+.my-stations-picker-section-heading,
+.my-stations-search,
+.saved-commute-schedule,
+.saved-commute-notification-checks label,
+.saved-commute-rule-summary {
   border-color: transparent;
   box-shadow: var(--mobile-card-shadow);
 }
@@ -301,8 +307,18 @@
 .linewatch-shell.high-contrast .rotated-map-selection-card,
 .high-contrast .my-stations-row,
 .linewatch-shell.high-contrast .my-stations-row,
+.high-contrast .my-stations-picker-row,
+.linewatch-shell.high-contrast .my-stations-picker-row,
 .high-contrast .saved-station-rich-row,
-.linewatch-shell.high-contrast .saved-station-rich-row {
+.linewatch-shell.high-contrast .saved-station-rich-row,
+.high-contrast .saved-commute-customize-toggle,
+.linewatch-shell.high-contrast .saved-commute-customize-toggle,
+.high-contrast .saved-commute-schedule,
+.linewatch-shell.high-contrast .saved-commute-schedule,
+.high-contrast .saved-commute-notification-checks label,
+.linewatch-shell.high-contrast .saved-commute-notification-checks label,
+.high-contrast .saved-commute-rule-summary,
+.linewatch-shell.high-contrast .saved-commute-rule-summary {
   border: 1px solid #ffffff !important;
   box-shadow: none !important;
 }
@@ -330,7 +346,13 @@
 .commute-station-trigger,
 .commute-station-option,
 .commute-station-line-trigger,
-.commute-station-mobile-back {
+.commute-station-mobile-back,
+.my-stations-picker-row,
+.my-stations-picker-section-heading,
+.my-stations-search,
+.saved-commute-schedule,
+.saved-commute-notification-checks label,
+.saved-commute-rule-summary {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
     var(--mobile-card-shadow);
@@ -354,7 +376,13 @@
 .dark .commute-station-trigger,
 .dark .commute-station-option,
 .dark .commute-station-line-trigger,
-.dark .commute-station-mobile-back {
+.dark .commute-station-mobile-back,
+.dark .my-stations-picker-row,
+.dark .my-stations-picker-section-heading,
+.dark .my-stations-search,
+.dark .saved-commute-schedule,
+.dark .saved-commute-notification-checks label,
+.dark .saved-commute-rule-summary {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     var(--mobile-card-shadow);
@@ -394,6 +422,13 @@
 .high-contrast .commute-station-option,
 .high-contrast .commute-station-line-trigger,
 .high-contrast .commute-station-mobile-back,
+.high-contrast .my-stations-picker-row,
+.high-contrast .my-stations-picker-section-heading,
+.high-contrast .my-stations-search,
+.high-contrast .saved-commute-customize-toggle,
+.high-contrast .saved-commute-schedule,
+.high-contrast .saved-commute-notification-checks label,
+.high-contrast .saved-commute-rule-summary,
 .linewatch-shell.high-contrast .mobile-status-actions button,
 .linewatch-shell.high-contrast .mobile-line-status-row,
 .linewatch-shell.high-contrast .mobile-more-account,
@@ -427,7 +462,14 @@
 .linewatch-shell.high-contrast .commute-station-trigger,
 .linewatch-shell.high-contrast .commute-station-option,
 .linewatch-shell.high-contrast .commute-station-line-trigger,
-.linewatch-shell.high-contrast .commute-station-mobile-back {
+.linewatch-shell.high-contrast .commute-station-mobile-back,
+.linewatch-shell.high-contrast .my-stations-picker-row,
+.linewatch-shell.high-contrast .my-stations-picker-section-heading,
+.linewatch-shell.high-contrast .my-stations-search,
+.linewatch-shell.high-contrast .saved-commute-customize-toggle,
+.linewatch-shell.high-contrast .saved-commute-schedule,
+.linewatch-shell.high-contrast .saved-commute-notification-checks label,
+.linewatch-shell.high-contrast .saved-commute-rule-summary {
   box-shadow: none !important;
 }
 

@@ -123,15 +123,30 @@
 }
 
 .my-stations-search {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   height: 34px;
   min-height: 34px;
+}
+
+.dark .my-stations-search {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
 }
 
 .my-stations-add,
 .my-stations-done {
   align-items: center;
   background: rgb(2, 132, 199);
+  border: 1px solid transparent;
   border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 1px 2px rgba(0, 0, 0, 0.12);
   color: white;
   display: inline-flex;
   font-size: 12px;
@@ -141,7 +156,13 @@
   height: 34px;
   min-height: 34px;
   padding: 0 11px;
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
   white-space: nowrap;
+}
+
+.my-stations-add:active,
+.my-stations-done:active {
+  transform: scale(0.96);
 }
 
 .my-stations-mode-action {
@@ -189,13 +210,18 @@
 
 @keyframes my-stations-search-nudge {
   0%, 42%, 84%, 100% {
-    border-color: rgba(15, 23, 42, 0.12);
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+    border-color: transparent;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      var(--mobile-card-shadow);
   }
 
   21%, 63% {
     border-color: rgba(56, 189, 248, 0.9);
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.24), 0 0 14px rgba(56, 189, 248, 0.26);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 0 0 3px rgba(56, 189, 248, 0.24),
+      0 0 14px rgba(56, 189, 248, 0.26);
   }
 }
 
@@ -254,9 +280,14 @@
 
 .my-stations-picker-section-heading {
   align-items: center;
-  background: rgb(226, 232, 240);
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  background: rgb(241 245 249 / 0.92);
+  border: 1px solid transparent;
   border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.08);
   color: rgb(51, 65, 85);
   display: flex;
   font-size: 14px;
@@ -275,8 +306,11 @@
 }
 
 .dark .my-stations-picker-section-heading {
-  background: rgb(15, 18, 24);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(18, 21, 28, 0.92);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.3);
   color: rgb(226, 232, 240);
 }
 
@@ -305,7 +339,7 @@
 .my-stations-picker-row {
   align-items: stretch;
   background-color: rgb(255, 255, 255);
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  border: 1px solid transparent;
   border-radius: 8px;
   display: flex;
   flex: 0 0 auto;
@@ -316,14 +350,32 @@
 .dark .my-stations-row,
 .dark .my-stations-picker-row {
   background-color: rgb(21, 24, 33) !important;
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
 }
 
 .my-stations-picker-row {
   align-items: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   gap: 10px;
   min-height: 0;
   padding: 8px 10px 8px 12px;
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+}
+
+.dark .my-stations-picker-row {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
+}
+
+.my-stations-picker-row:hover {
+  background-color: rgb(248, 250, 252);
+}
+
+.dark .my-stations-picker-row:hover {
+  background-color: rgb(26, 30, 42);
 }
 
 .my-stations-row-main {
@@ -1319,6 +1371,7 @@
 
 .high-contrast .my-stations-row,
 .high-contrast .my-stations-picker-row,
+.high-contrast .my-stations-picker-section-heading,
 .high-contrast .my-stations-picker-action,
 .high-contrast .my-stations-bookmark {
   border-color: currentColor;
@@ -1459,7 +1512,9 @@
   background: rgb(241 245 249 / 0.85);
   border: 1px solid transparent;
   border-radius: 9px;
-  box-shadow: var(--mobile-card-shadow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   display: grid;
   gap: 3px;
   grid-auto-columns: 1fr;
@@ -1471,6 +1526,9 @@
 
 .dark .account-network-filter {
   background: rgb(15 23 42 / 0.75);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
 }
 
 .account-network-glider {

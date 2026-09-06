@@ -16,6 +16,7 @@ import { useDashboardData } from "../app/DataContext";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import type { MapViewportOrientation } from "../hooks/panZoomMath";
+import { useRotatedListDragScroll } from "../hooks/useRotatedListDragScroll";
 
 export type MapOverlapChooserLayout = {
   left: number;
@@ -104,6 +105,8 @@ export function MapOverlapChooser({
   const surfaceRef = useRef<HTMLDivElement>(null);
   const firstChoiceRef = useRef<HTMLButtonElement>(null);
   const closingRef = useRef(false);
+  const isRotated = viewportOrientation === "rotated-landscape";
+  const { scrollContainerProps } = useRotatedListDragScroll(isRotated);
   const orderedImpacts = [...impacts].sort(
     (a, b) => impactPriority(b.kind) - impactPriority(a.kind)
       || a.cardId.localeCompare(b.cardId),
@@ -241,7 +244,7 @@ export function MapOverlapChooser({
             <X size={20} aria-hidden="true" />
           </button>
         </div>
-        <div className="overlap-chooser-list">
+        <div className="overlap-chooser-list" {...scrollContainerProps}>
           {orderedImpacts.map((impact, index) => {
             const details = getSelectedImpactDetails({ kind: impact.kind, id: impact.cardId }, data);
             return (

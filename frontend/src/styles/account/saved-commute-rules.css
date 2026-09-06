@@ -241,12 +241,18 @@
 }
 
 .saved-commute-primary-button {
+  align-items: center;
   border-radius: 8px;
   background: #f1f5f9;
-  border: 1px solid rgba(15, 23, 42, 0.15);
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   color: rgb(15, 23, 42);
+  display: inline-flex;
   font-size: 0.75rem;
   font-weight: 900;
+  justify-content: center;
   min-height: 38px;
   padding: 0.5rem 0.75rem;
   text-transform: uppercase;
@@ -255,7 +261,10 @@
 
 .saved-commute-primary-button:hover:not(:disabled) {
   background: #e2e8f0;
-  border-color: rgba(15, 23, 42, 0.25);
+}
+
+.saved-commute-primary-button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .high-contrast .saved-commute-primary-button {
@@ -269,13 +278,15 @@
 
 .dark .saved-commute-primary-button {
   background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
   color: rgb(241, 245, 249);
 }
 
 .dark .saved-commute-primary-button:hover:not(:disabled) {
   background: #334155;
-  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* ==========================================================================
@@ -595,7 +606,8 @@
 }
 
 .commute-station-name-text {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -750,6 +762,13 @@
   padding: 0.38rem 0.5rem;
 }
 
+.saved-commute-rule-drawer {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  min-width: 0;
+}
+
 .saved-commute-notification-rule,
 .saved-commute-rule-editor {
   display: grid;
@@ -812,14 +831,19 @@
 }
 
 .saved-commute-schedule {
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   min-width: 0;
   overflow: hidden;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
 }
 
 .saved-commute-schedule[data-enabled="false"] {
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .saved-commute-schedule-header {
@@ -882,7 +906,7 @@
 }
 
 .saved-commute-schedule-controls {
-  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
   display: grid;
   gap: 0.65rem;
   padding: 0.65rem;
@@ -975,21 +999,32 @@
   font-weight: 900;
   justify-content: center;
   min-height: 30px;
-  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
 }
 
 .saved-commute-day-button,
 .saved-commute-notification-segmented button {
-  background: rgb(255, 255, 255);
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.04);
   color: rgb(51, 65, 85);
   padding: 0.32rem 0.38rem;
 }
 
+.saved-commute-day-button:active:not(:disabled),
+.saved-commute-notification-segmented button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
 .saved-commute-day-button[aria-pressed="true"],
 .saved-commute-notification-segmented button[aria-pressed="true"] {
-  background: rgb(217, 243, 233);
-  border-color: rgba(16, 185, 129, 0.34);
+  background: rgba(217, 243, 233, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(16, 185, 129, 0.12);
   color: rgb(4, 120, 87);
 }
 
@@ -1052,9 +1087,12 @@
 }
 
 .saved-commute-time-window input {
-  background: rgb(255, 255, 255);
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid transparent;
   border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   color: rgb(15, 23, 42);
   min-height: 34px;
   padding: 0.35rem 0.45rem;
@@ -1070,9 +1108,12 @@
 .saved-commute-notification-checks label {
   align-items: center;
   align-self: start;
-  background: rgb(255, 255, 255);
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid transparent;
   border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   color: rgb(51, 65, 85);
   display: flex;
   font-size: 0.72rem;
@@ -1082,11 +1123,19 @@
   min-height: 36px;
   min-width: 0;
   padding: 0.45rem 0.55rem;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+.saved-commute-notification-checks label:active {
+  transform: scale(0.98);
 }
 
 .saved-commute-notification-checks label:has(input:checked) {
-  background: rgb(236, 253, 245);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(236, 253, 245, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 3px rgba(16, 185, 129, 0.12);
 }
 
 .saved-commute-event-types {
@@ -1218,8 +1267,11 @@
 .saved-commute-rule-summary {
   align-items: center;
   background: rgba(16, 185, 129, 0.08);
-  border: none;
+  border: 1px solid transparent;
   border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   display: flex;
   flex-direction: row;
   gap: 0.6rem;
@@ -1257,13 +1309,19 @@
 .saved-commute-rule-actions button {
   background: rgba(16, 185, 129, 0.14);
   border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.05);
   color: rgb(4, 120, 87);
   flex: 0 0 auto;
   padding: 0.34rem 0.48rem;
+  transition: all 0.15s ease;
 }
 
-.saved-commute-rule-editor {
-  margin-top: 0.625rem;
+.saved-commute-rule-summary button:active:not(:disabled),
+.saved-commute-rule-actions button:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .saved-commute-rule-actions {
@@ -1362,7 +1420,15 @@
 }
 
 .dark .saved-commute-day-button,
-.dark .saved-commute-notification-segmented button,
+.dark .saved-commute-notification-segmented button {
+  background: rgba(30, 35, 48, 0.75);
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  color: rgb(226, 232, 240);
+}
+
 .high-contrast .saved-commute-day-button,
 .high-contrast .saved-commute-notification-segmented button {
   background: rgb(15, 23, 42);
@@ -1371,7 +1437,15 @@
 }
 
 .dark .saved-commute-day-button[aria-pressed="true"],
-.dark .saved-commute-notification-segmented button[aria-pressed="true"],
+.dark .saved-commute-notification-segmented button[aria-pressed="true"] {
+  background: rgba(18, 69, 55, 0.9);
+  border: 1px solid rgba(16, 185, 129, 0.44);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  color: rgb(167, 243, 208);
+}
+
 .high-contrast .saved-commute-day-button[aria-pressed="true"],
 .high-contrast .saved-commute-notification-segmented button[aria-pressed="true"] {
   background: rgb(18, 69, 55);
@@ -1379,7 +1453,15 @@
   color: rgb(167, 243, 208);
 }
 
-.dark .saved-commute-notification-checks label,
+.dark .saved-commute-notification-checks label {
+  background: rgba(21, 24, 33, 0.95);
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
+  color: rgb(226, 232, 240);
+}
+
 .high-contrast .saved-commute-notification-checks label {
   background: rgb(15, 23, 42);
   border-color: rgba(255, 255, 255, 0.14);
@@ -1387,8 +1469,11 @@
 }
 
 .dark .saved-commute-notification-checks label:has(input:checked) {
-  background: rgb(18, 69, 55);
-  border-color: rgba(16, 185, 129, 0.44);
+  background: rgba(18, 69, 55, 0.85);
+  border: 1px solid rgba(16, 185, 129, 0.44);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .high-contrast .saved-commute-notification-checks label:has(input:checked) {
@@ -1396,14 +1481,33 @@
   border-color: currentColor;
 }
 
-.dark .saved-commute-schedule,
+.dark .saved-commute-schedule {
+  background: rgba(21, 24, 33, 0.95);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
+}
+
+.dark .saved-commute-schedule-controls {
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+
 .high-contrast .saved-commute-schedule,
-.dark .saved-commute-schedule-controls,
 .high-contrast .saved-commute-schedule-controls {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-.dark .saved-commute-time-window input,
+.dark .saved-commute-time-window input {
+  background: rgb(15, 23, 42);
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
+  color: rgb(248, 250, 252);
+  color-scheme: dark;
+}
+
 .high-contrast .saved-commute-time-window input {
   background: rgb(15, 23, 42);
   border-color: rgba(255, 255, 255, 0.18);
@@ -1630,10 +1734,13 @@
 
 .saved-commute-customize-toggle {
   align-items: center;
-  background: rgb(255, 255, 255);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(239, 246, 255, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.35);
   border-radius: 8px;
-  color: rgb(51, 65, 85);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 3px rgba(59, 130, 246, 0.12);
+  color: rgb(29, 78, 216);
   display: flex;
   font-size: 0.75rem;
   font-weight: 900;
@@ -1646,26 +1753,47 @@
   width: 100%;
 }
 
+.saved-commute-customize-toggle:hover {
+  background: rgba(219, 234, 254, 0.95);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: rgb(30, 64, 175);
+}
+
+.saved-commute-customize-toggle:active {
+  transform: scale(0.98);
+}
+
 .saved-commute-customize-toggle[aria-expanded="true"] {
-  background: rgb(239, 246, 255);
-  border: 2px solid rgba(59, 130, 246, 0.4);
+  background: rgba(219, 234, 254, 0.98);
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 8px rgba(59, 130, 246, 0.2);
   color: rgb(29, 78, 216);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
 }
 
-.dark .saved-commute-customize-toggle,
-.high-contrast .saved-commute-customize-toggle {
-  background: rgb(15, 23, 42);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  color: rgb(226, 232, 240);
+.dark .saved-commute-customize-toggle {
+  background: rgba(23, 37, 84, 0.85);
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 2px 8px rgba(30, 58, 138, 0.35);
+  color: rgb(147, 197, 253);
 }
 
-.dark .saved-commute-customize-toggle[aria-expanded="true"],
-.high-contrast .saved-commute-customize-toggle[aria-expanded="true"] {
-  background: rgb(19, 43, 78);
-  border: 2px solid rgba(59, 130, 246, 0.5);
-  color: rgb(96, 165, 250);
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+.dark .saved-commute-customize-toggle:hover {
+  background: rgba(30, 58, 138, 0.85);
+  border-color: rgba(96, 165, 250, 0.6);
+  color: rgb(191, 219, 254);
+}
+
+.dark .saved-commute-customize-toggle[aria-expanded="true"] {
+  background: rgba(30, 58, 138, 0.92);
+  border-color: rgba(96, 165, 250, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 10px rgba(30, 58, 138, 0.45);
+  color: rgb(191, 219, 254);
 }
 
 /* ==========================================================================

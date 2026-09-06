@@ -246,6 +246,10 @@
     background: #ef4444;
     border-color: rgba(254, 202, 202, 0.5);
   }
+
+  .linewatch-shell.mobile-map-rotated .overlap-chooser-list {
+    touch-action: none;
+  }
 }
 
 @media (max-width: 767px) {

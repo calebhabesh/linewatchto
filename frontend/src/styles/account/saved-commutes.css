@@ -1681,8 +1681,11 @@
 .saved-commute-cancel-button {
   background-color: #ffffff;
   color: rgb(71, 85, 105);
-  border: 1px solid rgba(15, 23, 42, 0.15);
+  border: 1px solid transparent;
   border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.5rem 0.85rem;
@@ -1695,10 +1698,17 @@
   color: rgb(15, 23, 42);
 }
 
+.saved-commute-cancel-button:active {
+  transform: scale(0.97);
+}
+
 .dark .saved-commute-cancel-button {
-  color: rgb(148, 163, 184);
-  border-color: rgba(255, 255, 255, 0.15);
   background-color: #0f172a;
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
+  color: rgb(148, 163, 184);
 }
 
 .dark .saved-commute-cancel-button:hover {

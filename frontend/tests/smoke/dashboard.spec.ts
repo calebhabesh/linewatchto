@@ -4238,7 +4238,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Suspension", { exact: true })).not.toBeVisible();
 
   if (isMobile) {
-    await page.getByRole("button", { name: "+ Add Route" }).first().click();
+    await page.getByRole("button", { name: "+ Add Commute" }).first().click();
     const originPicker = page.locator(".commute-station-picker").filter({ hasText: "Origin" });
     const originTrigger = originPicker.getByRole("button").first();
     await originTrigger.click();
@@ -4428,7 +4428,7 @@ test("regional commute notifications omit TTC-only event types", async ({ page, 
   }
 
   const commutePanel = page.locator(".commute-panel");
-  await commutePanel.getByRole("button", { name: "+ Add Route" }).click();
+  await commutePanel.getByRole("button", { name: "+ Add Commute" }).click();
   await commutePanel.getByRole("button", { name: "Customize Commute Notifications" }).click();
   await expect(commutePanel.getByText("Reduced Speed Zones", { exact: true })).toBeVisible();
   await commutePanel.getByRole("button", { name: "GO & UP", exact: true }).click();

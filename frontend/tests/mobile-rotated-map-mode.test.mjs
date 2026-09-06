@@ -9,6 +9,7 @@ import {
   logicalViewportSizeForOrientation,
   orientedMapCameraTransform,
 } from "../src/hooks/panZoomMath.ts";
+import { computeRotatedScrollDelta } from "../src/hooks/useRotatedListDragScroll.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
@@ -149,6 +150,16 @@ describe("mobile rotated map mode", () => {
     assert.match(mapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
     assert.match(shellSource, /<NetworkMap[\s\S]*onSelectImpact=\{handleMapSelectImpact\}/);
     assert.doesNotMatch(shellSource, /onSelectOverlap=\{rotatedMapMode/);
+  });
+
+  it("enables touch drag-scrolling for rotated overlap choosers", () => {
+    assert.equal(computeRotatedScrollDelta(20, 5), 20);
+    assert.equal(computeRotatedScrollDelta(-20, 5), -20);
+    assert.equal(computeRotatedScrollDelta(5, -20), 20);
+    assert.equal(computeRotatedScrollDelta(5, 20), -20);
+    assert.match(mapSource, /useRotatedListDragScroll/);
+    assert.match(mapSource, /<div className="overlap-chooser-list" \{\.\.\.scrollContainerProps\}/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.overlap-chooser-list\s*\{[^}]*touch-action:\s*none;/s);
   });
 
   it("flags station schedule disruption in the rotated station preview", () => {

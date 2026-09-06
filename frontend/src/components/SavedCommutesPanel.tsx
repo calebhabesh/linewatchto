@@ -173,6 +173,8 @@ interface Props {
   ) => void;
   expandedImpactDisclosures?: Record<string, boolean>;
   onToggleImpactDisclosure?: (key: string, isOpen: boolean) => void;
+  draft?: SavedCommuteDraft | null;
+  onDraftChange?: (draft: SavedCommuteDraft | null) => void;
 }
 
 export type AccountNetworkFilter = "all" | NetworkId;
@@ -956,6 +958,29 @@ function SavedCommuteNotificationRuleEditor({
   );
 }
 
+export interface SavedCommuteDraft {
+  newLabel: string;
+  editingCommuteId: string | null;
+  originStationId: string;
+  destinationStationId: string;
+  watchReturnTrip: boolean;
+  newNotificationRule: AccountSavedCommuteNotificationRule;
+  showNotificationSettings: boolean;
+  showRoutingDisclaimer: boolean;
+  draftNetworkId: NetworkId;
+  commuteError: string | null;
+}
+
+export const persistedCommuteDraftStore: { current: SavedCommuteDraft | null } = { current: null };
+
+export function clearPersistedCommuteDraft(): void {
+  persistedCommuteDraftStore.current = null;
+}
+
+export function setPersistedCommuteDraft(draft: SavedCommuteDraft | null): void {
+  persistedCommuteDraftStore.current = draft;
+}
+
 export const persistedExpandedImpactDisclosures = new Set<string>();
 
 export function SavedCommutesPanel({
@@ -988,6 +1013,8 @@ export function SavedCommutesPanel({
   onExpandedCommuteIdChange,
   expandedImpactDisclosures: propExpandedImpactDisclosures,
   onToggleImpactDisclosure,
+  draft: propDraft,
+  onDraftChange,
 }: Props) {
   const lastInteractedCommuteIdRef = useRef<string | null>(null);
   const deleteConfirmationRef = useRef<HTMLDivElement>(null);
@@ -1040,13 +1067,14 @@ export function SavedCommutesPanel({
     onViewImpactOnPath(commute, legId, impact);
   };
 
-  const [newLabel, setNewLabel] = useState("");
-  const [editingCommuteId, setEditingCommuteId] = useState<string | null>(null);
-  const [originStationId, setOriginStationId] = useState("");
-  const [destinationStationId, setDestinationStationId] = useState("");
+  const initialDraft = propDraft ?? persistedCommuteDraftStore.current;
+  const [newLabel, setNewLabel] = useState(() => initialDraft?.newLabel ?? "");
+  const [editingCommuteId, setEditingCommuteId] = useState<string | null>(() => initialDraft?.editingCommuteId ?? null);
+  const [originStationId, setOriginStationId] = useState(() => initialDraft?.originStationId ?? "");
+  const [destinationStationId, setDestinationStationId] = useState(() => initialDraft?.destinationStationId ?? "");
   const [saving, setSaving] = useState(false);
-  const [commuteError, setCommuteError] = useState<string | null>(null);
-  const [watchReturnTrip, setWatchReturnTrip] = useState(true);
+  const [commuteError, setCommuteError] = useState<string | null>(() => initialDraft?.commuteError ?? null);
+  const [watchReturnTrip, setWatchReturnTrip] = useState(() => initialDraft?.watchReturnTrip ?? true);
   const [internalExpandedCommuteId, setInternalExpandedCommuteId] = useState<string | null>(null);
   const expandedCommuteId = propExpandedCommuteId !== undefined ? propExpandedCommuteId : internalExpandedCommuteId;
   const setExpandedCommuteId = (
@@ -1136,9 +1164,13 @@ export function SavedCommutesPanel({
       swapAnimationTimeoutsRef.current = {};
     };
   }, []);
-  const [newNotificationRule, setNewNotificationRule] = useState<AccountSavedCommuteNotificationRule>(() => cloneNotificationRule(defaultSavedCommuteNotificationRule));
-  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
-  const [showRoutingDisclaimer, setShowRoutingDisclaimer] = useState(false);
+  const [newNotificationRule, setNewNotificationRule] = useState<AccountSavedCommuteNotificationRule>(() =>
+    initialDraft?.newNotificationRule
+      ? cloneNotificationRule(initialDraft.newNotificationRule)
+      : cloneNotificationRule(defaultSavedCommuteNotificationRule)
+  );
+  const [showNotificationSettings, setShowNotificationSettings] = useState(() => initialDraft?.showNotificationSettings ?? false);
+  const [showRoutingDisclaimer, setShowRoutingDisclaimer] = useState(() => initialDraft?.showRoutingDisclaimer ?? false);
   const [editingNotificationCommuteId, setEditingNotificationCommuteId] = useState<string | null>(null);
   const [notificationDrafts, setNotificationDrafts] = useState<Record<string, AccountSavedCommuteNotificationRule>>({});
   const [savingNotificationRuleId, setSavingNotificationRuleId] = useState<string | null>(null);
@@ -1163,7 +1195,39 @@ export function SavedCommutesPanel({
       setInternalNetworkFilter(nextFilter);
     }
   };
-  const [draftNetworkId, setDraftNetworkId] = useState<NetworkId>(networkId);
+  const [draftNetworkId, setDraftNetworkId] = useState<NetworkId>(() => initialDraft?.draftNetworkId ?? networkId);
+
+  useEffect(() => {
+    if (activeView === "create") {
+      const nextDraft: SavedCommuteDraft = {
+        newLabel,
+        editingCommuteId,
+        originStationId,
+        destinationStationId,
+        watchReturnTrip,
+        newNotificationRule,
+        showNotificationSettings,
+        showRoutingDisclaimer,
+        draftNetworkId,
+        commuteError,
+      };
+      setPersistedCommuteDraft(nextDraft);
+      onDraftChange?.(nextDraft);
+    }
+  }, [
+    activeView,
+    newLabel,
+    editingCommuteId,
+    originStationId,
+    destinationStationId,
+    watchReturnTrip,
+    newNotificationRule,
+    showNotificationSettings,
+    showRoutingDisclaimer,
+    draftNetworkId,
+    commuteError,
+    onDraftChange,
+  ]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -1267,6 +1331,8 @@ export function SavedCommutesPanel({
   }
 
   const resetRouteDraft = () => {
+    setPersistedCommuteDraft(null);
+    onDraftChange?.(null);
     setNewLabel("");
     setOriginStationId("");
     setDestinationStationId("");
@@ -1274,6 +1340,9 @@ export function SavedCommutesPanel({
     setEditingCommuteId(null);
     setDraftNetworkId(networkId);
     setShowRoutingDisclaimer(false);
+    setShowNotificationSettings(false);
+    setNewNotificationRule(cloneNotificationRule(defaultSavedCommuteNotificationRule));
+    setCommuteError(null);
     clearCommuteSwapAnimation();
   };
 
@@ -1339,6 +1408,8 @@ export function SavedCommutesPanel({
     setDestinationStationId(commute.destinationStationId);
     setWatchReturnTrip(commute.watchReturnTrip);
     setDraftNetworkId(commute.networkId ?? "ttc");
+    setShowNotificationSettings(false);
+    setShowRoutingDisclaimer(false);
     setCommuteError(null);
     clearCommuteSwapAnimation(commute.id);
     setActiveView("create");
@@ -2069,7 +2140,7 @@ export function SavedCommutesPanel({
                 ) : null}
 
                 {!editingCommuteId && showNotificationSettings ? (
-                  <div>
+                  <div className="saved-commute-rule-drawer">
                     <SavedCommuteNotificationRuleEditor
                       rule={newNotificationRule}
                       onChange={setNewNotificationRule}
@@ -2221,7 +2292,7 @@ export function SavedCommutesPanel({
                         className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0"
                         onClick={startCreatingCommute}
                       >
-                        + Add Route
+                        + Add Commute
                       </button>
                     </div>
                   ) : null}
@@ -2237,7 +2308,7 @@ export function SavedCommutesPanel({
                       className="saved-commute-add-btn flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
                       onClick={startCreatingCommute}
                     >
-                      + Add Route
+                      + Add Commute
                     </button>
                   </div>
                 ) : (

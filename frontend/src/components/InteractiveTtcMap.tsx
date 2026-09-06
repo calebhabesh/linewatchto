@@ -76,6 +76,7 @@ import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
+import { useRotatedListDragScroll } from "../hooks/useRotatedListDragScroll";
 import {
   alignedOverlapBadgePositionCandidates,
   buildStationOverlapBadgeGroups,
@@ -4644,6 +4645,8 @@ function OverlapChooser({
   const surfaceRef = useRef<HTMLDivElement>(null);
   const firstChoiceRef = useRef<HTMLButtonElement>(null);
   const closingRef = useRef(false);
+  const isRotated = viewportOrientation === "rotated-landscape";
+  const { scrollContainerProps } = useRotatedListDragScroll(isRotated);
   const orderedImpacts = [...badge.impacts].sort(
     (a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind)
       || a.cardId.localeCompare(b.cardId),
@@ -4780,7 +4783,7 @@ function OverlapChooser({
             <X size={20} aria-hidden="true" />
           </button>
         </div>
-        <div className="overlap-chooser-list">
+        <div className="overlap-chooser-list" {...scrollContainerProps}>
           {orderedImpacts.map((impact, index) => {
             const details = getSelectedImpactDetails({ kind: impact.kind, id: impact.cardId }, data);
             return (

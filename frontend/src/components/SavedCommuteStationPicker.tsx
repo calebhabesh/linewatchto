@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import {
   buildStationLineGroups,
@@ -10,17 +9,7 @@ import {
   stationSearchLineById,
   type StationSearchLine,
 } from "../app/station-search";
-import {
-  type StationSummary,
-  isStationWheelchairAccessible,
-  isStationElevatorAccessible,
-  isStationWashroomAvailable,
-  isStationParkingAvailable,
-  isStationBicycleLockupAvailable,
-  isStationBicycleRepairAvailable,
-  isStationBikeShareAvailable,
-  isStationPpudoAvailable,
-} from "../app/station-data";
+import type { StationSummary } from "../app/station-data";
 import {
   calculateMobilePickerAlignmentScroll,
   calculateCommuteStationPopoverCoords,
@@ -67,25 +56,6 @@ function StationOption({
     .map((lineId) => lineById(lineId))
     .filter((line): line is StationSearchLine => Boolean(line));
 
-  const isWheelchair = station.wheelchairAccessible ?? isStationWheelchairAccessible(station.id, station.lineIds);
-  const hasElevator = station.hasElevator ?? isStationElevatorAccessible(station.id, station.lineIds);
-  const hasWashroom = station.hasWashroom ?? isStationWashroomAvailable(station.id);
-  const hasParking = station.hasParking ?? isStationParkingAvailable(station.id);
-  const hasBicycleLockup = station.hasBicycleLockup ?? isStationBicycleLockupAvailable(station.id);
-  const hasBicycleRepair = station.hasBicycleRepair ?? isStationBicycleRepairAvailable(station.id);
-  const hasBikeShare = station.hasBikeShare ?? isStationBikeShareAvailable(station.id);
-  const hasPpudo = station.hasPpudo ?? isStationPpudoAvailable(station.id);
-
-  let accessibilityLabel = "";
-  if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
-  if (hasElevator) accessibilityLabel += " (Elevator Access)";
-  if (hasWashroom) accessibilityLabel += " (Washrooms Available)";
-  if (hasParking) accessibilityLabel += " (Parking Available)";
-  if (hasBicycleLockup) accessibilityLabel += " (Bicycle Lock-up Available)";
-  if (hasBicycleRepair) accessibilityLabel += " (Bicycle Repair Stand Available)";
-  if (hasBikeShare) accessibilityLabel += " (Bike Share Available)";
-  if (hasPpudo) accessibilityLabel += " (Passenger Pick-up/Drop-off Available)";
-
   return (
     <button
       type="button"
@@ -95,98 +65,10 @@ function StationOption({
       className={`site-dropdown-option commute-station-option ${selected ? "selected" : ""}`}
       onPointerDown={(event) => event.preventDefault()}
       onClick={() => onChoose(station.id)}
-      title={disabled ? `${disabledReason}${accessibilityLabel}` : `${station.name}${accessibilityLabel}`}
+      title={disabled ? disabledReason : station.name}
     >
       <span className="commute-station-option-name">
         <span className="commute-station-name-text">{station.name}</span>
-        {isWheelchair && (
-          <span className="inline-flex items-center justify-center shrink-0" title="Wheelchair accessible">
-            <Image
-              src="/assets/linewatch/accessible.svg"
-              alt="Wheelchair accessible"
-              width={12}
-              height={12}
-              className="h-3 w-3 rounded-[1.5px] drop-shadow-[0_0_1px_rgba(0,130,201,0.2)]"
-            />
-          </span>
-        )}
-        {hasElevator && (
-          <span className="inline-flex items-center justify-center shrink-0" title="Elevator available">
-            <Image
-              src="/assets/linewatch/outages/elevator.svg"
-              alt="Elevator available"
-              width={12}
-              height={12}
-              className="h-3 w-3 drop-shadow-[0_0_1px_rgba(0,130,201,0.2)]"
-            />
-          </span>
-        )}
-        {hasWashroom && (
-          <span className="inline-flex items-center justify-center shrink-0" title="Washrooms available">
-            <Image
-              src="/assets/linewatch/washroom.svg"
-              alt="Washrooms available"
-              width={12}
-              height={12}
-              className="h-3 w-3 drop-shadow-[0_0_1px_rgba(0,0,0,0.2)]"
-            />
-          </span>
-        )}
-        {hasParking && (
-          <span className="inline-flex items-center justify-center shrink-0" title="Parking available">
-            <Image
-              src="/assets/linewatch/parking.svg"
-              alt="Parking available"
-              width={12}
-              height={12}
-              className="h-3 w-3 rounded-full drop-shadow-[0_0_1px_rgba(33,178,82,0.2)]"
-            />
-          </span>
-        )}
-        {hasBicycleLockup && (
-          <span className="inline-flex items-center justify-center shrink-0" title="Bicycle lock-up available">
-            <Image
-              src="/assets/linewatch/bicycle-lockup.svg"
-              alt="Bicycle lock-up available"
-              width={12}
-              height={12}
-              className="h-3 w-3 drop-shadow-[0_0_1px_rgba(0,0,0,0.2)]"
-            />
-          </span>
-        )}
-        {hasBicycleRepair && (
-          <span className="inline-flex items-center justify-center shrink-0" title="Bicycle repair stand available">
-            <Image
-              src="/assets/linewatch/bicycle-repair.svg"
-              alt="Bicycle repair stand available"
-              width={12}
-              height={12}
-              className="h-3 w-3 drop-shadow-[0_0_1px_rgba(0,0,0,0.2)]"
-            />
-          </span>
-        )}
-        {hasBikeShare && (
-          <span className="inline-flex items-center justify-center shrink-0" title="Bike Share Toronto available">
-            <Image
-              src="/assets/linewatch/bike-share-toronto.svg"
-              alt="Bike Share Toronto available"
-              width={12}
-              height={12}
-              className="h-3 w-3 rounded-full drop-shadow-[0_0_1px_rgba(0,100,75,0.2)]"
-            />
-          </span>
-        )}
-        {hasPpudo && (
-          <span className="inline-flex items-center justify-center shrink-0" title="Passenger pick-up / drop-off available">
-            <Image
-              src="/assets/linewatch/passenger-pick-up.svg"
-              alt="Passenger pick-up / drop-off available"
-              width={12}
-              height={12}
-              className="h-3 w-3 drop-shadow-[0_0_1px_rgba(0,0,0,0.2)]"
-            />
-          </span>
-        )}
       </span>
       <span className="commute-station-line-badges">
         {lines.map((line) => (
