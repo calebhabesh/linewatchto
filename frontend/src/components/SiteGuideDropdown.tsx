@@ -179,20 +179,18 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
   const [isClosing, setIsClosing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   /** True once the user has ever opened the guide (persisted in localStorage). */
-  const [guideSeen, setGuideSeen] = useState(true); // default true to avoid flash-of-pulse on SSR
+  const [guideSeen, setGuideSeen] = useState(() => {
+    if (typeof window === "undefined") return true; // SSR: suppress pulse
+    try {
+      return window.localStorage.getItem(SITE_GUIDE_SEEN_STORAGE_KEY) === "true";
+    } catch {
+      return true; // storage unavailable — suppress pulse
+    }
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const closeTimerRef = useRef<number | null>(null);
-
-  /* Read the persisted "seen" flag on mount. */
-  useEffect(() => {
-    try {
-      setGuideSeen(window.localStorage.getItem(SITE_GUIDE_SEEN_STORAGE_KEY) === "true");
-    } catch {
-      // Storage unavailable — keep pulse suppressed so it doesn't flash.
-    }
-  }, []);
 
   const closeGuide = useCallback(() => {
     if (!isOpen || isClosing) return;
@@ -254,6 +252,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
       <button
         type="button"
         className="site-guide-trigger panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+        suppressHydrationWarning
         aria-controls={panelId}
         aria-expanded={isOpen && !isClosing}
         aria-label="Open site guide"
