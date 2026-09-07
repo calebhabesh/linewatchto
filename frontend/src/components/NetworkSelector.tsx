@@ -94,7 +94,7 @@ export function NetworkSelector({
       >
         <span className="network-indicator-dot network-dot-ttc" aria-hidden="true" />
         <span className="network-btn-text">TTC</span>
-        <span className="network-accent-ridges" aria-hidden="true" />
+        <span className="network-accent-ridges" aria-hidden="true"><span /><span /></span>
       </button>
       <button
         type="button"
@@ -105,7 +105,7 @@ export function NetworkSelector({
       >
         <span className="network-indicator-dot network-dot-regional" aria-hidden="true" />
         <span className="network-btn-text">GO/UP</span>
-        <span className="network-accent-ridges" aria-hidden="true" />
+        <span className="network-accent-ridges" aria-hidden="true"><span /><span /></span>
       </button>
     </div>
   );
