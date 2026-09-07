@@ -172,14 +172,27 @@ function OverlayAssetPreview({
   );
 }
 
+const SITE_GUIDE_SEEN_STORAGE_KEY = "linewatch-site-guide-seen-v1";
+
 export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  /** True once the user has ever opened the guide (persisted in localStorage). */
+  const [guideSeen, setGuideSeen] = useState(true); // default true to avoid flash-of-pulse on SSR
   const dropdownRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const closeTimerRef = useRef<number | null>(null);
+
+  /* Read the persisted "seen" flag on mount. */
+  useEffect(() => {
+    try {
+      setGuideSeen(window.localStorage.getItem(SITE_GUIDE_SEEN_STORAGE_KEY) === "true");
+    } catch {
+      // Storage unavailable — keep pulse suppressed so it doesn't flash.
+    }
+  }, []);
 
   const closeGuide = useCallback(() => {
     if (!isOpen || isClosing) return;
@@ -244,11 +257,16 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
         aria-controls={panelId}
         aria-expanded={isOpen && !isClosing}
         aria-label="Open site guide"
-        data-menu-attention={(!isOpen || isClosing) ? "true" : "false"}
+        data-menu-attention={(!guideSeen && (!isOpen || isClosing)) ? "true" : "false"}
         onClick={() => {
           if (isOpen) {
             closeGuide();
             return;
+          }
+          /* Mark the guide as seen on first open so the pulse never returns. */
+          if (!guideSeen) {
+            setGuideSeen(true);
+            try { window.localStorage.setItem(SITE_GUIDE_SEEN_STORAGE_KEY, "true"); } catch { /* noop */ }
           }
           setIsClosing(false);
           setIsOpen(true);
