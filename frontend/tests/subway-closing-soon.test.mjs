@@ -46,8 +46,8 @@ describe("subway closing soon chip", () => {
     assert.match(globalCss, /#facc15/);
   });
 
-  it("keeps mobile announcements below the top action row without squeezing text", () => {
-    assert.match(globalCss, /--mobile-announcement-chip-height:\s*40px/);
+  it("matches mobile announcement height to the top action buttons", () => {
+    assert.match(globalCss, /--mobile-announcement-chip-height:\s*var\(--mobile-top-action-button-size\)/);
     assert.match(globalCss, /--mobile-top-chrome-height:\s*var\(--mobile-top-action-button-size\)/);
     assert.match(globalCss, /--mobile-edge-inset:\s*clamp\(10px,\s*4vw,\s*16px\)/);
     assert.match(globalCss, /--mobile-top-action-button-size:\s*clamp\(44px,\s*12vw,\s*48px\)/);

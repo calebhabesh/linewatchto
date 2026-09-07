@@ -607,6 +607,10 @@
     animation: none;
   }
 
+  .linewatch-shell:has(.subway-closing-soon-chip) .mobile-legend-pill--announcement {
+    --mobile-announcement-top-offset: 0px;
+  }
+
   .mobile-legend-pill--announcement {
     top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-announcement-top-offset) + var(--mobile-announcement-chip-height) + var(--mobile-announcement-gap)) !important;
   }
