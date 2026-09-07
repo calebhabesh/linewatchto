@@ -18,7 +18,7 @@
   --station-selection-accent: var(--color-logo-blue);
   --station-selection-accent-rgb: 129 201 255;
   --mobile-announcement-chip-height: var(--mobile-top-action-button-size);
-  --mobile-regional-announcement-chip-height: 48px;
+  --mobile-regional-announcement-chip-height: var(--mobile-top-action-button-size);
   --mobile-edge-inset: clamp(10px, 4vw, 16px);
   --mobile-top-action-button-size: clamp(44px, 12vw, 48px);
   --mobile-top-action-gap: clamp(4px, 2vw, 8px);
@@ -26,8 +26,8 @@
   --mobile-announcement-gap: clamp(6px, 2.2vw, 10px);
   --mobile-announcement-max-width: clamp(128px, 50vw, 260px);
   --mobile-top-chrome-height: var(--mobile-top-action-button-size);
-  /* Notices sit below the top actions and to the left of the utility rail. */
-  --mobile-announcement-top-offset: calc(var(--mobile-top-action-button-size) + var(--mobile-announcement-gap));
+  /* All mobile announcements share the nook beside the top actions. */
+  --mobile-announcement-top-offset: 0px;
   --mobile-top-action-cluster-width: calc(var(--mobile-top-action-button-size) + var(--mobile-rotate-action-width) + var(--mobile-top-action-button-size) + var(--mobile-top-action-gap) + var(--mobile-top-action-gap));
   --mobile-bottom-nav-height: 74px;
   --mobile-bottom-nav-bottom-offset: max(10px, calc(var(--mobile-safe-bottom) - 18px));

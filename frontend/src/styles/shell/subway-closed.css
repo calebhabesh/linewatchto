@@ -1003,7 +1003,7 @@
     max-width: var(--mobile-announcement-max-width);
     width: min(
       var(--mobile-announcement-max-width),
-      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-button-size) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
+      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
     );
     height: var(--mobile-announcement-chip-height);
     min-height: var(--mobile-announcement-chip-height);
@@ -1017,7 +1017,7 @@
     background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 50%, rgba(0, 0, 0, 0.16) 100%);
   }
 
-  .subway-closing-soon-chip {
+  .subway-closed-peek-chip {
     top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset));
     width: min(
       var(--mobile-announcement-max-width),
@@ -1029,6 +1029,14 @@
   .go-up-closed-peek-chip {
     height: var(--mobile-regional-announcement-chip-height);
     min-height: var(--mobile-regional-announcement-chip-height);
+  }
+
+  .go-up-closed-peek-chip {
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset));
+    width: min(
+      var(--mobile-announcement-max-width),
+      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
+    );
   }
 
   .subway-closing-soon-copy,

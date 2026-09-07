@@ -159,7 +159,7 @@ describe("network-scoped regional dashboard", () => {
       globalsCss,
       /\.go-up-closed-peek-chip \.subway-closed-peek-subtitle\s*\{[\s\S]*white-space:\s*normal\s*!important/,
     );
-    assert.match(globalsCss, /--mobile-regional-announcement-chip-height:\s*48px/);
+    assert.match(globalsCss, /--mobile-regional-announcement-chip-height:\s*var\(--mobile-top-action-button-size\)/);
     assert.match(networkMapSource, /viewportOrientation=\{props\.viewportOrientation\}/);
     assert.match(regionalMapSource, /viewportOrientation = "standard"/);
     assert.match(regionalMapSource, /clientPointToLogicalViewportPoint/);
