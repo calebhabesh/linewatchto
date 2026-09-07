@@ -46,19 +46,19 @@ describe("subway closing soon chip", () => {
     assert.match(globalCss, /#facc15/);
   });
 
-  it("keeps mobile announcements on the same top axis as map controls without squeezing text", () => {
+  it("keeps mobile announcements below the top action row without squeezing text", () => {
     assert.match(globalCss, /--mobile-announcement-chip-height:\s*40px/);
-    assert.match(globalCss, /--mobile-top-chrome-height:\s*40px/);
+    assert.match(globalCss, /--mobile-top-chrome-height:\s*var\(--mobile-top-action-button-size\)/);
     assert.match(globalCss, /--mobile-edge-inset:\s*clamp\(10px,\s*4vw,\s*16px\)/);
-    assert.match(globalCss, /--mobile-top-action-button-size:\s*clamp\(34px,\s*10\.7vw,\s*40px\)/);
-    assert.match(globalCss, /--mobile-rotate-action-width:\s*clamp\(62px,\s*20vw,\s*76px\)/);
+    assert.match(globalCss, /--mobile-top-action-button-size:\s*clamp\(44px,\s*12vw,\s*48px\)/);
+    assert.match(globalCss, /--mobile-rotate-action-width:\s*clamp\(78px,\s*22vw,\s*88px\)/);
     assert.match(globalCss, /--mobile-top-action-cluster-width:\s*calc\(var\(--mobile-top-action-button-size\)/);
-    assert.match(sharedMobileAnnouncementCss, /top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\)/);
+    assert.match(sharedMobileAnnouncementCss, /top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\s*\+\s*var\(--mobile-announcement-top-offset\)\)/);
     assert.match(sharedMobileAnnouncementCss, /left:\s*calc\(var\(--mobile-safe-left\)\s*\+\s*var\(--mobile-edge-inset\)\)/);
     assert.match(sharedMobileAnnouncementCss, /right:\s*auto/);
     assert.match(sharedMobileAnnouncementCss, /max-width:\s*var\(--mobile-announcement-max-width\)/);
     assert.match(sharedMobileAnnouncementCss, /width:\s*min\(/);
-    assert.match(sharedMobileAnnouncementCss, /100vw - var\(--mobile-safe-left\) - var\(--mobile-edge-inset\) - var\(--mobile-top-action-cluster-width\) - var\(--mobile-announcement-gap\) - var\(--mobile-safe-right\) - var\(--mobile-edge-inset\)/);
+    assert.match(sharedMobileAnnouncementCss, /100vw - var\(--mobile-safe-left\) - var\(--mobile-edge-inset\) - var\(--mobile-top-action-button-size\) - var\(--mobile-announcement-gap\) - var\(--mobile-safe-right\) - var\(--mobile-edge-inset\)/);
     assert.match(sharedMobileAnnouncementCss, /height:\s*var\(--mobile-announcement-chip-height\)/);
     assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*padding:[\s\S]*var\(--mobile-safe-top\)[\s\S]*var\(--mobile-edge-inset\)/);
     assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*var\(--mobile-safe-right\)[\s\S]*var\(--mobile-safe-left\)/);
@@ -72,12 +72,12 @@ describe("subway closing soon chip", () => {
 
   it("keeps the mobile rotate-map button text visible on narrow phones", () => {
     assert.match(shellSource, /Rotate<br\s*\/>\s*Map/);
-    assert.match(globalCss, /\.rotate-map-btn svg\s*\{[\s\S]*height:\s*clamp\(20px,\s*6\.5vw,\s*24px\)\s*!important/);
-    assert.match(globalCss, /\.rotate-map-btn svg\s*\{[\s\S]*width:\s*clamp\(20px,\s*6\.5vw,\s*24px\)\s*!important/);
+    assert.match(globalCss, /\.rotate-map-btn svg\s*\{[\s\S]*height:\s*clamp\(22px,\s*7vw,\s*26px\)\s*!important/);
+    assert.match(globalCss, /\.rotate-map-btn svg\s*\{[\s\S]*width:\s*clamp\(22px,\s*7vw,\s*26px\)\s*!important/);
     assert.match(globalCss, /\.rotate-map-btn svg\s*\{[\s\S]*flex:\s*0 0 auto\s*!important/);
     assert.match(narrowRotateMapCss, /\.rotate-map-btn\s*\{[\s\S]*width:\s*var\(--mobile-rotate-action-width\)/);
     assert.match(narrowRotateMapCss, /\.rotate-map-btn span\s*\{[\s\S]*display:\s*inline-block\s*!important/);
-    assert.match(narrowRotateMapCss, /\.rotate-map-btn span\s*\{[\s\S]*font-size:\s*clamp\(6\.5px,\s*2\.15vw,\s*8px\)\s*!important/);
+    assert.match(narrowRotateMapCss, /\.rotate-map-btn span\s*\{[\s\S]*font-size:\s*clamp\(8\.5px,\s*2\.8vw,\s*10\.5px\)\s*!important/);
     assert.match(narrowRotateMapCss, /\.rotate-map-btn span\s*\{[\s\S]*letter-spacing:\s*0\.02em\s*!important/);
     assert.doesNotMatch(narrowRotateMapCss, /\.rotate-map-btn span\s*\{[\s\S]*display:\s*none\s*!important/);
   });

@@ -1296,9 +1296,21 @@
     font-size: clamp(13px, 3.7vw, 16px);
   }
 
-  /* Streetcar & Bus Notices — mobile renders inside mobile-panel shell, target via data-active-view */
+  /* Streetcar & Bus Notices & GO / UP Notices — balanced header size preventing overlap with source badge */
+  .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading {
+    gap: 8px;
+  }
+
   .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2 {
-    font-size: clamp(11px, 2.9vw, 13.5px);
+    font-size: clamp(12.5px, 3.3vw, 15px);
+    gap: 6px;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="surface-notices"] .surface-notices-source-tag {
+    font-size: clamp(7.5px, 2vw, 8.5px);
+    letter-spacing: 0.03em;
   }
 
   /* My Commutes: slight font reduction so the full title fits alongside the account label */

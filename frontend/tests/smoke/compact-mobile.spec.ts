@@ -40,16 +40,16 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   await expect.poll(() => page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue("--mobile-bottom-nav-height").trim()
   )).toBe("64px");
-  await expect(page.locator(".rotate-map-btn")).toHaveCSS("width", "75px");
-  await expect(page.locator(".rotate-map-btn")).toHaveCSS("height", "40px");
-  await expect(page.locator(".rotate-map-btn span")).toHaveCSS("font-size", "8px");
-  await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("width", "24px");
-  await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("height", "24px");
+  await expect(page.locator(".rotate-map-btn")).toHaveCSS("width", "82.5px");
+  await expect(page.locator(".rotate-map-btn")).toHaveCSS("height", "45px");
+  await expect(page.locator(".rotate-map-btn span")).toHaveCSS("font-size", "10.5px");
+  await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("width", "26px");
+  await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("height", "26px");
 
   const centerMapButton = page.getByRole("button", { name: "Center map view" });
-  await expect(centerMapButton).toHaveCSS("width", "36px");
-  await expect(centerMapButton).toHaveCSS("height", "36px");
-  await expect(centerMapButton.locator("svg")).toHaveCSS("width", "18px");
+  await expect(centerMapButton).toHaveCSS("width", "45px");
+  await expect(centerMapButton).toHaveCSS("height", "45px");
+  await expect(centerMapButton.locator("svg")).toHaveCSS("width", "22px");
   await expect(centerMapButton.locator("span")).toHaveClass(/sr-only/);
   const mobileMapStage = page.locator(".ttc-map-stage");
   await centerMapButton.click();
@@ -640,9 +640,9 @@ test("393px-wide phones receive the compact map-control sizing", async ({ page, 
   });
   await page.goto("/");
 
-  await expect(page.locator(".rotate-map-btn span")).toHaveCSS("font-size", "8px");
-  await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("width", "24px");
-  await expect(page.getByRole("button", { name: "Center map view" }).locator("svg")).toHaveCSS("width", "18px");
+  await expect(page.locator(".rotate-map-btn span")).toHaveCSS("font-size", "10.5px");
+  await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("width", "26px");
+  await expect(page.getByRole("button", { name: "Center map view" }).locator("svg")).toHaveCSS("width", "22px");
 });
 
 test("iPhone SE keeps the subway closed card contained and actionable", async ({ page, isMobile }) => {
@@ -667,3 +667,72 @@ test("iPhone SE keeps the subway closed card contained and actionable", async ({
     (element) => element.scrollHeight <= element.clientHeight + 1,
   )).toBe(true);
 });
+
+for (const width of [320, 375, 412]) {
+  test(`enlarged map controls leave closing notices clear at ${width}px`, async ({ page, request, isMobile }) => {
+    test.skip(!isMobile, "mobile map control spacing");
+    await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+    await page.setViewportSize({ width, height: 667 });
+    await page.addInitScript(() => {
+      localStorage.setItem("linewatch-welcome-seen-v1", "true");
+      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+      localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+    });
+    await page.goto("/?previewTime=2026-06-04T00:45:00-04:00");
+    const notice = page.locator(".subway-closing-soon-chip");
+    await expect(notice).toBeVisible();
+    await expect(page.locator(".mobile-legend-pill.mobile-legend-pill--announcement")).toBeVisible();
+    await expect.poll(async () => page.evaluate(() => {
+      const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+      const notice = rect(".subway-closing-soon-chip");
+      const theme = rect(".theme-toggle-btn");
+      const rail = rect(".site-guide-network-stack");
+      const legend = rect(".mobile-legend-pill");
+      const trains = rect(".mobile-train-toggle");
+      const controls = rect(".mobile-map-controls-group");
+      const status = rect(".mobile-status-peek");
+      return notice.top >= theme.bottom + 5
+        && notice.right <= rail.left - 5
+        && legend.top >= notice.bottom + 5
+        && trains.top >= legend.bottom + 5
+        && Math.abs(trains.bottom - controls.bottom) <= 1
+        && trains.right < controls.left
+        && controls.top >= rail.bottom + 5
+        && controls.bottom <= status.top - 5;
+    })).toBe(true);
+    for (const selector of [".theme-toggle-btn", ".site-guide-trigger", ".mobile-alert-history-shortcut", ".mobile-my-stations-shortcut", ".mobile-map-recenter-btn", ".mobile-map-zoom-btn"]) {
+      const bounds = await page.locator(selector).first().boundingBox();
+      expect(bounds!.width).toBeGreaterThanOrEqual(44);
+      expect(bounds!.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+}
+
+for (const width of [320, 375, 412]) {
+  test(`surface notice heading and source remain readable at ${width}px`, async ({ page, request, isMobile }) => {
+    test.skip(!isMobile, "mobile notice header layout");
+    await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+    await page.setViewportSize({ width, height: 667 });
+    await page.addInitScript(() => {
+      localStorage.setItem("linewatch-welcome-seen-v1", "true");
+      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+      localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+    });
+    await page.goto(openMapPreviewUrl);
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.getByRole("region", { name: "Current service status" })
+      .getByRole("button", { name: /Streetcar & Bus Notices/ }).click();
+    const header = page.locator('.mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading');
+    await expect(header.locator(".surface-notices-source-tag")).toBeVisible();
+    await expect.poll(() => header.evaluate(element => {
+      const title = element.querySelector("h2")!;
+      const label = title.querySelector("span")!;
+      const source = element.querySelector(".surface-notices-source-tag")!;
+      return title.getBoundingClientRect().right + 4 <= source.getBoundingClientRect().left
+        && title.scrollWidth <= title.clientWidth + 1
+        && label.getBoundingClientRect().right <= title.getBoundingClientRect().right + 1
+        && label.scrollWidth <= label.clientWidth + 1
+        && element.scrollWidth <= element.clientWidth + 1;
+    })).toBe(true);
+  });
+}

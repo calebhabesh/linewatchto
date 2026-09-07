@@ -52,8 +52,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*backdrop-filter:\s*blur\((?:6|10|12|16)px\)/s);
     assert.match(globalCss, /\.mobile-status-peek-counts\s*\{[^}]*display:\s*grid/s);
     assert.match(globalCss, /\.mobile-status-peek-count-badge\s*\{[^}]*display:\s*flex/s);
-    assert.match(globalCss, /\.mobile-map-recenter-btn\s*\{[^}]*width:\s*36px/s);
-    assert.match(globalCss, /\.mobile-map-zoom-capsule\s*\{[^}]*width:\s*36px/s);
+    assert.match(globalCss, /\.mobile-map-recenter-btn\s*\{[^}]*width:\s*var\(--mobile-top-action-button-size\)/s);
+    assert.match(globalCss, /\.mobile-map-zoom-capsule\s*\{[^}]*width:\s*var\(--mobile-top-action-button-size\)/s);
     assert.match(globalCss, /\.mobile-map-controls-group\s*\{[^}]*position:\s*fixed/s);
   });
 
@@ -219,7 +219,7 @@ describe("mobile bottom sheet UX", () => {
   it("keeps the mobile legend aligned below iPhone status chrome with top controls", () => {
     assert.match(globalCss, /\.mobile-legend-pill\s*\{[\s\S]*top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\)\s*!important/);
     assert.match(globalCss, /\.mobile-legend-pill\s*\{[\s\S]*left:\s*calc\(var\(--mobile-safe-left\)\s*\+\s*var\(--mobile-edge-inset\)\)\s*!important/);
-    assert.match(globalCss, /\.mobile-legend-pill--announcement\s*\{[\s\S]*top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\s*\+\s*var\(--mobile-announcement-chip-height\)/);
+    assert.match(globalCss, /\.mobile-legend-pill--announcement\s*\{[\s\S]*top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\s*\+\s*var\(--mobile-announcement-top-offset\)\s*\+\s*var\(--mobile-announcement-chip-height\)/);
   });
 
   it("keeps iPhone bottom navigation close to the bottom without compounding safe-area gaps", () => {

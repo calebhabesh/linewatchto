@@ -355,33 +355,33 @@ export function SurfaceNoticesPanel({
   return (
     <section className="panel min-w-0 border border-transparent rounded-2xl flex flex-col h-full bg-white dark:bg-[#0a0c10]">
       {/* Panel Header */}
-      <div className="panel-heading border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0 shrink-0">
-        <div className="flex items-center gap-1 min-w-0">
+      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-2 sm:gap-3 min-w-0 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <button
             onClick={onBack}
-            className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+            className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-0.5 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
             aria-label="Back"
           >
-            <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
+            <ChevronLeft className="w-5 h-5 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
           </button>
-          <h2 className="text-[clamp(14px,4.5cqw,18px)] font-bold text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-2">
+          <h2 className="text-[clamp(13px,3.5cqw,17px)] sm:text-lg font-bold text-slate-900 dark:text-white whitespace-normal flex items-center gap-1.5 sm:gap-2 min-w-0">
             {regional ? (
-              <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <Megaphone className="w-4 h-4 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <Bus className="w-4 h-4 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
             )}
             <span>{regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}</span>
           </h2>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {data?.source && (
-            <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold whitespace-nowrap">
+            <span className="surface-notices-source-tag text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold whitespace-nowrap">
               {regional ? "Metrolinx notices" : data.source}
             </span>
           )}
           <button
             onClick={onClose}
-            className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+            className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-0.5 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
             aria-label="Close"
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />

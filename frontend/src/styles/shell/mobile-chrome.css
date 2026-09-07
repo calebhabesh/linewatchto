@@ -945,9 +945,9 @@
   }
 
   .mobile-map-recenter-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: var(--mobile-top-action-button-size);
+    height: var(--mobile-top-action-button-size);
+    min-width: var(--mobile-top-action-button-size);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -994,7 +994,7 @@
   }
 
   .mobile-map-zoom-capsule {
-    width: 36px;
+    width: var(--mobile-top-action-button-size);
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -1009,8 +1009,8 @@
   }
 
   .mobile-map-zoom-btn {
-    width: 36px;
-    height: 32px;
+    width: var(--mobile-top-action-button-size);
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1119,8 +1119,8 @@
   }
 
   .network-selector--compact-vertical {
-    --compact-network-option-height: 32px;
-    --compact-network-glider-height: 32px;
+    --compact-network-option-height: 40px;
+    --compact-network-glider-height: 40px;
     align-items: stretch;
     background: var(--mobile-chrome-background);
     border: 2px solid rgba(15, 23, 42, 0.28);
@@ -1265,15 +1265,15 @@
 
   .rotate-map-btn svg {
     flex: 0 0 auto !important;
-    height: clamp(20px, 6.5vw, 24px) !important;
-    width: clamp(20px, 6.5vw, 24px) !important;
+    height: clamp(22px, 7vw, 26px) !important;
+    width: clamp(22px, 7vw, 26px) !important;
   }
 
   .rotate-map-btn span {
     display: inline-block !important;
-    font-size: clamp(6.5px, 2.15vw, 8px) !important;
+    font-size: clamp(8.5px, 2.8vw, 10.5px) !important;
     letter-spacing: 0.02em !important;
-    line-height: 1.05 !important;
+    line-height: 1.1 !important;
   }
 
   .map-utility-cluster > *:not(.site-guide-dropdown):not(.site-guide-network-stack):not(.theme-toggle-btn):not(.rotate-map-btn) {
@@ -1488,3 +1488,13 @@
   }
 }
 
+
+@media (max-width: 767px) {
+  .mobile-map-recenter-btn svg,
+  .mobile-map-zoom-btn svg,
+  .mobile-alert-history-shortcut svg,
+  .mobile-my-stations-shortcut svg {
+    width: 22px;
+    height: 22px;
+  }
+}

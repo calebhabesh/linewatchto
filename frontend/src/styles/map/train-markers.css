@@ -178,9 +178,9 @@
 
 .mobile-train-toggle {
   position: fixed;
-  z-index: 35;
-  width: 36px;
-  height: 48px;
+  z-index: 41;
+  width: 44px;
+  height: 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -190,9 +190,12 @@
   border-radius: 10px;
   cursor: pointer;
   border: none;
-  transition: all 0.2s ease-in-out;
+  transition: bottom 0.25s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.15s ease, border-color 0.15s ease;
   background: var(--mobile-chrome-background);
   color: var(--mobile-chrome-text);
+  box-shadow: var(--mobile-chrome-shadow);
+  backdrop-filter: var(--mobile-chrome-backdrop-filter);
+  -webkit-backdrop-filter: var(--mobile-chrome-backdrop-filter);
 }
 
 .mobile-train-pending-spinner {
@@ -214,8 +217,8 @@
 .mobile-train-toggle svg {
   color: var(--mobile-chrome-text-muted);
   flex: 0 0 auto;
-  height: 16px;
-  width: 16px;
+  height: 20px;
+  width: 20px;
 }
 
 .mobile-train-toggle.active {
@@ -247,7 +250,7 @@
 
 .mobile-train-toggle span {
   display: inline-block;
-  font-size: 6px;
+  font-size: 7px;
   letter-spacing: 0.01em;
   line-height: 1.05;
   font-weight: 900;
@@ -314,21 +317,10 @@
 @media (max-width: 767px) {
   .mobile-train-toggle {
     left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
-    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-map-legend-height, 142px) + 8px) !important;
-  }
-
-  .mobile-train-toggle--announcement {
-    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-announcement-chip-height) + var(--mobile-announcement-gap) + var(--mobile-map-legend-height, 142px) + 8px) !important;
-  }
-
-  .linewatch-shell[data-network="regional"] .mobile-train-toggle,
-  .mobile-train-toggle--regional {
-    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-map-legend-height, 220px) + 12px) !important;
-  }
-
-  .linewatch-shell[data-network="regional"] .mobile-train-toggle--announcement,
-  .mobile-train-toggle--regional.mobile-train-toggle--announcement {
-    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-regional-announcement-chip-height) + var(--mobile-announcement-gap) + var(--mobile-map-legend-height, 220px) + 12px) !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 24px) !important;
+    z-index: 41;
   }
 
   .mobile-train-toggle--legend-expanded {

@@ -995,7 +995,7 @@
   .subway-closed-peek-chip,
   .go-up-closed-peek-chip {
     position: fixed;
-    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset));
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-announcement-top-offset));
     bottom: auto;
     left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset));
     right: auto;
@@ -1003,7 +1003,7 @@
     max-width: var(--mobile-announcement-max-width);
     width: min(
       var(--mobile-announcement-max-width),
-      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
+      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-button-size) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
     );
     height: var(--mobile-announcement-chip-height);
     min-height: var(--mobile-announcement-chip-height);

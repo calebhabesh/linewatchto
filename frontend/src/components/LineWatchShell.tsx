@@ -10,6 +10,7 @@ import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
 import { preloadRegionalMapMarkup } from "./InteractiveRegionalMap";
 import { preloadTtcMapMarkup } from "./InteractiveTtcMap";
 import { preloadRasterMapSource, rasterMapSource } from "./RasterMapPlane";
+import { startMapSurfaceTransition } from "../app/map-surface-transition";
 import { NetworkMap } from "./NetworkMap";
 import { NetworkSelector } from "./NetworkSelector";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
@@ -323,6 +324,7 @@ export function LineWatchShell({
   const displayData = selectedNetwork === "regional" ? regionalData : ttcData;
   const networkTransitionTargetRef = useRef<NetworkId | null>(null);
   const networkFadeAnimationRef = useRef<Animation | null>(null);
+  const mobileNetworkTransitionRef = useRef<ReturnType<typeof startMapSurfaceTransition> | null>(null);
   const networkMapSurfaceRef = useRef<HTMLElement | null>(null);
   const networkViewTransitionRef = useRef<{
     finished: Promise<void>;
@@ -331,6 +333,7 @@ export function LineWatchShell({
   const crossNetworkStationSelectionRef = useRef<{ networkId: NetworkId; stationId: string } | null>(null);
 
   useEffect(() => () => {
+    mobileNetworkTransitionRef.current?.cancel();
     networkFadeAnimationRef.current?.cancel();
     networkViewTransitionRef.current?.skipTransition();
     delete document.documentElement.dataset.networkTransitionPhase;
@@ -2256,6 +2259,8 @@ export function LineWatchShell({
     setCommutesFocusedCommuteId(commute.id);
     const commuteNetwork = commute.networkId ?? "ttc";
     if (commuteNetwork !== selectedNetwork) {
+      mobileNetworkTransitionRef.current?.cancel();
+      mobileNetworkTransitionRef.current = null;
       networkTransitionTargetRef.current = null;
       networkFadeAnimationRef.current?.cancel();
       networkFadeAnimationRef.current = null;
@@ -2287,6 +2292,8 @@ export function LineWatchShell({
     const commuteNetwork = commute.networkId ?? "ttc";
     const commuteDashboard = commuteNetwork === "regional" ? regionalData : ttcData;
     if (commuteNetwork !== selectedNetwork) {
+      mobileNetworkTransitionRef.current?.cancel();
+      mobileNetworkTransitionRef.current = null;
       networkTransitionTargetRef.current = null;
       networkFadeAnimationRef.current?.cancel();
       networkFadeAnimationRef.current = null;
@@ -2655,6 +2662,22 @@ export function LineWatchShell({
       setMapPresentationMode("standard");
       setMobileInspectorDetent(pendingStationSelection ? "details-focus" : "map-focus");
     };
+    if (mobilePerformanceMode && !reducedMotion && networkMapSurfaceRef.current) {
+      const transition = startMapSurfaceTransition(
+        networkMapSurfaceRef.current,
+        network === "regional" ? "forward" : "back",
+        () => flushSync(applyNetworkChange),
+      );
+      mobileNetworkTransitionRef.current = transition;
+      const finish = () => {
+        if (mobileNetworkTransitionRef.current !== transition) return;
+        mobileNetworkTransitionRef.current = null;
+        networkTransitionTargetRef.current = null;
+      };
+      void transition.finished.then(finish, finish);
+      return;
+    }
+
     const transitionDocument = document as Document & {
       startViewTransition?: (update: () => void) => {
         finished: Promise<void>;
@@ -3526,7 +3549,10 @@ export function LineWatchShell({
 
   const handleMapReady = useCallback(() => {
     setInitialMapReady(true);
-  }, []);
+    if (networkTransitionTargetRef.current === selectedNetwork) {
+      mobileNetworkTransitionRef.current?.mapReady();
+    }
+  }, [selectedNetwork]);
   const shellViewportStyle = {
     height: rotatedMapMode && rotatedMapViewportFrame
       ? `${rotatedMapViewportFrame.height}px`
@@ -4564,8 +4590,8 @@ export function LineWatchShell({
             className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
             aria-label="Rotate map"
           >
-            <PhoneRotateLandscapeIcon size={20} />
-            <span className="text-[9px] font-black leading-[1.1] text-left uppercase tracking-wider text-slate-800 dark:text-white">
+            <PhoneRotateLandscapeIcon size={24} />
+            <span className="text-[10px] font-black leading-[1.1] text-left uppercase tracking-wider text-slate-800 dark:text-white">
               Rotate<br />Map
             </span>
           </button>

@@ -3300,17 +3300,23 @@ function InteractiveRegionalMapComponent({
     refitUntouchedNetwork();
   }, [refitUntouchedNetwork]);
 
-  const handleFitNetwork = useCallback(() => {
+  const resetNetworkCamera = useCallback(() => {
     cameraAdjustedByUserRef.current = false;
     const fitted = fittedCamera();
-    if (!fitted) return;
+    if (!fitted) return false;
     cameraInitializedRef.current = true;
     // Commit Center directly. Opacity-based fade layers can force Android
     // Chromium to promote and retile the already transformed map at its fitted
     // scale, so visual feedback is painted separately by the viewport wash.
     snapCameraToNetwork(fitted.camera, fitted.scale);
-    if (!reducedMotion) setRecenterFeedbackKey((current) => current + 1);
-  }, [fittedCamera, reducedMotion, snapCameraToNetwork]);
+    return true;
+  }, [fittedCamera, snapCameraToNetwork]);
+
+  const handleFitNetwork = useCallback(() => {
+    if (resetNetworkCamera() && !reducedMotion) {
+      setRecenterFeedbackKey((current) => current + 1);
+    }
+  }, [reducedMotion, resetNetworkCamera]);
 
   const stageInitialEntrance = useCallback(() => {
     if (!svgMarkup) return;
@@ -3350,16 +3356,18 @@ function InteractiveRegionalMapComponent({
     return null;
   }, [commutePathPreview, selection, selectedStationId]);
 
-  const lastHandledLayoutResetSignalRef = useRef(0);
+  // The mounted map already fits its current layout. Only new commands
+  // should reset it; replaying a stored command interrupts network entry.
+  const lastHandledLayoutResetSignalRef = useRef(layoutResetSignal ?? 0);
 
   useEffect(() => {
     if (!layoutResetSignal || !svgMarkup) return;
     if (lastHandledLayoutResetSignalRef.current === layoutResetSignal) return;
     lastHandledLayoutResetSignalRef.current = layoutResetSignal;
     if (focusTargetKey) return;
-    const resetTimer = window.setTimeout(() => handleFitNetwork(), 320);
+    const resetTimer = window.setTimeout(() => resetNetworkCamera(), 320);
     return () => window.clearTimeout(resetTimer);
-  }, [focusTargetKey, handleFitNetwork, layoutResetSignal, svgMarkup]);
+  }, [focusTargetKey, resetNetworkCamera, layoutResetSignal, svgMarkup]);
 
   const initializeMapCamera = useCallback(() => {
     if (cameraInitializedRef.current || !svgMarkup) return;

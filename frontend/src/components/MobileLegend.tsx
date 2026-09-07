@@ -204,7 +204,7 @@ export function MobileLegend({
                       <span className="mobile-legend-regular-label">Regular</span>
                     )}
                   </span>
-                  <ChevronRight className="mobile-legend-row-chevron" size={15} aria-hidden="true" />
+                  <ChevronRight className="mobile-legend-row-chevron" size={13} aria-hidden="true" />
                 </button>
               );
             })}

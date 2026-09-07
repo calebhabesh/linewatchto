@@ -82,7 +82,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.network-selector--compact-vertical\[data-network="regional"\] \.network-selector-glider\s*\{[\s\S]*translateY/);
     assert.match(globalsCss, /\.site-guide-network-stack\s*\{[\s\S]*width:\s*var\(--mobile-top-action-button-size\)/);
     assert.match(globalsCss, /\.network-selector--compact-vertical \.network-indicator-dot\s*\{[\s\S]*display:\s*none/);
-    assert.match(globalsCss, /--compact-network-option-height:\s*32px[\s\S]*--compact-network-glider-height:\s*32px/);
+    assert.match(globalsCss, /--compact-network-option-height:\s*40px[\s\S]*--compact-network-glider-height:\s*40px/);
     assert.match(globalsCss, /\.network-selector--compact-vertical \.network-selector-glider\s*\{[\s\S]*height:\s*var\(--compact-network-glider-height\)/);
     assert.match(globalsCss, /\.network-selector--compact-vertical \.network-accent-ridges\s*\{[\s\S]*to bottom[\s\S]*transparent 1px 2px[\s\S]*height:\s*3px/);
   });
@@ -129,7 +129,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(mobileLegendSource, /<TransitLineBadge/);
     assert.match(mobileLegendSource, /size=\{24\}/);
     assert.match(mobileLegendSource, /name:\s*"UP Express"/);
-    assert.match(globalsCss, /\.mobile-legend-pill--regional\s*\{[^}]*max-width:\s*36px/);
+    assert.match(globalsCss, /\.mobile-legend-pill--regional\s*\{[^}]*max-width:\s*44px/);
     assert.match(globalsCss, /\.mobile-legend-line-list\s*\{[^}]*overflow-y:\s*auto/s);
     assert.match(
       globalsCss,
@@ -145,11 +145,7 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(
       globalsCss,
-      /\.linewatch-shell\[data-network="regional"\] \.mobile-train-toggle,[\s\S]*\.mobile-train-toggle--regional\s*\{[\s\S]*var\(--mobile-map-legend-height, 220px\) \+ 12px\)/,
-    );
-    assert.match(
-      globalsCss,
-      /\.linewatch-shell\[data-network="regional"\] \.mobile-train-toggle--announcement,[\s\S]*\.mobile-train-toggle--regional\.mobile-train-toggle--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)[\s\S]*var\(--mobile-map-legend-height, 220px\) \+ 12px\)/,
+      /\.mobile-train-toggle\s*\{[^}]*top:\s*auto\s*!important;[^}]*bottom:\s*calc\(var\(--mobile-bottom-nav-occupied-height\) \+ var\(--mobile-status-peek-actual-height, 108px\) \+ 24px\)/,
     );
   });
 
@@ -1037,7 +1033,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalMapSource, /startViewTransition|regionalRecenterTransition|MapViewTransition/);
     assert.doesNotMatch(globalsCss, /regional-map-recenter-fade-in|data-regional-recenter-transition|view-transition-name:\s*regional-map-recenter/);
     assert.doesNotMatch(globalsCss, /map-recenter-veil|data-map-recenter-effect/);
-    assert.match(regionalMapSource, /if \(!reducedMotion\) setRecenterFeedbackKey/);
+    assert.match(regionalMapSource, /if \(resetNetworkCamera\(\) && !reducedMotion\)\s*\{\s*setRecenterFeedbackKey/);
     assert.match(regionalMapSource, /className="map-center-feedback"[\s\S]*data-map-center-feedback="regional"/);
     assert.match(globalsCss, /\.map-center-feedback\s*\{[^}]*background-color:\s*transparent;[^}]*animation:\s*map-center-feedback-fade/s);
     assert.doesNotMatch(globalsCss, /\.map-center-feedback\s*\{[^}]*(?:opacity|will-change):/s);

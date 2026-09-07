@@ -4,6 +4,8 @@ const disclaimerStorageKey = "linewatch-unofficial-notice-ack-v1";
 const welcomeStorageKey = "linewatch-welcome-seen-v1";
 
 test.describe("vertical centering and mode switch stability", () => {
+  // Asset timing assertions must observe requests rather than worker cache hits.
+  test.use({ serviceWorkers: "block" });
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(({ disclaimerKey, welcomeKey }) => {
       window.localStorage.setItem(welcomeKey, "true");
@@ -31,16 +33,53 @@ test.describe("vertical centering and mode switch stability", () => {
     expect(preloads.slice(0, 3).map((entry) => entry.initiator)).toEqual(["link", "link", "link"]);
     expect(new Set(preloads.map((entry) => entry.name)).size).toBe(3);
     expect(preloads.slice(3).every((entry) => entry.transferSize === 0)).toBe(true);
-    const rotate = await page.getByRole("button", { name: "Rotate map", exact: true }).elementHandle();
-    for (const network of ["regional", "ttc"]) {
+    const controls = await page.locator("header .rotate-map-btn, header .theme-toggle-btn, .mobile-bottom-nav").elementHandles();
+    await page.evaluate(() => {
+      const original = document.startViewTransition.bind(document);
+      document.startViewTransition = (...args) => {
+        document.documentElement.dataset.unexpectedDocumentTransition = "true";
+        return original(...args);
+      };
+    });
+    const surface = page.locator(".network-map-transition-surface");
+    for (const network of ["regional", "ttc", "regional", "ttc"]) {
       await page.locator(`.mobile-network-selector-slot .network-btn-${network}`).click();
-      await expect.poll(() => page.evaluate(() =>
-        document.documentElement.dataset.networkTransitionDirection ?? "")).not.toBe("");
-      expect(await page.evaluate(() => getComputedStyle(document.documentElement).viewTransitionName)).toBe("none");
-      expect(await rotate?.evaluate((node) => node.isConnected)).toBe(true);
-      await expect(page.locator(`.${network === "regional" ? "regional" : "ttc"}-map-stage[data-raster-map-ready="true"]`)).toBeVisible();
-      await expect.poll(() => page.evaluate(() =>
-        document.documentElement.dataset.networkTransitionDirection ?? "")).toBe("");
+      await expect.poll(() => surface.getAttribute("data-map-surface-transition"), { intervals: [16] }).toBe("entering");
+      await expect(page.locator(`.${network}-map-stage[data-raster-map-ready="true"]`)).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.dataset.unexpectedDocumentTransition)).toBeUndefined();
+      for (const control of controls) {
+        expect(await control.evaluate((node) => node instanceof Element && node.isConnected && getComputedStyle(node).opacity === "1")).toBe(true);
+      }
+      await expect(surface).not.toHaveAttribute("data-map-surface-transition");
+      // Stored layout commands must not replay Center after a network mount.
+      await page.waitForTimeout(400);
+      await expect(page.locator(".map-center-feedback")).toHaveCount(0);
+    }
+  });
+
+  test("mobile waits for a slow regional map before starting its entrance", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "mobile project only");
+    let releaseAsset!: () => void;
+    const assetGate = new Promise<void>((resolve) => { releaseAsset = resolve; });
+    await page.route(/\/regional-rail-map\.svg/, async (route) => {
+      await assetGate;
+      await route.continue();
+    });
+    try {
+      await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+      await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible();
+      await page.locator(".mobile-network-selector-slot .network-btn-regional").click();
+      const surface = page.locator(".network-map-transition-surface");
+      await expect(surface).toHaveAttribute("data-map-surface-transition", "loading");
+      await expect(page.getByRole("button", { name: "Rotate map", exact: true })).toBeVisible();
+      await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
+      expect(await surface.evaluate((node) => getComputedStyle(node).opacity)).toBe("0");
+      releaseAsset();
+      await expect.poll(() => surface.getAttribute("data-map-surface-transition"), { intervals: [16] }).toBe("entering");
+      await expect(page.locator('.regional-map-stage[data-raster-map-ready="true"]')).toBeVisible();
+      await expect(surface).not.toHaveAttribute("data-map-surface-transition");
+    } finally {
+      releaseAsset();
     }
   });
 
