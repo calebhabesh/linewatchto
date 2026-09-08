@@ -1,5 +1,6 @@
 "use client";
 
+import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDirection } from "../app/linewatch-data";
@@ -2962,13 +2963,14 @@ function InteractiveRegionalMapComponent({
       ? Math.max(0, Math.round(window.innerHeight - badges.getBoundingClientRect().top))
       : 0;
   });
-  const [hoveredStationLabel, setHoveredStationLabel] = useState<{
+  const [activeHoveredStationLabel, setHoveredStationLabel] = useState<{
     stationId: string;
     polygonPoints: string;
     center: SvgPoint;
     bounds: SvgBounds;
     cutoutMarkup: string;
   } | null>(null);
+  const hoveredStationLabel = useRetainedHover(activeHoveredStationLabel);
   const mapLabelFontReady = useMapLabelFontReady();
   const pageVisible = usePageVisibility();
   const useMobileRendering = mobilePerformanceMode || mobilePerformanceModeMatches();
@@ -4818,7 +4820,9 @@ function InteractiveRegionalMapComponent({
               <g
                 aria-hidden="true"
                 className="raster-station-label-text-hover"
-                transform={`translate(${hoveredStationLabel.center.x} ${hoveredStationLabel.center.y}) scale(1.045) translate(${-hoveredStationLabel.center.x} ${-hoveredStationLabel.center.y})`}
+                key={hoveredStationLabel.stationId}
+                data-hover-active={activeHoveredStationLabel !== null}
+                style={{ transformOrigin: `${hoveredStationLabel.center.x + 200}px ${hoveredStationLabel.center.y + 200}px` }}
               >
                 <defs>
                   <clipPath id="regional-hovered-station-label-clip" clipPathUnits="userSpaceOnUse">

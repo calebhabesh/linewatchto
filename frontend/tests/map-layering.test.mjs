@@ -108,9 +108,9 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*filter:\s*drop-shadow\(0 0 6px[^}]*transform:\s*scale\(1\.045\);/s,
+      /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*filter:\s*drop-shadow\(0 0 7px[^}]*transform:\s*scale\(1\.035\);/s,
     );
-    assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*transition:\s*transform 80ms ease-out;/s);
+    assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*transition:\s*transform 120ms ease, filter 120ms ease;/s);
     assert.match(globalCss, /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*transition-delay:\s*0ms;/s);
     assert.match(interactiveRegionalMapSource, /bounds:\s*\{[\s\S]*?Math\.min\(\.\.\.corners/);
     assert.match(interactiveRegionalMapSource, /x=\{hoveredStationLabel\.bounds\.x\}/);

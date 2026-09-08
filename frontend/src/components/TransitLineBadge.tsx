@@ -39,6 +39,10 @@ function regionalBadgeAssetId(lineId: string) {
   return lineId;
 }
 
+export function transitLineName(lineId: string) {
+  return LINE_NAMES[regionalBadgeAssetId(lineId)];
+}
+
 export function transitLineBadgeColors(lineId: string) {
   const assetId = regionalBadgeAssetId(lineId);
   return FALLBACK_COLORS[assetId] ?? { backgroundColor: "#64748b", color: "#ffffff" };

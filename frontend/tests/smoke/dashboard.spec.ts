@@ -631,7 +631,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await ttcStage.locator('[data-station-label-id="kipling"]').hover();
   const rasterLabelHover = ttcStage.locator(".raster-station-label-text-hover");
   await expect(rasterLabelHover).toHaveCount(1);
-  await expect(rasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
+  await expect(rasterLabelHover).toHaveCSS("transform", /matrix\(1\.035, 0, 0, 1\.035, 0, 0\)/);
   await expect(rasterLabelHover.locator(":scope > image")).toHaveAttribute("mask", "url(#ttc-hovered-station-label-mask)");
   await expect(rasterLabelHover.locator("#ttc-hovered-station-target-mask")).toHaveCount(1);
   await expect(rasterLabelHover.locator("#ttc-hovered-station-label-mask > g"))
@@ -654,21 +654,21 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(regionalStage.locator("#regional-lines-layer")).toHaveCSS("visibility", "hidden");
   await expect(regionalStage.locator("#regional-stations-layer")).toHaveCount(1);
-  const unionLabelTarget = regionalStage.locator('.regional-station-label-hit-target[data-regional-station-id="union"]');
-  await unionLabelTarget.hover();
+  const regionalLabelTarget = regionalStage.locator('.regional-station-label-hit-target[data-regional-station-id="kipling"]');
+  await regionalLabelTarget.hover();
   const regionalRasterLabelHover = regionalStage.locator(".raster-station-label-text-hover");
   await expect(regionalRasterLabelHover).toHaveCount(1);
-  await expect(regionalRasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
+  await expect(regionalRasterLabelHover).toHaveCSS("transform", /matrix\(1\.035, 0, 0, 1\.035, 0, 0\)/);
   await expect(regionalRasterLabelHover.locator(":scope > image")).toHaveAttribute("mask", "url(#regional-hovered-station-label-mask)");
   await expect(regionalRasterLabelHover.locator("#regional-hovered-station-target-mask")).toHaveCount(1);
   await expect(regionalRasterLabelHover.locator("#regional-hovered-station-label-mask > g"))
     .toHaveAttribute("mask", "url(#regional-hovered-station-target-mask)");
   await expect(regionalStage.locator(".raster-map-plane--labels > image")).toHaveAttribute("mask", "url(#regional-labels-raster-mask)");
-  await unionLabelTarget.dispatchEvent("pointerdown", { pointerId: 31, pointerType: "mouse", button: 0 });
-  await expect(unionLabelTarget).not.toHaveClass(/regional-raster-label-halo|regional-station-label-hovered/);
+  await regionalLabelTarget.dispatchEvent("pointerdown", { pointerId: 31, pointerType: "mouse", button: 0 });
+  await expect(regionalLabelTarget).not.toHaveClass(/regional-raster-label-halo|regional-station-label-hovered/);
   await expect(regionalRasterLabelHover).toHaveCount(1);
-  await unionLabelTarget.dispatchEvent("pointerup", { pointerId: 31, pointerType: "mouse", button: 0 });
-  await expect(regionalStage.locator('[data-regional-station-label-for="union"]').locator("..")).toHaveCSS("opacity", "0");
+  await regionalLabelTarget.dispatchEvent("pointerup", { pointerId: 31, pointerType: "mouse", button: 0 });
+  await expect(regionalStage.locator('[data-regional-station-label-for="kipling"]').locator("..")).toHaveCSS("opacity", "0");
 });
 
 test("waits for the authored map font before measuring station label hover geometry", async ({ page, request, isMobile }) => {
@@ -802,10 +802,16 @@ test("regional station names share the TTC raster hover glow and station selecti
   await labelTarget.hover();
   const rasterLabelHover = page.locator(".regional-map-stage .raster-station-label-text-hover");
   await expect(rasterLabelHover).toHaveCount(1);
-  await expect(rasterLabelHover).toHaveAttribute("transform", /scale\(1\.045\)/);
+  await expect(rasterLabelHover).toHaveCSS("transform", /matrix\(1\.035, 0, 0, 1\.035, 0, 0\)/);
   await expect(rasterLabelHover.locator("#regional-hovered-station-target-mask")).toHaveCount(1);
   await expect(rasterLabelHover.locator("#regional-hovered-station-label-mask > g"))
     .toHaveAttribute("mask", "url(#regional-hovered-station-target-mask)");
+  await expect(rasterLabelHover).toHaveCSS("transition-duration", "0.12s, 0.12s");
+  await page.mouse.move(20, 20);
+  await expect(rasterLabelHover).toHaveCount(0);
+  await labelTarget.hover();
+  await expect(rasterLabelHover).toHaveAttribute("data-hover-active", "true");
+
 
   await labelTarget.click();
   await expect(page.getByRole("complementary", { name: "Kipling regional station details" })).toBeVisible();
@@ -1460,7 +1466,7 @@ test("uses one station selection animation in both map modes", async ({ page, re
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
-  await page.locator('.regional-station-hit-target[data-regional-station-id="union"]').click();
+  await page.locator('.regional-station-hit-target[data-regional-station-id="union"]').press("Enter");
 
   const regionalUnderlay = page.locator(
     '.regional-station-selected-indicator.foreground-flash-active[data-regional-station-selection-id="union"]',
@@ -1652,8 +1658,8 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
         ),
       };
     });
-    expect(doubleDigitBadgeMetrics.badgeWidth).toBe(32);
-    expect(doubleDigitBadgeMetrics.badgeHeight).toBe(32);
+    expect(doubleDigitBadgeMetrics.badgeWidth).toBe(36);
+    expect(doubleDigitBadgeMetrics.badgeHeight).toBe(36);
     expect(doubleDigitBadgeMetrics.badgeFontFamily).toBe(doubleDigitBadgeMetrics.buttonFontFamily);
     expect(doubleDigitBadgeMetrics.horizontalOpticalOffset).toBeGreaterThanOrEqual(0.5);
     expect(doubleDigitBadgeMetrics.horizontalOpticalOffset).toBeLessThanOrEqual(1);
@@ -2025,7 +2031,7 @@ test("alert submenus persist one per-device card or list preference", async ({ p
   await expect(firstCompactRow).toContainText("Reduced Speed:");
   await expect(firstCompactRow).toContainText("Est. Resolution:");
   await expect(firstCompactRow).toContainText("Updated:");
-  await expect(firstCompactRow).not.toContainText("Zone Count:");
+  await expect(firstCompactRow).toContainText("Zone Count:");
   const secondCompactRow = page.locator(".compact-impact-list-item").nth(1);
   await expect(secondCompactRow).toContainText("Zone Count:");
   await expect(firstCompactRow).toHaveCSS("border-left-color", "rgba(245, 158, 11, 0.85)");
@@ -2815,6 +2821,32 @@ test("LineLegend clicks open a temporary line-focused view without highlighting 
   await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("all");
 });
 
+test("desktop line names open the all-types submenu with keyboard and pointer", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only legend interaction");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  const legend = page.locator(".desktop-map-legend");
+  const affectedLine = legend.getByRole("button", { name: /View all service impacts for Line 1 Yonge-University:/ });
+  await expect(affectedLine).toHaveClass(/service-tone-affected/);
+  await expect(affectedLine.locator(".desktop-legend-status-chip")).toBeVisible();
+  await affectedLine.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: /Yonge-University/ })).toBeVisible();
+  await expect(page.getByRole("group", { name: /Filter .*Yonge-University impacts by alert type/ })).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /Yonge-University/ })).toHaveCount(0);
+  const regularLine = legend.getByRole("button", { name: /View all service impacts for Line 6 Finch West:/ });
+  await expect(regularLine).toHaveClass(/service-tone-good/);
+  await regularLine.click();
+  await expect(page.getByRole("heading", { name: /Finch West/ })).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true }).click();
+  await waitForNetworkTransition(page, "regional");
+  await legend.getByRole("button", { name: /View all service impacts for Barrie Line:/ }).click();
+  await expect(page.getByRole("heading", { name: /Barrie/ })).toBeVisible();
+});
+
 test("mobile map legend summarizes line impacts and opens the all-types line view", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only legend interaction");
   await setStubMode(request, "seeded");
@@ -2896,6 +2928,12 @@ test("Line Status opens an all-types line submenu on desktop and mobile", async 
     expect(new Set(filterTops).size).toBe(1);
   }
   await expect(page.locator(".line-impact-total-badge")).toContainText(/\d+ Service Impacts/);
+  const linePanel = page.locator(".line-impacts-panel");
+  await linePanel.getByRole("button", { name: "List view", exact: true }).click();
+  await expect(linePanel.getByRole("button", { name: "List view", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(linePanel.locator(".alert-stack.is-list-view").first()).toBeVisible();
+  await linePanel.getByRole("button", { name: "Card view", exact: true }).click();
+  await expect(linePanel.locator(".alert-stack.is-list-view")).toHaveCount(0);
   await typeFilters.getByRole("button", { name: /Reduced Speed Zones/ }).click();
   await expect(page.locator(".line-impact-panel-stack .rsz-card-border").first()).toBeVisible();
   await expect(page.locator(".line-impact-panel-stack .embedded-impact-panel > .panel-heading")).toBeHidden();
@@ -3406,12 +3444,12 @@ test("station names share hover and selection behavior with station dots", async
   if (!isMobile) {
     const authoredLabel = page.locator('[data-station-label-for="kipling"]');
     const hoverEffect = authoredLabel.locator("..");
-    await expect.poll(() => authoredLabel.evaluate((element) => getComputedStyle(element).fontSize))
+    await expect.poll(async () => authoredLabel.evaluate((element) => getComputedStyle(element).fontSize))
       .not.toBe("");
     const authoredFontSize = await authoredLabel.evaluate((element) => getComputedStyle(element).fontSize);
     await labelTarget.hover();
     await expect(authoredLabel).toHaveClass(/station-label-hovered/);
-    await expect(hoverEffect).toHaveCSS("transition-duration", "0.08s");
+    await expect(hoverEffect).toHaveCSS("transition-duration", "0.12s, 0.12s");
     await expect(hoverEffect).toHaveCSS("transition-delay", "0s");
     await expect(hoverEffect).toHaveCSS("animation-name", "none");
     await expect(authoredLabel).toHaveCSS("font-size", authoredFontSize);

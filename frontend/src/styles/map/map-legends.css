@@ -637,3 +637,88 @@
     max-height: calc(100dvh - var(--mobile-safe-top) - var(--mobile-announcement-top-offset) - var(--mobile-regional-announcement-chip-height) - 92px);
   }
 }
+
+
+.desktop-legend-line-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 17px;
+  min-height: 44px;
+  padding: 0 4px 0 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.desktop-legend-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 5px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid #258651;
+  border-radius: 7px;
+  background: #e0f5e8;
+  color: #176b3c;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.desktop-legend-line-button.service-tone-affected .desktop-legend-status-chip {
+  border-color: #b42337;
+  background: #c92c42;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgb(201 44 66 / 12%), 0 2px 8px rgb(201 44 66 / 20%);
+}
+
+.dark .desktop-legend-status-chip {
+  border-color: #327b53;
+  background: #143525;
+  color: #6ee7a0;
+}
+
+.dark .desktop-legend-line-button.service-tone-affected .desktop-legend-status-chip {
+  border-color: #ff8592;
+  background: #a91e34;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgb(255 72 99 / 13%), 0 0 10px rgb(255 72 99 / 20%);
+}
+
+.high-contrast .desktop-legend-status-chip {
+  border-width: 2px;
+}
+
+.desktop-legend-line-button .legend-line-name {
+  transform-origin: left center;
+  transition: transform 160ms ease, text-shadow 160ms ease;
+}
+
+.desktop-legend-line-button:hover .legend-line-name,
+.desktop-legend-line-button:focus-visible .legend-line-name {
+  transform: scale(1.015);
+  text-shadow: 0 0 9px color-mix(in srgb, currentColor 35%, transparent);
+}
+
+.desktop-legend-line-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-legend-line-button .legend-line-name {
+    transition: none;
+  }
+
+  .desktop-legend-line-button:hover .legend-line-name,
+  .desktop-legend-line-button:focus-visible .legend-line-name {
+    transform: none;
+  }
+}

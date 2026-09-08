@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, Search, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { ImpactListSort } from "../app/impact-list-controls";
+import { useImpactListView } from "../hooks/useImpactListView";
 import { useDashboardData } from "../app/DataContext";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
-import { ToolbarSelectMenu } from "./ImpactListToolbar";
-import { TransitLineBadge } from "./TransitLineBadge";
+import { ImpactListViewToggle, ToolbarSelectMenu } from "./ImpactListToolbar";
+import { TransitLineBadge, transitLineName } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
 import { DelaysPanel } from "./DelaysPanel";
@@ -44,6 +45,7 @@ function matchesQuery(item: { title: string; location: string; description?: str
 
 export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
   const dashboard = useDashboardData();
+  const { viewMode, setViewMode } = useImpactListView();
   const line = dashboard.lineStatuses.find((candidate) => candidate.id === lineId);
   const [category, setCategory] = useState<LineImpactCategory>("all");
   const [query, setQuery] = useState("");
@@ -60,7 +62,7 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, on
     closures: lineClosures.length,
   };
   const totalCount = counts.alerts + counts.delays + counts["reduced-speed-zones"] + counts.closures;
-  const lineName = line?.name ?? "Transit Line";
+  const lineName = line?.name ?? transitLineName(lineId) ?? "Transit Line";
   const visibleCategories = (Object.keys(CATEGORY_LABELS) as Array<Exclude<LineImpactCategory, "all">>)
     .filter((key) => dashboard.networkId === "ttc" || key !== "reduced-speed-zones");
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -128,6 +130,7 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, on
               ]}
               onChange={setSort}
             />
+            <ImpactListViewToggle noun={`${lineName} impacts`} viewMode={viewMode} onViewModeChange={setViewMode} />
           </div>
           <span className="sr-only" role="status">{visibleItemCount} matching impact cards</span>
         </div>

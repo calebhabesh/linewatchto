@@ -39,14 +39,14 @@
   pointer-events: none;
   transform-box: fill-box;
   transform-origin: center;
-  transition: transform 80ms ease-out;
+  transition: transform 120ms ease, filter 120ms ease;
 }
 
 .station-label-hover-effect-active,
 .station-label-hover-effect:has(.station-label-hovered),
 .station-label-hover-effect:has(.regional-station-label-hovered) {
-  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
-  transform: scale(1.045);
+  filter: drop-shadow(0 0 7px rgb(var(--station-selection-accent-rgb) / 78%));
+  transform: scale(1.035);
   transition-delay: 0ms;
 }
 

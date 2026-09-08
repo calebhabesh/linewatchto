@@ -1,5 +1,6 @@
 "use client";
 
+import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback } from "react";
 import {
   composeNetworkSegmentPath,
@@ -475,7 +476,8 @@ function InteractiveTtcMapComponent({
     ttcMapMarkupCache.has(mapAsset.src) ? "ready" : "loading"
   ));
   const [geometryReady, setGeometryReady] = useState(false);
-  const [hoveredStationLabelId, setHoveredStationLabelId] = useState<string | null>(null);
+  const [activeHoveredStationLabelId, setHoveredStationLabelId] = useState<string | null>(null);
+  const hoveredStationLabelId = useRetainedHover(activeHoveredStationLabelId);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const mapLabelFontReady = useMapLabelFontReady();
   const pageVisible = usePageVisibility();
@@ -626,7 +628,7 @@ function InteractiveTtcMapComponent({
     for (const label of root.querySelectorAll<SVGGraphicsElement>(
       "#ttc-station-labels-layer [data-station-label-for]",
     )) {
-      const active = label.dataset.stationLabelFor === hoveredStationLabelId;
+      const active = label.dataset.stationLabelFor === activeHoveredStationLabelId;
       label.classList.toggle(
         "station-label-hovered",
         active,
@@ -2380,7 +2382,9 @@ function InteractiveTtcMapComponent({
                 <g
                   aria-hidden="true"
                   className="raster-station-label-text-hover"
-                  transform={`translate(${hoveredLabelCenter.x} ${hoveredLabelCenter.y}) scale(1.045) translate(${-hoveredLabelCenter.x} ${-hoveredLabelCenter.y})`}
+                  key={hoveredStationLabelId}
+                  data-hover-active={activeHoveredStationLabelId !== null}
+                  style={{ transformOrigin: `${hoveredLabelCenter.x}px ${hoveredLabelCenter.y}px` }}
                 >
                   <defs>
                     <clipPath id="ttc-hovered-station-label-clip" clipPathUnits="userSpaceOnUse">

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { type CSSProperties } from "react";
+import { Check, Info } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
@@ -77,12 +78,14 @@ export function LineLegend({
   onDelayClick,
   onClosureClick,
   onReducedSpeedZoneClick,
+  onLineClick,
 }: { 
   mode?: "ttc" | "regional";
   onAlertClick?: (lineId: string) => void;
   onDelayClick?: (lineId: string) => void;
   onClosureClick?: (lineId: string) => void;
   onReducedSpeedZoneClick?: (lineId: string) => void;
+  onLineClick: (lineId: string) => void;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   const isRegional = mode === "regional";
@@ -311,13 +314,33 @@ export function LineLegend({
             <span className="desktop-legend-route-number">{line.number}</span>
           </span>
         )}
-        <span
-          className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap leading-none ${
-            isRegional ? "text-[24px]" : "text-[22px]"
-          }`}
+        <button
+          type="button"
+          className={`desktop-legend-line-button service-tone-${tone}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onLineClick(dataLineId);
+          }}
+          aria-label={`View all service impacts for ${line.name}: ${totalImpactCount > 0 ? `${totalImpactCount} service impacts` : "regular service"}`}
         >
-          {line.name}
-        </span>
+          <span
+            className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap leading-none ${
+              isRegional ? "text-[24px]" : "text-[22px]"
+            }`}
+          >
+            {line.name}
+          </span>
+          <span className="desktop-legend-status-chip" aria-hidden="true">
+            {totalImpactCount > 0 ? (
+              <>
+                <Info size={15} strokeWidth={2.5} />
+                <span>{totalImpactCount}</span>
+              </>
+            ) : (
+              <Check size={15} strokeWidth={3} />
+            )}
+          </span>
+        </button>
       </div>
     );
   };

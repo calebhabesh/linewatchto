@@ -231,31 +231,41 @@ export function ImpactListToolbar({
           onChange={onSortChange}
         />
         {viewMode && onViewModeChange ? (
-          <div className="impact-list-view-toggle" role="group" aria-label={`${noun} view`}>
-            <button
-              type="button"
-              aria-label="Card view"
-              aria-pressed={viewMode === "cards"}
-              title="Card view"
-              onClick={() => onViewModeChange("cards")}
-            >
-              <PanelsTopLeft size={15} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-label="List view"
-              aria-pressed={viewMode === "list"}
-              title="List view"
-              onClick={() => onViewModeChange("list")}
-            >
-              <LayoutList size={16} aria-hidden="true" />
-            </button>
-          </div>
+          <ImpactListViewToggle noun={noun} viewMode={viewMode} onViewModeChange={onViewModeChange} />
         ) : null}
       </div>
       <span className="sr-only" role="status">
         {filtering ? `${visibleCount} of ${totalCount}` : `${totalCount} total`}
       </span>
+    </div>
+  );
+}
+
+export function ImpactListViewToggle({ noun, viewMode, onViewModeChange }: {
+  noun: string;
+  viewMode: ImpactListView;
+  onViewModeChange: (view: ImpactListView) => void;
+}) {
+  return (
+    <div className="impact-list-view-toggle" role="group" aria-label={`${noun} view`}>
+      <button
+        type="button"
+        aria-label="Card view"
+        aria-pressed={viewMode === "cards"}
+        title="Card view"
+        onClick={() => onViewModeChange("cards")}
+      >
+        <PanelsTopLeft size={15} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label="List view"
+        aria-pressed={viewMode === "list"}
+        title="List view"
+        onClick={() => onViewModeChange("list")}
+      >
+        <LayoutList size={16} aria-hidden="true" />
+      </button>
     </div>
   );
 }

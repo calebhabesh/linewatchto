@@ -200,8 +200,30 @@
 
 .raster-station-label-text-hover {
   pointer-events: none;
-  filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 58%));
-  transition: filter 70ms ease-out;
+  transform-box: view-box;
+  transform: scale(1);
+  filter: drop-shadow(0 0 7px rgb(var(--station-selection-accent-rgb) / 0%));
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.raster-station-label-text-hover[data-hover-active="true"] {
+  transform: scale(1.035);
+  filter: drop-shadow(0 0 7px rgb(var(--station-selection-accent-rgb) / 78%));
+}
+
+@starting-style {
+  .raster-station-label-text-hover[data-hover-active="true"] {
+    transform: scale(1);
+    filter: drop-shadow(0 0 7px rgb(var(--station-selection-accent-rgb) / 0%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raster-station-label-text-hover,
+  .raster-station-label-text-hover[data-hover-active="true"] {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* Static authored artwork no longer paints after its raster planes decode.

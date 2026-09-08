@@ -132,7 +132,7 @@ describe("stable raster map renderer", () => {
     assert.match(generator, /map\.id === "regional" && plane === "labels" && theme !== "light"[\s\S]*?source\.replaceAll\("stroke:#000000", "stroke:#ffffff"\)/);
     assert.match(generator, /#polygon771-7,[\s\S]*?#polygon771-7-4-1-5 \{ fill: #f1f5f9 !important; \}/);
     assert.match(ttc, /className="raster-station-label-text-hover"/);
-    assert.match(ttc, /scale\(1\.045\)/);
+    assert.match(css, /scale\(1\.035\)/);
     assert.match(
       ttc,
       /cutoutElementHref=\{hoveredStationLabelId[\s\S]*?`#station-label-\$\{hoveredStationLabelId\}`[\s\S]*?: null\}/,

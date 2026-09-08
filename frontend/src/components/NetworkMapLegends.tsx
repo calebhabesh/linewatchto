@@ -35,6 +35,7 @@ export function NetworkMapLegend({
       >
         <LineLegend
           mode={mode}
+          onLineClick={onLineClick}
           onAlertClick={onAlertClick}
           onDelayClick={onDelayClick}
           onReducedSpeedZoneClick={onReducedSpeedZoneClick}
