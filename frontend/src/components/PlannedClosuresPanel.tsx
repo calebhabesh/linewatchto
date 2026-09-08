@@ -186,9 +186,12 @@ export function PlannedClosuresPanel({
                   location={closure.location}
                   direction={closure.displayDirection}
                   facts={[
+                    ...(closure.windowDates ? [{ label: "Closure Dates", value: formatClosureScheduleValue(closure.windowDates), emphasized: true }] : []),
+                    ...(closure.windowHours ? [{ label: "Closure Hours", value: formatClosureScheduleValue(closure.windowHours), emphasized: true }] : []),
                     {
                       column: 1,
                       label: specificWindowLabel ? listWindowHeading : "Closure Window",
+                      emphasized: true,
                       value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : closure.window,
                     },
                     { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={closure.startedAt} /> },

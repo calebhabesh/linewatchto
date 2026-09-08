@@ -295,16 +295,30 @@
     flex-direction: column;
     gap: 6px;
     box-sizing: border-box;
-    padding: 9px 7px;
+    padding: 9px 0;
     width: 42px;
   }
 
+  .mobile-legend-status-rib {
+    position: absolute;
+    right: -1px;
+    width: 2.5px;
+    height: 16px;
+    clip-path: polygon(100% 0, 100% 100%, 0 75%, 0 25%);
+    background: #36b875;
+  }
+
+  .service-tone-affected > .mobile-legend-status-rib {
+    background: #e4525b;
+  }
+
   .mobile-legend-compact-row {
+    position: relative;
     align-items: center;
     display: flex;
     height: 28px;
     justify-content: center;
-    width: 28px;
+    width: 100%;
   }
 
   .mobile-legend-route-badge {

@@ -6,6 +6,7 @@ export type CompactImpactFact = {
   label: string;
   value: ReactNode;
   column?: number;
+  emphasized?: boolean;
 };
 
 export function CompactImpactTimeValue({
@@ -50,7 +51,7 @@ export function CompactImpactListItem({
   toneClassName,
   onShowOnMap,
 }: Props) {
-  const renderedFacts = direction
+  const renderedFacts: CompactImpactFact[] = direction
     ? [{ label: "Direction", value: direction }, ...facts]
     : facts;
 
@@ -80,7 +81,7 @@ export function CompactImpactListItem({
           <span className="compact-impact-list-item__facts">
             {renderedFacts.map((fact) => (
               <span
-                className={`compact-impact-list-item__fact${fact.column ? ` is-column-${fact.column}` : ""}`}
+                className={`compact-impact-list-item__fact${fact.column ? ` is-column-${fact.column}` : ""}${fact.emphasized ? " is-emphasized" : ""}`}
                 key={fact.label}
               >
                 <span className="compact-impact-list-item__key">{fact.label}:</span> {fact.value}

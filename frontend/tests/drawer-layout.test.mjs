@@ -93,7 +93,7 @@ describe("floating menu layout", () => {
     assert.match(mobileLegendSource, /transitLineBadgeColors\(lineId\)/);
     assert.match(mobileLegendSource, /mobile-legend-route-badge--ttc/);
     assert.match(globalCss, /--mobile-legend-expanded-width:\s*min\(\s*212px/s);
-    assert.match(globalCss, /\.mobile-legend-collapsed-toggle\s*\{[^}]*padding:\s*9px 7px/s);
+    assert.match(globalCss, /\.mobile-legend-collapsed-toggle\s*\{[^}]*padding:\s*9px 0/s);
     assert.match(globalCss, /\.mobile-legend-route-badge--compact\s*\{[^}]*--mobile-legend-outline-width:\s*2\.25px[^}]*height:\s*28px[^}]*width:\s*28px/s);
     assert.match(globalCss, /\.mobile-legend-route-badge--expanded\s*\{[^}]*--mobile-legend-outline-width:\s*2\.25px[^}]*height:\s*24px[^}]*width:\s*24px/s);
     assert.match(globalCss, /\.mobile-legend-route-badge--regional\s*\{[^}]*background:\s*linear-gradient\(var\(--mobile-legend-ring-color\)[^}]*border:\s*var\(--mobile-legend-outline-width\) solid transparent[^}]*border-radius:\s*5px !important[^}]*height:\s*var\(--mobile-regional-badge-size, 24px\) !important[^}]*width:\s*var\(--mobile-regional-badge-size, 24px\) !important/s);

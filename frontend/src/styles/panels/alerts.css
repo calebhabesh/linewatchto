@@ -345,6 +345,7 @@
   color: #b8a66f;
 }
 
+.rsz-zone-direction-breakdown,
 .rsz-resolution-breakdown {
   align-items: flex-start;
   display: inline-flex;
@@ -1473,4 +1474,30 @@
   padding-bottom: 12px; /* Overrides the mobile 56px bottom padding to keep centering symmetric */
   mask-image: none;
   -webkit-mask-image: none;
+}
+
+/* Condensed cards retain the expanded cards' schedule and direction cues. */
+.compact-impact-list-item .is-emphasized > .compact-impact-list-item__key {
+  color: var(--color-logo-blue);
+  text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
+}
+
+.compact-impact-list-item .rsz-zone-direction-breakdown,
+.compact-impact-list-item .rsz-resolution-breakdown {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.compact-impact-list-item .rsz-zone-count-label-total {
+  margin-right: 8px;
+}
+
+.compact-impact-list-item.rsz-card-border .compact-impact-list-item__fact.is-column-2 {
+  flex-basis: 100%;
+  align-items: center;
+}
+
+.compact-impact-list-item .rsz-zone-direction-breakdown {
+  align-items: center;
 }

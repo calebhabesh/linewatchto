@@ -174,7 +174,7 @@ export function ReducedSpeedZonesPanel({
                   direction={zone.displayDirection}
                   facts={[
                     { column: 1, label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) || "Not Reported" },
-                    ...(zonesAtLocation > 1 ? [{ column: 2, label: "Zone Count", value: zonesAtLocation }] : []),
+                    { column: 2, label: "Zone Count", value: <><strong className="rsz-zone-count-label-total">{zonesAtLocation}</strong>{zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null}</> },
                     {
                       column: 3,
                       label: "Started",
@@ -189,7 +189,7 @@ export function ReducedSpeedZonesPanel({
                         ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
                         : <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} />,
                     },
-                    { column: 5, label: "Est. Resolution", value: reducedSpeedZoneResolutionText(zone) },
+                    { column: 5, label: "Est. Resolution", value: showResolutionBreakdown ? <ReducedSpeedZoneResolutionBreakdown zone={zone} /> : reducedSpeedZoneResolutionText(zone) },
                   ]}
                   active={isActive}
                   toneClassName="rsz-card-border"

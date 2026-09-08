@@ -221,7 +221,7 @@ export function MobileLegend({
         >
           <span className="sr-only">{legendLabel}</span>
           {lineSummaries.map((line) => (
-            <span key={line.id} className="mobile-legend-compact-row" aria-hidden="true">
+            <span key={line.id} className={`mobile-legend-compact-row service-tone-${line.tone}`} aria-hidden="true">
               <MobileLegendRouteBadge
                 lineId={line.id}
                 lineNumber={line.number}
@@ -229,6 +229,7 @@ export function MobileLegend({
                 expanded={false}
                 regional={isRegional}
               />
+              <span className="mobile-legend-status-rib" />
             </span>
           ))}
         </button>

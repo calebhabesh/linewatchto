@@ -102,7 +102,6 @@ export function DirectionalZoneCount({ zone }: { zone: ReducedSpeedZone }) {
   return (
     <span
       className="rsz-zone-direction-breakdown"
-      style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 2 }}
     >
       {sortedCounts.map(({ direction, count, destination }) => {
         const label = DIRECTION_LABELS[direction];

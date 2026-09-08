@@ -46,8 +46,8 @@ describe("Reduced Speed Zone amber color", () => {
 
   it("stacks grouped directional zone counts as plain rows", () => {
     assert.match(
-      directionalZoneCountSource,
-      /className="rsz-zone-direction-breakdown"[\s\S]*?flexDirection:\s*"column"/,
+      globalCss,
+      /\.rsz-zone-direction-breakdown,[^{]*\{[^}]*flex-direction:\s*column/,
     );
     assert.match(
       directionalZoneCountSource,
