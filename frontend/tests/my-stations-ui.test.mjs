@@ -84,7 +84,7 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.my-stations-add\s*\{[^}]*padding-left:\s*12px;[^}]*padding-right:\s*18px;[^}]*width:\s*110px;/s);
     assert.match(styles, /\.my-stations-done\s*\{[^}]*background:\s*rgb\(5, 150, 105\);/s);
     assert.match(styles, /\.my-stations-done:hover\s*\{[^}]*background:\s*rgb\(4, 120, 87\);/s);
-    assert.match(styles, /@keyframes my-stations-search-nudge\s*\{[\s\S]*?21%, 63%/s);
+    assert.match(styles, /@keyframes my-stations-search-nudge\s*\{[\s\S]*?50%/s);
     assert.match(styles, /\.submenu-search-input::placeholder\s*\{[^}]*font-size:\s*0\.78rem;[^}]*font-weight:\s*750;/s);
   });
 
