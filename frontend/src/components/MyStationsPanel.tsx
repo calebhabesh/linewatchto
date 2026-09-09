@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AlertCircle, ArrowDownToLine, Bookmark, CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, LoaderCircle, Plus, Search, Train, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
@@ -1118,9 +1118,11 @@ export function MyStationsPanel({
   // while the panel is already open in add mode), reset without requiring "Done".
   useEffect(() => {
     if (listModeEpoch === undefined || listModeEpoch === 0) return;
-    setMode("list");
-    setQuery("");
-    setLineId("all");
+    startTransition(() => {
+      setMode("list");
+      setQuery("");
+      setLineId("all");
+    });
   }, [listModeEpoch]);
   const [networkFilter, setNetworkFilter] = useState<AccountNetworkFilter>("all");
   const [sort, setSort] = useState<SavedStationSort>("attention");
