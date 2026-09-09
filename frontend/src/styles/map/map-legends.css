@@ -305,19 +305,27 @@
     width: 3.5px;
     height: 16px;
     --legend-led-color: #36d887;
-    --legend-led-glow: rgba(54, 216, 135, 0.7);
+    --legend-led-bright: #a8ffda;
+    --legend-led-glow: rgba(54, 216, 135, 0.85);
     border-radius: 0;
     clip-path: polygon(100% 0, 100% 100%, 0 75%, 0 25%);
-    background: var(--legend-led-color);
+    background: radial-gradient(ellipse at 70% 50%, var(--legend-led-bright) 0%, var(--legend-led-color) 65%);
     box-shadow:
-      0 0 4px 1px var(--legend-led-glow),
-      0 0 8px 2px var(--legend-led-glow);
+      0 0 3px 1px var(--legend-led-glow),
+      0 0 8px 3px var(--legend-led-glow),
+      0 0 16px 5px rgba(54, 216, 135, 0.4);
   }
 
   .service-tone-affected > .mobile-legend-status-rib {
     --legend-led-color: #f15b68;
-    --legend-led-glow: rgba(241, 91, 104, 0.7);
+    --legend-led-bright: #ffb3bb;
+    --legend-led-glow: rgba(241, 91, 104, 0.85);
+    box-shadow:
+      0 0 3px 1px var(--legend-led-glow),
+      0 0 8px 3px var(--legend-led-glow),
+      0 0 16px 5px rgba(241, 91, 104, 0.4);
   }
+
 
   .mobile-legend-compact-row {
     position: relative;
