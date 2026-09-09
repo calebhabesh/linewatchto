@@ -1308,9 +1308,11 @@
 .saved-commute-rule-summary button,
 .saved-commute-rule-actions button {
   background: rgba(16, 185, 129, 0.14);
-  border: 1px solid rgba(16, 185, 129, 0.28);
+  border: 1px solid transparent;
   border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   color: rgb(4, 120, 87);
   flex: 0 0 auto;
   padding: 0.34rem 0.48rem;
@@ -1406,7 +1408,9 @@
 .dark .saved-commute-rule-actions button,
 .high-contrast .saved-commute-notification-summary button {
   background: rgba(16, 185, 129, 0.16);
-  border-color: rgba(16, 185, 129, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
   color: rgb(110, 231, 183);
 }
 
