@@ -89,7 +89,7 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.mobile-legend-route-badge\.service-tone-affected\s*\{[^}]*#ff334f/s);
     assert.match(globalCss, /\.mobile-legend-route-badge\.service-tone-good\s*\{[^}]*#22e37b/s);
     assert.match(globalCss, /\.mobile-legend-pill\s*\{[^}]*width:\s*44px !important[^}]*max-width:\s*44px/s);
-    assert.match(globalCss, /\.mobile-legend-collapsed-toggle\s*\{[^}]*width:\s*42px/s);
+    assert.match(globalCss, /\.mobile-legend-collapsed-toggle\s*\{[^}]*width:\s*100%/s);
     assert.match(mobileLegendSource, /transitLineBadgeColors\(lineId\)/);
     assert.match(mobileLegendSource, /mobile-legend-route-badge--ttc/);
     assert.match(globalCss, /--mobile-legend-expanded-width:\s*min\(\s*212px/s);
