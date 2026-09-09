@@ -75,6 +75,8 @@ type Props = {
   onClose: () => void;
   onRequestSignIn?: () => void;
   onRequestCreateAccount?: () => void;
+  /** Increment to imperatively reset the panel to list mode (e.g. from the toast button). */
+  listModeEpoch?: number;
 };
 
 type AccountNetworkFilter = "all" | NetworkId;
@@ -1105,11 +1107,21 @@ export function MyStationsPanel({
   onClose,
   onRequestSignIn,
   onRequestCreateAccount,
+  listModeEpoch,
 }: Props) {
   const authenticated = accountState ? accountState.authenticated : true;
   const [mode, setMode] = useState<"list" | "add">("list");
   const [query, setQuery] = useState("");
   const [lineId, setLineId] = useState("all");
+
+  // When the shell signals a return-to-list (e.g. toast "My Stations" button clicked
+  // while the panel is already open in add mode), reset without requiring "Done".
+  useEffect(() => {
+    if (listModeEpoch === undefined || listModeEpoch === 0) return;
+    setMode("list");
+    setQuery("");
+    setLineId("all");
+  }, [listModeEpoch]);
   const [networkFilter, setNetworkFilter] = useState<AccountNetworkFilter>("all");
   const [sort, setSort] = useState<SavedStationSort>("attention");
   const [lastRemoved, setLastRemoved] = useState<{ saved: AccountSavedStation; index: number } | null>(null);

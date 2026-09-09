@@ -551,6 +551,7 @@ export function LineWatchShell({
   const [savedStationNotice, setSavedStationNotice] = useState<SavedStationNotice | null>(null);
   const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
   const savedStationNoticeTimerRef = useRef<number | null>(null);
+  const [myStationsListModeEpoch, setMyStationsListModeEpoch] = useState(0);
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
   const [commutesDraft, setCommutesDraft] = useState<SavedCommuteDraft | null>(() => persistedCommuteDraftStore.current);
   const [commutesFocusedCommuteId, setCommutesFocusedCommuteId] = useState<string | null>(null);
@@ -1732,6 +1733,7 @@ export function LineWatchShell({
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
+    setMyStationsListModeEpoch((e) => e + 1);
     navigateForward("my-stations");
   };
 
@@ -3345,6 +3347,7 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
+            listModeEpoch={myStationsListModeEpoch}
           />
         );
       case "notifications":
@@ -4570,9 +4573,10 @@ export function LineWatchShell({
             onClick={() => navigateForward("alert-history")}
             className="alert-history-shortcut panel hidden md:flex items-center justify-center w-14 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
             aria-label="Open Alert History"
+            aria-expanded={activeView === "alert-history"}
             title="Alert History"
           >
-            <History className="alert-history-shortcut-icon text-emerald-500" size={23} aria-hidden="true" />
+            <History className="alert-history-shortcut-icon" size={23} aria-hidden="true" />
           </button>
           <button
             onClick={handleToggleTheme}
@@ -4613,7 +4617,7 @@ export function LineWatchShell({
                   aria-label="Open Alert History"
                   title="Alert History"
                 >
-                  <History className="alert-history-shortcut-icon text-emerald-500" size={19} aria-hidden="true" />
+                  <History className="alert-history-shortcut-icon" size={19} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
