@@ -66,9 +66,9 @@ describe("desktop status capsule", () => {
     assert.equal((shellSource.match(/data-digit-count=\{/g) ?? []).length, 5);
     assert.equal((shellSource.match(/desktop-status-chip-count-value/g) ?? []).length, 5);
     assert.match(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip\s*\{[\s\S]*?border:\s*none\s*!important;/);
-    assert.match(globalCss, /\.dark \.desktop-status-chip--alerts\s*\{[\s\S]*?background:\s*#2d1414\s*!important;/);
-    assert.match(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip--alerts \.desktop-status-chip-count\s*\{[\s\S]*?background:\s*rgba\(239,\s*68,\s*68,\s*0\.14\)\s*!important;/);
-    assert.match(globalCss, /\.dark \.desktop-header-impact-chips \.desktop-status-chip--alerts \.desktop-status-chip-count\s*\{[\s\S]*?background:\s*rgba\(239,\s*68,\s*68,\s*0\.28\)\s*!important;/);
+    assert.match(globalCss, /\.dark \.desktop-status-chip--alerts\s*\{[\s\S]*?background:\s*#2d1414;/);
+    assert.match(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip--alerts \.desktop-status-chip-count\s*\{[\s\S]*?background:\s*rgba\(239,\s*68,\s*68,\s*0\.14\);/);
+    assert.match(globalCss, /\.dark \.desktop-header-impact-chips \.desktop-status-chip--alerts \.desktop-status-chip-count\s*\{[\s\S]*?background:\s*rgba\(239,\s*68,\s*68,\s*0\.28\);/);
     assert.match(globalCss, /\.menu-toggle-btn,[\s\S]*?\.desktop-status-capsule,[\s\S]*?\.desktop-map-control-rail[\s\S]*?\{[\s\S]*?border:\s*none\s*!important;/);
     assert.match(globalCss, /\.dark \.alert-history-shortcut,[\s\S]*?\.dark \.logs-trigger-btn[\s\S]*?\{[\s\S]*?border:\s*none\s*!important;/);
 

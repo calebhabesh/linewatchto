@@ -903,16 +903,38 @@
     text-shadow: 0 0 4px rgba(59, 130, 246, 0.70);
   }
 
+.mobile-status-peek-count-badge.active-alerts { --empty-category-tint: #ef4444; }
+.mobile-status-peek-count-badge.delays { --empty-category-tint: #eab308; }
+.mobile-status-peek-count-badge.reduced-speed-zones { --empty-category-tint: #f59e0b; }
+.mobile-status-peek-count-badge.planned-closures { --empty-category-tint: #3b82f6; }
+.mobile-status-peek-count-badge.trip-changes { --empty-category-tint: #f59e0b; }
+
   /* Subdued / calm state when count is zero */
   .mobile-status-peek-count-badge.mobile-status-peek-count-badge--empty {
-    opacity: 0.55;
+    opacity: 1;
+    background: color-mix(in srgb, #eef0f2 94%, var(--empty-category-tint));
+    color: color-mix(in srgb, #616975 78%, var(--empty-category-tint));
     border-color: rgba(148, 163, 184, 0.22);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
   }
 
   .dark .mobile-status-peek-count-badge.mobile-status-peek-count-badge--empty {
+    background: color-mix(in srgb, #202226 94%, var(--empty-category-tint));
+    color: color-mix(in srgb, #9ba1aa 78%, var(--empty-category-tint));
     border-color: rgba(255, 255, 255, 0.10);
     box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35);
+  }
+
+  .mobile-status-peek-count-badge.mobile-status-peek-count-badge--empty .mobile-status-peek-count-circle {
+    background: color-mix(in srgb, #e0e3e7 90%, var(--empty-category-tint));
+    border-color: #c7cbd1;
+    color: inherit;
+  }
+
+  .dark .mobile-status-peek-count-badge.mobile-status-peek-count-badge--empty .mobile-status-peek-count-circle {
+    background: color-mix(in srgb, #30343a 90%, var(--empty-category-tint));
+    border-color: #484e57;
+    color: inherit;
   }
 
   .high-contrast .mobile-status-peek-count-badge,
