@@ -9,66 +9,192 @@
    Section 1: Dashboard Availability Notice
    ========================================================================== */
 
+/* Slow amber blink on the caution icon */
+@keyframes notice-icon-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.28; }
+}
+
+/* Slow reconnecting spinner — matches the grey/muted palette */
+@keyframes notice-spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
 .dashboard-availability-notice {
   position: fixed;
-  bottom: 18px;
+  /* Desktop: centred below the map, comfortably above any bottom UI */
+  bottom: 28px;
+  top: auto;
   left: 50%;
   z-index: 70;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   width: max-content;
-  max-width: min(540px, calc(100vw - 32px));
-  padding: 10px 16px;
-  border: 1px solid rgba(217, 119, 6, 0.35);
-  border-radius: 999px;
-  background: rgba(255, 251, 235, 0.96);
-  color: #92400e;
-  box-shadow: 0 14px 48px rgba(0, 0, 0, 0.38);
+  max-width: min(480px, calc(100vw - 32px));
+  padding: 10px 18px 10px 12px;
+  /* VisionOS frosted-glass container */
+  background: var(--mobile-chrome-background, rgb(14, 16, 22));
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(0, 0, 0, 0.12) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%) contrast(105%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%) contrast(105%);
+  /* Filament border + inward amber glow — same pattern as delay alert badges */
+  border: 1px solid rgba(217, 119, 6, 0.52);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 0 8px rgba(234, 179, 8, 0.22),
+    0 10px 32px rgba(0, 0, 0, 0.48),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
+  color: #fde68a;
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.3;
   text-align: left;
   transform: translateX(-50%);
   pointer-events: none;
-  backdrop-filter: blur(12px);
 }
 
-.dark .dashboard-availability-notice {
-  border-color: rgba(251, 191, 36, 0.4);
-  background: rgba(30, 22, 12, 0.96);
-  color: #fde68a;
+/* Large caution icon — spans the full block height */
+.dashboard-availability-notice-icon {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  color: #fbbf24;
+  animation: notice-icon-blink 2.4s ease-in-out infinite;
 }
 
+/* Inline reconnecting spinner — slow, grey/muted */
+.dashboard-availability-notice-spinner {
+  display: inline-block;
+  vertical-align: text-bottom;
+  margin-left: 5px;
+  margin-bottom: 1px;
+  color: rgba(253, 230, 138, 0.55);
+  animation: notice-spinner-rotate 3.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Light-theme glass */
+.linewatch-shell:not(.dark) .dashboard-availability-notice {
+  background: rgba(255, 255, 255, 0.88);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.70) 0%,
+    rgba(255, 255, 255, 0.25) 55%,
+    rgba(15, 23, 42, 0.04) 100%
+  );
+  border-color: rgba(217, 119, 6, 0.40);
+  box-shadow:
+    inset 0 0 6px rgba(234, 179, 8, 0.15),
+    0 4px 18px rgba(0, 0, 0, 0.14),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.08);
+  color: #92400e;
+}
+
+.linewatch-shell:not(.dark) .dashboard-availability-notice-icon {
+  color: #d97706;
+}
+
+.linewatch-shell:not(.dark) .dashboard-availability-notice-spinner {
+  color: rgba(146, 64, 14, 0.45);
+}
+
+/* Unavailable / red state */
 .dashboard-availability-notice[data-state="unavailable"] {
-  border-color: rgba(220, 38, 38, 0.4);
-  background: rgba(254, 242, 242, 0.97);
+  border-color: rgba(239, 68, 68, 0.52);
+  box-shadow:
+    inset 0 0 8px rgba(239, 68, 68, 0.22),
+    0 10px 32px rgba(0, 0, 0, 0.48),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
+  color: #fca5a5;
+}
+
+.dashboard-availability-notice[data-state="unavailable"] .dashboard-availability-notice-icon {
+  color: #f87171;
+}
+
+.linewatch-shell:not(.dark) .dashboard-availability-notice[data-state="unavailable"] {
+  border-color: rgba(220, 38, 38, 0.40);
+  box-shadow:
+    inset 0 0 6px rgba(239, 68, 68, 0.15),
+    0 4px 18px rgba(0, 0, 0, 0.14),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.08);
   color: #991b1b;
 }
 
-.dark .dashboard-availability-notice[data-state="unavailable"] {
-  border-color: rgba(248, 113, 113, 0.45);
-  background: rgba(35, 13, 16, 0.97);
-  color: #fecaca;
+.linewatch-shell:not(.dark) .dashboard-availability-notice[data-state="unavailable"] .dashboard-availability-notice-icon {
+  color: #dc2626;
 }
 
-.high-contrast .dashboard-availability-notice {
-  border-width: 2px;
-  border-color: currentColor;
-  background: #000;
+/* High-contrast */
+.high-contrast .dashboard-availability-notice,
+.linewatch-shell.high-contrast .dashboard-availability-notice {
+  background: #000 !important;
+  background-image: none !important;
+  border: 2px solid currentColor !important;
+  box-shadow: none !important;
   color: #ffdf00;
-  box-shadow: none;
 }
 
-@media (max-width: 640px) {
+.high-contrast .dashboard-availability-notice-icon,
+.linewatch-shell.high-contrast .dashboard-availability-notice-icon {
+  color: #ffdf00;
+  animation: none;
+}
+
+.high-contrast .dashboard-availability-notice-spinner,
+.linewatch-shell.high-contrast .dashboard-availability-notice-spinner {
+  color: #ffdf00;
+}
+
+/* Reduce-motion: kill animations */
+.motion-paused .dashboard-availability-notice-icon,
+.reduced-motion .dashboard-availability-notice-icon {
+  animation: none;
+}
+
+.motion-paused .dashboard-availability-notice-spinner,
+.reduced-motion .dashboard-availability-notice-spinner {
+  animation: none;
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 767px) {
   .dashboard-availability-notice {
-    bottom: calc(var(--mobile-bottom-nav-occupied-height, 88px) + 10px + var(--mobile-status-peek-actual-height, 116px) + 14px);
     top: auto;
-    max-width: calc(100vw - 28px);
-    width: min(500px, calc(100vw - 28px));
-    border-radius: 12px;
-    font-size: 11px;
-    padding: 10px 14px;
+    /* Cleared above the impacts / Live indicator row */
+    bottom: calc(var(--mobile-bottom-nav-occupied-height, 88px) + var(--mobile-status-peek-actual-height, 116px) + 28px);
+    /* Wider gap to allow ~2 lines of text */
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset) + 44px + 8px);
+    right: calc(var(--mobile-safe-right) + var(--mobile-edge-inset) + var(--mobile-top-action-button-size, 46px) + 8px);
+    transform: none;
+    width: auto;
+    max-width: none;
+    border-radius: 10px;
+    /* 10px text — larger than original 9.5 px while reliably fitting ~two lines */
+    font-size: 10px;
+    line-height: 1.3;
+    padding: 7px 9px 7px 8px;
+    gap: 7px;
+  }
+
+  .dashboard-availability-notice-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .dashboard-availability-notice-spinner {
+    width: 11px;
+    height: 11px;
   }
 
   .dashboard-availability-notice.dashboard-availability-notice--mobile-hidden,
@@ -77,12 +203,8 @@
   }
 }
 
-@media (max-width: 375px) {
-  .dashboard-availability-notice {
-    max-width: calc(100vw - 20px);
-    width: calc(100vw - 20px);
-  }
-}
+
+
 
 /* ==========================================================================
    Section 2: App Update Banner
