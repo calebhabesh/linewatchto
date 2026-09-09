@@ -236,9 +236,9 @@ describe("My Stations UI", () => {
     assert.match(stationSearch, /station-search-bookmark/);
   });
 
-  it("gives the mobile map shortcut a persistent solid My Stations icon", () => {
+  it("gives the mobile map shortcut a neutral outline My Stations icon", () => {
     assert.match(shell, /className="mobile-my-stations-shortcut-icon"/);
-    assert.match(styles, /\.mobile-my-stations-shortcut-icon\s*\{[^}]*color:\s*rgb\(14, 165, 233\);[^}]*fill:\s*currentColor;/s);
+    assert.match(styles, /\.mobile-my-stations-shortcut-icon\s*\{[^}]*color:\s*inherit;[^}]*fill:\s*none;/s);
   });
 
   it("uses neutral menu icons and shared alert-panel heading typography", () => {

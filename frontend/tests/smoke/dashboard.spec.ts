@@ -3052,12 +3052,12 @@ test("retains the last dashboard snapshot while browser requests reconnect", asy
   dashboardUnavailable = true;
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
 
-  await expect(page.getByText(/Connection issue — showing the last dashboard update/)).toBeVisible();
+  await expect(page.getByText(/Connection Issue — Showing latest dashboard snapshot/)).toBeVisible();
   await expect(retainedOverlay).toBeAttached();
 
   dashboardUnavailable = false;
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-  await expect(page.getByText(/Connection issue — showing the last dashboard update/)).toHaveCount(0, { timeout: 8_000 });
+  await expect(page.getByText(/Connection Issue — Showing latest dashboard snapshot/)).toHaveCount(0, { timeout: 8_000 });
   await expect(retainedOverlay).toBeAttached();
 });
 

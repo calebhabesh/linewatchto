@@ -1336,9 +1336,26 @@
   outline-color: #ffffff;
 }
 
+.alert-history-shortcut {
+  color: var(--mobile-chrome-text-muted);
+}
+
+.alert-history-shortcut:hover,
+.alert-history-shortcut:focus-visible,
+.alert-history-shortcut[aria-expanded="true"] {
+  color: #2563eb;
+}
+
+.dark .alert-history-shortcut:hover,
+.dark .alert-history-shortcut:focus-visible,
+.dark .alert-history-shortcut[aria-expanded="true"] {
+  color: #93c5fd;
+}
+
+.alert-history-shortcut-icon,
 .mobile-my-stations-shortcut-icon {
-  color: rgb(14, 165, 233);
-  fill: currentColor;
+  color: inherit;
+  fill: none;
 }
 
 .mobile-alert-history-shortcut:active,

@@ -448,11 +448,11 @@ export function LineWatchShell({
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
   const dashboardRequestState = dashboardRequestStates[selectedNetwork];
   const dashboardAvailabilityNotice = dashboardRequestState === "reconnecting"
-    ? "Connection issue — showing the last dashboard update while LineWatchTO reconnects."
+    ? "Connection Issue — Showing latest dashboard snapshot while LineWatchTO reconnects."
     : displayData.availability === "degraded"
-      ? "Source refresh issue — showing the last successful fresh update."
+      ? "Source Refresh Issue — Showing the last successful fresh update."
       : displayData.availability === "unavailable"
-        ? "Live service data is unavailable — showing the fallback dashboard."
+        ? "Live service data is unavailable — Showing the fallback dashboard."
         : null;
   const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
   const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);
@@ -5418,8 +5418,17 @@ export function LineWatchShell({
           role="status"
           aria-live="polite"
         >
-          <AlertTriangle size={15} aria-hidden="true" />
-          <span>{dashboardAvailabilityNotice}</span>
+          <AlertTriangle className="dashboard-availability-notice-icon" aria-hidden="true" />
+          <span>
+            {dashboardAvailabilityNotice}
+            {dashboardRequestState === "reconnecting" && (
+              <Loader2
+                className="dashboard-availability-notice-spinner"
+                size={12}
+                aria-hidden="true"
+              />
+            )}
+          </span>
         </div>
       ) : null}
       <OpeningDisclaimer
