@@ -350,7 +350,7 @@
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.85),
       0 -18px 44px rgba(0, 0, 0, 0.38);
-    background: #ffffff;
+    background: var(--panel);
     height: calc(var(--visual-viewport-height, 100dvh) * 0.92);
     max-height: calc(var(--visual-viewport-height, 100dvh) * 0.92);
     transform: translate3d(0, var(--mobile-station-sheet-translate-y, calc(var(--visual-viewport-height, 100dvh) * 0.42)), 0);
@@ -367,7 +367,7 @@
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 -18px 44px rgba(0, 0, 0, 0.45);
-    background: #12151c !important;
+    background: var(--panel) !important;
   }
 
   .high-contrast .station-detail-panel,
@@ -432,7 +432,7 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.85),
       0 20px 25px -5px rgba(0, 0, 0, 0.1),
       0 8px 10px -6px rgba(0, 0, 0, 0.05);
-    background: #ffffff;
+    background: var(--panel);
     height: auto !important;
     max-height: calc(var(--visual-viewport-height, 100dvh) - 128px);
     transform: none;
@@ -444,7 +444,7 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.1),
       0 20px 25px -5px rgba(0, 0, 0, 0.5),
       0 8px 10px -6px rgba(0, 0, 0, 0.4);
-    background: #12151c !important;
+    background: var(--panel) !important;
   }
 
   .station-detail-panel .station-detail-scroll {

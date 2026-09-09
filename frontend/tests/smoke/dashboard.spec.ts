@@ -811,6 +811,11 @@ test("regional station names share the TTC raster hover glow and station selecti
   await expect(rasterLabelHover).toHaveCount(0);
   await labelTarget.hover();
   await expect(rasterLabelHover).toHaveAttribute("data-hover-active", "true");
+  await page.mouse.down();
+  await expect(rasterLabelHover).toBeVisible();
+  await expect(rasterLabelHover).toHaveCSS("transform", /matrix\(0\.985, 0, 0, 0\.985, 0, 0\)/);
+  await page.mouse.up();
+
 
 
   await labelTarget.click();
@@ -3449,6 +3454,13 @@ test("station names share hover and selection behavior with station dots", async
     const authoredFontSize = await authoredLabel.evaluate((element) => getComputedStyle(element).fontSize);
     await labelTarget.hover();
     await expect(authoredLabel).toHaveClass(/station-label-hovered/);
+    const pressedLabel = page.locator(".ttc-map-stage .raster-station-label-text-hover");
+    await page.mouse.down();
+    await expect(pressedLabel).toBeVisible();
+    await expect(pressedLabel).toHaveCSS("transform", /matrix\(0\.985, 0, 0, 0\.985, 0, 0\)/);
+    await page.mouse.up();
+    await labelTarget.hover();
+
     await expect(hoverEffect).toHaveCSS("transition-duration", "0.12s, 0.12s");
     await expect(hoverEffect).toHaveCSS("transition-delay", "0s");
     await expect(hoverEffect).toHaveCSS("animation-name", "none");

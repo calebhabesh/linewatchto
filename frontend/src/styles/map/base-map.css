@@ -471,7 +471,6 @@
   .ttc-impact-hover-foreground,
   .station-impact-hover-priority,
   .station-hover-indicator,
-  .raster-station-label-text-hover,
   .regional-impact-hover-foreground,
   .regional-station-impact-hover-foreground,
   .regional-station-hover-indicator
@@ -501,4 +500,22 @@
 [data-map-camera-moving="true"] .commute-path-preview-path {
   animation-play-state: paused !important;
   transition: none !important;
+}
+
+
+/* The hovered label replaces a cutout in the base texture. Keep it painted
+   during camera movement or that cutout becomes a momentary blank. */
+:is(
+  [data-map-gesture-active="true"],
+  [data-map-zoom-active="true"],
+  [data-map-camera-moving="true"],
+  [data-regional-map-camera-moving="true"]
+) .raster-station-label-text-hover {
+  filter: none;
+}
+
+.ttc-map-stage:has(.station-label-hit-target:active) .raster-station-label-text-hover,
+.regional-map-stage:has(.regional-station-label-hit-target:active) .raster-station-label-text-hover {
+  transform: scale(0.985);
+  transition-duration: 70ms;
 }

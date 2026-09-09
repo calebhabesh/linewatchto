@@ -572,7 +572,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
     <aside
       ref={sheetRef}
       style={sheetStyle}
-      className={`station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg bg-white p-4 text-slate-900 shadow-2xl dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
+      className={`station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg bg-[var(--panel)] p-4 text-slate-900 shadow-2xl dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
       data-closing={isClosing ? "true" : undefined}
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
@@ -1208,7 +1208,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                         return (
                           <article
                             key={notice.id}
-                            className="station-notice-card flex flex-col gap-2.5 rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                            className="station-notice-card flex flex-col gap-2.5 rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[var(--panel)]/80"
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300">

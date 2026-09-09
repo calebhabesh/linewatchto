@@ -2016,12 +2016,12 @@ function InteractiveTtcMapComponent({
     }
   }, [setLinkedImpactHover]);
 
-  const clearMapHover = useCallback(() => {
+  const clearMapHover = useCallback((preserveStationLabel = false) => {
     clearTtcTransientHover(mapRootRef.current);
     hoveredMapImpactRef.current = null;
     externallyHoveredImpactKeysRef.current.clear();
     chooserHoveredImpactRef.current = null;
-    setHoveredStationLabelId(null);
+    if (!preserveStationLabel) setHoveredStationLabelId(null);
   }, []);
 
   const highlightOverlapChooserImpact = useCallback((impact: MapImpact | null) => {
@@ -2128,7 +2128,7 @@ function InteractiveTtcMapComponent({
         data-map-zoom-active="false"
         className="relative w-full h-full overflow-hidden select-none touch-none cursor-grab"
         onPointerDown={(event) => {
-          clearMapHover();
+          clearMapHover(event.target instanceof Element && Boolean(event.target.closest(".station-label-hit-target")));
           handlePointerDown(event);
         }}
         onPointerMove={handlePointerMove}

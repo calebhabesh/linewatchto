@@ -496,7 +496,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /setUserZoomMotion\(false\)/);
     assert.match(hookSource, /const scheduleUserZoomMotionEnd = useCallback/);
     assert.match(globalCss, /\[data-map-zoom-active="true"\]/);
-    assert.match(globalCss, /\.raster-station-label-text-hover,[\s\S]*?visibility:\s*hidden\s*!important;/s);
+    assert.match(globalCss, /\) \.raster-station-label-text-hover\s*\{\s*filter: none;/s);
   });
 
   it("does not toggle compositor promotion on the huge SVG map layer during gestures", () => {

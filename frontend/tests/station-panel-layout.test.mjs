@@ -177,7 +177,7 @@ describe("station detail panel layout", () => {
     // Panel itself
     assert.match(globalCss, /\.station-detail-panel\s*\{[\s\S]*?border:\s*none\s*!important;/);
     assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.station-detail-panel\s*\{[\s\S]*?border:\s*none\s*!important;/);
-    assert.match(globalCss, /\.dark \.station-detail-panel\s*\{[\s\S]*?background:\s*#12151c\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-detail-panel\s*\{[\s\S]*?background:\s*var\(--panel\)\s*!important;/);
 
     // Save & close buttons
     assert.match(globalCss, /\.station-detail-save-control button,\s*\.station-detail-close-button\s*\{[\s\S]*?border:\s*none\s*!important;/);
@@ -189,7 +189,7 @@ describe("station detail panel layout", () => {
 
     // Section cards
     assert.match(globalCss, /\.station-detail-panel \[data-station-section\][\s\S]*?border:\s*none\s*!important;/);
-    assert.match(globalCss, /\.dark \.station-detail-panel \[data-station-section\][\s\S]*?background:\s*#161a23\s*!important;/);
+    assert.match(globalCss, /\.dark \.station-detail-panel \[data-station-section\][\s\S]*?background:\s*var\(--card-bg-elevated-solid\)\s*!important;/);
 
     // Schedule May Be Disrupted card
     assert.match(globalCss, /\.station-detail-disruption-card\s*\{[\s\S]*?border:\s*none\s*!important;/);
