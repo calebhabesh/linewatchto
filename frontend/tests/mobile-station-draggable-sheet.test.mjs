@@ -181,7 +181,7 @@ describe("mobile station draggable sheet UX", () => {
 
     // Verify StationDetailPanel layout order: Jump To is outside scroll area, Access Outages is inside scroll area
     const navIndex = panelSource.indexOf("<StationSubmenuNavButtons");
-    const scrollIndex = panelSource.indexOf("station-detail-scroll");
+    const scrollIndex = panelSource.indexOf("station-detail-scroll station-detail-section-stack");
     const outageIndex = panelSource.indexOf("data-station-access-outage-summary");
     assert.ok(navIndex > 0);
     assert.ok(scrollIndex > navIndex, "Scrollable section must begin after StationSubmenuNavButtons");

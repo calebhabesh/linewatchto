@@ -1420,6 +1420,7 @@
 
 @media (max-width: 767px) {
   .linewatch-shell.mobile-map-inspector {
+    --panel: var(--panel-opaque);
     --mobile-inspector-height: calc(50dvh - var(--mobile-safe-bottom));
     --mobile-inspector-total-height: 50dvh;
   }
@@ -1464,6 +1465,7 @@
     transition: none;
   }
 
+  .linewatch-shell.mobile-map-inspector .mobile-train-toggle,
   .linewatch-shell.mobile-map-inspector .mobile-bottom-nav,
   .linewatch-shell.mobile-map-inspector .mobile-status-peek,
   .linewatch-shell.mobile-map-inspector .mobile-status-peek-recenter-btn,

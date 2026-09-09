@@ -4,6 +4,7 @@
   --selection-intro-duration: 2.4s;
   --selection-breathe-duration: 1.2s;
   --panel: rgba(255, 255, 255, 0.94);
+  --panel-opaque: #ffffff;
   --panel-strong: rgba(255, 255, 255, 0.98);
   --light-container: #f1f5f9;
   --panel-soft: var(--light-container);
@@ -77,6 +78,7 @@
 .linewatch-shell.dark {
   color-scheme: dark;
   --panel: rgba(10, 12, 16, 0.94);
+  --panel-opaque: #0a0c10;
   --panel-strong: rgba(10, 12, 16, 0.98);
   --panel-soft: rgba(255, 255, 255, 0.07);
   --border: rgba(255, 255, 255, 0.16);
@@ -177,6 +179,7 @@
   color-scheme: dark;
   --bg: #000000;
   --panel: rgba(0, 0, 0, 0.95);
+  --panel-opaque: #000000;
   --panel-strong: #000000;
   --panel-soft: rgba(255, 255, 255, 0.15);
   --border: rgba(255, 255, 255, 0.7);

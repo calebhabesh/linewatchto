@@ -251,7 +251,7 @@ describe("station detail panel layout", () => {
 
     const ttcLineHeaderIdx = panelSource.indexOf("data-station-header-line-details");
     const ttcNavIdx = panelSource.indexOf("<StationSubmenuNavButtons");
-    const ttcScrollIdx = panelSource.indexOf("station-detail-scroll");
+    const ttcScrollIdx = panelSource.indexOf("station-detail-scroll station-detail-section-stack");
     assert.ok(ttcLineHeaderIdx !== -1 && ttcNavIdx !== -1 && ttcScrollIdx !== -1);
     assert.ok(ttcLineHeaderIdx < ttcNavIdx, "TTC nav buttons must be below line badges");
     assert.ok(ttcNavIdx < ttcScrollIdx, "TTC nav buttons must be above scrollable content stack");

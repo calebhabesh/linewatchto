@@ -1770,6 +1770,8 @@ test("opens an impact notification deep link in the focused map view", async ({ 
 
     await expect(shell).toHaveClass(/mobile-map-inspector-impact/);
     await expect(inspector).toBeVisible();
+    await expect(inspector).toHaveCSS("background-color", "rgb(10, 12, 16)");
+    await expect(page.locator(".mobile-train-toggle")).toBeHidden();
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
     await expect(mapViewport).toHaveCSS("bottom", /^(?!0px$).+/);
@@ -2741,9 +2743,11 @@ test("station detail shows accessibility facilities and active outage warning", 
 
   const stationPanel = page.getByRole("complementary", { name: "Stub Station station details" });
   await expect(stationPanel).toBeVisible();
+  await expect(stationPanel).toHaveCSS("background-color", "rgb(10, 12, 16)");
 
   if (isMobile) {
     await expect(page.locator(".linewatch-shell.mobile-map-inspector-station")).toBeVisible();
+    await expect(page.locator(".mobile-train-toggle")).toBeHidden();
     await expect(page.getByRole("button", { name: "Map", exact: true })).toHaveCount(0);
   }
   const lineDetailCard = stationPanel.locator('[data-station-header-line-details] > div').first();
@@ -2769,6 +2773,20 @@ test("station detail shows accessibility facilities and active outage warning", 
   const arrivalsSection = page.locator('[data-arrivals-disrupted="true"]');
   await expect(arrivalsSection).toBeVisible();
   await expect(stationPanel.getByRole("link", { name: /Jump to station impact:/ }).first()).toBeVisible();
+  const jumpLink = stationPanel.getByRole("link", { name: /Jump to station impact:/ }).first();
+  const targetId = (await jumpLink.getAttribute("href"))!.slice(1);
+  const impactCard = stationPanel.locator(`[id="${targetId}"]`);
+  const impactsSection = stationPanel.locator('[data-station-section="station-impacts"]');
+  await impactsSection.evaluate((element: HTMLDetailsElement) => { element.open = false; });
+  await jumpLink.click();
+  await expect(impactsSection).toHaveAttribute("open", "");
+  await expect.poll(async () => impactCard.evaluate((card) => {
+    const scroller = card.closest<HTMLElement>(".station-detail-scroll")!;
+    const offset = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    const atEnd = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop < 2;
+    return offset >= 0 && (Math.abs(offset - 8) < 2 || atEnd);
+  })).toBe(true);
+
   await expect(arrivalsSection.locator('[data-arrival-group="line-1:Northbound to Finch"]')).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-group="line-1:Southbound to Union"]')).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-due="true"]')).toBeVisible();

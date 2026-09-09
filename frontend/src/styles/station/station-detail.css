@@ -307,6 +307,7 @@
    ========================================================================== */
 
 .station-detail-panel {
+  --panel: var(--panel-opaque);
   display: flex;
   flex-direction: column;
   overflow: hidden;

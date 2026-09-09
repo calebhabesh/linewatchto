@@ -508,10 +508,22 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
     }
     const impactElement = document.getElementById(`station-impact-${impactId}`);
     if (impactElement) {
-      impactElement.scrollIntoView({
-        behavior: reducedMotion ? "auto" : "smooth",
-        block: "center",
-      });
+      const section = impactElement.closest("details");
+      if (section) section.open = true;
+      const scroller = impactElement.closest<HTMLElement>(".station-detail-scroll");
+      if (scroller) {
+        // Scroll only the panel body, leaving its header and section controls
+        // fixed. Align the beginning of long cards rather than their midpoint.
+        const top = scroller.scrollTop
+          + impactElement.getBoundingClientRect().top
+          - scroller.getBoundingClientRect().top
+          - scroller.clientTop
+          - 8;
+        scroller.scrollTo({
+          top: Math.max(0, top),
+          behavior: reducedMotion ? "instant" : "smooth",
+        });
+      }
 
       impactElement.classList.remove("station-impact-card-highlight");
       void impactElement.offsetWidth;
