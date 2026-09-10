@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 const SCROLL_LIST_SELECTOR = [
   "#linewatch-main-menu-scroll",
+  ".mobile-app-chip-scroll",
   ".line-impact-panel-stack",
   ".alert-stack",
   ".closure-stack",
@@ -37,6 +38,11 @@ const SCROLL_LIST_SELECTOR = [
 const MORE_BELOW_ATTRIBUTE = "data-scroll-more-below";
 
 function updateOverflowAffordance(element: HTMLElement) {
+  if (element.matches(".mobile-app-chip-scroll")) {
+    element.toggleAttribute("data-scroll-more-right", element.clientWidth > 0
+      && element.scrollLeft + element.clientWidth < element.scrollWidth - 2);
+    return;
+  }
   const hasVisibleViewport = element.clientHeight > 0;
   const hasMoreBelow = hasVisibleViewport
     && element.scrollHeight > element.clientHeight + 2
@@ -67,6 +73,7 @@ export function ScrollOverflowAffordances() {
       if (!trackedElements.delete(element)) return;
       resizeObserver?.unobserve(element);
       element.removeAttribute(MORE_BELOW_ATTRIBUTE);
+      element.removeAttribute("data-scroll-more-right");
     };
 
     const visitListsWithin = (root: ParentNode, visitor: (element: HTMLElement) => void) => {
@@ -113,7 +120,10 @@ export function ScrollOverflowAffordances() {
       mutationObserver.disconnect();
       resizeObserver?.disconnect();
       if (pendingAnimationFrame !== null) window.cancelAnimationFrame(pendingAnimationFrame);
-      trackedElements.forEach((element) => element.removeAttribute(MORE_BELOW_ATTRIBUTE));
+      trackedElements.forEach((element) => {
+        element.removeAttribute(MORE_BELOW_ATTRIBUTE);
+        element.removeAttribute("data-scroll-more-right");
+      });
     };
   }, []);
 
