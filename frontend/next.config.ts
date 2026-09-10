@@ -27,6 +27,8 @@ const staticGuideCacheControl = "public, max-age=300, s-maxage=86400, stale-whil
 const staticGuideSources = ["/explore", "/ttc", "/ttc/:path*", "/go-up", "/go-up/:path*"];
 
 const nextConfig: NextConfig = {
+  // Keep the development badge from covering mobile search/account controls.
+  devIndicators: false,
   distDir: process.env.NEXT_DIST_DIR || ".next",
   env: {
     NEXT_PUBLIC_LINEWATCH_APP_VERSION:

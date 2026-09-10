@@ -339,3 +339,37 @@
   font-weight: 700;
   font-display: swap;
 }
+
+/* Tabular Regular — Fontshare (https://www.fontshare.com/fonts/tabular). */
+@font-face {
+  font-family: "Tabular";
+  src: url("/assets/fonts/tabular-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Tabular";
+  src: url("/assets/fonts/tabular-semibold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+/* JetBrains Mono — SIL Open Font License; see bundled jetbrains-mono-OFL.txt. */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrains-mono-semibold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrains-mono-extrabold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+}
