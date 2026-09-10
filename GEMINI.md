@@ -1,6 +1,6 @@
 # Agent Guide for LineWatchTO
 
-Last updated: 2026-08-26
+Last updated: 2026-09-09
 
 This repository contains LineWatchTO, an unofficial transit reliability dashboard for TTC subway/LRT and GO/UP rail. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface.
 
@@ -203,47 +203,37 @@ curl http://localhost:8080/api/health/regional-ingestion
 
 ## Verification Policy
 
-Do not call work complete until relevant checks have been run and read.
+Use a two-stage workflow: iterate quickly, then validate the finished change. Match verification to the behavior and risk affected, not simply the number of files changed. These rules apply to every coding agent working in this repository.
 
-For frontend-only changes, run:
+### During implementation and design iteration
 
-```bash
-npm --prefix frontend run test:fast
-npm --prefix frontend run typecheck
-npm --prefix frontend run lint
-```
+- Build a reviewable MVP first. While the user is adjusting layout, wording, spacing, or feature scope, do not run full builds, smoke, E2E, visual-baseline, or browser-compatibility suites after each edit.
+- Inspect the changed code and use the smallest useful check when needed: a targeted logic test, typecheck for a changed contract, or a focused browser check for an interaction/layout uncertainty. Pure copy, CSS, and documentation edits do not automatically need automated tests during iteration.
+- Check risky behavior early rather than deferring it: authentication, authorization, data loss, migrations, ingestion freshness, notification delivery, and API contracts warrant targeted verification as they are implemented.
+- Add regression coverage for meaningful new behavior or bug fixes. Avoid tests that merely repeat implementation details or assert incidental wording/spacing unless that wording/layout is itself a requirement.
+- Do not ask for permission to defer broad suites or to perform routine checks. Follow the user's iteration instructions and clearly distinguish “implemented for review” from “validated and complete.”
 
-For substantial frontend changes, also run:
+### When the change is ready for final validation
 
-```bash
-npm --prefix frontend run build
-npm --prefix frontend run test:smoke
-npm --prefix frontend run test:e2e
-```
+Run one appropriately scoped validation pass when the implementation is stable and ready for handoff, commit, or release. Do not wait for explicit user approval to validate a finished task unless the user has asked to defer validation.
 
-For visual changes, also run:
+- **Documentation-only changes:** review the diff and check formatting/links as relevant. Do not run application suites.
+- **Frontend behavior or TypeScript changes:** run `npm --prefix frontend run test:fast`, `npm --prefix frontend run typecheck`, and `npm --prefix frontend run lint` once against the finished change.
+- **Pure frontend copy/CSS changes:** review the affected view at relevant desktop/mobile sizes. Run focused visual/browser checks when responsive layout or interaction could regress; the full frontend suite is not mandatory.
+- **Frontend integration changes:** add a production build when rendering, bundling, dependencies, routing, or server/client boundaries change. Run the relevant smoke/E2E scenarios for affected user flows. A localized feature does not automatically require the entire smoke and E2E suites.
+- **Visual changes:** inspect the affected screens and use focused visual tests where useful. Run the full `test:visual` suite for shared design-system/global styling changes or a release-wide visual review. Review image differences before updating baselines; never refresh snapshots merely to make failures pass.
+- **Broad frontend changes:** run the full smoke/E2E suites when shared shell, map camera/interaction, navigation, cross-network behavior, or other widely used infrastructure changes create broad regression risk. Reserve `test:e2e:full` and browser-compatibility sweeps for changes affecting those environments or release validation.
+- **Native mobile changes:** run mobile typecheck, lint, and relevant Jest tests. Run `doctor` for dependency/Expo configuration changes and `export:android` for build/native integration changes or release validation; neither is required for every UI edit.
+- **Backend changes:** run targeted Maven tests during development and `mvn -f backend/pom.xml test` once for final validation. Include appropriate integration coverage for persistence, ingestion, security, and API behavior changes.
+- **Cross-stack changes:** validate the affected layers and their integration; do not run unrelated platform suites.
 
-```bash
-npm --prefix frontend run test:visual
-```
+### Keep verification efficient and honest
 
-For mobile changes, run:
-
-```bash
-npm --prefix mobile run typecheck
-npm --prefix mobile run lint
-npm --prefix mobile test
-npm --prefix mobile run doctor
-npm --prefix mobile run export:android
-```
-
-For backend changes, run:
-
-```bash
-mvn -f backend/pom.xml test
-```
-
-For cross-stack changes, run both frontend and backend checks. If a command cannot run because of sandboxing, network restrictions, missing services, or local environment issues, report the exact command and failure.
+- Reuse passing results when the code they cover has not changed. After a fix, rerun the failed check and checks affected by that fix; do not automatically restart every suite.
+- Batch independent lightweight checks when practical. Run Playwright suites that share mutable stub services serially to avoid interference.
+- Read each check's final result once. Inspect detailed logs, screenshots, or traces when a failure or uncertainty needs investigation; avoid repetitive polling and log dumps.
+- Report what was checked, any failures, and material untested areas concisely. Never claim a check passed if it was skipped or only passed before relevant edits. If execution is blocked, report the command and concrete reason.
+- Do not call the finished work validated or complete while relevant checks have failed or remain outstanding. A design-iteration handoff may explicitly leave final validation pending without interrupting the user's feedback loop.
 
 ## Development Rules
 
