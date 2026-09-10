@@ -690,6 +690,8 @@ function InteractiveTtcMapComponent({
     replayEntrance,
     refitIfCameraUntouched,
   } = usePanZoom({
+    persistenceKey: "ttc",
+    persistenceBlocked: Boolean(selection || selectedStationId || commutePathPreview),
     reducedMotion,
     viewportOrientation,
     disableProgrammaticMotion: mobilePerformanceMode,

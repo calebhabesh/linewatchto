@@ -1,5 +1,7 @@
 "use client";
 
+import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
+import { clearMapViewport } from "../app/map-viewport-preference";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
@@ -3312,6 +3314,7 @@ function InteractiveRegionalMapComponent({
   }, [refitUntouchedNetwork]);
 
   const resetNetworkCamera = useCallback(() => {
+    clearMapViewport("regional");
     cameraAdjustedByUserRef.current = false;
     const fitted = fittedCamera();
     if (!fitted) return false;
@@ -3329,8 +3332,24 @@ function InteractiveRegionalMapComponent({
     }
   }, [reducedMotion, resetNetworkCamera]);
 
+  const restoreViewport = useMapViewportPersistence("regional", camera, fitScale, logicalViewportSize,
+    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !selection && !selectedStationId && !commutePathPreview && viewportOrientation === "standard");
+  const restoreSavedCamera = useCallback(() => {
+    if (selection || selectedStationId || commutePathPreview || viewportOrientation !== "standard") return false;
+    const fitted = fittedCamera();
+    if (!fitted) return false;
+    const saved = restoreViewport(fitted.scale);
+    if (!saved) return false;
+    cameraInitializedRef.current = true;
+    cameraAdjustedByUserRef.current = true;
+    setCameraReady(true);
+    snapCameraToNetwork(saved, fitted.scale);
+    return true;
+  }, [commutePathPreview, fittedCamera, restoreViewport, selectedStationId, selection, snapCameraToNetwork, viewportOrientation]);
+
   const stageInitialEntrance = useCallback(() => {
     if (!svgMarkup) return;
+    if (restoreSavedCamera()) return;
     const fitted = fittedCamera();
     if (!fitted) return;
     const { width, height } = logicalViewportSize();
@@ -3348,9 +3367,10 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(entryCamera);
     setFitScale(fitted.scale);
     setCamera(entryCamera);
-  }, [animateInitialEntrance, fittedCamera, logicalViewportSize, setMapTransition, svgMarkup, writeMapTransform]);
+  }, [animateInitialEntrance, fittedCamera, logicalViewportSize, setMapTransition, svgMarkup, writeMapTransform, restoreSavedCamera]);
 
   const completeStagedEntrance = useCallback(() => {
+    if (restoreSavedCamera()) return;
     const fitted = fittedCamera();
     if (!fitted) return;
     if (animateInitialEntrance && shouldAnimateProgrammaticTransform) {
@@ -3358,7 +3378,7 @@ function InteractiveRegionalMapComponent({
       return;
     }
     snapCameraToNetwork(fitted.camera, fitted.scale);
-  }, [animateCameraTo, animateInitialEntrance, fittedCamera, shouldAnimateProgrammaticTransform, snapCameraToNetwork]);
+  }, [animateCameraTo, animateInitialEntrance, fittedCamera, shouldAnimateProgrammaticTransform, snapCameraToNetwork, restoreSavedCamera]);
 
   const focusTargetKey = useMemo(() => {
     if (selection) return `${selection.kind}:${selection.id}`;
@@ -3382,6 +3402,7 @@ function InteractiveRegionalMapComponent({
 
   const initializeMapCamera = useCallback(() => {
     if (cameraInitializedRef.current || !svgMarkup) return;
+    if (restoreSavedCamera()) return;
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
@@ -3414,7 +3435,7 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(fitted.camera);
     setFitScale(fitted.scale);
     setCamera(fitted.camera);
-  }, [animateCameraTo, animateInitialEntrance, fittedCamera, focusTargetKey, logicalViewportSize, setMapTransition, shouldAnimateProgrammaticTransform, svgMarkup, writeMapTransform]);
+  }, [animateCameraTo, animateInitialEntrance, fittedCamera, focusTargetKey, logicalViewportSize, setMapTransition, shouldAnimateProgrammaticTransform, svgMarkup, writeMapTransform, restoreSavedCamera]);
 
   useEffect(() => {
     let cancelled = false;

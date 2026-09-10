@@ -1,3 +1,5 @@
+import { useMapViewportPersistence } from "./useMapViewportPersistence";
+import { clearMapViewport } from "../app/map-viewport-preference";
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, type PointerEvent, type WheelEvent } from "react";
 import {
   clampPanZoomScale,
@@ -28,6 +30,8 @@ import {
 import { isMapWheelScrollRegionTarget } from "../components/map-wheel-events";
 
 type UsePanZoomOptions = {
+  persistenceKey?: string;
+  persistenceBlocked?: boolean;
   reducedMotion?: boolean;
   viewportOrientation?: MapViewportOrientation;
   disableProgrammaticMotion?: boolean;
@@ -52,6 +56,8 @@ const DEFAULT_CAMERA_MOTION_DURATION_MS = 800;
 const DEFAULT_CAMERA_MOTION_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
 
 export function usePanZoom({
+  persistenceKey,
+  persistenceBlocked = false,
   reducedMotion = false,
   viewportOrientation = "standard",
   disableProgrammaticMotion = false,
@@ -781,11 +787,26 @@ export function usePanZoom({
     writeMapTransform,
   ]);
 
+  const restoreViewport = useMapViewportPersistence(persistenceKey, transform, fitScale, logicalViewportSize,
+    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !persistenceBlocked && viewportOrientation === "standard");
+  const restoreSavedCamera = useCallback(() => {
+    if (persistenceBlocked || viewportOrientation !== "standard") return false;
+    const { width, height } = logicalViewportSize();
+    const fit = defaultTransformForViewport(width, height).scale;
+    const saved = restoreViewport(fit);
+    if (!saved) return false;
+    cameraInitializedRef.current = true;
+    cameraAdjustedByUserRef.current = true;
+    animateTransformTo(saved, fit, false);
+    return true;
+  }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize, persistenceBlocked, restoreViewport, viewportOrientation]);
+
   const initializeCamera = useCallback(() => {
-    moveToDefaultCamera(animateInitialEntrance, animateInitialEntrance);
-  }, [animateInitialEntrance, moveToDefaultCamera]);
+    if (!restoreSavedCamera()) moveToDefaultCamera(animateInitialEntrance, animateInitialEntrance);
+  }, [animateInitialEntrance, moveToDefaultCamera, restoreSavedCamera]);
 
   const stageInitialEntrance = useCallback(() => {
+    if (restoreSavedCamera()) return;
     if (!containerRef.current) return;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
@@ -799,13 +820,14 @@ export function usePanZoom({
     setMapTransition("none");
     writeMapTransform(entryTransform);
     setTransform(entryTransform);
-  }, [animateInitialEntrance, defaultTransformForViewport, logicalViewportSize, setMapTransition, snapTransform, writeMapTransform]);
+  }, [animateInitialEntrance, defaultTransformForViewport, logicalViewportSize, setMapTransition, snapTransform, writeMapTransform, restoreSavedCamera]);
 
   const completeStagedEntrance = useCallback(() => {
-    moveToDefaultCamera(animateInitialEntrance, false);
-  }, [animateInitialEntrance, moveToDefaultCamera]);
+    if (!restoreSavedCamera()) moveToDefaultCamera(animateInitialEntrance, false);
+  }, [animateInitialEntrance, moveToDefaultCamera, restoreSavedCamera]);
 
   const recenter = useCallback(() => {
+    if (persistenceKey) clearMapViewport(persistenceKey);
     cameraAdjustedByUserRef.current = false;
     if (!containerRef.current) return false;
     const { width, height } = logicalViewportSize();
@@ -814,7 +836,7 @@ export function usePanZoom({
     cameraInitializedRef.current = true;
     snapTransformToDefault(next, next.scale);
     return true;
-  }, [defaultTransformForViewport, logicalViewportSize, snapTransformToDefault]);
+  }, [defaultTransformForViewport, logicalViewportSize, snapTransformToDefault, persistenceKey]);
 
   const recenterWithFeedback = useCallback(() => {
     if (recenter() && !reducedMotion) {
