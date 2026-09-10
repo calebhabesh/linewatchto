@@ -93,8 +93,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(moreSheetSource, /Link Google/);
     assert.match(moreSheetSource, /lineWatchAppVersionLabel/);
     assert.match(moreSheetSource, /mobile-more-build-label/);
-    assert.match(moreSheetSource, /linewatch-transit-accent-strip mobile-more-accent-strip/);
-    assert.match(globalCss, /\.mobile-more-accent-strip\s*\{[^}]*margin:\s*-12px -12px -12px;/s);
+    assert.doesNotMatch(moreSheetSource, /mobile-more-accent-strip/);
+    assert.match(globalCss, /\.floating-panel-scroll::before\s*\{[^}]*border-top:\s*5px solid transparent;/s);
     assert.match(moreSheetSource, /High Contrast Mode/);
     assert.match(moreSheetSource, /Reduced Motion/);
     assert.match(moreSheetSource, /BACKGROUND_PREFERENCE_LABEL/);

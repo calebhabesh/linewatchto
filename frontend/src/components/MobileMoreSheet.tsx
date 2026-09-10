@@ -126,13 +126,6 @@ export function MobileMoreSheet({
 
   return (
     <section className="mobile-more-sheet panel" aria-label="More LineWatchTO options">
-      <div className="linewatch-transit-accent-strip mobile-more-accent-strip" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-        <span />
-        <span />
-      </div>
       <div className="mobile-sheet-heading">
         <div className="mobile-more-brand">
           <Image src="/assets/linewatch/logo.svg" alt="" width={28} height={28} aria-hidden="true" />

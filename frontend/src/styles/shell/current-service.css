@@ -554,6 +554,8 @@
   }
   .mobile-service-sheet .current-service-all { min-height: 44px; font-size: 13px; }
   .linewatch-shell:has(.mobile-service-sheet) .mobile-map-controls-group { z-index: 41; }
+  /* Map chrome stays mounted beneath the sheet throughout direct manipulation. */
+  .linewatch-shell:has(.mobile-service-sheet) .mobile-app-topbar { z-index: 41; }
   .linewatch-shell.dark .mobile-service-sheet {
     background: #111315;
     box-shadow: 0 -8px 28px #0004, inset 0 1px 2px rgba(255, 255, 255, 0.09), inset 0 6px 10px -7px rgba(255, 255, 255, 0.10);
@@ -619,7 +621,7 @@
     border-radius: 28px;
     background: var(--mobile-map-control-surface);
     color: var(--text);
-    box-shadow: none;
+    box-shadow: 0 3px 8px rgb(0 0 0 / 32%), 0 0 0 1px rgb(148 163 184 / 10%);
     pointer-events: auto;
   }
   .mobile-app-logo { flex: 0 0 26px; width: 26px; height: 26px; }
@@ -641,7 +643,9 @@
     flex: 0 0 44px;
     height: 44px;
     border-radius: 50%;
-    background: var(--panel-soft);
+    background: transparent;
+    border: 0;
+    box-shadow: none;
     color: var(--text);
   }
   .mobile-app-shortcuts { display: flex; gap: 7px; min-width: 0; }
@@ -654,7 +658,7 @@
     background: var(--mobile-map-control-surface);
     color: var(--text);
     border: 0;
-    box-shadow: none;
+    box-shadow: 0 2px 4px rgb(0 0 0 / 30%), 0 0 0 1px rgb(148 163 184 / 9%);
     font-size: 12px;
     font-weight: 650;
     white-space: nowrap;
@@ -678,6 +682,15 @@
   .mobile-app-chip-scroll > button[aria-current="page"] { border-color: var(--text); background: var(--panel-soft); }
   .mobile-app-info { position: absolute; top: 100px; right: 0; pointer-events: auto; }
   .mobile-app-info .site-guide-trigger { width: 48px; height: 44px; border-radius: 12px; }
+  .mobile-app-info .site-guide-panel {
+    position: fixed;
+    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 106px);
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    width: min(calc(100vw - 24px - var(--mobile-safe-left) - var(--mobile-safe-right)), 410px);
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 106px - var(--mobile-bottom-nav-occupied-height) - 8px);
+  }
   .mobile-app-search > .mobile-app-account { background: transparent; border: 0; box-shadow: none; color: #94a3b8; }
   .mobile-app-search > .mobile-app-account[data-authenticated="true"] { color: #059669; }
   .dark .mobile-app-search > .mobile-app-account[data-authenticated="true"] { color: #34d399; }
@@ -689,11 +702,8 @@
     transition: bottom 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
   }
   .mobile-map-network-switch .network-selector { width: 48px; }
-  .linewatch-shell:has(.mobile-service-sheet[data-expanded="true"]) .mobile-map-network-switch,
-  .linewatch-shell:has(.mobile-service-sheet[data-expanded="true"]) .mobile-app-info { display: none; }
   .mobile-app-topbar button:focus-visible,
   .mobile-saved-sections button:focus-visible { outline: 2px solid var(--text); outline-offset: -3px; }
-  .linewatch-shell:has(.mobile-service-sheet[data-expanded="true"]) .mobile-app-shortcuts { display: none; }
 
   .linewatch-shell .mobile-legend-pill { top: calc(var(--mobile-safe-top) + 106px) !important; }
   .linewatch-shell .mobile-train-toggle {
@@ -714,8 +724,6 @@
   .linewatch-shell .mobile-map-recenter-btn,
   .linewatch-shell .mobile-map-zoom-btn { width: 44px; height: 44px; min-height: 44px; }
   .linewatch-shell .mobile-map-zoom-capsule { width: 44px; }
-  .linewatch-shell:has(.mobile-service-sheet[data-expanded="true"]) .mobile-train-toggle,
-  .linewatch-shell:has(.mobile-service-sheet[data-expanded="true"]) .mobile-map-controls-group { display: none; }
 
   .linewatch-shell .floating-panel-shell {
     border: 0;
@@ -772,13 +780,16 @@
     background-image: none;
   }
 
-  /* Keep the existing strip's layout height while its ends follow the sheet rim. */
-  .mobile-more-accent-strip { position: relative; overflow: visible; }
-  .mobile-more-accent-strip > span { visibility: hidden; }
-  .mobile-more-accent-strip::before {
+  /* Shared menu rim stays fixed while each menu's content scrolls beneath it. */
+  .linewatch-shell .floating-panel-shell .floating-panel-scroll {
+    position: relative;
+    padding-top: 5px;
+  }
+  .floating-panel-scroll::before {
     content: "";
     position: absolute;
     inset: 0 0 auto;
+    z-index: 2;
     height: 22px;
     border: 0;
     border-top: 5px solid transparent;
