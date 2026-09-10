@@ -2260,43 +2260,30 @@ function InteractiveTtcMapComponent({
                   </filter>
                 </defs>
                 <g aria-label="Disruption overlays">
-                  {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => {
+                  {[
+                    ...retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => ({
+                      key, segment, impact: null, closure, exiting,
+                    })),
+                    ...retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => ({
+                      key, segment, impact, closure: undefined, exiting,
+                    })),
+                  ].sort((a, b) =>
+                    getImpactPriority(a.impact?.kind ?? "planned-closure")
+                    - getImpactPriority(b.impact?.kind ?? "planned-closure")
+                  ).map(({ key, segment, impact, closure, exiting }) => {
                     if (
-                      commutePreviewLayer &&
-                      selectedImpactEmphasis?.plannedClosure?.id === closure.id
-                    ) {
-                      return null;
-                    }
-                    return (
-                      <OverlaySegment
-                        key={key}
-                        segment={segment}
-                        impact={null}
-                        plannedClosure={closure}
-                        selection={selection}
-                        selectedSegmentIds={selectedSegmentIds}
-                        onSelectImpact={onSelectImpact}
-                        shouldSuppressMapClick={shouldSuppressMapClick}
-                        reducedMotion={mapEffectMotionPaused}
-                        exiting={exiting}
-                        renderInteractionTarget={false}
-                      />
-                    );
-                  })}
-                  {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => {
-                    if (
-                      commutePreviewLayer &&
-                      selectedImpactEmphasis?.impact?.kind === impact.kind &&
-                      selectedImpactEmphasis.impact.cardId === impact.cardId
-                    ) {
-                      return null;
-                    }
+                      commutePreviewLayer && (
+                        (closure && selectedImpactEmphasis?.plannedClosure?.id === closure.id)
+                        || (impact && selectedImpactEmphasis?.impact?.kind === impact.kind &&
+                          selectedImpactEmphasis.impact.cardId === impact.cardId)
+                      )
+                    ) return null;
                     return (
                       <OverlaySegment
                         key={key}
                         segment={segment}
                         impact={impact}
-                        plannedClosure={undefined}
+                        plannedClosure={closure}
                         selection={selection}
                         selectedSegmentIds={selectedSegmentIds}
                         onSelectImpact={onSelectImpact}
@@ -2343,6 +2330,29 @@ function InteractiveTtcMapComponent({
                       />
                     )
                   ) : null}
+                </g>
+
+                {/* Repaint hovered visuals above impacts but below station artwork.
+                    Reuse the original SVG so patterns and directional glyphs stay identical. */}
+                <g aria-hidden="true" pointerEvents="none">
+                  {[
+                    ...retainedPlannedPreviewLayers.map(({ item: { segment, closure }, exiting }) => ({
+                      segment, kind: "planned-closure" as const, id: closure.id, exiting,
+                    })),
+                    ...retainedImpactLayers.map(({ item: { segment, impact }, exiting }) => ({
+                      segment, kind: impact.kind, id: impact.cardId, exiting,
+                    })),
+                  ].map(({ segment, kind, id, exiting }) => exiting ? null : (
+                    <g
+                      key={`hover-visual:${kind}:${id}:${segment.id}`}
+                      className="ttc-impact-hover-foreground"
+                      data-ttc-hover-impact-kind={kind}
+                      data-ttc-hover-impact-id={id}
+                      data-ttc-hover-segment-id={segment.id}
+                    >
+                      <use href={`#${ttcOverlayVisualId(kind, id, segment.id)}`} />
+                    </g>
+                  ))}
                 </g>
 
                 {/* Top Layer: custom-map station labels, dots, badges, and connections */}
@@ -2499,25 +2509,22 @@ function InteractiveTtcMapComponent({
                 ))}
               </g>
               <g aria-label="Disruption overlay interaction targets">
-                {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
-                  <OverlayInteractionTarget
-                    key={`interaction:${key}`}
-                    segment={segment}
-                    impact={null}
-                    plannedClosure={closure}
-                    selectionActive={Boolean(selection)}
-                    exiting={exiting}
-                    onSelectImpact={onSelectImpact}
-                    shouldSuppressMapClick={shouldSuppressMapClick}
-                    onHoverChange={setMapImpactHover}
-                  />
-                ))}
-                {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => (
+                {[
+                  ...retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => ({
+                    key, segment, impact: null, closure, exiting,
+                  })),
+                  ...retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => ({
+                    key, segment, impact, closure: undefined, exiting,
+                  })),
+                ].sort((a, b) =>
+                  getImpactPriority(a.impact?.kind ?? "planned-closure")
+                  - getImpactPriority(b.impact?.kind ?? "planned-closure")
+                ).map(({ key, segment, impact, closure, exiting }) => (
                   <OverlayInteractionTarget
                     key={`interaction:${key}`}
                     segment={segment}
                     impact={impact}
-                    plannedClosure={undefined}
+                    plannedClosure={closure}
                     selectionActive={Boolean(selection)}
                     exiting={exiting}
                     onSelectImpact={onSelectImpact}
@@ -4916,6 +4923,10 @@ function CommutePathOverlay({
   );
 }
 
+function ttcOverlayVisualId(kind: MapImpactKind, impactId: string, segmentId: string) {
+  return `ttc-overlay-visual-${kind}-${impactId}-${segmentId}`;
+}
+
 function TtcImpactHoverForeground({
   segment,
   kind,
@@ -5225,6 +5236,7 @@ function OverlaySegment({
 
   return (
     <g
+      id={ttcOverlayVisualId(impact?.kind ?? "planned-closure", impact?.cardId ?? plannedClosure?.id ?? "unknown", overlaySegmentId)}
       className={`overlay-segment-group ${connectedClass} ${exiting ? "map-layer-exiting" : "map-layer-current"}`.trim()}
       data-map-impact-id={impact?.cardId ?? plannedClosure?.id}
       data-map-impact-kind={impact?.kind ?? "planned-closure"}

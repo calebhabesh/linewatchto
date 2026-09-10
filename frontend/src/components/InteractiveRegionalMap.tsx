@@ -1819,7 +1819,7 @@ function regionalCollisionAdjustedOverlapBadges(
   });
   const alertOverlayBoxes = Array.from(
     svg.querySelectorAll<SVGPathElement>(
-      ".regional-overlay-segment-group .regional-impact-path",
+      ".regional-overlay-segment-group[data-regional-impact-id] .regional-impact-path",
     ),
   ).flatMap((path) => regionalPathCorridorCollisionBoxes(
     svg,
@@ -2046,6 +2046,16 @@ function continuousRegionalOverlayRunPath(
   });
 }
 
+function restoreRegionalOverlayOrder(segmentLayer: SVGGElement) {
+  const overlays = [...segmentLayer.children] as SVGElement[];
+  overlays.sort((left, right) =>
+    regionalImpactPriority(left.dataset.regionalImpactKind as ImpactKind)
+    - regionalImpactPriority(right.dataset.regionalImpactKind as ImpactKind)
+    || (left.dataset.regionalImpactId ?? "").localeCompare(right.dataset.regionalImpactId ?? "")
+  );
+  segmentLayer.append(...overlays);
+}
+
 function bringRegionalImpactToFront(
   root: HTMLElement,
   kind: ImpactKind,
@@ -2060,6 +2070,7 @@ function bringRegionalImpactToFront(
       child.removeAttribute?.("data-selected-commute-impact-overlay");
       segmentLayer.append(child);
     }
+    restoreRegionalOverlayOrder(segmentLayer);
   }
   root.querySelectorAll<SVGElement>(
     `.regional-overlay-segment-group[data-regional-impact-kind="${kind}"][data-regional-impact-id="${CSS.escape(id)}"]`,
@@ -2236,12 +2247,10 @@ function regionalSegmentHoverForeground(source: SVGElement, maskIndex: number) {
   foreground.removeAttribute("data-regional-impact-id");
   foreground.removeAttribute("data-regional-impact-selected");
   foreground.classList.add("regional-impact-hover-foreground");
-  // The foreground is one stable hollow outline, not a second animated copy
-  // of the alert. Keeping its center transparent preserves the source colour,
-  // glyphs, and icons just like TTC map hover emphasis.
-  [...foreground.children].forEach((element) => {
-    if (!element.classList.contains("regional-impact-hover-boundary")) element.remove();
-  });
+  // Keep the source rail and directional artwork above competing impacts.
+  // The copy is visual only: original hit targets retain pointer and focus ownership.
+  foreground.querySelectorAll(".regional-impact-interactive-glow, .regional-impact-hit-target")
+    .forEach((element) => element.remove());
   foreground.querySelectorAll("title").forEach((element) => element.remove());
   const boundary = foreground.querySelector<SVGPathElement>(".regional-impact-hover-boundary");
   if (boundary) {
@@ -2383,7 +2392,7 @@ function regionalReferencedAlertCollisionBoxes(
     badge.impacts.map((impact) => `${impact.kind}:${impact.cardId}`),
   );
   return [...root.querySelectorAll<SVGPathElement>(
-    ".regional-overlay-segment-group .regional-impact-path",
+    ".regional-overlay-segment-group[data-regional-impact-id] .regional-impact-path",
   )].flatMap((path) => {
     const group = path.closest<SVGElement>(".regional-overlay-segment-group");
     const kind = group?.dataset.regionalImpactKind;
@@ -3657,7 +3666,10 @@ function InteractiveRegionalMapComponent({
       commuteLayer.append(previewLayer);
     }
 
-    segmentLayer.querySelectorAll<SVGElement>(".regional-overlay-segment-group")
+    // Corridor-wide and segment-specific alerts share one paint order.
+    restoreRegionalOverlayOrder(segmentLayer);
+    const orderedSegmentOverlays = segmentLayer.querySelectorAll<SVGElement>(".regional-overlay-segment-group");
+    orderedSegmentOverlays
       .forEach((source, index) => hoverLayer.append(regionalSegmentHoverForeground(source, index)));
 
     const currentSelectedStationId = selectedStationIdRef.current;
@@ -3891,6 +3903,7 @@ function InteractiveRegionalMapComponent({
         child.removeAttribute?.("data-selected-commute-impact-overlay");
         segmentLayer.append(child);
       }
+      restoreRegionalOverlayOrder(segmentLayer);
     }
     if (selection) {
       root?.querySelectorAll(`[data-regional-impact-kind="${selection.kind}"][data-regional-impact-id="${CSS.escape(selection.id)}"]`)

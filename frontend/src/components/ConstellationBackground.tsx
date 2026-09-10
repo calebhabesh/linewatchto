@@ -62,7 +62,7 @@ export function ConstellationBackground({
       const dimensionsChanged = nextWidth !== width || nextHeight !== height;
       width = nextWidth;
       height = nextHeight;
-      isMobile = width < MOBILE_BREAKPOINT;
+      isMobile = width < MOBILE_BREAKPOINT || window.matchMedia("(pointer: coarse)").matches;
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
       // Assigning both backing dimensions deliberately clears and reallocates
       // the canvas surface. Mobile WebKit can discard or retain stale canvas
@@ -103,7 +103,7 @@ export function ConstellationBackground({
 
         }
 
-        if (interactive) {
+        if (interactive && !isMobile) {
           node.x += node.vx;
           node.y += node.vy;
           if (node.x < -4) node.x = width + 4;
@@ -137,7 +137,8 @@ export function ConstellationBackground({
         context.fill();
       }
 
-      if (interactive) frameId = window.requestAnimationFrame(draw);
+      // Mobile retains the visual texture without a continuous canvas redraw.
+      if (interactive && !isMobile) frameId = window.requestAnimationFrame(draw);
     };
 
     const stop = () => {
@@ -193,7 +194,7 @@ export function ConstellationBackground({
     const recoverAfterPointerDown = () => {
       // A pointer event proves the document is foregrounded even if WebKit
       // omitted pageshow/focus and visibilityState is temporarily stale.
-      if (!interactive || frameId !== null) return;
+      if (!interactive || isMobile || frameId !== null) return;
       resetAfterResume();
     };
 

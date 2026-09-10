@@ -446,7 +446,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .motion-paused .commute-grid,
 .motion-paused .accessibility-outages-scroll,
 .motion-paused .floating-panel-shell,
-.motion-paused .station-detail-panel,
 .motion-paused .mobile-impact-inspector,
 .motion-paused .mobile-impact-inspector-scroll,
 .motion-paused .mobile-impact-inspector-metadata {
@@ -461,7 +460,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   .commute-grid,
   .accessibility-outages-scroll,
   .floating-panel-shell,
-  .station-detail-panel,
   .mobile-impact-inspector,
   .mobile-impact-inspector-scroll,
   .mobile-impact-inspector-metadata {
@@ -542,9 +540,13 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 /* Give controls without a bespoke interaction animation the same quiet
-   press response as the primary dashboard controls. */
+   press response as the primary dashboard controls.
+   Explicit transition-property prevents the "all" default from picking up
+   non-compositable properties (scrollbar-color, visibility, stroke-width)
+   that would force a paint on every frame during drag/scroll. */
 .linewatch-shell button:not(:disabled),
 .linewatch-shell [role="button"]:not([aria-disabled="true"]) {
+  transition-property: transform, background-color, color, box-shadow, border-color, opacity;
   transition-duration: 160ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
