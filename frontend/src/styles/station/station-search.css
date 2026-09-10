@@ -1361,19 +1361,7 @@
     width: auto;
   }
 
-  /* Override for initial / non-focused state: extend from bottom nav bar */
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-searching="true"]):not([data-input-focused="true"]) {
-    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 8px) !important;
-    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 10px) !important;
-    height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 18px) !important;
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 18px) !important;
-    transform: translate3d(0, 24px, 0) scale(0.985);
-    transform-origin: bottom center;
-  }
 
-  html:not([data-visual-keyboard="open"]) .station-search-panel.open:not([data-searching="true"]):not([data-input-focused="true"]) {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
 
 
   /* Hide other mobile controls when in search view */
@@ -1386,12 +1374,6 @@
   .linewatch-shell[data-active-view="search"] .go-up-closed-peek-chip,
   .linewatch-shell[data-active-view="search"] .subway-closing-soon-chip,
   .linewatch-shell[data-active-view="search"] .mobile-train-toggle {
-    display: none !important;
-  }
-
-  /* Hide bottom nav bar when active search (focused or searching) */
-  .linewatch-shell:has(.station-search-panel[data-input-focused="true"]) .mobile-bottom-nav,
-  .linewatch-shell:has(.station-search-panel[data-searching="true"]) .mobile-bottom-nav {
     display: none !important;
   }
 
@@ -1526,10 +1508,4 @@
     margin-bottom: 12px !important;
   }
 
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) {
-    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 8px) !important;
-    height: auto !important;
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 24px) !important;
-    top: auto !important;
-  }
 }

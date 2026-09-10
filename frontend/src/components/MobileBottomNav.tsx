@@ -1,15 +1,17 @@
 "use client";
 
-import { AlertTriangle, Map as MapIcon, MoreHorizontal, Navigation, Search } from "lucide-react";
+import { AlertTriangle, Map as MapIcon, MoreHorizontal, Bookmark } from "lucide-react";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
 
-export type MobileNavKey = "map" | "status" | "search" | "commutes" | "more";
+export type MobileNavKey = "map" | "status" | "saved" | "more";
 
 type MobileBottomNavProps = {
   activeKey: MobileNavKey;
   alertCount: number;
   delayCount: number;
   reducedSpeedZoneCount: number;
+  plannedClosureCount: number;
+  tripChangeCount?: number;
   commuteAffectedCount: number;
   onSelect: (key: MobileNavKey) => void;
 };
@@ -21,8 +23,7 @@ const ITEMS: Array<{
 }> = [
   { key: "map", label: "Map", Icon: MapIcon },
   { key: "status", label: "Status", Icon: AlertTriangle },
-  { key: "search", label: "Search", Icon: Search },
-  { key: "commutes", label: "Commutes", Icon: Navigation },
+  { key: "saved", label: "Saved", Icon: Bookmark },
   { key: "more", label: "More", Icon: MoreHorizontal },
 ];
 
@@ -31,14 +32,16 @@ export function MobileBottomNav({
   alertCount,
   delayCount,
   reducedSpeedZoneCount,
+  plannedClosureCount,
+  tripChangeCount = 0,
   commuteAffectedCount,
   onSelect,
 }: MobileBottomNavProps) {
-  const statusCount = alertCount + delayCount + reducedSpeedZoneCount;
+  const statusCount = alertCount + delayCount + reducedSpeedZoneCount + plannedClosureCount + tripChangeCount;
 
   function badgeFor(key: MobileNavKey) {
     if (key === "status" && statusCount > 0) return statusCount;
-    if (key === "commutes" && commuteAffectedCount > 0) return commuteAffectedCount;
+    if (key === "saved" && commuteAffectedCount > 0) return commuteAffectedCount;
     return null;
   }
 

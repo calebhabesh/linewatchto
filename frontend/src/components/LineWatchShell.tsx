@@ -40,6 +40,7 @@ import { ReleaseNotesPanel } from "./ReleaseNotesPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
+import { CurrentServicePanel } from "./CurrentServicePanel";
 import { MobileStatusPeek } from "./MobileStatusPeek";
 import { MobileMapControls, PhoneRotateLandscapeIcon, type MapPresentationMode } from "./MobileMapControls";
 import { RotatedMapSelectionCard } from "./RotatedMapSelectionCard";
@@ -62,7 +63,7 @@ import {
   getAccessibilityOutages,
 } from "../app/accessibility-outage-data";
 import { AccessibilityOutagesPanel, type AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
-import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
+import { getSurfaceNotices, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { SurfaceNoticesPanel } from "./SurfaceNoticesPanel";
 import { getRegionalTripChanges } from "../app/regional-trip-changes";
 import { getTtcAnnouncements } from "../app/announcement-data";
@@ -89,7 +90,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck } from "lucide-react";
+import { Accessibility, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -1086,6 +1087,7 @@ export function LineWatchShell({
     : null;
   const [accessibilityOutageTarget, setAccessibilityOutageTarget] = useState<AccessibilityOutageTarget | null>(null);
   const [expandedMyStationDisruptionIds, setExpandedMyStationDisruptionIds] = useState<Set<string>>(() => new Set());
+  const [currentServiceNotices, setCurrentServiceNotices] = useState<{ networkId: NetworkId; data: SurfaceNoticeResponse } | null>(null);
   const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
   const [regionalTripChangeCount, setRegionalTripChangeCount] = useState<number | null>(null);
   const [announcementCount, setAnnouncementCount] = useState<number | null>(null);
@@ -2458,7 +2460,8 @@ export function LineWatchShell({
 
   const fetchSurfaceNoticesCount = useCallback(async () => {
     try {
-      const res = await getSurfaceNotices({ limit: 0, networkId: selectedNetwork });
+      const res = await getSurfaceNotices({ networkId: selectedNetwork });
+      setCurrentServiceNotices({ networkId: selectedNetwork, data: res.data });
       if (res.source === "backend" && res.data.fresh) {
         setSurfaceNoticeCount(res.data.categories.reduce((total, category) => total + category.count, 0));
       } else {
@@ -2749,10 +2752,9 @@ export function LineWatchShell({
   };
 
   const handleOpenSearch = () => {
-    if (activeViewRef.current !== "search" && activeViewRef.current !== "map") {
-      setSelection(null);
-      setSelectedStationId(null);
-    }
+    setSelection(null);
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
     window.setTimeout(() => stationSearchInputRef.current?.focus(), 0);
     navigateRoot("search");
   };
@@ -2768,7 +2770,7 @@ export function LineWatchShell({
 
       if (barEl?.contains(target)) return;
       if (panelEl?.contains(target)) return;
-      if (target instanceof Element && target.closest(".mobile-bottom-nav")) return;
+      if (target instanceof Element && target.closest(".mobile-bottom-nav, .mobile-app-topbar")) return;
 
       setActiveView("map");
       setStationSearchQuery("");
@@ -2812,13 +2814,26 @@ export function LineWatchShell({
   }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, isMobile, recordPwaInstallEngagement]);
 
 
+  const openMobileShortcut = (view: ActiveView, noticeContent?: "notices" | "trip-changes") => {
+    setSelection(null);
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setImpactListLaunch((current) => ({ lineId: null, requestId: current.requestId + 1 }));
+    if (noticeContent) {
+      setSurfaceNoticeInitialQuery("");
+      setSurfaceNoticeInitialContent(noticeContent);
+    }
+    navigateRoot(view);
+  };
+
   const mobileNavKey = useMemo<MobileNavKey>(() => {
-    if (activeView === "status" || activeView === "alerts" || activeView === "delays" || activeView === "reduced-speed-zones" || activeView === "closures") {
+    if (activeView === "status" || activeView === "line-impacts" || activeView === "alerts" || activeView === "delays" || activeView === "reduced-speed-zones" || activeView === "closures") {
       return "status";
     }
-    if (activeView === "search") return "search";
-    if (activeView === "commutes") return "commutes";
-    if (activeView === "my-stations" || activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "feedback" || activeView === "privacy-acknowledgements" || activeView === "release-notes") return "more";
+    if (activeView === "search") return "map";
+    if (activeView === "commutes" || activeView === "my-stations") return "saved";
+    if (activeView === "accessibility-outages" || activeView === "surface-notices") return "status";
+    if (activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "announcements" || activeView === "feedback" || activeView === "privacy-acknowledgements" || activeView === "release-notes") return "more";
     return "map";
   }, [activeView]);
 
@@ -2833,11 +2848,8 @@ export function LineWatchShell({
       case "status":
         navigateRoot("status");
         return;
-      case "search":
-        navigateRoot("search");
-        return;
-      case "commutes":
-        navigateRoot("commutes");
+      case "saved":
+        navigateRoot("my-stations");
         return;
       case "more":
         navigateRoot("more");
@@ -2873,6 +2885,7 @@ export function LineWatchShell({
   }, [activeAlerts, viewForImpactKind]);
 
   const handleSearchSelectImpact = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    stationSearchInputRef.current?.blur();
     setSelectedStationId(null);
     setCommutePathPreview(null);
     selectionBackBehaviorRef.current = "restore-view";
@@ -2883,6 +2896,7 @@ export function LineWatchShell({
   }, [navigateForward, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
+    stationSearchInputRef.current?.blur();
     if (networkId === selectedNetwork) {
       handleSelectStationId(stationId);
       return;
@@ -3154,6 +3168,7 @@ export function LineWatchShell({
     activeView === "accessibility-outages" ||
     activeView === "surface-notices" ||
     activeView === "alert-history" ||
+    activeView === "announcements" ||
     activeView === "feedback" ||
     activeView === "privacy-acknowledgements" ||
     activeView === "release-notes"
@@ -3498,6 +3513,12 @@ export function LineWatchShell({
   const activeFloatingPanel = (!showClosedScreen && (isDesktopPanel || isMobilePanel || isClosingPanel || isGoingBack)) ? (
     isMobilePanel || (isMobile && (isGoingBack || isClosingPanel)) ? (
       <FloatingPanelShell panel="mobile-panel" mobileSheetLabel={getMobileSheetLabel()} navDirection={navDirection} isClosing={isClosingPanel} isGoingBack={isGoingBack}>
+        {(activeView === "my-stations" || activeView === "commutes") && (
+          <nav className="mobile-saved-sections" aria-label="Saved sections">
+            <button type="button" aria-current={activeView === "my-stations" ? "page" : undefined} onClick={() => navigateRoot("my-stations")}><Bookmark size={17} aria-hidden="true" />My Stations</button>
+            <button type="button" aria-current={activeView === "commutes" ? "page" : undefined} onClick={() => navigateRoot("commutes")}><Navigation size={17} aria-hidden="true" />My Commutes</button>
+          </nav>
+        )}
         <div key={activeView} className="mobile-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection} data-closing={isClosingPanel ? "true" : undefined} data-going-back={isGoingBack ? "true" : undefined}>
           {renderPanelContent()}
         </div>
@@ -3589,6 +3610,46 @@ export function LineWatchShell({
         {/* Background */}
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
 
+      {isMobile && !showClosedScreen && !rotatedMapMode && (
+        <div className="mobile-app-topbar" data-map-chooser-keepout data-searching={activeView === "search"}>
+          <div className="mobile-app-search" role="search" aria-label="Search LineWatchTO">
+            <Image src="/assets/linewatch/logo.svg" width={30} height={30} alt="" className="mobile-app-logo" />
+            <input
+              ref={stationSearchInputRef}
+              type="search"
+              aria-label="Station Search"
+              aria-controls="station-search-panel"
+              placeholder="Search stations & alerts..."
+              value={stationSearchQuery}
+              onFocus={handleOpenSearch}
+              onChange={(event) => setStationSearchQuery(event.target.value)}
+              onKeyDown={(event) => stationKeyDownHandlerRef.current?.(event)}
+            />
+            {activeView === "search" ? (
+              <button type="button" aria-label="Close search" onClick={() => { stationSearchInputRef.current?.blur(); setStationSearchQuery(""); navigateRoot("map"); }}><X size={21} /></button>
+            ) : (
+              <button type="button" className="mobile-app-account" data-authenticated={accountState.authenticated} aria-label="Account" onClick={() => { if (accountState.authenticated) navigateRoot("more"); else openAccountDialog("auth-choice"); }}><UserRound size={22} /></button>
+            )}
+          </div>
+          {activeView !== "search" && (
+            <div className="mobile-app-shortcuts">
+              <nav className="mobile-app-chip-scroll" aria-label="Dashboard shortcuts">
+                <button type="button" aria-current={activeView === "alert-history" ? "page" : undefined} onClick={() => openMobileShortcut("alert-history")}><History className="text-emerald-500" size={16} aria-hidden="true" />Alert History</button>
+                <button type="button" aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"} title={isDark ? "Light theme" : "Dark theme"} onClick={handleToggleTheme}>{isDark ? <Sun className="text-yellow-400" size={19} aria-hidden="true" /> : <Moon className="text-purple-500" size={19} aria-hidden="true" />}</button>
+                <button type="button" onClick={handleOpenRotatedMap}><PhoneRotateLandscapeIcon size={18} />Rotate map</button>
+                <button type="button" aria-current={activeView === "analytics" ? "page" : undefined} onClick={() => openMobileShortcut("analytics")}><BarChart3 className="text-purple-500 dark:text-purple-400" size={16} aria-hidden="true" />Reliability Analytics</button>
+                {selectedNetwork === "ttc" && <button type="button" aria-current={activeView === "announcements" ? "page" : undefined} onClick={() => openMobileShortcut("announcements")}><Megaphone className="text-sky-600 dark:text-sky-400" size={16} aria-hidden="true" />TTC Announcements</button>}
+                <button type="button" aria-current={activeView === "accessibility-outages" ? "page" : undefined} onClick={() => openMobileShortcut("accessibility-outages")}><Accessibility className="text-sky-600 dark:text-sky-400" size={16} aria-hidden="true" />Accessibility</button>
+                <button type="button" onClick={() => openMobileShortcut("surface-notices", "notices")}><FileText className="text-emerald-600 dark:text-emerald-400" size={16} aria-hidden="true" />Service Notices</button>
+              </nav>
+            </div>
+          )}
+          {showMobileStatusPeek && (
+            <div className="mobile-app-info"><SiteGuideDropdown onOpenChange={setGuideOpen} /></div>
+          )}
+        </div>
+      )}
+
       {!showClosedScreen && (
       <header
         className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start pointer-events-none"
@@ -3651,7 +3712,7 @@ export function LineWatchShell({
               size={21}
             />
             <input
-              ref={stationSearchInputRef}
+              ref={isMobile ? undefined : stationSearchInputRef}
               type="search"
               value={stationSearchQuery}
               onChange={(e) => {
@@ -4410,12 +4471,13 @@ export function LineWatchShell({
             onSelectImpact={handleSearchSelectImpact}
             onOpenImpactCategory={handleSearchOpenImpactCategory}
             onClose={() => { setActiveView("map"); setStationSearchQuery(""); }}
-            onClosedFocusTarget={() => stationSearchInputRef.current?.focus()}
+            onClosedFocusTarget={() => { if (!isMobile) stationSearchInputRef.current?.focus(); }}
             query={stationSearchQuery}
             onQueryChange={setStationSearchQuery}
             inputRef={stationSearchInputRef}
             keyDownHandlerRef={stationKeyDownHandlerRef}
             isMobile={isMobile}
+            externalMobileInput
             authenticated={accountState.authenticated || accountState.source === "unavailable"}
             savedStationKeys={savedStationKeys}
             pendingSavedStationIds={pendingSavedStationIds}
@@ -4822,6 +4884,14 @@ export function LineWatchShell({
       {!showClosedScreen && (
       <>
         <aside className={`desktop-status-chip-row-container fixed bottom-6 left-6 z-20 pointer-events-auto transition-opacity duration-200 ${activeView === "menu" ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+          {!isMobile && showMobileStatusPeek && <CurrentServicePanel
+              data={displayData}
+              notices={currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
+              onNotice={handleSearchOpenSurfaceNotice}
+              onImpact={handleSearchSelectImpact}
+              onStatus={() => navigateForward("status")}
+              onNotices={openServiceNotices}
+            />}
           <div className="desktop-status-chip-row desktop-header-impact-chips" aria-label="Open impact categories">
             <button
               type="button"
@@ -4943,8 +5013,15 @@ export function LineWatchShell({
         }}
       />
 
+      {isMobile && showMobileStatusPeek && (
+        <div className="mobile-map-network-switch" data-map-chooser-keepout>
+          <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} compactVertical />
+        </div>
+      )}
+
       {showMobileStatusPeek ? (
         <MobileStatusPeek
+          fresh={displayData.generatedAt.live && displayData.availability !== "unavailable" && displayData.availability !== "fixture"}
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
           delayCount={delays.length}
@@ -4966,7 +5043,16 @@ export function LineWatchShell({
           onRecenter={() => setRecenterSignal((prev) => prev + 1)}
           onZoomIn={() => setZoomInSignal((prev) => prev + 1)}
           onZoomOut={() => setZoomOutSignal((prev) => prev + 1)}
-        />
+        >
+          {isMobile && <CurrentServicePanel
+              data={displayData}
+              notices={currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
+              onNotice={handleSearchOpenSurfaceNotice}
+              onImpact={handleSearchSelectImpact}
+              onStatus={() => navigateForward("status")}
+              onNotices={openServiceNotices}
+            />}
+        </MobileStatusPeek>
       ) : null}
 
       {!showClosedScreen && !rotatedMapMode && !mobileInspectorOpen && !selectedStationId && !accountDialogMode ? (
@@ -4976,6 +5062,8 @@ export function LineWatchShell({
           alertCount={activeAlerts.length}
           delayCount={delays.length}
           reducedSpeedZoneCount={reducedSpeedZoneCount}
+          plannedClosureCount={plannedClosures.length}
+          tripChangeCount={selectedNetwork === "regional" ? regionalTripChangeCount ?? 0 : 0}
           commuteAffectedCount={commuteAffectedCount}
           onSelect={onMobileNavSelect}
         />

@@ -943,7 +943,7 @@
     bottom: var(--mobile-bottom-nav-occupied-height);
     left: 0;
     max-height: min(78dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - 88px));
-    padding: 0 8px 8px;
+    padding: 0;
     position: fixed;
     right: 0;
     top: auto;
@@ -954,7 +954,7 @@
   .floating-panel-scroll {
     background: var(--panel);
     border: none;
-    border-radius: 8px;
+    border-radius: 22px 22px 0 0;
     box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.38);
     gap: 0;
     max-height: inherit;

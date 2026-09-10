@@ -74,6 +74,7 @@ type Props = {
   /** The panel fills this ref with its keydown handler so the shell can wire it to the header input */
   keyDownHandlerRef?: React.MutableRefObject<((event: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
   isMobile: boolean;
+  externalMobileInput?: boolean;
   authenticated: boolean;
   savedStationKeys: Set<string>;
   pendingSavedStationIds: Set<string>;
@@ -387,6 +388,7 @@ export function StationSearchPanel({
   inputRef,
   keyDownHandlerRef,
   isMobile,
+  externalMobileInput = false,
   authenticated,
   savedStationKeys,
   pendingSavedStationIds,
@@ -711,6 +713,7 @@ export function StationSearchPanel({
       aria-hidden={!open}
       inert={!open ? true : undefined}
       data-station-search-panel
+      data-external-mobile-input={externalMobileInput ? "true" : undefined}
       data-open={open ? "true" : "false"}
       data-expanded={isExpanded ? "true" : "false"}
       data-searching={query.trim() ? "true" : "false"}
@@ -721,7 +724,7 @@ export function StationSearchPanel({
           : undefined
       }
     >
-      {isMobile && (
+      {isMobile && !externalMobileInput && (
         <div className="station-search-input-row">
           <Search size={18} className="station-search-input-icon" aria-hidden="true" />
           <input

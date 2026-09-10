@@ -518,11 +518,13 @@
    ========================================================================== */
 
 .motion-paused .station-detail-panel {
+  transition: none;
   animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .station-detail-panel {
+    transition: none;
     animation: none;
   }
 }

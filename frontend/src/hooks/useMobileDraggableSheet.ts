@@ -1,5 +1,6 @@
 "use client";
 
+import { reserveSheetMotionBudget } from "../components/sheet-motion-budget.ts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const MOBILE_STATION_SHEET_STORAGE_KEY = "linewatch-mobile-station-sheet-height-v1";
@@ -50,6 +51,7 @@ export function writeStoredSheetHeightRatio(
 }
 
 export function useMobileDraggableSheet() {
+  const releaseMotion = useRef<ReturnType<typeof reserveSheetMotionBudget> | null>(null);
   const sheetRef = useRef<HTMLElement | null>(null);
   const [heightRatio, setHeightRatio] = useState<number>(() => {
     if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
@@ -60,6 +62,7 @@ export function useMobileDraggableSheet() {
   const currentRatioRef = useRef(heightRatio);
   const rafIdRef = useRef<number | null>(null);
   const isDraggingRef = useRef(false);
+  const latestTranslateYRef = useRef(0);
 
   const dragSessionRef = useRef<{
     startY: number;
@@ -158,6 +161,8 @@ export function useMobileDraggableSheet() {
 
     const sheetEl = sheetRef.current;
     if (sheetEl) {
+      releaseMotion.current?.();
+      releaseMotion.current = reserveSheetMotionBudget(sheetEl);
       sheetEl.style.transition = "none";
       sheetEl.style.willChange = "transform";
       sheetEl.classList.add("station-detail-sheet-dragging");
@@ -176,13 +181,14 @@ export function useMobileDraggableSheet() {
       const calculatedRatio = MOBILE_SHEET_CEILING_RATIO - (clampedTranslateY / session.viewportHeight);
       const currentRatio = clampSheetRatio(calculatedRatio);
       currentRatioRef.current = currentRatio;
+      latestTranslateYRef.current = clampedTranslateY;
 
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(() => {
           rafIdRef.current = null;
           const el = sheetRef.current;
           if (el && isDraggingRef.current) {
-            el.style.transform = `translate3d(0, ${clampedTranslateY.toFixed(1)}px, 0)`;
+            el.style.transform = `translate3d(0, ${latestTranslateYRef.current.toFixed(1)}px, 0)`;
           }
         });
       }
@@ -214,6 +220,7 @@ export function useMobileDraggableSheet() {
       const isTap = Math.abs(totalDisplacement) < 5 && duration < 350;
 
       dragSessionRef.current = null;
+      releaseMotion.current?.(isTap ? 240 : 0);
 
       if (isTap) {
         const el = sheetRef.current;
@@ -264,6 +271,7 @@ export function useMobileDraggableSheet() {
   useEffect(() => {
     return () => {
       cleanupListeners();
+      releaseMotion.current?.();
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
       }
