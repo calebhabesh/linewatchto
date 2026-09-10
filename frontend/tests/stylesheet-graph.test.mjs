@@ -1212,7 +1212,7 @@ describe("stylesheet-graph helper", () => {
   it("extracts @import directives from stylesheet entries", () => {
     const directives = getImportDirectives();
     assert.ok(Array.isArray(directives));
-    assert.equal(directives.length, 52);
+    assert.equal(directives.length, 53);
     assert.equal(directives[0], '@import "tailwindcss" source("../");');
     assert.equal(directives[1], '@import "../styles/foundation/fonts.css";');
   });

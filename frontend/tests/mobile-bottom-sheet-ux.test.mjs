@@ -29,8 +29,9 @@ describe("mobile bottom sheet UX", () => {
     assert.match(bottomNavSource, /aria-label="Primary mobile navigation"/);
     assert.match(bottomNavSource, /Map/);
     assert.match(bottomNavSource, /Status/);
-    assert.match(bottomNavSource, /Search/);
-    assert.match(bottomNavSource, /Commutes/);
+    assert.match(bottomNavSource, /Saved/);
+    assert.doesNotMatch(bottomNavSource, /key: "search"/);
+    assert.match(shellSource, /aria-label="Saved sections"/);
     assert.match(bottomNavSource, /More/);
   });
 

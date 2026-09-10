@@ -61,7 +61,7 @@ describe("mobile navigation motion", () => {
   it("does not route through Map when leaving Search from the bottom nav", () => {
     assert.match(
       shellSource,
-      /if \(target instanceof Element && target\.closest\("\.mobile-bottom-nav"\)\) return;/,
+      /if \(target instanceof Element && target\.closest\("\.mobile-bottom-nav, \.mobile-app-topbar"\)\) return;/,
     );
   });
 });

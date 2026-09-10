@@ -33,7 +33,7 @@ const BASELINE_CEILINGS = {
 };
 
 /**
- * Canonical 52-entry import manifest for the entry stylesheet in documented cascade order.
+ * Canonical 53-entry import manifest for the entry stylesheet in documented cascade order.
  */
 export const CANONICAL_IMPORT_MANIFEST = [
   '@import "tailwindcss" source("../");',
@@ -88,6 +88,7 @@ export const CANONICAL_IMPORT_MANIFEST = [
   '@import "../styles/shell/subway-closed.css";',
   '@import "../styles/shell/map-mode-control.css";',
   '@import "../styles/station/station-picker-popover.css";',
+  '@import "../styles/shell/current-service.css";',
 ];
 
 function findCssFilesInDirectory(dir) {
@@ -252,15 +253,15 @@ describe("CSS architecture guardrails", () => {
         [],
         `Orphaned stylesheet files found in src/styles/ that are not imported in entry manifest: ${unimportedFiles.join(", ")}`,
       );
-      assert.equal(allStyleFiles.length, 51, "Expected exactly 51 modular stylesheets in src/styles/");
+      assert.equal(allStyleFiles.length, 52, "Expected exactly 52 modular stylesheets in src/styles/");
     });
 
-    it("verifies that the resolved stylesheet graph contains exactly 52 unique files without cycles", () => {
+    it("verifies that the resolved stylesheet graph contains exactly 53 unique files without cycles", () => {
       clearStylesheetCache();
       const files = getAppStylesheetGraphFiles();
 
-      assert.equal(files.length, 52, "Graph must contain 52 files (entry manifest + 51 modular stylesheets)");
-      assert.equal(new Set(files).size, 52, "Graph files must all be distinct");
+      assert.equal(files.length, 53, "Graph must contain 53 files (entry manifest + 52 modular stylesheets)");
+      assert.equal(new Set(files).size, 53, "Graph files must all be distinct");
       assert.ok(files[0].endsWith(".css") && files[0].includes("globals"), "Entry file must be globals entrypoint");
     });
   });
@@ -337,7 +338,7 @@ describe("CSS architecture guardrails", () => {
         [],
         `Duplicate @keyframes names detected across the stylesheet graph: ${duplicates.join(", ")}`,
       );
-      assert.equal(keyframeNames.length, 101, "Expected exactly 101 unique @keyframes definitions across graph");
+      assert.equal(keyframeNames.length, 103, "Expected exactly 103 unique @keyframes definitions across graph");
     });
   });
 

@@ -32,7 +32,7 @@ test("searches across networks and opens a regional station", async ({ page, req
   await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
 
   if (isMobile) {
-    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
   }
 
   const search = page.getByRole("searchbox", { name: "Station Search" });
@@ -42,7 +42,11 @@ test("searches across networks and opens a regional station", async ({ page, req
 
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Oakville regional station details" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "GO/UP", exact: true })).toHaveAttribute("aria-pressed", "true");
+  if (isMobile) {
+    await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional");
+  } else {
+    await expect(page.getByRole("button", { name: "GO/UP", exact: true })).toHaveAttribute("aria-pressed", "true");
+  }
 });
 
 test("falls back without presenting fixture data as live", async ({ page, request, isMobile }) => {

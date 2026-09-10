@@ -132,3 +132,32 @@ test("TTC and GO/UP map overlap counts stay bounded through mobile compositor ch
     await expectMapVectorGlyphInsideBadge(regionalMarker);
   }
 });
+
+test("TTC hover repaints overlay artwork above default-priority corridors", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "Mouse hover is desktop-only");
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
+    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+  });
+  await page.goto(openMapPreviewUrl);
+  const target = page.locator('[aria-label="Disruption overlay interaction targets"] .map-segment-hit-target').first();
+  await expect(target).toBeAttached();
+  await target.dispatchEvent("pointerover", { pointerType: "mouse" });
+  const visual = page.locator('.ttc-impact-hover-foreground[data-ttc-impact-hovered="true"]').filter({ has: page.locator("use") }).first();
+  await expect(visual).toBeVisible();
+  expect(await visual.evaluate((element) => {
+    const href = element.querySelector("use")!.getAttribute("href")!;
+    const source = document.getElementById(href.slice(1));
+    const overlays = element.closest("svg")!.querySelector('[aria-label="Disruption overlays"]')!;
+    const priority: Record<string, number> = { "reduced-speed-zone": 1, "planned-closure": 2, delay: 3, suspension: 4 };
+    const ranks = Array.from(overlays.children).map((child) => priority[child.getAttribute("data-map-impact-kind")!]);
+    return {
+      artwork: Boolean(source?.querySelector(".asset-alert-path")),
+      aboveOverlays: Boolean(overlays.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING),
+      ordered: ranks.every((rank, index) => index === 0 || rank >= ranks[index - 1]),
+    };
+  })).toEqual({ artwork: true, aboveOverlays: true, ordered: true });
+  await target.dispatchEvent("pointerout", { pointerType: "mouse" });
+  await expect(visual).toHaveCount(0);
+});

@@ -19,6 +19,8 @@ async function prepareVisualBaselinePage(page: Page, options: PrepareOptions = {
     await page.setViewportSize(options.viewport);
   }
 
+  await page.clock.setFixedTime(previewTime);
+
   await page.emulateMedia({
     reducedMotion: "reduce",
     colorScheme: theme,

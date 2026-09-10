@@ -55,7 +55,7 @@ describe("regional trip changes UI", () => {
 
   it("places the regional trip changes entry below planned closures and above accessibility outages on desktop and mobile", () => {
     const desktopClosuresIdx = shellSource.indexOf('onClick={() => openImpactCategory("closures")}');
-    const desktopTripChangesIdx = shellSource.indexOf("onClick={openRegionalTripChanges}");
+    const desktopTripChangesIdx = shellSource.indexOf("onClick={openRegionalTripChanges}", desktopClosuresIdx);
     const desktopAccessibilityIdx = shellSource.indexOf('onClick={() => navigateForward("accessibility-outages")}');
 
     assert.ok(desktopClosuresIdx !== -1, "desktop closures entry must exist");

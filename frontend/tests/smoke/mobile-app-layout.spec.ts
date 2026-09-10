@@ -1,0 +1,85 @@
+import { expect, test } from "@playwright/test";
+import { installDismissedTransientUi, setStubMode } from "./test-support";
+
+test.beforeEach(async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await installDismissedTransientUi(page);
+});
+
+test("mobile search, service shortcuts and Saved share the app shell", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Primary mobile navigation" });
+  await expect(nav.getByRole("button")).toHaveCount(4);
+  const search = page.getByRole("searchbox", { name: "Station Search" });
+  await expect(search).toBeVisible();
+  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: "/tmp/linewatch-app-map.png", scale: "css" });
+  await search.fill("Stub");
+  await expect(page.locator(".station-search-panel")).toBeVisible();
+  const inputBox = (await search.boundingBox())!;
+  const resultsBox = (await page.locator(".station-search-panel").boundingBox())!;
+  expect(resultsBox.y).toBeGreaterThan(inputBox.y + inputBox.height);
+  await page.getByRole("button", { name: "Close search", exact: true }).click();
+  await nav.getByRole("button", { name: "Saved", exact: true }).click();
+  const saved = page.getByRole("navigation", { name: "Saved sections" });
+  await expect(saved.getByRole("button", { name: "My Stations" })).toHaveAttribute("aria-current", "page");
+  const panel = page.locator(".floating-panel-scroll");
+  const navBox = (await nav.boundingBox())!;
+  await expect.poll(async () => (await panel.boundingBox())!.x).toBe(0);
+  expect((await panel.boundingBox())!.width).toBe(page.viewportSize()!.width);
+  await expect.poll(async () => {
+    const box = (await panel.boundingBox())!;
+    return Math.abs(box.y + box.height - navBox.y);
+  }).toBeLessThan(2);
+  await saved.getByRole("button", { name: "My Commutes" }).click();
+  await expect(saved.getByRole("button", { name: "My Commutes" })).toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("button", { name: "Saved", exact: true })).toHaveAttribute("aria-current", "page");
+  await page.screenshot({ path: "/tmp/linewatch-app-saved.png" });
+  await nav.getByRole("button", { name: "Map", exact: true }).click();
+  await page.getByRole("navigation", { name: "Dashboard shortcuts" }).getByRole("button", { name: "Alert History", exact: true }).click();
+  await expect(page.locator(".mobile-view-content-wrapper")).toHaveAttribute("data-active-view", "alert-history");
+  await expect(nav.getByRole("button", { name: "More", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".mobile-app-info")).toHaveCount(0);
+  await page.screenshot({ path: "/tmp/linewatch-app-delays.png" });
+});
+
+test("mobile network switch exposes regional shortcuts without overflow", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.goto("/");
+  await page.locator(".mobile-map-network-switch").getByRole("button", { name: "GO/UP", exact: true }).click();
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional");
+  const shortcuts = page.getByRole("navigation", { name: "Dashboard shortcuts" });
+  await expect(shortcuts.getByRole("button", { name: "Service Notices", exact: true })).toBeAttached();
+  await expect(shortcuts.getByRole("button", { name: "TTC Announcements", exact: true })).toHaveCount(0);
+  await shortcuts.getByRole("button", { name: "Service Notices", exact: true }).click();
+  await expect(page.locator(".mobile-view-content-wrapper")).toHaveAttribute("data-active-view", "surface-notices");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
+  await page.screenshot({ path: "/tmp/linewatch-app-regional.png" });
+});
+
+
+test("search clears station inspection and fits above the visual keyboard", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
+  await expect(page.locator(".station-detail-panel")).toBeVisible();
+  const search = page.getByRole("searchbox", { name: "Station Search" });
+  await search.fill("Stub");
+  await expect(page.locator(".station-detail-panel")).toHaveCount(0);
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, "height", { configurable: true, get: () => 420 });
+    window.visualViewport?.dispatchEvent(new Event("resize"));
+  });
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeHidden();
+  await expect(search).toBeVisible();
+  await expect.poll(async () => {
+    const panel = (await page.locator(".station-search-panel").boundingBox())!;
+    return panel.y + panel.height;
+  }).toBeLessThanOrEqual(421);
+  await page.getByRole("button", { name: "Stub Station TTC station search result" }).click();
+  await expect(page.locator(".station-detail-panel")).toBeVisible();
+  await expect(search).not.toBeFocused();
+});

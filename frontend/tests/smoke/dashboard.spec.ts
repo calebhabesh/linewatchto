@@ -1073,6 +1073,14 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
   );
   await expect(delayOverlay).toHaveCount(1);
+  const expectRegionalPriorityOrder = async () => {
+    const kinds = await page.locator("#regional-dynamic-segment-layer > [data-regional-impact-kind]")
+      .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-regional-impact-kind")!));
+    const priorities: Record<string, number> = { "reduced-speed-zone": 0, "planned-closure": 1, delay: 2, suspension: 3 };
+    expect(kinds.length).toBeGreaterThan(1);
+    expect(kinds.map((kind) => priorities[kind])).toEqual(kinds.map((kind) => priorities[kind]).sort((a, b) => a - b));
+  };
+  await expectRegionalPriorityOrder();
   await expect(delayOverlay).toHaveAttribute("data-regional-impact-segment-count", "2");
   expect(await delayOverlay.locator(".regional-impact-path").evaluate((path) => (
     (path.getAttribute("d")?.match(/\bM\b/g) ?? []).length
@@ -1285,6 +1293,19 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     .hover();
   await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
   await expect(plannedHoverForeground).not.toHaveAttribute("data-regional-impact-hovered");
+  await expect(delayHoverForeground.locator(".regional-impact-path")).toHaveCSS("visibility", "visible");
+  await expect(delayHoverForeground.locator(".regional-delay-glyph--hourglass").first()).toBeVisible();
+  await expect(delayHoverForeground.locator(".regional-impact-hit-target")).toHaveCount(0);
+  // Preview the lower-priority closure above the delay, then restore the chooser selection.
+  await regionalOverlapChooser.locator('[data-overlap-choice-id="regional-demo-planned"]').hover();
+  await expect(plannedHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(delayHoverForeground).not.toHaveAttribute("data-regional-impact-hovered");
+  await expect(plannedHoverForeground.locator(".regional-impact-path")).toHaveCSS("visibility", "visible");
+  expect(await plannedHoverForeground.evaluate((foreground) => {
+    const segmentLayer = foreground.closest("svg")!.querySelector("#regional-dynamic-segment-layer")!;
+    return Boolean(segmentLayer.compareDocumentPosition(foreground) & Node.DOCUMENT_POSITION_FOLLOWING);
+  })).toBe(true);
+
   await regionalOverlapChooser
     .locator('[data-overlap-choice-id="regional-demo-delay"]')
     .click();
@@ -1326,7 +1347,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
   await expect(delayOverlay).not.toHaveAttribute("data-regional-impact-hovered");
   await expect(delayHoverForeground.locator(".regional-impact-aura, .regional-impact-path, .regional-delay-glyph-lane"))
-    .toHaveCount(0);
+    .toHaveCount(3);
   await expect(delayHoverForeground.locator(".regional-impact-hover-boundary"))
     .toHaveCount(2);
   await expect(delayHoverForeground.locator(".regional-impact-hover-boundary-core"))
@@ -1372,6 +1393,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(stationPanel.getByRole("heading", { name: "Platform 11" })).toBeVisible();
   await expect(stationPanel.getByText("Delayed estimate", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("6 Min Late", { exact: true })).toBeVisible();
+  await expectRegionalPriorityOrder();
 });
 
 test("keeps transformed regional junction selection aligned with its station dots", async ({ page, request, isMobile }) => {
@@ -2001,19 +2023,19 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
     .toBe("none");
 
   await page.getByRole("button", { name: "Close station details" }).click();
-  const searchNavItem = page.getByRole("button", { name: "Search", exact: true });
+  const searchNavItem = page.getByRole("navigation", { name: "Primary mobile navigation" }).getByRole("button", { name: "Saved", exact: true });
   const navTransitionProperty = await searchNavItem.evaluate((element) => getComputedStyle(element).transitionProperty);
   expect(navTransitionProperty).toContain("transform");
   expect(navTransitionProperty).not.toContain("width");
 
-  await searchNavItem.click();
+  await page.getByRole("searchbox", { name: "Station Search" }).click();
   const searchPanel = page.locator("[data-station-search-panel]");
   await expect(searchPanel).toBeVisible();
   // Initially, the nav bar is visible
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(1);
-  // Focus the input to move elements up and hide navigation
-  await page.getByRole("searchbox", { name: "Station Search" }).click();
-  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
+  // The keyboard, rather than query text alone, controls navigation visibility.
+  await page.locator("html").evaluate(element => element.setAttribute("data-visual-keyboard", "open"));
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeHidden();
   const searchTransitionProperty = await searchPanel.evaluate((element) => getComputedStyle(element).transitionProperty);
   expect(searchTransitionProperty).toContain("opacity");
   expect(searchTransitionProperty).toContain("transform");
@@ -3700,7 +3722,7 @@ test("station search dynamically filters mapped stations and opens station detai
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   if (isMobile) {
-    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
     await page.getByRole("searchbox", { name: "Station Search" }).click();
   } else {
     await page.locator(".header-search-bar").click({ position: { x: 5, y: 5 } });
@@ -3724,7 +3746,7 @@ test("global station search switches maps for a station on the other network", a
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   if (isMobile) {
-    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
     await page.getByRole("searchbox", { name: "Station Search" }).click();
   } else {
     await page.getByRole("searchbox", { name: "Station Search" }).click();
@@ -3844,7 +3866,7 @@ test("global search opens a condensed alert result in its detailed card and mobi
   await page.goto("/");
 
   if (isMobile) {
-    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
   } else {
     await page.locator(".header-search-bar").click({ position: { x: 5, y: 5 } });
   }
@@ -3995,7 +4017,7 @@ test("station search browses fallback station lists by line", async ({ page, req
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   if (isMobile) {
-    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
   } else {
     await page.getByRole("searchbox", { name: "Station Search" }).click();
   }
@@ -4840,7 +4862,7 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
   await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Station Search" }).click();
   await page.waitForTimeout(300); // let open transition finish
   // Initially, the nav bar is visible and search is not focused
   const mobileNavigation = page.getByRole("navigation", { name: "Primary mobile navigation" });

@@ -762,7 +762,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /regional-station-hover-indicator\[data-regional-station-impact-hovered="true"\]/);
     assert.doesNotMatch(globalsCss, /regional-station-impact-ring\[data-regional-impact-hovered="true"\][\s\S]*regional-station-impact-width\) \+ 12px/);
     assert.match(regionalMapSource, /foreground\.dataset\.regionalImpactHovered = "true"/);
-    assert.match(regionalMapSource, /if \(!element\.classList\.contains\("regional-impact-hover-boundary"\)\) element\.remove\(\)/);
+    assert.match(regionalMapSource, /foreground\.querySelectorAll\("\.regional-impact-interactive-glow, \.regional-impact-hit-target"\)/);
+    assert.match(regionalMapSource, /restoreRegionalOverlayOrder\(segmentLayer\)/);
     assert.match(regionalMapSource, /REGIONAL_HIGHLIGHT_OUTLINE_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH \+ 31/);
     assert.match(regionalMapSource, /REGIONAL_HIGHLIGHT_DIVIDER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH \+ 12/);
     assert.match(regionalMapSource, /REGIONAL_HIGHLIGHT_INNER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH - 12/);
@@ -872,7 +873,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /REGIONAL_IMPACT_OVERLAY_WIDTH \/ 2[\s\S]*renderedBadgeHalfExtent[\s\S]*REGIONAL_OVERLAP_INDICATOR_EDGE_GAP/);
     assert.match(regionalMapSource, /function regionalCollisionAdjustedOverlapBadges\(/);
     assert.match(regionalMapSource, /querySelectorAll<SVGGraphicsElement>\("text"\)/);
-    assert.match(regionalMapSource, /\.regional-overlay-segment-group \.regional-impact-path/);
+    assert.match(regionalMapSource, /\.regional-overlay-segment-group\[data-regional-impact-id\] \.regional-impact-path/);
     assert.match(regionalMapSource, /#regional-lines-layer path\[id\^="regional-route-"\]/);
     assert.match(regionalMapSource, /function regionalPathCorridorCollisionBoxes\(/);
     assert.match(regionalMapSource, /regionalOverlapBadgePositionCandidates\(badge\)/);
