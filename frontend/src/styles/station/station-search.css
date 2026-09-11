@@ -1406,6 +1406,33 @@
     min-height: 0;
   }
 
+  .station-search-results {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .station-search-panel .station-search-empty {
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    padding: 24px 16px;
+    margin: auto;
+    width: 100%;
+    color: rgb(100, 116, 139);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dark .station-search-panel .station-search-empty {
+    color: rgb(148, 163, 184);
+  }
+
   .station-search-amenity-toolbar {
     margin-bottom: 0;
     padding-bottom: 8px;

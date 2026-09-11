@@ -83,3 +83,22 @@ test("search clears station inspection and fits above the visual keyboard", asyn
   await expect(page.locator(".station-detail-panel")).toBeVisible();
   await expect(search).not.toBeFocused();
 });
+
+test("Saved remembers the last section across navigation and reloads", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Primary mobile navigation" });
+  const saved = page.getByRole("navigation", { name: "Saved sections" });
+  await nav.getByRole("button", { name: "Saved", exact: true }).click();
+  await expect(saved.getByRole("button", { name: "My Stations" })).toHaveAttribute("aria-current", "page");
+
+  for (const section of ["My Commutes", "My Stations"]) {
+    await saved.getByRole("button", { name: section }).click();
+    await nav.getByRole("button", { name: "Map", exact: true }).click();
+    await nav.getByRole("button", { name: "Saved", exact: true }).click();
+    await expect(saved.getByRole("button", { name: section })).toHaveAttribute("aria-current", "page");
+    await page.reload();
+    await nav.getByRole("button", { name: "Saved", exact: true }).click();
+    await expect(saved.getByRole("button", { name: section })).toHaveAttribute("aria-current", "page");
+  }
+});

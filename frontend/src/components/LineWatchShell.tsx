@@ -466,6 +466,28 @@ export function LineWatchShell({
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
+  const lastSavedViewRef = useRef<"my-stations" | "commutes">("my-stations");
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("linewatch-last-saved-view-v1");
+      if (stored === "my-stations" || stored === "commutes") {
+        lastSavedViewRef.current = stored;
+      }
+    } catch {
+      // Keep the default when browser storage is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeView !== "my-stations" && activeView !== "commutes") return;
+    lastSavedViewRef.current = activeView;
+    try {
+      window.localStorage.setItem("linewatch-last-saved-view-v1", activeView);
+    } catch {
+      // Remember the selection for this session even if storage is unavailable.
+    }
+  }, [activeView]);
   const [initialMapReady, setInitialMapReady] = useState(false);
   useEffect(() => {
     if (!initialMapReady) return;
@@ -2873,7 +2895,7 @@ export function LineWatchShell({
         navigateRoot("status");
         return;
       case "saved":
-        navigateRoot("my-stations");
+        navigateRoot(lastSavedViewRef.current);
         return;
       case "more":
         navigateRoot("more");

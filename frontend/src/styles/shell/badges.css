@@ -415,8 +415,6 @@ img.transit-line-badge {
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
-  background: rgba(100, 116, 139, 0.14);
-  color: #334155;
 }
 
 .desktop-menu-count-badge.desktop-menu-count-slate {
@@ -465,10 +463,6 @@ img.transit-line-badge {
   color: var(--trip-change-ink);
 }
 
-.dark .desktop-menu-count-badge {
-  background: rgba(148, 163, 184, 0.20);
-  color: #cbd5e1;
-}
 .dark .desktop-menu-count-badge.desktop-menu-count-slate {
   background: rgba(148, 163, 184, 0.20);
   color: #cbd5e1;
