@@ -29,12 +29,14 @@ describe("subway closing soon chip", () => {
     assert.match(chipSource, /Clock/);
   });
 
-  it("mounts beside the station search button during the open-state closing window", () => {
+  it("mounts on desktop during the open-state closing window and relocates mobile notice to MobileStatusPeek", () => {
     assert.match(shellSource, /SubwayClosingSoonChip/);
     assert.match(shellSource, /subwayOperatingState\.closingSoon/);
     assert.match(shellSource, /subwayOperatingState\.minutesUntilClose !== null/);
     assert.match(shellSource, /subwayOperatingState\.nextCloseLabel/);
-    assert.match(shellSource, /aria-label="Station Search"[\s\S]*SubwayClosingSoonChip[\s\S]*Floating Dropdown Menu/);
+    assert.equal((shellSource.match(/<SubwayClosingSoonChip/g) || []).length, 1);
+    assert.match(shellSource, /!isMobile\s*\?\s*\(\s*<SubwayClosingSoonChip/);
+    assert.match(shellSource, /operatingNotice=\{mobileOperatingNotice\}/);
     assert.match(globalCss, /\.subway-closing-soon-chip/);
     assert.match(globalCss, /flex:\s*0 1/);
     assert.match(baseClosingSoonChipCss, /height:\s*56px;/);
@@ -65,7 +67,7 @@ describe("subway closing soon chip", () => {
     assert.match(globalCss, /\.map-utility-cluster\s*\{[\s\S]*gap:\s*var\(--mobile-top-action-gap\)/);
     assert.match(globalCss, /\.theme-toggle-btn,[\s\S]*\.site-guide-trigger\s*\{[\s\S]*height:\s*var\(--mobile-top-action-button-size\)/);
     assert.match(globalCss, /\.mobile-legend-pill--announcement/);
-    assert.match(mobileLegendSource, /mobile-legend-pill--announcement/);
+    assert.doesNotMatch(mobileLegendSource, /mobile-legend-pill--announcement/);
     assert.doesNotMatch(globalCss, /max-width:\s*calc\(100vw - 16px - \d+px\)/);
     assert.doesNotMatch(globalCss, /flex-basis:\s*max\([^;]*calc\(100vw - 168px\)/);
   });

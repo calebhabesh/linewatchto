@@ -15,7 +15,7 @@ export function DynamicBackground({
     disabled
       ? `linewatch-backdrop--plain ${isDark ? "linewatch-backdrop--plain-dark" : "linewatch-backdrop--plain-light"}`
       : isDark
-        ? "linewatch-backdrop--dark bg-[#0d0808]"
+        ? "linewatch-backdrop--dark bg-[var(--map-canvas-bg,#0e1622)]"
         : "linewatch-backdrop--light bg-slate-50"
   }`;
 

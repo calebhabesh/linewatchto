@@ -30,11 +30,17 @@
   /* All mobile announcements share the nook beside the top actions. */
   --mobile-announcement-top-offset: 0px;
   --mobile-top-action-cluster-width: calc(var(--mobile-top-action-button-size) + var(--mobile-rotate-action-width) + var(--mobile-top-action-button-size) + var(--mobile-top-action-gap) + var(--mobile-top-action-gap));
-  --mobile-bottom-nav-height: 74px;
+  --mobile-bottom-nav-height: 70px;
   --mobile-bottom-nav-bottom-offset: max(10px, calc(var(--mobile-safe-bottom) - 18px));
   --mobile-bottom-nav-occupied-height: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-bottom-offset));
   --mobile-bottom-nav-side-inset: 16px;
   --mobile-status-peek-height: 108px;
+  --map-canvas-bg: #f8fafc;
+  --map-control-bg: #ffffff;
+  --map-control-border: rgba(15, 23, 42, 0.12);
+  --map-control-shadow: 0 3px 8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.08);
+  --map-control-text: #0f172a;
+  --map-control-text-muted: #475569;
   --mobile-safe-top: env(safe-area-inset-top, 0px);
   --mobile-safe-right: env(safe-area-inset-right, 0px);
   --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);

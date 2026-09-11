@@ -16,18 +16,20 @@ import { REGIONAL_STATION_SEARCH_LINES } from "../app/station-search";
 import { getRegionalTripChanges, type RegionalTripChangeResponse } from "../app/regional-trip-changes";
 import { RegionalTripChangesList } from "./RegionalTripChangesList";
 import { DropdownMenuPortal } from "./DropdownMenuPortal";
+import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 
 function NoticeFilter({ label, prefix, value, options, onChange }: {
   label: string;
   prefix: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; icon?: React.ReactNode }[];
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menuId = useId();
+  const selectedOption = options.find((option) => option.value === value);
 
   return (
     <div className="alert-history-line-filter relative" ref={root}>
@@ -42,7 +44,10 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
         aria-controls={menuId}
         onClick={() => setOpen(!open)}
       >
-        <span className="truncate">{options.find((option) => option.value === value)?.label}</span>
+        <span className="truncate inline-flex items-center gap-1.5">
+          {selectedOption?.icon}
+          <span>{selectedOption?.label}</span>
+        </span>
         <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
       </button>
       <DropdownMenuPortal
@@ -62,14 +67,15 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
               type="button"
               role="menuitemradio"
               aria-checked={option.value === value}
-              className={`alert-history-line-filter-option ${option.value === value ? "selected" : ""}`}
+              className={`alert-history-line-filter-option inline-flex items-center gap-1.5 ${option.value === value ? "selected" : ""}`}
               onClick={() => {
                 onChange(option.value);
                 setOpen(false);
                 trigger.current?.focus();
               }}
             >
-              {option.label}
+              {option.icon}
+              <span>{option.label}</span>
             </button>
           </li>
         ))}
@@ -228,8 +234,8 @@ export function SurfaceNoticesPanel({
         key: `${group.key}:${notice.id}`,
         notices: [notice],
       })))
-    : routeGroups).map((group) => ({ ...group, notices: [...group.notices].sort((a, b) => compareSurfaceNotices(a, b, sortOrder)) }))
-    .sort((a, b) => compareSurfaceNotices(a.notices[0], b.notices[0], sortOrder));
+    : routeGroups).map((group) => ({ ...group, notices: [...group.notices].sort((a, b) => compareSurfaceNotices(a, b, sortOrder, debouncedQuery)) }))
+    .sort((a, b) => compareSurfaceNotices(a.notices[0], b.notices[0], sortOrder, debouncedQuery));
 
   const renderCompactField = (
     label: string,
@@ -445,12 +451,15 @@ export function SurfaceNoticesPanel({
               <NoticeFilter label="Notice type" prefix="Type" value={category}
                 onChange={(value) => setCategory(value as typeof category)}
                 options={[{ value: "all", label: `All Types (${totalCount})` },
-                  ...visibleCategories.map((cat) => ({ value: cat, label: `${getCategoryLabel(cat)} (${getCategoryCount(cat)})` }))]} />
+                  ...visibleCategories.map((cat) => ({
+                    value: cat,
+                    label: `${getCategoryLabel(cat)} (${getCategoryCount(cat)})`,
+                    icon: <SurfaceCategoryIcon category={cat} size={12} className="shrink-0" />,
+                  }))]} />
               <NoticeFilter label="Sort notices" prefix="Sort" value={sortOrder}
                 onChange={(value) => setSortOrder(value as typeof sortOrder)}
                 options={[{ value: "importance", label: "Importance" }, { value: "recent", label: "Most Recent" }]} />
             </div>
-            {!loading && !isFallback ? <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400" role="status">Showing {serviceFilteredNotices.length} notices{sortOrder === "importance" ? " · Important first, then newest updates" : " · Newest updates first"}</p> : null}
           </div>
         ) : null}
 
@@ -516,7 +525,8 @@ export function SurfaceNoticesPanel({
                         </p>
                       ) : null}
                     </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${getCategoryBadgeColor(group.category)}`}>
+                    <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${getCategoryBadgeColor(group.category)}`}>
+                      <SurfaceCategoryIcon category={group.category} size={11} className="shrink-0" />
                       {getCategoryLabel(group.category)}
                     </span>
                   </div>

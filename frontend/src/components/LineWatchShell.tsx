@@ -41,7 +41,7 @@ import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
 import { CurrentServicePanel } from "./CurrentServicePanel";
-import { MobileStatusPeek } from "./MobileStatusPeek";
+import { MobileStatusPeek, type MobileOperatingNotice } from "./MobileStatusPeek";
 import { MobileMapControls, PhoneRotateLandscapeIcon, type MapPresentationMode } from "./MobileMapControls";
 import { RotatedMapSelectionCard } from "./RotatedMapSelectionCard";
 import { MobileImpactInspector, type MobileInspectorDetent } from "./MobileImpactInspector";
@@ -98,6 +98,7 @@ import { GoUpClosingSoonChip } from "./GoUpClosingSoonChip";
 import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
 import { OpeningDisclaimer } from "./OpeningDisclaimer";
+import { formatResumeDuration } from "../app/subway-hours";
 import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import {
@@ -3572,6 +3573,73 @@ export function LineWatchShell({
 
   const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview;
 
+  const mobileOperatingNotice: MobileOperatingNotice | null = useMemo(() => {
+    if (selectedNetwork === "ttc") {
+      if (subwayOperatingState.status === "closed" && closedMapPeek) {
+        return {
+          kind: "closed",
+          title: "Subway Closed",
+          details: `Resumes ${(subwayOperatingState.nextResumeLabel ?? "")
+            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
+            .replace(/\.$/, "")}.`,
+          action: handleOpenClosedScreen,
+        };
+      }
+      if (
+        subwayOperatingState.closingSoon &&
+        subwayOperatingState.minutesUntilClose !== null &&
+        subwayOperatingState.nextCloseLabel
+      ) {
+        const durationText = formatResumeDuration(subwayOperatingState.minutesUntilClose);
+        const timeText = subwayOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+        return {
+          kind: "closing-soon",
+          title: "Subway Closing Soon",
+          details: `Closes in ${durationText} · ${timeText}`,
+        };
+      }
+    } else if (selectedNetwork === "regional") {
+      if (regionalRailOperatingState.status === "closed" && closedMapPeek) {
+        return {
+          kind: "closed",
+          title: "GO & UP Rail Closed",
+          details: `Trains return ${(regionalRailOperatingState.nextResumeLabel ?? "")
+            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
+            .replace(/\.$/, "")}.`,
+          action: handleOpenClosedScreen,
+        };
+      }
+      if (
+        regionalRailOperatingState.closingSoon &&
+        regionalRailOperatingState.minutesUntilClose !== null &&
+        regionalRailOperatingState.nextCloseLabel
+      ) {
+        const durationText = formatResumeDuration(regionalRailOperatingState.minutesUntilClose);
+        const timeText = regionalRailOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+        return {
+          kind: "closing-soon",
+          title: "GO & UP Rail Closing Soon",
+          details: `Broad pause in ${durationText} · ${timeText}`,
+        };
+      }
+    }
+    return null;
+  }, [
+    selectedNetwork,
+    subwayOperatingState.status,
+    subwayOperatingState.closingSoon,
+    subwayOperatingState.minutesUntilClose,
+    subwayOperatingState.nextCloseLabel,
+    subwayOperatingState.nextResumeLabel,
+    regionalRailOperatingState.status,
+    regionalRailOperatingState.closingSoon,
+    regionalRailOperatingState.minutesUntilClose,
+    regionalRailOperatingState.nextCloseLabel,
+    regionalRailOperatingState.nextResumeLabel,
+    closedMapPeek,
+    handleOpenClosedScreen,
+  ]);
+
   const mobileMapPerformanceMode = mobilePerformanceMode || rotatedMapMode;
 
   const handleMapReady = useCallback(() => {
@@ -3604,7 +3672,7 @@ export function LineWatchShell({
         data-active-view={activeView}
         data-network={selectedNetwork}
         data-menu-pinned={menuPinned ? "true" : undefined}
-        className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobileMapPerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
+        className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? (highContrast ? "dark bg-[#000000] text-slate-100" : "dark bg-[#0e1622] text-slate-100") : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobileMapPerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
         <ScrollOverflowAffordances />
         <h1 className="sr-only">
@@ -3744,48 +3812,6 @@ export function LineWatchShell({
               </button>
             )}
           </div>
-
-          {selectedNetwork === "ttc" && subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel && isMobile ? (
-            <SubwayClosingSoonChip
-              minutesUntilClose={subwayOperatingState.minutesUntilClose}
-              nextCloseLabel={subwayOperatingState.nextCloseLabel}
-            />
-          ) : null}
-
-          {selectedNetwork === "regional" && regionalRailOperatingState.closingSoon && regionalRailOperatingState.minutesUntilClose !== null && regionalRailOperatingState.nextCloseLabel && isMobile ? (
-            <GoUpClosingSoonChip
-              minutesUntilClose={regionalRailOperatingState.minutesUntilClose}
-              nextCloseLabel={regionalRailOperatingState.nextCloseLabel}
-            />
-          ) : null}
-
-          {selectedNetworkIsClosed && closedMapPeek && isMobile ? (
-            <div
-              className={`${
-                selectedNetwork === "regional" ? "go-up-closed-peek-chip" : "subway-closed-peek-chip"
-              } ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
-              role="status"
-              aria-live="polite"
-            >
-              <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={2.4} aria-hidden="true" />
-              <div className="subway-closed-peek-text">
-                <strong className="subway-closed-peek-title">
-                  {selectedNetwork === "ttc" ? "Subway Closed" : "GO & UP Rail Closed"}
-                </strong>
-                <span className="subway-closed-peek-subtitle">
-                  {selectedNetwork === "ttc" ? "Resumes" : "Trains return"}{" "}
-                  {(selectedNetwork === "ttc"
-                    ? subwayOperatingState.nextResumeLabel
-                    : regionalRailOperatingState.nextResumeLabel)
-                    ?.replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-                    .replace(/\.$/, "")}.
-                </span>
-              </div>
-              <button type="button" onClick={handleOpenClosedScreen}>
-                Closed Screen
-              </button>
-            </div>
-          ) : null}
 
           {/* Floating Dropdown Menu */}
           <div
@@ -4632,7 +4658,7 @@ export function LineWatchShell({
               role="status"
               aria-live="polite"
             >
-              <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={2.4} aria-hidden="true" />
+              <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={1} fill="currentColor" aria-hidden="true" />
               <div className="subway-closed-peek-text">
                 <strong className="subway-closed-peek-title">
                   {selectedNetwork === "ttc" ? "Subway Closed" : "GO & UP Rail Closed"}
@@ -4806,16 +4832,8 @@ export function LineWatchShell({
           disabled={!trainNetworkOpen}
           className={`mobile-train-toggle md:hidden ${
             selectedNetwork === "regional" ? "mobile-train-toggle--regional" : ""
-          } ${
-            (selectedNetwork === "ttc"
-              ? subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)
-              : regionalRailOperatingState.closingSoon || (regionalRailOperatingState.status === "closed" && closedMapPeek))
-              ? "mobile-train-toggle--announcement"
-              : ""
           } ${estimatedTrainsEnabled ? "active" : ""} ${
             estimatedTrainDisplayPending ? "mobile-train-toggle--loading" : ""
-          } ${
-            legendExpanded ? "mobile-train-toggle--legend-expanded" : ""
           }`}
           data-map-chooser-keepout
           aria-pressed={estimatedTrainsEnabled}
@@ -5057,6 +5075,7 @@ export function LineWatchShell({
           pollText={pollText}
           dataSource={displayData.dataSource}
           networkId={selectedNetwork}
+          operatingNotice={mobileOperatingNotice}
           onOpenStatus={() => navigateForward("status")}
           onOpenCategory={(view) => {
             setSelection(null);

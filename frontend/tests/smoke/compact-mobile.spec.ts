@@ -598,7 +598,7 @@ test("Pixel 6a-sized portrait keeps the regular mobile scale", async ({ page, is
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
   await expect.poll(() => page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue("--mobile-bottom-nav-height").trim()
-  )).toBe("74px");
+  )).toBe("70px");
   await expect.poll(() => page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue("--mobile-top-action-button-size").trim()
   )).not.toBe("36px");
@@ -614,7 +614,7 @@ test("Pixel 6a back gesture history closes in-app sheets before leaving", async 
     window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
     window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
   });
-  await page.goto("/");
+  await page.goto(openMapPreviewUrl);
 
   await page.getByRole("button", { name: "Status", exact: true }).click();
   await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
@@ -627,7 +627,7 @@ test("Pixel 6a back gesture history closes in-app sheets before leaving", async 
   await page.goBack();
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "System Status" })).toHaveCount(0);
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(new RegExp(`${openMapPreviewUrl.replace("?", "\\?")}$`));
 });
 
 test("393px-wide phones receive the compact map-control sizing", async ({ page, isMobile }) => {
@@ -639,7 +639,7 @@ test("393px-wide phones receive the compact map-control sizing", async ({ page, 
     window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
     window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
   });
-  await page.goto("/");
+  await page.goto(openMapPreviewUrl);
 
   await expect(page.locator(".rotate-map-btn span")).toHaveCSS("font-size", "10.5px");
   await expect(page.locator(".rotate-map-btn svg")).toHaveCSS("width", "26px");
@@ -680,21 +680,18 @@ for (const width of [320, 375, 412]) {
       localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
     });
     await page.goto("/?previewTime=2026-06-04T00:45:00-04:00");
-    const notice = page.locator(".subway-closing-soon-chip");
+    const notice = page.locator(".mobile-service-sheet-notice-row");
     await expect(notice).toBeVisible();
-    await expect(page.locator(".mobile-legend-pill.mobile-legend-pill--announcement")).toBeVisible();
+    await expect(page.locator(".subway-closing-soon-chip")).toHaveCount(0);
+    await expect(page.locator(".mobile-status-peek[data-has-notice='true']")).toBeVisible();
     await expect.poll(async () => page.evaluate(() => {
       const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
-      const notice = rect(".subway-closing-soon-chip");
       const rail = rect(".mobile-map-network-switch");
       const legend = rect(".mobile-legend-pill");
       const trains = rect(".mobile-train-toggle");
       const controls = rect(".mobile-map-controls-group");
       const status = rect(".mobile-status-peek");
-      return notice.top >= 5
-        && notice.right <= rail.left - 5
-        && legend.top >= notice.bottom + 5
-        && trains.top >= legend.bottom + 5
+      return trains.top >= legend.bottom + 5
         && Math.abs(trains.bottom - controls.bottom) <= 1
         && trains.right < controls.left
         && controls.top >= rail.bottom + 5

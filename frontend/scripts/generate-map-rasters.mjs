@@ -98,7 +98,7 @@ const maps = [
     darkCss: `
       #regional-station-labels-layer text,
       #regional-station-labels-layer tspan { fill: #f8fafc !important; }
-      #regional-route-lw-div { stroke: #0d0808 !important; }
+      #regional-route-lw-div { stroke: #0e1622 !important; }
       #g6 text,
       #g6 tspan { fill: #f8fafc !important; }
     `,

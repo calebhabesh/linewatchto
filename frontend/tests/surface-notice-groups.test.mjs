@@ -6,6 +6,7 @@ import {
   compareSurfaceNotices,
   surfaceNoticeEmphasis,
   groupSurfaceNoticesByRoute,
+  hasExactRouteMatch,
 } from "../src/app/surface-notice-groups.ts";
 
 const baseNotice = {
@@ -322,4 +323,80 @@ it("prioritizes explicit no-service schedule notices, then newest updates", () =
   assert.ok(compareSurfaceNotices(announcement, recent, "recent") > 0);
   assert.equal(surfaceNoticeEmphasis({ ...announcement, description: "No service changes are planned." }), "schedule");
   assert.ok(compareSurfaceNotices(recent, { ...recent, id: "old", updatedAt: "invalid" }) < 0);
+});
+
+describe("surface notice route search relevance", () => {
+  it("hasExactRouteMatch matches normalized route IDs accurately", () => {
+    const single = { ...baseNotice, routeIds: ["8"] };
+    const multi = { ...baseNotice, routeIds: ["8", "88", "501"] };
+    const unrelated = { ...baseNotice, routeIds: ["88"] };
+    const proseOnly = { ...baseNotice, routeIds: ["501"], title: "Route 8 detour at 8pm" };
+
+    assert.equal(hasExactRouteMatch(single, "8"), true);
+    assert.equal(hasExactRouteMatch(single, " 8 "), true);
+    assert.equal(hasExactRouteMatch(single, "route 8"), true);
+    assert.equal(hasExactRouteMatch(single, "Route 8"), true);
+    assert.equal(hasExactRouteMatch(single, "#8"), true);
+    assert.equal(hasExactRouteMatch(single, "Line 8"), true);
+    assert.equal(hasExactRouteMatch(multi, "8"), true);
+    assert.equal(hasExactRouteMatch(multi, "88"), true);
+    assert.equal(hasExactRouteMatch(unrelated, "8"), false);
+    assert.equal(hasExactRouteMatch(proseOnly, "8"), false);
+    assert.equal(hasExactRouteMatch(single, ""), false);
+    assert.equal(hasExactRouteMatch(single, "   "), false);
+  });
+
+  it("ranks exact route matches first before loose matches regardless of severity or recency", () => {
+    const route8Notice = {
+      ...baseNotice,
+      id: "route-8-notice",
+      routeIds: ["8"],
+      category: "bypass",
+      updatedAt: "2026-06-01T10:00:00Z",
+    };
+    const route88Notice = {
+      ...baseNotice,
+      id: "route-88-notice",
+      routeIds: ["88"],
+      category: "no-service",
+      updatedAt: "2026-06-15T10:00:00Z",
+    };
+
+    // When query is "8", route 8 notice should come FIRST despite lower severity and older date
+    assert.ok(compareSurfaceNotices(route8Notice, route88Notice, "importance", "8") < 0);
+    assert.ok(compareSurfaceNotices(route88Notice, route8Notice, "importance", "8") > 0);
+
+    // Even with "recent" sort, route 8 notice should come FIRST
+    assert.ok(compareSurfaceNotices(route8Notice, route88Notice, "recent", "8") < 0);
+    assert.ok(compareSurfaceNotices(route88Notice, route8Notice, "recent", "8") > 0);
+
+    // When query is empty, regular importance sort applies (no-service route 88 ranks before bypass route 8)
+    assert.ok(compareSurfaceNotices(route8Notice, route88Notice, "importance", "") > 0);
+    assert.ok(compareSurfaceNotices(route88Notice, route8Notice, "importance", "") < 0);
+  });
+
+  it("orders within the same relevance tier by selected sort order", () => {
+    const route8Older = {
+      ...baseNotice,
+      id: "route-8-old",
+      routeIds: ["8"],
+      category: "bypass",
+      updatedAt: "2026-06-01T10:00:00Z",
+    };
+    const route8Newer = {
+      ...baseNotice,
+      id: "route-8-new",
+      routeIds: ["8"],
+      category: "no-service",
+      updatedAt: "2026-06-15T10:00:00Z",
+    };
+
+    // Both match route 8: importance sort puts no-service before bypass
+    assert.ok(compareSurfaceNotices(route8Older, route8Newer, "importance", "8") > 0);
+    assert.ok(compareSurfaceNotices(route8Newer, route8Older, "importance", "8") < 0);
+
+    // Both match route 8: recent sort puts newer update first
+    assert.ok(compareSurfaceNotices(route8Older, route8Newer, "recent", "8") > 0);
+    assert.ok(compareSurfaceNotices(route8Newer, route8Older, "recent", "8") < 0);
+  });
 });

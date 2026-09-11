@@ -87,7 +87,6 @@ function MobileLegendRouteBadge({
 
 export function MobileLegend({
   mode = "ttc",
-  closingSoon,
   expanded = false,
   onToggleExpanded,
   onLineClick,
@@ -132,7 +131,7 @@ export function MobileLegend({
   const legendLabel = affectedLineCount === 0
     ? "Transit line legend, all lines have regular service"
     : `Transit line legend, ${affectedLineCount} ${affectedLineCount === 1 ? "line has" : "lines have"} service impacts`;
-  const modifierClasses = `${closingSoon ? "mobile-legend-pill--announcement" : ""} ${
+  const modifierClasses = `${
     isRegional ? "mobile-legend-pill--regional" : ""
   } ${expanded ? "mobile-legend-pill--expanded" : ""}`;
 

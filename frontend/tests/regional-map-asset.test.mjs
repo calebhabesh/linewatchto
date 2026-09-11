@@ -120,7 +120,7 @@ describe("regional application map asset", () => {
 
   it("colors the LW-DIV divider to match background across light, dark, and high-contrast themes", () => {
     assert.match(svg, /id="regional-route-lw-div"[^>]*inkscape:label="LW-DIV"/);
-    assert.match(css, /\.dark \.regional-map-stage :is\(#regional-route-lw-div, \[inkscape\\:label="LW-DIV"\]\)\s*{[^}]*stroke:\s*#0d0808\s*!important/s);
+    assert.match(css, /\.dark \.regional-map-stage :is\(#regional-route-lw-div, \[inkscape\\:label="LW-DIV"\]\)\s*{[^}]*stroke:\s*#0e1622\s*!important/s);
     assert.match(css, /\.high-contrast \.regional-map-stage :is\(#regional-route-lw-div, \[inkscape\\:label="LW-DIV"\]\)[^{]*{[^}]*stroke:\s*#000000\s*!important/s);
   });
 

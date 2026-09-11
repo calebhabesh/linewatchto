@@ -1531,6 +1531,8 @@
 
 /* Account-owned stations and commutes stay visible across both map modes. */
 .account-network-filter {
+  width: 100%;
+  box-sizing: border-box;
   align-items: center;
   background: rgb(241 245 249 / 0.85);
   border: 1px solid transparent;
@@ -1574,6 +1576,10 @@
 }
 
 /* 3-option grid positions (All | TTC | GO & UP) */
+.account-network-filter[data-options-count="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .account-network-filter[data-options-count="3"] .account-network-glider {
   width: calc((100% - 6px - 6px) / 3);
 }
@@ -1591,6 +1597,10 @@
 }
 
 /* 2-option grid positions (TTC | GO & UP) */
+.account-network-filter[data-options-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .account-network-filter[data-options-count="2"] .account-network-glider {
   width: calc((100% - 6px - 3px) / 2);
 }

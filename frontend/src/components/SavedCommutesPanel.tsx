@@ -2039,7 +2039,7 @@ export function SavedCommutesPanel({
               <div className="saved-commute-form">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">{editingCommuteId ? "Edit Route" : "Create a Route"}</h3>
                 {!editingCommuteId ? (
-                  <div className="account-network-filter" data-network={draftNetworkId} data-options-count={2} role="group" aria-label="Choose commute network">
+                  <div className="account-network-filter w-full" data-network={draftNetworkId} data-options-count={2} role="group" aria-label="Choose commute network">
                     <div className="account-network-glider" aria-hidden="true" />
                     {ACCOUNT_NETWORK_OPTIONS.slice(1).map((option) => (
                       <button
@@ -2214,8 +2214,8 @@ export function SavedCommutesPanel({
                 ) : null}
               </div>
             ) : (
-              <div className={`flex flex-col gap-3 min-w-0 max-w-full w-full box-border ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
-                <div className="account-network-filter" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Commutes by network">
+              <div className="flex flex-col gap-3 min-w-0 max-w-full w-full box-border">
+                <div className="account-network-filter w-full" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Commutes by network">
                   <div className="account-network-glider" aria-hidden="true" />
                   {ACCOUNT_NETWORK_OPTIONS.map((option) => (
                     <button

@@ -68,7 +68,7 @@
 }
 
 .dark .ttc-map-entrance-reveal {
-  --ttc-map-entrance-color: rgb(13, 8, 8);
+  --ttc-map-entrance-color: var(--map-canvas-bg, rgb(25, 38, 56));
 }
 
 .high-contrast .ttc-map-entrance-reveal {
@@ -92,7 +92,7 @@
 }
 
 .dark .map-center-feedback {
-  --map-center-feedback-color: rgb(13, 8, 8);
+  --map-center-feedback-color: var(--map-canvas-bg, rgb(25, 38, 56));
 }
 
 .high-contrast .map-center-feedback {
@@ -306,7 +306,7 @@
 }
 
 .dark .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
-  stroke: #0d0808 !important;
+  stroke: #0e1622 !important;
 }
 
 .high-contrast .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),

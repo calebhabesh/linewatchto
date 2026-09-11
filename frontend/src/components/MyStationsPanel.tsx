@@ -609,7 +609,7 @@ function SavedStationRow({
                                 style={{
                                   backgroundColor: lineColor,
                                   left: "16px",
-                                  top: isFirst ? "-8px" : "-12px",
+                                  top: isFirst ? "-18px" : "-12px",
                                   bottom: isLast ? "0px" : "-12px",
                                   borderBottomLeftRadius: isLast ? "9999px" : "0",
                                   borderBottomRightRadius: isLast ? "9999px" : "0",
@@ -957,7 +957,7 @@ function SavedStationRow({
                                   style={{
                                     backgroundColor: lineColor,
                                     left: "16px",
-                                    top: isFirst ? "-8px" : "-12px",
+                                    top: isFirst ? "-18px" : "-12px",
                                     bottom: isLast ? "0px" : "-12px",
                                     borderBottomLeftRadius: isLast ? "9999px" : "0",
                                     borderBottomRightRadius: isLast ? "9999px" : "0",
@@ -1447,7 +1447,7 @@ export function MyStationsPanel({
               </span>
             </button>
           </div>
-          <div className="account-network-filter" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Stations by network">
+          <div className="account-network-filter w-full" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Stations by network">
             <div className="account-network-glider" aria-hidden="true" />
             {ACCOUNT_NETWORK_OPTIONS.map((option) => (
               <button

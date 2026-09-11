@@ -12,7 +12,17 @@ test("current service prioritizes severity, excludes RSZs, and stays stable thro
   assert.deepEqual(first.rows.map((row) => row.id), ["s", "a", "b"]);
   input.delays[0].updatedAt = "2026-09-09T12:00:00Z";
   assert.deepEqual(currentServiceSummary(input).rows, first.rows);
-  assert.deepEqual(first.unaffected.map((line) => line.id), ["4"]);
+  assert.deepEqual(first.unaffected.map((line) => line.id), []);
+});
+
+test("lines with active RSZs are marked affected and excluded from Good Service unaffected list", () => {
+  const input = data({
+    lineStatuses: [line("1"), line("2"), line("4")],
+    reducedSpeedZones: [impact("r", "4", { location: "Bayview to Bessarion" })],
+  });
+  const summary = currentServiceSummary(input);
+  assert.deepEqual(summary.unaffected.map((l) => l.id), ["1", "2"]);
+  assert.ok(!summary.unaffected.some((l) => l.id === "4"));
 });
 
 test("active closure appears once under its linked child identity; planned closures are excluded", () => {

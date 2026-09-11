@@ -1012,7 +1012,7 @@ export function RegionalStationDetailPanel({
                                         style={{
                                           backgroundColor: lineColor,
                                           left: "16px",
-                                          top: isFirst ? "-8px" : "-12px",
+                                          top: isFirst ? "-18px" : "-12px",
                                           bottom: isLast ? "0px" : "-12px",
                                           borderBottomLeftRadius: isLast ? "9999px" : "0",
                                           borderBottomRightRadius: isLast ? "9999px" : "0",

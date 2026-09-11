@@ -599,11 +599,32 @@ export function surfaceNoticeEmphasis(notice: SurfaceNoticeDetail): string {
   return notice.scheduleAnnouncement ? "schedule" : notice.category;
 }
 
+export function hasExactRouteMatch(notice: SurfaceNoticeDetail, query?: string | null): boolean {
+  if (!query) return false;
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return false;
+  const normalized = trimmed.replace(/^(?:route\s+|line\s+|#\s*)/i, "");
+  if (!normalized) return false;
+  return Boolean(notice.routeIds?.some((id) => {
+    const cleanId = id.trim().toLowerCase();
+    return cleanId === normalized || cleanId === trimmed;
+  }));
+}
+
 export function compareSurfaceNotices(
   a: SurfaceNoticeDetail,
   b: SurfaceNoticeDetail,
   sort: "importance" | "recent" = "importance",
+  query?: string | null,
 ): number {
+  if (query) {
+    const aMatch = hasExactRouteMatch(a, query);
+    const bMatch = hasExactRouteMatch(b, query);
+    if (aMatch !== bMatch) {
+      return aMatch ? -1 : 1;
+    }
+  }
+
   const priorities: Record<string, number> = {
     "no-service": 0, schedule: 1, bypass: 2, detour: 2, "service-change": 3, notice: 4,
   };
@@ -616,3 +637,4 @@ export function compareSurfaceNotices(
   };
   return priority || timestamp(b.updatedAt) - timestamp(a.updatedAt) || a.id.localeCompare(b.id);
 }
+

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus, Clock } from "lucide-react";
+import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus, Clock, ChevronRight, Clock3, Moon } from "lucide-react";
 import { reserveSheetMotionBudget } from "./sheet-motion-budget";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
@@ -26,6 +26,13 @@ function BellFilledIcon({ size = 14 }: { size?: number }) {
 
 type CategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "trip-changes";
 
+export type MobileOperatingNotice = {
+  kind: "closing-soon" | "closed";
+  title: string;
+  details?: string;
+  action?: () => void;
+};
+
 type Props = {
   children?: ReactNode;
   fresh?: boolean;
@@ -39,6 +46,7 @@ type Props = {
   pollText: string;
   dataSource: "backend" | "fallback";
   networkId?: NetworkId;
+  operatingNotice?: MobileOperatingNotice | null;
   onOpenStatus: () => void;
   onOpenCategory?: (view: CategoryView) => void;
   onRecenter?: () => void;
@@ -59,6 +67,7 @@ export function MobileStatusPeek({
   pollText,
   dataSource,
   networkId = "ttc",
+  operatingNotice = null,
   onOpenStatus,
   onOpenCategory,
   onRecenter,
@@ -156,7 +165,7 @@ export function MobileStatusPeek({
       window.removeEventListener("resize", updateHeight);
       document.documentElement.style.removeProperty("--mobile-status-peek-actual-height");
     };
-  }, [categoryCount, impactCount, snap]);
+  }, [categoryCount, impactCount, snap, operatingNotice]);
 
   const titleText = impactCount > 0
     ? `${impactCount} Impact${impactCount === 1 ? "" : "s"}`
@@ -287,6 +296,7 @@ export function MobileStatusPeek({
         data-snap={snap}
         data-dragging={isDragging}
         data-category-count={categoryCount}
+        data-has-notice={operatingNotice ? "true" : undefined}
         data-map-chooser-keepout
       >
         <div className="mobile-service-sheet-minimum" aria-hidden="true" />
@@ -406,7 +416,34 @@ export function MobileStatusPeek({
             </span>
           </button>
         </div>
-
+        {operatingNotice && (
+          <button
+            type="button"
+            className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${operatingNotice.kind}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              operatingNotice.action?.();
+            }}
+            aria-label={`${operatingNotice.title}${operatingNotice.details ? ` · ${operatingNotice.details}` : ""}`}
+          >
+            <span className="mobile-service-sheet-notice-left">
+              <span className="mobile-service-sheet-notice-icon" aria-hidden="true">
+                {operatingNotice.kind === "closing-soon" ? (
+                  <Clock3 size={13} strokeWidth={2.5} />
+                ) : (
+                  <Moon size={13} strokeWidth={1} fill="currentColor" />
+                )}
+              </span>
+              <strong className="mobile-service-sheet-notice-title">{operatingNotice.title}</strong>
+            </span>
+            {operatingNotice.details && (
+              <span className="mobile-service-sheet-notice-right">
+                <span className="mobile-service-sheet-notice-details">{operatingNotice.details}</span>
+                <ChevronRight size={12} strokeWidth={2.5} className="mobile-service-sheet-notice-chevron" aria-hidden="true" />
+              </span>
+            )}
+          </button>
+        )}
         </div>
         <div className="mobile-status-peek-counts mobile-status-peek-grid" role="toolbar" aria-label="Impact categories">
           {gridItems.map((item) => (

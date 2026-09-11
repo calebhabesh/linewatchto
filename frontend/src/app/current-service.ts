@@ -81,7 +81,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
   // Stable within severity and line: source timestamp changes must not move a row.
   const lineOrder = new Map(data.lineStatuses.map((line, index) => [line.id, index]));
   rows.sort((a, b) => a.priority - b.priority || (lineOrder.get(a.lineId) ?? 99) - (lineOrder.get(b.lineId) ?? 99) || a.id.localeCompare(b.id));
-  const affected = new Set(rows.map((row) => row.lineId));
+  const affected = new Set([...rows.map((row) => row.lineId), ...(data.reducedSpeedZones ?? []).map((rsz) => rsz.lineId)]);
   return { fresh, rows, unaffected: data.lineStatuses.filter((line) => !affected.has(line.id)), upcoming };
 }
 

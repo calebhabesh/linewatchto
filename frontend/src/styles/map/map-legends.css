@@ -268,7 +268,10 @@
     max-width: 44px;
     max-height: calc(100dvh - var(--mobile-safe-top) - 84px);
     padding: 0;
-    transition: top 200ms ease,
+    overflow: hidden;
+    transition: width 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                max-width 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                top 200ms ease,
                 left 200ms ease,
                 background-color 200ms ease,
                 border-color 200ms ease,
@@ -282,7 +285,9 @@
   .mobile-legend-pill--expanded {
     width: var(--mobile-legend-expanded-width) !important;
     max-width: var(--mobile-legend-expanded-width);
-    transition: top 200ms ease,
+    transition: width 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                max-width 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                top 200ms ease,
                 left 200ms ease;
   }
 

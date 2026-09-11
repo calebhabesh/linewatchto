@@ -7,7 +7,7 @@
 
 /* --- LINEWATCH MOBILE UX REDESIGN PLAN STYLES --- */
 :root {
-  --mobile-bottom-nav-height: 74px;
+  --mobile-bottom-nav-height: 70px;
   --mobile-bottom-nav-margin-bottom: 14px;
   --mobile-bottom-nav-bottom-offset: max(10px, calc(var(--mobile-safe-bottom) - 18px));
   --mobile-bottom-nav-occupied-height: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-bottom-offset));

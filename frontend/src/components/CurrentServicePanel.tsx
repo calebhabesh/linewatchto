@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, BusFront, CircleCheck, CircleX, GitBranch, Info, TrainFront } from "lucide-react";
+import { ArrowRight, BusFront, Info, TrainFront } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { currentServiceSummary, currentSurfaceNotices } from "../app/current-service";
 import { LineBadge } from "./ImpactCardFields";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 
 
 type Props = {
@@ -55,6 +56,29 @@ function ServiceList({ children, rail = false }: { children: ReactNode; rail?: b
   return <div ref={ref} className={`current-service-list${rail ? " current-service-rail-list" : ""}`}>{children}</div>;
 }
 
+function GoodServiceCheckIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="current-service-good-service-icon shrink-0"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="7.25" fill="#16a34a" />
+      <path
+        d="M4.75 8.25L6.75 10.25L11.25 5.75"
+        stroke="#ffffff"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotices }: Props) {
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -68,7 +92,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
     lineId,
     rows: summary.rows.filter(row => row.lineId === lineId),
   }));
-  const activeCount = summary.rows.filter(row => row.priority < 2).length;
+  const activeCount = summary.rows.length;
   const surfaceRows = notices?.fresh && now > 0 ? currentSurfaceNotices(notices.notices, now) : [];
 
   return <section className="current-service" data-map-chooser-keepout aria-label="Current Service">
@@ -76,25 +100,46 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
     {!summary.fresh && <p className="current-service-availability">{data.availability === "fixture" ? "Demo data · Current status unavailable" : "Current status unavailable"}</p>}
     <div className="current-service-columns">
       <section aria-label="Rail service status">
-        <h3><TrainFront size={13} aria-hidden="true" />{data.networkId === "ttc" ? "Subway & Light Rail" : "GO & UP Rail"}{summary.fresh && <span className="current-service-active-count" aria-label={`${activeCount} active rail alerts and delays`}>{activeCount}</span>}</h3>
+        <h3><TrainFront size={13} aria-hidden="true" />{data.networkId === "ttc" ? "Subway & Light Rail" : "GO & UP Rail"}{summary.fresh && <span className="current-service-active-count" aria-label={`${activeCount} rail alerts, delays, and closures`}>{activeCount}</span>}</h3>
         <ServiceList rail>
           {railGroups.map(group => <div className="current-service-line" key={group.lineId}>
-            <LineBadge lineId={group.lineId} lineNumber={group.rows[0].lineNumber} size={20} />
+            <div className="current-service-line-badge-wrap">
+              <LineBadge lineId={group.lineId} lineNumber={group.rows[0].lineNumber} size={24} />
+            </div>
             <div className="current-service-line-copy">
-              {group.rows.map(row => <button type="button" className="current-service-impact current-service-impact--compact" key={`${row.kind}:${row.id}`} onClick={() => onImpact({ kind: row.kind, id: row.id })}>
-                <span className="current-service-impact-heading">
-                  <strong data-kind={row.iconKind || row.kind}><ImpactTypeIcon kind={row.iconKind || row.kind} size={12} />{row.condition === "Upcoming Closure" ? "Planned Closure" : row.condition}</strong>
-                  {row.timing && <span className="current-service-inline-timing"> · {row.priority === 2 ? "Starts " : ""}{row.timing}</span>}
-                </span>
-                <span>{row.location}{row.direction && <span className="current-service-inline-direction"> · {row.direction}</span>}</span>
-              </button>)}
+              {group.rows.map(row => {
+                const timingLabel = row.timing
+                  ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ") ? "Starts " : "") + row.timing
+                  : null;
+                return (
+                  <button type="button" className="current-service-impact current-service-impact--compact" key={`${row.kind}:${row.id}`} onClick={() => onImpact({ kind: row.kind, id: row.id })}>
+                    <span className="current-service-impact-heading">
+                      <strong data-kind={row.iconKind || row.kind}><ImpactTypeIcon kind={row.iconKind || row.kind} size={16} />{row.condition === "Upcoming Closure" ? "Planned Closure" : row.condition}</strong>
+                    </span>
+                    {timingLabel && <span className="current-service-impact-timing">{timingLabel}</span>}
+                    <span className="current-service-impact-location">{row.location}{row.direction && <span className="current-service-inline-direction"> · {row.direction}</span>}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>)}
-          {summary.unaffected.map(line => <div className="current-service-line current-service-line--unaffected" key={line.id}>
-            <LineBadge lineId={line.id} lineNumber={line.number} size={24} />
-            <p className="current-service-clear">{line.status === "normal" ? <CircleCheck size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}<span>{line.statusLabel}</span></p>
-          </div>)}
-          {summary.fresh && !summary.rows.length && <p className="current-service-clear"><CircleCheck size={12} aria-hidden="true" /><span>No active alerts, delays, or upcoming closures</span></p>}
+          {summary.unaffected.map(line => {
+            const isClosed = line.status === ("closed" as string) || line.statusLabel.toLowerCase() === "closed";
+            return (
+              <div className="current-service-line current-service-line--unaffected" key={line.id}>
+                <div className="current-service-line-badge-wrap">
+                  <LineBadge lineId={line.id} lineNumber={line.number} size={24} />
+                </div>
+                <div className="current-service-line-copy current-service-line-copy--clear">
+                  <p className="current-service-clear">
+                    {isClosed ? <Info size={16} aria-hidden="true" /> : <GoodServiceCheckIcon size={16} />}
+                    <span>{isClosed ? "Closed" : "Good Service"}</span>
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+          {summary.fresh && !summary.rows.length && <p className="current-service-clear"><GoodServiceCheckIcon size={14} /><span>No active alerts, delays, or upcoming closures</span></p>}
         </ServiceList>
       </section>
       <section aria-label="Surface service notices">
@@ -103,7 +148,10 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
           {surfaceRows.slice(0, 3).map((notice) => <button type="button" className="current-service-notice" key={notice.id} onClick={() => onNotice(notice)}>
             <span className="current-service-routes">{(notice.routeIds.length ? notice.routeIds : [data.networkId === "ttc" ? "TTC" : "GO"]).map((route) => <span className="current-service-route" key={route}>{route}</span>)}</span>
             <span className="current-service-notice-copy">
-              <strong data-category={notice.category}>{notice.category === "no-service" ? <CircleX size={12} aria-hidden="true" /> : notice.category === "detour" ? <GitBranch size={12} aria-hidden="true" /> : <Info size={12} aria-hidden="true" />}{noticeLabels[notice.category] || "Notice"}</strong>
+              <strong data-category={notice.category}>
+                <SurfaceCategoryIcon category={notice.category} size={12} className="shrink-0" />
+                {noticeLabels[notice.category] || "Notice"}
+              </strong>
               <span>{notice.location || notice.title}</span>
             </span>
           </button>)}

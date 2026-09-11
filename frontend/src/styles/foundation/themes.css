@@ -21,6 +21,12 @@
   --planned-preview-ink: #087fff;
   --planned-preview-glow: rgba(0, 200, 255, 0.38);
   --shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+  --map-canvas-bg: #f8fafc;
+  --map-control-bg: #ffffff;
+  --map-control-border: rgba(15, 23, 42, 0.12);
+  --map-control-shadow: 0 3px 8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.08);
+  --map-control-text: #0f172a;
+  --map-control-text-muted: #475569;
   /* Mobile theme-specific chrome styles (Light mode) */
   --mobile-chrome-background: rgba(255, 255, 255, 0.94);
   --mobile-chrome-border: rgba(15, 23, 42, 0.12);
@@ -94,6 +100,12 @@
   --planned-preview-ink: #087fff;
   --planned-preview-glow: rgba(0, 200, 255, 0.42);
   --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  --map-canvas-bg: #0e1622;
+  --map-control-bg: #34363a;
+  --map-control-border: rgba(255, 255, 255, 0.12);
+  --map-control-shadow: 0 3px 8px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(148, 163, 184, 0.10);
+  --map-control-text: #f7f8fb;
+  --map-control-text-muted: #aab1bd;
   /* Mobile theme-specific chrome styles (Dark mode) */
   --mobile-chrome-background: rgb(14, 16, 22);
   --mobile-chrome-border: rgba(255, 255, 255, 0.08);
@@ -153,7 +165,7 @@
 }
 
 .linewatch-backdrop--dark {
-  background-color: #0d0808;
+  background-color: var(--map-canvas-bg, #0e1622);
 }
 
 .linewatch-backdrop--plain-dark {
@@ -178,6 +190,12 @@
 .linewatch-shell.high-contrast {
   color-scheme: dark;
   --bg: #000000;
+  --map-canvas-bg: #000000;
+  --map-control-bg: #000000;
+  --map-control-border: #ffffff;
+  --map-control-shadow: none;
+  --map-control-text: #ffffff;
+  --map-control-text-muted: #ffffff;
   --panel: rgba(0, 0, 0, 0.95);
   --panel-opaque: #000000;
   --panel-strong: #000000;

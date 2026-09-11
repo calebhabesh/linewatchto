@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { installDismissedTransientUi } from "./test-support";
 
-test("service sheet expands by tap, keyboard and drag without moving the map", async ({ page, isMobile }) => {
+test("service sheet expands by tap, keyboard and drag without moving the map", async ({ page, isMobile, request }) => {
   test.skip(!isMobile);
+  await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });
   await installDismissedTransientUi(page);
-  await page.goto("/");
+  await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
   const sheet = page.locator(".mobile-service-sheet");
   const nav = page.getByRole("navigation", { name: "Primary mobile navigation" });
   await expect(sheet).toBeVisible();
