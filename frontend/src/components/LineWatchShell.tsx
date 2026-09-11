@@ -437,7 +437,6 @@ export function LineWatchShell({
     delays,
     reducedSpeedZones,
     lineStatuses,
-    ingestionHealth,
     plannedClosures,
   } = displayData;
   const reducedSpeedZoneCount = countReducedSpeedZones(reducedSpeedZones);
@@ -455,6 +454,8 @@ export function LineWatchShell({
       : displayData.availability === "unavailable"
         ? "Live service data is unavailable — Showing the fallback dashboard."
         : null;
+  const isLive = displayData.generatedAt.live && displayData.availability !== "unavailable" && displayData.availability !== "fixture";
+  const isConnectionIssue = dashboardRequestState === "reconnecting" || displayData.availability === "degraded";
   const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
   const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);
   const [reducedMotion, setReducedMotion] = useState(initialVisualPreferences.reducedMotion);
@@ -984,8 +985,11 @@ export function LineWatchShell({
     return () => orientationQuery.removeEventListener("change", handleOrientationChange);
   }, [mapPresentationMode]);
 
+  const previousMapPresentationModeRef = useRef(mapPresentationMode);
   useEffect(() => {
-    if (!isMobile) return;
+    const changed = previousMapPresentationModeRef.current !== mapPresentationMode;
+    previousMapPresentationModeRef.current = mapPresentationMode;
+    if (!isMobile || !changed) return;
     const timer = window.setTimeout(() => {
       setMapLayoutSignal((current) => current + 1);
     }, mapPresentationMode === "rotated-landscape" ? 90 : 50);
@@ -3427,7 +3431,6 @@ export function LineWatchShell({
             highContrast={highContrast}
             reducedMotion={reducedMotion}
             dotBackgroundEnabled={dotBackgroundEnabled}
-            ingestionHealth={ingestionHealth}
             onClose={handleClosePanel}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
@@ -4440,20 +4443,7 @@ export function LineWatchShell({
                  </a>
                </div>
 
-               {/* Ingestion Status */}
                <div className="flex flex-col p-4">
-                 <div className="flex flex-wrap items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
-                   <ShieldCheck size={16} />
-                   <span className="text-[11px] font-bold uppercase tracking-wider">Ingestion Status</span>
-                 </div>
-                 <div className="grid grid-cols-2 gap-2">
-                   {ingestionHealth.map((health, idx) => (
-                     <div key={idx} className="flex flex-col !bg-white dark:!bg-[#12151c] p-2 rounded-lg border border-black/5 dark:border-white/5">
-                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{health.label}</span>
-                       <span className="text-xs font-medium text-slate-800 dark:text-slate-300 leading-tight mt-1">{health.value}</span>
-                     </div>
-                   ))}
-                 </div>
                  <div className="mt-3 text-center">
                     <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 select-none" aria-label={`App version ${lineWatchAppVersionLabel}`}>
                       {lineWatchAppVersionLabel}
@@ -4573,11 +4563,27 @@ export function LineWatchShell({
                     </button>
                 </div>
                 <span className="desktop-status-divider" />
-                <div className="desktop-status-poll">
-                   <div className="desktop-status-live-dot" />
-                   <span>
-                      Last Polled: {pollText.toLowerCase() === "just now" ? "Just Now" : pollText}
-                   </span>
+                <div
+                  className={`desktop-status-poll ${
+                    isLive
+                      ? ""
+                      : isConnectionIssue
+                        ? "desktop-status-poll--cached"
+                        : "desktop-status-poll--source"
+                  }`}
+                  role="status"
+                  aria-label={
+                    isLive
+                      ? "Live updates active"
+                      : isConnectionIssue
+                        ? "Cached updates"
+                        : `Source: ${displayData.dataSource}`
+                  }
+                >
+                  <div className="desktop-status-live-dot" aria-hidden="true" />
+                  <span>
+                    Last Polled: {pollText.toLowerCase() === "just now" ? "Just Now" : pollText}
+                  </span>
                 </div>
                 <span className="desktop-status-divider" />
                 <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
@@ -5021,7 +5027,8 @@ export function LineWatchShell({
 
       {showMobileStatusPeek ? (
         <MobileStatusPeek
-          fresh={displayData.generatedAt.live && displayData.availability !== "unavailable" && displayData.availability !== "fixture"}
+          fresh={isLive}
+          isConnectionIssue={dashboardRequestState === "reconnecting" || displayData.availability === "degraded"}
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
           delayCount={delays.length}

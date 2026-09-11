@@ -75,9 +75,9 @@
   .mobile-more-build-label {
     color: var(--muted);
     font-size: 10px;
-    font-weight: 850;
+    font-weight: 750;
     line-height: 1.2;
-    margin-top: 2px;
+    margin: 0;
   }
 
   .mobile-status-actions {
@@ -396,6 +396,29 @@
     align-items: center;
     display: flex;
     gap: 10px;
+  }
+
+  .mobile-more-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .mobile-more-title-block h2 {
+    margin: -1px 0 0 0;
+    line-height: 1.1;
+  }
+
+  .mobile-more-kicker-row {
+    align-items: baseline;
+    display: flex;
+    gap: 6px;
+  }
+
+  .mobile-more-wordmark {
+    font-size: 16px;
+    font-weight: 750;
+    line-height: 1.15;
   }
 
   .mobile-more-section {

@@ -3314,7 +3314,6 @@ function InteractiveRegionalMapComponent({
   }, [refitUntouchedNetwork]);
 
   const resetNetworkCamera = useCallback(() => {
-    clearMapViewport("regional");
     cameraAdjustedByUserRef.current = false;
     const fitted = fittedCamera();
     if (!fitted) return false;
@@ -3327,6 +3326,7 @@ function InteractiveRegionalMapComponent({
   }, [fittedCamera, snapCameraToNetwork]);
 
   const handleFitNetwork = useCallback(() => {
+    clearMapViewport("regional");
     if (resetNetworkCamera() && !reducedMotion) {
       setRecenterFeedbackKey((current) => current + 1);
     }

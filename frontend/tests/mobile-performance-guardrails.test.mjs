@@ -170,7 +170,7 @@ describe("mobile performance guardrails", () => {
     );
     assert.match(
       mapSource,
-      /usePanZoom\(\{\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*defaultFrame:\s*defaultMapFrame,\s*animateInitialEntrance,\s*\}\)/s,
+      /usePanZoom\(\{\s*persistenceKey: "ttc",\s*persistenceBlocked: Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\),\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*defaultFrame:\s*defaultMapFrame,\s*animateInitialEntrance,\s*\}\)/s,
     );
     assert.match(
       shellSource,

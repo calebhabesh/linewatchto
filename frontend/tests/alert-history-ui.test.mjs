@@ -243,3 +243,4 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-item\s*\{[^}]*content-visibility:\s*auto;/s);
   });
 });
+

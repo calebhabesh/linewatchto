@@ -14,6 +14,7 @@ import type { NetworkId } from "../app/regional-data";
 import { REGIONAL_STATION_SEARCH_LINES } from "../app/station-search";
 import { getRegionalTripChanges, type RegionalTripChangeResponse } from "../app/regional-trip-changes";
 import { RegionalTripChangesList } from "./RegionalTripChangesList";
+import { DropdownMenuPortal } from "./DropdownMenuPortal";
 
 function NoticeFilter({ label, prefix, value, options, onChange }: {
   label: string;
@@ -26,48 +27,52 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menuId = useId();
-  useEffect(() => {
-    if (!open) return;
-    const dismiss = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", dismiss);
-    return () => document.removeEventListener("pointerdown", dismiss);
-  }, [open]);
-  useEffect(() => {
-    if (open) root.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
-  }, [open]);
+
   return (
-    <div className="alert-history-line-filter relative" ref={root}
-      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
-      onKeyDown={(event) => {
-        if (open && event.key === "Escape") { event.stopPropagation(); setOpen(false); trigger.current?.focus(); }
-        if (!open && event.key === "ArrowDown") { event.preventDefault(); setOpen(true); }
-        if (open && ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
-          event.preventDefault();
-          const items = Array.from(root.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? []);
-          const current = items.indexOf(document.activeElement as HTMLButtonElement);
-          const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1
-            : (current + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
-          items[next]?.focus();
-        }
-      }}>
+    <div className="alert-history-line-filter relative" ref={root}>
       <span className="alert-history-control-prefix">{prefix}</span>
-      <button ref={trigger} type="button" className="alert-history-line-filter-trigger"
-        aria-label={label} aria-haspopup="menu" aria-expanded={open} aria-controls={menuId}
-        onClick={() => setOpen(!open)}>
+      <button
+        ref={trigger}
+        type="button"
+        className="alert-history-line-filter-trigger"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen(!open)}
+      >
         <span className="truncate">{options.find((option) => option.value === value)?.label}</span>
         <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
       </button>
-      {open ? <ul id={menuId} role="menu" aria-label={label} className="alert-history-line-filter-options">
-        {options.map((option) => <li key={option.value} role="none">
-          <button type="button" role="menuitemradio" aria-checked={option.value === value}
-            className={`alert-history-line-filter-option ${option.value === value ? "selected" : ""}`}
-            onClick={() => { onChange(option.value); setOpen(false); trigger.current?.focus(); }}>
-            {option.label}
-          </button>
-        </li>)}
-      </ul> : null}
+      <DropdownMenuPortal
+        open={open}
+        onClose={() => setOpen(false)}
+        triggerRef={root}
+        align="left"
+        as="ul"
+        id={menuId}
+        role="menu"
+        aria-label={label}
+        className="alert-history-line-filter-options"
+      >
+        {options.map((option) => (
+          <li key={option.value} role="none">
+            <button
+              type="button"
+              role="menuitemradio"
+              aria-checked={option.value === value}
+              className={`alert-history-line-filter-option ${option.value === value ? "selected" : ""}`}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+                trigger.current?.focus();
+              }}
+            >
+              {option.label}
+            </button>
+          </li>
+        ))}
+      </DropdownMenuPortal>
     </div>
   );
 }

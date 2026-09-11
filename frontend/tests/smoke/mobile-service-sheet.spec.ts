@@ -13,11 +13,13 @@ test("service sheet expands by tap, keyboard and drag without moving the map", a
   expect(Math.abs(navBox.y + navBox.height - page.viewportSize()!.height)).toBeLessThan(2);
   await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(500);
+  expect(navBox.y - (await sheet.boundingBox())!.y).toBeCloseTo(170, 0);
+  await expect(page.locator("#mobile-service-sheet-details")).toHaveAttribute("inert");
   await page.screenshot({ path: "/tmp/linewatch-console-peek.png" });
   const camera = page.locator(".ttc-map-stage");
   const before = await camera.getAttribute("style");
   await page.getByRole("button", { name: "Expand service sheet" }).click();
-  await expect(sheet).toHaveAttribute("data-expanded", "true");
+  await expect(sheet).toHaveAttribute("data-snap", "halfway");
   for (const selector of [".mobile-app-shortcuts", ".mobile-app-info", ".mobile-map-network-switch", ".mobile-train-toggle", ".mobile-map-controls-group"]) {
     await expect(page.locator(selector)).toBeVisible();
     expect(await page.locator(selector).evaluate(node => getComputedStyle(node).display)).not.toBe("none");
@@ -27,8 +29,9 @@ test("service sheet expands by tap, keyboard and drag without moving the map", a
   await expect(page.locator("#mobile-service-sheet-details")).not.toHaveAttribute("inert");
   await page.waitForTimeout(300);
   expect(await camera.getAttribute("style")).toBe(before);
+  expect((navBox.y - (await sheet.boundingBox())!.y) / page.viewportSize()!.height).toBeCloseTo(.65, 2);
   await page.screenshot({ path: "/tmp/linewatch-console-expanded.png" });
-  const handle = page.getByRole("button", { name: "Collapse service sheet" });
+  const handle = page.locator(".mobile-service-sheet-handle");
   await handle.focus();
   await page.keyboard.press("ArrowDown");
   await expect(sheet).toHaveAttribute("data-expanded", "false");
@@ -40,8 +43,33 @@ test("service sheet expands by tap, keyboard and drag without moving the map", a
   await page.mouse.move(box.x + box.width / 2, box.y - 330, { steps: 12 });
   await expect(sheet).toHaveAttribute("data-dragging", "true");
   expect(await sheet.evaluate(node => (node as HTMLElement).offsetHeight)).toBe(layoutHeight);
+  const details = page.locator("#mobile-service-sheet-details");
+  await expect(details).not.toHaveAttribute("inert");
+  expect(await details.evaluate(node => node.clientHeight)).toBeGreaterThan(300);
+  const text = details.getByRole("heading", { name: /Subway & Light Rail/ });
+  await expect(text).toBeInViewport();
+  await page.screenshot({ path: "/tmp/linewatch-sheet-mid-drag.png" });
   await page.mouse.up();
-  await expect(sheet).toHaveAttribute("data-expanded", "true");
+  await expect(sheet).toHaveAttribute("data-snap", "halfway");
+  await handle.press("End");
+  await expect(sheet).toHaveAttribute("data-snap", "expanded");
+  await page.reload();
+  await expect(sheet).toHaveAttribute("data-snap", "expanded");
+  await expect.poll(async () => (await sheet.boundingBox())!.y).toBeLessThan(10);
+  await page.screenshot({ path: "/tmp/linewatch-console-full.png" });
+  await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
+  await expect(page.locator(".station-detail-panel")).toBeVisible();
+  await page.getByRole("button", { name: "Close station details" }).click();
+  await expect(sheet).toHaveAttribute("data-snap", "expanded");
+  await page.locator(".mobile-service-sheet-handle").press("Home");
+  await expect(sheet).toHaveAttribute("data-snap", "overview");
+  await page.locator(".mobile-service-sheet-handle").press("ArrowDown");
+  await expect(sheet).toHaveAttribute("data-snap", "overview");
+  await expect(page.locator("#mobile-service-sheet-details")).toHaveAttribute("inert");
+  await page.locator(".mobile-service-sheet-handle").press("ArrowUp");
+  await page.locator(".mobile-map-network-switch").getByRole("button", { name: "GO/UP", exact: true }).dispatchEvent("click");
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional");
+  await expect(sheet).toHaveAttribute("data-snap", "halfway");
 });
 
 for (const preference of ["system", "app"] as const) {

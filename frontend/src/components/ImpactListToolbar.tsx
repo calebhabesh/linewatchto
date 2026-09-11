@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, LayoutList, PanelsTopLeft, Search } from "lucide-react";
 import type { ImpactListSort } from "../app/impact-list-controls";
 import type { ImpactListView } from "../hooks/useImpactListView";
+import { DropdownMenuPortal } from "./DropdownMenuPortal";
 import { TransitLineBadge } from "./TransitLineBadge";
 
 type SortOption = {
@@ -58,8 +59,11 @@ const LINE_FILTER_DETAILS: Record<string, { number: string; name: string }> = {
 };
 
 function lineLabel(lineId: string) {
-  if (LINE_FILTER_DETAILS[lineId]) {
-    return LINE_FILTER_DETAILS[lineId].name;
+  const line = LINE_FILTER_DETAILS[lineId];
+  if (line) {
+    return line.number.length <= 2 && !isNaN(Number(line.number))
+      ? `Line ${line.number} ${line.name}`
+      : `${line.name} Line`;
   }
   if (lineId.startsWith("regional-")) {
     const code = lineId.replace("regional-", "").toUpperCase();
@@ -71,20 +75,17 @@ function lineLabel(lineId: string) {
   return lineId;
 }
 
-function SelectOptionLabel({ option }: { option: ToolbarSelectOption<string> }) {
-  return (
-    <span className="impact-list-option-label">
-      {option.lineId ? (
-        <TransitLineBadge
-          lineId={option.lineId}
-          size={22}
-          className="impact-list-line-badge shrink-0"
-          decorative
-        />
-      ) : null}
-      <span>{option.label}</span>
-    </span>
-  );
+function SelectOptionLabel<T extends string>({ option }: { option: ToolbarSelectOption<T> }) {
+  if (option.lineId) {
+    const line = LINE_FILTER_DETAILS[option.lineId];
+    return (
+      <span className="flex items-center gap-1.5 min-w-0">
+        <TransitLineBadge lineId={option.lineId} lineNumber={line?.number ?? option.lineId} size={18} className="shrink-0" />
+        <span className="truncate">{line?.name ?? option.label}</span>
+      </span>
+    );
+  }
+  return <span className="truncate">{option.label}</span>;
 }
 
 export function ToolbarSelectMenu<T extends string>({
@@ -94,6 +95,7 @@ export function ToolbarSelectMenu<T extends string>({
   options,
   onChange,
   disabled = false,
+  align,
 }: {
   ariaLabel: string;
   prefix: string;
@@ -101,20 +103,12 @@ export function ToolbarSelectMenu<T extends string>({
   options: ToolbarSelectOption<T>[];
   onChange: (value: T) => void;
   disabled?: boolean;
+  align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const selectedOption = options.find((option) => option.value === value) ?? options[0];
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const resolvedAlign = align ?? (prefix === "Sort" ? "right" : "left");
 
   return (
     <div className="impact-list-select-control" ref={menuRef}>
@@ -145,37 +139,42 @@ export function ToolbarSelectMenu<T extends string>({
           style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
         />
       </button>
-      {open && !disabled ? (
-        <div className="saved-commute-sort-options impact-list-select-options" role="listbox">
-          {options.map((option) => {
-            const selected = option.value === value;
-            const line = option.lineId ? LINE_FILTER_DETAILS[option.lineId] : null;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                aria-label={
-                  line
-                    ? line.number.length <= 2 && !isNaN(Number(line.number))
-                      ? `Line ${line.number} ${line.name}`
-                      : `${line.name} Line`
-                    : option.label
-                }
-                className={`saved-commute-sort-option${selected ? " selected" : ""}`}
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                <SelectOptionLabel option={option} />
-                {selected ? <Check size={12} className="text-emerald-500 dark:text-emerald-400 shrink-0 ml-2" /> : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+      <DropdownMenuPortal
+        open={open && !disabled}
+        onClose={() => setOpen(false)}
+        triggerRef={menuRef}
+        align={resolvedAlign}
+        role="listbox"
+        className="saved-commute-sort-options impact-list-select-options"
+      >
+        {options.map((option) => {
+          const selected = option.value === value;
+          const line = option.lineId ? LINE_FILTER_DETAILS[option.lineId] : null;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={selected}
+              aria-label={
+                line
+                  ? line.number.length <= 2 && !isNaN(Number(line.number))
+                    ? `Line ${line.number} ${line.name}`
+                    : `${line.name} Line`
+                  : option.label
+              }
+              className={`saved-commute-sort-option${selected ? " selected" : ""}`}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+            >
+              <SelectOptionLabel option={option} />
+              {selected ? <Check size={12} className="text-emerald-500 dark:text-emerald-400 shrink-0 ml-2" /> : null}
+            </button>
+          );
+        })}
+      </DropdownMenuPortal>
     </div>
   );
 }

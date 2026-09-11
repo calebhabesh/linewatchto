@@ -32,6 +32,7 @@ import { CompactImpactLocation, formatCause } from "./ImpactCardFields";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
+import { DropdownMenuPortal } from "./DropdownMenuPortal";
 import {
   ALL_LINES_VALUE,
   ALL_TYPES_VALUE,
@@ -167,25 +168,6 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-      if (lineDropdownRef.current && !lineDropdownRef.current.contains(target)) {
-        setIsLineDropdownOpen(false);
-      }
-      if (typeDropdownRef.current && !typeDropdownRef.current.contains(target)) {
-        setIsTypeDropdownOpen(false);
-      }
-      if (sortDropdownRef.current && !sortDropdownRef.current.contains(target)) {
-        setIsSortDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
   const requestedQuery = `${network}:${period}`;
 
   useEffect(() => {
@@ -329,35 +311,40 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                 )}
                 <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
               </button>
-              {isLineDropdownOpen && (
-                <ul className="alert-history-line-filter-options">
-                  {lineOptions.map((option) => (
-                    <li key={option.value}>
-                      <button
-                        type="button"
-                        className={`alert-history-line-filter-option ${selectedLineId === option.value ? "selected" : ""}`}
-                        onClick={() => {
-                          if (selectedLineId === option.value) {
-                            setSelectedLineId(ALL_LINES_VALUE);
-                          } else {
-                            setSelectedLineId(option.value);
-                          }
-                          setIsLineDropdownOpen(false);
-                        }}
-                      >
-                        {option.lineNumber && option.lineId ? (
-                          <span className="flex items-center gap-2 min-w-0">
-                            <TransitLineBadge lineId={option.lineId} lineNumber={option.lineNumber} size={22} className="shrink-0" />
-                            {option.lineName && <span className="truncate">{option.lineName}</span>}
-                          </span>
-                        ) : (
-                          <span className="truncate">{option.label}</span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <DropdownMenuPortal
+                open={isLineDropdownOpen}
+                onClose={() => setIsLineDropdownOpen(false)}
+                triggerRef={lineDropdownRef}
+                align="left"
+                as="ul"
+                className="alert-history-line-filter-options"
+              >
+                {lineOptions.map((option) => (
+                  <li key={option.value}>
+                    <button
+                      type="button"
+                      className={`alert-history-line-filter-option ${selectedLineId === option.value ? "selected" : ""}`}
+                      onClick={() => {
+                        if (selectedLineId === option.value) {
+                          setSelectedLineId(ALL_LINES_VALUE);
+                        } else {
+                          setSelectedLineId(option.value);
+                        }
+                        setIsLineDropdownOpen(false);
+                      }}
+                    >
+                      {option.lineNumber && option.lineId ? (
+                        <span className="flex items-center gap-2 min-w-0">
+                          <TransitLineBadge lineId={option.lineId} lineNumber={option.lineNumber} size={22} className="shrink-0" />
+                          {option.lineName && <span className="truncate">{option.lineName}</span>}
+                        </span>
+                      ) : (
+                        <span className="truncate">{option.label}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </DropdownMenuPortal>
             </div>
 
             {/* Alert Type Selector */}
@@ -380,31 +367,36 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                 </span>
                 <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
               </button>
-              {isTypeDropdownOpen && (
-                <ul className="alert-history-line-filter-options">
-                  {typeOptions.map((option) => (
-                    <li key={option.value}>
-                      <button
-                        type="button"
-                        className={`alert-history-line-filter-option ${selectedTypeId === option.value ? "selected" : ""}`}
-                        onClick={() => {
-                          if (selectedTypeId === option.value) {
-                            setSelectedTypeId(ALL_TYPES_VALUE);
-                          } else {
-                            setSelectedTypeId(option.value);
-                          }
-                          setIsTypeDropdownOpen(false);
-                        }}
-                      >
-                        <span className="flex items-center gap-2 min-w-0">
-                          {renderTypeOptionIcon(option.value)}
-                          <span className="truncate">{option.label}</span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <DropdownMenuPortal
+                open={isTypeDropdownOpen}
+                onClose={() => setIsTypeDropdownOpen(false)}
+                triggerRef={typeDropdownRef}
+                align="left"
+                as="ul"
+                className="alert-history-line-filter-options"
+              >
+                {typeOptions.map((option) => (
+                  <li key={option.value}>
+                    <button
+                      type="button"
+                      className={`alert-history-line-filter-option ${selectedTypeId === option.value ? "selected" : ""}`}
+                      onClick={() => {
+                        if (selectedTypeId === option.value) {
+                          setSelectedTypeId(ALL_TYPES_VALUE);
+                        } else {
+                          setSelectedTypeId(option.value);
+                        }
+                        setIsTypeDropdownOpen(false);
+                      }}
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        {renderTypeOptionIcon(option.value)}
+                        <span className="truncate">{option.label}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </DropdownMenuPortal>
             </div>
 
             {/* Sort Selector */}
@@ -427,35 +419,41 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                 </span>
                 <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
               </button>
-              {isSortDropdownOpen && (
-                <div className="alert-history-line-filter-options align-right">
-                  {sortGroups.map((group, groupIdx) => (
-                    <div key={group.id} className="alert-history-sort-group">
-                      {groupIdx > 0 && <div className="alert-history-sort-group-divider" aria-hidden="true" />}
-                      <div className="alert-history-sort-group-header">{group.label}</div>
-                      <ul className="alert-history-sort-group-list">
-                        {group.options.map((option) => (
-                          <li key={option.value}>
-                            <button
-                              type="button"
-                              className={`alert-history-line-filter-option ${selectedSortBy === option.value ? "selected" : ""}`}
-                              onClick={() => {
-                                setSelectedSortBy(option.value);
-                                setIsSortDropdownOpen(false);
-                              }}
-                            >
-                              <span className="flex items-center gap-2 min-w-0">
-                                {renderSortOptionIcon(option.value)}
-                                <span className="truncate">{option.label}</span>
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <DropdownMenuPortal
+                open={isSortDropdownOpen}
+                onClose={() => setIsSortDropdownOpen(false)}
+                triggerRef={sortDropdownRef}
+                align="right"
+                as="div"
+                className="alert-history-line-filter-options align-right"
+                maxWidth={320}
+              >
+                {sortGroups.map((group, groupIdx) => (
+                  <div key={group.id} className="alert-history-sort-group">
+                    {groupIdx > 0 && <div className="alert-history-sort-group-divider" aria-hidden="true" />}
+                    <div className="alert-history-sort-group-header">{group.label}</div>
+                    <ul className="alert-history-sort-group-list">
+                      {group.options.map((option) => (
+                        <li key={option.value}>
+                          <button
+                            type="button"
+                            className={`alert-history-line-filter-option ${selectedSortBy === option.value ? "selected" : ""}`}
+                            onClick={() => {
+                              setSelectedSortBy(option.value);
+                              setIsSortDropdownOpen(false);
+                            }}
+                          >
+                            <span className="flex items-center gap-2 min-w-0">
+                              {renderSortOptionIcon(option.value)}
+                              <span className="truncate">{option.label}</span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </DropdownMenuPortal>
             </div>
           </div>
         </div>

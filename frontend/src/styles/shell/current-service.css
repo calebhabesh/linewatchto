@@ -282,14 +282,14 @@
 
 /* Mobile service console: a persistent peek with independently scrolling detail. */
 .current-service-line--unaffected { display: none; }
-.mobile-service-sheet-handle, .mobile-service-sheet-heading, .mobile-service-sheet-live { display: none; }
+.mobile-service-sheet-handle, .mobile-service-sheet-heading { display: none; }
 
 @media (max-width: 767px) {
   :root {
     --mobile-bottom-nav-height: 68px;
     --mobile-bottom-nav-bottom-offset: var(--mobile-safe-bottom);
     --mobile-bottom-nav-side-inset: 0px;
-    --mobile-status-peek-height: 174px;
+    --mobile-status-peek-height: 170px;
   }
   .linewatch-shell .mobile-bottom-nav {
     inset-inline: 0;
@@ -367,14 +367,28 @@
     right: auto;
     top: 0;
   }
-  .linewatch-shell .mobile-bottom-nav-label { font-size: 11px; font-weight: 500; transform: none; }
+  .linewatch-shell .mobile-bottom-nav-label {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.3;
+    padding-bottom: 2px;
+    margin-bottom: -2px;
+    overflow-clip-margin: 4px;
+    transform: none;
+  }
+  .linewatch-shell .mobile-bottom-nav-item[data-active="true"] .mobile-bottom-nav-label {
+    transform: none;
+  }
   .linewatch-shell .mobile-service-sheet {
     bottom: var(--mobile-bottom-nav-occupied-height);
     inset-inline: 0;
     max-width: none;
-    --service-sheet-expanded-height: max(174px, min(68dvh, calc(100dvh - 160px)));
+    --service-sheet-expanded-height: calc(100dvh - var(--mobile-safe-top) - var(--mobile-bottom-nav-occupied-height));
+    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), 170px);
+    --service-sheet-middle-height: clamp(var(--service-sheet-overview-height), 65dvh, var(--service-sheet-expanded-height));
+    --service-sheet-visible-height: var(--service-sheet-overview-height);
     height: var(--service-sheet-expanded-height);
-    transform: translate3d(0, calc(var(--service-sheet-expanded-height) - 174px), 0);
+    transform: translate3d(0, calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height)), 0);
     border-radius: 22px 22px 0 0;
     border: 0;
     background: var(--panel-opaque);
@@ -390,8 +404,12 @@
     transition: transform 240ms cubic-bezier(.2,.8,.2,1);
     align-items: stretch;
   }
-  .linewatch-shell .mobile-service-sheet[data-expanded="true"] { transform: translate3d(0, 0, 0); }
+  .linewatch-shell .mobile-service-sheet[data-snap="halfway"] { --service-sheet-visible-height: var(--service-sheet-middle-height); }
+  .linewatch-shell .mobile-service-sheet[data-snap="expanded"] { --service-sheet-visible-height: var(--service-sheet-expanded-height); }
   .linewatch-shell .mobile-service-sheet[data-dragging="true"] { transition: none; }
+  .mobile-service-sheet-minimum { position: absolute; height: var(--service-sheet-overview-height); width: 0; visibility: hidden; pointer-events: none; }
+  .mobile-service-sheet-middle { position: absolute; height: var(--service-sheet-middle-height); width: 0; visibility: hidden; pointer-events: none; }
+  .mobile-service-sheet-details[inert] { visibility: hidden; }
   .mobile-service-sheet-drag-zone {
     flex-shrink: 0;
     touch-action: none;
@@ -405,30 +423,166 @@
     display: grid;
     place-items: center;
     width: 100%;
-    min-height: 28px;
-    flex: 0 0 28px;
+    min-height: 24px;
+    flex: 0 0 24px;
     touch-action: none;
     cursor: grab;
   }
-  .mobile-service-sheet .mobile-service-sheet-live {
-    display: flex;
-    justify-content: space-between;
+  /* Inset / Recessed Live Indicator Slot centered under the drag ridge */
+  .mobile-service-sheet .mobile-service-sheet-recessed-badge {
     position: absolute;
-    top: 25px;
     left: 50%;
+    top: 24px;
     transform: translateX(-50%);
-    width: 42px;
-    text-align: center;
-    font-family: "JetBrains Mono", ui-monospace, monospace;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 12px;
-    color: #15803d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 23px;
+    padding: 2px 11px 2px 9px;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+    border: 1px solid rgba(0, 0, 0, 0.45);
+    border-top-color: rgba(0, 0, 0, 0.7);
+    box-shadow: 
+      inset 0 2px 3.5px rgba(0, 0, 0, 0.45),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.28),
+      0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 12px rgba(22, 163, 74, 0.35);
     pointer-events: none;
-    animation: service-sheet-live-pulse 4s ease-in-out infinite;
+    user-select: none;
+    z-index: 1;
   }
-  .dark .mobile-service-sheet .mobile-service-sheet-live { color: #4ade80; }
-  .motion-paused .mobile-service-sheet .mobile-service-sheet-live { animation: none; }
+
+  .dark .mobile-service-sheet .mobile-service-sheet-recessed-badge {
+    background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+    border: 1px solid rgba(0, 0, 0, 0.6);
+    border-top-color: rgba(0, 0, 0, 0.85);
+    box-shadow: 
+      inset 0 2.5px 4px rgba(0, 0, 0, 0.55),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.22),
+      0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 14px rgba(22, 163, 74, 0.4);
+  }
+
+  .high-contrast .mobile-service-sheet .mobile-service-sheet-recessed-badge {
+    background: #008000;
+    border: 2px solid #00ff66;
+    box-shadow: none;
+  }
+
+  /* Recessed Optical LED Jewel */
+  .mobile-service-sheet .mobile-service-sheet-led-jewel {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcfce7 45%, #bbf7d0 100%);
+    box-shadow: 
+      0 0 4px 1px rgba(255, 255, 255, 0.9),
+      0 0 8px rgba(187, 247, 208, 0.8),
+      inset 0 0.5px 0.5px #ffffff;
+    flex-shrink: 0;
+    animation: recessed-led-glow 2.4s ease-in-out infinite;
+  }
+
+  .dark .mobile-service-sheet .mobile-service-sheet-led-jewel {
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcfce7 45%, #bbf7d0 100%);
+  }
+
+  .high-contrast .mobile-service-sheet .mobile-service-sheet-led-jewel {
+    background: #ffffff;
+    box-shadow: none;
+    animation: none;
+  }
+
+  .mobile-service-sheet .mobile-service-sheet-led-jewel--muted {
+    background: radial-gradient(circle at 35% 35%, #94a3b8 0%, #64748b 60%, #334155 100%);
+    box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.25);
+    animation: none;
+  }
+
+  .motion-paused .mobile-service-sheet .mobile-service-sheet-led-jewel {
+    animation: none;
+  }
+
+  /* Inset / Debossed Micro-typography */
+  .mobile-service-sheet .mobile-service-sheet-recessed-text {
+    font-family: var(--font-inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  }
+
+  .dark .mobile-service-sheet .mobile-service-sheet-recessed-text {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  }
+
+  .high-contrast .mobile-service-sheet .mobile-service-sheet-recessed-text {
+    color: #ffffff;
+    text-shadow: none;
+  }
+
+  .mobile-service-sheet .mobile-service-sheet-recessed-badge--source {
+    background: rgba(30, 41, 59, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(0, 0, 0, 0.7);
+    box-shadow: 
+      inset 0 1.5px 3px rgba(0, 0, 0, 0.6),
+      inset 0 -0.5px 0.5px rgba(255, 255, 255, 0.08),
+      0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .mobile-service-sheet .mobile-service-sheet-recessed-badge--source .mobile-service-sheet-recessed-text {
+    color: #cbd5e1;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+    letter-spacing: 0.08em;
+  }
+
+  .mobile-service-sheet .mobile-service-sheet-recessed-badge--cached {
+    background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+    border: 1px solid rgba(0, 0, 0, 0.45);
+    border-top-color: rgba(0, 0, 0, 0.7);
+    box-shadow:
+      inset 0 2px 3.5px rgba(0, 0, 0, 0.45),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.28),
+      0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 12px rgba(217, 119, 6, 0.38);
+    color: #ffffff;
+    padding: 2px 10px 2px 8px;
+    gap: 5px;
+  }
+
+  .dark .mobile-service-sheet .mobile-service-sheet-recessed-badge--cached {
+    background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+    border: 1px solid rgba(0, 0, 0, 0.6);
+    border-top-color: rgba(0, 0, 0, 0.85);
+    box-shadow:
+      inset 0 2.5px 4px rgba(0, 0, 0, 0.55),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.22),
+      0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 14px rgba(217, 119, 6, 0.45);
+    color: #ffffff;
+  }
+
+  .high-contrast .mobile-service-sheet .mobile-service-sheet-recessed-badge--cached {
+    background: #b45309;
+    border: 2px solid #fbbf24;
+    color: #ffffff;
+    box-shadow: none;
+  }
+
+  .mobile-service-sheet .mobile-service-sheet-badge-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #ffffff;
+  }
+
   .mobile-service-sheet-handle:focus-visible .station-sheet-drag-pill {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
@@ -440,10 +594,11 @@
     gap: 6px 12px;
     flex-wrap: wrap;
     flex-shrink: 0;
-    margin-top: -10px;
-    margin-bottom: 8px;
+    margin-top: 4px;
+    margin-bottom: 9px;
+    position: relative;
   }
-  .mobile-service-sheet-heading > strong {
+  .mobile-service-sheet-heading strong {
     font-size: clamp(15px, 4.1vw, 17px);
     line-height: 1.25;
     letter-spacing: -.3px;
@@ -453,8 +608,8 @@
     background: none;
     border: 0;
     box-shadow: none;
-    padding: 8px 0;
-    min-height: 36px;
+    padding: 0;
+    min-height: 24px;
     margin: 0 0 0 auto;
   }
   .mobile-service-sheet .mobile-status-peek-title-text { display: inline; font-size: clamp(15px, 4.1vw, 17px); }
@@ -470,6 +625,7 @@
     width: 100%;
     gap: 6px;
     padding: 0;
+    margin-bottom: 15px;
   }
   .linewatch-shell .mobile-service-sheet .mobile-status-peek-count-badge {
     width: 100%;
@@ -495,8 +651,10 @@
   }
   .mobile-service-sheet .mobile-status-peek-badge-icon { flex: 0 0 12px; margin-right: 0; }
   .mobile-service-sheet .mobile-status-peek-chevron { display: none; }
-  .mobile-service-sheet-details { overflow-y: auto; overscroll-behavior-y: contain; min-height: 0; flex: 1; padding-top: 16px; }
-  .mobile-service-sheet-details[inert] { visibility: hidden; }
+  .mobile-service-sheet-details { overflow-y: auto; overscroll-behavior-y: contain; min-height: 0; flex: 1; padding-top: 16px; margin-bottom: calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height)); }
+  /* Paint the full content while the shell moves using only a transform.
+     Settled positions constrain the scroll area to the visible sheet height. */
+  .mobile-service-sheet[data-dragging="true"] .mobile-service-sheet-details { margin-bottom: 0; }
   .mobile-service-sheet .current-service {
     position: static;
     width: 100%;
@@ -582,12 +740,24 @@
   .linewatch-shell .mobile-service-sheet { transition: none; }
 }
 
-@keyframes service-sheet-live-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .2; }
+@keyframes recessed-led-glow {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.85);
+    box-shadow: 0 0 1.5px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+    box-shadow: 
+      0 0 5px 1.5px rgba(255, 255, 255, 1),
+      0 0 10px rgba(187, 247, 208, 0.9);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mobile-service-sheet .mobile-service-sheet-live { animation: none; }
+  .mobile-service-sheet .mobile-service-sheet-led-jewel {
+    animation: none;
+  }
 }
 
 
@@ -634,6 +804,14 @@
     color: var(--text);
     font-size: 16px;
     outline: none;
+  }
+  .mobile-app-search input::-webkit-search-cancel-button,
+  .mobile-app-search input::-webkit-search-decoration,
+  .mobile-app-search input::-webkit-search-results-button,
+  .mobile-app-search input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
   }
   .mobile-app-search input::placeholder { color: var(--muted); opacity: 1; }
   .mobile-app-search:focus-within { outline: none; }

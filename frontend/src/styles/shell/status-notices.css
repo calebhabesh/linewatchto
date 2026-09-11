@@ -169,22 +169,30 @@
 
 /* ---- Mobile ---- */
 @media (max-width: 767px) {
-  .dashboard-availability-notice {
+  .dashboard-availability-notice,
+  .linewatch-shell .dashboard-availability-notice {
     top: auto;
-    /* Cleared above the impacts / Live indicator row */
-    bottom: calc(var(--mobile-bottom-nav-occupied-height, 88px) + var(--mobile-status-peek-actual-height, 116px) + 28px);
-    /* Wider gap to allow ~2 lines of text */
-    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset) + 44px + 8px);
-    right: calc(var(--mobile-safe-right) + var(--mobile-edge-inset) + var(--mobile-top-action-button-size, 46px) + 8px);
+    /* Bottom aligned with the view trains button and zoom controls */
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 8px);
+    left: calc(var(--mobile-safe-left) + 12px);
+    right: calc(var(--mobile-safe-right) + 64px);
     transform: none;
     width: auto;
     max-width: none;
     border-radius: 10px;
-    /* 10px text — larger than original 9.5 px while reliably fitting ~two lines */
     font-size: 10px;
     line-height: 1.3;
     padding: 7px 9px 7px 8px;
     gap: 7px;
+    z-index: 41;
+  }
+
+  .linewatch-shell:has(.mobile-train-toggle) .dashboard-availability-notice {
+    left: calc(var(--mobile-safe-left) + 68px);
+  }
+
+  .linewatch-shell:not(:has(.mobile-map-controls-group)) .dashboard-availability-notice {
+    right: calc(var(--mobile-safe-right) + 12px);
   }
 
   .dashboard-availability-notice-icon {

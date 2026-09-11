@@ -20,7 +20,7 @@ export function readMapViewport(storage: StorageLike, network: string, size: Siz
     const value = JSON.parse(storage.getItem(mapViewportKey(network)) ?? "null");
     if (!value || value.version !== 1 || ![value.centerX, value.centerY, value.zoom].every(Number.isFinite)
       || Math.abs(value.centerX) > 1e7 || Math.abs(value.centerY) > 1e7
-      || value.zoom <= 0 || value.zoom > 100 || !Number.isFinite(fit) || fit <= 0
+      || value.zoom <= 0 || value.zoom > 100 || ![fit, size.width, size.height].every(Number.isFinite) || fit <= 0
       || size.width <= 0 || size.height <= 0) return null;
     const scale = Math.min(8, Math.max(0.2, value.zoom)) * fit;
     return { x: size.width / 2 - value.centerX * scale, y: size.height / 2 - value.centerY * scale, scale };

@@ -7,7 +7,6 @@ import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
 import { lineWatchAppVersionLabel } from "../app/app-build";
-import type { DashboardData } from "../app/DataContext";
 import type { NetworkId } from "../app/regional-data";
 import { resetLineWatchLocalAppState } from "../app/local-app-reset";
 import { hasReleaseNotes } from "../app/release-notes";
@@ -28,7 +27,6 @@ type Props = {
   highContrast: boolean;
   reducedMotion: boolean;
   dotBackgroundEnabled: boolean;
-  ingestionHealth: DashboardData["ingestionHealth"];
   onClose: () => void;
   onRequestSignIn: () => void;
   onRequestCreateAccount: () => void;
@@ -71,7 +69,6 @@ export function MobileMoreSheet({
   highContrast,
   reducedMotion,
   dotBackgroundEnabled,
-  ingestionHealth,
   onClose,
   onRequestSignIn,
   onRequestCreateAccount,
@@ -129,13 +126,15 @@ export function MobileMoreSheet({
       <div className="mobile-sheet-heading">
         <div className="mobile-more-brand">
           <Image src="/assets/linewatch/logo.svg" alt="" width={28} height={28} aria-hidden="true" />
-          <span>
-            <p className="mobile-sheet-kicker linewatch-wordmark">LineWatchTO</p>
+          <div className="mobile-more-title-block">
+            <div className="mobile-more-kicker-row">
+              <p className="mobile-sheet-kicker linewatch-wordmark mobile-more-wordmark">LineWatchTO</p>
+              <span className="mobile-more-build-label" aria-label={`App version ${lineWatchAppVersionLabel}`}>
+                {lineWatchAppVersionLabel}
+              </span>
+            </div>
             <h2>More</h2>
-            <p className="mobile-more-build-label" aria-label={`App version ${lineWatchAppVersionLabel}`}>
-              {lineWatchAppVersionLabel}
-            </p>
-          </span>
+          </div>
         </div>
         <button type="button" className="mobile-sheet-icon-button" onClick={onClose} aria-label="Close more options">
           <X size={20} />
@@ -388,14 +387,7 @@ export function MobileMoreSheet({
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             Reliability Analytics
           </button>
-          <div className="mobile-more-health-grid" aria-label="Source Health">
-            {ingestionHealth.map((health, index) => (
-              <div key={`${health.label}-${index}`}>
-                <span>{health.label}</span>
-                <strong>{health.value}</strong>
-              </div>
-            ))}
-          </div>
+
         </div>
 
         <div className="mobile-more-section">

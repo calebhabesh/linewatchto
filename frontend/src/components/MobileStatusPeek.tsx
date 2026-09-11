@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus } from "lucide-react";
+import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus, Clock } from "lucide-react";
 import { reserveSheetMotionBudget } from "./sheet-motion-budget";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
@@ -29,6 +29,7 @@ type CategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "
 type Props = {
   children?: ReactNode;
   fresh?: boolean;
+  isConnectionIssue?: boolean;
   lineStatuses: LineStatus[];
   activeAlertCount: number;
   delayCount: number;
@@ -48,6 +49,7 @@ type Props = {
 export function MobileStatusPeek({
   children,
   fresh = false,
+  isConnectionIssue = false,
   lineStatuses,
   activeAlertCount,
   delayCount,
@@ -64,20 +66,40 @@ export function MobileStatusPeek({
   onZoomOut,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [snap, setSnap] = useState<"overview" | "halfway" | "expanded">("overview");
+  useEffect(() => {
+    // Restore after hydration so server and client initially render the same position.
+    const restore = requestAnimationFrame(() => {
+      try {
+        const saved = window.localStorage.getItem("linewatch-mobile-service-sheet-snap-v1");
+        if (saved === "halfway" || saved === "expanded") setSnap(saved);
+      } catch { /* Keep Overview if device storage is unavailable. */ }
+    });
+    return () => cancelAnimationFrame(restore);
+  }, []);
+  const expanded = snap === "expanded";
+  const selectSnap = (next: typeof snap) => {
+    setSnap(next);
+    try { window.localStorage.setItem("linewatch-mobile-service-sheet-snap-v1", next); } catch { /* Storage may be unavailable. */ }
+  };
+  const stepSnap = (direction: number) => {
+    const points = ["overview", "halfway", "expanded"] as const;
+    selectSnap(points[Math.max(0, Math.min(2, points.indexOf(snap) + direction))]);
+  };
   const [isDragging, setIsDragging] = useState(false);
   const frame = useRef<number | null>(null);
-  const drag = useRef<{ y: number; height: number; currentHeight: number; maximum: number; moved: boolean; pointerId: number } | null>(null);
+  const drag = useRef<{ y: number; height: number; currentHeight: number; maximum: number; minimum: number; middle: number; moved: boolean; pointerId: number } | null>(null);
   const suppressClick = useRef(false);
   const releaseMotion = useRef<ReturnType<typeof reserveSheetMotionBudget> | null>(null);
-  const peekHeight = 174;
   const finishDrag = (cancelled = false) => {
     const session = drag.current;
     if (!session) return;
     suppressClick.current = session.moved;
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     frame.current = null;
-    if (!cancelled && session.moved) setExpanded(session.currentHeight > (peekHeight + session.maximum) / 2);
+    if (!cancelled && session.moved) {
+      selectSnap(session.currentHeight < (session.minimum + session.middle) / 2 ? "overview" : session.currentHeight < (session.middle + session.maximum) / 2 ? "halfway" : "expanded");
+    }
     drag.current = null;
     const element = containerRef.current;
     if (element) {
@@ -99,15 +121,15 @@ export function MobileStatusPeek({
     pollText,
     "compact",
   );
-  const isLive = fresh;
-  const sourceLabel = isLive ? "Live" : rawSourceLabel;
+  const isLive = fresh && !isConnectionIssue;
+  const sourceLabel = isLive ? "Live" : isConnectionIssue ? "Cached" : rawSourceLabel;
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const updateHeight = () => {
-      const height = peekHeight;
+      const height = el.querySelector<HTMLElement>(".mobile-service-sheet-minimum")?.getBoundingClientRect().height ?? 0;
       if (height > 0) {
         document.documentElement.style.setProperty(
           "--mobile-status-peek-actual-height",
@@ -117,6 +139,8 @@ export function MobileStatusPeek({
     };
 
     updateHeight();
+    el.addEventListener("transitionend", updateHeight);
+    window.addEventListener("resize", updateHeight);
 
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== "undefined") {
@@ -128,9 +152,11 @@ export function MobileStatusPeek({
 
     return () => {
       resizeObserver?.disconnect();
+      el.removeEventListener("transitionend", updateHeight);
+      window.removeEventListener("resize", updateHeight);
       document.documentElement.style.removeProperty("--mobile-status-peek-actual-height");
     };
-  }, [categoryCount, impactCount]);
+  }, [categoryCount, impactCount, snap]);
 
   const titleText = impactCount > 0
     ? `${impactCount} Impact${impactCount === 1 ? "" : "s"}`
@@ -258,10 +284,13 @@ export function MobileStatusPeek({
         ref={containerRef}
         className="mobile-status-peek mobile-service-sheet"
         data-expanded={expanded}
+        data-snap={snap}
         data-dragging={isDragging}
         data-category-count={categoryCount}
         data-map-chooser-keepout
       >
+        <div className="mobile-service-sheet-minimum" aria-hidden="true" />
+        <div className="mobile-service-sheet-middle" aria-hidden="true" />
         <div className="mobile-service-sheet-drag-zone"
           onClickCapture={event => {
             if (suppressClick.current) {
@@ -279,9 +308,11 @@ export function MobileStatusPeek({
             releaseMotion.current?.();
             releaseMotion.current = reserveSheetMotionBudget(element);
             const maximum = element.getBoundingClientRect().height;
+            const minimum = element.querySelector<HTMLElement>(".mobile-service-sheet-minimum")!.getBoundingClientRect().height;
+            const middle = element.querySelector<HTMLElement>(".mobile-service-sheet-middle")!.getBoundingClientRect().height;
             const offset = new DOMMatrixReadOnly(getComputedStyle(element).transform).m42;
             const height = maximum - offset;
-            drag.current = { y: event.clientY, height, currentHeight: height, maximum, moved: false, pointerId: event.pointerId };
+            drag.current = { y: event.clientY, height, currentHeight: height, maximum, minimum, middle, moved: false, pointerId: event.pointerId };
           }}
           onPointerMove={event => {
             const session = drag.current;
@@ -293,7 +324,7 @@ export function MobileStatusPeek({
               if (containerRef.current) containerRef.current.style.willChange = "transform";
             }
             if (!session.moved) return;
-            session.currentHeight = Math.max(peekHeight, Math.min(session.maximum, session.height + delta));
+            session.currentHeight = Math.max(session.minimum, Math.min(session.maximum, session.height + delta));
             if (frame.current === null) {
               frame.current = requestAnimationFrame(() => {
                 frame.current = null;
@@ -306,55 +337,74 @@ export function MobileStatusPeek({
           }}
           onPointerUp={() => finishDrag()}
           onPointerCancel={() => finishDrag(true)}
-          onLostPointerCapture={event => { if (event.target === event.currentTarget) finishDrag(true); }}
+          onLostPointerCapture={() => finishDrag(true)}
         >
         <button
           type="button"
           className="mobile-service-sheet-handle"
           aria-label={expanded ? "Collapse service sheet" : "Expand service sheet"}
-          aria-expanded={expanded}
+          aria-expanded={snap !== "overview"}
+          aria-describedby="mobile-service-sheet-position"
           aria-controls="mobile-service-sheet-details"
           onClick={() => {
             if (suppressClick.current) { suppressClick.current = false; return; }
-            setExpanded(value => !value);
+            if (expanded) selectSnap("overview"); else stepSnap(1);
           }}
           onKeyDown={event => {
-            if (event.key === "ArrowUp") { event.preventDefault(); setExpanded(true); }
-            if (event.key === "ArrowDown" || event.key === "Escape") { event.preventDefault(); setExpanded(false); }
+            if (event.key === "ArrowUp") { event.preventDefault(); stepSnap(1); }
+            if (event.key === "ArrowDown") { event.preventDefault(); stepSnap(-1); }
+            if (event.key === "Home" || event.key === "Escape") { event.preventDefault(); selectSnap("overview"); }
+            if (event.key === "End") { event.preventDefault(); selectSnap("expanded"); }
           }}
 
         >
+          <span id="mobile-service-sheet-position" className="sr-only">Current position: {snap}. Use arrow keys to adjust, Home for Overview, End for Expanded.</span>
           <span className="station-sheet-drag-pill" aria-hidden="true">
             <span className="station-sheet-drag-ridges"><span /><span /><span /></span>
           </span>
         </button>
-        {isLive && <span className="mobile-service-sheet-live" aria-label="Live"><span aria-hidden="true">L</span><span aria-hidden="true">I</span><span aria-hidden="true">V</span><span aria-hidden="true">E</span></span>}
-        <div className="mobile-service-sheet-heading"><strong>Current Service</strong>
-        <button
-          type="button"
-          className="mobile-status-peek-info-btn"
-          onClick={onOpenStatus}
-          aria-label="Open current service status"
-        >
-          <span className="mobile-status-peek-main">
-            <span className="mobile-status-peek-title">
-              <span
-                className={`mobile-status-peek-alert-icon ${
-                  impactCount === 0 ? "mobile-status-peek-alert-icon--muted" : ""
-                }`}
-                aria-hidden="true"
-              >
-                <BellFilledIcon size={17} />
+        {isLive ? (
+          <div className="mobile-service-sheet-recessed-badge" aria-label="Live">
+            <span className="mobile-service-sheet-led-jewel" aria-hidden="true" />
+            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">LIVE</span>
+          </div>
+        ) : isConnectionIssue ? (
+          <div className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--cached" aria-label="Cached">
+            <Clock size={11} strokeWidth={2.5} className="mobile-service-sheet-badge-icon" aria-hidden="true" />
+            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">CACHED</span>
+          </div>
+        ) : (
+          <div className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--source" aria-label={`Source: ${sourceLabel}`}>
+            <span className="mobile-service-sheet-led-jewel mobile-service-sheet-led-jewel--muted" aria-hidden="true" />
+            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">{sourceLabel}</span>
+          </div>
+        )}
+        <div className="mobile-service-sheet-heading">
+          <strong>Current Service</strong>
+          <button
+            type="button"
+            className="mobile-status-peek-info-btn"
+            onClick={onOpenStatus}
+            aria-label="Open current service status"
+          >
+            <span className="mobile-status-peek-main">
+              <span className="mobile-status-peek-title">
+                <span
+                  className={`mobile-status-peek-alert-icon ${
+                    impactCount === 0 ? "mobile-status-peek-alert-icon--muted" : ""
+                  }`}
+                  aria-hidden="true"
+                >
+                  <BellFilledIcon size={17} />
+                </span>
+                <span className="mobile-status-peek-title-text">{titleText}</span>
+                <span className="sr-only">{impactCount} Current Impacts</span>
               </span>
-              <span className="mobile-status-peek-title-text">{titleText}</span>
-              <span className="sr-only">{impactCount} Current Impacts</span>
+              <span className="sr-only">
+                Lines covered: {lineStatuses.map((line) => `Line ${line.number}`).join(", ")}
+              </span>
             </span>
-            {!isLive && <span className="mobile-status-peek-source">{sourceLabel}</span>}
-            <span className="sr-only">
-              Lines covered: {lineStatuses.map((line) => `Line ${line.number}`).join(", ")}
-            </span>
-          </span>
-        </button>
+          </button>
         </div>
 
         </div>
@@ -388,7 +438,7 @@ export function MobileStatusPeek({
             </button>
           ))}
         </div>
-        <div id="mobile-service-sheet-details" className="mobile-service-sheet-details" inert={!expanded && !isDragging}>
+        <div id="mobile-service-sheet-details" className="mobile-service-sheet-details" inert={snap === "overview" && !isDragging}>
           {children}
         </div>
       </div>

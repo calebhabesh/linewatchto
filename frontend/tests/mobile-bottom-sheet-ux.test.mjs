@@ -45,6 +45,12 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusPeekSource, /onOpenStatus/);
     assert.match(statusPeekSource, /onRecenter/);
     assert.match(statusPeekSource, /aria-label="Open current service status"/);
+    assert.match(statusPeekSource, /mobile-service-sheet-recessed-badge/);
+    assert.match(statusPeekSource, /mobile-service-sheet-recessed-badge--cached/);
+    assert.match(statusPeekSource, /mobile-service-sheet-led-jewel/);
+    assert.match(statusPeekSource, /isConnectionIssue/);
+    assert.match(statusPeekSource, /CACHED/);
+    assert.match(shellSource, /isConnectionIssue=\{dashboardRequestState === "reconnecting" \|\| displayData\.availability === "degraded"\}/);
     assert.match(globalCss, /\.mobile-status-peek/);
     assert.match(globalCss, /--mobile-bottom-nav-height/);
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*gap:\s*6px/s);
@@ -53,6 +59,11 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*backdrop-filter:\s*blur\((?:6|10|12|16)px\)/s);
     assert.match(globalCss, /\.mobile-status-peek-counts\s*\{[^}]*display:\s*grid/s);
     assert.match(globalCss, /\.mobile-status-peek-count-badge\s*\{[^}]*display:\s*flex/s);
+    assert.match(globalCss, /\.mobile-service-sheet-recessed-badge/);
+    assert.match(globalCss, /\.mobile-service-sheet-recessed-badge--cached/);
+    assert.match(globalCss, /\.mobile-service-sheet-badge-icon/);
+    assert.match(globalCss, /\.mobile-service-sheet-led-jewel/);
+    assert.match(globalCss, /recessed-led-glow/);
     assert.match(globalCss, /\.mobile-map-recenter-btn\s*\{[^}]*width:\s*var\(--mobile-top-action-button-size\)/s);
     assert.match(globalCss, /\.mobile-map-zoom-capsule\s*\{[^}]*width:\s*var\(--mobile-top-action-button-size\)/s);
     assert.match(globalCss, /\.mobile-map-controls-group\s*\{[^}]*position:\s*fixed/s);
@@ -149,14 +160,8 @@ describe("mobile bottom sheet UX", () => {
       moreSheetSource.indexOf("<h3>Operations</h3>") < moreSheetSource.indexOf("Reliability Analytics"),
       "Reliability Analytics should live in Operations.",
     );
-    assert.ok(
-      moreSheetSource.indexOf("<h3>Operations</h3>") < moreSheetSource.indexOf("Source Health"),
-      "Source Health should live in Operations.",
-    );
-    assert.ok(
-      moreSheetSource.indexOf("Source Health") < moreSheetSource.indexOf("<h3>Display</h3>"),
-      "Source Health should not remain buried at the bottom of More.",
-    );
+    assert.doesNotMatch(moreSheetSource, /Source Health|ingestionHealth/);
+    assert.doesNotMatch(shellSource, /Ingestion Status|ingestionHealth/);
     assert.ok(
       moreSheetSource.indexOf("<h3>Display</h3>") < moreSheetSource.indexOf("Support & About"),
       "Display preferences should appear before support and about actions.",

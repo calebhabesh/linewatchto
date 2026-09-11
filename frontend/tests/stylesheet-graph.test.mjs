@@ -166,6 +166,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(resetContent, /\*\s*\{[^}]*box-sizing:\s*border-box;/);
     assert.match(resetContent, /scrollbar-color:\s*var\(--mobile-scroll-indicator-thumb\)/);
     assert.match(resetContent, /button,\s*input,\s*select,\s*textarea\s*\{[^}]*font:\s*inherit;/);
+    assert.match(resetContent, /input\[type="search"\]::-webkit-search-cancel-button/);
   });
 
   it("resolves the extracted foundation/themes.css in the application stylesheet graph", () => {
@@ -512,7 +513,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(stationSearchContent, /\.station-search-bookmark/);
     assert.match(stationSearchContent, /\.station-search-mobile-back/);
     assert.match(stationSearchContent, /@keyframes mobile-station-search-slide-in/);
-    assert.match(stationSearchContent, /html:not\(\[data-visual-keyboard="open"\]\) \.station-search-panel/);
+    assert.match(stationSearchContent, /\.station-search-panel\[data-expanded="true"\]/);
   });
 
   it("resolves the extracted station/station-detail.css in the application stylesheet graph", () => {

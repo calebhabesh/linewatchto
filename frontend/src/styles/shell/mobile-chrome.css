@@ -235,7 +235,10 @@
   .mobile-bottom-nav-label {
     font-size: 9px;
     letter-spacing: 0;
-    line-height: 1;
+    line-height: 1.3;
+    padding-bottom: 2px;
+    margin-bottom: -2px;
+    overflow-clip-margin: 4px;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;

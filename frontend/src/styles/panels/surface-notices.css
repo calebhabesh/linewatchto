@@ -113,3 +113,4 @@
 .dark .surface-notices-body .surface-notice-route-group {
   background: linear-gradient(90deg, color-mix(in srgb, var(--notice-edge) 12%, transparent), color-mix(in srgb, var(--notice-edge) 4%, transparent) 14px, transparent 30px), #12151c;
 }
+

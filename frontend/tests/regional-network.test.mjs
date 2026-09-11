@@ -197,7 +197,7 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(
       panZoomSource,
-      /const initializeCamera = useCallback\(\(\) => \{\s*moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,
+      /const initializeCamera = useCallback\(\(\) => \{\s*if \(!restoreSavedCamera\(\)\) moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,
     );
     assert.match(regionalMapSource, /computeFittedCameraFlyInStart\(fitted\.camera, width, height, fitted\.focus\)/);
     assert.match(networkMapSource, /deferInitialEntrance=\{props\.deferInitialEntrance\}/);

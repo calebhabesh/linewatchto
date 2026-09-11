@@ -827,7 +827,6 @@ export function usePanZoom({
   }, [animateInitialEntrance, moveToDefaultCamera, restoreSavedCamera]);
 
   const recenter = useCallback(() => {
-    if (persistenceKey) clearMapViewport(persistenceKey);
     cameraAdjustedByUserRef.current = false;
     if (!containerRef.current) return false;
     const { width, height } = logicalViewportSize();
@@ -836,13 +835,14 @@ export function usePanZoom({
     cameraInitializedRef.current = true;
     snapTransformToDefault(next, next.scale);
     return true;
-  }, [defaultTransformForViewport, logicalViewportSize, snapTransformToDefault, persistenceKey]);
+  }, [defaultTransformForViewport, logicalViewportSize, snapTransformToDefault]);
 
   const recenterWithFeedback = useCallback(() => {
+    if (persistenceKey) clearMapViewport(persistenceKey);
     if (recenter() && !reducedMotion) {
       setRecenterFeedbackKey((current) => current + 1);
     }
-  }, [recenter, reducedMotion]);
+  }, [recenter, reducedMotion, persistenceKey]);
 
   const refitIfCameraUntouched = useCallback(() => {
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
