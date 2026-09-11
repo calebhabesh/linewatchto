@@ -402,6 +402,7 @@
     align-items: center;
     display: flex;
     gap: 10px;
+    padding-top: 13px;
   }
 
   .mobile-more-title-block {
@@ -1382,7 +1383,7 @@
     align-items: center;
     display: flex;
     flex-shrink: 0;
-    gap: 6px;
+    gap: 12px;
   }
 
   .floating-panel-shell .panel-header-metadata {
@@ -1408,8 +1409,6 @@
   .floating-panel-shell .panel-header-metadata .trip-changes-count-badge,
   .floating-panel-shell .panel-header-metadata .line-impact-total-badge,
   .floating-panel-shell .panel-header-metadata .my-stations-count,
-  .floating-panel-shell .panel-header-actions .my-stations-count,
-  .floating-panel-shell .panel-header-actions .my-commutes-count,
   .floating-panel-shell .panel-header-metadata .status-pill,
   .floating-panel-shell .panel-header-metadata .panel-header-badge,
   .floating-panel-shell .panel-header-metadata .surface-notices-source-tag,
@@ -1425,6 +1424,30 @@
     line-height: 1;
     padding: 0 8px;
     white-space: nowrap;
+  }
+
+  .floating-panel-shell .panel-header-actions .my-stations-count,
+  .floating-panel-shell .panel-header-actions .my-commutes-count {
+    align-items: center;
+    border: none;
+    border-radius: 9999px;
+    box-sizing: border-box;
+    display: inline-flex;
+    font-size: 14px;
+    font-weight: 800;
+    height: 28px;
+    justify-content: center;
+    line-height: 1;
+    min-width: 28px;
+    padding: 0 6px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .floating-panel-shell .panel-header-actions .my-stations-count[data-single-digit="true"],
+  .floating-panel-shell .panel-header-actions .my-commutes-count[data-single-digit="true"] {
+    padding: 0;
+    width: 28px;
   }
 
   .floating-panel-shell .panel-header-metadata .surface-notices-source-tag,

@@ -28,12 +28,12 @@ function windowTime(value: string | null | undefined, now: number, ending = fals
   if (!Number.isFinite(time)) return undefined;
   const dateFormat = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" });
   const day = now > 0 && dateFormat.format(time) === dateFormat.format(now)
-    ? "Today"
+    ? "today"
     : new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", weekday: "short" }).format(time);
   const clock = new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", hour: "numeric", minute: "2-digit", hour12: true }).format(time);
-  const label = `${day} ${clock}`;
+  const label = `${day} at ${clock}`;
   const minutes = Math.max(1, Math.ceil((time - now) / 60_000));
-  const remaining = minutes < 60 ? `${minutes} min` : `${Math.round(minutes / 60)} hr`;
+  const remaining = minutes < 60 ? `${minutes}min` : `${Math.round(minutes / 60)}hr`;
   return `${ending ? "Ends " : ""}${label}${now > 0 && time > now ? ` (${remaining})` : ""}`;
 }
 

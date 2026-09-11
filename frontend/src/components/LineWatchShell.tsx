@@ -41,7 +41,7 @@ import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
 import { CurrentServicePanel } from "./CurrentServicePanel";
-import { MobileStatusPeek, type MobileOperatingNotice } from "./MobileStatusPeek";
+import { MobileStatusPeek, type MobileOperatingNotice, type MobileConnectionNotice } from "./MobileStatusPeek";
 import { MobileMapControls, PhoneRotateLandscapeIcon, type MapPresentationMode } from "./MobileMapControls";
 import { RotatedMapSelectionCard } from "./RotatedMapSelectionCard";
 import { MobileImpactInspector, type MobileInspectorDetent } from "./MobileImpactInspector";
@@ -58,6 +58,7 @@ import { dashboardDataFromApi } from "../app/dashboard-adapter";
 import { getDashboardRefresh, retryDashboardRefresh } from "../app/dashboard-client";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
+import { stationImpactSelectionsByStation } from "../app/station-impact-types";
 import {
   type AccessibilityOutageResponse,
   getAccessibilityOutages,
@@ -1512,6 +1513,24 @@ export function LineWatchShell({
     () => summarizeSavedCommuteStatuses(accountCommutes),
     [accountCommutes]
   );
+
+  const stationImpactSelections = useMemo(
+    () => ({
+      ttc: stationImpactSelectionsByStation(ttcData),
+      regional: stationImpactSelectionsByStation(regionalData),
+    }),
+    [ttcData, regionalData],
+  );
+
+  const savedStationsAffectedCount = useMemo(() => {
+    return savedStations.filter((saved) => {
+      const live = stationCatalogs[saved.networkId]?.find((s) => s.id === saved.station.id) ?? saved.station;
+      const hasImpact = live.hasActiveImpact || (stationImpactSelections[saved.networkId]?.has(saved.station.id) ?? false);
+      const counts = live.accessOutageCounts ?? { elevator: 0, escalator: 0 };
+      const outageCount = counts.elevator + counts.escalator;
+      return hasImpact || outageCount > 0 || live.accessStatus === "outage";
+    }).length;
+  }, [savedStations, stationCatalogs, stationImpactSelections]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3519,8 +3538,28 @@ export function LineWatchShell({
       <FloatingPanelShell panel="mobile-panel" mobileSheetLabel={getMobileSheetLabel()} navDirection={navDirection} isClosing={isClosingPanel} isGoingBack={isGoingBack}>
         {(activeView === "my-stations" || activeView === "commutes") && (
           <nav className="mobile-saved-sections" aria-label="Saved sections">
-            <button type="button" aria-current={activeView === "my-stations" ? "page" : undefined} onClick={() => navigateRoot("my-stations")}><MapPin size={17} aria-hidden="true" />My Stations</button>
-            <button type="button" aria-current={activeView === "commutes" ? "page" : undefined} onClick={() => navigateRoot("commutes")}><Navigation size={17} aria-hidden="true" />My Commutes</button>
+            <button
+              type="button"
+              aria-current={activeView === "my-stations" ? "page" : undefined}
+              onClick={() => navigateRoot("my-stations")}
+            >
+              <MapPin size={17} aria-hidden="true" />
+              <span>My Stations</span>
+              {savedStationsAffectedCount > 0 ? (
+                <OverlappingCountBadge className="mobile-saved-section-badge" count={savedStationsAffectedCount} />
+              ) : null}
+            </button>
+            <button
+              type="button"
+              aria-current={activeView === "commutes" ? "page" : undefined}
+              onClick={() => navigateRoot("commutes")}
+            >
+              <Navigation size={17} aria-hidden="true" />
+              <span>My Commutes</span>
+              {commuteAffectedCount > 0 ? (
+                <OverlappingCountBadge className="mobile-saved-section-badge" count={commuteAffectedCount} />
+              ) : null}
+            </button>
           </nav>
         )}
         <div key={activeView} className="mobile-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection} data-closing={isClosingPanel ? "true" : undefined} data-going-back={isGoingBack ? "true" : undefined}>
@@ -3639,6 +3678,28 @@ export function LineWatchShell({
     closedMapPeek,
     handleOpenClosedScreen,
   ]);
+
+  const mobileConnectionNotice: MobileConnectionNotice | null = useMemo(() => {
+    if (dashboardRequestState === "reconnecting") {
+      return {
+        message: "Connection issue — Showing cached snapshot",
+        showSpinner: true,
+      };
+    }
+    if (displayData.availability === "degraded") {
+      return {
+        message: "Source refresh issue — Showing last successful update",
+        showSpinner: false,
+      };
+    }
+    if (displayData.availability === "unavailable") {
+      return {
+        message: "Service unavailable — Showing fallback data",
+        showSpinner: false,
+      };
+    }
+    return null;
+  }, [dashboardRequestState, displayData.availability]);
 
   const mobileMapPerformanceMode = mobilePerformanceMode || rotatedMapMode;
 
@@ -4322,7 +4383,7 @@ export function LineWatchShell({
                                   <CircleCheck
                                     size={16}
                                     strokeWidth={2.7}
-                                    className="ml-1 shrink-0 text-emerald-600 dark:text-emerald-400"
+                                    className="good-service-check-badge ml-1 shrink-0 text-emerald-600 dark:text-emerald-400"
                                     aria-label={clearServiceStatusLabel({
                                       networkId: selectedNetwork,
                                       dataSource: displayData.dataSource,
@@ -4432,7 +4493,7 @@ export function LineWatchShell({
                </div>
 
                {/* Support & About */}
-               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+               <div className="flex flex-col px-2 pt-2 pb-0.5 gap-0.5">
                  <div className="px-3 pt-2 pb-2 select-none">
                     <div className="station-subsection-header flex items-center gap-2">
                       <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
@@ -4488,12 +4549,10 @@ export function LineWatchShell({
                  </a>
                </div>
 
-               <div className="flex flex-col p-4">
-                 <div className="mt-3 text-center">
-                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 select-none" aria-label={`App version ${lineWatchAppVersionLabel}`}>
-                      {lineWatchAppVersionLabel}
-                    </span>
-                 </div>
+               <div className="pt-0.5 pb-3 text-center">
+                 <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 select-none" aria-label={`App version ${lineWatchAppVersionLabel}`}>
+                   {lineWatchAppVersionLabel}
+                 </span>
                </div>
               </div>
             </div>
@@ -4689,7 +4748,7 @@ export function LineWatchShell({
             aria-expanded={activeView === "alert-history"}
             title="Alert History"
           >
-            <History className="alert-history-shortcut-icon" size={23} aria-hidden="true" />
+            <History className="alert-history-shortcut-icon text-emerald-500" size={23} aria-hidden="true" />
           </button>
           <button
             onClick={handleToggleTheme}
@@ -5076,6 +5135,7 @@ export function LineWatchShell({
           dataSource={displayData.dataSource}
           networkId={selectedNetwork}
           operatingNotice={mobileOperatingNotice}
+          connectionNotice={mobileConnectionNotice}
           onOpenStatus={() => navigateForward("status")}
           onOpenCategory={(view) => {
             setSelection(null);
@@ -5546,7 +5606,7 @@ export function LineWatchShell({
       ) : null}
       {!showClosedScreen && dashboardAvailabilityNotice ? (
         <div
-          className={`dashboard-availability-notice ${isMobile && !showMobileStatusPeek ? "dashboard-availability-notice--mobile-hidden" : ""}`}
+          className={`dashboard-availability-notice ${isMobile ? "dashboard-availability-notice--mobile-hidden" : ""}`}
           data-state={dashboardRequestState === "reconnecting" ? "reconnecting" : displayData.availability}
           role="status"
           aria-live="polite"

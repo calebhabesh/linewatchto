@@ -239,26 +239,36 @@
 }
 
 .station-search-amenity-chip-count {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
-  padding: 1px 3.5px;
-  border-radius: 4px;
-  background: rgba(15, 23, 42, 0.08);
-  color: inherit;
+  padding: 1px 4.5px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  color: #334155;
   flex-shrink: 0;
   line-height: 1;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .dark .station-search-amenity-chip-count {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(148, 163, 184, 0.20);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
 }
 
 .station-search-amenity-chip.active .station-search-amenity-chip-count {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .dark .station-search-amenity-chip.active .station-search-amenity-chip-count {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .station-search-amenity-clear {

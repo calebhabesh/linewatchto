@@ -1249,6 +1249,11 @@ export function SavedCommutesPanel({
     [visibleCommutes]
   );
 
+  const { clear: allCommuteClearCount, affectedNow: allCommuteAffectedCount } = useMemo(
+    () => summarizeSavedCommuteStatuses(accountCommutes),
+    [accountCommutes]
+  );
+
   const sortedCommutes = useMemo(
     () => sortSavedCommutes(visibleCommutes, sortBy),
     [visibleCommutes, sortBy]
@@ -1778,7 +1783,7 @@ export function SavedCommutesPanel({
                 <span className="saved-commute-impact-summary-heading">
                   <ExclaimAlertIcon className="saved-commute-impact-summary-icon" />
                   <strong>Active Commute Disruptions</strong>
-                  <span className="saved-commute-impact-total">
+                  <span className={`desktop-menu-count-badge saved-commute-impact-total${selectedLeg.impact.matchedImpacts.length > 0 ? " is-affected" : ""}`}>
                     {selectedLeg.impact.matchedImpacts.length}
                   </span>
                 </span>
@@ -1932,12 +1937,26 @@ export function SavedCommutesPanel({
         icon={<Navigation className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden="true" />}
         actions={
           accountState.authenticated && accountCommutes.length > 0 ? (
-            <span
-              className={`my-commutes-count ${commuteAffectedCount > 0 ? "my-commutes-count-affected" : ""}`}
-              aria-label={`${accountCommutes.length} saved commutes`}
-            >
-              {accountCommutes.length}
-            </span>
+            <div className="flex items-center gap-1.5 shrink-0" data-testid="header-commute-status-badges">
+              <span
+                className={`desktop-menu-count-badge desktop-menu-count-commutes-clear flex h-7 ${
+                  allCommuteClearCount < 10 ? "w-7" : "min-w-[28px] px-1.5"
+                } items-center justify-center rounded-full text-sm font-bold`}
+                data-single-digit={allCommuteClearCount < 10 ? "true" : undefined}
+                aria-label={`${allCommuteClearCount} clear commutes`}
+              >
+                {allCommuteClearCount}
+              </span>
+              <span
+                className={`desktop-menu-count-badge desktop-menu-count-commutes-affected flex h-7 ${
+                  allCommuteAffectedCount < 10 ? "w-7" : "min-w-[28px] px-1.5"
+                } items-center justify-center rounded-full text-sm font-bold`}
+                data-single-digit={allCommuteAffectedCount < 10 ? "true" : undefined}
+                aria-label={`${allCommuteAffectedCount} affected commutes`}
+              >
+                {allCommuteAffectedCount}
+              </span>
+            </div>
           ) : null
         }
         onBack={onBack ? () => {

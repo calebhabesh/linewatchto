@@ -477,7 +477,11 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
                 <Bus size={18} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
                 <strong>Surface Connections</strong>
                 {!loading && (
-                  <span className="flex h-4.5 min-w-4.5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 text-[11px] font-black text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                  <span
+                    className={`desktop-menu-count-badge desktop-menu-count-slate flex h-5 ${
+                      allGroups.length < 10 ? "w-5" : "min-w-[20px] px-1"
+                    } shrink-0 items-center justify-center rounded-full text-[10px] font-bold`}
+                  >
                     {allGroups.length}
                   </span>
                 )}
@@ -593,7 +597,11 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
             <Bus size={20} className="shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
             <span className="text-lg font-black text-slate-900 dark:text-white truncate">Surface Connections</span>
             {!loading && (
-              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+              <span
+                className={`desktop-menu-count-badge desktop-menu-count-slate flex h-6 ${
+                  allGroups.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                } shrink-0 items-center justify-center rounded-full text-[11px] font-bold`}
+              >
                 {allGroups.length}
               </span>
             )}

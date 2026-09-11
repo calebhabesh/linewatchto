@@ -67,13 +67,18 @@
   color: #047857;
   display: inline-flex;
   font-feature-settings: "tnum";
-  font-size: 11px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
-  height: 24px;
+  height: 28px;
   justify-content: center;
-  min-width: 24px;
+  min-width: 28px;
   padding: 0 6px;
+}
+
+.my-commutes-count[data-single-digit="true"] {
+  padding: 0;
+  width: 28px;
 }
 
 .dark .my-commutes-count {
@@ -404,23 +409,44 @@
 
 .saved-commute-impact-total {
   align-items: center;
-  background: rgba(100, 116, 139, 0.16);
-  border: 1px solid rgba(100, 116, 139, 0.26);
+  background: rgba(100, 116, 139, 0.14);
+  border: none;
   border-radius: 999px;
-  color: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  color: #334155;
   display: inline-flex;
   flex: 0 0 auto;
+  font-feature-settings: "tnum";
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 900;
+  font-weight: 800;
   height: 1.4rem;
   justify-content: center;
+  letter-spacing: -0.01em;
   line-height: 1;
   margin-left: 2px;
   min-width: 1.4rem;
   padding: 0 0.34rem;
-  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.9);
+  text-shadow: none;
   width: auto;
+}
+
+.dark .saved-commute-impact-total {
+  background: rgba(148, 163, 184, 0.20);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+}
+
+.is-affected .saved-commute-impact-total,
+.saved-commute-impact-total.is-affected {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--trip-change-ink);
+}
+
+.dark .is-affected .saved-commute-impact-total,
+.dark .saved-commute-impact-total.is-affected {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--trip-change);
 }
 
 .saved-commute-impact-summary-chips {

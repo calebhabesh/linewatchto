@@ -61,6 +61,8 @@ describe("alert history timeline UI", () => {
     assert.match(shellSource, /className="mobile-network-selector-slot"[\s\S]*?className="mobile-alert-history-shortcut md:hidden"[\s\S]*?className="mobile-my-stations-shortcut md:hidden"/);
     assert.match(cssSource, /\.mobile-alert-history-shortcut,[\s\S]*?\.mobile-my-stations-shortcut\s*\{[^}]*height:\s*var\(--mobile-top-action-button-size\) !important;/s);
     assert.match(panelSource, /<History className="[^"]*text-emerald-500[^"]*"/);
+    assert.match(shellSource, /<History className="alert-history-shortcut-icon text-emerald-500"/);
+    assert.match(cssSource, /\.alert-history-shortcut\s*\{[^}]*color:\s*#10b981;/s);
     assert.equal((shellSource.match(/alert-history-shortcut-icon/g) ?? []).length, 2);
   });
 

@@ -27,8 +27,8 @@ export const OperationsSectionHeading = memo(function OperationsSectionHeading({
       <View style={[styles.rail, { backgroundColor: railColor }]} />
       <Text style={[styles.title, { color: theme.color.textMuted }]}>{title}</Text>
       {count !== undefined ? (
-        <View style={[styles.countBadge, { backgroundColor: theme.color.surfaceRaised, borderColor: theme.color.border }]}>
-          <Text style={[styles.countText, { color: theme.color.text }]}>{count}</Text>
+        <View style={[styles.countBadge, { backgroundColor: theme.color.surfaceRaised }]}>
+          <Text style={[styles.countText, { color: theme.color.textMuted }]}>{count}</Text>
         </View>
       ) : null}
       {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
@@ -52,13 +52,17 @@ const styles = StyleSheet.create({
     ...typography.sectionTitle,
   },
   countBadge: {
+    minWidth: 20,
+    height: 20,
     paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
   countText: {
     ...typography.meta,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
   },
   rightAction: {
     marginLeft: "auto",

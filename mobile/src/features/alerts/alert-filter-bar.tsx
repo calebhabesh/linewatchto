@@ -52,7 +52,7 @@ export function AlertFilterBar({ filters, activeFilter, onSelectFilter }: AlertF
                 style={[
                   styles.countBadge,
                   {
-                    backgroundColor: isSelected ? theme.color.focus : theme.color.border,
+                    backgroundColor: isSelected ? theme.color.focus : theme.color.surfaceRaised,
                   },
                 ]}
               >
@@ -107,5 +107,6 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 10,
     fontWeight: "800",
+    fontVariant: ["tabular-nums"],
   },
 });

@@ -241,7 +241,7 @@ describe("account UI source", () => {
     );
     assert.match(
       globalCss,
-      /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#f8fafc;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)(?=[^}]*margin-left:\s*2px;)(?=[^}]*min-width:\s*1\.4rem;)(?=[^}]*padding:\s*0 0\.34rem;)(?=[^}]*width:\s*auto;)[^}]*\}/s,
+      /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#334155;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)(?=[^}]*margin-left:\s*2px;)(?=[^}]*min-width:\s*1\.4rem;)(?=[^}]*padding:\s*0 0\.34rem;)(?=[^}]*width:\s*auto;)[^}]*\}/s,
     );
     assert.doesNotMatch(
       globalCss,

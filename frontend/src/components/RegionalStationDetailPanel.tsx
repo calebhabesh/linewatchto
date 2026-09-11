@@ -1273,7 +1273,13 @@ export function RegionalStationDetailPanel({
                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <AlertCircle size={20} className="shrink-0 text-orange-500 dark:text-orange-400" />
                     <span className="truncate">Station Impacts</span>
-                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                    <span
+                      className={`desktop-menu-count-badge ${
+                        impacts.length > 0 ? "desktop-menu-count-rsz" : "desktop-menu-count-slate"
+                      } flex h-6 ${
+                        impacts.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } shrink-0 items-center justify-center rounded-full text-[11px] font-bold`}
+                    >
                       {impacts.length}
                     </span>
                   </div>
@@ -1341,7 +1347,13 @@ export function RegionalStationDetailPanel({
                       <AlertTriangle size={20} className="shrink-0 text-amber-500" />
                       <span className="truncate">Upcoming Trip Changes</span>
                       {!tripChangesLoading && (
-                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                        <span
+                          className={`desktop-menu-count-badge ${
+                            tripChanges.changes.length > 0 ? "desktop-menu-count-trip-changes" : "desktop-menu-count-slate"
+                          } flex h-6 ${
+                            tripChanges.changes.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                          } shrink-0 items-center justify-center rounded-full text-[11px] font-bold`}
+                        >
                           {tripChanges.changes.length}
                         </span>
                       )}
@@ -1382,7 +1394,13 @@ export function RegionalStationDetailPanel({
                     <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" aria-hidden="true" />
                     <FileText size={20} className="shrink-0 text-slate-700 dark:text-slate-300" />
                     <span className="min-w-0 truncate">Notices</span>
-                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                    <span
+                      className={`desktop-menu-count-badge ${
+                        linkedNotices.length > 0 ? "desktop-menu-count-closures" : "desktop-menu-count-slate"
+                      } flex h-6 ${
+                        linkedNotices.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } shrink-0 items-center justify-center rounded-full text-[11px] font-bold`}
+                    >
                       {linkedNotices.length}
                     </span>
                   </div>
@@ -1503,7 +1521,13 @@ export function RegionalStationDetailPanel({
                       className="w-5 h-5 shrink-0"
                     />
                     <span className="min-w-0 truncate">Accessibility Outages</span>
-                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                    <span
+                      className={`desktop-menu-count-badge ${
+                        accessibilityOutages.length > 0 ? "desktop-menu-count-accessibility" : "desktop-menu-count-slate"
+                      } flex h-6 ${
+                        accessibilityOutages.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } shrink-0 items-center justify-center rounded-full text-[11px] font-bold`}
+                    >
                       {accessibilityOutages.length}
                     </span>
                   </div>

@@ -149,7 +149,7 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
                     <strong>{line.name}</strong>
                     {clear ? (
                       <span className="mobile-line-status-clear" aria-label={clearServiceStatusLabel(presentationState)}>
-                        <CircleCheck size={16} strokeWidth={2.7} aria-hidden="true" />
+                        <CircleCheck size={16} strokeWidth={2.7} className="good-service-check-badge" aria-hidden="true" />
                       </span>
                     ) : null}
                   </span>

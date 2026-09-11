@@ -44,7 +44,11 @@ export function StationSubmenuNavButtons({ items, onJumpToSection }: Props) {
               {item.shortLabel ?? item.label}
             </span>
             {item.count !== undefined && item.count > 0 ? (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-300/90 px-1.5 text-[10px] font-bold text-slate-800 dark:bg-white/20 dark:text-slate-100 shrink-0 leading-none">
+              <span
+                className={`desktop-menu-count-badge desktop-menu-count-slate flex h-5 ${
+                  item.count < 10 ? "w-5" : "min-w-[20px] px-1"
+                } shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none`}
+              >
                 {item.count}
               </span>
             ) : null}

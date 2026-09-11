@@ -162,11 +162,17 @@ export function MobileLegend({
     >
       {expanded ? (
         <>
-          <div className="mobile-legend-heading">
+          <div
+            className="mobile-legend-heading cursor-pointer"
+            onClick={onToggleExpanded}
+          >
             <span>Service by line</span>
             <button
               type="button"
-              onClick={onToggleExpanded}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpanded?.();
+              }}
               className="mobile-legend-collapse"
               aria-expanded="true"
               aria-label="Transit line legend"
@@ -186,7 +192,7 @@ export function MobileLegend({
                   key={line.id}
                   className={`mobile-legend-line-row service-tone-${line.tone}`}
                   onClick={() => onLineClick?.(line.dataLineId)}
-                  aria-label={`View all service impacts for ${line.name}: ${impactDescription || "regular service"}`}
+                  aria-label={`View all service impacts for ${line.name}: ${impactDescription || "normal service"}`}
                 >
                   <MobileLegendRouteBadge
                     lineId={line.id}
@@ -200,7 +206,7 @@ export function MobileLegend({
                     {line.totalCount > 0 ? (
                       <strong className="service-tone-affected">{line.totalCount}</strong>
                     ) : (
-                      <span className="mobile-legend-regular-label">Regular</span>
+                      <span className="mobile-legend-regular-label">Normal</span>
                     )}
                   </span>
                   <ChevronRight className="mobile-legend-row-chevron" size={13} aria-hidden="true" />

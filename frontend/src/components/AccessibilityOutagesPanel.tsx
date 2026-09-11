@@ -192,7 +192,13 @@ export function AccessibilityOutagesPanel({
                     </p>
                   </div>
                 </div>
-                <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-amber-500/20 px-2 text-xs font-black text-amber-700 dark:text-amber-400">
+                <span
+                  className={`desktop-menu-count-badge ${
+                    (elevatorSummary?.count ?? 0) > 0 ? "desktop-menu-count-delays" : "desktop-menu-count-slate"
+                  } flex h-7 ${
+                    (elevatorSummary?.count ?? 0) < 10 ? "w-7" : "min-w-[28px] px-2"
+                  } shrink-0 items-center justify-center rounded-full text-xs font-black`}
+                >
                   {elevatorSummary?.count ?? 0}
                 </span>
               </div>
@@ -241,7 +247,13 @@ export function AccessibilityOutagesPanel({
                     </p>
                   </div>
                 </div>
-                <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-amber-500/20 px-2 text-xs font-black text-amber-700 dark:text-amber-400">
+                <span
+                  className={`desktop-menu-count-badge ${
+                    (escalatorSummary?.count ?? 0) > 0 ? "desktop-menu-count-delays" : "desktop-menu-count-slate"
+                  } flex h-7 ${
+                    (escalatorSummary?.count ?? 0) < 10 ? "w-7" : "min-w-[28px] px-2"
+                  } shrink-0 items-center justify-center rounded-full text-xs font-black`}
+                >
                   {escalatorSummary?.count ?? 0}
                 </span>
               </div>

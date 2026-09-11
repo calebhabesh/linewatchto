@@ -302,16 +302,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   countBadge: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 24,
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    height: 22,
+    minWidth: 22,
     alignItems: "center",
     justifyContent: "center",
   },
   countText: {
     fontSize: 11,
     fontWeight: "800",
+    fontVariant: ["tabular-nums"],
   },
 });

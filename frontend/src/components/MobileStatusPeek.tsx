@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus, Clock, ChevronRight, Clock3, Moon } from "lucide-react";
+import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus, Clock, ChevronRight, Clock3, Moon, Loader2 } from "lucide-react";
 import { reserveSheetMotionBudget } from "./sheet-motion-budget";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
@@ -33,6 +33,13 @@ export type MobileOperatingNotice = {
   action?: () => void;
 };
 
+export type MobileConnectionNotice = {
+  message?: string;
+  title?: string;
+  details?: string;
+  showSpinner?: boolean;
+};
+
 type Props = {
   children?: ReactNode;
   fresh?: boolean;
@@ -47,6 +54,7 @@ type Props = {
   dataSource: "backend" | "fallback";
   networkId?: NetworkId;
   operatingNotice?: MobileOperatingNotice | null;
+  connectionNotice?: MobileConnectionNotice | null;
   onOpenStatus: () => void;
   onOpenCategory?: (view: CategoryView) => void;
   onRecenter?: () => void;
@@ -68,6 +76,7 @@ export function MobileStatusPeek({
   dataSource,
   networkId = "ttc",
   operatingNotice = null,
+  connectionNotice = null,
   onOpenStatus,
   onOpenCategory,
   onRecenter,
@@ -165,7 +174,7 @@ export function MobileStatusPeek({
       window.removeEventListener("resize", updateHeight);
       document.documentElement.style.removeProperty("--mobile-status-peek-actual-height");
     };
-  }, [categoryCount, impactCount, snap, operatingNotice]);
+  }, [categoryCount, impactCount, snap, operatingNotice, connectionNotice]);
 
   const titleText = impactCount > 0
     ? `${impactCount} Impact${impactCount === 1 ? "" : "s"}`
@@ -296,7 +305,7 @@ export function MobileStatusPeek({
         data-snap={snap}
         data-dragging={isDragging}
         data-category-count={categoryCount}
-        data-has-notice={operatingNotice ? "true" : undefined}
+        data-has-notice={operatingNotice || connectionNotice ? "true" : undefined}
         data-map-chooser-keepout
       >
         <div className="mobile-service-sheet-minimum" aria-hidden="true" />
@@ -416,7 +425,28 @@ export function MobileStatusPeek({
             </span>
           </button>
         </div>
-        {operatingNotice && (
+        {connectionNotice ? (() => {
+          const messageText =
+            connectionNotice.message ??
+            (connectionNotice.title && connectionNotice.details
+              ? `${connectionNotice.title} — ${connectionNotice.details}`
+              : connectionNotice.title ?? connectionNotice.details ?? "");
+          return (
+            <div
+              className="mobile-service-sheet-notice-row mobile-service-sheet-notice-row--connection"
+              role="status"
+              aria-live="polite"
+              onClick={(e) => e.stopPropagation()}
+              aria-label={messageText}
+            >
+              <AlertTriangle size={13} className="dashboard-availability-notice-icon" aria-hidden="true" />
+              <span className="mobile-service-sheet-notice-message">{messageText}</span>
+              {connectionNotice.showSpinner !== false && (
+                <Loader2 size={12} className="dashboard-availability-notice-spinner" aria-hidden="true" />
+              )}
+            </div>
+          );
+        })() : operatingNotice ? (
           <button
             type="button"
             className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${operatingNotice.kind}`}
@@ -443,7 +473,7 @@ export function MobileStatusPeek({
               </span>
             )}
           </button>
-        )}
+        ) : null}
         </div>
         <div className="mobile-status-peek-counts mobile-status-peek-grid" role="toolbar" aria-label="Impact categories">
           {gridItems.map((item) => (

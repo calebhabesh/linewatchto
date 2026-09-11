@@ -458,7 +458,10 @@ export function SurfaceNoticesPanel({
                   }))]} />
               <NoticeFilter label="Sort notices" prefix="Sort" value={sortOrder}
                 onChange={(value) => setSortOrder(value as typeof sortOrder)}
-                options={[{ value: "importance", label: "Importance" }, { value: "recent", label: "Most Recent" }]} />
+                options={[
+                  { value: "importance", label: "Importance", icon: <ArrowUpDown size={12} className="shrink-0 text-amber-500 dark:text-amber-400" /> },
+                  { value: "recent", label: "Most Recent", icon: <CalendarClock size={12} className="shrink-0 text-blue-500 dark:text-blue-400" /> },
+                ]} />
             </div>
           </div>
         ) : null}
@@ -552,11 +555,11 @@ export function SurfaceNoticesPanel({
                             </a> : null}
                           </div>
                           <dl className={`grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2 ${regional ? "pt-3" : ""}`}>
-                            {!regional ? renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />) : null}
-                            {renderCompactField("Active", activeTimeLabel(notice), <CalendarClock size={13} />)}
-                            {renderCompactField("Updated", formatImpactTimestamp(notice.updatedAt), <CalendarClock size={13} />)}
-                            {renderCompactField("Direction", notice.compactDirection, <ArrowUpDown size={13} />)}
-                            {renderCompactField("Cause", notice.compactCause, <CircleAlert size={13} />)}
+                            {!regional ? renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} className="text-red-500 dark:text-red-400" />) : null}
+                            {renderCompactField("Active", activeTimeLabel(notice), <CalendarClock size={13} className="text-blue-500 dark:text-blue-400" />)}
+                            {renderCompactField("Updated", formatImpactTimestamp(notice.updatedAt), <CalendarClock size={13} className="text-slate-500 dark:text-slate-400" />)}
+                            {renderCompactField("Direction", notice.compactDirection, <ArrowUpDown size={13} className="text-amber-500 dark:text-amber-400" />)}
+                            {renderCompactField("Cause", notice.compactCause, <CircleAlert size={13} className="text-orange-500 dark:text-orange-400" />)}
                           </dl>
 
                           <p className="surface-notice-footnote px-3.5 pb-3 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">

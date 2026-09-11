@@ -117,13 +117,17 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   badge: {
+    minWidth: 18,
+    height: 18,
     paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 6,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "900",
     color: "#ffffff",
+    fontVariant: ["tabular-nums"],
   },
 });

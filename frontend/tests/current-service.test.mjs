@@ -89,7 +89,7 @@ test("active planned closures use the active icon and published end while keepin
     }), now);
     assert.equal(summary.rows[0].condition, "Planned Closure in Effect");
     assert.equal(summary.rows[0].iconKind, "suspension");
-    assert.match(summary.rows[0].timing, /^Ends .*\(1 hr\)$/);
+    assert.match(summary.rows[0].timing, /^Ends .* at .+\(1hr\)$/);
     assert.equal(summary.rows[0].kind, child ? "suspension" : "planned-closure");
   }
 });

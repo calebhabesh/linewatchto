@@ -134,4 +134,12 @@ describe("saved commute menu counts", () => {
       }
     );
   });
+
+  it("renders clear and affected status count badges in the My Commutes panel header", () => {
+    assert.match(savedCommutesSource, /header-commute-status-badges/);
+    assert.match(savedCommutesSource, /desktop-menu-count-commutes-clear/);
+    assert.match(savedCommutesSource, /desktop-menu-count-commutes-affected/);
+    assert.match(savedCommutesSource, /aria-label=\{`\$\{allCommuteClearCount\} clear commutes`\}/);
+    assert.match(savedCommutesSource, /aria-label=\{`\$\{allCommuteAffectedCount\} affected commutes`\}/);
+  });
 });

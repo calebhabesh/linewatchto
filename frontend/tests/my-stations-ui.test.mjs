@@ -286,4 +286,11 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.commute-toast-success\s*\{[^}]*animation:\s*linewatch-toast-lifecycle 3s/s);
     assert.match(shell, /key=\{savedStationNoticeKey\}/);
   });
+
+  it("renders red circle affected badges on mobile saved dual sliding selector and equalizes header gap", () => {
+    assert.match(shell, /savedStationsAffectedCount > 0 \? \(\s*<OverlappingCountBadge className="mobile-saved-section-badge" count=\{savedStationsAffectedCount\} \/>/);
+    assert.match(shell, /commuteAffectedCount > 0 \? \(\s*<OverlappingCountBadge className="mobile-saved-section-badge" count=\{commuteAffectedCount\} \/>/);
+    assert.match(styles, /\.mobile-saved-section-badge\s*\{[^}]*background:\s*#ef4444;[^}]*color:\s*#ffffff;/s);
+    assert.match(styles, /\.floating-panel-shell \.panel-header-actions,\s*\.floating-panel-shell \.panel-heading > div:last-child\s*\{[^}]*gap:\s*12px;/s);
+  });
 });

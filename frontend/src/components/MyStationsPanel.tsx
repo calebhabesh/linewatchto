@@ -440,7 +440,7 @@ function SavedStationRow({
               <span className="saved-commute-impact-summary-heading saved-station-disruption-heading saved-station-section-title">
                 {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
                 <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
-                <span className="saved-commute-impact-total saved-station-disruption-total">{disruptionCount}</span>
+                <span className={`desktop-menu-count-badge saved-commute-impact-total saved-station-disruption-total${disruptionCount > 0 ? " is-affected" : ""}`}>{disruptionCount}</span>
               </span>
               {disruptionCount > 0 ? (
                 <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
@@ -792,7 +792,7 @@ function SavedStationRow({
               <span className="saved-commute-impact-summary-heading saved-station-disruption-heading saved-station-section-title">
                 {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={18} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
                 <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
-                <span className="saved-commute-impact-total saved-station-disruption-total">{disruptionCount}</span>
+                <span className={`desktop-menu-count-badge saved-commute-impact-total saved-station-disruption-total${disruptionCount > 0 ? " is-affected" : ""}`}>{disruptionCount}</span>
               </span>
               {disruptionCount > 0 ? (
                 <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
@@ -1341,7 +1341,13 @@ export function MyStationsPanel({
         icon={<MapPin className="my-stations-title-icon w-5 h-5 text-sky-500 shrink-0" aria-hidden="true" />}
         actions={
           authenticated ? (
-            <span className="my-stations-count" aria-label={`${savedStations.length} saved stations`}>
+            <span
+              className={`desktop-menu-count-badge desktop-menu-count-stations my-stations-count flex h-7 ${
+                savedStations.length < 10 ? "w-7" : "min-w-[28px] px-1.5"
+              } items-center justify-center rounded-full text-sm font-bold`}
+              data-single-digit={savedStations.length < 10 ? "true" : undefined}
+              aria-label={`${savedStations.length} saved stations`}
+            >
               {savedStations.length}
             </span>
           ) : null
