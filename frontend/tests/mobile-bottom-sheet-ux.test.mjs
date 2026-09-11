@@ -69,6 +69,12 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-map-controls-group\s*\{[^}]*position:\s*fixed/s);
   });
 
+  it("maintains balanced vertical centering around mobile badge grid in standard configuration", () => {
+    assert.match(globalCss, /\.mobile-service-sheet\s+\.mobile-service-sheet-heading\s*\{[^}]*margin-bottom:\s*15px;/s);
+    assert.match(globalCss, /\.mobile-service-sheet\[data-has-notice="true"\]\s+\.mobile-service-sheet-heading\s*\{[^}]*margin-bottom:\s*8px;/s);
+    assert.match(globalCss, /\.mobile-service-sheet\s+\.mobile-status-peek-grid\s*\{[^}]*margin-bottom:\s*15px;/s);
+  });
+
   it("renders a mobile-specific status sheet that drills into existing alert categories", () => {
     assert.match(statusSheetSource, /System Status/);
     assert.match(statusSheetSource, /onOpenCategory/);

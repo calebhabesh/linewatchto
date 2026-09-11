@@ -1,7 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { installDismissedTransientUi, setStubMode } from "./test-support";
 
-test.beforeEach(async ({ page }) => { await installDismissedTransientUi(page); });
+test.beforeEach(async ({ page, isMobile }) => {
+  test.skip(isMobile, "Current Service tests cover desktop layout; mobile is tested in mobile-service-sheet.spec.ts");
+  await installDismissedTransientUi(page);
+});
 
 test("Current Service appears above the retained badges and opens its exact disruption", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
@@ -37,9 +40,9 @@ test("regional readout has corridor identities and separate service notices", as
   await page.goto("/");
   await page.getByRole("button", { name: "GO/UP", exact: true }).click();
   const panel = page.getByRole("region", { name: "Current Service", exact: true });
-  await expect(panel).toContainText("GO & UP rail");
-  await expect(panel).toContainText("Service notices");
-  await expect(panel).not.toContainText("Streetcar / bus alerts");
+  await expect(panel).toContainText(/GO & UP rail/i);
+  await expect(panel).toContainText(/Service Notices/i);
+  await expect(panel).not.toContainText(/Streetcar \/ Bus Alerts/i);
 });
 
 test("readout does not change the map viewport or camera", async ({ page, request }) => {

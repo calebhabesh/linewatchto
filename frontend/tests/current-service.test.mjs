@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { currentServiceSummary, currentSurfaceNotices } from "../src/app/current-service.ts";
 
@@ -92,4 +93,18 @@ test("active planned closures use the active icon and published end while keepin
     assert.match(summary.rows[0].timing, /^Ends .* at .+\(1hr\)$/);
     assert.equal(summary.rows[0].kind, child ? "suspension" : "planned-closure");
   }
+});
+
+test("surface notices button text uses 'streetcar and bus notices' and CSS styles category icon colors", () => {
+  const panelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
+  const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
+
+  assert.match(panelSource, /data\.networkId === "ttc" \? "streetcar and bus notices" : "service notices"/);
+  assert.doesNotMatch(panelSource, /surface alerts/);
+
+  assert.match(stylesSource, /\.current-service-notice\s+\[data-category="service-change"\]\s+svg\s*\{\s*color:\s*#2563eb;\s*\}/);
+  assert.match(stylesSource, /\.dark\s+\.current-service-notice\s+\[data-category="service-change"\]\s+svg\s*\{\s*color:\s*#60a5fa;\s*\}/);
+  assert.match(stylesSource, /\.current-service-notice\s+\[data-category="bypass"\]\s+svg\s*\{\s*color:\s*#d97706;\s*\}/);
+  assert.match(stylesSource, /\.current-service-notice\s+\[data-category="detour"\]\s+svg\s*\{\s*color:\s*#9333ea;\s*\}/);
+  assert.match(stylesSource, /\.current-service-notice\s+\[data-category="no-service"\]\s+svg\s*\{\s*color:\s*#dc2626;\s*\}/);
 });

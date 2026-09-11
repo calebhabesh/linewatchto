@@ -100,7 +100,20 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
     {!summary.fresh && <p className="current-service-availability">{data.availability === "fixture" ? "Demo data · Current status unavailable" : "Current status unavailable"}</p>}
     <div className="current-service-columns">
       <section aria-label="Rail service status">
-        <h3><TrainFront size={13} aria-hidden="true" />{data.networkId === "ttc" ? "Subway & Light Rail" : "GO & UP Rail"}{summary.fresh && <span className="current-service-active-count" aria-label={`${activeCount} rail alerts, delays, and closures`}>{activeCount}</span>}</h3>
+        <h3>
+          <TrainFront size={13} aria-hidden="true" />
+          {data.networkId === "ttc" ? "Subway & Light Rail" : "GO & UP Rail"}
+          {summary.fresh && (
+            <span
+              className="current-service-active-count"
+              data-count={activeCount > 0 ? "positive" : "zero"}
+              data-single-digit={activeCount < 10 ? "true" : "false"}
+              aria-label={`${activeCount} rail alerts, delays, and closures`}
+            >
+              {activeCount}
+            </span>
+          )}
+        </h3>
         <ServiceList rail>
           {railGroups.map(group => <div className="current-service-line" key={group.lineId}>
             <div className="current-service-line-badge-wrap">
@@ -143,7 +156,20 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
         </ServiceList>
       </section>
       <section aria-label="Surface service notices">
-        <h3><BusFront size={13} aria-hidden="true" />{data.networkId === "ttc" ? "Streetcar / Bus Alerts" : "Service Notices"}{notices?.fresh && now > 0 && <span className="current-service-active-count" aria-label={`${Math.min(surfaceRows.length, 3)} notices shown${surfaceRows.length > 3 ? ", more available in all notices" : ""}`}>{Math.min(surfaceRows.length, 3)}{surfaceRows.length > 3 ? "+" : ""}</span>}</h3>
+        <h3>
+          <BusFront size={13} aria-hidden="true" />
+          {data.networkId === "ttc" ? "Streetcar / Bus Alerts" : "Service Notices"}
+          {notices?.fresh && now > 0 && (
+            <span
+              className="current-service-active-count"
+              data-count={surfaceRows.length > 0 ? "positive" : "zero"}
+              data-single-digit={surfaceRows.length > 3 ? "false" : Math.min(surfaceRows.length, 3) < 10 ? "true" : "false"}
+              aria-label={`${Math.min(surfaceRows.length, 3)} notices shown${surfaceRows.length > 3 ? ", more available in all notices" : ""}`}
+            >
+              {Math.min(surfaceRows.length, 3)}{surfaceRows.length > 3 ? "+" : ""}
+            </span>
+          )}
+        </h3>
         <ServiceList>
           {surfaceRows.slice(0, 3).map((notice) => <button type="button" className="current-service-notice" key={notice.id} onClick={() => onNotice(notice)}>
             <span className="current-service-routes">{(notice.routeIds.length ? notice.routeIds : [data.networkId === "ttc" ? "TTC" : "GO"]).map((route) => <span className="current-service-route" key={route}>{route}</span>)}</span>
@@ -157,7 +183,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
           </button>)}
           {!surfaceRows.length && <p className="current-service-empty">{!notices || notices.fresh && now === 0 ? "Loading notices…" : notices.fresh ? "No current notices reported" : "Current notices unavailable"}</p>}
         </ServiceList>
-        <button type="button" className="current-service-all" onClick={onNotices}>{surfaceRows.length > 3 ? `${surfaceRows.length - 3} more · ` : ""}All {data.networkId === "ttc" ? "surface alerts" : "service notices"}<ArrowRight size={12} aria-hidden="true" /></button>
+        <button type="button" className="current-service-all" onClick={onNotices}>{surfaceRows.length > 3 ? `${surfaceRows.length - 3} more · ` : ""}All {data.networkId === "ttc" ? "streetcar and bus notices" : "service notices"}<ArrowRight size={12} aria-hidden="true" /></button>
       </section>
     </div>
   </section>;
