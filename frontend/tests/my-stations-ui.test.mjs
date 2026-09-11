@@ -48,7 +48,7 @@ describe("My Stations UI", () => {
     assert.match(panel, /No Saved Stations/);
     assert.match(panel, /No Saved Stations Match/);
     assert.match(panel, /Search All Stations\.\.\./);
-    assert.match(panel, /My Stations<\/span>/);
+    assert.match(panel, /title="My Stations"/);
     assert.doesNotMatch(panel, /mode === "add" \? "Add Station" : "My Stations"/);
     assert.match(panel, /my-stations-picker-section/);
     assert.match(panel, /pickerGroups\.map/);
@@ -241,13 +241,12 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.mobile-my-stations-shortcut-icon\s*\{[^}]*color:\s*inherit;[^}]*fill:\s*none;/s);
   });
 
-  it("uses neutral menu icons and shared alert-panel heading typography", () => {
-    assert.match(shell, /<Bookmark size=\{18\} className="text-slate-500 dark:text-slate-400" \/>/);
-    assert.match(mobileMore, /<Bookmark size=\{18\} className="text-slate-500 dark:text-slate-400" \/>/);
-    assert.match(panel, /<Bookmark[^>]+fill="none"/);
-    assert.match(panel, /text-\[clamp\(10px,3\.5cqw,18px\)\] font-bold/);
-    assert.match(panel, /flex items-center gap-1 sm:gap-3 whitespace-nowrap/);
-    assert.match(panel, /my-stations-heading-actions[\s\S]*my-stations-count[\s\S]*my-stations-close/);
+  it("uses MapPin menu icons and shared panel header structure", () => {
+    assert.match(shell, /<MapPin size=\{18\} className="text-slate-500 dark:text-slate-400" \/>/);
+    assert.match(mobileMore, /<MapPin size=\{18\} className="text-slate-500 dark:text-slate-400" \/>/);
+    assert.match(panel, /<MapPin[^>]+my-stations-title-icon/);
+    assert.match(panel, /<PanelHeader/);
+    assert.match(panel, /my-stations-count/);
   });
 
   it("fills the submenu shell and uses compact history-sized controls", () => {
@@ -263,7 +262,7 @@ describe("My Stations UI", () => {
 
   it("keeps the mobile title descender visible and the picker scrollbar clear of rows", () => {
     assert.match(styles, /@media \(max-width: 767px\)[\s\S]*?\.my-stations-title h2 > span\s*\{[^}]*line-height:\s*1\.2 !important;/s);
-    assert.match(styles, /@media \(max-width: 767px\)[\s\S]*?\.my-stations-list\s*\{[^}]*padding-right:\s*8px;/s);
+    assert.match(styles, /@media \(max-width: 767px\)[\s\S]*?\.my-stations-list\s*\{[^}]*padding-right:\s*0;/s);
     assert.match(styles, /\.my-stations-list::-webkit-scrollbar\s*\{[\s\S]*?width:\s*4px/);
     assert.match(styles, /\.my-stations-list::-webkit-scrollbar-thumb\s*\{[\s\S]*?background:\s*var\(--mobile-scroll-indicator-thumb\)/);
   });

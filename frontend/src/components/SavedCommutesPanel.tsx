@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Pencil, Route, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
+import { Navigation, ChevronDown, Loader2, MapPinned, Pencil, Route, Trash2, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -1926,71 +1927,42 @@ export function SavedCommutesPanel({
 
   return (
     <section className="commute-panel min-w-0 border border-transparent rounded-lg shadow-xl">
-      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
-        <div className="flex items-center gap-1 min-w-0">
-          {onBack && (
-            <button
-              onClick={() => {
-                if (activePicker) {
-                  setActivePicker(null);
-                } else if (activeView === "create") {
-                  if (editingCommuteId) {
-                    lastInteractedCommuteIdRef.current = editingCommuteId;
-                  }
-                  clearCommuteSwapAnimation();
-                  resetRouteDraft();
-                  setActiveView("saved");
-                  setCommuteError(null);
-                } else {
-                  onBack();
-                }
-              }}
-              className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-              aria-label="Back"
+      <PanelHeader
+        title="My Commutes"
+        icon={<Navigation className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden="true" />}
+        actions={
+          accountState.authenticated && accountCommutes.length > 0 ? (
+            <span
+              className={`my-commutes-count ${commuteAffectedCount > 0 ? "my-commutes-count-affected" : ""}`}
+              aria-label={`${accountCommutes.length} saved commutes`}
             >
-              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-            </button>
-          )}
-          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
-            <Navigation className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-emerald-500 shrink-0" />
-            <span>My Commutes</span>
-          </h2>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <span className={`shrink-0 text-[8px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold border whitespace-nowrap ${
-            accountState.source === "unavailable"
-              ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
-              : accountState.authenticated
-              ? accountState.user?.demo
-                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
-                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-              : "bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20"
-          }`}>
-            {accountState.source === "unavailable"
-              ? "Account Check Pending"
-              : accountState.authenticated
-              ? accountState.user?.demo
-                ? "Demo Account"
-                : "Route Impacts Enabled"
-              : "Route Impacts Disabled"}
-          </span>
-          {onClose && (
-            <button
-              onClick={() => {
-                if (activePicker) {
-                  setActivePicker(null);
-                } else {
-                  onClose();
-                }
-              }}
-              className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-            </button>
-          )}
-        </div>
-      </div>
+              {accountCommutes.length}
+            </span>
+          ) : null
+        }
+        onBack={onBack ? () => {
+          if (activePicker) {
+            setActivePicker(null);
+          } else if (activeView === "create") {
+            if (editingCommuteId) {
+              lastInteractedCommuteIdRef.current = editingCommuteId;
+            }
+            clearCommuteSwapAnimation();
+            resetRouteDraft();
+            setActiveView("saved");
+            setCommuteError(null);
+          } else {
+            onBack();
+          }
+        } : undefined}
+        onClose={onClose ? () => {
+          if (activePicker) {
+            setActivePicker(null);
+          } else {
+            onClose();
+          }
+        } : undefined}
+      />
       <div key={activeView} className="commute-grid min-w-0 px-3 sm:px-4 py-3 flex flex-col gap-3" data-nav-direction={activeView === "create" ? "forward" : "back"}>
         {accountState.source === "unavailable" ? (
           <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />

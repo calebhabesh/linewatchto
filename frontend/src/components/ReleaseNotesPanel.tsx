@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronLeft, Sparkles, X } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import { currentReleaseNote, releaseNotes } from "../app/release-notes";
 
@@ -12,34 +13,14 @@ type Props = {
 export function ReleaseNotesPanel({ onBack, onClose }: Props) {
   return (
     <section className="release-notes-panel panel" aria-label="Release notes">
-      <div className="panel-heading @container border-b border-black/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0 dark:border-white/10">
-        <div className="flex items-center gap-1 min-w-0">
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center dark:hover:bg-white/10"
-              aria-label="Back to menu"
-            >
-              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-            </button>
-          ) : null}
-          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 flex items-center gap-1 sm:gap-2 whitespace-nowrap dark:text-white">
-            <Sparkles className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-amber-500 shrink-0" aria-hidden="true" />
-            <span>{"What's New"}</span>
-          </h2>
-        </div>
-        {onClose ? (
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center dark:hover:bg-white/10"
-            aria-label="Close release notes"
-          >
-            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-          </button>
-        ) : null}
-      </div>
+      <PanelHeader
+        title="What's New"
+        icon={<Sparkles className="w-5 h-5 text-amber-500 shrink-0" aria-hidden="true" />}
+        onBack={onBack}
+        backLabel="Back to menu"
+        onClose={onClose}
+        closeLabel="Close release notes"
+      />
 
       <div className="release-notes-content">
         <div className="release-notes-current">

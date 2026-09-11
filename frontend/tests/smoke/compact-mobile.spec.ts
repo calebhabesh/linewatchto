@@ -94,8 +94,8 @@ test("iPhone SE uses compact chrome and contained onboarding and status sheets",
   const statusPeek = page.locator(".mobile-status-peek");
   const statusPeekBounds = await statusPeek.boundingBox();
   expect(statusPeekBounds).not.toBeNull();
-  expect(statusPeekBounds!.x).toBeGreaterThanOrEqual(9);
-  expect(statusPeekBounds!.x + statusPeekBounds!.width).toBeLessThanOrEqual(366);
+  expect(statusPeekBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(statusPeekBounds!.x + statusPeekBounds!.width).toBeLessThanOrEqual(375);
 });
 
 test("mobile TTC recenter cycles keep one stable camera surface without compositor churn", async ({ page, request, isMobile }) => {
@@ -267,6 +267,7 @@ test("mobile TTC recenter cycles keep one stable camera surface without composit
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "TTC", exact: true })
     .click();
+  await expect(stage).toHaveAttribute("data-raster-map-ready", "true");
 
   await page.getByRole("button", { name: "Center map view" }).click();
   await page.getByRole("button", { name: "Status", exact: true }).click();
@@ -685,13 +686,12 @@ for (const width of [320, 375, 412]) {
     await expect.poll(async () => page.evaluate(() => {
       const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
       const notice = rect(".subway-closing-soon-chip");
-      const theme = rect(".theme-toggle-btn");
-      const rail = rect(".site-guide-network-stack");
+      const rail = rect(".mobile-map-network-switch");
       const legend = rect(".mobile-legend-pill");
       const trains = rect(".mobile-train-toggle");
       const controls = rect(".mobile-map-controls-group");
       const status = rect(".mobile-status-peek");
-      return notice.top >= theme.bottom + 5
+      return notice.top >= 5
         && notice.right <= rail.left - 5
         && legend.top >= notice.bottom + 5
         && trains.top >= legend.bottom + 5
@@ -700,7 +700,7 @@ for (const width of [320, 375, 412]) {
         && controls.top >= rail.bottom + 5
         && controls.bottom <= status.top - 5;
     })).toBe(true);
-    for (const selector of [".theme-toggle-btn", ".site-guide-trigger", ".mobile-alert-history-shortcut", ".mobile-my-stations-shortcut", ".mobile-map-recenter-btn", ".mobile-map-zoom-btn"]) {
+    for (const selector of [".site-guide-trigger", ".mobile-map-recenter-btn", ".mobile-map-zoom-btn"]) {
       const bounds = await page.locator(selector).first().boundingBox();
       expect(bounds!.width).toBeGreaterThanOrEqual(44);
       expect(bounds!.height).toBeGreaterThanOrEqual(44);
@@ -728,7 +728,7 @@ for (const width of [320, 375, 412]) {
       const title = element.querySelector("h2")!;
       const label = title.querySelector("span")!;
       const source = element.querySelector(".surface-notices-source-tag")!;
-      return title.getBoundingClientRect().right + 4 <= source.getBoundingClientRect().left
+      return source.getBoundingClientRect().top >= title.getBoundingClientRect().bottom - 1
         && title.scrollWidth <= title.clientWidth + 1
         && label.getBoundingClientRect().right <= title.getBoundingClientRect().right + 1
         && label.scrollWidth <= label.clientWidth + 1

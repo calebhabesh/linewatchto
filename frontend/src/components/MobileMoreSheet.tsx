@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Bell, BatteryCharging, Bookmark, BookOpen, Download, FileText, HeartHandshake, LogIn, LogOut, Megaphone, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
+import { BarChart3, Bell, BatteryCharging, MapPin, BookOpen, Download, FileText, HeartHandshake, LogIn, LogOut, Megaphone, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
@@ -235,7 +235,7 @@ export function MobileMoreSheet({
               </button>
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
-                  <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                  <MapPin size={18} className="text-slate-500 dark:text-slate-400" />
                   My Stations
                 </span>
                 {savedStationCount > 0 ? (
@@ -302,7 +302,7 @@ export function MobileMoreSheet({
               </button>
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
-                  <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                  <MapPin size={18} className="text-slate-500 dark:text-slate-400" />
                   My Stations
                 </span>
                 {savedStationCount > 0 ? (

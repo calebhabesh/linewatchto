@@ -90,7 +90,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Accessibility, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck } from "lucide-react";
+import { Accessibility, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -3518,7 +3518,7 @@ export function LineWatchShell({
       <FloatingPanelShell panel="mobile-panel" mobileSheetLabel={getMobileSheetLabel()} navDirection={navDirection} isClosing={isClosingPanel} isGoingBack={isGoingBack}>
         {(activeView === "my-stations" || activeView === "commutes") && (
           <nav className="mobile-saved-sections" aria-label="Saved sections">
-            <button type="button" aria-current={activeView === "my-stations" ? "page" : undefined} onClick={() => navigateRoot("my-stations")}><Bookmark size={17} aria-hidden="true" />My Stations</button>
+            <button type="button" aria-current={activeView === "my-stations" ? "page" : undefined} onClick={() => navigateRoot("my-stations")}><MapPin size={17} aria-hidden="true" />My Stations</button>
             <button type="button" aria-current={activeView === "commutes" ? "page" : undefined} onClick={() => navigateRoot("commutes")}><Navigation size={17} aria-hidden="true" />My Commutes</button>
           </nav>
         )}
@@ -3796,12 +3796,31 @@ export function LineWatchShell({
             className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] max-h-[calc(var(--visual-viewport-height,100dvh)-96px)] overflow-hidden border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
             aria-hidden={!menuVisible}
           >
-            <div className="linewatch-transit-accent-strip shrink-0" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
+            <div
+              className={`linewatch-transit-accent-strip shrink-0${selectedNetwork === "regional" ? " linewatch-transit-accent-strip--regional" : ""}`}
+              data-network={selectedNetwork}
+              aria-hidden="true"
+            >
+              {selectedNetwork === "regional" ? (
+                <>
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </>
+              ) : (
+                <>
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </>
+              )}
             </div>
             <div id="linewatch-main-menu-scroll" className="flex-1 overflow-y-auto stealth-scrollbar flex flex-col">
                {/* Branding */}
@@ -3921,7 +3940,7 @@ export function LineWatchShell({
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
                         <span className="flex items-center gap-3">
-                          <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                          <MapPin size={18} className="text-slate-500 dark:text-slate-400" />
                           My Stations
                         </span>
                         {savedStations.length > 0 ? (
@@ -4009,7 +4028,7 @@ export function LineWatchShell({
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
                         <span className="flex items-center gap-3">
-                          <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                          <MapPin size={18} className="text-slate-500 dark:text-slate-400" />
                           My Stations
                         </span>
                         {savedStations.length > 0 ? (
@@ -4694,7 +4713,7 @@ export function LineWatchShell({
                   aria-label="Open My Stations"
                   title="My Stations"
                 >
-                  <Bookmark className="mobile-my-stations-shortcut-icon" size={19} aria-hidden="true" />
+                  <MapPin className="mobile-my-stations-shortcut-icon" size={19} aria-hidden="true" />
                 </button>
               </>
             ) : null}

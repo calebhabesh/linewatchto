@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
-import { AlertTriangle, Bus, ChevronLeft, X } from "lucide-react";
+import { AlertTriangle, Bus } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
@@ -115,40 +116,20 @@ export function ActiveAlertsPanel({
 
   return (
     <section className={`panel min-w-0 border border-transparent rounded-2xl ${embedded ? "embedded-impact-panel" : ""}`}>
-      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
-        <div className="flex items-center gap-1 min-w-0">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-              aria-label="Back"
-            >
-              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-            </button>
-          )}
-          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
-            <AlertTriangle className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-red-500 shrink-0" />
-            <span>Active Alerts</span>
-          </h2>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="flex flex-col items-end gap-1 mt-0.5 min-w-0">
-            <span className="shrink-0 text-[9px] sm:text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
+      <PanelHeader
+        title="Active Alerts"
+        icon={<AlertTriangle className="w-5 h-5 text-red-500 shrink-0" aria-hidden="true" />}
+        onBack={onBack}
+        onClose={onClose}
+        metadata={
+          <>
+            <span className="panel-header-badge alert-count-badge shrink-0">
               {activeAlerts.length} {activeAlerts.length === 1 ? "Alert" : "Alerts"}
             </span>
             <CardSource source={dashboardImpactSourcesLabel(dashboard, activeAlerts.map((alert) => alert.source))} />
-          </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-            </button>
-          )}
-        </div>
-      </div>
+          </>
+        }
+      />
       {activeAlerts.length > 0 ? (
         <ImpactListToolbar
           noun="active alerts"

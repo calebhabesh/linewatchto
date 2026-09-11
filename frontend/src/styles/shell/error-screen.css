@@ -85,6 +85,60 @@
   background: #8a999a;
 }
 
+.linewatch-transit-accent-strip--regional,
+.linewatch-transit-accent-strip[data-network="regional"],
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip {
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.linewatch-transit-accent-strip--regional span:nth-child(1),
+.linewatch-transit-accent-strip[data-network="regional"] span:nth-child(1),
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip span:nth-child(1) {
+  background: #155ba0;
+}
+
+.linewatch-transit-accent-strip--regional span:nth-child(2),
+.linewatch-transit-accent-strip[data-network="regional"] span:nth-child(2),
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip span:nth-child(2) {
+  background: #138336;
+}
+
+.linewatch-transit-accent-strip--regional span:nth-child(3),
+.linewatch-transit-accent-strip[data-network="regional"] span:nth-child(3),
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip span:nth-child(3) {
+  background: #ee2722;
+}
+
+.linewatch-transit-accent-strip--regional span:nth-child(4),
+.linewatch-transit-accent-strip[data-network="regional"] span:nth-child(4),
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip span:nth-child(4) {
+  background: #8b0a31;
+}
+
+.linewatch-transit-accent-strip--regional span:nth-child(5),
+.linewatch-transit-accent-strip[data-network="regional"] span:nth-child(5),
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip span:nth-child(5) {
+  background: #f47216;
+}
+
+.linewatch-transit-accent-strip--regional span:nth-child(6),
+.linewatch-transit-accent-strip[data-network="regional"] span:nth-child(6),
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip span:nth-child(6) {
+  background: #27adea;
+}
+
+.linewatch-transit-accent-strip--regional span:nth-child(7),
+.linewatch-transit-accent-strip[data-network="regional"] span:nth-child(7),
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip span:nth-child(7) {
+  background: #774111;
+}
+
+.linewatch-transit-accent-strip--regional span:nth-child(8),
+.linewatch-transit-accent-strip[data-network="regional"] span:nth-child(8),
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip span:nth-child(8) {
+  background: #4084cd;
+}
+
 /* ==========================================================================
    Section 3: Card Body, Branding, Typography & Copy
    ========================================================================== */

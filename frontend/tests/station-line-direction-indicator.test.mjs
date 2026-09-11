@@ -10,7 +10,7 @@ const regionalStationDetailSource = readFileSync(new URL("../src/components/Regi
 const globalCss = readAppStylesheet();
 
 describe("StationLineDirectionIndicator", () => {
-  it("defines vibrant container styling matching tactile badges with borderless design and true line color", () => {
+  it("defines transit line visionos capsule styling with borderless design, transit line color, and contrast text", () => {
     assert.match(indicatorSource, /station-line-directions/);
     assert.match(indicatorSource, /rounded-full/);
     assert.match(indicatorSource, /text-xs/);
@@ -19,11 +19,13 @@ describe("StationLineDirectionIndicator", () => {
     assert.match(indicatorSource, /transitLineBadgeColors/);
     assert.doesNotMatch(indicatorSource, /borderWidth:\s*"1\.5px"/);
 
-    // Assert stylesheet provides container styles using true line color matching badges
+    // Assert stylesheet provides container styles using true line color matching badges with visionos capsule styling
     assert.match(globalCss, /\.station-line-directions\s*\{[\s\S]*?border:\s*none\s*!important;/);
-    assert.match(globalCss, /\.station-line-directions\s*\{[\s\S]*?border-radius:\s*999px\s*!important;/);
+    assert.match(globalCss, /\.station-line-directions\s*\{[\s\S]*?border-radius:\s*9999?px\s*!important;/);
     assert.match(globalCss, /\.station-line-directions\s*\{[\s\S]*?background-color:\s*var\(--line-direction-color/);
+    assert.match(globalCss, /\.station-line-directions\s*\{[\s\S]*?color:\s*var\(--line-direction-text/);
     assert.match(globalCss, /\.dark \.station-line-directions\s*\{[\s\S]*?background-color:\s*var\(--line-direction-color/);
+    assert.match(globalCss, /\.dark \.station-line-directions\s*\{[\s\S]*?color:\s*var\(--line-direction-text/);
   });
 
   it("integrates StationLineDirectionIndicator in TTC and Regional station panels", () => {

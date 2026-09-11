@@ -48,76 +48,78 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
       </div>
 
       <div className="mobile-status-content-scroll">
-        <div className="mobile-status-section-heading">
-          <span
-            className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]"
-            aria-hidden="true"
-          />
-          <h3>Alerts</h3>
-        </div>
-        <div className="mobile-status-actions" aria-label="Service impact categories">
-          <button type="button" className="mobile-status-btn-alerts" onClick={() => onOpenCategory("alerts")} data-count={activeAlerts.length > 0 ? "positive" : "zero"}>
-            <AlertTriangle size={16} className="text-red-500 dark:text-red-400 shrink-0" />
-            <span className="mobile-status-btn-text">Active Alerts</span>
-            <span className="mobile-status-btn-circle" data-count={activeAlerts.length > 0 ? "positive" : "zero"}>
-              {activeAlerts.length}
-            </span>
-          </button>
-          <button type="button" className="mobile-status-btn-delays" onClick={() => onOpenCategory("delays")} data-count={delays.length > 0 ? "positive" : "zero"}>
-            <DelayIcon size={16} className="delay-tone shrink-0" />
-            <span className="mobile-status-btn-text">Delays</span>
-            <span className="mobile-status-btn-circle" data-count={delays.length > 0 ? "positive" : "zero"}>
-              {delays.length}
-            </span>
-          </button>
-          {!regional ? <button type="button" className="mobile-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones")} data-count={reducedSpeedZoneCount > 0 ? "positive" : "zero"}>
-            <Construction size={16} className="rsz-tone shrink-0" />
-            <span className="mobile-status-btn-text">Reduced Speed Zones</span>
-            <span className="mobile-status-btn-circle" data-count={reducedSpeedZoneCount > 0 ? "positive" : "zero"}>
-              {reducedSpeedZoneCount}
-            </span>
-          </button> : null}
-          <button type="button" className="mobile-status-btn-closures" onClick={() => onOpenCategory("closures")} data-count={plannedClosures.length > 0 ? "positive" : "zero"}>
-            <PlannedClosureIcon size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
-            <span className="mobile-status-btn-text">Planned Closures</span>
-            <span className="mobile-status-btn-circle" data-count={plannedClosures.length > 0 ? "positive" : "zero"}>
-              {plannedClosures.length}
-            </span>
-          </button>
-          {regional ? <button type="button" className="mobile-status-btn-trip-changes flex items-center justify-between" onClick={() => onOpenCategory("trip-changes")} data-count={tripChangeCount > 0 ? "positive" : "zero"}>
-            <TrainFront size={16} className="trip-change-tone shrink-0" />
-            <span className="mobile-status-btn-text">Trip Changes</span>
-            <span className="mobile-status-btn-circle" data-count={tripChangeCount > 0 ? "positive" : "zero"}>
-              {tripChangeCount}
-            </span>
-          </button> : null}
-          <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")} data-count={accessibilityOutageCount > 0 ? "positive" : "zero"}>
-            <Image
-              src="/assets/linewatch/accessibility-alert.svg"
-              alt=""
-              width={16}
-              height={16}
-              className="w-4 h-4 shrink-0"
+        <div className="mobile-status-section">
+          <div className="mobile-status-section-heading">
+            <span
+              className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]"
+              aria-hidden="true"
             />
-            <span className="mobile-status-btn-text">Accessibility Outages</span>
-            <span className="mobile-status-btn-circle" data-count={accessibilityOutageCount > 0 ? "positive" : "zero"}>
-              {accessibilityOutageCount}
-            </span>
-          </button>
-          <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")} data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}>
-            {regional ? (
-              <Megaphone size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-            ) : (
-              <Bus size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-            )}
-            <span className="mobile-status-btn-text">{regional ? "Service Notices" : "Streetcar & Bus Notices"}</span>
-            <span className="mobile-status-btn-circle" data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}>
-              {surfaceNoticeCount}
-            </span>
-          </button>
+            <h3>Alerts</h3>
+          </div>
+          <div className="mobile-status-actions" aria-label="Service impact categories">
+            <button type="button" className="mobile-status-btn-alerts" onClick={() => onOpenCategory("alerts")} data-count={activeAlerts.length > 0 ? "positive" : "zero"}>
+              <AlertTriangle size={16} className="text-red-500 dark:text-red-400 shrink-0" />
+              <span className="mobile-status-btn-text">Active Alerts</span>
+              <span className="mobile-status-btn-circle" data-count={activeAlerts.length > 0 ? "positive" : "zero"}>
+                {activeAlerts.length}
+              </span>
+            </button>
+            <button type="button" className="mobile-status-btn-delays" onClick={() => onOpenCategory("delays")} data-count={delays.length > 0 ? "positive" : "zero"}>
+              <DelayIcon size={16} className="delay-tone shrink-0" />
+              <span className="mobile-status-btn-text">Delays</span>
+              <span className="mobile-status-btn-circle" data-count={delays.length > 0 ? "positive" : "zero"}>
+                {delays.length}
+              </span>
+            </button>
+            {!regional ? <button type="button" className="mobile-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones")} data-count={reducedSpeedZoneCount > 0 ? "positive" : "zero"}>
+              <Construction size={16} className="rsz-tone shrink-0" />
+              <span className="mobile-status-btn-text">Reduced Speed Zones</span>
+              <span className="mobile-status-btn-circle" data-count={reducedSpeedZoneCount > 0 ? "positive" : "zero"}>
+                {reducedSpeedZoneCount}
+              </span>
+            </button> : null}
+            <button type="button" className="mobile-status-btn-closures" onClick={() => onOpenCategory("closures")} data-count={plannedClosures.length > 0 ? "positive" : "zero"}>
+              <PlannedClosureIcon size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
+              <span className="mobile-status-btn-text">Planned Closures</span>
+              <span className="mobile-status-btn-circle" data-count={plannedClosures.length > 0 ? "positive" : "zero"}>
+                {plannedClosures.length}
+              </span>
+            </button>
+            {regional ? <button type="button" className="mobile-status-btn-trip-changes flex items-center justify-between" onClick={() => onOpenCategory("trip-changes")} data-count={tripChangeCount > 0 ? "positive" : "zero"}>
+              <TrainFront size={16} className="trip-change-tone shrink-0" />
+              <span className="mobile-status-btn-text">Trip Changes</span>
+              <span className="mobile-status-btn-circle" data-count={tripChangeCount > 0 ? "positive" : "zero"}>
+                {tripChangeCount}
+              </span>
+            </button> : null}
+            <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")} data-count={accessibilityOutageCount > 0 ? "positive" : "zero"}>
+              <Image
+                src="/assets/linewatch/accessibility-alert.svg"
+                alt=""
+                width={16}
+                height={16}
+                className="w-4 h-4 shrink-0"
+              />
+              <span className="mobile-status-btn-text">Accessibility Outages</span>
+              <span className="mobile-status-btn-circle" data-count={accessibilityOutageCount > 0 ? "positive" : "zero"}>
+                {accessibilityOutageCount}
+              </span>
+            </button>
+            <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")} data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}>
+              {regional ? (
+                <Megaphone size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              ) : (
+                <Bus size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              )}
+              <span className="mobile-status-btn-text">{regional ? "Service Notices" : "Streetcar & Bus Notices"}</span>
+              <span className="mobile-status-btn-circle" data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}>
+                {surfaceNoticeCount}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-line-status-list">
+        <div className="mobile-status-section">
           <div className="mobile-status-section-heading">
             <span
               className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]"
@@ -125,6 +127,7 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
             />
             <h3>Line Status</h3>
           </div>
+          <div className="mobile-line-status-list">
           {lineStatuses.map((line) => {
             const lineAlerts = activeAlerts.filter((alert) => alert.lineId === line.id);
             const lineDelays = delays.filter((delay) => delay.lineId === line.id);
@@ -183,6 +186,7 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
               </article>
             );
           })}
+          </div>
         </div>
       </div>
     </section>

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef, useId } from "react";
 import Image from "next/image";
-import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, ChevronLeft, CircleAlert, ExternalLink, MapPin, Megaphone, Search, X, Bus } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, CircleAlert, ExternalLink, MapPin, Megaphone, Search, Bus } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import {
   getSurfaceNotices,
   SurfaceNoticeResponse,
@@ -360,44 +361,40 @@ export function SurfaceNoticesPanel({
   return (
     <section className="panel min-w-0 border border-transparent rounded-2xl flex flex-col h-full bg-white dark:bg-[#0a0c10]">
       {/* Panel Header */}
-      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-2 sm:gap-3 min-w-0 shrink-0">
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-          <button
-            onClick={onBack}
-            className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-0.5 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-            aria-label="Back"
-          >
-            <ChevronLeft className="w-5 h-5 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-          </button>
-          <h2 className="text-[clamp(13px,3.5cqw,17px)] sm:text-lg font-bold text-slate-900 dark:text-white whitespace-normal flex items-center gap-1.5 sm:gap-2 min-w-0">
-            {regional ? (
-              <Megaphone className="w-4 h-4 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <Bus className="w-4 h-4 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            )}
-            <span>{regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}</span>
-          </h2>
-        </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {data?.source && (
-            <span className="surface-notices-source-tag text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold whitespace-nowrap">
-              {regional ? "Metrolinx notices" : data.source}
+      <PanelHeader
+        title={regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}
+        titleCompact
+        icon={
+          regional ? (
+            <Megaphone className="w-4 h-4 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          ) : (
+            <Bus className="w-4 h-4 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          )
+        }
+        onBack={onBack}
+        onClose={onClose}
+        metadata={
+          <>
+            <span className="surface-notices-count-badge panel-header-badge font-bold shrink-0">
+              {regional && regionalContent === "trip-changes"
+                ? `${tripChanges?.changes.length ?? 0} ${(tripChanges?.changes.length ?? 0) === 1 ? "Trip Change" : "Trip Changes"}`
+                : `${serviceFilteredNotices?.length ?? (data?.notices.length ?? 0)} ${
+                    (serviceFilteredNotices?.length ?? (data?.notices.length ?? 0)) === 1 ? "Notice" : "Notices"
+                  }`}
             </span>
-          )}
-          <button
-            onClick={onClose}
-            className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-0.5 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-          </button>
-        </div>
-      </div>
+            {data?.source ? (
+              <span className="surface-notices-source-tag text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold whitespace-nowrap">
+                {regional ? "Metrolinx notices" : data.source}
+              </span>
+            ) : null}
+          </>
+        }
+      />
 
       {/* Panel Body (Opaque Container) */}
       <div className="surface-notices-body flex-1 flex flex-col min-h-0 min-w-0">
         {/* Search Bar */}
-        <div className="px-3 pt-3 sm:px-4 sm:pt-4 shrink-0">
+        <div className="surface-notices-search-row px-3 pt-2.5 sm:px-4 sm:pt-2.5 shrink-0">
           <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-slate-400 dark:text-slate-500" />
             <input

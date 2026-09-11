@@ -2,7 +2,8 @@
 
 import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlertCircle, ArrowDownToLine, Bookmark, CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, LoaderCircle, Plus, Search, Train, X } from "lucide-react";
+import { AlertCircle, ArrowDownToLine, Bookmark, CalendarCheck2, ChevronDown, ChevronRight, FileText, Layers, LoaderCircle, MapPin, Plus, Search, Train, X } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import type { AccountSavedStation } from "../app/saved-station-data";
 import type { AccountState } from "../app/account-data";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -1333,30 +1334,23 @@ export function MyStationsPanel({
 
   return (
     <section className={`my-stations-panel${compactEmpty ? " my-stations-panel-empty" : ""} panel min-w-0 border border-transparent rounded-lg shadow-xl`} aria-label="My Stations">
-      <div className="panel-heading my-stations-heading @container border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
-        <div className="my-stations-title flex items-center gap-1 min-w-0">
-          <button
-            type="button"
-            onClick={() => mode === "add" ? leavePicker() : onBack()}
-            className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-            aria-label={mode === "add" ? "Back to My Stations" : "Back"}
-          >
-            <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-          </button>
-          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
-            <Bookmark className="my-stations-title-icon w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-sky-500 shrink-0" fill="none" aria-hidden="true" />
-            <span>My Stations</span>
-          </h2>
-        </div>
-        <div className="my-stations-heading-actions flex items-center gap-2 sm:gap-3 shrink-0">
-          {authenticated ? (
-            <span className="my-stations-count" aria-label={`${savedStations.length} saved stations`}>{savedStations.length}</span>
-          ) : null}
-          <button type="button" className="my-stations-close p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center" onClick={onClose} aria-label="Close My Stations">
-            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-          </button>
-        </div>
-      </div>
+      <PanelHeader
+        className="my-stations-heading"
+        titleGroupClassName="my-stations-title"
+        title="My Stations"
+        icon={<MapPin className="my-stations-title-icon w-5 h-5 text-sky-500 shrink-0" aria-hidden="true" />}
+        actions={
+          authenticated ? (
+            <span className="my-stations-count" aria-label={`${savedStations.length} saved stations`}>
+              {savedStations.length}
+            </span>
+          ) : null
+        }
+        onBack={() => mode === "add" ? leavePicker() : onBack()}
+        backLabel={mode === "add" ? "Back to My Stations" : "Back"}
+        onClose={onClose}
+        closeLabel="Close My Stations"
+      />
 
       <div key={mode} className="my-stations-body" data-nav-direction={mode === "add" ? "forward" : "back"}>
         {accountState?.source === "unavailable" ? (

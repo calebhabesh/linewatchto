@@ -1173,4 +1173,21 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /if \(cameraInitializedRef\.current \|\| !svgMarkup\) return/);
     assert.match(regionalMapSource, /cameraInitializedRef\.current = true/);
   });
+
+  it("renders regional transit line colors across the top accent strip in GO/UP mode", () => {
+    assert.match(globalsCss, /\.linewatch-transit-accent-strip--regional/);
+    assert.match(globalsCss, /\.linewatch-shell\[data-network="regional"\] \.linewatch-transit-accent-strip/);
+    assert.match(globalsCss, /grid-template-columns:\s*repeat\(8, 1fr\)/);
+    // Barrie, Kitchener, Lakeshore East, Lakeshore West, Milton, Richmond Hill, Stouffville, UP Express
+    assert.match(globalsCss, /#155ba0/);
+    assert.match(globalsCss, /#138336/);
+    assert.match(globalsCss, /#ee2722/);
+    assert.match(globalsCss, /#8b0a31/);
+    assert.match(globalsCss, /#f47216/);
+    assert.match(globalsCss, /#27adea/);
+    assert.match(globalsCss, /#774111/);
+    assert.match(globalsCss, /#4084cd/);
+    assert.match(shellSource, /selectedNetwork === "regional" \? " linewatch-transit-accent-strip--regional" : ""/);
+    assert.match(globalsCss, /\.linewatch-shell\[data-network="regional"\] \.floating-panel-scroll::before\s*\{[\s\S]*?linear-gradient\([\s\S]*?#155ba0[\s\S]*?#4084cd/);
+  });
 });

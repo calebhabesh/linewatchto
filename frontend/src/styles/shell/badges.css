@@ -502,9 +502,102 @@ img.transit-line-badge {
 }
 
 .high-contrast .desktop-menu-count-badge,
-.linewatch-shell.high-contrast .desktop-menu-count-badge {
+.linewatch-shell.high-contrast .desktop-menu-count-badge,
+.high-contrast .panel-header-metadata .alert-count-badge,
+.high-contrast .panel-header-metadata .delay-count-badge,
+.high-contrast .panel-header-metadata .rsz-count-badge,
+.high-contrast .panel-header-metadata .closure-count-badge,
+.high-contrast .panel-header-metadata .trip-changes-count-badge,
+.high-contrast .panel-header-metadata .accessibility-count-badge,
+.high-contrast .panel-header-metadata .surface-notices-count-badge,
+.high-contrast .my-stations-count,
+.high-contrast .my-commutes-count,
+.linewatch-shell.high-contrast .my-stations-count,
+.linewatch-shell.high-contrast .my-commutes-count {
   box-shadow: none !important;
   border: 1px solid #ffffff !important;
+}
+
+/* Submenu Header Metadata Count Badges & Saved Jewel Pills */
+.panel-header-metadata .alert-count-badge,
+.panel-header-metadata .delay-count-badge,
+.panel-header-metadata .rsz-count-badge,
+.panel-header-metadata .closure-count-badge,
+.panel-header-metadata .trip-changes-count-badge,
+.panel-header-metadata .accessibility-count-badge,
+.panel-header-metadata .surface-notices-count-badge {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.panel-header-metadata .alert-count-badge {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+.panel-header-metadata .delay-count-badge {
+  background: rgba(234, 179, 8, 0.18);
+  color: #854d0e;
+}
+.panel-header-metadata .rsz-count-badge {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--impact-rsz-ink);
+}
+.panel-header-metadata .closure-count-badge {
+  background: rgba(59, 130, 246, 0.14);
+  color: #1d4ed8;
+}
+.panel-header-metadata .trip-changes-count-badge {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--trip-change-ink);
+}
+.panel-header-metadata .accessibility-count-badge {
+  background: rgba(168, 85, 247, 0.14);
+  color: #7e22ce;
+}
+.panel-header-metadata .surface-notices-count-badge {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.dark .panel-header-metadata .alert-count-badge,
+.dark .panel-header-metadata .delay-count-badge,
+.dark .panel-header-metadata .rsz-count-badge,
+.dark .panel-header-metadata .closure-count-badge,
+.dark .panel-header-metadata .trip-changes-count-badge,
+.dark .panel-header-metadata .accessibility-count-badge,
+.dark .panel-header-metadata .surface-notices-count-badge {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.dark .panel-header-metadata .alert-count-badge {
+  background: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+}
+.dark .panel-header-metadata .delay-count-badge {
+  background: rgba(234, 179, 8, 0.28);
+  color: #fef08a;
+}
+.dark .panel-header-metadata .rsz-count-badge {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--impact-rsz);
+}
+.dark .panel-header-metadata .closure-count-badge {
+  background: rgba(59, 130, 246, 0.28);
+  color: #bfdbfe;
+}
+.dark .panel-header-metadata .trip-changes-count-badge {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--trip-change);
+}
+.dark .panel-header-metadata .accessibility-count-badge {
+  background: rgba(168, 85, 247, 0.28);
+  color: #e9d5ff;
+}
+.dark .panel-header-metadata .surface-notices-count-badge {
+  background: rgba(16, 185, 129, 0.28);
+  color: #a7f3d0;
 }
 
 /* ------------------------------------------------------------

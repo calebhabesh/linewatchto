@@ -40,7 +40,7 @@
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr);
-  padding: 12px;
+  padding: 12px var(--mobile-sheet-gutter, 16px);
   background: rgb(255, 255, 255);
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
@@ -53,6 +53,43 @@
 .high-contrast .commute-grid {
   background: #000000;
   border-top: 1px solid #ffffff;
+}
+
+/* ==========================================================================
+   Header Count Badge (VisionOS Jewel Styling)
+   ========================================================================== */
+.my-commutes-count {
+  align-items: center;
+  background: rgba(16, 185, 129, 0.14);
+  border: none;
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  color: #047857;
+  display: inline-flex;
+  font-feature-settings: "tnum";
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  height: 24px;
+  justify-content: center;
+  min-width: 24px;
+  padding: 0 6px;
+}
+
+.dark .my-commutes-count {
+  background: rgba(16, 185, 129, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: #6ee7b7;
+}
+
+.my-commutes-count.my-commutes-count-affected {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--trip-change-ink);
+}
+
+.dark .my-commutes-count.my-commutes-count-affected {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--trip-change);
 }
 
 /* ==========================================================================

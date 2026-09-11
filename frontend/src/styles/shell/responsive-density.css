@@ -33,6 +33,7 @@
 @media (max-width: 400px), (orientation: landscape) and (max-height: 520px) {
   :root {
     --mobile-edge-inset: 10px;
+    --mobile-sheet-gutter: 12px;
     --mobile-bottom-nav-height: 64px;
     --mobile-bottom-nav-side-inset: 10px;
     --mobile-status-peek-height: 44px;
@@ -327,32 +328,45 @@
     padding-bottom: 8px;
   }
 
-  .floating-panel-shell .panel-heading {
-    min-height: 48px;
-    padding: 9px 10px;
+  .floating-panel-shell .panel-heading,
+  .panel-header {
+    border-bottom: none;
+    min-height: 44px;
+    padding: 14px var(--mobile-sheet-gutter, 12px) 0;
   }
 
+  .floating-panel-shell .panel-header-title,
   .floating-panel-shell .panel-heading h2 {
-    font-size: clamp(13px, 4vw, 16px);
+    font-size: 22px;
     gap: 6px;
+  }
+
+  .floating-panel-shell .panel-header-title--compact,
+  .mobile-view-content-wrapper[data-active-view="reduced-speed-zones"] .panel-heading h2,
+  .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2,
+  .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading h2 {
+    font-size: 17.5px;
+  }
+
+  @media (max-width: 340px) {
+    .panel-header-icon--compact {
+      display: none;
+    }
+
+    .floating-panel-shell .panel-header-title--compact,
+    .mobile-view-content-wrapper[data-active-view="reduced-speed-zones"] .panel-heading h2,
+    .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2,
+    .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading h2 {
+      font-size: 15px;
+    }
   }
 
   .floating-panel-shell .panel-heading h2 svg,
   .floating-panel-shell .panel-heading h2 img,
   .floating-panel-shell .panel-heading h2 .delay-tone,
   .floating-panel-shell .panel-heading h2 .rsz-tone {
-    height: 16px;
-    width: 16px;
-  }
-
-  .mobile-view-content-wrapper[data-active-view="reduced-speed-zones"] .panel-heading h2,
-  .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading h2,
-  .mobile-view-content-wrapper[data-active-view="closures"] .panel-heading h2 {
-    font-size: clamp(10.5px, 3.15vw, 13px);
-  }
-
-  .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2 {
-    font-size: clamp(11.5px, 3.1vw, 14px);
+    height: 18px;
+    width: 18px;
   }
 
   .alert-stack,
@@ -366,31 +380,33 @@
   .release-notes-content,
   .privacy-acknowledgements-scroll {
     gap: 8px;
-    padding: 8px;
+    padding: 8px var(--mobile-sheet-gutter, 12px);
   }
 
   .mobile-status-sheet,
   .mobile-more-sheet {
-    gap: 9px;
-    padding: 9px;
+    gap: 8px;
+    padding: 8px var(--mobile-sheet-gutter, 10px);
   }
 
   .mobile-more-accent-strip {
     margin: -9px -9px -9px;
   }
 
-  .mobile-more-sheet .mobile-sheet-heading {
-    margin: 0 -9px;
+  .mobile-more-sheet .mobile-sheet-heading,
+  .mobile-status-sheet .mobile-sheet-heading {
+    margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px));
   }
 
   .mobile-sheet-heading {
-    margin: -9px -9px 0;
-    min-height: 48px;
-    padding: 9px 9px 8px;
+    border-bottom: none;
+    margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px));
+    min-height: 44px;
+    padding: 4px var(--mobile-sheet-gutter, 10px) 4px;
   }
 
   .mobile-sheet-heading h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .mobile-sheet-heading p,
@@ -412,9 +428,13 @@
     width: 6px;
   }
 
-  .mobile-sheet-icon-button {
-    height: 40px;
-    width: 40px;
+  .mobile-sheet-icon-button,
+  .panel-header-btn {
+    border-radius: 8px;
+    height: 44px;
+    min-height: 44px;
+    min-width: 44px;
+    width: 44px;
   }
 
   .station-header-line-badge {
@@ -439,8 +459,6 @@
     gap: 10px;
     margin-right: -9px;
     padding-right: 9px;
-    margin-top: -9px;
-    padding-top: 9px;
   }
 
   .mobile-status-actions {
@@ -589,7 +607,7 @@
 
   .impact-list-toolbar {
     gap: 6px;
-    padding: 7px 8px;
+    padding: 10px var(--mobile-sheet-gutter, 12px);
   }
 
   .compact-impact-list-item {
@@ -666,10 +684,19 @@
     width: 28px;
   }
 
+  .accessibility-outages-scroll {
+    padding-top: 10px;
+  }
+
   .surface-notices-body > div:not(.surface-notices-scroll) {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--mobile-sheet-gutter, 12px);
+    padding-right: var(--mobile-sheet-gutter, 12px);
     padding-top: 8px;
+  }
+
+  .surface-notices-body > div:first-child,
+  .surface-notices-search-row {
+    padding-top: 10px;
   }
 
   .surface-notices-body .submenu-search-input {

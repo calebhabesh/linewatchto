@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { DirectionalZoneCount } from "./DirectionalZoneCount";
-import { Construction, ChevronLeft, X } from "lucide-react";
+import { Construction } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
@@ -88,41 +89,22 @@ export function ReducedSpeedZonesPanel({
 
   return (
     <section className={`panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl ${embedded ? "embedded-impact-panel" : ""}`}>
-      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
-        <div className="flex items-center gap-1 min-w-0">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-              aria-label="Back"
-            >
-              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-            </button>
-          )}
-          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
-            <Construction className="rsz-tone w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] shrink-0" />
-            <span>Reduced Speed Zones</span>
-          </h2>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="flex flex-col items-end gap-1 mt-0.5 min-w-0">
-            <span className="rsz-count-badge shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
+      <PanelHeader
+        title="Reduced Speed Zones"
+        titleCompact
+        icon={<Construction className="rsz-tone w-5 h-5 shrink-0" aria-hidden="true" />}
+        onBack={onBack}
+        onClose={onClose}
+        metadata={
+          <>
+            <span className="rsz-count-badge shrink-0">
               {zoneCount} {zoneCount === 1 ? "Zone" : "Zones"}
               {zoneCount !== reducedSpeedZones.length ? ` · ${reducedSpeedZones.length} Locations` : ""}
             </span>
             <CardSource source={dashboardImpactSourcesLabel(dashboard, reducedSpeedZones.map((zone) => zone.source))} />
-          </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-            </button>
-          )}
-        </div>
-      </div>
+          </>
+        }
+      />
       {reducedSpeedZones.length > 0 ? (
         <ImpactListToolbar
           noun="Reduced Speed Zones"

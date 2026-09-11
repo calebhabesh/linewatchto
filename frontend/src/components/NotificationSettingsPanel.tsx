@@ -5,13 +5,12 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
-  ChevronLeft,
   Construction,
   Loader2,
   Navigation,
   TrainFront,
-  X,
 } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import type { AccountState } from "../app/account-data";
 import type { NetworkId } from "../app/regional-data";
 import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotificationSettings";
@@ -118,32 +117,12 @@ export function NotificationSettingsPanel({
 
   return (
     <section className="notification-settings-panel panel min-w-0 border border-transparent rounded-2xl flex flex-col h-full" aria-label="Notification settings">
-      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
-        <div className="flex items-center gap-1 min-w-0">
-          {onBack ? (
-            <button
-              onClick={onBack}
-              className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-              aria-label="Back"
-            >
-              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-            </button>
-          ) : null}
-          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
-            <Bell className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-emerald-500 shrink-0" aria-hidden="true" />
-            <span>Notifications</span>
-          </h2>
-        </div>
-        {onClose ? (
-          <button
-            onClick={onClose}
-            className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-          </button>
-        ) : null}
-      </div>
+      <PanelHeader
+        title="Notifications"
+        icon={<Bell className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden="true" />}
+        onBack={onBack}
+        onClose={onClose}
+      />
 
       <div className="notification-settings-scroll">
         {accountState.source === "unavailable" ? (

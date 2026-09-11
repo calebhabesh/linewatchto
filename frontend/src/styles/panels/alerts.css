@@ -568,25 +568,25 @@
   min-height: 54px;
   align-items: center;
   gap: 7px;
-  border-top: 1px solid rgba(15, 23, 42, 0.1);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
-  margin-top: -1px;
+  border-top: none;
+  border-bottom: none;
+  margin-top: 0;
   background: rgba(248, 250, 252, 0.72);
-  padding: 10px 12px;
+  padding: 10px var(--mobile-sheet-gutter, 16px);
 }
 
 .line-impact-category-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 9px 12px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  padding: 10px var(--mobile-sheet-gutter, 16px);
+  border-bottom: none;
   background: rgba(248, 250, 252, 0.5);
   width: 100%;
 }
 
 .dark .line-impact-category-filters {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+  border-bottom: none;
   background: rgba(10, 12, 16, 0.28);
 }
 
@@ -732,8 +732,7 @@
 }
 
 .dark .impact-list-toolbar {
-  border-top-color: rgba(255, 255, 255, 0.1);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+  border: none;
   background: rgba(10, 12, 16, 0.42);
 }
 
@@ -957,7 +956,6 @@
 .alert-stack.is-list-view,
 .closure-stack.is-list-view {
   gap: 6px;
-  padding: 8px;
 }
 
 .compact-impact-list-item {

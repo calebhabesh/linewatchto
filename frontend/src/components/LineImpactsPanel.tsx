@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, Search, X } from "lucide-react";
+import { Search } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { ImpactListSort } from "../app/impact-list-controls";
 import { useImpactListView } from "../hooks/useImpactListView";
@@ -77,27 +78,17 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, on
 
   return (
     <section className="panel line-impacts-panel min-w-0 border border-transparent rounded-2xl" data-line-impacts="true">
-      <div className="panel-heading @container border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-2 min-w-0">
-        <div className="flex items-center gap-1 min-w-0">
-          {onBack ? (
-            <button type="button" onClick={onBack} className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0" aria-label="Back">
-              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-            </button>
-          ) : null}
-          <TransitLineBadge lineId={lineId} lineNumber={line?.number} lineName={line?.name} size={30} className="shrink-0" />
-          <h2 className="truncate py-0.5 text-base sm:text-xl font-bold leading-[1.35] text-slate-900 dark:text-white">{lineName}</h2>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <span className="line-impact-total-badge shrink-0 rounded-full px-2 py-1 text-[9px] sm:text-xs font-bold">
+      <PanelHeader
+        title={lineName}
+        icon={<TransitLineBadge lineId={lineId} lineNumber={line?.number} lineName={line?.name} size={28} className="shrink-0" />}
+        onBack={onBack}
+        onClose={onClose}
+        metadata={
+          <span className="line-impact-total-badge shrink-0 rounded-full px-2 py-0.5 text-xs font-bold">
             {totalCount} {totalCount === 1 ? "Service Impact" : "Service Impacts"}
           </span>
-          {onClose ? (
-            <button type="button" onClick={onClose} className="p-1 sm:p-2 -mr-1.5 sm:mr-0 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0" aria-label="Close">
-              <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-            </button>
-          ) : null}
-        </div>
-      </div>
+        }
+      />
 
       <div className="line-impact-category-filters" role="group" aria-label={`Filter ${lineName} impacts by alert type`}>
         <button type="button" data-category="all" aria-pressed={category === "all"} onClick={() => setCategory("all")}>

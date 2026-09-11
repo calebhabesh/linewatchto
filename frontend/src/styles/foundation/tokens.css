@@ -20,6 +20,7 @@
   --mobile-announcement-chip-height: var(--mobile-top-action-button-size);
   --mobile-regional-announcement-chip-height: var(--mobile-top-action-button-size);
   --mobile-edge-inset: clamp(10px, 4vw, 16px);
+  --mobile-sheet-gutter: 16px;
   --mobile-top-action-button-size: clamp(44px, 12vw, 48px);
   --mobile-top-action-gap: clamp(4px, 2vw, 8px);
   --mobile-rotate-action-width: clamp(78px, 22vw, 88px);

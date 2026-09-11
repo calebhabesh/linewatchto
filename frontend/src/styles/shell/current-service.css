@@ -286,10 +286,15 @@
 
 @media (max-width: 767px) {
   :root {
-    --mobile-bottom-nav-height: 68px;
+    --mobile-bottom-nav-height: 74px;
     --mobile-bottom-nav-bottom-offset: var(--mobile-safe-bottom);
     --mobile-bottom-nav-side-inset: 0px;
     --mobile-status-peek-height: 170px;
+  }
+  @media (max-width: 400px), (orientation: landscape) and (max-height: 520px) {
+    :root {
+      --mobile-bottom-nav-height: 64px;
+    }
   }
   .linewatch-shell .mobile-bottom-nav {
     inset-inline: 0;
@@ -887,7 +892,7 @@
   .linewatch-shell .mobile-train-toggle {
     top: auto !important;
     right: auto !important;
-    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 8px) !important;
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 12px) !important;
     left: calc(var(--mobile-safe-left) + 12px) !important;
     width: 48px;
     min-width: 48px;
@@ -896,12 +901,18 @@
   }
   .linewatch-shell .mobile-map-controls-group {
     right: calc(var(--mobile-safe-right) + 12px);
-    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 8px);
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 12px);
     gap: 8px;
   }
   .linewatch-shell .mobile-map-recenter-btn,
-  .linewatch-shell .mobile-map-zoom-btn { width: 44px; height: 44px; min-height: 44px; }
-  .linewatch-shell .mobile-map-zoom-capsule { width: 44px; }
+  .linewatch-shell .mobile-map-zoom-btn {
+    width: var(--mobile-top-action-button-size, 44px);
+    height: var(--mobile-top-action-button-size, 44px);
+    min-height: 44px;
+  }
+  .linewatch-shell .mobile-map-zoom-capsule {
+    width: var(--mobile-top-action-button-size, 44px);
+  }
 
   .linewatch-shell .floating-panel-shell {
     border: 0;
@@ -916,7 +927,7 @@
     box-shadow: 0 -4px 18px rgb(0 0 0 / 15%), inset 0 6px 10px -7px rgb(255 255 255 / 22%);
     padding-top: 0;
   }
-  .mobile-saved-sections { display: flex; gap: 8px; padding: 8px 14px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+  .mobile-saved-sections { display: flex; gap: 8px; padding: 10px var(--mobile-sheet-gutter, 16px) 8px; flex-shrink: 0; border-bottom: none; }
   .mobile-saved-sections button {
     display: flex;
     align-items: center;
@@ -928,8 +939,28 @@
     color: var(--muted);
     border-radius: 8px;
   }
-  .mobile-saved-sections button[aria-current="page"] { background: var(--panel-soft); color: var(--text); font-weight: 700; }
+  .mobile-saved-sections button[aria-current="page"] {
+    background: var(--panel-soft);
+    font-weight: 700;
+  }
+  .mobile-saved-sections button:first-child[aria-current="page"] {
+    color: #0284c7;
+  }
+  .dark .mobile-saved-sections button:first-child[aria-current="page"] {
+    color: #38bdf8;
+  }
+  .mobile-saved-sections button:last-child[aria-current="page"] {
+    color: #059669;
+  }
+  .dark .mobile-saved-sections button:last-child[aria-current="page"] {
+    color: #34d399;
+  }
+  .high-contrast .mobile-saved-sections button[aria-current="page"],
+  .linewatch-shell.high-contrast .mobile-saved-sections button[aria-current="page"] {
+    color: #ffffff;
+  }
   .mobile-saved-sections + .mobile-view-content-wrapper { min-height: 0; flex: 1; }
+  .mobile-saved-sections + .mobile-view-content-wrapper .panel-header { padding-top: 8px; }
 
   html .linewatch-shell .station-search-panel {
     --search-bottom-space: var(--mobile-bottom-nav-occupied-height);
@@ -976,5 +1007,18 @@
     mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     pointer-events: none;
+  }
+  .linewatch-shell[data-network="regional"] .floating-panel-scroll::before {
+    background: linear-gradient(
+      to right,
+      #155ba0 0% 12.5%,
+      #138336 12.5% 25%,
+      #ee2722 25% 37.5%,
+      #8b0a31 37.5% 50%,
+      #f47216 50% 62.5%,
+      #27adea 62.5% 75%,
+      #774111 75% 87.5%,
+      #4084cd 87.5% 100%
+    ) border-box;
   }
 }
