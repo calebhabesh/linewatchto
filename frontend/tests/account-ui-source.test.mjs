@@ -182,10 +182,10 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /commute-route-stop-list/);
     assert.match(
       globalCss,
-      /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*gap:\s*0\.35rem;)(?=[^}]*justify-content:\s*center;)(?=[^}]*letter-spacing:\s*0\.015em;)[^}]*\}/s,
+      /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*gap:\s*0\.42rem;)(?=[^}]*justify-content:\s*center;)(?=[^}]*letter-spacing:\s*0\.015em;)[^}]*\}/s,
     );
-    assert.match(savedCommutesSource, /<SquarePen size=\{13\}[^>]*\/>\s*Edit Route/);
-    assert.match(savedCommutesSource, /View \$\{routeStops\.length\} Stops`\}\s*<ChevronDown size=\{14\}/);
+    assert.match(savedCommutesSource, /<SquarePen size=\{16\}[^>]*\/>\s*Edit Route/);
+    assert.match(savedCommutesSource, /View \$\{routeStops\.length\} Stops`\}\s*<ChevronDown size=\{16\}/);
     assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
     assert.match(savedCommutesSource, /View path on map/);
@@ -197,7 +197,7 @@ describe("account UI source", () => {
     assert.match(globalCss, /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-card\s*\{(?=[^}]*max-width:\s*100%;)(?=[^}]*overflow-x:\s*hidden;)(?=[^}]*width:\s*100%;)[^}]*\}/s);
     assert.match(
       globalCss,
-      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.commute-route-actions\s*\{[^}]*gap:\s*0\.25rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-stop-toggle\s*\{[^}]*font-size:\s*0\.6rem;)(?=[\s\S]*?\.saved-commute-map-action,\s*\.commute-route-actions \.commute-route-map-button\s*\{[^}]*font-size:\s*0\.6rem;)/s,
+      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.commute-route-actions\s*\{[^}]*gap:\s*0\.25rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-stop-toggle\s*\{[^}]*font-size:\s*0\.72rem;)(?=[\s\S]*?\.saved-commute-map-action,\s*\.commute-route-actions \.commute-route-map-button\s*\{[^}]*font-size:\s*0\.66rem;)/s,
     );
     assert.match(
       globalCss,

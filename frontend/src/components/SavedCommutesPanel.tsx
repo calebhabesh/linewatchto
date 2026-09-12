@@ -1906,7 +1906,7 @@ export function SavedCommutesPanel({
               onClick={() => startEditingCommute(commute)}
               aria-label={`Edit commute ${commute.label}`}
             >
-              <SquarePen size={13} aria-hidden="true" />
+              <SquarePen size={16} aria-hidden="true" />
               Edit Route
             </button>
             <button
@@ -1918,7 +1918,7 @@ export function SavedCommutesPanel({
               disabled={routeStops.length === 0}
             >
               {stopsExpanded ? "Hide Stops" : `View ${routeStops.length} Stops`}
-              <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${stopsExpanded ? "rotate-180" : ""}`} />
+              <ChevronDown size={16} aria-hidden="true" className={`transition-transform duration-200 ${stopsExpanded ? "rotate-180" : ""}`} />
             </button>
             <button
               type="button"
