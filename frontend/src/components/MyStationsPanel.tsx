@@ -1423,195 +1423,195 @@ export function MyStationsPanel({
             </div>
           </div>
         ) : (
-          <>
-        <div className="my-stations-controls">
-          <div className="my-stations-controls-top">
-            <label className={`impact-list-search my-stations-search${mode === "add" ? " picker-nudge" : ""}`}>
-              <Search size={15} aria-hidden="true" />
-              <span className="sr-only">{mode === "add" ? "Search all stations" : "Search saved stations"}</span>
-              <input
-                type="search"
-                className="submenu-search-input"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={mode === "add" ? "Search All Stations..." : "Search saved stations..."}
-              />
-            </label>
-            <button
-              ref={modeButtonRef}
-              type="button"
-              className={`my-stations-mode-action ${mode === "list" ? "my-stations-add" : "my-stations-done"}`}
-              onClick={() => {
-                if (mode === "add") {
-                  leavePicker();
-                } else {
-                  setMode("add");
-                  setQuery("");
-                  setLineId("all");
-                  setNetworkFilter(activeNetwork);
-                }
-              }}
-              aria-label={mode === "list" ? "Add Station" : "Done adding stations"}
-            >
-              <span key={mode} className="my-stations-mode-action-content">
-                {mode === "list" ? <Plus size={16} aria-hidden="true" /> : null}
-                {mode === "list" ? (
-                  <>
-                    <span className="my-stations-add-wide">Add Station</span>
-                    <span className="my-stations-add-compact">Add</span>
-                  </>
-                ) : <span>Done</span>}
-              </span>
-            </button>
-          </div>
-          <div className="account-network-filter w-full" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Stations by network">
-            <div className="account-network-glider" aria-hidden="true" />
-            {ACCOUNT_NETWORK_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                data-network={option.value}
-                aria-pressed={networkFilter === option.value}
-                onClick={() => {
-                  setNetworkFilter(option.value);
-                  setLineId("all");
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div className="my-stations-selects">
-            <ToolbarSelectMenu
-              ariaLabel="Filter stations by line"
-              prefix="Line"
-              value={lineId}
-              options={lineOptions}
-              onChange={setLineId}
-            />
-            <ToolbarSelectMenu
-              ariaLabel="Sort saved stations"
-              prefix="Sort"
-              value={mode === "add" ? "name" : sort}
-              options={SORT_OPTIONS}
-              onChange={setSort}
-              disabled={mode === "add"}
-            />
-          </div>
-        </div>
-
-        {error ? (
-          <div className="my-stations-empty" role="alert">
-            <p>Could not load saved stations</p>
-            <button type="button" onClick={onRetry}>Retry</button>
-          </div>
-        ) : loading ? (
-          <div className="my-stations-empty" role="status"><p>Loading saved stations...</p></div>
-        ) : mode === "add" ? (
-          <div className="my-stations-list my-stations-picker-list" aria-label="Add stations">
-            {pickerGroups.map((group) => (
-              <section className="my-stations-picker-section" key={group.id} aria-labelledby={`station-group-${group.id}`}>
-                <h3
-                  id={`station-group-${group.id}`}
-                  className={`my-stations-picker-section-heading${group.line ? " has-line-accent" : ""}`}
-                  style={group.line ? { borderLeftColor: group.line.color } : undefined}
+          <div className={`my-stations-list${mode === "add" ? " my-stations-picker-list" : ""}`} aria-label={mode === "add" ? "Add stations" : "Saved stations"}>
+            <div className="my-stations-controls">
+              <div className="my-stations-controls-top">
+                <label className={`impact-list-search my-stations-search${mode === "add" ? " picker-nudge" : ""}`}>
+                  <Search size={15} aria-hidden="true" />
+                  <span className="sr-only">{mode === "add" ? "Search all stations" : "Search saved stations"}</span>
+                  <input
+                    type="search"
+                    className="submenu-search-input"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={mode === "add" ? "Search All Stations..." : "Search saved stations..."}
+                  />
+                </label>
+                <button
+                  ref={modeButtonRef}
+                  type="button"
+                  className={`my-stations-mode-action ${mode === "list" ? "my-stations-add" : "my-stations-done"}`}
+                  onClick={() => {
+                    if (mode === "add") {
+                      leavePicker();
+                    } else {
+                      setMode("add");
+                      setQuery("");
+                      setLineId("all");
+                      setNetworkFilter(activeNetwork);
+                    }
+                  }}
+                  aria-label={mode === "list" ? "Add Station" : "Done adding stations"}
                 >
-                  {group.line ? (
-                    <TransitLineBadge lineId={group.line.id} lineNumber={group.line.number} lineName={group.line.name} size={28} className="my-stations-picker-line-number" />
-                  ) : null}
-                  <span>{group.label}</span>
-                  <AccountNetworkBadge networkId={group.networkId} />
-                  <span className="my-stations-picker-section-count">{group.stations.length}</span>
-                </h3>
-                <div className="my-stations-picker-section-rows">
-                  {group.stations.map((station) => {
-                    const saved = savedIds.has(`${group.networkId}:${station.id}`);
-                    const pending = pendingStationIds.has(station.id);
-                    return (
-                      <div className="my-stations-picker-row" key={`${group.id}-${station.id}`}>
-                        <span className="my-stations-row-copy">
-                          <span className="my-stations-row-heading"><strong>{station.name}</strong><StationLineBadges lineIds={station.lineIds} /></span>
-                          <PickerStationConditions station={station} impactKinds={stationImpactKinds[group.networkId].get(station.id) ?? []} />
-                        </span>
-                        <button
-                          type="button"
-                          className={`my-stations-picker-action${saved ? " saved" : ""}`}
-                          onClick={() => saved ? void onRemove(station.id, group.networkId) : void onSave(station.id, group.networkId)}
-                          disabled={pending}
-                          aria-pressed={saved}
-                          aria-label={saved ? `Remove ${station.name} from My Stations` : `Save ${station.name} to My Stations`}
-                        >
-                          <Bookmark size={28} fill={saved ? "currentColor" : "none"} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-            {pickerStations.length === 0 ? <div className="my-stations-empty"><p>No Stations Match</p></div> : null}
-          </div>
-        ) : savedStations.length === 0 ? (
-          <>
-            <div className="my-stations-empty">
-              <p>No Saved Stations</p>
-            </div>
-            {lastRemoved ? (
-              <div className="saved-station-inline-undo" role="status">
-                <span>{lastRemoved.saved.station.name} Removed</span>
-                <button type="button" onClick={() => void undoRemove()}>Undo</button>
-                <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
+                  <span key={mode} className="my-stations-mode-action-content">
+                    {mode === "list" ? <Plus size={16} aria-hidden="true" /> : null}
+                    {mode === "list" ? (
+                      <>
+                        <span className="my-stations-add-wide">Add Station</span>
+                        <span className="my-stations-add-compact">Add</span>
+                      </>
+                    ) : <span>Done</span>}
+                  </span>
+                </button>
               </div>
-            ) : null}
-          </>
-        ) : visible.length === 0 && !lastRemoved ? (
-          <div className="my-stations-empty">
-            <p>No Saved Stations Match</p>
-            <button type="button" onClick={() => { setQuery(""); setLineId("all"); }}>Clear Filters</button>
-          </div>
-        ) : (
-          <div className="my-stations-list" aria-label="Saved stations">
-            {visible.map((saved, index) => (
-              <div className="saved-station-list-slot" key={`${saved.networkId}:${saved.station.id}`}>
-                {lastRemoved?.index === index ? (
+              <div className="account-network-filter w-full" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Stations by network">
+                <div className="account-network-glider" aria-hidden="true" />
+                {ACCOUNT_NETWORK_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    data-network={option.value}
+                    aria-pressed={networkFilter === option.value}
+                    onClick={() => {
+                      setNetworkFilter(option.value);
+                      setLineId("all");
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <div className="my-stations-selects">
+                <ToolbarSelectMenu
+                  ariaLabel="Filter stations by line"
+                  prefix="Line"
+                  value={lineId}
+                  options={lineOptions}
+                  onChange={setLineId}
+                />
+                <ToolbarSelectMenu
+                  ariaLabel="Sort saved stations"
+                  prefix="Sort"
+                  value={mode === "add" ? "name" : sort}
+                  options={SORT_OPTIONS}
+                  onChange={setSort}
+                  disabled={mode === "add"}
+                />
+              </div>
+            </div>
+
+            {error ? (
+              <div className="my-stations-empty" role="alert">
+                <p>Could not load saved stations</p>
+                <button type="button" onClick={onRetry}>Retry</button>
+              </div>
+            ) : loading ? (
+              <div className="my-stations-empty" role="status"><p>Loading saved stations...</p></div>
+            ) : mode === "add" ? (
+              <>
+                {pickerGroups.map((group) => (
+                  <section className="my-stations-picker-section" key={group.id} aria-labelledby={`station-group-${group.id}`}>
+                    <h3
+                      id={`station-group-${group.id}`}
+                      className={`my-stations-picker-section-heading${group.line ? " has-line-accent" : ""}`}
+                      style={group.line ? { borderLeftColor: group.line.color } : undefined}
+                    >
+                      {group.line ? (
+                        <TransitLineBadge lineId={group.line.id} lineNumber={group.line.number} lineName={group.line.name} size={28} className="my-stations-picker-line-number" />
+                      ) : null}
+                      <span>{group.label}</span>
+                      <AccountNetworkBadge networkId={group.networkId} />
+                      <span className="my-stations-picker-section-count">{group.stations.length}</span>
+                    </h3>
+                    <div className="my-stations-picker-section-rows">
+                      {group.stations.map((station) => {
+                        const saved = savedIds.has(`${group.networkId}:${station.id}`);
+                        const pending = pendingStationIds.has(station.id);
+                        return (
+                          <div className="my-stations-picker-row" key={`${group.id}-${station.id}`}>
+                            <span className="my-stations-row-copy">
+                              <span className="my-stations-row-heading"><strong>{station.name}</strong><StationLineBadges lineIds={station.lineIds} /></span>
+                              <PickerStationConditions station={station} impactKinds={stationImpactKinds[group.networkId].get(station.id) ?? []} />
+                            </span>
+                            <button
+                              type="button"
+                              className={`my-stations-picker-action${saved ? " saved" : ""}`}
+                              onClick={() => saved ? void onRemove(station.id, group.networkId) : void onSave(station.id, group.networkId)}
+                              disabled={pending}
+                              aria-pressed={saved}
+                              aria-label={saved ? `Remove ${station.name} from My Stations` : `Save ${station.name} to My Stations`}
+                            >
+                              <Bookmark size={28} fill={saved ? "currentColor" : "none"} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+                {pickerStations.length === 0 ? <div className="my-stations-empty"><p>No Stations Match</p></div> : null}
+              </>
+            ) : savedStations.length === 0 ? (
+              <>
+                <div className="my-stations-empty">
+                  <p>No Saved Stations</p>
+                </div>
+                {lastRemoved ? (
                   <div className="saved-station-inline-undo" role="status">
                     <span>{lastRemoved.saved.station.name} Removed</span>
                     <button type="button" onClick={() => void undoRemove()}>Undo</button>
                     <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
                   </div>
                 ) : null}
-                <DataProvider data={dashboards[saved.networkId]}>
-                  <SavedStationRow
-                    saved={saved}
-                    detailResult={stationDetails[`${saved.networkId}:${saved.station.id}`]}
-                    regionalArrivalResult={regionalArrivalDetails[saved.station.id]}
-                    regionalAccessibilityOutages={regionalAccessibilityByStation.get(saved.station.id) ?? []}
-                    regionalDataLoaded={saved.networkId !== "regional" || regionalAccessibility !== null}
-                    routeImpactSelections={stationImpactSelections[saved.networkId].get(saved.station.id) ?? []}
-                    arrivalTick={arrivalTick}
-                    pending={pendingStationIds.has(saved.station.id)}
-                    onOpen={() => onSelectStation(saved.station.id, saved.networkId)}
-                    onSelectImpactDetails={(selection) => onSelectImpactDetails(selection, saved.networkId)}
-                    onSelectAccessibilityOutageDetails={(assetType, stationId) => onSelectAccessibilityOutageDetails(assetType, stationId, saved.networkId)}
-                    disruptionExpanded={expandedDisruptionStationIds.has(`${saved.networkId}:${saved.station.id}`)}
-                    onDisruptionExpandedChange={(expanded) => onDisruptionExpandedChange(`${saved.networkId}:${saved.station.id}`, expanded)}
-                    onRemove={() => void remove(saved, index)}
-                  />
-                </DataProvider>
+              </>
+            ) : visible.length === 0 && !lastRemoved ? (
+              <div className="my-stations-empty">
+                <p>No Saved Stations Match</p>
+                <button type="button" onClick={() => { setQuery(""); setLineId("all"); }}>Clear Filters</button>
               </div>
-            ))}
-            {lastRemoved && lastRemoved.index >= visible.length ? (
-              <div className="saved-station-inline-undo" role="status">
-                <span>{lastRemoved.saved.station.name} Removed</span>
-                <button type="button" onClick={() => void undoRemove()}>Undo</button>
-                <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
-              </div>
-            ) : null}
+            ) : (
+              <>
+                {visible.map((saved, index) => (
+                  <div className="saved-station-list-slot" key={`${saved.networkId}:${saved.station.id}`}>
+                    {lastRemoved?.index === index ? (
+                      <div className="saved-station-inline-undo" role="status">
+                        <span>{lastRemoved.saved.station.name} Removed</span>
+                        <button type="button" onClick={() => void undoRemove()}>Undo</button>
+                        <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
+                      </div>
+                    ) : null}
+                    <DataProvider data={dashboards[saved.networkId]}>
+                      <SavedStationRow
+                        saved={saved}
+                        detailResult={stationDetails[`${saved.networkId}:${saved.station.id}`]}
+                        regionalArrivalResult={regionalArrivalDetails[saved.station.id]}
+                        regionalAccessibilityOutages={regionalAccessibilityByStation.get(saved.station.id) ?? []}
+                        regionalDataLoaded={saved.networkId !== "regional" || regionalAccessibility !== null}
+                        routeImpactSelections={stationImpactSelections[saved.networkId].get(saved.station.id) ?? []}
+                        arrivalTick={arrivalTick}
+                        pending={pendingStationIds.has(saved.station.id)}
+                        onOpen={() => onSelectStation(saved.station.id, saved.networkId)}
+                        onSelectImpactDetails={(selection) => onSelectImpactDetails(selection, saved.networkId)}
+                        onSelectAccessibilityOutageDetails={(assetType, stationId) => onSelectAccessibilityOutageDetails(assetType, stationId, saved.networkId)}
+                        disruptionExpanded={expandedDisruptionStationIds.has(`${saved.networkId}:${saved.station.id}`)}
+                        onDisruptionExpandedChange={(expanded) => onDisruptionExpandedChange(`${saved.networkId}:${saved.station.id}`, expanded)}
+                        onRemove={() => void remove(saved, index)}
+                      />
+                    </DataProvider>
+                  </div>
+                ))}
+                {lastRemoved && lastRemoved.index >= visible.length ? (
+                  <div className="saved-station-inline-undo" role="status">
+                    <span>{lastRemoved.saved.station.name} Removed</span>
+                    <button type="button" onClick={() => void undoRemove()}>Undo</button>
+                    <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
         )}
-      </>
-    )}
-  </div>
+      </div>
     </section>
   );
 }

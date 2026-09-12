@@ -1863,6 +1863,16 @@ export function LineWatchShell({
     navigateForward("my-stations");
   };
 
+  const openMyCommutes = () => {
+    setSelection(null);
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setCommutesActiveTab("saved");
+    setCommutesDraft(null);
+    clearPersistedCommuteDraft();
+    navigateForward("commutes");
+  };
+
   const resetAccountForm = () => {
     setAccountEmail("");
     setAccountPassword("");
@@ -3941,35 +3951,92 @@ export function LineWatchShell({
         style={{ zIndex: guideOpen ? 60 : 40 }}
       >
         <div className="flex items-start gap-3 pointer-events-auto relative">
-          {/* Menu Toggle Button */}
-          <button
-            ref={menuButtonRef}
-            onClick={handleToggleMenu}
-            className={`menu-toggle-btn menu-attention-beam desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
-            aria-label={totalAlertCount > 0
-              ? `Toggle menu, ${totalAlertCount} total ${totalAlertCount === 1 ? "alert" : "alerts"}`
-              : "Toggle menu"}
-            aria-controls="linewatch-main-menu"
-            aria-expanded={menuVisible}
-            data-menu-attention={showMenuAttention ? "true" : "false"}
-          >
-            <div className="relative w-7 h-7 flex items-center justify-center">
-               <Menu
-                  className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"}`}
-                  size={26}
-               />
-               <X
-                  className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"}`}
-                  size={26}
-               />
+          <div className="flex flex-col items-center gap-2">
+            {/* Menu Toggle Button */}
+            <button
+              ref={menuButtonRef}
+              onClick={handleToggleMenu}
+              className={`menu-toggle-btn menu-attention-beam desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
+              aria-label={totalAlertCount > 0
+                ? `Toggle menu, ${totalAlertCount} total ${totalAlertCount === 1 ? "alert" : "alerts"}`
+                : "Toggle menu"}
+              aria-controls="linewatch-main-menu"
+              aria-expanded={menuVisible}
+              data-menu-attention={showMenuAttention ? "true" : "false"}
+            >
+              <div className="relative w-7 h-7 flex items-center justify-center">
+                 <Menu
+                    className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"}`}
+                    size={26}
+                 />
+                 <X
+                    className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"}`}
+                    size={26}
+                 />
+              </div>
+              {totalAlertCount > 0 && !menuVisible && (
+                <OverlappingCountBadge
+                  className="desktop-menu-count-badge absolute -top-2.5 -right-2.5 flex h-[26px] min-w-[26px] items-center justify-center rounded-full bg-red-500 px-1 text-white shadow-md border border-white dark:border-[#12151c]"
+                  count={totalAlertCount}
+                />
+              )}
+            </button>
+
+            {/* Desktop Quick-Jump Shortcuts (My Commutes & My Stations) */}
+            <div
+              className={`desktop-quick-shortcuts hidden md:flex flex-col items-center gap-3.5 transition-all duration-200 ${
+                menuVisible || isDesktopPanel || showClosedScreen ? "opacity-0 pointer-events-none -translate-y-2" : "opacity-100 translate-y-0"
+              }`}
+              role="group"
+              aria-label="Saved transit shortcuts"
+            >
+              <button
+                type="button"
+                onClick={openMyCommutes}
+                className="desktop-quick-action-btn desktop-quick-action-btn--commutes group/quick"
+                aria-label={
+                  commuteAffectedCount > 0
+                    ? `My Commutes, ${commuteAffectedCount} ${commuteAffectedCount === 1 ? "commute affected" : "commutes affected"}`
+                    : "My Commutes"
+                }
+                title="My Commutes"
+              >
+                <Navigation size={24} className="shrink-0" aria-hidden="true" />
+                {commuteAffectedCount > 0 && (
+                  <span className="desktop-quick-action-badge desktop-quick-action-badge--alert" aria-hidden="true">
+                    {commuteAffectedCount}
+                  </span>
+                )}
+                <span className="desktop-quick-action-tooltip">My Commutes</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={openMyStations}
+                className="desktop-quick-action-btn desktop-quick-action-btn--stations group/quick"
+                aria-label={
+                  savedStationsAffectedCount > 0
+                    ? `My Stations, ${savedStationsAffectedCount} ${savedStationsAffectedCount === 1 ? "station affected" : "stations affected"}`
+                    : savedStations.length > 0
+                      ? `My Stations, ${savedStations.length} ${savedStations.length === 1 ? "saved station" : "saved stations"}`
+                      : "My Stations"
+                }
+                title="My Stations"
+              >
+                <MapPin size={24} className="shrink-0" aria-hidden="true" />
+                {savedStationsAffectedCount > 0 ? (
+                  <span className="desktop-quick-action-badge desktop-quick-action-badge--alert" aria-hidden="true">
+                    {savedStationsAffectedCount}
+                  </span>
+                ) : savedStations.length > 0 ? (
+                  <span className="desktop-quick-action-badge desktop-quick-action-badge--stations" aria-hidden="true">
+                    {savedStations.length}
+                  </span>
+                ) : null}
+                <span className="desktop-quick-action-tooltip">My Stations</span>
+              </button>
             </div>
-            {totalAlertCount > 0 && !menuVisible && (
-              <OverlappingCountBadge
-                className="desktop-menu-count-badge absolute -top-2.5 -right-2.5 flex h-[26px] min-w-[26px] items-center justify-center rounded-full bg-red-500 px-1 text-white shadow-md border border-white dark:border-[#12151c]"
-                count={totalAlertCount}
-              />
-            )}
-          </button>
+          </div>
 
           {/* Header station search input — replaces the old static button */}
           <div

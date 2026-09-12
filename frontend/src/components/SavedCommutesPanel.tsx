@@ -1995,7 +1995,7 @@ export function SavedCommutesPanel({
           }
         } : undefined}
       />
-      <div key={activeView} className="commute-grid min-w-0 px-3 sm:px-4 py-3 flex flex-col gap-3" data-nav-direction={activeView === "create" ? "forward" : "back"}>
+      <div key={activeView} className="commute-grid min-w-0 py-3 flex flex-col gap-3" data-nav-direction={activeView === "create" ? "forward" : "back"}>
         {accountState.source === "unavailable" ? (
           <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
         ) : !accountState.authenticated ? (
@@ -2261,7 +2261,7 @@ export function SavedCommutesPanel({
                     </button>
                   ))}
                 </div>
-                <div className="saved-commute-list-toolbar flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-1">
+                <div className="saved-commute-list-toolbar flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-1 w-full min-w-0 box-border">
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>

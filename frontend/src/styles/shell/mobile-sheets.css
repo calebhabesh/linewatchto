@@ -16,12 +16,15 @@
 
   .mobile-sheet-heading {
     align-items: flex-start;
+    background: inherit;
     border-bottom: none;
     display: flex;
     gap: 10px;
     justify-content: space-between;
     margin: 0 calc(-1 * var(--mobile-sheet-gutter, 16px));
-    padding: 4px var(--mobile-sheet-gutter, 16px) 4px;
+    padding: 8px var(--mobile-sheet-gutter, 16px) 14px;
+    position: relative;
+    z-index: 2;
   }
 
   .mobile-sheet-heading h2 {
@@ -1304,7 +1307,7 @@
     gap: 4px;
     min-height: 44px;
     min-width: 0;
-    padding: 14px var(--mobile-sheet-gutter, 16px) 0;
+    padding: 14px var(--mobile-sheet-gutter, 16px) 14px;
     width: 100%;
   }
 

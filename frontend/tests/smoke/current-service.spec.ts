@@ -25,7 +25,7 @@ test("Current Service appears above the retained badges and opens its exact disr
   await expect(badges).toBeVisible();
   const panelBox = await panel.boundingBox();
   const badgeBox = await badges.boundingBox();
-  expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(badgeBox!.y + 14);
+  expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(badgeBox!.y + 22);
 
   await panel.getByRole("button", { name: /Sheppard-Yonge to Don Mills/ }).click();
   await expect(page.getByRole("heading", { name: "Delays", exact: true })).toBeVisible();

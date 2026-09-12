@@ -87,16 +87,19 @@
   color: #ffffff;
 }
 
+.floating-panel-shell .panel-heading,
+.floating-panel-shell .panel-header,
 .panel-header {
   align-items: stretch;
+  border-bottom: none;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-height: 44px;
-  padding: 14px var(--mobile-sheet-gutter, 16px) 0;
+  min-width: 0;
+  padding: 14px var(--mobile-sheet-gutter, 16px) 12px;
   width: 100%;
-  box-sizing: border-box;
-  border-bottom: none;
 }
 
 .panel-header-primary {
@@ -291,10 +294,36 @@
   min-height: 0;
 }
 
-.floating-panel-shell .alert-stack,
-.floating-panel-shell .closure-stack {
-  padding-left: var(--mobile-sheet-gutter, 16px);
-  padding-right: var(--mobile-sheet-gutter, 16px);
+@media (min-width: 768px) {
+  .floating-panel-shell .alert-stack,
+  .floating-panel-shell .closure-stack,
+  .floating-panel-shell .line-impact-panel-stack,
+  .floating-panel-shell .commute-grid,
+  .floating-panel-shell .accessibility-outages-scroll,
+  .floating-panel-shell .surface-notices-scroll,
+  .floating-panel-shell .reliability-list,
+  .floating-panel-shell .notification-settings-scroll,
+  .floating-panel-shell .my-stations-list {
+    padding-left: var(--mobile-sheet-gutter, 16px);
+    padding-right: calc(var(--mobile-sheet-gutter, 16px) - 8px);
+    scrollbar-gutter: stable;
+  }
+
+  .floating-panel-shell .my-stations-list {
+    padding-top: 4px;
+    padding-bottom: 16px;
+  }
+
+  .floating-panel-shell .commute-grid {
+    padding-top: 4px;
+  }
+
+  .floating-panel-shell .embedded-impact-panel > .alert-stack,
+  .floating-panel-shell .embedded-impact-panel > .closure-stack {
+    padding-left: 0;
+    padding-right: 0;
+    scrollbar-gutter: auto;
+  }
 }
 
 .panel-heading,

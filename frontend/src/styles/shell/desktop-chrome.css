@@ -1226,3 +1226,195 @@
   background: #ffffff;
   color: #000000;
 }
+
+/* --------------------------------------------------------------------------
+   Desktop Quick Shortcuts (Subordinate Navigation under Hamburger Button)
+   -------------------------------------------------------------------------- */
+
+.desktop-quick-shortcuts {
+  margin-top: 14px;
+}
+
+.desktop-quick-action-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              background-color 180ms ease,
+              border-color 180ms ease,
+              box-shadow 180ms ease,
+              color 180ms ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  outline: none;
+}
+
+.desktop-quick-action-btn:hover {
+  transform: scale(1.06);
+}
+
+.desktop-quick-action-btn:active {
+  transform: scale(0.95);
+}
+
+.desktop-quick-action-btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.45);
+}
+
+/* My Commutes - Emerald Accent */
+.desktop-quick-action-btn--commutes {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(16, 185, 129, 0.4);
+  color: #059669;
+  box-shadow: 0 2px 8px -1px rgba(16, 185, 129, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.desktop-quick-action-btn--commutes:hover {
+  background: #ffffff;
+  border-color: rgba(16, 185, 129, 0.75);
+  color: #047857;
+  box-shadow: 0 4px 14px -1px rgba(16, 185, 129, 0.38), 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.dark .desktop-quick-action-btn--commutes {
+  background: rgba(15, 23, 34, 0.88);
+  border: 1.5px solid rgba(52, 211, 153, 0.35);
+  color: #34d399;
+  box-shadow: 0 3px 12px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .desktop-quick-action-btn--commutes:hover {
+  background: rgba(6, 78, 59, 0.4);
+  border-color: rgba(52, 211, 153, 0.7);
+  color: #6ee7b7;
+  box-shadow: 0 4px 18px -2px rgba(16, 185, 129, 0.45), 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+/* My Stations - Sky/Blue Accent */
+.desktop-quick-action-btn--stations {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(14, 165, 233, 0.4);
+  color: #0284c7;
+  box-shadow: 0 2px 8px -1px rgba(14, 165, 233, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.desktop-quick-action-btn--stations:hover {
+  background: #ffffff;
+  border-color: rgba(14, 165, 233, 0.75);
+  color: #0369a1;
+  box-shadow: 0 4px 14px -1px rgba(14, 165, 233, 0.38), 0 0 10px rgba(14, 165, 233, 0.2);
+}
+
+.dark .desktop-quick-action-btn--stations {
+  background: rgba(15, 23, 34, 0.88);
+  border: 1.5px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  box-shadow: 0 3px 12px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .desktop-quick-action-btn--stations:hover {
+  background: rgba(12, 74, 110, 0.4);
+  border-color: rgba(56, 189, 248, 0.7);
+  color: #7dd3fc;
+  box-shadow: 0 4px 18px -2px rgba(14, 165, 233, 0.45), 0 0 12px rgba(14, 165, 233, 0.3);
+}
+
+/* Micro-badge for quick action buttons */
+.desktop-quick-action-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.dark .desktop-quick-action-badge {
+  border-color: #0e1622;
+}
+
+.desktop-quick-action-badge--alert {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.desktop-quick-action-badge--stations {
+  background: rgba(14, 165, 233, 0.92);
+  color: #ffffff;
+}
+
+.dark .desktop-quick-action-badge--stations {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* Tooltip flyout on hover */
+.desktop-quick-action-tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 140ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.dark .desktop-quick-action-tooltip {
+  background: rgba(22, 30, 44, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.desktop-quick-action-btn:hover .desktop-quick-action-tooltip {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.high-contrast .desktop-quick-action-btn,
+.linewatch-shell.high-contrast .desktop-quick-action-btn {
+  border: 1.5px solid #ffffff;
+  background: #000000;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.high-contrast .desktop-quick-action-badge,
+.linewatch-shell.high-contrast .desktop-quick-action-badge {
+  border: 1.5px solid #ffffff;
+  background: #000000;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.high-contrast .desktop-quick-action-tooltip,
+.linewatch-shell.high-contrast .desktop-quick-action-tooltip {
+  border: 1px solid #ffffff;
+  background: #000000;
+  color: #ffffff;
+}
+

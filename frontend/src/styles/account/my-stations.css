@@ -60,6 +60,7 @@
 }
 
 .my-stations-heading {
+  border-bottom: none;
   flex: 0 0 auto;
 }
 
@@ -115,7 +116,8 @@
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
-  padding: 12px 6px 12px 12px;
+  overflow: hidden;
+  padding: 0;
 }
 
 .my-stations-controls {
@@ -123,7 +125,9 @@
   flex: 0 0 auto;
   gap: 8px;
   padding-bottom: 10px;
-  padding-right: 6px;
+  padding-left: 0;
+  padding-right: 0;
+  width: 100%;
 }
 
 .my-stations-controls-top {
@@ -271,7 +275,6 @@
   min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 6px;
   width: 100%;
 }
 
@@ -1504,12 +1507,13 @@
   }
 
   .my-stations-body {
-    padding: 12px var(--mobile-sheet-gutter, 16px);
+    padding: 0 var(--mobile-sheet-gutter, 16px) 16px;
   }
 
   .my-stations-controls {
     border-bottom: none;
     padding-bottom: 10px;
+    padding-left: 0;
     padding-right: 0;
   }
 
@@ -1518,6 +1522,7 @@
   }
 
   .my-stations-list {
+    padding-left: 0;
     padding-right: 0;
   }
 

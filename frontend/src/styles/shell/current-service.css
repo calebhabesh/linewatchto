@@ -161,7 +161,7 @@
   color: var(--muted);
   text-align: left;
 }
-.desktop-status-chip-row-container > .current-service { position: absolute; bottom: calc(100% - 12px); left: 0; margin-bottom: 0; }
+.desktop-status-chip-row-container > .current-service { position: absolute; bottom: calc(100% - 20px); left: 0; margin-bottom: 0; }
 .mobile-status-peek > .current-service { position: absolute; bottom: calc(100% + 8px); left: 0; margin-bottom: 0; }
 @media (max-width: 767px) {
   .current-service-heading { gap: 2px 6px; margin-bottom: 2px; }
@@ -393,7 +393,7 @@
 
 @media (min-width: 768px) {
   .desktop-status-chip-row-container > .current-service {
-    bottom: calc(100% - 12px);
+    bottom: calc(100% - 20px);
     margin-bottom: 0;
     border-top-left-radius: 14px;
     border-top-right-radius: 14px;

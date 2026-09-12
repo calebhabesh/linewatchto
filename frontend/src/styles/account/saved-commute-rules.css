@@ -41,12 +41,23 @@
 .saved-commute-form input,
 .saved-commute-form select {
   background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  border: 1px solid transparent;
   border-radius: 8px;
   color: rgb(15, 23, 42);
   min-height: 40px;
   padding: 0.5rem 0.625rem;
   scroll-margin-bottom: 2rem;
+}
+
+.saved-commute-form input:focus,
+.saved-commute-form select:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.58);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+}
+
+.saved-commute-form input::placeholder {
+  color: rgb(100, 116, 139);
 }
 
 .saved-commute-form input {
@@ -232,12 +243,26 @@
 }
 
 .dark .saved-commute-form input,
-.dark .saved-commute-form select,
+.dark .saved-commute-form select {
+  background: rgba(18, 21, 28, 0.92);
+  border: 1px solid transparent;
+  box-shadow: none;
+  color: rgb(248, 250, 252);
+}
+
+.dark .saved-commute-form input::placeholder {
+  color: rgb(148, 163, 184);
+}
+
 .high-contrast .saved-commute-form input,
 .high-contrast .saved-commute-form select {
-  background: rgba(15, 23, 42, 0.82);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: #000000;
+  border: 1px solid #ffffff;
   color: rgb(248, 250, 252);
+}
+
+.high-contrast .saved-commute-form input::placeholder {
+  color: rgb(148, 163, 184);
 }
 
 .saved-commute-primary-button {
@@ -713,9 +738,12 @@
 
 .saved-commute-notification-summary {
   align-items: center;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.18);
+  background: #f1f5f9;
+  border: none;
   border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
   display: flex;
   gap: 0.6rem;
   justify-content: space-between;
@@ -752,10 +780,13 @@
 }
 
 .saved-commute-notification-summary button {
-  background: rgba(16, 185, 129, 0.14);
-  border: 1px solid rgba(16, 185, 129, 0.28);
+  background: #e2e8f0;
+  border: 1px solid transparent;
   border-radius: 8px;
-  color: rgb(4, 120, 87);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    var(--mobile-card-shadow);
+  color: rgb(15, 23, 42);
   flex: 0 0 auto;
   font-size: 0.68rem;
   font-weight: 900;
@@ -1341,10 +1372,18 @@
    Saved Commute Rules Dark & High-Contrast Overrides
    ========================================================================== */
 
-.dark .saved-commute-notification-summary,
+.dark .saved-commute-notification-summary {
+  background: #161a23;
+  border: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
 .high-contrast .saved-commute-notification-summary {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.22);
+  background: #000000;
+  border: 1px solid #ffffff;
+  box-shadow: none;
 }
 
 .dark .saved-commute-rule-summary {
@@ -1403,10 +1442,24 @@
   color: rgb(255, 255, 255);
 }
 
-.dark .saved-commute-notification-summary button,
-.dark .saved-commute-rule-summary button,
-.dark .saved-commute-rule-actions button,
+.dark .saved-commute-notification-summary button {
+  background: #232a3b;
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--mobile-card-shadow);
+  color: #f1f5f9;
+}
+
 .high-contrast .saved-commute-notification-summary button {
+  background: #ffffff;
+  border: 1px solid #ffffff;
+  color: #000000;
+  box-shadow: none;
+}
+
+.dark .saved-commute-rule-summary button,
+.dark .saved-commute-rule-actions button {
   background: rgba(16, 185, 129, 0.16);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),

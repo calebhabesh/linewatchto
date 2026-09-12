@@ -540,7 +540,8 @@
 .dark .subway-closed-peek-chip,
 .dark .go-up-closed-peek-chip,
 .dark .subway-closing-soon-chip,
-.dark .go-up-closing-soon-chip {
+.dark .go-up-closing-soon-chip,
+.dark .desktop-quick-action-btn {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 10px 25px -3px rgba(0, 0, 0, 0.45);
@@ -556,6 +557,7 @@
 .high-contrast .rotate-map-btn,
 .high-contrast .desktop-map-control-rail,
 .high-contrast .map-control-rail,
+.high-contrast .desktop-quick-action-btn,
 .linewatch-shell.high-contrast .menu-toggle-btn,
 .linewatch-shell.high-contrast .header-search-bar,
 .linewatch-shell.high-contrast .desktop-status-capsule,
@@ -565,7 +567,8 @@
 .linewatch-shell.high-contrast .logs-trigger-btn,
 .linewatch-shell.high-contrast .rotate-map-btn,
 .linewatch-shell.high-contrast .desktop-map-control-rail,
-.linewatch-shell.high-contrast .map-control-rail {
+.linewatch-shell.high-contrast .map-control-rail,
+.linewatch-shell.high-contrast .desktop-quick-action-btn {
   border: 1px solid #ffffff !important;
   box-shadow: none !important;
 }
@@ -617,12 +620,14 @@
       var(--shadow);
   }
   .menu-toggle-btn.desktop-top-chrome,
+  .desktop-quick-action-btn.desktop-top-chrome,
   .header-search-bar.desktop-top-chrome {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.75),
       0 10px 15px -3px rgba(0, 0, 0, 0.08);
   }
   .dark .menu-toggle-btn.desktop-top-chrome,
+  .dark .desktop-quick-action-btn.desktop-top-chrome,
   .dark .header-search-bar.desktop-top-chrome {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),

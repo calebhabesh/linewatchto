@@ -173,7 +173,7 @@ test("CurrentServicePanel pull up sheet has vanishing bottom edge into badges an
   const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
 
   // Bottom edge positioned closer to alert badges
-  assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service\s*\{[^}]*bottom:\s*calc\(100%\s*-\s*12px\);/s);
+  assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service\s*\{[^}]*bottom:\s*calc\(100%\s*-\s*20px\);/s);
 
   // Vanishing edge on bottom of pull up sheet via mask-image on ::before
   assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service::before\s*\{[^}]*mask-image:\s*linear-gradient\(to bottom,[^}]*transparent\s*100%\);/s);

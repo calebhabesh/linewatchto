@@ -293,7 +293,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /data-travel-time-severity/);
     assert.match(globalCss, /\.saved-commute-time-estimate/);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable/);
-    assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable p\s*\{(?=[^}]*justify-items:\s*center)(?=[^}]*padding:\s*0\.35rem 0\.5rem)(?=[^}]*text-align:\s*center)[^}]*\}/s);
+    assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable p\s*\{(?=[^}]*justify-items:\s*center)(?=[^}]*padding:\s*0\.75rem 0\.5rem 0)(?=[^}]*text-align:\s*center)[^}]*\}/s);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable \.saved-commute-time-verdict\s*\{[^}]*text-align:\s*center;[^}]*width:\s*100%;/s);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable p > strong,[\s\S]*?\.saved-commute-time-estimate\.unreliable p > span\s*\{(?=[^}]*font-size:\s*1rem !important)(?=[^}]*font-weight:\s*850)(?=[^}]*text-transform:\s*none !important)[^}]*\}/s);
     assert.match(savedCommutesSource, /saved-commute-time-status-value/);

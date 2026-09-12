@@ -332,7 +332,7 @@
   .panel-header {
     border-bottom: none;
     min-height: 44px;
-    padding: 14px var(--mobile-sheet-gutter, 12px) 0;
+    padding: 14px var(--mobile-sheet-gutter, 12px) 14px;
   }
 
   .floating-panel-shell .panel-header-title,
@@ -402,7 +402,7 @@
     border-bottom: none;
     margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px));
     min-height: 44px;
-    padding: 4px var(--mobile-sheet-gutter, 10px) 4px;
+    padding: 8px var(--mobile-sheet-gutter, 10px) 14px;
   }
 
   .mobile-sheet-heading h2 {
@@ -723,11 +723,14 @@
     font-size: 0.72rem;
   }
 
-  .my-stations-body,
-  .my-stations-controls,
+  .my-stations-controls {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
   .my-stations-list {
     gap: 8px;
-    padding: 8px;
+    padding: 0;
   }
 
   .my-stations-controls-top {
