@@ -1,5 +1,7 @@
 "use client";
 
+import { FilterOptionCount } from "./FilterOptionCount";
+
 import React, { useState, useEffect, useRef, useId } from "react";
 import Image from "next/image";
 import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, CircleAlert, ExternalLink, MapPin, Megaphone, Search, Bus } from "lucide-react";
@@ -22,7 +24,7 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
   label: string;
   prefix: string;
   value: string;
-  options: { value: string; label: string; icon?: React.ReactNode }[];
+  options: { value: string; label: string; icon?: React.ReactNode; count?: number }[];
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -48,6 +50,7 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
           {selectedOption?.icon}
           <span>{selectedOption?.label}</span>
         </span>
+        <FilterOptionCount count={selectedOption?.count} />
         <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
       </button>
       <DropdownMenuPortal
@@ -76,6 +79,7 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
             >
               {option.icon}
               <span>{option.label}</span>
+              <FilterOptionCount count={option.count} />
             </button>
           </li>
         ))}
@@ -452,13 +456,14 @@ export function SurfaceNoticesPanel({
             <div className="alert-history-selects-row surface-notice-filters">
               {regional ? <NoticeFilter label="Filter GO / UP notices by service" prefix="Service"
                 value={serviceType} onChange={(value) => setServiceType(value as typeof serviceType)}
-                options={[{ value: "all", label: "All services" }, { value: "train", label: "Train" }, { value: "bus", label: "Bus" }]} /> : null}
+                options={[{ value: "all", label: "All services", count: data?.notices.length }, { value: "train", label: "Train", count: data?.notices.filter((notice) => notice.routeType !== "GO Bus").length }, { value: "bus", label: "Bus", count: data?.notices.filter((notice) => notice.routeType === "GO Bus").length }]} /> : null}
               <NoticeFilter label="Notice type" prefix="Type" value={category}
                 onChange={(value) => setCategory(value as typeof category)}
-                options={[{ value: "all", label: `All Types (${totalCount})` },
+                options={[{ value: "all", label: "All Types", count: data ? totalCount : undefined },
                   ...visibleCategories.map((cat) => ({
                     value: cat,
-                    label: `${getCategoryLabel(cat)} (${getCategoryCount(cat)})`,
+                    label: getCategoryLabel(cat),
+                    count: data ? getCategoryCount(cat) : undefined,
                     icon: <SurfaceCategoryIcon category={cat} size={12} className="shrink-0" />,
                   }))]} />
               <NoticeFilter label="Sort notices" prefix="Sort" value={sortOrder}

@@ -1,5 +1,7 @@
 "use client";
 
+import { FilterOptionCount } from "./FilterOptionCount";
+
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, LayoutList, PanelsTopLeft, Search } from "lucide-react";
 import type { ImpactListSort } from "../app/impact-list-controls";
@@ -16,6 +18,7 @@ export type ToolbarSelectOption<T extends string> = {
   value: T;
   label: string;
   lineId?: string;
+  count?: number;
 };
 
 type Props = {
@@ -23,6 +26,7 @@ type Props = {
   totalCount: number;
   visibleCount: number;
   lineIds: string[];
+  lineCounts: Record<string, number>;
   lineId: string;
   onLineIdChange: (lineId: string) => void;
   query: string;
@@ -133,6 +137,7 @@ export function ToolbarSelectMenu<T extends string>({
       >
         <span className="impact-list-control-prefix">{prefix}</span>
         {selectedOption ? <SelectOptionLabel option={selectedOption} /> : <span>{prefix}</span>}
+        <FilterOptionCount count={selectedOption?.count} />
         <ChevronDown
           size={14}
           className="text-slate-400 dark:text-slate-500 shrink-0"
@@ -170,7 +175,8 @@ export function ToolbarSelectMenu<T extends string>({
               }}
             >
               <SelectOptionLabel option={option} />
-              {selected ? <Check size={12} className="text-emerald-500 dark:text-emerald-400 shrink-0 ml-2" /> : null}
+              <FilterOptionCount count={option.count} />
+              {selected && option.count === undefined ? <Check size={12} className="text-emerald-500 dark:text-emerald-400 shrink-0 ml-2" /> : null}
             </button>
           );
         })}
@@ -184,6 +190,7 @@ export function ImpactListToolbar({
   totalCount,
   visibleCount,
   lineIds,
+  lineCounts,
   lineId,
   onLineIdChange,
   query,
@@ -196,8 +203,8 @@ export function ImpactListToolbar({
 }: Props) {
   const filtering = lineId !== "all" || Boolean(query.trim());
   const lineOptions: ToolbarSelectOption<string>[] = [
-    { value: "all", label: "All Lines" },
-    ...lineIds.map((id) => ({ value: id, label: lineLabel(id), lineId: id })),
+    { value: "all", label: "All Lines", count: Object.values(lineCounts).reduce((sum, count) => sum + count, 0) },
+    ...lineIds.map((id) => ({ value: id, label: lineLabel(id), lineId: id, count: lineCounts[id] ?? 0 })),
   ];
 
   return (

@@ -721,6 +721,15 @@ for (const width of [320, 375, 412]) {
       .getByRole("button", { name: /Streetcar & Bus Notices/ }).click();
     const header = page.locator('.mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading');
     await expect(header.locator(".surface-notices-source-tag")).toBeVisible();
+    await page.getByRole("button", { name: "Notice type" }).click();
+    const typeOptions = page.getByRole("menuitemradio");
+    await expect(typeOptions.first().locator(".filter-option-count")).toBeVisible();
+    await expect(typeOptions.first()).not.toContainText("(");
+    const countEdges = await typeOptions.locator(".filter-option-count").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().right));
+    expect(Math.max(...countEdges) - Math.min(...countEdges)).toBeLessThan(2);
+    await page.screenshot({ path: `/tmp/linewatch-notice-counts-${width}.png` });
+    await page.getByRole("button", { name: "Notice type" }).click();
+
     await expect.poll(() => header.evaluate(element => {
       const title = element.querySelector("h2")!;
       const label = title.querySelector("span")!;

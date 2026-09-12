@@ -1,5 +1,7 @@
 "use client";
 
+import { FilterOptionCount } from "./FilterOptionCount";
+
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -215,6 +217,16 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
     until: historyWindow.until,
   }, searchIndex), [deferredSearchQuery, filter, history, historyWindow, searchIndex, selectedLineId, selectedTypeId, selectedSortBy]);
 
+  const countHistoryOption = (lineId: string, typeId: string) => loading ? undefined : filterAndSortAlertHistory(history, {
+    statusFilter: filter,
+    lineId,
+    typeId,
+    searchQuery: deferredSearchQuery,
+    sortBy: selectedSortBy,
+    since: historyWindow.since,
+    until: historyWindow.until,
+  }, searchIndex).length;
+
   const resultSetKey = [
     network,
     period,
@@ -316,6 +328,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                 ) : (
                   <span className="truncate">{selectedLineOption?.label ?? (network === "regional" ? "All Corridors" : "All Lines")}</span>
                 )}
+                <FilterOptionCount count={countHistoryOption(selectedLineId, selectedTypeId)} />
                 <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
               </button>
               <DropdownMenuPortal
@@ -348,6 +361,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                       ) : (
                         <span className="truncate">{option.label}</span>
                       )}
+                      <FilterOptionCount count={countHistoryOption(option.value, selectedTypeId)} />
                     </button>
                   </li>
                 ))}
@@ -372,6 +386,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                   {renderTypeOptionIcon(selectedTypeOption.value)}
                   <span className="truncate">{selectedTypeOption.label}</span>
                 </span>
+                <FilterOptionCount count={countHistoryOption(selectedLineId, selectedTypeId)} />
                 <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
               </button>
               <DropdownMenuPortal
@@ -400,6 +415,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                         {renderTypeOptionIcon(option.value)}
                         <span className="truncate">{option.label}</span>
                       </span>
+                      <FilterOptionCount count={countHistoryOption(selectedLineId, option.value)} />
                     </button>
                   </li>
                 ))}

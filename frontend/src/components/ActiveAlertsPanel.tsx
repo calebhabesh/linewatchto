@@ -136,6 +136,7 @@ export function ActiveAlertsPanel({
           totalCount={activeAlerts.length}
           visibleCount={visibleAlerts.length}
           lineIds={lineIds}
+          lineCounts={Object.fromEntries(lineIds.map((id) => [id, filterAndSortImpacts(activeAlerts, { lineId: id, query: effectiveQuery, sort: effectiveSort }).length]))}
           lineId={lineId}
           onLineIdChange={setLineId}
           query={query}

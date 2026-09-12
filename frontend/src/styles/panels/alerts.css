@@ -1628,3 +1628,31 @@
     padding-left: 48px;
   }
 }
+
+/* Keep filter result counts aligned independently of labels and selection state. */
+.filter-option-count {
+  margin-left: auto;
+  padding-left: 0.75rem;
+  flex-shrink: 0;
+  color: #806f47;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.dark .filter-option-count,
+.high-contrast .filter-option-count {
+  color: #b8a66f;
+}
+
+.impact-list-select-trigger:has(.filter-option-count) {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.alert-history-line-filter-trigger .filter-option-count {
+  color: #806f47;
+}
+
+.dark .alert-history-line-filter-trigger .filter-option-count,
+.high-contrast .alert-history-line-filter-trigger .filter-option-count {
+  color: #b8a66f;
+}

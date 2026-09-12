@@ -111,6 +111,7 @@ export function ReducedSpeedZonesPanel({
           totalCount={reducedSpeedZones.length}
           visibleCount={visibleZones.length}
           lineIds={lineIds}
+          lineCounts={Object.fromEntries(lineIds.map((id) => [id, countReducedSpeedZones(filterAndSortImpacts(reducedSpeedZones, { lineId: id, query: effectiveQuery, sort: effectiveSort }))]))}
           lineId={lineId}
           onLineIdChange={setLineId}
           query={query}

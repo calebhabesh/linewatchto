@@ -3030,6 +3030,16 @@ test("alert history renders one stable card per incident occurrence with its ful
   await expect(page.getByRole("heading", { name: "Alert History", exact: true })).toBeVisible();
   await expect(page.locator(".alert-history-item")).toHaveCount(2);
 
+  await page.getByRole("button", { name: "Alert type", exact: true }).click();
+  const allTypes = page.locator(".alert-history-line-filter-option").filter({ hasText: "All Types" });
+  await expect(allTypes.locator(".filter-option-count")).toHaveText("2");
+  await expect(allTypes).not.toContainText("(");
+  const counts = page.locator(".alert-history-line-filter-options .filter-option-count");
+  await expect(counts.first()).toBeVisible();
+  const rightEdges = await counts.evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().right));
+  expect(Math.max(...rightEdges) - Math.min(...rightEdges)).toBeLessThan(2);
+  await page.getByRole("button", { name: "Alert type", exact: true }).click();
+
   const clearedIncident = page.locator(".alert-history-item").filter({ hasText: "Track issue at Warden" });
   await expect(clearedIncident).toHaveCount(1);
   await expect(clearedIncident.locator(".alert-history-status-label")).toHaveText("Cleared");
@@ -3043,6 +3053,7 @@ test("alert history renders one stable card per incident occurrence with its ful
   await page.getByRole("button", { name: "Active", exact: true }).click();
   await expect(page.locator(".alert-history-item")).toHaveCount(1);
   await expect(activeIncident).toBeVisible();
+  await expect(page.getByRole("button", { name: "Alert type", exact: true }).locator(".filter-option-count")).toHaveText("1");
   await page.getByRole("button", { name: "Cleared", exact: true }).click();
   await expect(page.locator(".alert-history-item")).toHaveCount(1);
   await expect(clearedIncident).toBeVisible();

@@ -1155,10 +1155,16 @@ export function MyStationsPanel({
     () => LINES.filter((line) => pickerCatalog.some(({ station }) => station.lineIds.includes(line.id))),
     [pickerCatalog],
   );
-  const lineOptions = useMemo<ToolbarSelectOption<string>[]>(() => [
-    { value: "all", label: "All Lines" },
-    ...availableLines.map((line) => ({ value: line.id, label: line.name, lineId: line.id })),
-  ], [availableLines]);
+  const lineOptions = useMemo<ToolbarSelectOption<string>[]>(() => {
+    const networkStations = savedStations.filter((saved) => networkFilter === "all" || saved.networkId === networkFilter);
+    const countForLine = (id: string) => filterAndSortSavedStations(networkStations, query, id, "attention").length;
+    return [
+      { value: "all", label: "All Lines", count: countForLine("all") },
+      ...availableLines.map((line) => ({
+        value: line.id, label: line.name, lineId: line.id, count: countForLine(line.id),
+      })),
+    ];
+  }, [availableLines, savedStations, networkFilter, query]);
   const savedStationsWithRouteImpacts = useMemo(
     () => savedStations
       .filter((saved) => networkFilter === "all" || saved.networkId === networkFilter)

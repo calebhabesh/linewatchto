@@ -115,6 +115,7 @@ export function PlannedClosuresPanel({
           totalCount={plannedClosures.length}
           visibleCount={visibleClosures.length}
           lineIds={lineIds}
+          lineCounts={Object.fromEntries(lineIds.map((id) => [id, filterAndSortImpacts(plannedClosures, { lineId: id, query: effectiveQuery, sort: effectiveSort }).length]))}
           lineId={lineId}
           onLineIdChange={setLineId}
           query={query}
