@@ -51,7 +51,8 @@
   .release-notes-content,
   .privacy-acknowledgements-scroll,
   .saved-commute-sort-options,
-  .my-stations-list {
+  .my-stations-list,
+  .alert-history-scroll {
     scrollbar-width: thin; /* Firefox */
     scrollbar-color: #303641 transparent; /* Firefox */
     -ms-overflow-style: auto; /* IE 10+ */
@@ -75,7 +76,8 @@
   .release-notes-content::-webkit-scrollbar,
   .privacy-acknowledgements-scroll::-webkit-scrollbar,
   .saved-commute-sort-options::-webkit-scrollbar,
-  .my-stations-list::-webkit-scrollbar {
+  .my-stations-list::-webkit-scrollbar,
+  .alert-history-scroll::-webkit-scrollbar {
     display: block;
     width: 8px;
     height: 8px;
@@ -106,7 +108,8 @@
   .release-notes-content::-webkit-scrollbar-track,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-track,
   .saved-commute-sort-options::-webkit-scrollbar-track,
-  .my-stations-list::-webkit-scrollbar-track {
+  .my-stations-list::-webkit-scrollbar-track,
+  .alert-history-scroll::-webkit-scrollbar-track {
     background: transparent;
   }
 
@@ -129,7 +132,8 @@
   .release-notes-content::-webkit-scrollbar-thumb,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
   .saved-commute-sort-options::-webkit-scrollbar-thumb,
-  .my-stations-list::-webkit-scrollbar-thumb {
+  .my-stations-list::-webkit-scrollbar-thumb,
+  .alert-history-scroll::-webkit-scrollbar-thumb {
     background: #303641;
     border-radius: 999px;
     border: 1px solid transparent;
@@ -154,7 +158,8 @@
   .release-notes-content::-webkit-scrollbar-thumb:hover,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb:hover,
   .saved-commute-sort-options::-webkit-scrollbar-thumb:hover,
-  .my-stations-list::-webkit-scrollbar-thumb:hover {
+  .my-stations-list::-webkit-scrollbar-thumb:hover,
+  .alert-history-scroll::-webkit-scrollbar-thumb:hover {
     background: #4d5667;
   }
 
@@ -199,7 +204,8 @@
   .linewatch-shell.high-contrast .surface-notices-scroll,
   .linewatch-shell.high-contrast .release-notes-content,
   .linewatch-shell.high-contrast .privacy-acknowledgements-scroll,
-  .linewatch-shell.high-contrast .my-stations-list {
+  .linewatch-shell.high-contrast .my-stations-list,
+  .linewatch-shell.high-contrast .alert-history-scroll {
     scrollbar-color: #ffffff #000000;
   }
 
@@ -212,7 +218,8 @@
   .linewatch-shell.high-contrast .surface-notices-scroll::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .release-notes-content::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
-  .linewatch-shell.high-contrast .my-stations-list::-webkit-scrollbar-thumb {
+  .linewatch-shell.high-contrast .my-stations-list::-webkit-scrollbar-thumb,
+  .linewatch-shell.high-contrast .alert-history-scroll::-webkit-scrollbar-thumb {
     background: #ffffff;
   }
 

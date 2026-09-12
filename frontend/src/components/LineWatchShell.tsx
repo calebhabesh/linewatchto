@@ -142,6 +142,7 @@ import {
   saveStation,
   type AccountSavedStation,
 } from "../app/saved-station-data";
+import { summarizeSavedStationStatuses } from "../app/saved-stations";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { normalizeAccountEmail, validateAccountCredentials, validateAccountEmail } from "../app/account-validation";
@@ -1622,15 +1623,10 @@ export function LineWatchShell({
     [ttcData, regionalData],
   );
 
-  const savedStationsAffectedCount = useMemo(() => {
-    return savedStations.filter((saved) => {
-      const live = stationCatalogs[saved.networkId]?.find((s) => s.id === saved.station.id) ?? saved.station;
-      const hasImpact = live.hasActiveImpact || (stationImpactSelections[saved.networkId]?.has(saved.station.id) ?? false);
-      const counts = live.accessOutageCounts ?? { elevator: 0, escalator: 0 };
-      const outageCount = counts.elevator + counts.escalator;
-      return hasImpact || outageCount > 0 || live.accessStatus === "outage";
-    }).length;
-  }, [savedStations, stationCatalogs, stationImpactSelections]);
+  const { clear: savedStationsClearCount, affectedNow: savedStationsAffectedCount } = useMemo(
+    () => summarizeSavedStationStatuses(savedStations, stationCatalogs, stationImpactSelections),
+    [savedStations, stationCatalogs, stationImpactSelections],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -3620,6 +3616,8 @@ export function LineWatchShell({
             commuteAffectedCount={commuteAffectedCount}
             onOpenMyStations={() => navigateForward("my-stations")}
             savedStationCount={savedStations.length}
+            savedStationClearCount={savedStationsClearCount}
+            savedStationAffectedCount={savedStationsAffectedCount}
             defaultNetwork={defaultNetworkPreference}
             currentNetwork={selectedNetwork}
             onDefaultNetworkChange={handleDefaultNetworkChange}
@@ -4250,16 +4248,26 @@ export function LineWatchShell({
                           <MapPin size={18} className="text-slate-500 dark:text-slate-400" />
                           My Stations
                         </span>
-                        {savedStations.length > 0 ? (
-                          <span
-                            className={`desktop-menu-count-badge desktop-menu-count-stations flex h-6 ${
-                              savedStations.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                            } items-center justify-center rounded-full text-[11px] font-bold`}
-                            aria-label={`${savedStations.length} saved stations`}
-                          >
-                            {savedStations.length}
-                          </span>
-                        ) : null}
+                        {savedStations.length > 0 && (
+                          <div className="flex items-center gap-1.5 shrink-0" data-testid="station-status-badges">
+                            <span
+                              className={`desktop-menu-count-badge desktop-menu-count-stations-clear flex h-6 ${
+                                savedStationsClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                              } items-center justify-center rounded-full text-[11px] font-bold`}
+                              aria-label={`${savedStationsClearCount} clear stations`}
+                            >
+                              {savedStationsClearCount}
+                            </span>
+                            <span
+                              className={`desktop-menu-count-badge desktop-menu-count-stations-affected flex h-6 ${
+                                savedStationsAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                              } items-center justify-center rounded-full text-[11px] font-bold`}
+                              aria-label={`${savedStationsAffectedCount} affected stations`}
+                            >
+                              {savedStationsAffectedCount}
+                            </span>
+                          </div>
+                        )}
                       </button>
                     </div>
                   ) : (
@@ -4338,16 +4346,26 @@ export function LineWatchShell({
                           <MapPin size={18} className="text-slate-500 dark:text-slate-400" />
                           My Stations
                         </span>
-                        {savedStations.length > 0 ? (
-                          <span
-                            className={`desktop-menu-count-badge desktop-menu-count-stations flex h-6 ${
-                              savedStations.length < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                            } items-center justify-center rounded-full text-[11px] font-bold`}
-                            aria-label={`${savedStations.length} saved stations`}
-                          >
-                            {savedStations.length}
-                          </span>
-                        ) : null}
+                        {savedStations.length > 0 && (
+                          <div className="flex items-center gap-1.5 shrink-0" data-testid="station-status-badges">
+                            <span
+                              className={`desktop-menu-count-badge desktop-menu-count-stations-clear flex h-6 ${
+                                savedStationsClearCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                              } items-center justify-center rounded-full text-[11px] font-bold`}
+                              aria-label={`${savedStationsClearCount} clear stations`}
+                            >
+                              {savedStationsClearCount}
+                            </span>
+                            <span
+                              className={`desktop-menu-count-badge desktop-menu-count-stations-affected flex h-6 ${
+                                savedStationsAffectedCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                              } items-center justify-center rounded-full text-[11px] font-bold`}
+                              aria-label={`${savedStationsAffectedCount} affected stations`}
+                            >
+                              {savedStationsAffectedCount}
+                            </span>
+                          </div>
+                        )}
                       </button>
                     </div>
                   )}

@@ -36,8 +36,12 @@ export function PanelHeader({
   actions,
   titleBadge,
 }: PanelHeaderProps) {
+  const hasMetadata = Boolean(metadata);
   return (
-    <div className={`panel-heading panel-header ${className}`.trim()}>
+    <div
+      className={`panel-heading panel-header ${hasMetadata ? "panel-header--has-metadata" : ""} ${className}`.trim()}
+      data-has-metadata={hasMetadata ? "true" : undefined}
+    >
       {kicker ? <div className="panel-header-kicker">{kicker}</div> : null}
       <div className="panel-header-primary">
         <div className={`panel-header-title-group ${titleGroupClassName}`.trim()}>

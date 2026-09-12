@@ -4,10 +4,10 @@ import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from 
 import Image from "next/image";
 import { AlertCircle, ArrowDownToLine, Bookmark, CalendarCheck2, ChevronDown, ChevronRight, FileText, Layers, LoaderCircle, MapPin, Plus, Search, Train, X } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
+import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountSavedStation } from "../app/saved-station-data";
 import type { AccountState } from "../app/account-data";
-import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
-import { filterAndSortSavedStations, type SavedStationSort } from "../app/saved-stations";
+import { filterAndSortSavedStations, summarizeSavedStationStatuses } from "../app/saved-stations";
 import {
   ARRIVAL_COUNTDOWN_TICK_MS,
   formatArrivalClockTime,
@@ -106,14 +106,6 @@ const LINES = [
     text: "#ffffff",
   })),
 ] as const;
-
-const SORT_OPTIONS: Array<{ value: SavedStationSort; label: string }> = [
-  { value: "attention", label: "Needs Attention" },
-  { value: "name", label: "Name A-Z" },
-  { value: "recent", label: "Recently Saved" },
-  { value: "oldest", label: "Oldest Saved" },
-  { value: "line", label: "Line" },
-];
 
 const SAVED_STATION_DETAIL_REFRESH_MS = 15_000;
 
@@ -1127,7 +1119,6 @@ export function MyStationsPanel({
     });
   }, [listModeEpoch]);
   const [networkFilter, setNetworkFilter] = useState<AccountNetworkFilter>("all");
-  const [sort, setSort] = useState<SavedStationSort>("attention");
   const [lastRemoved, setLastRemoved] = useState<{ saved: AccountSavedStation; index: number } | null>(null);
   const [stationDetails, setStationDetails] = useState<Record<string, StationDataResult<StationDetail | null>>>({});
   const [regionalArrivalDetails, setRegionalArrivalDetails] = useState<Record<string, RegionalArrivalDataResult>>({});
@@ -1177,8 +1168,16 @@ export function MyStationsPanel({
     [networkFilter, savedStations, stationImpactSelections],
   );
   const visible = useMemo(
-    () => filterAndSortSavedStations(savedStationsWithRouteImpacts, query, lineId, sort),
-    [savedStationsWithRouteImpacts, query, lineId, sort],
+    () => filterAndSortSavedStations(savedStationsWithRouteImpacts, query, lineId, "attention"),
+    [savedStationsWithRouteImpacts, query, lineId],
+  );
+  const { clear: allSavedStationsClearCount, affectedNow: allSavedStationsAffectedCount } = useMemo(
+    () => summarizeSavedStationStatuses(savedStations, stationCatalogs, stationImpactSelections),
+    [savedStations, stationCatalogs, stationImpactSelections],
+  );
+  const { clear: visibleSavedStationsClearCount, affectedNow: visibleSavedStationsAffectedCount } = useMemo(
+    () => summarizeSavedStationStatuses(visible, stationCatalogs, stationImpactSelections),
+    [visible, stationCatalogs, stationImpactSelections],
   );
   const pickerStations = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("en-CA");
@@ -1351,16 +1350,27 @@ export function MyStationsPanel({
         title="My Stations"
         icon={<MapPin className="my-stations-title-icon w-5 h-5 text-sky-500 shrink-0" aria-hidden="true" />}
         actions={
-          authenticated ? (
-            <span
-              className={`desktop-menu-count-badge desktop-menu-count-stations my-stations-count flex h-7 ${
-                savedStations.length < 10 ? "w-7" : "min-w-[28px] px-1.5"
-              } items-center justify-center rounded-full text-sm font-bold`}
-              data-single-digit={savedStations.length < 10 ? "true" : undefined}
-              aria-label={`${savedStations.length} saved stations`}
-            >
-              {savedStations.length}
-            </span>
+          authenticated && savedStations.length > 0 ? (
+            <div className="flex items-center gap-1.5 shrink-0" data-testid="header-station-status-badges">
+              <span
+                className={`desktop-menu-count-badge desktop-menu-count-stations-clear my-stations-count flex h-7 ${
+                  allSavedStationsClearCount < 10 ? "w-7" : "min-w-[28px] px-1.5"
+                } items-center justify-center rounded-full text-sm font-bold`}
+                data-single-digit={allSavedStationsClearCount < 10 ? "true" : undefined}
+                aria-label={`${allSavedStationsClearCount} clear stations`}
+              >
+                {allSavedStationsClearCount}
+              </span>
+              <span
+                className={`desktop-menu-count-badge desktop-menu-count-stations-affected my-stations-count flex h-7 ${
+                  allSavedStationsAffectedCount < 10 ? "w-7" : "min-w-[28px] px-1.5"
+                } items-center justify-center rounded-full text-sm font-bold`}
+                data-single-digit={allSavedStationsAffectedCount < 10 ? "true" : undefined}
+                aria-label={`${allSavedStationsAffectedCount} affected stations`}
+              >
+                {allSavedStationsAffectedCount}
+              </span>
+            </div>
           ) : null
         }
         onBack={() => mode === "add" ? leavePicker() : onBack()}
@@ -1423,7 +1433,7 @@ export function MyStationsPanel({
             </div>
           </div>
         ) : (
-          <div className={`my-stations-list${mode === "add" ? " my-stations-picker-list" : ""}`} aria-label={mode === "add" ? "Add stations" : "Saved stations"}>
+          <>
             <div className="my-stations-controls">
               <div className="my-stations-controls-top">
                 <label className={`impact-list-search my-stations-search${mode === "add" ? " picker-nudge" : ""}`}>
@@ -1489,18 +1499,28 @@ export function MyStationsPanel({
                   options={lineOptions}
                   onChange={setLineId}
                 />
-                <ToolbarSelectMenu
-                  ariaLabel="Sort saved stations"
-                  prefix="Sort"
-                  value={mode === "add" ? "name" : sort}
-                  options={SORT_OPTIONS}
-                  onChange={setSort}
-                  disabled={mode === "add"}
-                />
+                {mode === "list" && visible.length > 0 ? (
+                  <div className="flex items-center gap-1.5 ml-auto shrink-0" data-testid="station-status-badges">
+                    <span className="toolbar-status-badge toolbar-status-badge--total">
+                      {visible.length} Total
+                    </span>
+                    {visibleSavedStationsClearCount > 0 ? (
+                      <span className="toolbar-status-badge toolbar-status-badge--clear">
+                        {visibleSavedStationsClearCount} Clear
+                      </span>
+                    ) : null}
+                    {visibleSavedStationsAffectedCount > 0 ? (
+                      <span className="toolbar-status-badge toolbar-status-badge--affected">
+                        {visibleSavedStationsAffectedCount} Affected
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            {error ? (
+            <div className={`my-stations-list${mode === "add" ? " my-stations-picker-list" : ""}`} aria-label={mode === "add" ? "Add stations" : "Saved stations"}>
+              {error ? (
               <div className="my-stations-empty" role="alert">
                 <p>Could not load saved stations</p>
                 <button type="button" onClick={onRetry}>Retry</button>
@@ -1610,7 +1630,8 @@ export function MyStationsPanel({
               </>
             )}
           </div>
-        )}
+        </>
+      )}
       </div>
     </section>
   );

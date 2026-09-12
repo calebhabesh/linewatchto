@@ -33,6 +33,9 @@ type Props = {
   direction?: string | null;
   facts?: CompactImpactFact[];
   status?: ReactNode;
+  locationFirst?: boolean;
+  hideTypeLabel?: boolean;
+  details?: ReactNode;
   active: boolean;
   toneClassName: string;
   onShowOnMap: () => void;
@@ -47,31 +50,36 @@ export function CompactImpactListItem({
   direction,
   facts = [],
   status,
+  locationFirst = false,
+  hideTypeLabel = false,
+  details,
   active,
   toneClassName,
   onShowOnMap,
 }: Props) {
+  const omitTitle = hideTypeLabel && /^(planned closure|reduced speed zone|delay|service delay|service suspension|suspension|active alert)$/i.test(title.trim());
+  const routeFirst = locationFirst || omitTitle;
   const renderedFacts: CompactImpactFact[] = direction
     ? [{ label: "Direction", value: direction }, ...facts]
     : facts;
 
-  return (
+  const content = (
     <button
       type="button"
-      data-impact-card-id={impactId}
-      className={`compact-impact-list-item ${toneClassName}${active ? " is-active" : ""}`}
+      data-impact-card-id={details ? undefined : impactId}
+      className={`compact-impact-list-item ${routeFirst ? "compact-impact-list-item--organized" : ""} ${toneClassName}${active ? " is-active" : ""}`}
       onClick={onShowOnMap}
       aria-label={`Show ${title} on map: ${location}`}
     >
       <LineBadge lineId={lineId} lineNumber={lineNumber} />
       <span className="compact-impact-list-item__body">
         <span className="compact-impact-list-item__heading">
-          <strong>{title}</strong>
+          <strong>{routeFirst ? <CompactImpactLocation location={location} /> : title}</strong>
           {status ? <span className="compact-impact-list-item__status">{status}</span> : null}
         </span>
-        <span className="compact-impact-list-item__location">
-          <CompactImpactLocation location={location} />
-        </span>
+        {!omitTitle ? <span className="compact-impact-list-item__location">
+          {routeFirst ? title : <CompactImpactLocation location={location} />}
+        </span> : null}
       </span>
       <span className="compact-impact-list-item__map-action" aria-hidden="true">
         <JumpToLocationIcon className="w-5 h-5" />
@@ -91,5 +99,18 @@ export function CompactImpactListItem({
         </span>
       ) : null}
     </button>
+  );
+  if (!details) return content;
+  return (
+    <div
+      data-impact-card-id={impactId}
+      className={`compact-impact-list-item compact-impact-disclosure ${toneClassName}${active ? " is-active" : ""}`}
+    >
+      {content}
+      <details className="compact-impact-disclosure__details">
+        <summary>Details</summary>
+        <div>{details}</div>
+      </details>
+    </div>
   );
 }

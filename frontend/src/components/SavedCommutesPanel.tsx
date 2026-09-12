@@ -2,8 +2,8 @@
 
 import { useDashboardData } from "../app/DataContext";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, Loader2, MapPinned, Pencil, Route, Trash2, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Navigation, ChevronDown, Loader2, MapPinned, Pencil, Plus, Route, Search, Trash2, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
 import {
   createSavedCommute,
@@ -1022,6 +1022,7 @@ export function SavedCommutesPanel({
   const dashboard = useDashboardData();
   const lastInteractedCommuteIdRef = useRef<string | null>(null);
   const deleteConfirmationRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
   const [internalExpandedImpactDisclosures, setInternalExpandedImpactDisclosures] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     for (const key of persistedExpandedImpactDisclosures) {
@@ -1242,10 +1243,28 @@ export function SavedCommutesPanel({
   }, [successMessage]);
 
   const stationSummaries = stationCatalogs[draftNetworkId];
-  const visibleCommutes = useMemo(
-    () => accountCommutes.filter((commute) => networkFilter === "all" || (commute.networkId ?? "ttc") === networkFilter),
-    [accountCommutes, networkFilter]
+  const stationNameFor = useCallback(
+    (stationId: string, commuteNetworkId: NetworkId) => {
+      return stationCatalogs[commuteNetworkId]?.find((station) => station.id === stationId)?.name ?? stationId;
+    },
+    [stationCatalogs]
   );
+
+  const visibleCommutes = useMemo(() => {
+    const trimmedQuery = query.trim().toLowerCase();
+    return accountCommutes.filter((commute) => {
+      const matchesNetwork = networkFilter === "all" || (commute.networkId ?? "ttc") === networkFilter;
+      if (!matchesNetwork) return false;
+      if (!trimmedQuery) return true;
+      const originName = stationNameFor(commute.originStationId, commute.networkId ?? "ttc").toLowerCase();
+      const destName = stationNameFor(commute.destinationStationId, commute.networkId ?? "ttc").toLowerCase();
+      return (
+        commute.label.toLowerCase().includes(trimmedQuery) ||
+        originName.includes(trimmedQuery) ||
+        destName.includes(trimmedQuery)
+      );
+    });
+  }, [accountCommutes, networkFilter, query, stationNameFor]);
 
   const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
     () => summarizeSavedCommuteStatuses(visibleCommutes),
@@ -1335,10 +1354,6 @@ export function SavedCommutesPanel({
     return () => window.cancelAnimationFrame(frame);
   }, [deletingCommuteId]);
 
-  function stationNameFor(stationId: string, commuteNetworkId: NetworkId) {
-    return stationCatalogs[commuteNetworkId].find((station) => station.id === stationId)?.name ?? stationId;
-  }
-
   const resetRouteDraft = () => {
     setPersistedCommuteDraft(null);
     onDraftChange?.(null);
@@ -1360,6 +1375,7 @@ export function SavedCommutesPanel({
     setDraftNetworkId(networkId);
     setCommuteError(null);
     clearCommuteSwapAnimation();
+    setQuery("");
     setActiveView("create");
   };
 
@@ -1948,6 +1964,13 @@ export function SavedCommutesPanel({
       <PanelHeader
         title="My Commutes"
         icon={<Navigation className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden="true" />}
+        titleBadge={
+          accountState.user?.demo ? (
+            <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+              Demo account
+            </span>
+          ) : null
+        }
         actions={
           accountState.authenticated && accountCommutes.length > 0 ? (
             <div className="flex items-center gap-1.5 shrink-0" data-testid="header-commute-status-badges">
@@ -1995,72 +2018,76 @@ export function SavedCommutesPanel({
           }
         } : undefined}
       />
-      <div key={activeView} className="commute-grid min-w-0 py-3 flex flex-col gap-3" data-nav-direction={activeView === "create" ? "forward" : "back"}>
+      <div key={activeView} className="commute-body flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden" data-nav-direction={activeView === "create" ? "forward" : "back"}>
         {accountState.source === "unavailable" ? (
-          <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
+          <div className="commute-grid min-w-0 pb-3 flex flex-col gap-3">
+            <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
+          </div>
         ) : !accountState.authenticated ? (
-          <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-transparent">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
-                <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M18.9922 8.07411C18.7683 8.30212 18.5423 8.50328 18.3375 8.67188C18.1401 8.50899 17.9227 8.31226 17.7078 8.08774C16.9853 7.333 16.5 6.48786 16.5 5.6875C16.5 4.59138 17.3653 3.75 18.375 3.75C19.3847 3.75 20.25 4.59138 20.25 5.6875C20.25 6.46225 19.7514 7.30076 18.9922 8.07411ZM21.75 5.6875C21.75 8.4375 18.375 10.5 18.375 10.5C18.2063 10.5 15 8.4375 15 5.6875C15 3.78902 16.511 2.25 18.375 2.25C20.239 2.25 21.75 3.78902 21.75 5.6875ZM3.75 9C3.75 10.2426 4.75736 11.25 6 11.25H18C20.0711 11.25 21.75 12.9289 21.75 15C21.75 17.0711 20.0711 18.75 18 18.75H9.75V17.25H18C19.2426 17.25 20.25 16.2426 20.25 15C20.25 13.7574 19.2426 12.75 18 12.75H6C3.92893 12.75 2.25 11.0711 2.25 9C2.25 6.92893 3.92893 5.25 6 5.25L14.25 5.25V6.75L6 6.75C4.75736 6.75 3.75 7.75736 3.75 9ZM6.24215 19.3241C6.01829 19.5521 5.79234 19.7533 5.58752 19.9219C5.39011 19.759 5.1727 19.5623 4.95777 19.3377C4.23528 18.583 3.75 17.7379 3.75 16.9375C3.75 15.8414 4.61529 15 5.625 15C6.63471 15 7.5 15.8414 7.5 16.9375C7.5 17.7123 7.00145 18.5508 6.24215 19.3241ZM9 16.9375C9 19.6875 5.625 21.75 5.625 21.75C5.45625 21.75 2.25 19.6875 2.25 16.9375C2.25 15.039 3.76104 13.5 5.625 13.5C7.48896 13.5 9 15.039 9 16.9375ZM6.75 16.875C6.75 17.4963 6.24632 18 5.625 18C5.00368 18 4.5 17.4963 4.5 16.875C4.5 16.2537 5.00368 15.75 5.625 15.75C6.24632 15.75 6.75 16.2537 6.75 16.875ZM18.375 6.75C18.9963 6.75 19.5 6.24632 19.5 5.625C19.5 5.00368 18.9963 4.5 18.375 4.5C17.7537 4.5 17.25 5.00368 17.25 5.625C17.25 6.24632 17.7537 6.75 18.375 6.75Z"
-                    fill="currentColor"
-                  />
-                </svg>
-                Track Your Daily Commute
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Unlock personalized tracking and route impact checks for your daily {networkId === "regional" ? "GO and UP" : "subway and LRT"} routes.
-              </p>
-            </div>
+          <div className="commute-grid min-w-0 pb-3 flex flex-col gap-3">
+            <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-transparent">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
+                  <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M18.9922 8.07411C18.7683 8.30212 18.5423 8.50328 18.3375 8.67188C18.1401 8.50899 17.9227 8.31226 17.7078 8.08774C16.9853 7.333 16.5 6.48786 16.5 5.6875C16.5 4.59138 17.3653 3.75 18.375 3.75C19.3847 3.75 20.25 4.59138 20.25 5.6875C20.25 6.46225 19.7514 7.30076 18.9922 8.07411ZM21.75 5.6875C21.75 8.4375 18.375 10.5 18.375 10.5C18.2063 10.5 15 8.4375 15 5.6875C15 3.78902 16.511 2.25 18.375 2.25C20.239 2.25 21.75 3.78902 21.75 5.6875ZM3.75 9C3.75 10.2426 4.75736 11.25 6 11.25H18C20.0711 11.25 21.75 12.9289 21.75 15C21.75 17.0711 20.0711 18.75 18 18.75H9.75V17.25H18C19.2426 17.25 20.25 16.2426 20.25 15C20.25 13.7574 19.2426 12.75 18 12.75H6C3.92893 12.75 2.25 11.0711 2.25 9C2.25 6.92893 3.92893 5.25 6 5.25L14.25 5.25V6.75L6 6.75C4.75736 6.75 3.75 7.75736 3.75 9ZM6.24215 19.3241C6.01829 19.5521 5.79234 19.7533 5.58752 19.9219C5.39011 19.759 5.1727 19.5623 4.95777 19.3377C4.23528 18.583 3.75 17.7379 3.75 16.9375C3.75 15.8414 4.61529 15 5.625 15C6.63471 15 7.5 15.8414 7.5 16.9375C7.5 17.7123 7.00145 18.5508 6.24215 19.3241ZM9 16.9375C9 19.6875 5.625 21.75 5.625 21.75C5.45625 21.75 2.25 19.6875 2.25 16.9375C2.25 15.039 3.76104 13.5 5.625 13.5C7.48896 13.5 9 15.039 9 16.9375ZM6.75 16.875C6.75 17.4963 6.24632 18 5.625 18C5.00368 18 4.5 17.4963 4.5 16.875C4.5 16.2537 5.00368 15.75 5.625 15.75C6.24632 15.75 6.75 16.2537 6.75 16.875ZM18.375 6.75C18.9963 6.75 19.5 6.24632 19.5 5.625C19.5 5.00368 18.9963 4.5 18.375 4.5C17.7537 4.5 17.25 5.00368 17.25 5.625C17.25 6.24632 17.7537 6.75 18.375 6.75Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  Track Your Daily Commute
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Unlock personalized tracking and route impact checks for your daily {networkId === "regional" ? "GO and UP" : "subway and LRT"} routes.
+                </p>
+              </div>
 
-            <div className="space-y-3 my-1 border-t border-b border-black/5 dark:border-white/5 py-3">
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Personalized Route Pathing</span>
-                  <span className="text-slate-500 dark:text-slate-400">Save custom origin-destination pairs on the selected LineWatchTO rail network.</span>
+              <div className="space-y-3 my-1 border-t border-b border-black/5 dark:border-white/5 py-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Personalized Route Pathing</span>
+                    <span className="text-slate-500 dark:text-slate-400">Save custom origin-destination pairs on the selected LineWatchTO rail network.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Direction-Aware Impact Matching</span>
+                    <span className="text-slate-500 dark:text-slate-400">See fresh dashboard-visible disruptions that match the stations, segments, or corridors on your route.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Return Leg Monitoring</span>
+                    <span className="text-slate-500 dark:text-slate-400">Easily toggle and monitor your reverse return leg in the same view.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Route Impact Alerts</span>
+                    <span className="text-slate-500 dark:text-slate-400">Receive route impact alerts when notifications are enabled and the selected network source is fresh.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Free</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Direction-Aware Impact Matching</span>
-                  <span className="text-slate-500 dark:text-slate-400">See fresh dashboard-visible disruptions that match the stations, segments, or corridors on your route.</span>
-                </div>
+              <div className="account-action-row mt-1">
+                <button type="button" onClick={onRequestSignIn}>Sign In</button>
+                <button type="button" onClick={onRequestCreateAccount} className="saved-commute-signup-btn">Create Account</button>
               </div>
-
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Return Leg Monitoring</span>
-                  <span className="text-slate-500 dark:text-slate-400">Easily toggle and monitor your reverse return leg in the same view.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Route Impact Alerts</span>
-                  <span className="text-slate-500 dark:text-slate-400">Receive route impact alerts when notifications are enabled and the selected network source is fresh.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Free</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="account-action-row mt-1">
-              <button type="button" onClick={onRequestSignIn}>Sign In</button>
-              <button type="button" onClick={onRequestCreateAccount} className="saved-commute-signup-btn">Create Account</button>
             </div>
           </div>
         ) : null}
@@ -2068,7 +2095,8 @@ export function SavedCommutesPanel({
         {accountState.source === "backend" && accountState.authenticated ? (
           <>
             {activeView === "create" ? (
-              <div className="saved-commute-form">
+              <div className="commute-grid min-w-0 pb-3 flex flex-col gap-3">
+                <div className="saved-commute-form">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">{editingCommuteId ? "Edit Route" : "Create a Route"}</h3>
                 {!editingCommuteId ? (
                   <div className="account-network-filter w-full" data-network={draftNetworkId} data-options-count={2} role="group" aria-label="Choose commute network">
@@ -2244,88 +2272,115 @@ export function SavedCommutesPanel({
                     message="My Commutes monitors the TTC or GO/UP rail routes you select. If you use both systems, save one route for each so you can review both in this list. LineWatchTO evaluates only the selected rail networks, so the monitored routes may not be the fastest or most optimal choices across every travel scenario or account for buses, walking transfers, and alternatives."
                   />
                 ) : null}
+                </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-3 min-w-0 max-w-full w-full box-border">
-                <div className="account-network-filter w-full" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Commutes by network">
-                  <div className="account-network-glider" aria-hidden="true" />
-                  {ACCOUNT_NETWORK_OPTIONS.map((option) => (
+              <>
+                <div className="my-stations-controls saved-commute-controls">
+                  <div className="my-stations-controls-top">
+                    <label className="impact-list-search my-stations-search saved-commute-search">
+                      <Search size={15} aria-hidden="true" />
+                      <span className="sr-only">Search saved commutes</span>
+                      <input
+                        type="search"
+                        className="submenu-search-input"
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="Search saved commutes..."
+                      />
+                    </label>
                     <button
-                      key={option.value}
                       type="button"
-                      data-network={option.value}
-                      aria-pressed={networkFilter === option.value}
-                      onClick={() => setNetworkFilter(option.value)}
+                      className="my-stations-mode-action my-stations-add my-commutes-add saved-commute-add-btn"
+                      onClick={startCreatingCommute}
+                      aria-label="+ Add Commute"
                     >
-                      {option.label}
+                      <span className="my-stations-mode-action-content">
+                        <Plus size={16} aria-hidden="true" />
+                        <span className="my-stations-add-wide">Add Commute</span>
+                        <span className="my-stations-add-compact">Add</span>
+                      </span>
                     </button>
-                  ))}
-                </div>
-                <div className="saved-commute-list-toolbar flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-1 w-full min-w-0 box-border">
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
-                      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">({visibleCommutes.length})</span>
-                    </div>
-                    {visibleCommutes.length > 0 && (
-                      <div className="flex items-center gap-1.5 mt-0.5" data-testid="commute-status-badges">
-                        {commuteAffectedCount > 0 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                            {commuteAffectedCount} Affected
-                          </span>
-                        )}
-                        {commuteClearCount > 0 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  </div>
+                  <div className="account-network-filter w-full" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Commutes by network">
+                    <div className="account-network-glider" aria-hidden="true" />
+                    {ACCOUNT_NETWORK_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        data-network={option.value}
+                        aria-pressed={networkFilter === option.value}
+                        onClick={() => setNetworkFilter(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="my-stations-selects saved-commute-selects">
+                    <ToolbarSelectMenu
+                      ariaLabel="Sort My Commutes"
+                      prefix="Sort"
+                      value={sortBy}
+                      options={COMMUTE_SORT_OPTIONS}
+                      onChange={setSortBy}
+                      align="left"
+                    />
+                    {visibleCommutes.length > 0 ? (
+                      <div className="flex items-center gap-1.5 ml-auto shrink-0" data-testid="commute-status-badges">
+                        <span className="toolbar-status-badge toolbar-status-badge--total">
+                          {visibleCommutes.length} Total
+                        </span>
+                        {commuteClearCount > 0 ? (
+                          <span className="toolbar-status-badge toolbar-status-badge--clear">
                             {commuteClearCount} Clear
                           </span>
-                        )}
+                        ) : null}
+                        {commuteAffectedCount > 0 ? (
+                          <span className="toolbar-status-badge toolbar-status-badge--affected">
+                            {commuteAffectedCount} Affected
+                          </span>
+                        ) : null}
                       </div>
-                    )}
+                    ) : null}
                   </div>
-                  {visibleCommutes.length > 0 ? (
-                    <div className="saved-commute-list-actions flex items-center gap-2 sm:shrink-0">
-                      <ToolbarSelectMenu
-                        ariaLabel="Sort My Commutes"
-                        prefix="Sort"
-                        value={sortBy}
-                        options={COMMUTE_SORT_OPTIONS}
-                        onChange={setSortBy}
-                      />
-                      <button
-                        type="button"
-                        className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0"
-                        onClick={startCreatingCommute}
-                      >
-                        + Add Commute
-                      </button>
-                    </div>
-                  ) : null}
                 </div>
 
-                {visibleCommutes.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center pt-3 pb-10 sm:py-10 text-center">
-                    <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">
-                      {accountCommutes.length === 0 ? "No Commutes Yet" : "No Commutes Match This Network"}
-                    </p>
-                    <button
-                      type="button"
-                      className="saved-commute-add-btn flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
-                      onClick={startCreatingCommute}
-                    >
-                      + Add Commute
-                    </button>
-                  </div>
-                ) : (
-                  renderedSavedCommutes
-                )}
-                <p className="saved-commute-routing-boundary-static" role="note">
-                  <Info size={11} aria-hidden="true" />
-                  <span>Monitoring the rail routes you selected. They may not be the fastest or most optimal routes in every scenario.</span>
-                </p>
-          </div>
-        )}
-      </>
-    ) : null}
+                <div className="commute-grid saved-commute-list-scroll min-w-0 pb-3 flex flex-col gap-3" aria-label="Saved commutes">
+                  {visibleCommutes.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center pt-3 pb-10 sm:py-10 text-center">
+                      <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">
+                        {accountCommutes.length === 0 ? "No Commutes Yet" : query.trim() ? "No Commutes Match" : "No Commutes Match This Network"}
+                      </p>
+                      {query.trim() ? (
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                          onClick={() => setQuery("")}
+                        >
+                          Clear Search
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="saved-commute-add-btn flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
+                          onClick={startCreatingCommute}
+                        >
+                          Create Commute
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    renderedSavedCommutes
+                  )}
+                  <p className="saved-commute-routing-boundary-static" role="note">
+                    <Info size={11} aria-hidden="true" />
+                    <span>Monitoring the rail routes you selected. They may not be the fastest or most optimal routes in every scenario.</span>
+                  </p>
+                </div>
+              </>
+            )}
+          </>
+        ) : null}
       </div>
       {successMessage && (
         <div key={toastKey} className="commute-toast-success text-white">

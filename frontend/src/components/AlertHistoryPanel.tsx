@@ -21,9 +21,7 @@ export function AlertHistoryPanel({ onBack, onClose, network }: Props) {
         onClose={onClose}
       />
 
-      <div className="notification-settings-scroll">
-        <AlertHistoryTimeline network={network} />
-      </div>
+      <AlertHistoryTimeline network={network} />
     </section>
   );
 }

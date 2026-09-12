@@ -114,3 +114,17 @@
   background: linear-gradient(90deg, color-mix(in srgb, var(--notice-edge) 12%, transparent), color-mix(in srgb, var(--notice-edge) 4%, transparent) 14px, transparent 30px), #12151c;
 }
 
+.surface-notices-controls {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 10px var(--mobile-sheet-gutter, 16px) 10px;
+}
+
+.surface-notices-controls + .surface-notices-scroll,
+.surface-notices-scroll {
+  padding-top: 0;
+}
+
+

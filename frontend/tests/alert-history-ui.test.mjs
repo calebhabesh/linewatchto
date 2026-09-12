@@ -244,5 +244,15 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /events\.map\(\(event, index\) =>/);
     assert.match(cssSource, /\.alert-history-item\s*\{[^}]*content-visibility:\s*auto;/s);
   });
+
+  it("keeps controls pinned and makes the cards list independently scrollable like alert type submenus", () => {
+    assert.doesNotMatch(panelSource, /notification-settings-scroll/);
+    assert.match(timelineSource, /className="alert-history-scroll"/);
+    assert.match(cssSource, /\.alert-history-controls\s*\{[^}]*flex-shrink:\s*0;/s);
+    assert.match(cssSource, /\.alert-history-scroll\s*\{[^}]*overflow-y:\s*auto;/s);
+    assert.match(timelineSource, /scrollContainerRef\.current\.scrollTop = 0/);
+    assert.doesNotMatch(cssSource, /\.alert-history-controls\s*\{[^}]*background:/s);
+    assert.doesNotMatch(cssSource, /\.dark\s+\.alert-history-controls\s*\{[^}]*background:/s);
+  });
 });
 

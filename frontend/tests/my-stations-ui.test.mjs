@@ -44,7 +44,8 @@ describe("My Stations UI", () => {
     assert.match(panel, /Search saved stations\.\.\./);
     assert.match(panel, /Add Station/);
     assert.match(panel, /All Lines/);
-    assert.match(panel, /Needs Attention/);
+    assert.doesNotMatch(panel, /Sort saved stations|Needs Attention/);
+    assert.match(panel, /filterAndSortSavedStations\(savedStationsWithRouteImpacts, query, lineId, "attention"\)/);
     assert.match(panel, /No Saved Stations/);
     assert.match(panel, /No Saved Stations Match/);
     assert.match(panel, /Search All Stations\.\.\./);
@@ -292,5 +293,13 @@ describe("My Stations UI", () => {
     assert.match(shell, /commuteAffectedCount > 0 \? \(\s*<OverlappingCountBadge className="mobile-saved-section-badge" count=\{commuteAffectedCount\} \/>/);
     assert.match(styles, /\.mobile-saved-section-badge\s*\{[^}]*background:\s*#ef4444;[^}]*color:\s*#ffffff;/s);
     assert.match(styles, /\.floating-panel-shell \.panel-header-actions,\s*\.floating-panel-shell \.panel-heading > div:last-child\s*\{[^}]*gap:\s*12px;/s);
+  });
+
+  it("equalizes 10px spacing from header to controls and from controls to cards", () => {
+    assert.match(styles, /\.my-stations-heading\s*\{[^}]*padding-bottom:\s*10px;/s);
+    assert.match(styles, /\.my-stations-controls\s*\{[^}]*padding-bottom:\s*10px;/s);
+    assert.doesNotMatch(styles, /\.my-stations-controls\s*\{[^}]*margin-bottom:\s*-\d+px;/s);
+    assert.match(styles, /\.my-stations-controls\s*\{[^}]*flex:\s*0 0 auto;/s);
+    assert.match(styles, /\.floating-panel-shell \.my-stations-list\s*\{[^}]*padding-top:\s*0;/s);
   });
 });

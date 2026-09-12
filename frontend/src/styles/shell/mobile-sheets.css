@@ -1086,6 +1086,7 @@
   .notification-settings-scroll,
   .accessibility-outages-scroll,
   .surface-notices-scroll,
+  .alert-history-scroll,
   .station-detail-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll,
@@ -1109,14 +1110,19 @@
   .closure-stack,
   .accessibility-outages-scroll,
   .surface-notices-scroll,
+  .alert-history-scroll,
   .surface-notices-body > div:not(.surface-notices-scroll) {
     padding-left: var(--mobile-sheet-gutter, 16px);
     padding-right: var(--mobile-sheet-gutter, 16px);
   }
 
   .surface-notices-body > div:first-child,
-  .surface-notices-search-row {
+  .surface-notices-controls {
     padding-top: 10px;
+  }
+
+  .surface-notices-search-row {
+    padding-top: 0;
   }
 
   .accessibility-outages-scroll {
@@ -1126,6 +1132,13 @@
   .impact-list-toolbar + .alert-stack,
   .impact-list-toolbar + .closure-stack,
   .impact-list-toolbar + .line-impact-panel-stack {
+    padding-top: 6px;
+  }
+
+  .commute-grid,
+  .my-stations-list,
+  .surface-notices-controls + .surface-notices-scroll,
+  .surface-notices-scroll {
     padding-top: 0;
   }
 
@@ -1137,7 +1150,8 @@
   }
 
   .notification-settings-scroll,
-  .surface-notices-scroll {
+  .surface-notices-scroll,
+  .alert-history-scroll {
     padding-bottom: 12px;
   }
 
@@ -1166,6 +1180,7 @@
   .notification-settings-scroll,
   .accessibility-outages-scroll,
   .surface-notices-scroll,
+  .alert-history-scroll,
   .station-detail-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll,
@@ -1188,6 +1203,7 @@
   .notification-settings-scroll::-webkit-scrollbar,
   .accessibility-outages-scroll::-webkit-scrollbar,
   .surface-notices-scroll::-webkit-scrollbar,
+  .alert-history-scroll::-webkit-scrollbar,
   .station-detail-scroll::-webkit-scrollbar,
   .release-notes-content::-webkit-scrollbar,
   .privacy-acknowledgements-scroll::-webkit-scrollbar,
@@ -1211,6 +1227,7 @@
   .notification-settings-scroll::-webkit-scrollbar-track,
   .accessibility-outages-scroll::-webkit-scrollbar-track,
   .surface-notices-scroll::-webkit-scrollbar-track,
+  .alert-history-scroll::-webkit-scrollbar-track,
   .station-detail-scroll::-webkit-scrollbar-track,
   .release-notes-content::-webkit-scrollbar-track,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-track,
@@ -1232,6 +1249,7 @@
   .notification-settings-scroll::-webkit-scrollbar-thumb,
   .accessibility-outages-scroll::-webkit-scrollbar-thumb,
   .surface-notices-scroll::-webkit-scrollbar-thumb,
+  .alert-history-scroll::-webkit-scrollbar-thumb,
   .station-detail-scroll::-webkit-scrollbar-thumb,
   .release-notes-content::-webkit-scrollbar-thumb,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
@@ -1278,6 +1296,7 @@
   .notification-settings-scroll,
   .accessibility-outages-scroll,
   .surface-notices-scroll,
+  .alert-history-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll {
     margin-top: 0px;
@@ -1309,6 +1328,13 @@
     min-width: 0;
     padding: 14px var(--mobile-sheet-gutter, 16px) 14px;
     width: 100%;
+  }
+
+  .floating-panel-shell .panel-heading:has(.panel-header-metadata),
+  .floating-panel-shell .panel-header:has(.panel-header-metadata),
+  .panel-header:has(.panel-header-metadata),
+  .panel-header--has-metadata {
+    padding-bottom: 0;
   }
 
   .floating-panel-shell .panel-header-primary {
@@ -1414,6 +1440,7 @@
   .floating-panel-shell .panel-header-metadata .my-stations-count,
   .floating-panel-shell .panel-header-metadata .status-pill,
   .floating-panel-shell .panel-header-metadata .panel-header-badge,
+  .floating-panel-shell .panel-header-metadata .slate-count-badge,
   .floating-panel-shell .panel-header-metadata .surface-notices-source-tag,
   .floating-panel-shell .panel-header-metadata .card-source {
     align-items: center;

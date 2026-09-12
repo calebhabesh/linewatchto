@@ -168,6 +168,7 @@ export function ActiveAlertsPanel({
             if (viewMode === "list") {
               return (
                 <CompactImpactListItem
+                  hideTypeLabel={!showImpactTypeIndicator}
                   key={alert.id}
                   impactId={alert.id}
                   lineId={alert.lineId}

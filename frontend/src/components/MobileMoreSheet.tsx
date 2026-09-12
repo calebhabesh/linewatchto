@@ -43,6 +43,8 @@ type Props = {
   commuteAffectedCount: number;
   onOpenMyStations: () => void;
   savedStationCount: number;
+  savedStationClearCount?: number;
+  savedStationAffectedCount?: number;
   defaultNetwork: NetworkId;
   currentNetwork: NetworkId;
   onDefaultNetworkChange: (network: NetworkId) => void;
@@ -85,6 +87,8 @@ export function MobileMoreSheet({
   commuteAffectedCount,
   onOpenMyStations,
   savedStationCount,
+  savedStationClearCount,
+  savedStationAffectedCount,
   defaultNetwork,
   currentNetwork,
   onDefaultNetworkChange,
@@ -239,13 +243,23 @@ export function MobileMoreSheet({
                   My Stations
                 </span>
                 {savedStationCount > 0 ? (
-                  <span
-                    className={`desktop-menu-count-badge desktop-menu-count-stations flex h-6 ${
-                      savedStationCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                    } items-center justify-center rounded-full text-[11px] font-bold`}
-                    aria-label={`${savedStationCount} saved stations`}
-                  >
-                    {savedStationCount}
+                  <span className="flex items-center gap-1.5 shrink-0" data-testid="mobile-station-status-badges">
+                    <span
+                      className={`desktop-menu-count-badge desktop-menu-count-stations-clear flex h-6 ${
+                        (savedStationClearCount ?? savedStationCount) < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } items-center justify-center rounded-full text-[11px] font-bold`}
+                      aria-label={`${savedStationClearCount ?? savedStationCount} clear stations`}
+                    >
+                      {savedStationClearCount ?? savedStationCount}
+                    </span>
+                    <span
+                      className={`desktop-menu-count-badge desktop-menu-count-stations-affected flex h-6 ${
+                        (savedStationAffectedCount ?? 0) < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } items-center justify-center rounded-full text-[11px] font-bold`}
+                      aria-label={`${savedStationAffectedCount ?? 0} affected stations`}
+                    >
+                      {savedStationAffectedCount ?? 0}
+                    </span>
                   </span>
                 ) : null}
               </button>
@@ -306,13 +320,23 @@ export function MobileMoreSheet({
                   My Stations
                 </span>
                 {savedStationCount > 0 ? (
-                  <span
-                    className={`desktop-menu-count-badge desktop-menu-count-stations flex h-6 ${
-                      savedStationCount < 10 ? "w-6" : "min-w-[24px] px-1.5"
-                    } items-center justify-center rounded-full text-[11px] font-bold`}
-                    aria-label={`${savedStationCount} saved stations`}
-                  >
-                    {savedStationCount}
+                  <span className="flex items-center gap-1.5 shrink-0" data-testid="mobile-station-status-badges">
+                    <span
+                      className={`desktop-menu-count-badge desktop-menu-count-stations-clear flex h-6 ${
+                        (savedStationClearCount ?? savedStationCount) < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } items-center justify-center rounded-full text-[11px] font-bold`}
+                      aria-label={`${savedStationClearCount ?? savedStationCount} clear stations`}
+                    >
+                      {savedStationClearCount ?? savedStationCount}
+                    </span>
+                    <span
+                      className={`desktop-menu-count-badge desktop-menu-count-stations-affected flex h-6 ${
+                        (savedStationAffectedCount ?? 0) < 10 ? "w-6" : "min-w-[24px] px-1.5"
+                      } items-center justify-center rounded-full text-[11px] font-bold`}
+                      aria-label={`${savedStationAffectedCount ?? 0} affected stations`}
+                    >
+                      {savedStationAffectedCount ?? 0}
+                    </span>
                   </span>
                 ) : null}
               </button>

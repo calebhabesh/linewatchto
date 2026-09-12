@@ -660,8 +660,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"
                 data-station-disruption-warning
               >
-                <div className="station-disruption-heading flex items-center gap-2 font-bold text-amber-700 dark:text-amber-400">
-                  <AlertCircle size={19} className="animate-terminating-blink shrink-0 text-amber-600 dark:text-amber-400" />
+                <div className="station-disruption-heading flex items-center gap-2 font-extrabold text-amber-900 dark:text-white">
+                  <AlertCircle size={19} className="animate-terminating-blink shrink-0 text-amber-600 dark:text-orange-400" />
                   <span className="station-disruption-heading-text">Schedule May Be Disrupted:</span>
                 </div>
                 {distinctImpacts.length > 0 && (

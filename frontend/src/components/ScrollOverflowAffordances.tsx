@@ -33,6 +33,7 @@ const SCROLL_LIST_SELECTOR = [
   ".push-devices-list",
   ".push-diagnostics-scroll",
   ".alert-history-line-filter-options",
+  ".alert-history-scroll",
 ].join(",");
 
 const MORE_BELOW_ATTRIBUTE = "data-scroll-more-below";

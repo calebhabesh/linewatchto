@@ -147,32 +147,29 @@ export function ReducedSpeedZonesPanel({
             if (viewMode === "list") {
               return (
                 <CompactImpactListItem
+                  hideTypeLabel={!showImpactTypeIndicator}
                   key={zone.id}
                   impactId={zone.id}
                   lineId={zone.lineId}
                   lineNumber={zone.lineNumber}
                   title={zone.title}
                   location={zone.location}
-                  direction={zone.displayDirection}
+                  locationFirst
                   facts={[
-                    { column: 1, label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) || "Not Reported" },
-                    { column: 2, label: "Zone Count", value: <><strong className="rsz-zone-count-label-total">{zonesAtLocation}</strong>{zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null}</> },
-                    {
-                      column: 3,
-                      label: "Started",
-                      value: showStartedBreakdown
-                        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="startedAt" />
-                        : <CompactImpactTimeValue timestamp={zone.startedAt} />,
-                    },
-                    {
-                      column: 4,
-                      label: "Updated",
-                      value: showUpdatedBreakdown
-                        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
-                        : <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} />,
-                    },
-                    { column: 5, label: "Est. Resolution", value: showResolutionBreakdown ? <ReducedSpeedZoneResolutionBreakdown zone={zone} /> : reducedSpeedZoneResolutionText(zone) },
+                    { label: "Speed", value: formatSpeed(zone.reducedSpeed) || "Not Reported" },
+                    { label: "Directions", value: <DirectionalZoneCount zone={zone} /> },
+                    { label: "Updated", value: showUpdatedBreakdown
+                      ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
+                      : <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} /> },
                   ]}
+                  details={<MetadataGrid
+                    startedAt={zone.startedAt}
+                    updatedAt={zone.updatedAt}
+                    updatedAgo={zone.updatedAgo}
+                    startedValue={showStartedBreakdown ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="startedAt" /> : undefined}
+                    updatedValue={showUpdatedBreakdown ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" /> : undefined}
+                    extraRows={[{label: "Est. Resolution", value: showResolutionBreakdown ? <ReducedSpeedZoneResolutionBreakdown zone={zone} /> : reducedSpeedZoneResolutionText(zone)}]}
+                  />}
                   active={isActive}
                   toneClassName="rsz-card-border"
                   onShowOnMap={() => handleReducedSpeedZoneClick(zone.id)}

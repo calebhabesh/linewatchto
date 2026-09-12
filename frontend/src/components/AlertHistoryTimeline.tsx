@@ -167,6 +167,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   const lineDropdownRef = useRef<HTMLDivElement>(null);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const requestedQuery = `${network}:${period}`;
 
@@ -244,8 +245,14 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
     return sortOptions.find((o) => o.value === selectedSortBy) ?? sortOptions[0];
   }, [sortOptions, selectedSortBy]);
 
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [resultSetKey]);
+
   return (
-    <section className="alert-history-timeline notification-settings-section" aria-label="Alert history timeline">
+    <section className="alert-history-timeline" aria-label="Alert history timeline">
       <div className="alert-history-controls" aria-label="Alert history filters">
         <div className="alert-history-chip-group" aria-label="History period">
           {PERIODS.map((option) => (
@@ -459,45 +466,47 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
         </div>
       </div>
 
-      {loading ? (
-        <p className="notification-settings-message alert-history-loading" role="status">
-          <Loader2 size={13} className="animate-spin" aria-hidden="true" />
-          Loading alert history...
-        </p>
-      ) : visibleItems.length === 0 ? (
-        <p className="notification-settings-note alert-history-empty">
-          No alert incidents match the selected filters.
-        </p>
-      ) : (
-        <>
-          <p className="alert-history-result-count" aria-live="polite">
-            Showing <strong>{displayedItems.length}</strong> of <strong>{visibleItems.length}</strong> matching {visibleItems.length === 1 ? "incident" : "incidents"}
+      <div ref={scrollContainerRef} className="alert-history-scroll" aria-label="Alert history incidents">
+        {loading ? (
+          <p className="notification-settings-message alert-history-loading" role="status">
+            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+            Loading alert history...
           </p>
-          <ol className="alert-history-list" aria-busy={searchQuery !== deferredSearchQuery}>
-            {displayedItems.map((item) => (
-              <HistoryIncident
-                key={historyIncidentKey(item.incident)}
-                incident={item.incident}
-                latestEvent={item.latestEvent}
-                cleared={item.cleared}
-              />
-            ))}
-          </ol>
-          {displayedItems.length < visibleItems.length ? (
-            <button
-              type="button"
-              className="alert-history-load-more"
-              onClick={() => setPagination((current) => ({
-                key: resultSetKey,
-                visibleCount:
-                  (current.key === resultSetKey ? current.visibleCount : HISTORY_PAGE_SIZE) + HISTORY_PAGE_SIZE,
-              }))}
-            >
-              Show {Math.min(HISTORY_PAGE_SIZE, visibleItems.length - displayedItems.length)} more
-            </button>
-          ) : null}
-        </>
-      )}
+        ) : visibleItems.length === 0 ? (
+          <p className="notification-settings-note alert-history-empty">
+            No alert incidents match the selected filters.
+          </p>
+        ) : (
+          <>
+            <p className="alert-history-result-count" aria-live="polite">
+              Showing <strong>{displayedItems.length}</strong> of <strong>{visibleItems.length}</strong> matching {visibleItems.length === 1 ? "incident" : "incidents"}
+            </p>
+            <ol className="alert-history-list" aria-busy={searchQuery !== deferredSearchQuery}>
+              {displayedItems.map((item) => (
+                <HistoryIncident
+                  key={historyIncidentKey(item.incident)}
+                  incident={item.incident}
+                  latestEvent={item.latestEvent}
+                  cleared={item.cleared}
+                />
+              ))}
+            </ol>
+            {displayedItems.length < visibleItems.length ? (
+              <button
+                type="button"
+                className="alert-history-load-more"
+                onClick={() => setPagination((current) => ({
+                  key: resultSetKey,
+                  visibleCount:
+                    (current.key === resultSetKey ? current.visibleCount : HISTORY_PAGE_SIZE) + HISTORY_PAGE_SIZE,
+                }))}
+              >
+                Show {Math.min(HISTORY_PAGE_SIZE, visibleItems.length - displayedItems.length)} more
+              </button>
+            ) : null}
+          </>
+        )}
+      </div>
     </section>
   );
 }

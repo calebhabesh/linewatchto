@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
+const myStationsSource = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 
 function impact(status) {
@@ -141,5 +142,40 @@ describe("saved commute menu counts", () => {
     assert.match(savedCommutesSource, /desktop-menu-count-commutes-affected/);
     assert.match(savedCommutesSource, /aria-label=\{`\$\{allCommuteClearCount\} clear commutes`\}/);
     assert.match(savedCommutesSource, /aria-label=\{`\$\{allCommuteAffectedCount\} affected commutes`\}/);
+  });
+
+  it("passes the desktop station status counts through to the mobile More menu badges", () => {
+    assert.match(shellSource, /savedStationClearCount=\{savedStationsClearCount\}/);
+    assert.match(shellSource, /savedStationAffectedCount=\{savedStationsAffectedCount\}/);
+    assert.match(mobileMoreSource, /mobile-station-status-badges/);
+    assert.match(mobileMoreSource, /aria-label=\{`\$\{savedStationClearCount \?\? savedStationCount\} clear stations`\}/);
+    assert.match(mobileMoreSource, /aria-label=\{`\$\{savedStationAffectedCount \?\? 0\} affected stations`\}/);
+  });
+
+  it("summarizes station statuses correctly into clear and affected counts", async () => {
+    const savedStationsData = await import("../src/app/saved-stations.ts");
+
+    assert.equal(typeof savedStationsData.summarizeSavedStationStatuses, "function");
+    const summary = savedStationsData.summarizeSavedStationStatuses(
+      [
+        { networkId: "ttc", station: { id: "union", name: "Union", lineIds: ["line-1"], hasActiveImpact: false, accessStatus: "available" }, savedAt: "2026-01-01" },
+        { networkId: "ttc", station: { id: "bloor", name: "Bloor", lineIds: ["line-1", "line-2"], hasActiveImpact: true, accessStatus: "available" }, savedAt: "2026-01-01" },
+        { networkId: "ttc", station: { id: "dundas", name: "Dundas", lineIds: ["line-1"], hasActiveImpact: false, accessStatus: "outage", accessOutageCounts: { elevator: 1, escalator: 0 } }, savedAt: "2026-01-01" },
+      ],
+      {},
+      {}
+    );
+    assert.deepEqual(summary, {
+      clear: 1,
+      affectedNow: 2,
+    });
+  });
+
+  it("renders clear and affected status count badges in the My Stations panel header", () => {
+    assert.match(myStationsSource, /header-station-status-badges/);
+    assert.match(myStationsSource, /desktop-menu-count-stations-clear/);
+    assert.match(myStationsSource, /desktop-menu-count-stations-affected/);
+    assert.match(myStationsSource, /aria-label=\{`\$\{allSavedStationsClearCount\} clear stations`\}/);
+    assert.match(myStationsSource, /aria-label=\{`\$\{allSavedStationsAffectedCount\} affected stations`\}/);
   });
 });

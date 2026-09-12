@@ -156,29 +156,29 @@ export function PlannedClosuresPanel({
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
             );
             if (viewMode === "list") {
-              const listWindowHeading = closure.activeNow ? "Current Window" : "Next Window";
+              const listWindowHeading = closure.activeNow ? "Current" : "Next";
               return (
                 <CompactImpactListItem
+                  hideTypeLabel={!showImpactTypeIndicator}
                   key={closure.id}
                   impactId={closure.id}
                   lineId={closure.lineId}
                   lineNumber={closure.lineNumber}
-                  title={closure.title}
+                  title="Planned Closure"
+                  locationFirst
+                  details={<><p>{closure.title}</p><p>Direction: {closure.displayDirection || "Not reported"}</p><p>Started: <CompactImpactTimeValue timestamp={closure.startedAt} /></p></>}
                   location={closure.location}
-                  direction={closure.displayDirection}
                   facts={[
-                    ...(closure.windowDates ? [{ label: "Closure Dates", value: formatClosureScheduleValue(closure.windowDates), emphasized: true }] : []),
-                    ...(closure.windowHours ? [{ label: "Closure Hours", value: formatClosureScheduleValue(closure.windowHours), emphasized: true }] : []),
+                    ...((closure.windowDates || closure.windowHours) ? [{ label: "Schedule", value: [closure.windowDates, closure.windowHours].filter(Boolean).map(value => formatClosureScheduleValue(value!)).join(" · "), emphasized: true }] : []),
                     {
                       column: 1,
                       label: specificWindowLabel ? listWindowHeading : "Closure Window",
                       emphasized: true,
                       value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : closure.window,
                     },
-                    { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={closure.startedAt} /> },
                     { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={closure.updatedAt} fallback={closure.updatedAgo} /> },
                   ]}
-                  status={closure.activeNow ? "Active now" : closure.nightly ? "Nightly" : closure.shuttle ? "Shuttle" : null}
+                  status={[closure.activeNow && "Active now", closure.nightly && "Nightly", closure.shuttle && "Shuttle"].filter(Boolean).join(" · ") || null}
                   active={isActive}
                   toneClassName="planned-closure-card-border"
                   onShowOnMap={() => handleClosureClick(closure.id)}

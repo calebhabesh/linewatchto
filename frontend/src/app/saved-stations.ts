@@ -1,8 +1,36 @@
 import type { AccountSavedStation } from "./saved-station-data.ts";
+import type { NetworkId } from "./regional-data.ts";
+import type { StationSummary } from "./station-data.ts";
 import {
   stationMatchesAmenityFilter,
   type StationAmenityFilter,
 } from "./station-search.ts";
+
+export type SavedStationStatusSummary = {
+  clear: number;
+  affectedNow: number;
+};
+
+export function summarizeSavedStationStatuses(
+  savedStations: AccountSavedStation[],
+  stationCatalogs?: Partial<Record<NetworkId, StationSummary[]>>,
+  stationImpactSelections?: Partial<Record<NetworkId, { has: (id: string) => boolean }>>,
+): SavedStationStatusSummary {
+  let affectedNow = 0;
+  for (const saved of savedStations) {
+    const live = stationCatalogs?.[saved.networkId]?.find((s) => s.id === saved.station.id) ?? saved.station;
+    const hasImpact = live.hasActiveImpact || (stationImpactSelections?.[saved.networkId]?.has(saved.station.id) ?? false);
+    const counts = live.accessOutageCounts ?? { elevator: 0, escalator: 0 };
+    const outageCount = counts.elevator + counts.escalator;
+    if (hasImpact || outageCount > 0 || live.accessStatus === "outage") {
+      affectedNow++;
+    }
+  }
+  return {
+    clear: Math.max(0, savedStations.length - affectedNow),
+    affectedNow,
+  };
+}
 
 export type SavedStationSort = "attention" | "name" | "recent" | "oldest" | "line";
 

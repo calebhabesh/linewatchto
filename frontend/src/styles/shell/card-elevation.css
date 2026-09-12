@@ -679,39 +679,56 @@
   background: var(--card-bg-elevated-solid) !important;
 }
 
-/* Schedule May Be Disrupted banner container */
+/* Schedule May Be Disrupted banner container (styled matching bottom-left alert type badges) */
 .station-detail-disruption-card {
   align-items: center !important;
   border: none !important;
-  background: #fffbeb;
+  background: #fef3c7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.90),
+    0 2px 8px rgba(15, 23, 42, 0.08);
   display: flex;
   justify-content: flex-start;
   padding: 8px 10px;
 }
 
 .dark .station-detail-disruption-card {
+  background: linear-gradient(180deg, #592e10 0%, #442109 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.3);
-  background: #251d0d;
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 3px 10px rgba(0, 0, 0, 0.38);
 }
 
 .station-detail-disruption-card .station-disruption-heading {
+  color: #78350f;
   display: inline-flex;
   align-items: center;
   gap: 7px;
   line-height: 1;
 }
 
+.dark .station-detail-disruption-card .station-disruption-heading {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
 .station-detail-disruption-card .station-disruption-heading svg {
+  color: #d97706;
   display: block;
   flex-shrink: 0;
   transform: translateY(-1px);
 }
 
+.dark .station-detail-disruption-card .station-disruption-heading svg {
+  color: #fb923c;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.45));
+}
+
 .station-detail-disruption-card .station-disruption-heading-text {
   display: inline-flex;
   align-items: center;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   line-height: 1;
 }
 

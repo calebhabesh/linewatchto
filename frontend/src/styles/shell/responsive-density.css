@@ -335,6 +335,22 @@
     padding: 14px var(--mobile-sheet-gutter, 12px) 14px;
   }
 
+  .floating-panel-shell .panel-heading:has(.panel-header-metadata),
+  .floating-panel-shell .panel-header:has(.panel-header-metadata),
+  .panel-header:has(.panel-header-metadata),
+  .panel-header--has-metadata {
+    padding-bottom: 0;
+  }
+
+  .floating-panel-shell .my-stations-heading,
+  .floating-panel-shell .my-stations-panel .panel-header,
+  .floating-panel-shell .commute-panel .panel-header,
+  .my-stations-heading,
+  .my-stations-panel .panel-header,
+  .commute-panel .panel-header {
+    padding-bottom: 10px;
+  }
+
   .floating-panel-shell .panel-header-title,
   .floating-panel-shell .panel-heading h2 {
     font-size: 22px;
@@ -378,7 +394,8 @@
   .accessibility-outages-scroll,
   .surface-notices-scroll,
   .release-notes-content,
-  .privacy-acknowledgements-scroll {
+  .privacy-acknowledgements-scroll,
+  .alert-history-scroll {
     gap: 8px;
     padding: 8px var(--mobile-sheet-gutter, 12px);
   }
@@ -696,8 +713,12 @@
   }
 
   .surface-notices-body > div:first-child,
-  .surface-notices-search-row {
+  .surface-notices-controls {
     padding-top: 10px;
+  }
+
+  .surface-notices-search-row {
+    padding-top: 0;
   }
 
   .surface-notices-body .submenu-search-input {
@@ -711,7 +732,12 @@
   }
 
   .surface-notice-route-group > div {
-    padding: 9px 10px;
+    padding: 8px 10px;
+  }
+
+  .surface-notice-stop-row {
+    font-size: 11px;
+    padding: 3px 0;
   }
 
   .reliability-list h3 {
@@ -725,7 +751,11 @@
 
   .my-stations-controls {
     gap: 8px;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
+  }
+
+  .saved-commute-controls {
+    padding-bottom: 10px;
   }
 
   .my-stations-list {

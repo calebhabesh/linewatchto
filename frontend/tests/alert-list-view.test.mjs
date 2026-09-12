@@ -39,7 +39,7 @@ describe("alert card and list views", () => {
     assert.match(compactRowSource, /CompactImpactTimeValue/);
     assert.match(panelSources[2], /label: "Reduced Speed"/);
     assert.match(panelSources[2], /label: "Zone Count"/);
-    assert.match(panelSources[2], /label: "Started"/);
+    assert.match(panelSources[2], /startedValue=\{showStartedBreakdown/);
     assert.match(panelSources[2], /label: "Updated"/);
     assert.match(panelSources[2], /label: "Est\. Resolution"/);
     assert.match(globalCss, /\.compact-impact-list-item__detail\s*\{[^}]*grid-column:\s*2 \/ 4;/s);
@@ -50,6 +50,27 @@ describe("alert card and list views", () => {
     assert.match(globalCss, /\.compact-impact-list-item\.delay-card-border\s*\{[^}]*border-left-color:\s*#FEEC41;/s);
     assert.match(globalCss, /\.compact-impact-list-item\.planned-closure-card-border\s*\{[^}]*border-left-color:\s*#3b82f6;/s);
     assert.doesNotMatch(globalCss, /\.compact-impact-list-item\s*\{[^}]*border-left-width:\s*4px;/s);
+  });
+
+  it("organizes closures and speed zones around location with separate expandable details", () => {
+    for (const source of panelSources.slice(2)) {
+      assert.match(source, /locationFirst/);
+      assert.match(source, /details=\{/);
+    }
+    assert.match(compactRowSource, /<details className="compact-impact-disclosure__details">/);
+    assert.match(compactRowSource, /compact-impact-list-item compact-impact-disclosure/);
+    assert.ok(compactRowSource.indexOf("</button>") < compactRowSource.indexOf("<details"));
+    assert.match(panelSources[3], /title="Planned Closure"/);
+    assert.match(panelSources[3], /closure.shuttle && "Shuttle"/);
+    assert.match(globalCss, /\.planned-closure-metadata > \.is-window-row\s*\{[^}]*grid-column: auto;/s);
+  });
+
+  it("hides repeated type labels consistently in dedicated submenus", () => {
+    for (const source of panelSources) {
+      assert.match(source, /hideTypeLabel=\{!showImpactTypeIndicator\}/);
+    }
+    assert.match(compactRowSource, /const omitTitle = hideTypeLabel &&/);
+    assert.match(compactRowSource, /!omitTitle \? <span/);
   });
 
   it("supports compact rows in every alert-type submenu", () => {

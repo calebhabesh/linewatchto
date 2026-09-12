@@ -125,6 +125,7 @@ export function DelaysPanel({
             if (viewMode === "list") {
               return (
                 <CompactImpactListItem
+                  hideTypeLabel={!showImpactTypeIndicator}
                   key={delay.id}
                   impactId={delay.id}
                   lineId={delay.lineId}

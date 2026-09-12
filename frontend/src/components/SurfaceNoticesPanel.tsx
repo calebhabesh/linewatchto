@@ -404,51 +404,51 @@ export function SurfaceNoticesPanel({
       {/* Panel Body (Opaque Container) */}
       {data?.savedAt && <p className="px-4 py-2 text-xs" role="status">Saved notices from {new Date(data.savedAt).toLocaleString("en-CA", { timeZone: "America/Toronto" })} (Toronto). These reports may have changed; current notice coverage is unknown.</p>}
       <div className="surface-notices-body flex-1 flex flex-col min-h-0 min-w-0">
-        {/* Search Bar */}
-        <div className="surface-notices-search-row px-3 pt-2.5 sm:px-4 sm:pt-2.5 shrink-0">
-          <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-slate-400 dark:text-slate-500" />
-            <input
-              type="text"
-              className="submenu-search-input w-full pl-9 pr-4 h-10 rounded-lg border border-transparent bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder={regionalContent === "trip-changes"
-                ? "Search train, corridor, or station"
-                : regional ? "Search line, station, or notice" : "Search route, stop, or notice"}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </form>
-        </div>
-
-        {regional ? (
-          <div className="px-3 pt-3 sm:px-4" role="group" aria-label="GO / UP notice content">
-            <div
-              className="account-network-filter regional-notices-filter"
-              data-options-count={2}
-              data-content={regionalContent}
-            >
-              <div className="account-network-glider regional-notices-glider" aria-hidden="true" />
-              {([[
-                "notices", "Service Notices",
-              ], [
-                "trip-changes", "Trip Changes",
-              ]] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setRegionalContent(value)}
-                  aria-pressed={regionalContent === value}
-
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+        <div className="surface-notices-controls flex flex-col gap-2 px-3 pt-2.5 pb-2.5 sm:px-4 sm:pt-2.5 sm:pb-2.5 shrink-0">
+          {/* Search Bar */}
+          <div className="surface-notices-search-row">
+            <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-slate-400 dark:text-slate-500" />
+              <input
+                type="text"
+                className="submenu-search-input w-full pl-9 pr-4 h-10 rounded-lg border border-transparent bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder={regionalContent === "trip-changes"
+                  ? "Search train, corridor, or station"
+                  : regional ? "Search line, station, or notice" : "Search route, stop, or notice"}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </form>
           </div>
-        ) : null}
 
-        {(!regional || regionalContent === "notices") ? (
-          <div className="px-3 pt-3 sm:px-4 shrink-0">
+          {regional ? (
+            <div role="group" aria-label="GO / UP notice content">
+              <div
+                className="account-network-filter regional-notices-filter"
+                data-options-count={2}
+                data-content={regionalContent}
+              >
+                <div className="account-network-glider regional-notices-glider" aria-hidden="true" />
+                {([[
+                  "notices", "Service Notices",
+                ], [
+                  "trip-changes", "Trip Changes",
+                ]] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setRegionalContent(value)}
+                    aria-pressed={regionalContent === value}
+
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {(!regional || regionalContent === "notices") ? (
             <div className="alert-history-selects-row surface-notice-filters">
               {regional ? <NoticeFilter label="Filter GO / UP notices by service" prefix="Service"
                 value={serviceType} onChange={(value) => setServiceType(value as typeof serviceType)}
@@ -468,11 +468,11 @@ export function SurfaceNoticesPanel({
                   { value: "recent", label: "Most Recent", icon: <CalendarClock size={12} className="shrink-0 text-blue-500 dark:text-blue-400" /> },
                 ]} />
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         {/* Notices Content */}
-        <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 surface-notices-scroll">
+        <div className="flex-1 overflow-y-auto min-w-0 px-3 pb-3 sm:px-4 sm:pb-4 pt-0 surface-notices-scroll">
           {regional && regionalContent === "trip-changes" ? (
             <RegionalTripChangesList data={tripChanges} loading={tripChangesLoading} />
           ) : loading ? (

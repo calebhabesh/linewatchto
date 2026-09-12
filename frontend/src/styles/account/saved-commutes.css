@@ -37,13 +37,19 @@
    Saved Commutes Panel Body Container
    ========================================================================== */
 .commute-grid {
-  display: grid;
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr);
-  padding: 12px var(--mobile-sheet-gutter, 16px);
+  max-width: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 var(--mobile-sheet-gutter, 16px) 12px;
   background: rgb(255, 255, 255);
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
+  width: 100%;
 }
 
 .dark .commute-grid {
@@ -103,7 +109,9 @@
 .commute-card {
   background: var(--panel-soft);
   box-sizing: border-box;
+  flex: 0 0 auto;
   max-width: 100%;
+  min-height: min-content;
   min-width: 0;
   overflow: hidden;
   overflow-x: hidden;
@@ -1733,6 +1741,7 @@
   align-items: flex-start;
   color: var(--quiet);
   display: flex;
+  flex: 0 0 auto;
   font-size: 0.62rem;
   font-weight: 600;
   gap: 0.32rem;
@@ -1778,6 +1787,69 @@
 .dark .saved-commute-add-btn:hover {
   background-color: #047857; /* Tailwind emerald-700 */
 }
+
+/* ==========================================================================
+   Saved Commutes Control Console (unified with My Stations)
+   ========================================================================== */
+
+.my-commutes-add {
+  align-items: center;
+  background: rgb(5, 150, 105);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 1px 2px rgba(0, 0, 0, 0.12);
+  color: white;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 5px;
+  justify-content: center;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 12px;
+  padding-left: 12px;
+  padding-right: 16px;
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+  white-space: nowrap;
+  width: 128px;
+}
+
+.my-commutes-add:hover {
+  background: rgb(4, 120, 87);
+}
+
+.my-commutes-add:active {
+  transform: scale(0.96);
+}
+
+.dark .my-commutes-add {
+  background: rgb(5, 150, 105);
+}
+
+.dark .my-commutes-add:hover {
+  background: rgb(4, 120, 87);
+}
+
+.saved-commute-controls {
+  padding-bottom: 10px;
+}
+
+.saved-commute-controls + .commute-grid,
+.commute-grid.saved-commute-list-scroll {
+  padding-top: 0;
+}
+
+.saved-commute-selects {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+}
+
 
 .saved-commute-cancel-button {
   background-color: #ffffff;

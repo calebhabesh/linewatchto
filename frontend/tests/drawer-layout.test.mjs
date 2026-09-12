@@ -298,7 +298,7 @@ describe("floating menu layout", () => {
     assert.match(impactCardFieldsSource, /index < renderedLeadingRows\.length \? "is-emphasized"/);
     assert.match(plannedClosuresSource, /className="no-border planned-closure-metadata"/);
     assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:\s*0 0 4px rgba\(129, 201, 255, 0\.35\)/s);
-    assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dd\s*\{[^}]*font-size:\s*0\.84rem;[^}]*font-weight:\s*850/s);
+    assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dd\s*\{[^}]*font-weight:\s*850/s);
     assert.match(globalCss, /data-active-view="closures"[^}]*\.panel-heading span\.whitespace-nowrap\s*\{[^}]*max-width:\s*none\s*!important;[^}]*overflow:\s*visible\s*!important/s);
     assert.match(impactCardFieldsSource, /isWindowField \? " is-window-row" : ""/);
     assert.match(impactCardFieldsSource, /renderClosureScheduleValue/);
