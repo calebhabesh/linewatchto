@@ -137,8 +137,8 @@ describe("station connection metadata and map labels", () => {
     assert.match(regionalStationPanel, /<StationConnectionBadges connections=\{connections\}/);
     assert.match(ttcStationPanel, /station-detail-section-stack/);
     assert.match(regionalStationPanel, /station-detail-section-stack/);
-    assert.match(ttcStationPanel, /flex flex-1 min-h-0 flex-col gap-3[^"\n]*mt-3 pb-3/);
-    assert.match(regionalStationPanel, /flex flex-1 min-h-0 flex-col gap-3[^"\n]*mt-3 pb-3/);
+    assert.match(ttcStationPanel, /flex flex-1 min-h-0 flex-col gap-3[^"\n]*mt-2 pb-3/);
+    assert.match(regionalStationPanel, /flex flex-1 min-h-0 flex-col gap-3[^"\n]*mt-2 pb-3/);
     assert.match(css, /\.station-connections-title/);
     assert.match(connectionBadges, /GitMerge/);
     assert.match(connectionBadges, /connections\.length === 1 \? "Connected Network" : "Connected Networks"/);

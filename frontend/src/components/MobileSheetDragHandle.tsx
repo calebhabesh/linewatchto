@@ -17,7 +17,7 @@ export function MobileSheetDragHandle({
 }: Props) {
   return (
     <div
-      className={`station-sheet-drag-handle-container md:hidden flex items-center justify-center w-full pt-1 pb-2 -mt-1 min-h-[24px] cursor-grab active:cursor-grabbing select-none touch-none outline-none focus:outline-none focus-visible:outline-none shrink-0 ${isDragging ? "cursor-grabbing" : ""} ${className}`}
+      className={`station-sheet-drag-handle-container md:hidden flex items-center justify-center w-full pt-0.5 pb-1 -mt-0.5 min-h-[14px] cursor-grab active:cursor-grabbing select-none touch-none outline-none focus:outline-none focus-visible:outline-none shrink-0 ${isDragging ? "cursor-grabbing" : ""} ${className}`}
       style={{ WebkitTapHighlightColor: "transparent" }}
       data-mobile-sheet-drag-handle
       data-dragging={isDragging ? "true" : undefined}

@@ -50,7 +50,6 @@ import {
 import { StationDetailHeader } from "./StationDetailHeader";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
-import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
 import { LiveSignalIcon } from "./LiveSignalIcon";
@@ -298,16 +297,6 @@ export function RegionalStationDetailPanel({
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
-  const [isMobile, setIsMobile] = useState(() => (
-    typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
-  ));
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
-    const sync = () => setIsMobile(mediaQuery.matches);
-    mediaQuery.addEventListener("change", sync);
-    return () => mediaQuery.removeEventListener("change", sync);
-  }, []);
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const [arrivalState, setArrivalState] = useState<RegionalArrivalDataResult | null>(null);
 
@@ -650,7 +639,7 @@ export function RegionalStationDetailPanel({
     <aside
       ref={sheetRef}
       style={sheetStyle}
-      className={`regional-station-detail station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg bg-[var(--panel)] p-4 text-slate-900 shadow-2xl dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
+      className={`regional-station-detail station-detail-panel ${isClosing ? "station-detail-closing" : ""} ${isDragging ? "station-detail-sheet-dragging" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg bg-[var(--panel)] pt-1.5 pb-4 px-4 text-slate-900 shadow-2xl dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg md:p-4`}
       data-closing={isClosing ? "true" : undefined}
       aria-live="polite"
       aria-label={`${station.name} regional station details`}
@@ -676,7 +665,7 @@ export function RegionalStationDetailPanel({
           className="station-detail-content-swap w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col"
         >
           {routes.length > 2 ? (
-            <div className="mt-2 flex w-full min-w-0 max-w-full flex-col gap-2 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+            <div className="mt-0 sm:-mt-0.5 flex w-full min-w-0 max-w-full flex-col gap-2 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Regional Corridors · {routes.length} Lines
@@ -697,7 +686,7 @@ export function RegionalStationDetailPanel({
               </div>
             </div>
           ) : (
-            <div className="mt-2 flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+            <div className="mt-0 sm:-mt-0.5 flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
               {routes.map((route) => {
                 const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
                 return (
@@ -726,21 +715,12 @@ export function RegionalStationDetailPanel({
             </div>
           )}
 
-          {!isMobile && (
-            <StationSubmenuNavButtons
-              items={navItems}
-              onJumpToSection={handleJumpToSection}
-            />
-          )}
+          <StationSubmenuNavButtons
+            items={navItems}
+            onJumpToSection={handleJumpToSection}
+          />
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3 pb-3 station-detail-scroll station-detail-section-stack">
-            {isMobile && (
-              <StationSubmenuNavButtons
-                items={navItems}
-                onJumpToSection={handleJumpToSection}
-                className="mt-0.5"
-              />
-            )}
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 pb-3 station-detail-scroll station-detail-section-stack">
             {hasAccessibilityOutages && (
               <button
                 type="button"

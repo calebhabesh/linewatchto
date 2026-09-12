@@ -20,7 +20,7 @@ export function StationSubmenuNavButtons({ items, onJumpToSection, className }: 
   if (items.length <= 1) return null;
 
   return (
-    <div className={`flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0 ${className ?? "mt-2.5"}`} data-station-submenu-nav>
+    <div className={`flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0 ${className ?? "mt-1"}`} data-station-submenu-nav>
       <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
         Jump To
       </span>
@@ -46,9 +46,8 @@ export function StationSubmenuNavButtons({ items, onJumpToSection, className }: 
             </span>
             {item.count !== undefined && item.count > 0 ? (
               <span
-                className={`desktop-menu-count-badge desktop-menu-count-slate flex h-5 ${
-                  item.count < 10 ? "w-5" : "min-w-[20px] px-1"
-                } shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none`}
+                className="station-submenu-count-badge"
+                data-single-digit={item.count < 10 ? "true" : undefined}
               >
                 {item.count}
               </span>
