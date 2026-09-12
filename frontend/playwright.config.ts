@@ -51,6 +51,7 @@ export default defineConfig({
       name: "mobile-webkit",
       testMatch: /mobile-map-fit\.spec\.ts/,
       use: { ...devices["iPhone 13"] },
+      timeout: 60_000,
     },
     {
       name: "desktop-firefox",

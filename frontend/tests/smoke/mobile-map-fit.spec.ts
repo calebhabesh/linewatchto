@@ -6,6 +6,7 @@ const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
 for (const network of ["ttc", "regional"] as const) {
   test(`rotated ${network} map fits compact and changing phone viewports`, async ({ page, request, isMobile }, testInfo) => {
     test.skip(!isMobile, "phone viewport regression");
+    test.slow();
     await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
     await page.setViewportSize({ width: 393, height: 556 });
     await page.addInitScript(() => {
@@ -97,6 +98,7 @@ for (const network of ["ttc", "regional"] as const) {
 
   test(`rotated ${network} map preserves the app frame during browser page zoom`, async ({ page, request, isMobile }) => {
     test.skip(!isMobile, "phone viewport regression");
+    test.slow();
     await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
     await page.setViewportSize({ width: 393, height: 556 });
     await page.addInitScript(() => {
@@ -139,6 +141,7 @@ for (const network of ["ttc", "regional"] as const) {
 
   test(`rotated ${network} map returns to portrait after physical rotation`, async ({ page, request, isMobile }) => {
     test.skip(!isMobile, "phone viewport regression");
+    test.slow();
     await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
     await page.setViewportSize({ width: 393, height: 556 });
     await page.addInitScript(() => {

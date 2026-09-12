@@ -13,13 +13,14 @@ export type StationSubmenuNavItem = {
 type Props = {
   items: StationSubmenuNavItem[];
   onJumpToSection: (sectionId: string) => void;
+  className?: string;
 };
 
-export function StationSubmenuNavButtons({ items, onJumpToSection }: Props) {
+export function StationSubmenuNavButtons({ items, onJumpToSection, className }: Props) {
   if (items.length <= 1) return null;
 
   return (
-    <div className="mt-2.5 flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0" data-station-submenu-nav>
+    <div className={`flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0 ${className ?? "mt-2.5"}`} data-station-submenu-nav>
       <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
         Jump To
       </span>

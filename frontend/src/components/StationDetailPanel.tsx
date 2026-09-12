@@ -52,6 +52,7 @@ import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
+import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ttcStationConnections } from "../app/station-connections";
@@ -566,6 +567,16 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
+  const [isMobile, setIsMobile] = useState(() => (
+    typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
+  ));
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
+    const sync = () => setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", sync);
+    return () => mediaQuery.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => () => {
     if (closeTimeoutRef.current !== null) {
@@ -647,14 +658,21 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             </div>
           )}
 
-          {station && (
+          {station && !isMobile && (
             <StationSubmenuNavButtons
               items={navItems}
               onJumpToSection={handleJumpToSection}
             />
           )}
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 station-detail-scroll station-detail-section-stack">
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3 pb-3 station-detail-scroll station-detail-section-stack">
+            {station && isMobile && (
+              <StationSubmenuNavButtons
+                items={navItems}
+                onJumpToSection={handleJumpToSection}
+                className="mt-0.5"
+              />
+            )}
             {station && station.arrivalContext?.scheduleMayBeDisrupted && (
               <div
                 className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"

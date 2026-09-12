@@ -250,18 +250,22 @@ describe("station detail panel layout", () => {
     assert.match(regionalPanelSource, /shortLabel:\s*"Buses"/);
 
     const ttcLineHeaderIdx = panelSource.indexOf("data-station-header-line-details");
-    const ttcNavIdx = panelSource.indexOf("<StationSubmenuNavButtons");
+    const ttcDesktopNavIdx = panelSource.indexOf("!isMobile && (\n            <StationSubmenuNavButtons");
     const ttcScrollIdx = panelSource.indexOf("station-detail-scroll station-detail-section-stack");
-    assert.ok(ttcLineHeaderIdx !== -1 && ttcNavIdx !== -1 && ttcScrollIdx !== -1);
-    assert.ok(ttcLineHeaderIdx < ttcNavIdx, "TTC nav buttons must be below line badges");
-    assert.ok(ttcNavIdx < ttcScrollIdx, "TTC nav buttons must be above scrollable content stack");
+    const ttcMobileNavIdx = panelSource.indexOf("isMobile && (\n              <StationSubmenuNavButtons");
+    assert.ok(ttcLineHeaderIdx !== -1 && ttcDesktopNavIdx !== -1 && ttcScrollIdx !== -1 && ttcMobileNavIdx !== -1);
+    assert.ok(ttcLineHeaderIdx < ttcDesktopNavIdx, "TTC desktop nav buttons must be below line badges");
+    assert.ok(ttcDesktopNavIdx < ttcScrollIdx, "TTC desktop nav buttons must be above scrollable content stack");
+    assert.ok(ttcScrollIdx < ttcMobileNavIdx, "TTC mobile nav buttons must be inside scrollable content stack below line badges");
 
     const regionalLineHeaderIdx = regionalPanelSource.indexOf("data-station-header-line-details");
-    const regionalNavIdx = regionalPanelSource.indexOf("<StationSubmenuNavButtons");
+    const regionalDesktopNavIdx = regionalPanelSource.indexOf("!isMobile && (\n            <StationSubmenuNavButtons");
     const regionalScrollIdx = regionalPanelSource.indexOf("station-detail-scroll");
-    assert.ok(regionalLineHeaderIdx !== -1 && regionalNavIdx !== -1 && regionalScrollIdx !== -1);
-    assert.ok(regionalLineHeaderIdx < regionalNavIdx, "Regional nav buttons must be below line badges");
-    assert.ok(regionalNavIdx < regionalScrollIdx, "Regional nav buttons must be above scrollable content stack");
+    const regionalMobileNavIdx = regionalPanelSource.indexOf("isMobile && (\n              <StationSubmenuNavButtons");
+    assert.ok(regionalLineHeaderIdx !== -1 && regionalDesktopNavIdx !== -1 && regionalScrollIdx !== -1 && regionalMobileNavIdx !== -1);
+    assert.ok(regionalLineHeaderIdx < regionalDesktopNavIdx, "Regional desktop nav buttons must be below line badges");
+    assert.ok(regionalDesktopNavIdx < regionalScrollIdx, "Regional desktop nav buttons must be above scrollable content stack");
+    assert.ok(regionalScrollIdx < regionalMobileNavIdx, "Regional mobile nav buttons must be inside scrollable content stack below line badges");
   });
 
   it("reopens the station submenu when pressing back from an impact details view", () => {

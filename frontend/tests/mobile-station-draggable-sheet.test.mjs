@@ -173,27 +173,31 @@ describe("mobile station draggable sheet UX", () => {
     assert.equal(computeDampedRatio(1.20), 0.92);
   });
 
-  it("renders Jump To buttons with words and icons in a space-efficient grid and places Access Outages inside scrollable area below Jump To", () => {
+  it("renders Jump To buttons with words and icons in a space-efficient grid, keeping desktop outside scroll and placing mobile inside scroll below line badges", () => {
     const navButtonsSource = readFileSync(new URL("../src/components/StationSubmenuNavButtons.tsx", import.meta.url), "utf8");
     assert.match(navButtonsSource, /grid\s+grid-cols-3/);
     assert.match(navButtonsSource, /\{item\.shortLabel\s*\?\?\s*item\.label\}/);
     assert.match(navButtonsSource, /\{item\.icon\}/);
 
-    // Verify StationDetailPanel layout order: Jump To is outside scroll area, Access Outages is inside scroll area
-    const navIndex = panelSource.indexOf("<StationSubmenuNavButtons");
+    // Verify StationDetailPanel layout order: Desktop Jump To is outside scroll area, Mobile Jump To and Access Outages are inside scroll area
+    const desktopNavIndex = panelSource.indexOf("!isMobile && (\n            <StationSubmenuNavButtons");
     const scrollIndex = panelSource.indexOf("station-detail-scroll station-detail-section-stack");
+    const mobileNavIndex = panelSource.indexOf("isMobile && (\n              <StationSubmenuNavButtons");
     const outageIndex = panelSource.indexOf("data-station-access-outage-summary");
-    assert.ok(navIndex > 0);
-    assert.ok(scrollIndex > navIndex, "Scrollable section must begin after StationSubmenuNavButtons");
-    assert.ok(outageIndex > scrollIndex, "Access Outages must be inside the scrollable container below Jump To");
+    assert.ok(desktopNavIndex > 0);
+    assert.ok(scrollIndex > desktopNavIndex, "Desktop Jump To must be outside the scrollable section");
+    assert.ok(mobileNavIndex > scrollIndex, "Mobile Jump To must be inside the scrollable container below line badges");
+    assert.ok(outageIndex > mobileNavIndex, "Access Outages must be inside the scrollable container below Jump To");
 
     // Verify RegionalStationDetailPanel layout order as well
-    const regNavIndex = regionalPanelSource.indexOf("<StationSubmenuNavButtons");
+    const regDesktopNavIndex = regionalPanelSource.indexOf("!isMobile && (\n            <StationSubmenuNavButtons");
     const regScrollIndex = regionalPanelSource.indexOf("station-detail-scroll");
+    const regMobileNavIndex = regionalPanelSource.indexOf("isMobile && (\n              <StationSubmenuNavButtons");
     const regOutageIndex = regionalPanelSource.indexOf("data-station-access-outage-summary");
-    assert.ok(regNavIndex > 0);
-    assert.ok(regScrollIndex > regNavIndex, "Regional scrollable section must begin after StationSubmenuNavButtons");
-    assert.ok(regOutageIndex > regScrollIndex, "Regional Access Outages must be inside the scrollable container below Jump To");
+    assert.ok(regDesktopNavIndex > 0);
+    assert.ok(regScrollIndex > regDesktopNavIndex, "Regional Desktop Jump To must be outside the scrollable section");
+    assert.ok(regMobileNavIndex > regScrollIndex, "Regional Mobile Jump To must be inside the scrollable container below line badges");
+    assert.ok(regOutageIndex > regMobileNavIndex, "Regional Access Outages must be inside the scrollable container below Jump To");
   });
 
   it("exports MOBILE_STATION_SHEET_RESIZE_EVENT and dispatches it upon settling at custom ratio", () => {

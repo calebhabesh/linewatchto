@@ -50,6 +50,7 @@ import {
 import { StationDetailHeader } from "./StationDetailHeader";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
+import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
 import { LiveSignalIcon } from "./LiveSignalIcon";
@@ -297,6 +298,16 @@ export function RegionalStationDetailPanel({
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
   const { sheetRef, isDragging, isExpanded, dragHandleProps, sheetStyle } = useMobileDraggableSheet();
+  const [isMobile, setIsMobile] = useState(() => (
+    typeof window !== "undefined" && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
+  ));
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
+    const sync = () => setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", sync);
+    return () => mediaQuery.removeEventListener("change", sync);
+  }, []);
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const [arrivalState, setArrivalState] = useState<RegionalArrivalDataResult | null>(null);
 
@@ -715,12 +726,21 @@ export function RegionalStationDetailPanel({
             </div>
           )}
 
-          <StationSubmenuNavButtons
-            items={navItems}
-            onJumpToSection={handleJumpToSection}
-          />
+          {!isMobile && (
+            <StationSubmenuNavButtons
+              items={navItems}
+              onJumpToSection={handleJumpToSection}
+            />
+          )}
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 station-detail-scroll station-detail-section-stack">
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 md:mt-3 pb-3 station-detail-scroll station-detail-section-stack">
+            {isMobile && (
+              <StationSubmenuNavButtons
+                items={navItems}
+                onJumpToSection={handleJumpToSection}
+                className="mt-0.5"
+              />
+            )}
             {hasAccessibilityOutages && (
               <button
                 type="button"
