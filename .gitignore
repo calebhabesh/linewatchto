@@ -16,6 +16,7 @@ backend/target/
 frontend/node_modules/
 frontend/.next/
 frontend/.next-scenario/
+frontend/.next-account-edits/
 frontend/out/
 frontend/coverage/
 frontend/.vercel/

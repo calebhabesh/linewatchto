@@ -140,8 +140,8 @@ describe("unified search alert group headings", () => {
 
     // Header container is completely opaque
     assert.match(globalCss, /\.station-search-stations-column-header\s*\{[\s\S]*?opacity:\s*1\s*!important;/);
-    assert.match(globalCss, /\.dark \.global-search-network-heading,\s*\.dark \.station-search-stations-column-header\s*\{[\s\S]*?background:\s*#26171a\s*!important;/);
-    assert.match(globalCss, /\.dark \.global-search-network-heading,\s*\.dark \.station-search-stations-column-header\s*\{[\s\S]*?opacity:\s*1\s*!important;/);
+    assert.match(globalCss, /\.dark \.global-search-network-heading:not\(\.regional\),\s*\.dark \.station-search-stations-column-header:not\(\.regional\)\s*\{[\s\S]*?background:\s*#26171a\s*!important;/);
+    assert.match(globalCss, /\.dark \.global-search-network-heading:not\(\.regional\),\s*\.dark \.station-search-stations-column-header:not\(\.regional\)\s*\{[\s\S]*?opacity:\s*1\s*!important;/);
 
     // Mini-search commute station picker
     assert.match(globalCss, /\.commute-station-trigger,\s*\.commute-station-search-row,\s*\.commute-station-popover\s*\{[\s\S]*?border:\s*none\s*!important;/);

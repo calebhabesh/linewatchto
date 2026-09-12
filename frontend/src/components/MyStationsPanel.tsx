@@ -1160,11 +1160,14 @@ export function MyStationsPanel({
     const countForLine = (id: string) => filterAndSortSavedStations(networkStations, query, id, "attention").length;
     return [
       { value: "all", label: "All Lines", count: countForLine("all") },
-      ...availableLines.map((line) => ({
+      ...availableLines.filter((line) => mode === "add" || networkStations.some((saved) => saved.station.lineIds.includes(line.id))).map((line) => ({
         value: line.id, label: line.name, lineId: line.id, count: countForLine(line.id),
       })),
     ];
-  }, [availableLines, savedStations, networkFilter, query]);
+  }, [availableLines, savedStations, networkFilter, query, mode]);
+  if (lineId !== "all" && !lineOptions.some((option) => option.value === lineId)) {
+    setLineId("all");
+  }
   const savedStationsWithRouteImpacts = useMemo(
     () => savedStations
       .filter((saved) => networkFilter === "all" || saved.networkId === networkFilter)

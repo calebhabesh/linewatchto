@@ -4504,11 +4504,18 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   // Switch back to outbound for the rest of the test
   await page.getByRole("tab", { name: "To Union" }).click();
 
-  await page.getByRole("button", { name: /View 5 stops/ }).click();
+  await page.getByRole("button", { name: /View 5 stops/i }).click();
   await expect(page.getByRole("list", { name: "Stops for Morning commute" })).toBeVisible();
   const stopsList = page.getByRole("list", { name: "Stops for Morning commute" });
   await expect(stopsList.getByText("Stub Station", { exact: true })).toBeVisible();
   await expect(stopsList.getByText("Union", { exact: true })).toBeVisible();
+  await expect(stopsList.locator("li").first()).toHaveAttribute("data-outgoing-line", "line-1");
+  await expect(stopsList.locator("li").first()).not.toHaveAttribute("data-incoming-line");
+  const firstLink = await stopsList.locator("li").first().evaluate(element => getComputedStyle(element, "::after").backgroundColor);
+  expect(firstLink).toBe("rgb(248, 195, 0)");
+  await stopsList.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `/tmp/linewatch-commute-spine-${isMobile ? "mobile" : "desktop"}.png` });
+
 
   const viewPathButton = page.getByRole("button", { name: "View path on map" });
   await expect(viewPathButton).toBeVisible();
@@ -4742,6 +4749,8 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
 
   const panel = page.getByRole("region", { name: "My Stations" });
   await expect(panel).toBeVisible();
+  const savedLineOptions = panel.getByLabel("Filter stations by line", { exact: true }).filter({ has: page.locator("option") });
+  await expect(savedLineOptions.locator("option[value='regional-br']")).toHaveCount(0);
   await panel.getByRole("button", { name: "Add Station", exact: true }).click();
   const doneButton = panel.getByRole("button", { name: "Done adding stations" });
   await expect(doneButton).toBeVisible();

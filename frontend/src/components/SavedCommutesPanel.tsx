@@ -1,9 +1,13 @@
 "use client";
 
+import { commuteStopSpine } from "../app/commute-stop-spine";
+import { transitLineBadgeColors, transitLineName } from "./TransitLineBadge";
+import type { CSSProperties } from "react";
+
 import { useDashboardData } from "../app/DataContext";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, Loader2, MapPinned, Pencil, Plus, Route, Search, Trash2, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
+import { Navigation, ChevronDown, Loader2, MapPinned, Plus, Route, Search, SquarePen, Trash2, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
 import {
   createSavedCommute,
@@ -1902,8 +1906,8 @@ export function SavedCommutesPanel({
               onClick={() => startEditingCommute(commute)}
               aria-label={`Edit commute ${commute.label}`}
             >
-              Edit route
-              <Pencil size={13} aria-hidden="true" />
+              <SquarePen size={13} aria-hidden="true" />
+              Edit Route
             </button>
             <button
               type="button"
@@ -1913,7 +1917,7 @@ export function SavedCommutesPanel({
               aria-controls={`commute-stops-${commute.id}`}
               disabled={routeStops.length === 0}
             >
-              {stopsExpanded ? "Hide stops" : `View ${routeStops.length} stops`}
+              {stopsExpanded ? "Hide Stops" : `View ${routeStops.length} Stops`}
               <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${stopsExpanded ? "rotate-180" : ""}`} />
             </button>
             <button
@@ -1933,10 +1937,24 @@ export function SavedCommutesPanel({
           </div>
           {stopsExpanded ? (
             <ol id={`commute-stops-${commute.id}`} className="commute-route-stop-list" aria-label={`Stops for ${commute.label}`}>
-              {routeStops.map((stationId, index) => (
-                <li key={`${commute.id}-${stationId}-${index}`}>
+              {commuteStopSpine(selectedLeg.path).map(({ stationId, incomingLineId, outgoingLineId }, index) => (
+                <li
+                  key={`${commute.id}-${stationId}-${index}`}
+                  className="commute-route-stop"
+                  data-incoming-line={incomingLineId ?? undefined}
+                  data-outgoing-line={outgoingLineId ?? undefined}
+                  style={{
+                    "--stop-incoming": incomingLineId ? transitLineBadgeColors(incomingLineId).backgroundColor : "transparent",
+                    "--stop-outgoing": outgoingLineId ? transitLineBadgeColors(outgoingLineId).backgroundColor : "transparent",
+                  } as CSSProperties}
+                >
                   <span className="commute-route-stop-index">{index + 1}</span>
-                  <span>{stationNameFor(stationId, commute.networkId ?? "ttc")}</span>
+                  <span>
+                    <span>{stationNameFor(stationId, commute.networkId ?? "ttc")}</span>
+                    <span className="sr-only">
+                      {outgoingLineId ? `, continue on ${transitLineName(outgoingLineId) ?? outgoingLineId}` : ""}
+                    </span>
+                  </span>
                   {selectedLeg.path.transferStationIds.includes(stationId) ? (
                     <strong>Transfer</strong>
                   ) : null}

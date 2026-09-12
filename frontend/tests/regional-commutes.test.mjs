@@ -42,7 +42,7 @@ describe("regional My Commutes UI boundary", () => {
   it("supports route review and endpoint, label, and return-leg editing", () => {
     assert.match(panelSource, /updateSavedCommute\(editingCommuteId/);
     assert.match(panelSource, /startEditingCommute/);
-    assert.match(panelSource, /Edit route/);
+    assert.match(panelSource, /Edit Route/);
     assert.match(accountDataSource, /export async function updateSavedCommute/);
   });
 

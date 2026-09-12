@@ -16,6 +16,20 @@ class SavedCommuteControllerTest {
     private final AccountEntity account = AccountEntity.create("user_1", "rider@example.com", "Rider", "$2a$hash", false, Instant.parse("2026-06-05T14:00:00Z"));
 
     @Test
+    void duplicateNameResponseIncludesConflictCodeAndFormMessage() {
+        var response = controller.handleAccountException(new AccountException(
+            org.springframework.http.HttpStatus.CONFLICT,
+            "commute_name_exists",
+            "Commute name already exists. Choose a different name."
+        ));
+        assertThat(response.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isEqualTo(new AccountErrorResponse(
+            "commute_name_exists",
+            "Commute name already exists. Choose a different name."
+        ));
+    }
+
+    @Test
     void listUsesCurrentSessionAccount() {
         AccountResponses.SavedCommuteListResponse expected = new AccountResponses.SavedCommuteListResponse(List.of());
         when(accountService.requireAccount("raw-token")).thenReturn(account);

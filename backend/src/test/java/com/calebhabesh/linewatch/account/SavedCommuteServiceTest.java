@@ -95,6 +95,66 @@ class SavedCommuteServiceTest {
         return path;
     }
 
+    private void stubNameValidationStations() {
+        when(stationRepository.findById("finch")).thenReturn(Optional.of(new StationEntity("finch", "Finch", 0, 0, false, 10, null)));
+        when(stationRepository.findById("union")).thenReturn(Optional.of(new StationEntity("union", "Union", 0, 0, true, 20, null)));
+    }
+
+    @Test
+    void rejectsDuplicateNamesIgnoringCaseAndSurroundingSpacesAcrossNetworks() {
+        stubNameValidationStations();
+        SavedCommuteEntity existing = SavedCommuteEntity.create("existing", account, " Test ", "regional", "a", "b", true, clock.instant());
+        when(commuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())).thenReturn(List.of(existing));
+        for (String name : List.of("Test", "test", " TEST ")) {
+            assertThatThrownBy(() -> service.create(account,
+                new SavedCommuteService.CreateSavedCommuteRequest(name, "finch", "union", true)))
+                .isInstanceOfSatisfying(AccountException.class, error -> {
+                    assertThat(error.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(error.getError()).isEqualTo("commute_name_exists");
+                    assertThat(error.getMessage()).contains("Choose a different name");
+                });
+        }
+        verify(commuteRepository, never()).save(any());
+        var order = org.mockito.Mockito.inOrder(commuteRepository);
+        order.verify(commuteRepository).lockCommuteOwner(account.getId());
+        order.verify(commuteRepository).findByAccountIdOrderByCreatedAtAsc(account.getId());
+    }
+
+    @Test
+    void rejectsRenamingToAnotherCommutesName() {
+        stubNameValidationStations();
+        SavedCommuteEntity edited = SavedCommuteEntity.create("edited", account, "Work", "finch", "union", clock.instant());
+        SavedCommuteEntity existing = SavedCommuteEntity.create("existing", account, "Test", "a", "b", clock.instant());
+        when(commuteRepository.findByIdAndAccountId("edited", account.getId())).thenReturn(Optional.of(edited));
+        when(commuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())).thenReturn(List.of(edited, existing));
+        assertThatThrownBy(() -> service.updateRoute(account, "edited",
+            new SavedCommuteService.UpdateSavedCommuteRequest(" test ", "finch", "union", true)))
+            .isInstanceOfSatisfying(AccountException.class, error -> assertThat(error.getError()).isEqualTo("commute_name_exists"));
+        assertThat(edited.getLabel()).isEqualTo("Work");
+        verify(commuteRepository, never()).save(any());
+    }
+
+    @Test
+    void allowsUnchangedNameWhenEditingEvenWithLegacyDuplicates() {
+        stubNameValidationStations();
+        SavedCommuteEntity edited = SavedCommuteEntity.create("edited", account, "Test", "finch", "union", clock.instant());
+        when(commuteRepository.findByIdAndAccountId("edited", account.getId())).thenReturn(Optional.of(edited));
+        when(commuteRepository.save(any(SavedCommuteEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        stubCommutePathAndImpact("finch", "union");
+        assertThat(service.updateRoute(account, "edited",
+            new SavedCommuteService.UpdateSavedCommuteRequest(" TEST ", "finch", "union", true)).label()).isEqualTo("TEST");
+    }
+
+    @Test
+    void rejectsDuplicateGeneratedDefaultName() {
+        stubNameValidationStations();
+        when(commuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())).thenReturn(List.of(
+            SavedCommuteEntity.create("existing", account, "Finch to Union", "a", "b", clock.instant())));
+        assertThatThrownBy(() -> service.create(account,
+            new SavedCommuteService.CreateSavedCommuteRequest("", "finch", "union", true)))
+            .isInstanceOfSatisfying(AccountException.class, error -> assertThat(error.getError()).isEqualTo("commute_name_exists"));
+    }
+
     @Test
     void createsSavedCommuteWithResolvedStationNames() {
         StationEntity finch = new StationEntity("finch", "Finch", 0, 0, false, 10, null);

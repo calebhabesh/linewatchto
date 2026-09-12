@@ -402,7 +402,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .desktop-view-content-wrapper[data-nav-direction="forward"],
 .mobile-view-content-wrapper[data-nav-direction="forward"],
 .my-stations-body[data-nav-direction="forward"],
-.commute-grid[data-nav-direction="forward"],
+.commute-body[data-nav-direction="forward"],
 .accessibility-outages-scroll[data-nav-direction="forward"] {
   animation: panel-container-forward 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: opacity, transform;
@@ -422,7 +422,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .desktop-view-content-wrapper[data-nav-direction="back"]:not([data-going-back="true"]),
 .mobile-view-content-wrapper[data-nav-direction="back"]:not([data-going-back="true"]),
 .my-stations-body[data-nav-direction="back"],
-.commute-grid[data-nav-direction="back"],
+.commute-body[data-nav-direction="back"],
 .accessibility-outages-scroll[data-nav-direction="back"] {
   animation: panel-container-back 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: opacity, transform;
@@ -443,7 +443,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .motion-paused .desktop-view-content-wrapper,
 .motion-paused .mobile-view-content-wrapper,
 .motion-paused .my-stations-body,
-.motion-paused .commute-grid,
+.motion-paused .commute-body,
 .motion-paused .accessibility-outages-scroll,
 .motion-paused .floating-panel-shell,
 .motion-paused .mobile-impact-inspector,
@@ -457,7 +457,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   .desktop-view-content-wrapper,
   .mobile-view-content-wrapper,
   .my-stations-body,
-  .commute-grid,
+  .commute-body,
   .accessibility-outages-scroll,
   .floating-panel-shell,
   .mobile-impact-inspector,
@@ -574,4 +574,11 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 .reduced-motion .animate-terminating-blink {
   animation: none;
+}
+
+
+.my-stations-body[data-nav-direction],
+.commute-body[data-nav-direction] {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }

@@ -107,6 +107,7 @@ public class SavedCommuteService {
 
     @Transactional
     public AccountResponses.SavedCommuteResponse create(AccountEntity account, CreateSavedCommuteRequest request) {
+        commuteRepository.lockCommuteOwner(account.getId());
         String originId = normalizeStationId(request.originStationId());
         String destinationId = normalizeStationId(request.destinationStationId());
         String networkId = normalizeNetworkId(request.networkId());
@@ -122,6 +123,7 @@ public class SavedCommuteService {
 
         Instant now = clock.instant();
         String label = normalizeLabel(request.label(), originName, destinationName);
+        validateUniqueName(account.getId(), label, null);
         boolean watchReturnTrip = request.watchReturnTrip() == null || request.watchReturnTrip();
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             nextId(),
@@ -147,6 +149,7 @@ public class SavedCommuteService {
         String commuteId,
         UpdateSavedCommuteRequest request
     ) {
+        commuteRepository.lockCommuteOwner(account.getId());
         SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
             .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Commute was not found."));
         String originId = normalizeStationId(request.originStationId());
@@ -165,6 +168,10 @@ public class SavedCommuteService {
             throw new AccountException(HttpStatus.CONFLICT, "commute_exists", "That commute is already saved.");
         }
         String label = normalizeLabel(request.label(), originName, destinationName);
+        // Preserve existing names (including legacy duplicates) on unrelated route edits.
+        if (!commute.getLabel().trim().equalsIgnoreCase(label)) {
+            validateUniqueName(account.getId(), label, commuteId);
+        }
         boolean watchReturnTrip = request.watchReturnTrip() == null ? commute.isWatchReturnTrip() : request.watchReturnTrip();
         commute.updateRoute(label, originId, destinationId, watchReturnTrip, clock.instant());
         commute = commuteRepository.save(commute);
@@ -291,6 +298,16 @@ public class SavedCommuteService {
             .map(match -> match.withIgnoredByRule(!SavedCommuteAlertRules.dashboardMatchCounts(commute, legId, match)))
             .toList();
         return commuteImpactService.responseForMatches(path, annotatedMatches);
+    }
+
+    private void validateUniqueName(String accountId, String label, String excludedCommuteId) {
+        boolean duplicate = commuteRepository.findByAccountIdOrderByCreatedAtAsc(accountId).stream()
+            .filter(commute -> !commute.getId().equals(excludedCommuteId))
+            .anyMatch(commute -> commute.getLabel().trim().equalsIgnoreCase(label));
+        if (duplicate) {
+            throw new AccountException(HttpStatus.CONFLICT, "commute_name_exists",
+                "Commute name already exists. Choose a different name.");
+        }
     }
 
     private String normalizeLabel(String label, String originName, String destinationName) {

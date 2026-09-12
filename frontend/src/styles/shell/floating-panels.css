@@ -287,7 +287,8 @@
 }
 
 .floating-panel-scroll {
-  background: var(--panel);
+  /* Reading surfaces keep map geometry from competing with panel content. */
+  background: var(--panel-opaque);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: var(--shadow);

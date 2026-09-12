@@ -51,7 +51,7 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /View all service impacts for \$\{l\.name\}[\s\S]*<ChevronRight/s);
     assert.match(shellSource, /<CircleCheck[\s\S]*aria-label=\{clearServiceStatusLabel/s);
     assert.match(globalCss, /\.line-impact-category-filters button\s*\{[^}]*min-height:\s*36px;[^}]*font-size:\s*10\.5px/s);
-    assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters\s*\{[^}]*flex-wrap:\s*nowrap/s);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters\s*\{[^}]*flex-wrap:\s*wrap/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\)[\s\S]*\.line-impact-category-filters button\s*\{[^}]*flex:\s*0 1 auto;/s);
     assert.match(globalCss, /\.line-impacts-panel > \.panel-heading h2\s*\{[^}]*padding-bottom:\s*2px;[^}]*line-height:\s*1\.35/s);
     assert.match(globalCss, /@media \(max-width:\s*767px\)[\s\S]*?\.line-impacts-panel \.impact-list-toolbar\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/s);

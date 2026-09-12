@@ -182,10 +182,10 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /commute-route-stop-list/);
     assert.match(
       globalCss,
-      /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*gap:\s*0\.45rem;)(?=[^}]*justify-content:\s*flex-start;)(?=[^}]*letter-spacing:\s*0\.025em;)(?=[^}]*padding-left:\s*0;)[^}]*\}/s,
+      /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*gap:\s*0\.35rem;)(?=[^}]*justify-content:\s*center;)(?=[^}]*letter-spacing:\s*0\.015em;)[^}]*\}/s,
     );
-    assert.match(savedCommutesSource, /Edit route\s*<Pencil size=\{13\}/);
-    assert.match(savedCommutesSource, /View \$\{routeStops\.length\} stops`\}\s*<ChevronDown size=\{14\}/);
+    assert.match(savedCommutesSource, /<SquarePen size=\{13\}[^>]*\/>\s*Edit Route/);
+    assert.match(savedCommutesSource, /View \$\{routeStops\.length\} Stops`\}\s*<ChevronDown size=\{14\}/);
     assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
     assert.match(savedCommutesSource, /View path on map/);
