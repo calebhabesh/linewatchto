@@ -57,7 +57,7 @@ describe("dashboard server data binding", () => {
     assert.match(shellSource, /displayData/);
     assert.match(shellSource, /setTtcData\(initialData\)/);
     assert.match(shellSource, /selectedNetwork === "regional" \? regionalData : ttcData/);
-    assert.match(shellSource, /initialData\.dataSource === "backend"/);
+    assert.match(shellSource, /canSaveDashboard\(initialData\)/);
   });
 
   it("loads and refreshes the selected regional dashboard through the network-scoped API", () => {

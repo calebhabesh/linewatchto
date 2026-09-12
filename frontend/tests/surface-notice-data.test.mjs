@@ -92,3 +92,23 @@ describe("surface notice data adapter", () => {
     assert.equal(fallbackSurfaceNotices.notices.length, 0);
   });
 });
+
+it("keeps complete public notices searchable offline without persisting queries", async () => {
+  const previousWindow = globalThis.window;
+  const rows = new Map();
+  globalThis.window = { localStorage: { getItem: key => rows.get(key) ?? null, setItem: (key, value) => rows.set(key, value) } };
+  try {
+    const data = { generatedAt: '2026-09-11T12:00:00Z', fresh: true, source: 'TTC', categories: [], notices: [{ id: '1', title: '501 detour', description: 'Queen Street', category: 'detour', routeType: 'streetcar', routeIds: ['501'], stopIds: [], updatedAt: '2026-09-11T12:00:00Z', source: 'TTC' }] };
+    await getSurfaceNotices({ fetcher: async () => new Response(JSON.stringify(data)) });
+    const offline = async () => { throw new Error('offline'); };
+    const saved = await getSurfaceNotices({ query: 'Queen', fetcher: offline });
+    assert.equal(saved.data.fresh, false);
+    assert.ok(saved.data.savedAt);
+    assert.equal(saved.data.notices.length, 1);
+    assert.equal((await getSurfaceNotices({ query: 'missing', fetcher: offline })).data.notices.length, 0);
+    assert.equal((await getSurfaceNotices({ networkId: 'regional', fetcher: offline })).data.notices.length, 0);
+    assert.equal(rows.size, 1);
+    await getSurfaceNotices({ query: 'private query', fetcher: async () => new Response(JSON.stringify({ ...data, notices: [] })) });
+    assert.equal((await getSurfaceNotices({ fetcher: offline })).data.notices.length, 1);
+  } finally { if (previousWindow === undefined) delete globalThis.window; else globalThis.window = previousWindow; }
+});

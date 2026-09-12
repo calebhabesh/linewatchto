@@ -1,8 +1,10 @@
 const CACHE_PREFIX = "linewatch-pwa";
-const CACHE_VERSION = "v3";
-const APP_SHELL_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-shell`;
-const STATIC_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-static`;
+const CACHE_VERSION = "v4";
+const CACHE_BUILD = (new URL(self.location.href).searchParams.get("build") || "local").replace(/[^a-zA-Z0-9._-]/g, "").slice(0, 100);
+const APP_SHELL_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-${CACHE_BUILD}-shell`;
+const STATIC_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-${CACHE_BUILD}-static`;
 const OFFLINE_URL = "/offline.html";
+const OFFLINE_DASHBOARD_URL = "/offline";
 const NOTIFICATION_BADGE_URL = "/assets/linewatch/pwa/notification-badge-96.png";
 const NOTIFICATION_ICON_URL = "/assets/linewatch/pwa/app-icon-192.png";
 const LINEWATCH_PUSH_CATEGORIES = new Set([
@@ -28,6 +30,27 @@ const APP_SHELL_URLS = [
   "/assets/linewatch/pwa/offline-icon-512.png",
   "/assets/linewatch/logo.svg",
   "/assets/linewatch/ttc-subway-map-custom.svg",
+  "/assets/linewatch/regional-rail-map.svg",
+  ...[
+    "accessibility-alert.svg", "accessible.svg", "alert-noti-2.svg", "alert-noti.svg",
+    "bicycle-lockup.svg", "bicycle-repair.svg", "bike-share-toronto.svg", "cardinal-north.svg",
+    "click-icon.svg", "closed-alert.svg", "delay-icon.svg", "elevator-icon.svg",
+    "exclaim-alert-white.svg", "go-br-legend.svg", "go-ki-legend.svg", "go-le-legend.svg",
+    "go-lw-legend.svg", "go-mi-legend.svg", "go-rh-legend.svg", "go-st-legend.svg",
+    "jump-to-location.svg", "line-1-legend.svg", "line-2-legend.svg", "line-4-legend.svg",
+    "line-5-legend.svg", "line-6-legend.svg", "logs.svg", "parking.svg",
+    "passenger-pick-up.svg", "phone-rotate-landscape-white.svg", "phone-rotate-landscape.svg", "site-guide.svg",
+    "streetcar.svg", "transportation-train.svg", "up-express-legend.svg", "washroom.svg",
+    "wheel-chair-symbol.svg",
+  ].map((name) => `/assets/linewatch/${name}`),
+  "/assets/fonts/texgyreheros-regular.woff2",
+  "/assets/fonts/texgyreheros-bold.woff2",
+  "/assets/linewatch/outages/elevator.svg",
+  "/assets/linewatch/outages/escalator.svg",
+  ...["ttc", "regional"].flatMap((network) =>
+    ["background", "foreground", "labels"].flatMap((plane) =>
+      ["dark", "light", "high-contrast"].map((theme) =>
+        `/assets/linewatch/raster-maps/${network}-${plane}-${theme}-mobile.png`))),
 ];
 
 self.addEventListener("install", (event) => {
@@ -38,6 +61,7 @@ self.addEventListener("install", (event) => {
     }
     const cache = await caches.open(APP_SHELL_CACHE);
     await cache.addAll(APP_SHELL_URLS);
+    await cacheOfflineDashboard(cache);
   })());
 });
 
@@ -108,6 +132,16 @@ self.addEventListener("pushsubscriptionchange", (event) => {
 });
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "linewatch-cache-loaded-assets" && !isDev) {
+    const assets = Array.isArray(event.data.urls) ? event.data.urls.slice(0, 250) : [];
+    const warm = Promise.allSettled(assets.map((value) => {
+      const url = new URL(value, self.location.origin);
+      if (url.origin !== self.location.origin || !(isStaticAsset(url) || isNextStaticAsset(url))) return;
+      return networkFirstStatic(new Request(url.href));
+    }));
+    event.waitUntil(warm);
+    return;
+  }
   if (event.data?.type === "linewatch-skip-waiting") {
     const skipWaiting = self.skipWaiting();
     if (typeof event.waitUntil === "function") {
@@ -150,11 +184,51 @@ function isNextStaticAsset(url) {
 
 async function networkFirstNavigation(request) {
   try {
-    return await fetch(request);
+    const response = await fetch(request, { signal: AbortSignal.timeout(8_000) });
+    if (response.status < 500) return response;
+    throw new Error("Navigation unavailable");
   } catch {
+    // Only public dashboard navigations may reopen into the app. Never cache or
+    // replay account pages, OAuth callbacks, verification/reset links, or RSC reads.
+    const url = new URL(request.url);
+    if ((url.pathname === "/" || url.pathname === OFFLINE_DASHBOARD_URL)
+      && ![...url.searchParams.keys()].some((key) => /token|code|password|email/i.test(key))) {
+      const dashboard = await caches.match(OFFLINE_DASHBOARD_URL);
+      if (dashboard) return dashboard;
+    }
     const offlineResponse = await caches.match(OFFLINE_URL);
     return offlineResponse || Response.error();
   }
+}
+
+async function cacheOfflineDashboard(cache) {
+  const response = await fetch(OFFLINE_DASHBOARD_URL, { credentials: "omit", cache: "reload" });
+  if (!response.ok || !response.headers.get("content-type")?.includes("text/html")) {
+    throw new Error("Offline dashboard bootstrap unavailable");
+  }
+  const html = await response.clone().text();
+  const assets = new Set();
+  for (const match of html.matchAll(/(?:src|href)="([^"<>]+)"/g)) {
+    const url = new URL(match[1].replaceAll("&amp;", "&"), self.location.origin);
+    if (url.origin === self.location.origin && isNextStaticAsset(url)) assets.add(url.href);
+  }
+  // Commit the bootstrap only after its code and styles are available. A failed
+  // install leaves the previous worker and its complete shell in service.
+  await cache.addAll([...assets]);
+  // Font files referenced by the cached styles may have loaded before this
+  // worker controlled the first visit.
+  for (const asset of assets) {
+    if (!new URL(asset).pathname.endsWith(".css")) continue;
+    const stylesheet = await cache.match(asset);
+    if (!stylesheet) continue;
+    const fonts = [];
+    for (const match of (await stylesheet.text()).matchAll(/url\(["']?([^\s"')]+)["']?\)/g)) {
+      const url = new URL(match[1], asset);
+      if (url.origin === self.location.origin && isNextStaticAsset(url)) fonts.push(url.href);
+    }
+    await cache.addAll(fonts);
+  }
+  await cache.put(OFFLINE_DASHBOARD_URL, response);
 }
 
 function isVersionedMapAsset(url) {
@@ -174,15 +248,30 @@ async function cacheFirstMapAsset(request) {
 async function networkFirstStatic(request) {
   try {
     const networkResponse = await fetch(request);
+    if (!networkResponse.ok) throw new Error("Static asset unavailable");
     if (networkResponse.ok) {
-      const cache = await caches.open(STATIC_CACHE);
-      await cache.put(request, networkResponse.clone());
+      try {
+        const cache = await caches.open(STATIC_CACHE);
+        await cache.put(request, networkResponse.clone());
+      } catch { /* Quota/private mode must not discard a successful response. */ }
     }
 
     return networkResponse;
   } catch {
     const cachedResponse = await caches.match(request);
-    return cachedResponse || Response.error();
+    if (cachedResponse) return cachedResponse;
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/assets/linewatch/") && url.pathname.endsWith(".svg")) {
+      const map = await caches.match(url.pathname);
+      if (map) return map;
+    }
+    if (/^\/assets\/linewatch\/raster-maps\/(ttc|regional)-(background|foreground|labels)-(dark|light|high-contrast)-(mobile|balanced|desktop)\.png$/.test(url.pathname)) {
+      // A compact complete map set is installed for both networks and themes.
+      // Prefer a cached exact-resolution release asset whenever available.
+      const map = await caches.match(url.pathname.replace(/-(balanced|desktop)\.png$/, "-mobile.png"));
+      if (map) return map;
+    }
+    return Response.error();
   }
 }
 

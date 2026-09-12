@@ -49,8 +49,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusPeekSource, /mobile-service-sheet-recessed-badge--cached/);
     assert.match(statusPeekSource, /mobile-service-sheet-led-jewel/);
     assert.match(statusPeekSource, /isConnectionIssue/);
-    assert.match(statusPeekSource, /CACHED/);
-    assert.match(shellSource, /isConnectionIssue=\{dashboardRequestState === "reconnecting" \|\| displayData\.availability === "degraded"\}/);
+    assert.match(statusPeekSource, /cachedLabel\.toUpperCase\(\)/);
+    assert.match(shellSource, /isConnectionIssue=\{isConnectionIssue\}/);
     assert.match(globalCss, /\.mobile-status-peek/);
     assert.match(globalCss, /--mobile-bottom-nav-height/);
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*gap:\s*6px/s);

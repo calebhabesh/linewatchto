@@ -694,10 +694,10 @@
 }
 
 .desktop-legend-line-button.service-tone-affected .desktop-legend-status-chip {
-  border-color: #b42337;
+  border-color: #c92c42;
   background: #c92c42;
   color: #fff;
-  box-shadow: 0 0 0 2px rgb(201 44 66 / 12%), 0 2px 8px rgb(201 44 66 / 20%);
+  box-shadow: none;
 }
 
 .dark .desktop-legend-status-chip {
@@ -707,10 +707,10 @@
 }
 
 .dark .desktop-legend-line-button.service-tone-affected .desktop-legend-status-chip {
-  border-color: #ff8592;
+  border-color: #a91e34;
   background: #a91e34;
   color: #fff;
-  box-shadow: 0 0 0 2px rgb(255 72 99 / 13%), 0 0 10px rgb(255 72 99 / 20%);
+  box-shadow: none;
 }
 
 .high-contrast .desktop-legend-status-chip {

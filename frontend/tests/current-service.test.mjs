@@ -108,3 +108,15 @@ test("surface notices button text uses 'streetcar and bus notices' and CSS style
   assert.match(stylesSource, /\.current-service-notice\s+\[data-category="detour"\]\s+svg\s*\{\s*color:\s*#9333ea;\s*\}/);
   assert.match(stylesSource, /\.current-service-notice\s+\[data-category="no-service"\]\s+svg\s*\{\s*color:\s*#dc2626;\s*\}/);
 });
+
+test("historical service reports remain readable without an all-clear claim", () => {
+  const result = currentServiceSummary(data({
+    generatedAt: { live: false }, snapshot: { savedAt: Date.parse('2026-09-11T12:00:00Z') },
+    activeAlerts: [impact('old-alert', '1')],
+  }), Date.parse('2026-09-12T12:00:00Z'));
+  assert.equal(result.fresh, false);
+  assert.equal(result.rows.length, 1);
+  assert.match(result.rows[0].condition, /^Last reported:/);
+  assert.equal(result.rows[0].timing, undefined);
+  assert.deepEqual(result.unaffected, []);
+});

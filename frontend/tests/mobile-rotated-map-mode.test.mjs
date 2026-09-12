@@ -216,6 +216,18 @@ describe("mobile rotated map mode", () => {
     assert.match(globalCss, /\.rotated-map-selection-portrait-cue\s*\{[\s\S]*position: absolute;/);
     assert.match(globalCss, /\.rotated-map-selection-portrait-cue\s*\{[\s\S]*height: 28px;/);
     assert.match(globalCss, /\.rotated-map-selection-portrait-cue\s*\{[\s\S]*width: 28px;/);
+    assert.match(
+      globalCss,
+      /\.mobile-sheet-icon-button,\s*\.mobile-impact-inspector-icon-button,\s*\.rotated-map-selection-icon-button,\s*\.panel-header-btn\s*\{[^}]*border:\s*none;[^}]*border-radius:\s*8px;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.dark \.mobile-sheet-icon-button,\s*\.dark \.mobile-impact-inspector-icon-button,\s*\.dark \.rotated-map-selection-icon-button,\s*\.dark \.panel-header-btn\s*\{[^}]*background:\s*#161a23;/s,
+    );
+    assert.doesNotMatch(
+      globalCss,
+      /\.rotated-map-selection-icon-button\s*\{[^}]*border:\s*1px solid/s,
+    );
   });
 
   it("derives rotated station disruption from adjacent impacted map segments", () => {

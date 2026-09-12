@@ -30,4 +30,11 @@ describe("TTC announcements navigation", () => {
     assert.match(mobileMoreSource, /Megaphone size=\{18\} className="text-slate-500 dark:text-slate-400" \/>\s*TTC Announcements/);
     assert.match(panelSource, /Megaphone className="h-5 w-5 shrink-0 text-sky-600 dark:text-sky-400"/);
   });
+
+  it("uses the standard PanelHeader for proper back and close button placement", () => {
+    assert.match(panelSource, /<PanelHeader/);
+    assert.match(panelSource, /title="TTC Announcements"/);
+    assert.match(panelSource, /onBack=\{onBack\}/);
+    assert.match(panelSource, /onClose=\{onClose\}/);
+  });
 });

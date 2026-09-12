@@ -87,7 +87,7 @@ export function LineLegend({
   onReducedSpeedZoneClick?: (lineId: string) => void;
   onLineClick: (lineId: string) => void;
 }) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, snapshot } = useDashboardData();
   const isRegional = mode === "regional";
 
   const renderLineItem = (line: { id: string; number: string; name: string }) => {
@@ -102,7 +102,7 @@ export function LineLegend({
     const closureCount = plannedClosures.filter((c) => c.lineId === dataLineId).length;
 
     const totalImpactCount = alertCount + delayCount + rszCount + closureCount;
-    const tone = totalImpactCount > 0 ? "affected" : "good";
+    const tone = snapshot ? "unknown" : totalImpactCount > 0 ? "affected" : "good";
 
     const buttons: React.ReactNode[] = [];
 
@@ -321,7 +321,7 @@ export function LineLegend({
             event.stopPropagation();
             onLineClick(dataLineId);
           }}
-          aria-label={`View all service impacts for ${line.name}: ${totalImpactCount > 0 ? `${totalImpactCount} service impacts` : "regular service"}`}
+          aria-label={`View all service impacts for ${line.name}: ${snapshot ? "current status unknown" : totalImpactCount > 0 ? `${totalImpactCount} service impacts` : "regular service"}`}
         >
           <span
             className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap leading-none ${
@@ -331,7 +331,7 @@ export function LineLegend({
             {line.name}
           </span>
           <span className="desktop-legend-status-chip" aria-hidden="true">
-            {totalImpactCount > 0 ? (
+            {snapshot ? <Info size={15} aria-label="Current status unknown" /> : totalImpactCount > 0 ? (
               <>
                 <Info size={15} strokeWidth={2.5} />
                 <span>{totalImpactCount}</span>

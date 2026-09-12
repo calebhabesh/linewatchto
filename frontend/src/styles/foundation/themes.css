@@ -169,11 +169,11 @@
 }
 
 .linewatch-backdrop--plain-dark {
-  background-color: #000000;
+  background-color: var(--map-canvas-bg, #0e1622);
 }
 
 .linewatch-backdrop--plain-light {
-  background-color: #ffffff;
+  background-color: var(--map-canvas-bg, #f8fafc);
 }
 
 .linewatch-backdrop canvas {

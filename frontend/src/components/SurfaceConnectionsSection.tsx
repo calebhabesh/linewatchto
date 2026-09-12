@@ -1,5 +1,7 @@
 "use client";
 
+import { useDashboardData } from "../app/DataContext";
+
 import { Bus, CalendarCheck2, ChevronDown, Layers, LoaderCircle } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
@@ -402,6 +404,7 @@ function SurfaceCompactRouteRow({
 }
 
 export function SurfaceConnectionsSection({ networkId, stationId, className, variant = "station-detail" }: Props) {
+  const dashboard = useDashboardData();
   const isSavedStationVariant = variant === "saved-station";
   const { pinnedLineIds, togglePin } = useArrivalLinePins(networkId, stationId);
   const [hoveredPinRoute, setHoveredPinRoute] = useState<string | null>(null);
@@ -463,6 +466,8 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
     () => buildPinnedSurfaceGroups(allGroups, snapshot.arrivals, pinnedLineIds, networkId),
     [allGroups, snapshot.arrivals, pinnedLineIds, networkId],
   );
+
+  if (dashboard.snapshot) return <p className="p-3 text-sm text-slate-500" data-station-section="surface-connections">Surface arrivals unavailable — reconnect for current information.</p>;
 
   if (isSavedStationVariant) {
     return (

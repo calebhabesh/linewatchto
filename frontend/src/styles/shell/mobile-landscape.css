@@ -434,19 +434,11 @@
   }
 
   .rotated-map-selection-icon-button {
-    align-items: center;
-    border: 1px solid rgba(15, 23, 42, 0.14);
-    border-radius: 8px;
-    display: inline-flex;
     flex: 0 0 auto;
     height: 34px;
-    justify-content: center;
+    min-height: 34px;
+    min-width: 34px;
     width: 34px;
-  }
-
-  .dark .rotated-map-selection-icon-button,
-  .high-contrast .rotated-map-selection-icon-button {
-    border-color: rgba(255, 255, 255, 0.18);
   }
 
   .rotated-map-selection-card-meta,

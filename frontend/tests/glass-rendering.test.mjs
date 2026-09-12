@@ -53,14 +53,14 @@ describe("frosted glass rendering", () => {
     assert.equal(packageJson.devDependencies["@types/three"], undefined);
   });
 
-  it("lets users replace the constellation with a plain black or white background", () => {
+  it("lets users replace the constellation with the static base background", () => {
     assert.match(shellSource, /dotBackgroundEnabled/);
     assert.match(shellSource, /<DynamicBackground[^>]*disabled=\{!dotBackgroundEnabled\}/s);
     assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain/);
     assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain-dark/);
     assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain-light/);
-    assert.match(globalCss, /\.linewatch-backdrop--plain-dark\s*\{[^}]*background-color:\s*#000000;/s);
-    assert.match(globalCss, /\.linewatch-backdrop--plain-light\s*\{[^}]*background-color:\s*#ffffff;/s);
+    assert.match(globalCss, /\.linewatch-backdrop--plain-dark\s*\{[^}]*background-color:\s*var\(--map-canvas-bg,\s*#0e1622\);/s);
+    assert.match(globalCss, /\.linewatch-backdrop--plain-light\s*\{[^}]*background-color:\s*var\(--map-canvas-bg,\s*#f8fafc\);/s);
   });
 
   it("uses the shared constellation preference label on desktop and mobile", () => {

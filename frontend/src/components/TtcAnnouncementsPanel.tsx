@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ChevronLeft,
   ExternalLink,
   Info,
   Megaphone,
   Search,
-  X,
 } from "lucide-react";
+import { PanelHeader } from "./PanelHeader";
 import {
   getTtcAnnouncements,
   type TtcAnnouncementResponse,
@@ -53,21 +52,15 @@ export function TtcAnnouncementsPanel({ onBack, onClose }: Props) {
   }, []);
 
   return (
-    <section className="panel min-w-0 border border-transparent rounded-2xl flex h-full flex-col bg-white dark:bg-[#0a0c10]" aria-label="TTC announcements">
-      <div className="panel-heading border-b border-black/5 dark:border-white/5 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-2 min-w-0 shrink-0">
-        <div className="flex min-w-0 items-center gap-1">
-          <button type="button" onClick={onBack} className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0" aria-label="Back">
-            <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
-          </button>
-          <h2 className="flex items-center gap-2 whitespace-nowrap text-[clamp(14px,4.5cqw,18px)] font-bold text-slate-900 dark:text-white">
-            <Megaphone className="h-5 w-5 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden="true" />
-            TTC Announcements
-          </h2>
-        </div>
-        <button type="button" onClick={onClose} className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0" aria-label="Close">
-          <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-        </button>
-      </div>
+    <section className="ttc-announcements-panel panel flex h-full flex-col min-w-0" aria-label="TTC announcements">
+      <PanelHeader
+        title="TTC Announcements"
+        icon={<Megaphone className="h-5 w-5 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden="true" />}
+        onBack={onBack}
+        backLabel="Back to menu"
+        onClose={onClose}
+        closeLabel="Close TTC announcements"
+      />
 
       <div className="notification-settings-scroll flex-1 overflow-y-auto p-3 sm:p-4">
         <div className="mb-2.5 flex flex-col gap-2.5">

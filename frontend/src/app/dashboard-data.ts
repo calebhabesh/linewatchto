@@ -58,7 +58,7 @@ async function fetchSafe<T>(path: string): Promise<T | null> {
   }
 }
 
-function fallbackDashboardData(): DashboardData {
+export function fallbackDashboardData(): DashboardData {
   return {
     networkId: "ttc",
     dataSource: "fallback",

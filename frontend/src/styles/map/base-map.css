@@ -302,16 +302,16 @@
 
 .linewatch-backdrop--plain-light ~ main .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
 .linewatch-backdrop--plain-light .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
-  stroke: #ffffff !important;
+  stroke: #f8fafc !important;
 }
 
+.linewatch-backdrop--plain-dark ~ main .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
+.linewatch-backdrop--plain-dark .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
 .dark .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
   stroke: #0e1622 !important;
 }
 
-.high-contrast .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
-.linewatch-backdrop--plain-dark ~ main .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]),
-.linewatch-backdrop--plain-dark .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
+.high-contrast .regional-map-stage :is(#regional-route-lw-div, [inkscape\:label="LW-DIV"]) {
   stroke: #000000 !important;
 }
 

@@ -56,6 +56,7 @@ import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import { dashboardDataFromApi } from "../app/dashboard-adapter";
 import { getDashboardRefresh, retryDashboardRefresh } from "../app/dashboard-client";
+import { canSaveDashboard, DASHBOARD_VERIFICATION_MS, SNAPSHOT_RETENTION_MS, readDashboardSnapshot, saveDashboardSnapshot, snapshotDashboard, snapshotNotice } from "../app/dashboard-snapshot";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { stationImpactSelectionsByStation } from "../app/station-impact-types";
@@ -307,8 +308,10 @@ export function LineWatchShell({
   initialEmailVerificationToken = "",
   initialPasswordResetToken = "",
   initialVisualPreferences = defaultVisualPreferences,
+  offlineShell = false,
 }: {
   initialData: DashboardData;
+  offlineShell?: boolean;
   initialEmailVerificationToken?: string;
   initialPasswordResetToken?: string;
   initialVisualPreferences?: InitialVisualPreferences;
@@ -324,7 +327,39 @@ export function LineWatchShell({
   });
   const dashboardRefreshInFlightRef = useRef<Record<NetworkId, boolean>>({ ttc: false, regional: false });
   const regionalScenarioActiveRef = useRef(false);
-  const displayData = selectedNetwork === "regional" ? regionalData : ttcData;
+  const [connectionOffline, setConnectionOffline] = useState(offlineShell);
+  const [snapshotClock, setSnapshotClock] = useState(() => Date.now());
+  const [verifiedAt, setVerifiedAt] = useState<Record<NetworkId, number | null>>({ ttc: null, regional: null });
+  const verifiedAtRef = useRef(verifiedAt);
+  const rawDisplayData = selectedNetwork === "regional" ? regionalData : ttcData;
+  const storedVerifiedAt = verifiedAt[selectedNetwork];
+  const lastVerified = storedVerifiedAt !== null && snapshotClock - storedVerifiedAt <= SNAPSHOT_RETENTION_MS ? storedVerifiedAt : null;
+  const snapshotReason = connectionOffline ? "offline"
+    : dashboardRequestStates[selectedNetwork] === "reconnecting" ? "reconnecting"
+    : storedVerifiedAt !== null && snapshotClock - storedVerifiedAt >= DASHBOARD_VERIFICATION_MS ? "stale"
+    : offlineShell && lastVerified === null ? "reconnecting" : null;
+  const displayData = useMemo(() => snapshotReason
+    ? snapshotDashboard(rawDisplayData, lastVerified, snapshotReason)
+    : rawDisplayData, [rawDisplayData, lastVerified, snapshotReason]);
+
+  useEffect(() => {
+    const tick = () => setSnapshotClock(Date.now());
+    const online = () => { setConnectionOffline(false); tick(); };
+    const offline = () => { setConnectionOffline(true); tick(); };
+    // Browser connectivity is only a hint; successful requests still decide freshness.
+    if (!navigator.onLine) offline();
+    else online();
+    const interval = window.setInterval(tick, 15_000);
+    window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("online", online);
+      window.removeEventListener("offline", offline);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
   const networkTransitionTargetRef = useRef<NetworkId | null>(null);
   const networkFadeAnimationRef = useRef<Animation | null>(null);
   const mobileNetworkTransitionRef = useRef<ReturnType<typeof startMapSurfaceTransition> | null>(null);
@@ -360,19 +395,27 @@ export function LineWatchShell({
   }, []);
 
   useEffect(() => {
-    if (initialData.dataSource === "backend") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTtcData(initialData);
-      return;
-    }
-
-    setTtcData((previous) => {
-      if (previous.dataSource === "backend") {
-        return previous;
+    const restored: Record<NetworkId, number | null> = { ...verifiedAtRef.current };
+    for (const network of ["ttc", "regional"] as const) {
+      let saved = null;
+      try { saved = readDashboardSnapshot(window.localStorage, network); } catch { /* Storage denied. */ }
+      if (network === "ttc" && canSaveDashboard(initialData) && !offlineShell && navigator.onLine) {
+        const now = Date.now();
+        try { saveDashboardSnapshot(window.localStorage, initialData, now); } catch { /* Storage denied. */ }
+        restored.ttc = now;
+        // Restore browser storage only after hydration; the server cannot read it.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTtcData(initialData);
+      } else if (saved && restored[network] === null && !(network === "regional" && regionalScenarioActiveRef.current)) {
+        restored[network] = saved.savedAt;
+        if (network === "ttc") setTtcData(saved.data);
+        else setRegionalData(saved.data);
+        setDashboardRequestStates((current) => ({ ...current, [network]: "reconnecting" }));
       }
-      return initialData;
-    });
-  }, [initialData]);
+    }
+    verifiedAtRef.current = restored;
+    setVerifiedAt(restored);
+  }, [initialData, offlineShell]);
 
   const fetchDashboard = useCallback(async (networkId: NetworkId) => {
     if (
@@ -387,15 +430,29 @@ export function LineWatchShell({
         () => getDashboardRefresh(networkId),
         () => setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" })),
       );
-      if (networkId === "regional") {
-        setRegionalData((current) => regionalDashboardDataFromApi(
-          payload as RegionalDashboardApiResponse,
-          reliability ?? current.reliability,
-        ));
+      // An in-flight response can finish after connectivity was lost. It must
+      // not re-verify the view or recreate a snapshot cleared while offline.
+      if (!navigator.onLine) return;
+      const next = networkId === "regional"
+        ? regionalDashboardDataFromApi(payload as RegionalDashboardApiResponse, reliability ?? undefined)
+        : dashboardDataFromApi(payload, reliability ?? undefined);
+      if (canSaveDashboard(next)) {
+        const now = Date.now();
+        try { saveDashboardSnapshot(window.localStorage, next, now); } catch { /* Storage denied. */ }
+        verifiedAtRef.current = { ...verifiedAtRef.current, [networkId]: now };
+        setVerifiedAt(verifiedAtRef.current);
+        setSnapshotClock(now);
+        if (networkId === "regional") setRegionalData(next);
+        else setTtcData(next);
+        setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
+      } else if (verifiedAtRef.current[networkId] !== null) {
+        // A valid unavailable response must not overwrite the last real observation.
+        setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
       } else {
-        setTtcData((current) => dashboardDataFromApi(payload, reliability ?? current.reliability));
+        if (networkId === "regional") setRegionalData(next);
+        else setTtcData(next);
+        setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
       }
-      setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
     } catch {
       setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
     } finally {
@@ -411,8 +468,10 @@ export function LineWatchShell({
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") refresh();
     };
+    window.addEventListener("online", refresh);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
+      window.removeEventListener("online", refresh);
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -426,8 +485,10 @@ export function LineWatchShell({
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") refresh();
     };
+    window.addEventListener("online", refresh);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
+      window.removeEventListener("online", refresh);
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -449,7 +510,8 @@ export function LineWatchShell({
     + plannedClosures.length;
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
   const dashboardRequestState = dashboardRequestStates[selectedNetwork];
-  const dashboardAvailabilityNotice = dashboardRequestState === "reconnecting"
+  const dashboardAvailabilityNotice = displayData.snapshot ? snapshotNotice(displayData.snapshot, snapshotClock)
+    : dashboardRequestState === "reconnecting"
     ? "Connection Issue — Showing latest dashboard snapshot while LineWatchTO reconnects."
     : displayData.availability === "degraded"
       ? "Source Refresh Issue — Showing the last successful fresh update."
@@ -457,7 +519,7 @@ export function LineWatchShell({
         ? "Live service data is unavailable — Showing the fallback dashboard."
         : null;
   const isLive = displayData.generatedAt.live && displayData.availability !== "unavailable" && displayData.availability !== "fixture";
-  const isConnectionIssue = dashboardRequestState === "reconnecting" || displayData.availability === "degraded";
+  const isConnectionIssue = Boolean(displayData.snapshot) || dashboardRequestState === "reconnecting" || displayData.availability === "degraded";
   const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
   const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);
   const [reducedMotion, setReducedMotion] = useState(initialVisualPreferences.reducedMotion);
@@ -541,7 +603,7 @@ export function LineWatchShell({
   const trainNetworkOpen = selectedNetwork === "ttc"
     ? subwayOperatingState.status === "open"
     : regionalRailOperatingState.status === "open";
-  const estimatedTrainMarkersVisible = estimatedTrainsEnabled && trainNetworkOpen;
+  const estimatedTrainMarkersVisible = estimatedTrainsEnabled && trainNetworkOpen && !displayData.snapshot;
 
   const [accountState, setAccountState] = useState<AccountState>({
     source: "unavailable",
@@ -925,7 +987,23 @@ export function LineWatchShell({
     setActiveView(nextView);
   }, [pushBrowserNavigationEntry, setActiveView]);
 
+  const [isClosingSearch, setIsClosingSearch] = useState(false);
+  const searchClosingTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (searchClosingTimeoutRef.current) {
+        window.clearTimeout(searchClosingTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const navigateRoot = useCallback((nextView: ActiveView) => {
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+      searchClosingTimeoutRef.current = null;
+    }
+    setIsClosingSearch(false);
     const currentView = activeViewRef.current;
     if (currentView === nextView) return;
     if (nextView === "map") {
@@ -2797,6 +2875,31 @@ export function LineWatchShell({
     setDefaultNetworkPreference(network);
   };
 
+  const handleCloseSearch = useCallback(() => {
+    if (isClosingSearch) return;
+    stationSearchInputRef.current?.blur();
+    if (reducedMotion) {
+      if (searchClosingTimeoutRef.current) {
+        window.clearTimeout(searchClosingTimeoutRef.current);
+        searchClosingTimeoutRef.current = null;
+      }
+      setIsClosingSearch(false);
+      setStationSearchQuery("");
+      navigateRoot("map");
+      return;
+    }
+    setIsClosingSearch(true);
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+    }
+    searchClosingTimeoutRef.current = window.setTimeout(() => {
+      setIsClosingSearch(false);
+      setStationSearchQuery("");
+      navigateRoot("map");
+      searchClosingTimeoutRef.current = null;
+    }, isMobile ? 220 : 200);
+  }, [isClosingSearch, isMobile, navigateRoot, reducedMotion]);
+
   const handleOpenSearch = () => {
     setSelection(null);
     setSelectedStationId(null);
@@ -2818,9 +2921,7 @@ export function LineWatchShell({
       if (panelEl?.contains(target)) return;
       if (target instanceof Element && target.closest(".mobile-bottom-nav, .mobile-app-topbar")) return;
 
-      setActiveView("map");
-      setStationSearchQuery("");
-      stationSearchInputRef.current?.blur();
+      handleCloseSearch();
     };
 
     // Use a rAF so the opening click itself doesn't immediately dismiss
@@ -2832,7 +2933,7 @@ export function LineWatchShell({
       cancelAnimationFrame(raf);
       document.removeEventListener("pointerdown", handleClickOutside);
     };
-  }, [activeView]);
+  }, [activeView, handleCloseSearch]);
 
   const handleSelectStationId = useCallback((id: string | null) => {
     const currentId = selectedStationIdRef.current;
@@ -2931,6 +3032,11 @@ export function LineWatchShell({
   }, [activeAlerts, viewForImpactKind]);
 
   const handleSearchSelectImpact = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+      searchClosingTimeoutRef.current = null;
+    }
+    setIsClosingSearch(false);
     stationSearchInputRef.current?.blur();
     setSelectedStationId(null);
     setCommutePathPreview(null);
@@ -2942,6 +3048,11 @@ export function LineWatchShell({
   }, [navigateForward, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+      searchClosingTimeoutRef.current = null;
+    }
+    setIsClosingSearch(false);
     stationSearchInputRef.current?.blur();
     if (networkId === selectedNetwork) {
       handleSelectStationId(stationId);
@@ -2956,6 +3067,11 @@ export function LineWatchShell({
   };
 
   const handleSearchOpenImpactCategory = useCallback((kind: ImpactKind) => {
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+      searchClosingTimeoutRef.current = null;
+    }
+    setIsClosingSearch(false);
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(null);
@@ -2963,6 +3079,11 @@ export function LineWatchShell({
   }, [navigateForward, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactKind]);
 
   const handleSearchOpenSurfaceNotice = useCallback((notice: SurfaceNoticeDetail) => {
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+      searchClosingTimeoutRef.current = null;
+    }
+    setIsClosingSearch(false);
     const targetQuery = notice.routeIds[0]
       ?? notice.stops?.[0]?.stopName
       ?? notice.stopIds[0]
@@ -3391,7 +3512,7 @@ export function LineWatchShell({
             accountState={accountState}
             savedStations={savedStations}
             stationCatalogs={stationCatalogs}
-            dashboards={{ ttc: ttcData, regional: regionalData }}
+            dashboards={{ ttc: connectionOffline || dashboardRequestStates.ttc === "reconnecting" ? snapshotDashboard(ttcData, verifiedAt.ttc, connectionOffline ? "offline" : "reconnecting") : ttcData, regional: connectionOffline || dashboardRequestStates.regional === "reconnecting" ? snapshotDashboard(regionalData, verifiedAt.regional, connectionOffline ? "offline" : "reconnecting") : regionalData }}
             activeNetwork={selectedNetwork}
             loading={savedStationsLoading}
             error={savedStationsError}
@@ -3702,6 +3823,7 @@ export function LineWatchShell({
   ]);
 
   const mobileConnectionNotice: MobileConnectionNotice | null = useMemo(() => {
+    if (displayData.snapshot) return { snapshot: true, hasSavedSnapshot: displayData.snapshot.savedAt !== null, message: snapshotNotice(displayData.snapshot, snapshotClock), showSpinner: !connectionOffline };
     if (dashboardRequestState === "reconnecting") {
       return {
         message: "Connection issue — Showing cached snapshot",
@@ -3721,7 +3843,7 @@ export function LineWatchShell({
       };
     }
     return null;
-  }, [dashboardRequestState, displayData.availability]);
+  }, [dashboardRequestState, displayData.availability, displayData.snapshot, snapshotClock, connectionOffline]);
 
   const mobileMapPerformanceMode = mobilePerformanceMode || rotatedMapMode;
 
@@ -3765,7 +3887,7 @@ export function LineWatchShell({
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
 
       {isMobile && !showClosedScreen && !rotatedMapMode && (
-        <div className="mobile-app-topbar" data-map-chooser-keepout data-searching={activeView === "search"}>
+        <div className="mobile-app-topbar" data-map-chooser-keepout data-searching={activeView === "search" || isClosingSearch} data-closing-search={isClosingSearch ? "true" : undefined}>
           <div className="mobile-app-search" role="search" aria-label="Search LineWatchTO">
             <Image src="/assets/linewatch/logo.svg" width={30} height={30} alt="" className="mobile-app-logo" />
             <input
@@ -3779,13 +3901,21 @@ export function LineWatchShell({
               onChange={(event) => setStationSearchQuery(event.target.value)}
               onKeyDown={(event) => stationKeyDownHandlerRef.current?.(event)}
             />
-            {activeView === "search" ? (
-              <button type="button" aria-label="Close search" onClick={() => { stationSearchInputRef.current?.blur(); setStationSearchQuery(""); navigateRoot("map"); }}><X size={21} /></button>
+            {activeView === "search" || isClosingSearch ? (
+              <button
+                type="button"
+                aria-label="Close search"
+                onClick={handleCloseSearch}
+                disabled={isClosingSearch}
+                className={isClosingSearch ? "opacity-50 transition-opacity" : undefined}
+              >
+                <X size={21} />
+              </button>
             ) : (
               <button type="button" className="mobile-app-account" data-authenticated={accountState.authenticated} aria-label="Account" onClick={() => { if (accountState.authenticated) navigateRoot("more"); else openAccountDialog("auth-choice"); }}><UserRound size={22} /></button>
             )}
           </div>
-          {activeView !== "search" && (
+          {activeView !== "search" && !isClosingSearch && (
             <div className="mobile-app-shortcuts">
               <nav className="mobile-app-chip-scroll" aria-label="Dashboard shortcuts">
                 <button type="button" aria-current={activeView === "alert-history" ? "page" : undefined} onClick={() => openMobileShortcut("alert-history")}><History className="text-emerald-500" size={16} aria-hidden="true" />Alert History</button>
@@ -4579,14 +4709,24 @@ export function LineWatchShell({
               </div>
             </div>
           <StationSearchPanel
-            open={activeView === "search"}
+            open={activeView === "search" || isClosingSearch}
+            isClosing={isClosingSearch}
             stationCatalogs={stationCatalogs}
             currentNetwork={selectedNetwork}
             selectedStationId={selectedStationId}
             onSelectStation={handleSearchSelectStation}
             onSelectImpact={handleSearchSelectImpact}
             onOpenImpactCategory={handleSearchOpenImpactCategory}
-            onClose={() => { setActiveView("map"); setStationSearchQuery(""); }}
+            onClose={() => {
+              if (searchClosingTimeoutRef.current) {
+                window.clearTimeout(searchClosingTimeoutRef.current);
+                searchClosingTimeoutRef.current = null;
+              }
+              setIsClosingSearch(false);
+              setActiveView("map");
+              setStationSearchQuery("");
+            }}
+            onDismiss={handleCloseSearch}
             onClosedFocusTarget={() => { if (!isMobile) stationSearchInputRef.current?.focus(); }}
             query={stationSearchQuery}
             onQueryChange={setStationSearchQuery}
@@ -4969,7 +5109,7 @@ export function LineWatchShell({
               .flatMap((station) => station.outages)
               .map((outage) => [outage.id, outage]),
           ).values())}
-          accessibilityFresh={accessibilityOutageResult?.fresh === true}
+          accessibilityFresh={!displayData.snapshot && accessibilityOutageResult?.fresh === true}
           onClose={() => closeSelectedStation(selectedStationId)}
           onSelectImpact={handleStationSelectImpact}
           authenticated={accountState.authenticated || accountState.source === "unavailable"}
@@ -5010,7 +5150,7 @@ export function LineWatchShell({
         <aside className={`desktop-status-chip-row-container fixed bottom-6 left-6 z-20 pointer-events-auto transition-opacity duration-200 ${activeView === "menu" ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
           {!isMobile && showMobileStatusPeek && <CurrentServicePanel
               data={displayData}
-              notices={currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
+              notices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
               onNotice={handleSearchOpenSurfaceNotice}
               onImpact={handleSearchSelectImpact}
               onStatus={() => navigateForward("status")}
@@ -5146,7 +5286,7 @@ export function LineWatchShell({
       {showMobileStatusPeek ? (
         <MobileStatusPeek
           fresh={isLive}
-          isConnectionIssue={dashboardRequestState === "reconnecting" || displayData.availability === "degraded"}
+          isConnectionIssue={isConnectionIssue}
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
           delayCount={delays.length}
@@ -5173,7 +5313,7 @@ export function LineWatchShell({
         >
           {isMobile && <CurrentServicePanel
               data={displayData}
-              notices={currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
+              notices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
               onNotice={handleSearchOpenSurfaceNotice}
               onImpact={handleSearchSelectImpact}
               onStatus={() => navigateForward("status")}
@@ -5626,9 +5766,9 @@ export function LineWatchShell({
           </section>
         </div>
       ) : null}
-      {!showClosedScreen && dashboardAvailabilityNotice ? (
+      {(!showClosedScreen || displayData.snapshot) && dashboardAvailabilityNotice ? (
         <div
-          className={`dashboard-availability-notice ${isMobile ? "dashboard-availability-notice--mobile-hidden" : ""}`}
+          className={`dashboard-availability-notice ${isMobile && (!displayData.snapshot || showMobileStatusPeek && !showClosedScreen) ? "dashboard-availability-notice--mobile-hidden" : ""}`}
           data-state={dashboardRequestState === "reconnecting" ? "reconnecting" : displayData.availability}
           role="status"
           aria-live="polite"

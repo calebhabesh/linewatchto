@@ -10,6 +10,8 @@
 }
 
 .mobile-sheet-icon-button,
+.mobile-impact-inspector-icon-button,
+.rotated-map-selection-icon-button,
 .panel-header-btn {
   align-items: center;
   border: none;
@@ -32,6 +34,8 @@
 }
 
 .dark .mobile-sheet-icon-button,
+.dark .mobile-impact-inspector-icon-button,
+.dark .rotated-map-selection-icon-button,
 .dark .panel-header-btn {
   background: #161a23;
   box-shadow:
@@ -41,28 +45,42 @@
 }
 
 .mobile-sheet-icon-button:hover,
+.mobile-impact-inspector-icon-button:hover,
+.rotated-map-selection-icon-button:hover,
 .panel-header-btn:hover {
   background: rgba(239, 246, 255, 0.95);
 }
 
 .dark .mobile-sheet-icon-button:hover,
+.dark .mobile-impact-inspector-icon-button:hover,
+.dark .rotated-map-selection-icon-button:hover,
 .dark .panel-header-btn:hover {
   background: rgba(30, 58, 138, 0.35);
 }
 
 .mobile-sheet-icon-button:focus-visible,
+.mobile-impact-inspector-icon-button:focus-visible,
+.rotated-map-selection-icon-button:focus-visible,
 .panel-header-btn:focus-visible {
   outline: 2px solid var(--color-logo-blue, #81c9ff);
   outline-offset: 2px;
 }
 
 .mobile-sheet-icon-button:active,
+.mobile-impact-inspector-icon-button:active,
+.rotated-map-selection-icon-button:active,
 .panel-header-btn:active {
   transform: scale(0.96);
 }
 
 .high-contrast .mobile-sheet-icon-button,
-.high-contrast .panel-header-btn {
+.high-contrast .mobile-impact-inspector-icon-button,
+.high-contrast .rotated-map-selection-icon-button,
+.high-contrast .panel-header-btn,
+.linewatch-shell.high-contrast .mobile-sheet-icon-button,
+.linewatch-shell.high-contrast .mobile-impact-inspector-icon-button,
+.linewatch-shell.high-contrast .rotated-map-selection-icon-button,
+.linewatch-shell.high-contrast .panel-header-btn {
   background: #000000;
   border: 1px solid #ffffff;
   box-shadow: none;

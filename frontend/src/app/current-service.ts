@@ -1,6 +1,7 @@
 import type { ActiveAlert, DelayAlert, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
 
 export type CurrentServiceData = {
+  snapshot?: { savedAt: number | null };
   activeAlerts: ActiveAlert[];
   delays: DelayAlert[];
   reducedSpeedZones: ReducedSpeedZone[];
@@ -40,7 +41,8 @@ function windowTime(value: string | null | undefined, now: number, ending = fals
 /** Presentation of the dashboard's already time-gated impacts, never a second feed. */
 export function currentServiceSummary(data: CurrentServiceData, now = 0) {
   const fresh = data.generatedAt.live && data.availability !== "unavailable" && data.availability !== "fixture";
-  if (!fresh) return { fresh: false, rows: [] as CurrentServiceRow[], unaffected: [] as LineStatus[], upcoming: [] as PlannedClosure[] };
+  if (data.snapshot?.savedAt != null) now = data.snapshot.savedAt;
+  if (!fresh && data.snapshot?.savedAt == null) return { fresh: false, rows: [] as CurrentServiceRow[], unaffected: [] as LineStatus[], upcoming: [] as PlannedClosure[] };
   const rows: CurrentServiceRow[] = data.activeAlerts.map((alert) => {
     const closure = data.plannedClosures.find(item => item.id === (alert.relatedPlannedClosureId || alert.id));
     const planned = alert.severity === "planned" || !!closure || !!alert.relatedPlannedClosureId;
@@ -82,7 +84,7 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
   const lineOrder = new Map(data.lineStatuses.map((line, index) => [line.id, index]));
   rows.sort((a, b) => a.priority - b.priority || (lineOrder.get(a.lineId) ?? 99) - (lineOrder.get(b.lineId) ?? 99) || a.id.localeCompare(b.id));
   const affected = new Set([...rows.map((row) => row.lineId), ...(data.reducedSpeedZones ?? []).map((rsz) => rsz.lineId)]);
-  return { fresh, rows, unaffected: data.lineStatuses.filter((line) => !affected.has(line.id)), upcoming };
+  return { fresh, rows: data.snapshot ? rows.map((row) => ({ ...row, condition: `Last reported: ${row.condition}`, timing: undefined })) : rows, unaffected: fresh ? data.lineStatuses.filter((line) => !affected.has(line.id)) : [], upcoming };
 }
 
 export function currentSurfaceNotices(notices: import("./surface-notice-data.ts").SurfaceNoticeDetail[], now: number) {

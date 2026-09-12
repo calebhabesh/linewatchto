@@ -315,8 +315,8 @@ export function RegionalStationDetailPanel({
   const noticesDetailsRef = useRef<HTMLDetailsElement>(null);
   const arrivalsLoading = arrivalState?.data.stationId !== station.id;
   const tripChangesLoading = tripChangesState.stationId !== station.id;
-  const tripChanges = tripChangesLoading ? emptyRegionalTripChangeResponse : tripChangesState.response;
-  const arrivalSnapshot = arrivalsLoading
+  const tripChanges = tripChangesLoading || dashboard.snapshot ? emptyRegionalTripChangeResponse : tripChangesState.response;
+  const arrivalSnapshot = arrivalsLoading || dashboard.snapshot
     ? emptyRegionalArrivalSnapshot(station.id)
     : arrivalState.data;
   const closeTimeoutRef = useRef<number | null>(null);

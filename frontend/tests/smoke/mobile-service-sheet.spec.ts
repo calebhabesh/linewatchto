@@ -14,7 +14,8 @@ test("service sheet expands by tap, keyboard and drag without moving the map", a
   expect(Math.abs(navBox.y + navBox.height - page.viewportSize()!.height)).toBeLessThan(2);
   await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(500);
-  expect(navBox.y - (await sheet.boundingBox())!.y).toBeCloseTo(170, 0);
+  const overviewHeight = await sheet.locator(".mobile-service-sheet-minimum").evaluate(node => node.getBoundingClientRect().height);
+  expect(navBox.y - (await sheet.boundingBox())!.y).toBeCloseTo(overviewHeight, 0);
   await expect(page.locator("#mobile-service-sheet-details")).toHaveAttribute("inert");
   await page.screenshot({ path: "/tmp/linewatch-console-peek.png" });
   const camera = page.locator(".ttc-map-stage");
@@ -138,3 +139,40 @@ test("sheet dragging pauses decorative loops and resumes them after settling", a
   await page.mouse.up();
   await expect.poll(state).toBe("running");
 });
+
+for (const saved of ["overview", "halfway", "expanded", "invalid", null]) {
+  test(`service sheet restores ${saved ?? "missing"} preference without startup motion`, async ({ page, isMobile }) => {
+    test.skip(!isMobile);
+    await installDismissedTransientUi(page);
+    await page.addInitScript(saved => {
+      if (saved !== null) localStorage.setItem("linewatch-mobile-service-sheet-snap-v1", saved);
+      const samples: { snap: string | undefined; transitioning: boolean }[] = [];
+      Object.assign(window, { sheetStartupSamples: samples });
+      const sample = () => {
+        const sheet = document.querySelector<HTMLElement>(".mobile-service-sheet");
+        if (sheet && getComputedStyle(sheet).visibility === "visible") {
+          samples.push({
+            snap: sheet.dataset.snap,
+            transitioning: sheet.getAnimations().some(animation =>
+              animation instanceof CSSTransition && animation.transitionProperty === "transform"),
+          });
+        }
+        requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    }, saved);
+    await page.goto("/");
+    const sheet = page.locator(".mobile-service-sheet");
+    const expected = saved === "halfway" || saved === "expanded" ? saved : "overview";
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toHaveAttribute("data-snap", expected);
+    await page.waitForTimeout(350);
+    const samples = await page.evaluate(() =>
+      (window as unknown as { sheetStartupSamples: { snap: string; transitioning: boolean }[] }).sheetStartupSamples);
+    expect(samples.length).toBeGreaterThan(0);
+    expect(samples.every(sample => sample.snap === expected && !sample.transitioning)).toBe(true);
+    await sheet.locator(".mobile-service-sheet-handle").press(expected === "expanded" ? "Home" : "End");
+    await expect(sheet).toHaveAttribute("data-snap", expected === "expanded" ? "overview" : "expanded");
+    expect(await sheet.evaluate(node => getComputedStyle(node).transitionDuration)).not.toBe("0s");
+  });
+}

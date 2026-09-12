@@ -375,3 +375,41 @@
     justify-content: center;
   }
 }
+
+/* Offline timestamps and the stale-data qualification must remain readable. */
+@media (max-width: 767px) {
+  .linewatch-shell .mobile-service-sheet-notice-row.mobile-service-sheet-notice-row--connection[data-snapshot="true"] {
+    height: auto;
+    min-height: 32px;
+    max-height: none;
+    flex-shrink: 0;
+    padding-block: 7px;
+  }
+  .linewatch-shell .mobile-service-sheet-notice-row.mobile-service-sheet-notice-row--connection[data-snapshot="true"] .mobile-service-sheet-notice-message {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.4;
+  }
+}
+
+.desktop-legend-route-badge.service-tone-unknown,
+.mobile-legend-route-badge.service-tone-unknown {
+  --desktop-legend-ring-color: #94a3b8;
+  --mobile-legend-ring-color: #94a3b8;
+  animation: none;
+  box-shadow: none;
+}
+.service-tone-unknown > .mobile-legend-status-rib {
+  background: #94a3b8;
+  box-shadow: none;
+}
+.desktop-legend-line-button.service-tone-unknown .desktop-legend-status-chip {
+  background: transparent;
+  border-color: #94a3b8;
+  color: #64748b;
+  box-shadow: none;
+}
+.dark .desktop-legend-line-button.service-tone-unknown .desktop-legend-status-chip {
+  color: #cbd5e1;
+}

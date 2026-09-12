@@ -319,9 +319,12 @@ function arrivalSourceTitle(arrivals: StationArrival[]) {
 }
 
 export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, reducedMotion, authenticated = false, saved = false, savePending = false, onToggleSaved, onRequestSignIn }: Props) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, snapshot } = useDashboardData();
   const subwayOperatingState = useSubwayOperatingState();
-  const station = stationResult?.data ?? null;
+  const rawStation = stationResult?.data ?? null;
+  const station = rawStation && snapshot ? { ...rawStation, arrivals: [], impacts: [],
+    access: { ...rawStation.access, summary: "Current accessibility status unknown. Reconnect for facility updates.", outages: [] },
+  } : rawStation;
   const { pinnedLineIds, togglePin } = useArrivalLinePins("ttc", station?.id ?? null);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
 
@@ -906,7 +909,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               : (isSubwayAndLrt ? "Train & LRT Arrivals" : isLrt ? "LRT Arrivals" : "Train Arrivals");
 
             const arrivalsDisrupted = station.arrivalContext ? station.arrivalContext.scheduleMayBeDisrupted : false;
-            const hasUnavailableArrivals = station.arrivals.some((arrival) => arrival.status === "unavailable");
+            const hasUnavailableArrivals = Boolean(snapshot) || station.arrivals.some((arrival) => arrival.status === "unavailable");
             const hasLiveArrivals = station.arrivals.some((arrival) => arrival.status === "live");
             const arrivalGroups = sortArrivalGroupsByPinnedLine(hasUnavailableArrivals
               ? []
@@ -931,7 +934,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   <span>{arrivalHeading}</span>
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  {formatArrivalSourceSummary(station.arrivals, station.arrivalsSource)}
+                  {snapshot ? "Reconnect for current arrival information" : formatArrivalSourceSummary(station.arrivals, station.arrivalsSource)}
                 </p>
                 <div className="mt-3 flex flex-col gap-3">
                   {hasUnavailableArrivals ? (
@@ -1295,7 +1298,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	            <div className="pt-3 flex flex-col gap-2">
 	              {distinctImpacts.length === 0 ? (
 	                <p className="py-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
-	                  No active impacts for this station.
+	                  {snapshot ? "Current station impacts unknown. Reconnect for updates." : "No active impacts for this station."}
 	                </p>
 	              ) : (
 	                distinctImpacts.map((impact) => {

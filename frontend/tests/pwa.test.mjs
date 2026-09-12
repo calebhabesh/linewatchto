@@ -107,7 +107,7 @@ async function serviceWorkerInstall(locationUrl = "https://linewatch.test/sw.js"
         put: async () => undefined,
       }),
     },
-    fetch: async () => undefined,
+    fetch: async () => new Response("<html></html>", { headers: { "content-type": "text/html" } }),
     self: {
       location: new URL(locationUrl),
       addEventListener: (type, listener) => {
@@ -658,7 +658,7 @@ describe("LineWatch PWA configuration", () => {
   });
 
   it("uses a conservative service worker cache policy", () => {
-    assert.match(serviceWorkerSource, /const CACHE_VERSION = "v3"/);
+    assert.match(serviceWorkerSource, /const CACHE_VERSION = "v4"/);
     assert.match(serviceWorkerSource, /const OFFLINE_URL = "\/offline\.html"/);
     assert.match(serviceWorkerSource, /APP_SHELL_URLS/);
     assert.match(serviceWorkerSource, /\/assets\/linewatch\/pwa\/offline-icon-512\.png/);

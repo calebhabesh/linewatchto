@@ -46,7 +46,7 @@ Implemented now:
 - High-contrast display toggle.
 - Independent reduced-motion and dot-background toggles, with a plain black or white background option.
 - Mobile bottom navigation.
-- Installable mobile PWA shell with supplied LineWatch icons, standalone display metadata, cached static assets, and a conservative offline page that does not replay stale service data.
+- Installable mobile PWA with offline reopening, cached maps, and separate seven-day last-successful TTC and GO/UP dashboard snapshots. Offline/reconnecting views show when the snapshot was downloaded, preserve source timestamps and previously reported notices, and mark current status unknown. Arrival countdowns, estimated train markers, and account impact checks are suppressed until the dashboard can be verified. Complete downloaded service-notice collections remain searchable with saved-time labels. Account pages and API responses are never cached by the service worker. Offline use requires a previous successful installation and retained browser storage; see [offline behavior](docs/superpowers/specs/2026-09-11-offline-dashboard.md).
 - Backend Spring Boot health endpoint.
 - Frontend fixture tests and backend health-controller test.
 - Clickable/tappable station detail overlays for supported rapid transit stations.

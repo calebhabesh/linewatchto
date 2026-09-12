@@ -1,5 +1,6 @@
 import { apiUrl } from "./api-client.ts";
 import type { NetworkId } from "./regional-data.ts";
+import { SNAPSHOT_RETENTION_MS } from "./dashboard-snapshot.ts";
 
 export type SurfaceNoticeCategory = "service-change" | "bypass" | "detour" | "no-service" | "notice";
 
@@ -35,6 +36,7 @@ export type SurfaceNoticeStopDetail = {
 };
 
 export type SurfaceNoticeResponse = {
+  savedAt?: number;
   generatedAt: string;
   fresh: boolean;
   source: string;
@@ -85,21 +87,50 @@ export async function getSurfaceNotices(
 
   const queryString = params.toString();
   const path = queryString ? `/api/surface-notices?${queryString}` : "/api/surface-notices";
+  const key = `linewatch-service-notices-v1:${options.networkId ?? "ttc"}`;
+  const readSaved = (): SurfaceNoticeResult | null => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(key) || "null") as { savedAt: number; data: SurfaceNoticeResponse } | null;
+      if (!stored || !Number.isFinite(stored.savedAt) || stored.savedAt > Date.now()
+        || Date.now() - stored.savedAt > SNAPSHOT_RETENTION_MS || !validNotices(stored.data)) return null;
+      const query = options.query?.trim().toLowerCase();
+      const notices = stored.data.notices.filter((notice) =>
+        (!options.category || options.category === "all" || notice.category === options.category)
+        && (!query || `${notice.title} ${notice.description} ${notice.routeIds.join(" ")}`.toLowerCase().includes(query)));
+      return { source: "fallback", data: { ...stored.data, fresh: false, savedAt: stored.savedAt,
+        notices: options.limit === undefined ? notices : notices.slice(0, options.limit) } };
+    } catch { return null; }
+  };
 
   try {
-    const response = await fetcher(apiUrl(path, options.apiBaseUrl));
+    const response = await fetcher(apiUrl(path, options.apiBaseUrl), { cache: "no-store", signal: AbortSignal.timeout(5_000) });
     if (!response.ok) {
       throw new Error(`Surface notices request failed with ${response.status}`);
     }
 
-    return {
-      source: "backend",
-      data: (await response.json()) as SurfaceNoticeResponse,
-    };
+    const data: unknown = await response.json();
+    if (!validNotices(data)) throw new Error("Incomplete service notices");
+    if (!data.fresh) return readSaved() ?? { source: "backend", data };
+    // Keep one complete unfiltered public collection per network, not search history.
+    if (!options.query?.trim() && (!options.category || options.category === "all") && options.limit === undefined) {
+      try { window.localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data })); } catch { /* Optional browser storage. */ }
+    }
+    return { source: "backend", data };
   } catch {
-    return {
+    return readSaved() ?? {
       source: "fallback",
       data: fallbackSurfaceNotices,
     };
   }
+}
+
+function validNotices(value: unknown): value is SurfaceNoticeResponse {
+  if (!value || typeof value !== "object") return false;
+  const data = value as SurfaceNoticeResponse;
+  return typeof data.generatedAt === "string" && typeof data.fresh === "boolean"
+    && typeof data.source === "string" && Array.isArray(data.categories)
+    && Array.isArray(data.notices) && data.notices.every((notice) => notice
+      && typeof notice.id === "string" && typeof notice.title === "string"
+      && typeof notice.description === "string" && typeof notice.category === "string"
+      && Array.isArray(notice.routeIds) && Array.isArray(notice.stopIds));
 }

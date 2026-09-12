@@ -32,7 +32,7 @@ type MobileLegendImpact = {
   label: string;
 };
 
-type MobileLegendTone = "affected" | "good";
+type MobileLegendTone = "affected" | "good" | "unknown";
 
 function networkLineId(lineId: string, isRegional: boolean) {
   if (!isRegional) return lineId;
@@ -98,7 +98,7 @@ export function MobileLegend({
   onLineClick?: (lineId: string) => void;
 }) {
   const legendRef = useRef<HTMLDivElement>(null);
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, snapshot } = useDashboardData();
   const isRegional = mode === "regional";
   const lines = isRegional ? REGIONAL_LINES : TTC_LINES;
   const lineSummaries = lines.map((line) => {
@@ -110,7 +110,7 @@ export function MobileLegend({
       ? 0
       : countReducedSpeedZones(reducedSpeedZones.filter((impact) => impact.lineId === dataLineId));
     const closureCount = plannedClosures.filter((impact) => impact.lineId === dataLineId).length;
-    const tone: MobileLegendTone = alertCount + delayCount + zoneCount + closureCount > 0
+    const tone: MobileLegendTone = snapshot ? "unknown" : alertCount + delayCount + zoneCount + closureCount > 0
       ? "affected"
       : "good";
 
@@ -192,7 +192,7 @@ export function MobileLegend({
                   key={line.id}
                   className={`mobile-legend-line-row service-tone-${line.tone}`}
                   onClick={() => onLineClick?.(line.dataLineId)}
-                  aria-label={`View all service impacts for ${line.name}: ${impactDescription || "normal service"}`}
+                  aria-label={`View all service impacts for ${line.name}: ${snapshot ? "current status unknown" : impactDescription || "normal service"}`}
                 >
                   <MobileLegendRouteBadge
                     lineId={line.id}
@@ -203,7 +203,7 @@ export function MobileLegend({
                   />
                   <span className="mobile-legend-line-name">{line.name}</span>
                   <span className="mobile-legend-line-status" aria-hidden="true">
-                    {line.totalCount > 0 ? (
+                    {snapshot ? <span>Unknown</span> : line.totalCount > 0 ? (
                       <strong className="service-tone-affected">{line.totalCount}</strong>
                     ) : (
                       <span className="mobile-legend-regular-label">Normal</span>

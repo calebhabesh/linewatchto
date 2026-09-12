@@ -16,11 +16,19 @@ test("mobile search, service shortcuts and Saved share the app shell", async ({ 
   await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await page.waitForTimeout(700);
   await page.screenshot({ path: "/tmp/linewatch-app-map.png", scale: "css" });
+  await search.click();
+  await expect(page.locator(".station-search-panel")).toBeVisible();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: "/tmp/linewatch-app-search-empty.png", scale: "css" });
   await search.fill("Stub");
   await expect(page.locator(".station-search-panel")).toBeVisible();
+  await page.waitForTimeout(300);
   const inputBox = (await search.boundingBox())!;
-  const resultsBox = (await page.locator(".station-search-panel").boundingBox())!;
-  expect(resultsBox.y).toBeGreaterThan(inputBox.y + inputBox.height);
+  const panelBox = (await page.locator(".station-search-panel").boundingBox())!;
+  const contentBox = (await page.locator(".station-search-amenity-toolbar").boundingBox())!;
+  expect(panelBox.y).toBeLessThanOrEqual(inputBox.y);
+  expect(contentBox.y).toBeGreaterThan(inputBox.y + inputBox.height);
+  await page.screenshot({ path: "/tmp/linewatch-app-search-filled.png", scale: "css" });
   await page.getByRole("button", { name: "Close search", exact: true }).click();
   await nav.getByRole("button", { name: "Saved", exact: true }).click();
   const saved = page.getByRole("navigation", { name: "Saved sections" });
@@ -101,4 +109,28 @@ test("Saved remembers the last section across navigation and reloads", async ({ 
     await nav.getByRole("button", { name: "Saved", exact: true }).click();
     await expect(saved.getByRole("button", { name: section })).toHaveAttribute("aria-current", "page");
   }
+});
+
+test("mobile search dismisses with a sleek slide out and fade out animation", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await page.goto("/");
+  const search = page.getByRole("searchbox", { name: "Station Search" });
+  await search.click();
+  const searchPanel = page.locator(".station-search-panel");
+  await expect(searchPanel).toBeVisible();
+  await expect(searchPanel).toHaveAttribute("data-open", "true");
+
+  const closeBtn = page.getByRole("button", { name: "Close search", exact: true });
+  await expect(closeBtn).toBeVisible();
+
+  // Click close and immediately verify closing animation state
+  await closeBtn.click();
+  await expect(searchPanel).toHaveAttribute("data-closing", "true");
+  await expect(searchPanel).toHaveClass(/station-search-panel-closing/);
+
+  // Once exit completes (~220ms), verify panel is closed and shortcuts are restored
+  await expect(page.locator(".station-search-panel.open")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Dashboard shortcuts" })).toBeVisible();
+  await expect(search).toHaveValue("");
+  await expect(search).not.toBeFocused();
 });

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { unregisterServiceWorkersWithoutPushSubscriptions } from "../app/push-browser-state";
+import { lineWatchBuildLabel } from "../app/app-build";
 
 export function PwaServiceWorkerRegistration() {
   useEffect(() => {
@@ -13,6 +14,9 @@ export function PwaServiceWorkerRegistration() {
       navigator.serviceWorker.ready.then((registration) => {
         const worker = registration.active || navigator.serviceWorker.controller;
         worker?.postMessage({ type: "linewatch-cleanup-notifications" });
+        worker?.postMessage({ type: "linewatch-cache-loaded-assets", urls:
+          performance.getEntriesByType("resource").map((entry) => entry.name),
+        });
       }).catch(() => undefined);
     };
     const handleVisibilityChange = () => {
@@ -31,7 +35,7 @@ export function PwaServiceWorkerRegistration() {
     }
 
     const register = () => {
-      const devFlag = process.env.NODE_ENV !== "production" ? "?env=dev" : "";
+      const devFlag = process.env.NODE_ENV !== "production" ? "?env=dev" : `?build=${encodeURIComponent(lineWatchBuildLabel)}`;
       navigator.serviceWorker.register(`/sw.js${devFlag}`, {
         scope: "/",
         updateViaCache: "none",

@@ -57,6 +57,47 @@ describe("mobile Show on Map inspector", () => {
     assert.match(globalCss, /\.mobile-impact-inspector-scroll\s*\{[^}]*gap:\s*10px/s);
   });
 
+  it("uses the app-standard elevated icon button styling for the mobile inspector close button", () => {
+    assert.match(inspectorSource, /className="mobile-impact-inspector-icon-button"/);
+    assert.match(
+      globalCss,
+      /\.mobile-sheet-icon-button,\s*\.mobile-impact-inspector-icon-button,\s*\.rotated-map-selection-icon-button,\s*\.panel-header-btn\s*\{[^}]*border:\s*none;[^}]*border-radius:\s*8px;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.dark \.mobile-sheet-icon-button,\s*\.dark \.mobile-impact-inspector-icon-button,\s*\.dark \.rotated-map-selection-icon-button,\s*\.dark \.panel-header-btn\s*\{[^}]*background:\s*#161a23;/s,
+    );
+    assert.doesNotMatch(
+      globalCss,
+      /\.mobile-impact-inspector-icon-button\s*\{[^}]*border:\s*1px solid/s,
+    );
+  });
+
+  it("uses slate/visionOS container styling for mobile inspector action buttons", () => {
+    assert.match(inspectorSource, /className="mobile-impact-inspector-action secondary"/);
+    assert.match(inspectorSource, /className="mobile-impact-inspector-action primary"/);
+    assert.match(
+      globalCss,
+      /\.mobile-impact-inspector-action\s*\{[^}]*border:\s*none;[^}]*border-radius:\s*8px;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.mobile-impact-inspector-action\.secondary\s*\{[^}]*box-shadow:[^}]*inset 0 1px 0 rgba\(255, 255, 255, 0\.85\)/s,
+    );
+    assert.match(
+      globalCss,
+      /\.dark \.mobile-impact-inspector-action\.secondary\s*\{[^}]*background:\s*#161a23;[^}]*box-shadow:[^}]*inset 0 1px 0 rgba\(255, 255, 255, 0\.08\)/s,
+    );
+    assert.match(
+      globalCss,
+      /\.mobile-impact-inspector-action\.primary\s*\{[^}]*background:\s*#dbeafe;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.dark \.mobile-impact-inspector-action\.primary\s*\{[^}]*background:\s*linear-gradient\(180deg, #1d3968 0%, #122444 100%\);/s,
+    );
+  });
+
   it("title-cases closure windows and shares compact mobile overlap layout with submenus", () => {
     assert.match(globalCss, /\.mobile-impact-inspector-window\s*\{[^}]*text-transform:\s*capitalize/s);
     assert.match(overlapRefsSource, /className="impact-overlap-refs/);

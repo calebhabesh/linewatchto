@@ -1,5 +1,7 @@
 "use client";
 
+import { useDashboardData } from "../app/DataContext";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigation, ChevronDown, Loader2, MapPinned, Pencil, Route, Trash2, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal, TrainFront } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
@@ -1017,6 +1019,7 @@ export function SavedCommutesPanel({
   draft: propDraft,
   onDraftChange,
 }: Props) {
+  const dashboard = useDashboardData();
   const lastInteractedCommuteIdRef = useRef<string | null>(null);
   const deleteConfirmationRef = useRef<HTMLDivElement>(null);
   const [internalExpandedImpactDisclosures, setInternalExpandedImpactDisclosures] = useState<Record<string, boolean>>(() => {
@@ -1929,6 +1932,16 @@ export function SavedCommutesPanel({
       </div>
     );
   }
+
+  if (dashboard.snapshot) return (
+    <section className="commute-panel min-w-0 rounded-lg">
+      <PanelHeader title="My Commutes" onBack={onBack} onClose={onClose} />
+      <div className="p-4 space-y-3">
+        <p role="status">Current commute impacts and travel-time estimates are unavailable. Reconnect to check your routes.</p>
+        {accountCommutes.map((commute) => <p key={commute.id} className="font-semibold">{commute.label}</p>)}
+      </div>
+    </section>
+  );
 
   return (
     <section className="commute-panel min-w-0 border border-transparent rounded-lg shadow-xl">

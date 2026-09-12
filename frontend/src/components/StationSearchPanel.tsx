@@ -58,6 +58,7 @@ const BROWSE_IMPACT_CATEGORIES = (
 
 type Props = {
   open: boolean;
+  isClosing?: boolean;
   stationCatalogs: StationSearchCatalogs;
   currentNetwork: NetworkId;
   selectedStationId: string | null;
@@ -65,6 +66,7 @@ type Props = {
   onSelectImpact: (selection: NonNullable<ImpactSelection>) => void;
   onOpenImpactCategory: (kind: ImpactKind) => void;
   onClose: () => void;
+  onDismiss?: () => void;
   onClosedFocusTarget?: () => void;
   /** Controlled search query — owned by the header input bar */
   query: string;
@@ -375,6 +377,7 @@ function StationButton({
 
 export function StationSearchPanel({
   open,
+  isClosing = false,
   stationCatalogs,
   currentNetwork,
   selectedStationId,
@@ -382,6 +385,7 @@ export function StationSearchPanel({
   onSelectImpact,
   onOpenImpactCategory,
   onClose,
+  onDismiss,
   onClosedFocusTarget,
   query,
   onQueryChange,
@@ -581,7 +585,7 @@ export function StationSearchPanel({
       if (query.trim()) {
         onQueryChange("");
       } else {
-        onClose();
+        (onDismiss ?? onClose)();
         onClosedFocusTarget?.();
       }
       return;
@@ -708,13 +712,14 @@ export function StationSearchPanel({
   return (
     <section
       id="station-search-panel"
-      className={`station-search-panel panel-strong ${open ? "open" : ""}`}
+      className={`station-search-panel panel-strong ${open ? "open" : ""} ${isClosing ? "station-search-panel-closing" : ""}`}
       aria-label="Global LineWatchTO search"
-      aria-hidden={!open}
-      inert={!open ? true : undefined}
+      aria-hidden={!open || isClosing}
+      inert={!open || isClosing ? true : undefined}
       data-station-search-panel
       data-external-mobile-input={externalMobileInput ? "true" : undefined}
-      data-open={open ? "true" : "false"}
+      data-open={open && !isClosing ? "true" : "false"}
+      data-closing={isClosing ? "true" : undefined}
       data-expanded={isExpanded ? "true" : "false"}
       data-searching={query.trim() ? "true" : "false"}
       data-input-focused={isInputFocused ? "true" : "false"}
@@ -747,7 +752,7 @@ export function StationSearchPanel({
               if (query) {
                 onQueryChange("");
               } else {
-                onClose();
+                (onDismiss ?? onClose)();
                 onClosedFocusTarget?.();
               }
             }}

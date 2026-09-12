@@ -341,14 +341,14 @@ function SavedStationRow({
   const arrivalHeading = isSubwayAndLrt ? "Train & LRT Arrivals" : isLrt ? "LRT Arrivals" : "Train Arrivals";
   const hasUnavailableArrivals = detail?.arrivals.some((arrival) => arrival.status === "unavailable") ?? false;
   const hasLiveArrivals = detail?.arrivals.some((arrival) => arrival.status === "live") ?? false;
-  const arrivalGroups = sortArrivalGroupsByPinnedLine(detail && !hasUnavailableArrivals
+  const arrivalGroups = sortArrivalGroupsByPinnedLine(detail && !dashboard.snapshot && !hasUnavailableArrivals
     ? groupStationArrivals(detail.arrivals, detail.lines, {
         stationId: detail.id,
         maxArrivalsPerDirection: 3,
         includeEmptyDirections: hasLiveArrivals,
       })
     : [], pinnedLineIds);
-  const regionalArrivalSnapshot = regionalArrivalResult?.data;
+  const regionalArrivalSnapshot = dashboard.snapshot ? undefined : regionalArrivalResult?.data;
   const regionalArrivalGroups = sortArrivalGroupsByPinnedLine(regionalArrivalSnapshot
     ? groupRegionalStationArrivals(regionalArrivalSnapshot.arrivals, saved.station.id)
     : [], pinnedLineIds);
@@ -1110,6 +1110,7 @@ export function MyStationsPanel({
   onRequestCreateAccount,
   listModeEpoch,
 }: Props) {
+  const dashboard = useDashboardData();
   const authenticated = accountState ? accountState.authenticated : true;
   const [mode, setMode] = useState<"list" | "add">("list");
   const [query, setQuery] = useState("");
@@ -1331,6 +1332,16 @@ export function MyStationsPanel({
     setLineId("all");
     window.setTimeout(() => modeButtonRef.current?.focus(), 0);
   }
+
+  if (dashboard.snapshot) return (
+    <section className="my-stations-panel panel rounded-lg" aria-label="My Stations">
+      <PanelHeader title="My Stations" onBack={onBack} onClose={onClose} />
+      <div className="p-4 space-y-3">
+        <p role="status">Current station impacts and arrivals are unavailable. Reconnect to check your stations.</p>
+        {savedStations.map((saved) => <button type="button" className="block font-semibold" key={`${saved.networkId}:${saved.station.id}`} onClick={() => onSelectStation(saved.station.id, saved.networkId)}>{saved.station.name}</button>)}
+      </div>
+    </section>
+  );
 
   return (
     <section className={`my-stations-panel${compactEmpty ? " my-stations-panel-empty" : ""} panel min-w-0 border border-transparent rounded-lg shadow-xl`} aria-label="My Stations">

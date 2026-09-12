@@ -34,6 +34,8 @@ export type MobileOperatingNotice = {
 };
 
 export type MobileConnectionNotice = {
+  snapshot?: boolean;
+  hasSavedSnapshot?: boolean;
   message?: string;
   title?: string;
   details?: string;
@@ -85,18 +87,22 @@ export function MobileStatusPeek({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [snap, setSnap] = useState<"overview" | "halfway" | "expanded">("overview");
+  const [positionRestored, setPositionRestored] = useState(false);
+  const [animatePosition, setAnimatePosition] = useState(false);
   useEffect(() => {
-    // Restore after hydration so server and client initially render the same position.
+    // Keep the server-rendered sheet hidden until its device preference is restored.
     const restore = requestAnimationFrame(() => {
       try {
         const saved = window.localStorage.getItem("linewatch-mobile-service-sheet-snap-v1");
         if (saved === "halfway" || saved === "expanded") setSnap(saved);
       } catch { /* Keep Overview if device storage is unavailable. */ }
+      setPositionRestored(true);
     });
     return () => cancelAnimationFrame(restore);
   }, []);
   const expanded = snap === "expanded";
   const selectSnap = (next: typeof snap) => {
+    setAnimatePosition(true);
     setSnap(next);
     try { window.localStorage.setItem("linewatch-mobile-service-sheet-snap-v1", next); } catch { /* Storage may be unavailable. */ }
   };
@@ -140,7 +146,8 @@ export function MobileStatusPeek({
     "compact",
   );
   const isLive = fresh && !isConnectionIssue;
-  const sourceLabel = isLive ? "Live" : isConnectionIssue ? "Cached" : rawSourceLabel;
+  const cachedLabel = connectionNotice?.hasSavedSnapshot === false ? "Unknown" : "Cached";
+  const sourceLabel = isLive ? "Live" : isConnectionIssue ? cachedLabel : rawSourceLabel;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -303,6 +310,8 @@ export function MobileStatusPeek({
         className="mobile-status-peek mobile-service-sheet"
         data-expanded={expanded}
         data-snap={snap}
+        data-position-restored={positionRestored}
+        data-animate-position={animatePosition}
         data-dragging={isDragging}
         data-category-count={categoryCount}
         data-has-notice={operatingNotice || connectionNotice ? "true" : undefined}
@@ -388,9 +397,9 @@ export function MobileStatusPeek({
             <span className="mobile-service-sheet-recessed-text" aria-hidden="true">LIVE</span>
           </div>
         ) : isConnectionIssue ? (
-          <div className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--cached" aria-label="Cached">
+          <div className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--cached" aria-label={cachedLabel}>
             <Clock size={11} strokeWidth={2.5} className="mobile-service-sheet-badge-icon" aria-hidden="true" />
-            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">CACHED</span>
+            <span className="mobile-service-sheet-recessed-text" aria-hidden="true">{cachedLabel.toUpperCase()}</span>
           </div>
         ) : (
           <div className="mobile-service-sheet-recessed-badge mobile-service-sheet-recessed-badge--source" aria-label={`Source: ${sourceLabel}`}>
@@ -434,6 +443,7 @@ export function MobileStatusPeek({
           return (
             <div
               className="mobile-service-sheet-notice-row mobile-service-sheet-notice-row--connection"
+              data-snapshot={connectionNotice.snapshot ? "true" : undefined}
               role="status"
               aria-live="polite"
               onClick={(e) => e.stopPropagation()}

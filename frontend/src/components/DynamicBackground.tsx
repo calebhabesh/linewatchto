@@ -13,7 +13,7 @@ export function DynamicBackground({
 }) {
   const backdropClassName = `linewatch-backdrop fixed inset-0 pointer-events-none z-0 transition-colors duration-500 ${
     disabled
-      ? `linewatch-backdrop--plain ${isDark ? "linewatch-backdrop--plain-dark" : "linewatch-backdrop--plain-light"}`
+      ? `linewatch-backdrop--plain ${isDark ? "linewatch-backdrop--plain-dark bg-[var(--map-canvas-bg,#0e1622)]" : "linewatch-backdrop--plain-light bg-slate-50"}`
       : isDark
         ? "linewatch-backdrop--dark bg-[var(--map-canvas-bg,#0e1622)]"
         : "linewatch-backdrop--light bg-slate-50"

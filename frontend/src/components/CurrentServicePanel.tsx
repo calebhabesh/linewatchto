@@ -114,6 +114,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
             </span>
           )}
         </h3>
+        {data.snapshot && <p className="p-2 text-xs">Current status unknown.{data.snapshot?.savedAt != null ? " Saved reports follow; service may have changed." : " Connect for service information."}</p>}
         <ServiceList rail>
           {railGroups.map(group => <div className="current-service-line" key={group.lineId}>
             <div className="current-service-line-badge-wrap">

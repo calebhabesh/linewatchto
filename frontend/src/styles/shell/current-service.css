@@ -505,6 +505,8 @@
   }
   .linewatch-shell .mobile-service-sheet[data-snap="halfway"] { --service-sheet-visible-height: var(--service-sheet-middle-height); }
   .linewatch-shell .mobile-service-sheet[data-snap="expanded"] { --service-sheet-visible-height: var(--service-sheet-expanded-height); }
+  .linewatch-shell .mobile-service-sheet[data-position-restored="false"] { visibility: hidden; }
+  .linewatch-shell .mobile-service-sheet[data-animate-position="false"],
   .linewatch-shell .mobile-service-sheet[data-dragging="true"] { transition: none; }
   .mobile-service-sheet-minimum { position: absolute; height: var(--service-sheet-overview-height); width: 0; visibility: hidden; pointer-events: none; }
   .mobile-service-sheet-middle { position: absolute; height: var(--service-sheet-middle-height); width: 0; visibility: hidden; pointer-events: none; }
@@ -1431,15 +1433,18 @@
 
   html .linewatch-shell .station-search-panel {
     --search-bottom-space: var(--mobile-bottom-nav-occupied-height);
-    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 76px) !important;
+    top: calc(var(--visual-viewport-offset-top, 0px)) !important;
     bottom: auto !important;
     left: 0;
     right: 0;
     width: 100%;
-    height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 76px - var(--search-bottom-space)) !important;
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 76px - var(--search-bottom-space)) !important;
-    border-radius: 22px 22px 0 0;
+    height: calc(var(--visual-viewport-height, 100dvh) - var(--search-bottom-space)) !important;
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--search-bottom-space)) !important;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
     background: var(--panel-opaque);
+    padding-top: calc(var(--mobile-safe-top) + 60px);
   }
   html[data-visual-keyboard="open"] .linewatch-shell .station-search-panel { --search-bottom-space: 0px; }
   html[data-visual-keyboard="open"] .linewatch-shell:has(.floating-panel-shell) .mobile-app-topbar { display: none; }
