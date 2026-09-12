@@ -847,11 +847,10 @@
 
   .account-dialog {
     max-height: calc(100dvh - 20px);
-    padding: 1rem;
   }
 
   .account-dialog-header {
-    margin-bottom: 0.65rem;
+    margin-bottom: 0;
   }
 
   .account-provider-stack {

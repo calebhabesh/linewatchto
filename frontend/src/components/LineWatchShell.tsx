@@ -618,6 +618,9 @@ export function LineWatchShell({
         ? "reset-password"
         : null
   );
+  const [isClosingAccount, setIsClosingAccount] = useState(false);
+  const isClosingAccountRef = useRef(false);
+  const closingAccountTimeoutRef = useRef<number | null>(null);
   const [accountEntryIntent, setAccountEntryIntent] = useState<AccountEntryIntent>("login");
   const [accountEmail, setAccountEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
@@ -1335,12 +1338,15 @@ export function LineWatchShell({
     );
   }, [activeView, consumeBrowserNavigationEntries, isGoingBack, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setSelectedStationId, setSelection]);
 
+  const reducedMotionRef = useRef(reducedMotion);
+
   useEffect(() => {
     selectedStationIdRef.current = selectedStationId;
     selectionRef.current = selection;
     accountDialogModeRef.current = accountDialogMode;
     commutePathPreviewRef.current = commutePathPreview;
-  }, [accountDialogMode, commutePathPreview, selectedStationId, selection]);
+    reducedMotionRef.current = reducedMotion;
+  }, [accountDialogMode, commutePathPreview, reducedMotion, selectedStationId, selection]);
 
   useEffect(() => {
     const sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -1378,7 +1384,18 @@ export function LineWatchShell({
       });
       switch (action) {
         case "close-account-dialog":
-          setAccountDialogMode(null);
+          if (isClosingAccountRef.current) return;
+          accountDialogModeRef.current = null;
+          isClosingAccountRef.current = true;
+          setIsClosingAccount(true);
+          if (closingAccountTimeoutRef.current) {
+            window.clearTimeout(closingAccountTimeoutRef.current);
+          }
+          closingAccountTimeoutRef.current = window.setTimeout(() => {
+            setAccountDialogMode(null);
+            isClosingAccountRef.current = false;
+            setIsClosingAccount(false);
+          }, reducedMotionRef.current ? 0 : 180);
           return;
         case "close-station":
           selectedStationIdRef.current = null;
@@ -1455,7 +1472,21 @@ export function LineWatchShell({
     };
   }, [pushBrowserNavigationEntry, restoreMapDrilldownOrigin, restorePreviousView, setAccountDialogMode]);
 
+  useEffect(() => {
+    return () => {
+      if (closingAccountTimeoutRef.current) {
+        window.clearTimeout(closingAccountTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const openAccountDialog = useCallback((mode: AccountDialogMode) => {
+    if (closingAccountTimeoutRef.current) {
+      window.clearTimeout(closingAccountTimeoutRef.current);
+      closingAccountTimeoutRef.current = null;
+    }
+    isClosingAccountRef.current = false;
+    setIsClosingAccount(false);
     if (!accountDialogModeRef.current) {
       pushBrowserNavigationEntry();
     }
@@ -1484,11 +1515,21 @@ export function LineWatchShell({
   }, [initialEmailVerificationToken, openAccountDialog]);
 
   const closeAccountDialog = useCallback(() => {
-    if (!accountDialogModeRef.current) return;
+    if (!accountDialogModeRef.current && !accountDialogMode) return;
+    if (isClosingAccountRef.current) return;
     consumeBrowserNavigationEntries();
     accountDialogModeRef.current = null;
-    setAccountDialogMode(null);
-  }, [consumeBrowserNavigationEntries, setAccountDialogMode]);
+    isClosingAccountRef.current = true;
+    setIsClosingAccount(true);
+    if (closingAccountTimeoutRef.current) {
+      window.clearTimeout(closingAccountTimeoutRef.current);
+    }
+    closingAccountTimeoutRef.current = window.setTimeout(() => {
+      setAccountDialogMode(null);
+      isClosingAccountRef.current = false;
+      setIsClosingAccount(false);
+    }, reducedMotion ? 0 : 180);
+  }, [accountDialogMode, consumeBrowserNavigationEntries, reducedMotion, setAccountDialogMode]);
 
   const closeSelectedStation = useCallback((expectedStationId: string) => {
     if (selectedStationIdRef.current !== expectedStationId) return;
@@ -3295,7 +3336,6 @@ export function LineWatchShell({
     activeView === "map" &&
     Boolean(selection) &&
     !selectedStationId &&
-    !accountDialogMode &&
     !showClosedScreen;
 
   const mobileStationInspectorOpen =
@@ -3303,7 +3343,6 @@ export function LineWatchShell({
     mapPresentationMode === "standard" &&
     activeView === "map" &&
     Boolean(selectedStationId) &&
-    !accountDialogMode &&
     !showClosedScreen;
 
   const mobileInspectorOpen = mobileImpactInspectorOpen || mobileStationInspectorOpen;
@@ -3761,7 +3800,7 @@ export function LineWatchShell({
     selectedStationId,
   ]);
 
-  const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview;
+  const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !commutePathPreview;
 
   const mobileOperatingNotice: MobileOperatingNotice | null = useMemo(() => {
     if (selectedNetwork === "ttc") {
@@ -3937,16 +3976,13 @@ export function LineWatchShell({
               </nav>
             </div>
           )}
-          {showMobileStatusPeek && (
-            <div className="mobile-app-info"><SiteGuideDropdown onOpenChange={setGuideOpen} /></div>
-          )}
         </div>
       )}
 
       {!showClosedScreen && (
       <header
         className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start pointer-events-none"
-        style={{ zIndex: guideOpen ? 60 : 40 }}
+        style={{ zIndex: guideOpen ? 68 : 40 }}
       >
         <div className="flex items-start gap-3 pointer-events-auto relative">
           <div className="flex flex-col items-center gap-2">
@@ -5030,7 +5066,7 @@ export function LineWatchShell({
                 compactVertical
               />
             </div>
-            {activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
+            {activeView === "map" && !selection && !selectedStationId && !commutePathPreview ? (
               <>
                 <button
                   type="button"
@@ -5369,6 +5405,15 @@ export function LineWatchShell({
       />
 
       {isMobile && showMobileStatusPeek && (
+        <div
+          className="mobile-app-info"
+          data-guide-open={guideOpen ? "true" : undefined}
+        >
+          <SiteGuideDropdown onOpenChange={setGuideOpen} />
+        </div>
+      )}
+
+      {isMobile && showMobileStatusPeek && (
         <div className="mobile-map-network-switch" data-map-chooser-keepout>
           <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} compactVertical />
         </div>
@@ -5413,7 +5458,7 @@ export function LineWatchShell({
         </MobileStatusPeek>
       ) : null}
 
-      {!showClosedScreen && !rotatedMapMode && !mobileInspectorOpen && !selectedStationId && !accountDialogMode ? (
+      {!showClosedScreen && !rotatedMapMode && !mobileInspectorOpen && !selectedStationId ? (
         /* aria-label="Primary mobile navigation" */
         <MobileBottomNav
           activeKey={mobileNavKey}
@@ -5437,30 +5482,44 @@ export function LineWatchShell({
           ) : null}
         </div>
       ) : null}
-      {accountDialogMode ? (
-        <div className="account-dialog-backdrop" role="presentation" onMouseDown={closeAccountDialog}>
+      {accountDialogMode || isClosingAccount ? (
+        <div
+          className={`account-dialog-backdrop ${isClosingAccount ? "account-dialog-backdrop--closing" : ""}`}
+          role="presentation"
+          onMouseDown={closeAccountDialog}
+        >
           <section
-            className="account-dialog"
+            className={`account-dialog ${isClosingAccount ? "account-dialog--closing" : ""}`}
             role="dialog"
             aria-modal="true"
             aria-label={accountDialogAriaLabel()}
             onMouseDown={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.stopPropagation();
+                closeAccountDialog();
+              }
+            }}
           >
             <div className="account-dialog-header">
-              <div className="account-dialog-intro">
-                <h2 className="text-base font-black text-slate-900 dark:text-white">
+              <div
+                key={`intro-${accountDialogMode}-${accountEntryIntent}`}
+                className="account-dialog-intro"
+              >
+                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                   {accountDialogTitle()}
                 </h2>
                 <p className="account-dialog-description">{accountDialogDescription()}</p>
               </div>
               <button type="button" className="account-dialog-close" onClick={closeAccountDialog} aria-label="Close account dialog">
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
             <form
-              key={accountDialogMode}
+              key={`${accountDialogMode}-${accountEntryIntent}`}
               data-account-dialog-view={accountDialogMode}
-              className="flex flex-col gap-3 p-4"
+              data-account-dialog-intent={accountEntryIntent}
+              className="flex flex-col gap-3 px-5 py-4"
               onSubmit={(event) => {
                 event.preventDefault();
                 handleSubmitAccount();
@@ -5498,16 +5557,25 @@ export function LineWatchShell({
                       {accountError}
                     </p>
                   ) : null}
-                  <button
-                    type="button"
-                    className="account-link-button"
-                    onClick={() => {
-                      setAccountError(null);
-                      setAccountEntryIntent(accountEntryIntent === "login" ? "register" : "login");
-                    }}
-                  >
-                    {accountEntryIntent === "login" ? "Create Account" : "Already Have Account?"}
-                  </button>
+                  <div className="account-dialog-footer">
+                    <button
+                      type="button"
+                      className="account-switch-button"
+                      onClick={() => {
+                        setAccountError(null);
+                        setAccountEntryIntent(accountEntryIntent === "login" ? "register" : "login");
+                      }}
+                    >
+                      {accountEntryIntent === "login" ? (
+                        <>
+                          <span className="account-switch-text">Don&apos;t have an account?</span>{" "}
+                          <span className="account-switch-link">Sign Up</span>
+                        </>
+                      ) : (
+                        <span className="account-switch-link">Already Have an Account?</span>
+                      )}
+                    </button>
+                  </div>
                 </>
               ) : accountDialogMode === "link-google" ? (
                 <>

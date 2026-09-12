@@ -227,7 +227,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
   }, []);
 
   useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
+    function handlePointerDown(event: PointerEvent | MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         closeGuide();
       }
@@ -239,10 +239,10 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
       }
     }
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [closeGuide]);
@@ -282,6 +282,14 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
           priority
         />
       </button>
+
+      {isOpen && isMobile ? (
+        <div
+          className={`site-guide-backdrop fixed inset-0 z-[67] transition-opacity duration-200 ${isClosing ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+          onClick={closeGuide}
+          aria-hidden="true"
+        />
+      ) : null}
 
       {isOpen ? (
         <section

@@ -51,10 +51,15 @@ describe("mobile navigation motion", () => {
     assert.doesNotMatch(shellSource, /handleMobileSheetClose/);
   });
 
-  it("animates account container entry and keyed inner view changes", () => {
-    assert.match(shellSource, /key=\{accountDialogMode\}[\s\S]*data-account-dialog-view=\{accountDialogMode\}/);
+  it("animates account container entry, exit, and keyed inner view changes", () => {
+    assert.match(shellSource, /key=\{`\$\{accountDialogMode\}-\$\{accountEntryIntent\}`\}[\s\S]*data-account-dialog-view=\{accountDialogMode\}/);
+    assert.match(shellSource, /account-dialog-backdrop--closing/);
+    assert.match(shellSource, /account-dialog--closing/);
     assert.match(globalCss, /\.account-dialog-backdrop\s*\{[^}]*linewatch-backdrop-enter/s);
     assert.match(globalCss, /\.account-dialog\s*\{[^}]*linewatch-dialog-enter/s);
+    assert.match(globalCss, /\.account-dialog-backdrop--closing\s*\{[^}]*linewatch-backdrop-exit/s);
+    assert.match(globalCss, /\.account-dialog--closing\s*\{[^}]*linewatch-dialog-exit/s);
+    assert.match(globalCss, /@keyframes linewatch-dialog-exit\s*\{/);
     assert.match(globalCss, /data-account-dialog-view[^}]*linewatch-dialog-content-enter/s);
   });
 

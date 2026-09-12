@@ -79,7 +79,7 @@ describe("account UI source", () => {
       /if \(!accountState\.authenticated\) \{\s*setAccountEntryIntent\("register"\);\s*openAccountDialog\("auth-choice"\);\s*setAccountError\(null\);/,
     );
     assert.match(shellSource, /className="account-dialog-close"/);
-    assert.match(globalCss, /\.account-dialog-close\s*\{[^}]*flex:\s*0 0 38px;[^}]*-webkit-tap-highlight-color:\s*transparent;/s);
+    assert.match(globalCss, /\.account-dialog-close\s*\{[^}]*flex:\s*0 0 36px;[^}]*-webkit-tap-highlight-color:\s*transparent;/s);
   });
 
   it("supports optional local dev account bootstrap without bypassing backend auth", () => {
@@ -510,5 +510,40 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.account-choice-primary\s*\{[\s\S]*color:\s*rgb\(31,\s*31,\s*31\)/);
     assert.match(globalCss, /\.account-choice-primary\s*\{[\s\S]*font-weight:\s*700/);
     assert.match(globalCss, /\.account-choice-google-custom\s*\{[\s\S]*background:\s*rgb\(255,\s*255,\s*255\)/);
+  });
+
+  it("styles account dialog with opaque slate background, no border, and strong backdrop blur", () => {
+    const dialogDarkBlock = globalCss.match(/\.dark \.account-dialog[^{]*\{([^}]+)\}/)?.[1] ?? "";
+    assert.match(dialogDarkBlock, /background-color:\s*#0e1016;/);
+    assert.match(dialogDarkBlock, /border:\s*none;/);
+    assert.doesNotMatch(dialogDarkBlock, /backdrop-filter/);
+    assert.match(dialogDarkBlock, /inset/);
+    assert.match(dialogDarkBlock, /linear-gradient/);
+    assert.match(globalCss, /\.account-dialog-backdrop\s*\{[^}]*backdrop-filter:\s*blur\(50px\)/);
+    assert.match(globalCss, /\.account-dialog-header\s*\{[^}]*border-bottom:\s*none;/);
+    assert.match(globalCss, /\.account-dialog-close\s*\{[\s\S]*?border:\s*none;/);
+    assert.match(globalCss, /\.dark \.account-dialog-close[\s\S]*?border:\s*none;/);
+  });
+
+  it("shades dialog footer with noticeable contrast and renders customized switch prompts", () => {
+    assert.match(shellSource, /Don&apos;t have an account\?/);
+    assert.match(shellSource, /Sign Up/);
+    assert.match(shellSource, /Already Have an Account\?/);
+    assert.match(shellSource, /account-dialog-footer/);
+    assert.match(shellSource, /account-switch-button/);
+    assert.match(shellSource, /account-switch-text/);
+    assert.match(shellSource, /account-switch-link/);
+    assert.match(globalCss, /\.account-dialog-footer\s*\{[\s\S]*border-top:\s*none;/);
+    assert.match(globalCss, /\.dark \.account-dialog-footer\s*\{[\s\S]*background-color:\s*rgba\(255,\s*255,\s*255,\s*0\.08\);/);
+    assert.match(globalCss, /\.dark \.account-switch-text[\s\S]*color:\s*#ffffff;/);
+    assert.match(globalCss, /\.dark \.account-switch-link[\s\S]*color:\s*rgb\(96,\s*165,\s*250\);/);
+  });
+
+  it("keeps mobile nav bar and status peek intact and illuminates search account icon directly", () => {
+    assert.doesNotMatch(shellSource, /showMobileStatusPeek = [^;]*!accountDialogMode/);
+    assert.doesNotMatch(shellSource, /<MobileBottomNav[\s\S]*!accountDialogMode/);
+    assert.match(globalCss, /\.dark \.mobile-app-search > \.mobile-app-account[\s\S]*background:\s*transparent;/);
+    assert.match(globalCss, /\.dark \.mobile-app-search > \.mobile-app-account svg[\s\S]*filter:\s*drop-shadow\(0 0 3px rgba\(255,\s*255,\s*255,\s*0\.4\)\);/);
+    assert.match(globalCss, /\.linewatch-shell:has\(\.account-dialog-backdrop\)[\s\S]*?\.mobile-app-info[\s\S]*?\.mobile-map-network-switch[\s\S]*?filter:\s*blur\(8px\);/);
   });
 });

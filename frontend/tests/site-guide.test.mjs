@@ -223,4 +223,22 @@ describe("site guide dropdown", () => {
     assert.doesNotMatch(globalCss, /smooth-breath/);
     assert.doesNotMatch(globalCss, /animation:\s*smooth-breath/);
   });
+
+  it("displays site guide container over other components with elevated z-index and preserves position outside topbar", () => {
+    const guideSource = readFileSync(guideComponentUrl, "utf8");
+    const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+
+    const topbarMatch = shellSource.match(/className="mobile-app-topbar"[\s\S]*?<\/div>\s*\)\}/)?.[0] ?? "";
+    assert.doesNotMatch(topbarMatch, /mobile-app-info/);
+    assert.match(shellSource, /className="mobile-app-info"/);
+    assert.match(shellSource, /data-guide-open=\{guideOpen \? "true" : undefined\}/);
+
+    assert.match(globalCss, /\.mobile-app-info\[data-guide-open="true"\][\s\S]*?z-index:\s*68;/);
+    assert.match(globalCss, /\.mobile-app-info \.site-guide-panel\s*\{[\s\S]*?z-index:\s*68;/);
+    assert.match(globalCss, /\.site-guide-panel\s*\{[\s\S]*?z-index:\s*68;/);
+    assert.match(globalCss, /\.site-guide-backdrop\s*\{[\s\S]*?z-index:\s*67;/);
+
+    assert.match(guideSource, /pointerdown/);
+    assert.match(guideSource, /site-guide-backdrop/);
+  });
 });

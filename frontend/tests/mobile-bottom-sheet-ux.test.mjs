@@ -366,7 +366,7 @@ describe("mobile bottom sheet UX", () => {
   it("keeps Show on Map as a split inspector instead of a competing mobile sheet", () => {
     assert.match(shellSource, /MobileImpactInspector/);
     assert.match(shellSource, /mobileInspectorOpen/);
-    assert.match(shellSource, /!mobileInspectorOpen && !selectedStationId && !accountDialogMode/);
+    assert.match(shellSource, /!mobileInspectorOpen && !selectedStationId/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector > main/);
     assert.match(globalCss, /\.mobile-impact-inspector/);
   });

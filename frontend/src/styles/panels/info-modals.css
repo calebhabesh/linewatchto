@@ -908,7 +908,7 @@
   right: 0;
   top: 48px;
   width: min(calc(100vw - 32px), 410px);
-  z-index: 55;
+  z-index: 68;
   display: flex;
   flex-direction: column;
 }
