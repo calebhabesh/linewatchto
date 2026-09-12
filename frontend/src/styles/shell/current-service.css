@@ -376,7 +376,7 @@
     --mobile-bottom-nav-height: 70px;
     --mobile-bottom-nav-bottom-offset: var(--mobile-safe-bottom);
     --mobile-bottom-nav-side-inset: 0px;
-    --mobile-status-peek-height: 170px;
+    --mobile-status-peek-height: 176px;
   }
   @media (max-width: 400px), (orientation: landscape) and (max-height: 520px) {
     :root {
@@ -480,7 +480,7 @@
     inset-inline: 0;
     max-width: none;
     --service-sheet-expanded-height: calc(100dvh - var(--mobile-safe-top) - var(--mobile-bottom-nav-occupied-height));
-    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), 170px);
+    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), 176px);
     --service-sheet-middle-height: clamp(var(--service-sheet-overview-height), 65dvh, var(--service-sheet-expanded-height));
     --service-sheet-visible-height: var(--service-sheet-overview-height);
     height: var(--service-sheet-expanded-height);
@@ -501,7 +501,7 @@
     align-items: stretch;
   }
   .linewatch-shell .mobile-service-sheet[data-has-notice="true"] {
-    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), 174px);
+    --service-sheet-overview-height: min(var(--service-sheet-expanded-height), 180px);
   }
   .linewatch-shell .mobile-service-sheet[data-snap="halfway"] { --service-sheet-visible-height: var(--service-sheet-middle-height); }
   .linewatch-shell .mobile-service-sheet[data-snap="expanded"] { --service-sheet-visible-height: var(--service-sheet-expanded-height); }
@@ -721,9 +721,9 @@
   .mobile-service-sheet .mobile-status-peek-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, 44px);
+    grid-template-rows: repeat(2, 47px);
     overflow: visible;
-    flex: 0 0 94px;
+    flex: 0 0 100px;
     width: 100%;
     gap: 6px;
     padding: 0;
@@ -793,6 +793,7 @@
     flex: 0 0 20px;
     font-size: 11px;
     font-weight: 800;
+    margin-right: -1.5px;
   }
   .mobile-service-sheet[data-has-notice="true"] .mobile-status-peek-badge-icon {
     flex: 0 0 11px;
@@ -974,27 +975,43 @@
   .linewatch-shell .mobile-service-sheet .mobile-status-peek-count-badge {
     width: 100%;
     min-width: 0;
-    min-height: 44px;
-    gap: 7px;
-    padding: 6px 9px;
-    box-shadow: inset 0 0 8px color-mix(in srgb, currentColor 35%, transparent), 0 2px 7px rgba(0, 0, 0, 0.20);
-    background-image: none;
+    min-height: 47px;
+    gap: 5.5px;
+    padding: 0 7px 0 6.5px;
   }
   .mobile-service-sheet .mobile-status-peek-badge-label {
-    font-size: clamp(10.5px, 2.8vw, 12px);
+    font-size: clamp(10px, 2.65vw, 11px);
     white-space: normal;
     line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: #0f172a;
+    margin: 0;
+  }
+  .mobile-service-sheet .mobile-status-peek-count-badge--empty .mobile-status-peek-badge-label {
+    color: #475569;
+    font-weight: 750;
+    text-shadow: none;
+  }
+  .dark .mobile-service-sheet .mobile-status-peek-badge-label {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  }
+  .dark .mobile-service-sheet .mobile-status-peek-count-badge--empty .mobile-status-peek-badge-label {
+    color: #cbd5e1;
+    font-weight: 750;
+    text-shadow: none;
   }
   .mobile-service-sheet .mobile-status-peek-count-circle {
     width: 25px;
     min-width: 25px;
     height: 25px;
     flex: 0 0 25px;
-    margin-right: 0;
+    margin: 0;
     font-size: 13px;
     font-weight: 900;
   }
-  .mobile-service-sheet .mobile-status-peek-badge-icon { flex: 0 0 13px; width: 13px; height: 13px; margin-right: 0; }
+  .mobile-service-sheet .mobile-status-peek-badge-icon { flex: 0 0 13px; width: 13px; height: 13px; margin: 0; }
   .mobile-service-sheet .mobile-status-peek-chevron { display: none; }
   .mobile-service-sheet-details { overflow-y: auto; overscroll-behavior-y: contain; min-height: 0; flex: 1; padding-top: 16px; margin-bottom: calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height)); }
   /* Paint the full content while the shell moves using only a transform.

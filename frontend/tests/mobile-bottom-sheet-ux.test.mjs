@@ -407,7 +407,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-status-actions button,[\s\S]*?\.mobile-line-status-row[\s\S]*?\{[\s\S]*?border:\s*none\s*!important;[\s\S]*?box-shadow:\s*var\(--mobile-card-shadow\);/);
     assert.match(globalCss, /\.mobile-status-btn-circle\s*\{[\s\S]*?border:\s*none\s*!important;/);
     assert.doesNotMatch(globalCss, /\.mobile-status-btn-circle\s*\{[^}]*border:\s*2px solid #000000/);
-    assert.match(globalCss, /\.dark \.mobile-status-actions button\.mobile-status-btn-alerts\s*\{[\s\S]*?background:\s*#2d1414\s*!important;/);
+    assert.match(globalCss, /\.dark \.mobile-status-actions button\.mobile-status-btn-alerts:not\(\[data-count="zero"\]\)\s*\{[\s\S]*?background:\s*linear-gradient\(180deg,\s*#5c1c1c/);
     assert.match(globalCss, /\.mobile-more-row\s*\{[\s\S]*?border:\s*none\s*!important;[\s\S]*?border-radius:\s*12px;[\s\S]*?box-shadow:\s*var\(--mobile-card-shadow\);/);
     assert.match(globalCss, /\.high-contrast \.mobile-more-row[\s\S]*?\{[\s\S]*?border:\s*1px solid #ffffff/);
     assert.match(globalCss, /\.mobile-status-content-scroll\s*\{[\s\S]*?margin-top:\s*-12px\s*!important;[\s\S]*?padding-top:\s*12px\s*!important;/);

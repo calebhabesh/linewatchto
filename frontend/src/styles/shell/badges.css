@@ -152,177 +152,305 @@ img.transit-line-badge {
 /* ------------------------------------------------------------
    3. Line Status Impact & Action Buttons (Mobile)
    ------------------------------------------------------------ */
-/* Category background tints for System Status & Line Status impact buttons */
-.mobile-line-status-impacts button.mobile-line-status-btn-alerts,
-.mobile-status-actions button.mobile-status-btn-alerts {
+/* Category background tints for Line Status impact buttons */
+.mobile-line-status-impacts button.mobile-line-status-btn-alerts {
   background: #fef2f2;
 }
-.mobile-line-status-impacts button.mobile-line-status-btn-delays,
-.mobile-status-actions button.mobile-status-btn-delays {
+.mobile-line-status-impacts button.mobile-line-status-btn-delays {
   background: #fefce8;
 }
-.mobile-line-status-impacts button.mobile-line-status-btn-rsz,
-.mobile-status-actions button.mobile-status-btn-rsz {
+.mobile-line-status-impacts button.mobile-line-status-btn-rsz {
   background: #fffbeb;
 }
-.mobile-line-status-impacts button.mobile-line-status-btn-closures,
-.mobile-status-actions button.mobile-status-btn-closures {
+.mobile-line-status-impacts button.mobile-line-status-btn-closures {
   background: #eff6ff;
 }
-.mobile-status-actions button.mobile-status-btn-trip-changes {
-  background: #fffbeb;
-}
-.mobile-status-actions button.mobile-status-btn-accessibility {
-  background: #faf5ff;
-}
-.mobile-status-actions button.mobile-status-btn-surface {
-  background: #f0fdf4;
-}
 
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts,
-.dark .mobile-status-actions button.mobile-status-btn-alerts {
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts {
   background: #2d1414 !important;
 }
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays,
-.dark .mobile-status-actions button.mobile-status-btn-delays {
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays {
   background: #2a2808;
 }
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz,
-.dark .mobile-status-actions button.mobile-status-btn-rsz {
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz {
   background: #2a1f08;
 }
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures,
-.dark .mobile-status-actions button.mobile-status-btn-closures {
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures {
   background: #0e1c30;
 }
-.dark .mobile-status-actions button.mobile-status-btn-trip-changes {
-  background: #2a1f08;
+
+/* Category backgrounds & visionOS tactile styling for System Status action buttons */
+.mobile-status-actions button {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.90),
+    0 2px 8px rgba(15, 23, 42, 0.08);
 }
-.dark .mobile-status-actions button.mobile-status-btn-accessibility {
-  background: #20132c;
+.mobile-status-actions button.mobile-status-btn-alerts {
+  background: #fee2e2;
 }
-.dark .mobile-status-actions button.mobile-status-btn-surface {
-  background: #0f291e;
+.mobile-status-actions button.mobile-status-btn-delays {
+  background: #fef9c3;
+}
+.mobile-status-actions button.mobile-status-btn-rsz {
+  background: #fef3c7;
+}
+.mobile-status-actions button.mobile-status-btn-closures {
+  background: #dbeafe;
+}
+.mobile-status-actions button.mobile-status-btn-trip-changes {
+  background: #fef3c7;
+}
+.mobile-status-actions button.mobile-status-btn-accessibility {
+  background: #f3e8ff;
+}
+.mobile-status-actions button.mobile-status-btn-surface {
+  background: #dcfce7;
+}
+
+.dark .mobile-status-actions button {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 3px 10px rgba(0, 0, 0, 0.38);
+}
+.dark .mobile-status-actions button .mobile-status-btn-text {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.dark .mobile-status-actions button.mobile-status-btn-alerts:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #5c1c1c 0%, #451515 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-delays:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #543f0e 0%, #403009 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-rsz:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #592e10 0%, #442109 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-closures:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #1d3968 0%, #122444 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #592e10 0%, #442109 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #4c1d6f 0%, #361450 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #154d36 0%, #0d3625 100%);
+}
+
+/* Subdued / calm resting state when count is zero (Muted Category VisionOS Slate) */
+.mobile-status-actions button[data-count="zero"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.90),
+    0 1px 3px rgba(15, 23, 42, 0.05);
+}
+.mobile-status-actions button.mobile-status-btn-alerts[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #fee2e2);
+}
+.mobile-status-actions button.mobile-status-btn-delays[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #fef9c3);
+}
+.mobile-status-actions button.mobile-status-btn-rsz[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #fef3c7);
+}
+.mobile-status-actions button.mobile-status-btn-closures[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #dbeafe);
+}
+.mobile-status-actions button.mobile-status-btn-trip-changes[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #fef3c7);
+}
+.mobile-status-actions button.mobile-status-btn-accessibility[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #f3e8ff);
+}
+.mobile-status-actions button.mobile-status-btn-surface[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #dcfce7);
+}
+.mobile-status-actions button[data-count="zero"] .mobile-status-btn-text {
+  color: #475569;
+  text-shadow: none;
+}
+
+.dark .mobile-status-actions button[data-count="zero"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 5px rgba(0, 0, 0, 0.25);
+}
+.dark .mobile-status-actions button.mobile-status-btn-alerts[data-count="zero"] {
+  background: linear-gradient(180deg, #2b1517 0%, #1e0e10 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-delays[data-count="zero"] {
+  background: linear-gradient(180deg, #27210f 0%, #1b1609 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-rsz[data-count="zero"] {
+  background: linear-gradient(180deg, #28190d 0%, #1b1007 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-closures[data-count="zero"] {
+  background: linear-gradient(180deg, #111e30 0%, #0b1420 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-trip-changes[data-count="zero"] {
+  background: linear-gradient(180deg, #28190d 0%, #1b1007 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility[data-count="zero"] {
+  background: linear-gradient(180deg, #20132c 0%, #160c1f 100%);
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface[data-count="zero"] {
+  background: linear-gradient(180deg, #0f291e 0%, #0a1b14 100%);
+}
+.dark .mobile-status-actions button[data-count="zero"] .mobile-status-btn-text {
+  color: #cbd5e1;
+  text-shadow: none;
+}
+
+.mobile-status-actions button[data-count="zero"] > svg,
+.mobile-status-actions button[data-count="zero"] > img {
+  opacity: 0.75;
+}
+.dark .mobile-status-actions button[data-count="zero"] > svg,
+.dark .mobile-status-actions button[data-count="zero"] > img {
+  opacity: 0.75;
 }
 
 /* Hover and active states for status action and line impact buttons */
 @media (hover: hover) {
-  .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover,
-  .mobile-status-actions button.mobile-status-btn-alerts:hover {
+  .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
     background: #fee2e2;
   }
-  .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover,
-  .mobile-status-actions button.mobile-status-btn-delays:hover {
+  .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover {
     background: #fef9c3;
   }
-  .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover,
-  .mobile-status-actions button.mobile-status-btn-rsz:hover {
+  .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover {
     background: #fef3c7;
   }
-  .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover,
-  .mobile-status-actions button.mobile-status-btn-closures:hover {
+  .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
     background: #dbeafe;
   }
-  .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
-    background: #fef3c7;
-  }
-  .mobile-status-actions button.mobile-status-btn-accessibility:hover {
-    background: #f3e8ff;
-  }
-  .mobile-status-actions button.mobile-status-btn-surface:hover {
-    background: #dcfce7;
-  }
 
-  .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover,
-  .dark .mobile-status-actions button.mobile-status-btn-alerts:hover {
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:hover {
     background: #3d1b1b !important;
   }
-  .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover,
-  .dark .mobile-status-actions button.mobile-status-btn-delays:hover {
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:hover {
     background: #38360d;
   }
-  .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover,
-  .dark .mobile-status-actions button.mobile-status-btn-rsz:hover {
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:hover {
     background: #38280d;
   }
-  .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover,
-  .dark .mobile-status-actions button.mobile-status-btn-closures:hover {
+  .dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:hover {
     background: #132540;
   }
-  .dark .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
-    background: #38280d;
+
+  .mobile-status-actions button.mobile-status-btn-alerts:hover {
+    background: #fecaca;
   }
-  .dark .mobile-status-actions button.mobile-status-btn-accessibility:hover {
-    background: #2e1b3f;
+  .mobile-status-actions button.mobile-status-btn-delays:hover {
+    background: #fef08a;
   }
-  .dark .mobile-status-actions button.mobile-status-btn-surface:hover {
-    background: #163929;
+  .mobile-status-actions button.mobile-status-btn-rsz:hover {
+    background: #fde68a;
+  }
+  .mobile-status-actions button.mobile-status-btn-closures:hover {
+    background: #bfdbfe;
+  }
+  .mobile-status-actions button.mobile-status-btn-trip-changes:hover {
+    background: #fde68a;
+  }
+  .mobile-status-actions button.mobile-status-btn-accessibility:hover {
+    background: #e9d5ff;
+  }
+  .mobile-status-actions button.mobile-status-btn-surface:hover {
+    background: #bbf7d0;
+  }
+
+  .dark .mobile-status-actions button.mobile-status-btn-alerts:not([data-count="zero"]):hover {
+    background: linear-gradient(180deg, #6b2222 0%, #521919 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-delays:not([data-count="zero"]):hover {
+    background: linear-gradient(180deg, #634b12 0%, #4d3a0b 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-rsz:not([data-count="zero"]):hover {
+    background: linear-gradient(180deg, #693714 0%, #52280b 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-closures:not([data-count="zero"]):hover {
+    background: linear-gradient(180deg, #24467d 0%, #172d54 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-trip-changes:not([data-count="zero"]):hover {
+    background: linear-gradient(180deg, #693714 0%, #52280b 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-accessibility:not([data-count="zero"]):hover {
+    background: linear-gradient(180deg, #5a2483 0%, #421a61 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-surface:not([data-count="zero"]):hover {
+    background: linear-gradient(180deg, #1a5c41 0%, #10412d 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+
+  .dark .mobile-status-actions button[data-count="zero"]:hover {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 3px 8px rgba(0, 0, 0, 0.32);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-alerts[data-count="zero"]:hover {
+    background: linear-gradient(180deg, #331a1c 0%, #251214 100%);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-delays[data-count="zero"]:hover {
+    background: linear-gradient(180deg, #302814 0%, #221c0c 100%);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-rsz[data-count="zero"]:hover {
+    background: linear-gradient(180deg, #312012 0%, #22150a 100%);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-closures[data-count="zero"]:hover {
+    background: linear-gradient(180deg, #16273e 0%, #0f1b2c 100%);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-trip-changes[data-count="zero"]:hover {
+    background: linear-gradient(180deg, #312012 0%, #22150a 100%);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-accessibility[data-count="zero"]:hover {
+    background: linear-gradient(180deg, #281938 0%, #1c1027 100%);
+  }
+  .dark .mobile-status-actions button.mobile-status-btn-surface[data-count="zero"]:hover {
+    background: linear-gradient(180deg, #143527 0%, #0d2219 100%);
   }
 }
 
-.mobile-line-status-impacts button.mobile-line-status-btn-alerts:active,
-.mobile-status-actions button.mobile-status-btn-alerts:active {
+.mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
   background: #fecaca;
   transform: scale(0.98);
 }
-.mobile-line-status-impacts button.mobile-line-status-btn-delays:active,
-.mobile-status-actions button.mobile-status-btn-delays:active {
+.mobile-line-status-impacts button.mobile-line-status-btn-delays:active {
   background: #fef08a;
   transform: scale(0.98);
 }
-.mobile-line-status-impacts button.mobile-line-status-btn-rsz:active,
-.mobile-status-actions button.mobile-status-btn-rsz:active {
+.mobile-line-status-impacts button.mobile-line-status-btn-rsz:active {
   background: #fde68a;
   transform: scale(0.98);
 }
-.mobile-line-status-impacts button.mobile-line-status-btn-closures:active,
-.mobile-status-actions button.mobile-status-btn-closures:active {
+.mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
   background: #bfdbfe;
   transform: scale(0.98);
 }
-.mobile-status-actions button.mobile-status-btn-trip-changes:active {
-  background: #fde68a;
-  transform: scale(0.98);
-}
-.mobile-status-actions button.mobile-status-btn-accessibility:active {
-  background: #e9d5ff;
-  transform: scale(0.98);
-}
-.mobile-status-actions button.mobile-status-btn-surface:active {
-  background: #bbf7d0;
-  transform: scale(0.98);
-}
 
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active,
-.dark .mobile-status-actions button.mobile-status-btn-alerts:active {
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-alerts:active {
   background: #4a2020 !important;
   transform: scale(0.98);
 }
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:active,
-.dark .mobile-status-actions button.mobile-status-btn-delays:active {
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-delays:active {
   background: #474410;
   transform: scale(0.98);
 }
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active,
-.dark .mobile-status-actions button.mobile-status-btn-rsz:active {
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-rsz:active {
   background: #473410;
   transform: scale(0.98);
 }
-.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:active,
-.dark .mobile-status-actions button.mobile-status-btn-closures:active {
+.dark .mobile-line-status-impacts button.mobile-line-status-btn-closures:active {
   background: #1a3254;
   transform: scale(0.98);
 }
-.dark .mobile-status-actions button.mobile-status-btn-trip-changes:active {
-  background: #473410;
-  transform: scale(0.98);
-}
-.dark .mobile-status-actions button.mobile-status-btn-accessibility:active {
-  background: #3b2352;
-  transform: scale(0.98);
-}
-.dark .mobile-status-actions button.mobile-status-btn-surface:active {
-  background: #1e4734;
+
+.mobile-status-actions button:active {
   transform: scale(0.98);
 }
 
@@ -332,78 +460,103 @@ img.transit-line-badge {
 /* Category-harmonized count pill styling for positive counts */
 .mobile-status-actions button.mobile-status-btn-alerts .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.45);
   color: #b91c1c;
 }
 .mobile-status-actions button.mobile-status-btn-delays .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(234, 179, 8, 0.18);
+  border: 1px solid rgba(217, 119, 6, 0.45);
   color: #854d0e;
 }
 .mobile-status-actions button.mobile-status-btn-rsz .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.45);
   color: var(--impact-rsz-ink);
 }
 .mobile-status-actions button.mobile-status-btn-closures .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.45);
   color: #1d4ed8;
 }
 .mobile-status-actions button.mobile-status-btn-trip-changes .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.45);
   color: var(--trip-change-ink);
 }
 .mobile-status-actions button.mobile-status-btn-accessibility .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(168, 85, 247, 0.14);
+  border: 1px solid rgba(168, 85, 247, 0.45);
   color: #7e22ce;
 }
 .mobile-status-actions button.mobile-status-btn-surface .mobile-status-btn-circle[data-count="positive"] {
   background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.45);
   color: #047857;
 }
 
 .dark .mobile-status-actions button.mobile-status-btn-alerts .mobile-status-btn-circle[data-count="positive"] {
-  background: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.38);
+  border: 1px solid rgba(239, 68, 68, 0.90);
   color: #ffffff;
   font-weight: 950;
   text-shadow: 0 0 4px rgba(239, 68, 68, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-delays .mobile-status-btn-circle[data-count="positive"] {
-  background: rgba(234, 179, 8, 0.28);
+  background: rgba(234, 179, 8, 0.38);
+  border: 1px solid rgba(254, 236, 65, 0.90);
   color: #ffffff;
   font-weight: 950;
   text-shadow: 0 0 4px rgba(234, 179, 8, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-rsz .mobile-status-btn-circle[data-count="positive"] {
-  background: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.38);
+  border: 1px solid rgba(245, 158, 11, 0.90);
   color: #ffffff;
   font-weight: 950;
   text-shadow: 0 0 4px rgba(245, 158, 11, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-closures .mobile-status-btn-circle[data-count="positive"] {
-  background: rgba(59, 130, 246, 0.28);
+  background: rgba(59, 130, 246, 0.38);
+  border: 1px solid rgba(59, 130, 246, 0.90);
   color: #ffffff;
   font-weight: 950;
   text-shadow: 0 0 4px rgba(59, 130, 246, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-trip-changes .mobile-status-btn-circle[data-count="positive"] {
-  background: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.38);
+  border: 1px solid rgba(245, 158, 11, 0.90);
   color: #ffffff;
   font-weight: 950;
   text-shadow: 0 0 4px rgba(245, 158, 11, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-accessibility .mobile-status-btn-circle[data-count="positive"] {
-  background: rgba(168, 85, 247, 0.28);
+  background: rgba(168, 85, 247, 0.38);
+  border: 1px solid rgba(168, 85, 247, 0.90);
   color: #ffffff;
   font-weight: 950;
   text-shadow: 0 0 4px rgba(168, 85, 247, 0.70);
 }
 .dark .mobile-status-actions button.mobile-status-btn-surface .mobile-status-btn-circle[data-count="positive"] {
-  background: rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.38);
+  border: 1px solid rgba(16, 185, 129, 0.90);
   color: #ffffff;
   font-weight: 950;
   text-shadow: 0 0 4px rgba(16, 185, 129, 0.70);
 }
 
 .mobile-status-actions button[data-count="zero"] .mobile-status-btn-circle {
-  opacity: 0.65;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  opacity: 1;
+}
+
+.dark .mobile-status-actions button[data-count="zero"] .mobile-status-btn-circle {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #64748b;
+  opacity: 1;
+  text-shadow: none;
 }
 
 /* ------------------------------------------------------------

@@ -666,28 +666,57 @@
   color: #ffffff;
   font-weight: 950;
 }
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts:not([data-count="zero"]) .desktop-status-chip-count {
+  background: rgba(239, 68, 68, 0.38);
+  border: 1px solid rgba(239, 68, 68, 0.90);
+  color: #ffffff;
+}
 .dark .desktop-header-impact-chips .desktop-status-chip--alerts:not([data-count="zero"]) .desktop-status-chip-count-value {
-  text-shadow: 0 0 6px rgba(239, 68, 68, 0.65);
+  text-shadow: 0 0 4px rgba(239, 68, 68, 0.70);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--delays:not([data-count="zero"]) .desktop-status-chip-count {
+  background: rgba(234, 179, 8, 0.38);
+  border: 1px solid rgba(254, 236, 65, 0.90);
+  color: #ffffff;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--delays:not([data-count="zero"]) .desktop-status-chip-count-value {
-  text-shadow: 0 0 6px rgba(234, 179, 8, 0.65);
+  text-shadow: 0 0 4px rgba(234, 179, 8, 0.70);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:not([data-count="zero"]) .desktop-status-chip-count {
+  background: rgba(245, 158, 11, 0.38);
+  border: 1px solid rgba(245, 158, 11, 0.90);
+  color: #ffffff;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:not([data-count="zero"]) .desktop-status-chip-count-value,
 .dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:not([data-count="zero"]) .desktop-status-chip-count-value {
-  text-shadow: 0 0 6px rgba(245, 158, 11, 0.65);
+  text-shadow: 0 0 4px rgba(245, 158, 11, 0.70);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:not([data-count="zero"]) .desktop-status-chip-count {
+  background: rgba(245, 158, 11, 0.38);
+  border: 1px solid rgba(245, 158, 11, 0.90);
+  color: #ffffff;
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--closures:not([data-count="zero"]) .desktop-status-chip-count {
+  background: rgba(59, 130, 246, 0.38);
+  border: 1px solid rgba(59, 130, 246, 0.90);
+  color: #ffffff;
 }
 .dark .desktop-header-impact-chips .desktop-status-chip--closures:not([data-count="zero"]) .desktop-status-chip-count-value {
-  text-shadow: 0 0 6px rgba(59, 130, 246, 0.65);
+  text-shadow: 0 0 4px rgba(59, 130, 246, 0.70);
 }
 
 .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count {
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  opacity: 0.65;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  opacity: 1;
 }
 
 .dark .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count {
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  opacity: 0.60;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #64748b;
+  opacity: 1;
 }
 
 .high-contrast .desktop-header-impact-chips .desktop-status-chip-count,
@@ -735,59 +764,49 @@
 }
 
 /* Consistent hover backgrounds for the bottom-left chips */
-.desktop-header-impact-chips .desktop-status-chip--alerts:hover {
+.desktop-header-impact-chips .desktop-status-chip--alerts:not([data-count="zero"]):hover {
   background: #fee2e2;
-  border-color: rgba(239, 68, 68, 0.75);
-  box-shadow: inset 0 0 9px rgba(239, 68, 68, 0.28), var(--mobile-card-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 3px 12px rgba(15, 23, 42, 0.12);
 }
-.dark .desktop-header-impact-chips .desktop-status-chip--alerts:hover {
-  background: #3d1b1b;
-  border-color: rgba(239, 68, 68, 0.90);
-  box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.45), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts:not([data-count="zero"]):hover {
+  background: linear-gradient(180deg, #6b2222 0%, #521919 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
-.desktop-header-impact-chips .desktop-status-chip--delays:hover {
+.desktop-header-impact-chips .desktop-status-chip--delays:not([data-count="zero"]):hover {
   background: #fef9c3;
-  border-color: rgba(217, 119, 6, 0.70);
-  box-shadow: inset 0 0 9px rgba(234, 179, 8, 0.28), var(--mobile-card-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 3px 12px rgba(15, 23, 42, 0.12);
 }
-.dark .desktop-header-impact-chips .desktop-status-chip--delays:hover {
-  background: #39311d;
-  border-color: rgba(254, 236, 65, 0.90);
-  box-shadow: inset 0 0 10px rgba(254, 236, 65, 0.40), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--delays:not([data-count="zero"]):hover {
+  background: linear-gradient(180deg, #634b12 0%, #4d3a0b 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
-.desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:hover {
+.desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:not([data-count="zero"]):hover {
   background: #fef3c7;
-  border-color: rgba(245, 158, 11, 0.75);
-  box-shadow: inset 0 0 9px rgba(245, 158, 11, 0.28), var(--mobile-card-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 3px 12px rgba(15, 23, 42, 0.12);
 }
-.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:hover {
-  background: #3b2a1a;
-  border-color: rgba(245, 158, 11, 0.90);
-  box-shadow: inset 0 0 10px rgba(245, 158, 11, 0.45), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:not([data-count="zero"]):hover {
+  background: linear-gradient(180deg, #693714 0%, #52280b 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
-.desktop-header-impact-chips .desktop-status-chip--closures:hover {
+.desktop-header-impact-chips .desktop-status-chip--closures:not([data-count="zero"]):hover {
   background: #dbeafe;
-  border-color: rgba(59, 130, 246, 0.75);
-  box-shadow: inset 0 0 9px rgba(59, 130, 246, 0.28), var(--mobile-card-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 3px 12px rgba(15, 23, 42, 0.12);
 }
-.dark .desktop-header-impact-chips .desktop-status-chip--closures:hover {
-  background: #1f2e4f;
-  border-color: rgba(59, 130, 246, 0.90);
-  box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.45), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--closures:not([data-count="zero"]):hover {
+  background: linear-gradient(180deg, #24467d 0%, #172d54 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
-.desktop-header-impact-chips .desktop-status-chip--trip-changes:hover {
+.desktop-header-impact-chips .desktop-status-chip--trip-changes:not([data-count="zero"]):hover {
   background: #fef3c7;
-  border-color: rgba(245, 158, 11, 0.75);
-  box-shadow: inset 0 0 9px rgba(245, 158, 11, 0.28), var(--mobile-card-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 3px 12px rgba(15, 23, 42, 0.12);
 }
-.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:hover {
-  background: #3b2a1a;
-  border-color: rgba(245, 158, 11, 0.90);
-  box-shadow: inset 0 0 10px rgba(245, 158, 11, 0.45), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:not([data-count="zero"]):hover {
+  background: linear-gradient(180deg, #693714 0%, #52280b 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 /* Active/press state — slight scale down */
@@ -801,8 +820,10 @@
 }
 
 .desktop-header-impact-chips .desktop-status-chip {
-  border: 1.5px solid transparent;
-  box-shadow: var(--mobile-card-shadow);
+  border: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.90),
+    0 2px 8px rgba(15, 23, 42, 0.08);
 }
 
 .desktop-status-chip--alerts {
@@ -855,92 +876,159 @@
   color: var(--trip-change);
 }
 
-/* Light filament border and inward glow system for desktop bottom-left impact chips */
-.desktop-header-impact-chips .desktop-status-chip--alerts {
-  border-color: rgba(239, 68, 68, 0.50);
-  box-shadow: inset 0 0 6px rgba(239, 68, 68, 0.18), var(--mobile-card-shadow);
+/* VisionOS specular highlight & elevation system for active desktop bottom-left chips */
+.dark .desktop-header-impact-chips .desktop-status-chip:not([data-count="zero"]) {
+  border: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 3px 10px rgba(0, 0, 0, 0.38);
 }
 
-.desktop-header-impact-chips .desktop-status-chip--delays {
-  border-color: rgba(217, 119, 6, 0.50);
-  box-shadow: inset 0 0 6px rgba(234, 179, 8, 0.18), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #5c1c1c 0%, #451515 100%);
+  color: #ffffff;
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts:not([data-count="zero"]) svg {
+  color: #f87171;
 }
 
-.desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone,
-.desktop-header-impact-chips .desktop-status-chip--trip-changes {
-  border-color: rgba(245, 158, 11, 0.55);
-  box-shadow: inset 0 0 6px rgba(245, 158, 11, 0.18), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--delays:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #543f0e 0%, #403009 100%);
+  color: #ffffff;
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--delays:not([data-count="zero"]) svg {
+  color: #facc15;
 }
 
-.desktop-header-impact-chips .desktop-status-chip--closures {
-  border-color: rgba(59, 130, 246, 0.55);
-  box-shadow: inset 0 0 6px rgba(59, 130, 246, 0.18), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #592e10 0%, #442109 100%);
+  color: #ffffff;
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone:not([data-count="zero"]) svg {
+  color: #fb923c;
 }
 
-.dark .desktop-header-impact-chips .desktop-status-chip--alerts {
-  border-color: rgba(239, 68, 68, 0.75);
-  box-shadow: inset 0 0 8px rgba(239, 68, 68, 0.35), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--closures:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #1d3968 0%, #122444 100%);
+  color: #ffffff;
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--closures:not([data-count="zero"]) svg {
+  color: #60a5fa;
 }
 
-.dark .desktop-header-impact-chips .desktop-status-chip--delays {
-  border-color: rgba(254, 236, 65, 0.70);
-  box-shadow: inset 0 0 8px rgba(254, 236, 65, 0.30), var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:not([data-count="zero"]) {
+  background: linear-gradient(180deg, #592e10 0%, #442109 100%);
+  color: #ffffff;
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes:not([data-count="zero"]) svg {
+  color: #fdba74;
 }
 
-.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone,
-.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes {
-  border-color: rgba(245, 158, 11, 0.75);
-  box-shadow: inset 0 0 8px rgba(245, 158, 11, 0.35), var(--mobile-card-shadow);
-}
-
-.dark .desktop-header-impact-chips .desktop-status-chip--closures {
-  border-color: rgba(59, 130, 246, 0.75);
-  box-shadow: inset 0 0 8px rgba(59, 130, 246, 0.35), var(--mobile-card-shadow);
-}
-
-.desktop-status-chip--alerts { --empty-category-tint: #ef4444; }
-.desktop-status-chip--delays { --empty-category-tint: #eab308; }
-.desktop-status-chip--reduced-speed-zone { --empty-category-tint: #f59e0b; }
-.desktop-status-chip--closures { --empty-category-tint: #3b82f6; }
-.desktop-status-chip--trip-changes { --empty-category-tint: #f59e0b; }
-
-/* Neutral empty categories keep populated categories visually prominent. */
+/* Subdued / calm resting state when count is zero (Muted Category VisionOS Slate) */
 .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] {
-  background: color-mix(in srgb, #eef0f2 94%, var(--empty-category-tint));
-  color: color-mix(in srgb, #616975 78%, var(--empty-category-tint));
-  border-color: rgba(148, 163, 184, 0.22);
-  box-shadow: var(--mobile-card-shadow);
+  border: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.90),
+    0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.desktop-header-impact-chips .desktop-status-chip--alerts[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #fee2e2);
+}
+.desktop-header-impact-chips .desktop-status-chip--alerts[data-count="zero"] svg {
+  color: #ef4444;
+  opacity: 0.75;
+}
+
+.desktop-header-impact-chips .desktop-status-chip--delays[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #fef9c3);
+}
+.desktop-header-impact-chips .desktop-status-chip--delays[data-count="zero"] svg {
+  color: #d97706;
+  opacity: 0.75;
+}
+
+.desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone[data-count="zero"],
+.desktop-header-impact-chips .desktop-status-chip--trip-changes[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #fef3c7);
+}
+.desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone[data-count="zero"] svg,
+.desktop-header-impact-chips .desktop-status-chip--trip-changes[data-count="zero"] svg {
+  color: #ea580c;
+  opacity: 0.75;
+}
+
+.desktop-header-impact-chips .desktop-status-chip--closures[data-count="zero"] {
+  background-color: color-mix(in srgb, #f1f3f5 86%, #dbeafe);
+}
+.desktop-header-impact-chips .desktop-status-chip--closures[data-count="zero"] svg {
+  color: #3b82f6;
+  opacity: 0.75;
 }
 
 .dark .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] {
-  background: color-mix(in srgb, #202226 94%, var(--empty-category-tint));
-  color: color-mix(in srgb, #9ba1aa 78%, var(--empty-category-tint));
-  border-color: rgba(255, 255, 255, 0.10);
-  box-shadow: var(--mobile-card-shadow);
+  border: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 5px rgba(0, 0, 0, 0.25);
 }
 
-.desktop-header-impact-chips .desktop-status-chip[data-count="zero"]:hover {
-  border-color: rgba(148, 163, 184, 0.35);
-  box-shadow: var(--mobile-card-shadow);
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts[data-count="zero"] {
+  background: linear-gradient(180deg, #2b1517 0%, #1e0e10 100%);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts[data-count="zero"] svg {
+  color: #f87171;
+  opacity: 0.75;
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip--delays[data-count="zero"] {
+  background: linear-gradient(180deg, #27210f 0%, #1b1609 100%);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--delays[data-count="zero"] svg {
+  color: #facc15;
+  opacity: 0.75;
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone[data-count="zero"],
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes[data-count="zero"] {
+  background: linear-gradient(180deg, #28190d 0%, #1b1007 100%);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone[data-count="zero"] svg,
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes[data-count="zero"] svg {
+  color: #fb923c;
+  opacity: 0.75;
+}
+
+.dark .desktop-header-impact-chips .desktop-status-chip--closures[data-count="zero"] {
+  background: linear-gradient(180deg, #111e30 0%, #0b1420 100%);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--closures[data-count="zero"] svg {
+  color: #60a5fa;
+  opacity: 0.75;
 }
 
 .dark .desktop-header-impact-chips .desktop-status-chip[data-count="zero"]:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: var(--mobile-card-shadow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.32);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--alerts[data-count="zero"]:hover {
+  background: linear-gradient(180deg, #331a1c 0%, #251214 100%);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--delays[data-count="zero"]:hover {
+  background: linear-gradient(180deg, #302814 0%, #221c0c 100%);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone[data-count="zero"]:hover,
+.dark .desktop-header-impact-chips .desktop-status-chip--trip-changes[data-count="zero"]:hover {
+  background: linear-gradient(180deg, #312012 0%, #22150a 100%);
+}
+.dark .desktop-header-impact-chips .desktop-status-chip--closures[data-count="zero"]:hover {
+  background: linear-gradient(180deg, #16273e 0%, #0f1b2c 100%);
 }
 
-.desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count {
-  background: color-mix(in srgb, #e0e3e7 90%, var(--empty-category-tint));
-  border-color: #c7cbd1;
-  color: inherit;
-  opacity: 1;
-}
-
-.dark .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count {
-  background: color-mix(in srgb, #30343a 90%, var(--empty-category-tint));
-  border-color: #484e57;
-  color: inherit;
-  opacity: 1;
+.dark .desktop-header-impact-chips .desktop-status-chip[data-count="zero"] .desktop-status-chip-count-value {
+  color: #64748b;
+  text-shadow: none;
 }
 
 .high-contrast .desktop-header-impact-chips .desktop-status-chip,
@@ -948,6 +1036,12 @@
   border: 1px solid #ffffff !important;
   box-shadow: none !important;
   background: #000000 !important;
+  color: #ffffff;
+}
+.high-contrast .desktop-header-impact-chips .desktop-status-chip svg,
+.linewatch-shell.high-contrast .desktop-header-impact-chips .desktop-status-chip svg {
+  color: inherit;
+  opacity: 1;
 }
 
 .high-contrast .desktop-status-capsule {
