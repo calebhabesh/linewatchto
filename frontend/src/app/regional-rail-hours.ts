@@ -1,4 +1,4 @@
-export type RegionalRailOperatingStatus = "open" | "closed";
+export type RegionalRailOperatingStatus = "open" | "closed" | "unknown";
 
 export type RegionalRailOperatingState = {
   status: RegionalRailOperatingStatus;

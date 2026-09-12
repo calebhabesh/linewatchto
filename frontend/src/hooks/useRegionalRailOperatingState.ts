@@ -11,7 +11,21 @@ import {
 const REGIONAL_RAIL_OPERATING_STATE_REFRESH_MS = 30_000;
 
 export function useRegionalRailOperatingState(): RegionalRailOperatingState {
-  const [state, setState] = useState(() => getRegionalRailOperatingState(new Date()));
+  const [state, setState] = useState<RegionalRailOperatingState>(() => ({
+    // Cached HTML can be days old; compute wall-clock state after hydration.
+    ...getRegionalRailOperatingState(new Date(0)),
+    status: "unknown",
+    title: "Checking operating hours",
+    summary: "",
+    nowLabel: "",
+    nextResumeLabel: null,
+    nextResumeTime: null,
+    minutesUntilResume: null,
+    nextCloseLabel: null,
+    nextCloseTime: null,
+    minutesUntilClose: null,
+    closingSoon: false,
+  }));
 
   useEffect(() => {
     const refresh = () => setState(getRegionalRailOperatingState(getOperatingStateDate()));

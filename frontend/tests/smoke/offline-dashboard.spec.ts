@@ -21,12 +21,26 @@ test('saved dashboard reopens offline and recovers on reconnect', async ({ page,
   await expect(page.locator('.linewatch-shell')).toBeVisible();
   await expect(page.locator('.dashboard-availability-notice')).toContainText('Saved');
   await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
+  if (!test.info().project.name.startsWith("mobile")) {
+    await expect(page.locator(".desktop-status-poll")).toHaveText("Cached");
+  }
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('linewatch-dashboard-snapshot-v1:ttc')!).savedAt)).toBe(before);
   await expect(page.locator('.estimated-train-marker')).toHaveCount(0);
   await expect(page.locator('.service-tone-good')).toHaveCount(0);
   await expect(page.locator('.ttc-map-stage')).toHaveCSS('opacity', '1');
   await page.getByRole('button', {name:'Center map view'}).first().click();
-  await expect.poll(() => page.locator('img').evaluateAll((images: HTMLImageElement[]) => images.filter(image => { const rect = image.getBoundingClientRect(); return rect.width > 0 && rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth && (!image.complete || image.naturalWidth === 0); }).map(image => image.src))).toEqual([]);
+  await expect.poll(() => page.locator('img').evaluateAll((images: HTMLImageElement[]) => images.filter(image => {
+    if (!image.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false;
+    const rect = image.getBoundingClientRect();
+    let left = Math.max(0, rect.left), right = Math.min(innerWidth, rect.right);
+    let top = Math.max(0, rect.top), bottom = Math.min(innerHeight, rect.bottom);
+    for (let parent = image.parentElement; parent; parent = parent.parentElement) {
+      const style = getComputedStyle(parent), box = parent.getBoundingClientRect();
+      if (style.overflowX !== 'visible') { left = Math.max(left, box.left); right = Math.min(right, box.right); }
+      if (style.overflowY !== 'visible') { top = Math.max(top, box.top); bottom = Math.min(bottom, box.bottom); }
+    }
+    return right > left && bottom > top && (!image.complete || image.naturalWidth === 0);
+  }).map(image => image.src))).toEqual([]);
   if (page.viewportSize()!.width < 768) {
     const notice = page.locator('.mobile-service-sheet-notice-row[data-snapshot="true"]');
     await expect.poll(() => notice.evaluate(element => { const text = element.querySelector('.mobile-service-sheet-notice-message')!.getBoundingClientRect(); const box = element.getBoundingClientRect(); return text.top >= box.top && text.bottom <= box.bottom; })).toBe(true);

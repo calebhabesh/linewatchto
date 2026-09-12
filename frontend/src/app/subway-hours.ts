@@ -1,4 +1,4 @@
-export type SubwayOperatingStatus = "open" | "closed";
+export type SubwayOperatingStatus = "open" | "closed" | "unknown";
 
 export type SubwayOperatingState = {
   status: SubwayOperatingStatus;

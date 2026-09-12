@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { currentServiceSummary, currentSurfaceNotices } from "../src/app/current-service.ts";
+import { currentServiceSummary, currentSurfaceNotices, getCanonicalAlertTitle } from "../src/app/current-service.ts";
 
 const line = (id, status = "normal") => ({ id, number: id, status });
 const impact = (id, lineId, extra = {}) => ({ id, lineId, lineNumber: lineId, title: id, location: "Jane to Keele", severity: "suspension", ...extra });
@@ -120,3 +120,81 @@ test("historical service reports remain readable without an all-clear claim", ()
   assert.equal(result.rows[0].timing, undefined);
   assert.deepEqual(result.unaffected, []);
 });
+
+test("canonical alert type names match canonical specifications", () => {
+  // Planned Closure (upcoming)
+  assert.equal(getCanonicalAlertTitle({
+    id: "p1", kind: "planned-closure", lineId: "1", lineNumber: "1", condition: "Upcoming Closure", location: "St Clair to College", shuttle: false, priority: 2,
+  }), "Planned Closure");
+
+  // Planned Closure in Effect (spawned from planned closure with active alert icon)
+  assert.equal(getCanonicalAlertTitle({
+    id: "p2", kind: "planned-closure", iconKind: "suspension", lineId: "1", lineNumber: "1", condition: "Planned Closure in Effect", location: "St Clair to College", shuttle: false, priority: 0,
+  }), "Planned Closure in Effect");
+
+  // Delay
+  assert.equal(getCanonicalAlertTitle({
+    id: "d1", kind: "delay", lineId: "2", lineNumber: "2", condition: "Delays", location: "Warden", shuttle: false, priority: 1,
+  }), "Delay");
+
+  // Active Alert (rapid-transit suspension/alert)
+  assert.equal(getCanonicalAlertTitle({
+    id: "s1", kind: "suspension", lineId: "1", lineNumber: "1", condition: "No Service", location: "Bloor to Eglinton", shuttle: true, priority: 0,
+  }), "Active Alert");
+
+  // Bypassing Station
+  assert.equal(getCanonicalAlertTitle({
+    id: "b1", kind: "suspension", lineId: "1", lineNumber: "1", condition: "Bypassing station", location: "Museum", shuttle: false, priority: 0,
+  }), "Bypassing Station");
+
+  // Snapshot preserved
+  assert.equal(getCanonicalAlertTitle({
+    id: "d2", kind: "delay", lineId: "1", lineNumber: "1", condition: "Last reported: Delays", location: "Warden", shuttle: false, priority: 1,
+  }), "Last reported: Delay");
+});
+
+test("CurrentServicePanel implements exception-first layout with consolidated reassurance summary and all-clear states", () => {
+  const panelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
+  const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
+
+  assert.match(panelSource, /current-service-reassurance/);
+  assert.match(panelSource, /current-service-reassurance-badges/);
+  assert.match(panelSource, /current-service-all-clear/);
+  assert.match(panelSource, /Normal service/);
+  assert.match(panelSource, /Normal service on all subway & light rail lines/);
+
+  assert.match(stylesSource, /\.current-service-reassurance\s*\{/);
+  assert.match(stylesSource, /\.current-service-reassurance-badges\s*\{/);
+  assert.match(stylesSource, /\.current-service-all-clear\s*\{/);
+});
+
+test("CurrentServicePanel pull up sheet has vanishing bottom edge into badges and unified alert item body text size", () => {
+  const panelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
+  const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
+
+  // Bottom edge positioned closer to alert badges
+  assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service\s*\{[^}]*bottom:\s*calc\(100%\s*-\s*12px\);/s);
+
+  // Vanishing edge on bottom of pull up sheet via mask-image on ::before
+  assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service::before\s*\{[^}]*mask-image:\s*linear-gradient\(to bottom,[^}]*transparent\s*100%\);/s);
+
+  // Surface notices item body text has dedicated class
+  assert.match(panelSource, /className="current-service-notice-text"/);
+
+  // Alert item body text for subway/light rail and streetcar/bus alerts share matching 12px font size
+  assert.match(stylesSource, /\.current-service-impact-timing\s*\{[^}]*font-size:\s*12px;/s);
+  assert.match(stylesSource, /\.current-service-impact-location\s*\{[^}]*font-size:\s*12px;/s);
+  assert.match(stylesSource, /\.current-service-notice-text[^}]*\{[^}]*font-size:\s*12px;/s);
+});
+
+test("CurrentServicePanel desktop content animates on entrance and suppresses during network transitions", () => {
+  const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
+
+  assert.match(stylesSource, /@keyframes current-service-enter\s*\{/);
+  assert.match(stylesSource, /\.current-service-columns\s*\{[^}]*animation:\s*current-service-enter\s+220ms/s);
+  assert.match(stylesSource, /html\[data-network-transition-phase="fade-out"\]\s+\.current-service-columns/);
+  assert.match(stylesSource, /html\[data-network-transition-direction\]\s+\.current-service-columns/);
+});
+
+
+

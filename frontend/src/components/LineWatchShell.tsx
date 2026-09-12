@@ -3798,10 +3798,11 @@ export function LineWatchShell({
       ) {
         const durationText = formatResumeDuration(regionalRailOperatingState.minutesUntilClose);
         const timeText = regionalRailOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+        const formattedTime = timeText.startsWith("at ") ? timeText : `at ${timeText}`;
         return {
           kind: "closing-soon",
-          title: "GO & UP Rail Closing Soon",
-          details: `Broad pause in ${durationText} · ${timeText}`,
+          title: "GO & UP Closing Soon",
+          details: `Broad close ${formattedTime} (${durationText})`,
         };
       }
     }
@@ -4842,13 +4843,15 @@ export function LineWatchShell({
                     isLive
                       ? "Live updates active"
                       : isConnectionIssue
-                        ? "Cached updates"
+                        ? displayData.snapshot?.savedAt ? "Cached updates" : "Current status unknown"
                         : `Source: ${displayData.dataSource}`
                   }
                 >
                   <div className="desktop-status-live-dot" aria-hidden="true" />
                   <span>
-                    Last Polled: {pollText.toLowerCase() === "just now" ? "Just Now" : pollText}
+                    {displayData.snapshot
+                      ? displayData.snapshot.savedAt ? "Cached" : "Unknown"
+                      : `Last Polled: ${pollText.toLowerCase() === "just now" ? "Just Now" : pollText}`}
                   </span>
                 </div>
                 <span className="desktop-status-divider" />
@@ -5147,8 +5150,11 @@ export function LineWatchShell({
       {/* Fixed borderless legend at the bottom right */}
       {!showClosedScreen && (
       <>
-        <aside className={`desktop-status-chip-row-container fixed bottom-6 left-6 z-20 pointer-events-auto transition-opacity duration-200 ${activeView === "menu" ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-          {!isMobile && showMobileStatusPeek && <CurrentServicePanel
+        <aside
+          className={`desktop-status-chip-row-container fixed bottom-6 left-6 z-20 pointer-events-auto transition-opacity duration-200 ${menuVisible ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+          aria-hidden={menuVisible ? "true" : undefined}
+        >
+          {!isMobile && !menuVisible && showMobileStatusPeek && <CurrentServicePanel
               data={displayData}
               notices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
               onNotice={handleSearchOpenSurfaceNotice}

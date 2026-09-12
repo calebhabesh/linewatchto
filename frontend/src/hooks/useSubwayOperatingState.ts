@@ -11,7 +11,21 @@ import {
 const SUBWAY_OPERATING_STATE_REFRESH_MS = 30_000;
 
 export function useSubwayOperatingState(): SubwayOperatingState {
-  const [state, setState] = useState(() => getSubwayOperatingState(new Date()));
+  const [state, setState] = useState<SubwayOperatingState>(() => ({
+    // Cached HTML can be days old; compute wall-clock state after hydration.
+    ...getSubwayOperatingState(new Date(0)),
+    status: "unknown",
+    title: "Checking operating hours",
+    summary: "",
+    nowLabel: "",
+    nextResumeLabel: null,
+    nextResumeTime: null,
+    minutesUntilResume: null,
+    nextCloseLabel: null,
+    nextCloseTime: null,
+    minutesUntilClose: null,
+    closingSoon: false,
+  }));
 
   useEffect(() => {
     const refresh = () => setState(getSubwayOperatingState(getOperatingStateDate()));

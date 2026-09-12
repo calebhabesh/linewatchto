@@ -108,4 +108,11 @@ describe("desktop status capsule", () => {
     assert.match(globalCss, /@media \(min-width:\s*1024px\)\s*\{[\s\S]*\.desktop-map-control-rail\s*\{[\s\S]*top:\s*96px\s*!important/);
     assert.match(globalCss, /\.regional-map-control-rail\s*\{[\s\S]*right:\s*24px\s*!important/);
   });
+
+  it("enforces blocking on desktop status badges and current service panel when main menu is pinned or visible", () => {
+    assert.match(shellSource, /desktop-status-chip-row-container fixed bottom-6 left-6[\s\S]*?\$\{menuVisible \? "opacity-0 pointer-events-none" : "opacity-100"\}/);
+    assert.match(shellSource, /aria-hidden=\{menuVisible \? "true" : undefined\}/);
+    assert.match(shellSource, /!isMobile && !menuVisible && showMobileStatusPeek && <CurrentServicePanel/);
+  });
 });
+

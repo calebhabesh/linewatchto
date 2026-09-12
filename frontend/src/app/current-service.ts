@@ -95,3 +95,42 @@ export function currentSurfaceNotices(notices: import("./surface-notice-data.ts"
       && (end === null || Number.isFinite(end) && end > now);
   }).sort((a, b) => (a.routeIds[0] || "").localeCompare(b.routeIds[0] || "", undefined, { numeric: true }) || a.id.localeCompare(b.id));
 }
+
+export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
+  const isSnapshot = row.condition.startsWith("Last reported: ");
+  const rawCondition = isSnapshot ? row.condition.replace(/^Last reported:\s*/, "") : row.condition;
+
+  let title = "Active Alert";
+  if (
+    rawCondition === "Planned Closure in Effect" ||
+    rawCondition === "Closure in effect" ||
+    (row.kind === "planned-closure" && row.iconKind === "suspension")
+  ) {
+    title = "Planned Closure in Effect";
+  } else if (
+    rawCondition === "Upcoming Closure" ||
+    rawCondition === "Planned Closure" ||
+    row.kind === "planned-closure"
+  ) {
+    title = "Planned Closure";
+  } else if (
+    row.kind === "delay" ||
+    rawCondition === "Delays" ||
+    rawCondition === "Delay"
+  ) {
+    title = "Delay";
+  } else if (/bypass/i.test(rawCondition)) {
+    title = "Bypassing Station";
+  } else if (
+    row.kind === "suspension" ||
+    rawCondition === "No Service" ||
+    rawCondition === "Active Alert"
+  ) {
+    title = "Active Alert";
+  } else {
+    title = rawCondition;
+  }
+
+  return isSnapshot ? `Last reported: ${title}` : title;
+}
+

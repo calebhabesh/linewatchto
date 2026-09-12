@@ -3074,12 +3074,12 @@ test("retains the last dashboard snapshot while browser requests reconnect", asy
   dashboardUnavailable = true;
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
 
-  await expect(page.getByText(/Connection Issue — Showing latest dashboard snapshot/)).toBeVisible();
+  await expect(page.locator(".dashboard-availability-notice")).toContainText(/Reconnecting.*Saved/);
   await expect(retainedOverlay).toBeAttached();
 
   dashboardUnavailable = false;
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-  await expect(page.getByText(/Connection Issue — Showing latest dashboard snapshot/)).toHaveCount(0, { timeout: 8_000 });
+  await expect(page.getByText(/Reconnecting.*Saved/)).toHaveCount(0, { timeout: 8_000 });
   await expect(retainedOverlay).toBeAttached();
 });
 
@@ -3089,7 +3089,7 @@ test("renders fixture fallback when the dashboard API is unavailable", async ({ 
 
   if (!isMobile) {
     await expect(
-      page.getByText("Last Polled: fixture mode", { exact: true }).first()
+      page.locator(".desktop-status-poll").filter({ hasText: "Unknown" })
     ).toBeVisible();
   }
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);
@@ -3859,6 +3859,70 @@ test("pinned desktop menu focuses impacts in the unobscured map area", async ({ 
   const highlightCenter = highlightBox!.x + highlightBox!.width / 2;
   expect(highlightCenter).toBeGreaterThan(panelBox!.x + panelBox!.width);
   expect(Math.abs(highlightCenter - visibleMapCenter)).toBeLessThan(100);
+});
+
+test("pinned desktop menu blocks pull up sheet and alert badges across mode switches, reloads, and navigation", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only pinned menu layout");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  const badges = page.locator(".desktop-status-chip-row-container");
+  await expect(badges).toHaveCSS("opacity", "1");
+  await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  const initialTransform = await page.locator(".ttc-map-stage").evaluate((el) => el.style.transform);
+
+  // Open menu (badges fade to opacity 0 without shifting layout or map camera)
+  await page.getByRole("button", { name: /Toggle menu/ }).click();
+  await expect(badges).toHaveCSS("opacity", "0");
+  await expect(badges).toHaveCSS("pointer-events", "none");
+  const openedTransform = await page.locator(".ttc-map-stage").evaluate((el) => el.style.transform);
+  expect(openedTransform).toBe(initialTransform);
+
+  // Close menu (badges reappear, map does not shift)
+  await page.getByRole("button", { name: /Toggle menu/ }).click();
+  await expect(badges).toHaveCSS("opacity", "1");
+  const closedTransform = await page.locator(".ttc-map-stage").evaluate((el) => el.style.transform);
+  expect(closedTransform).toBe(initialTransform);
+
+  // Open menu again to pin
+  await page.getByRole("button", { name: /Toggle menu/ }).click();
+  await expect(badges).toHaveCSS("opacity", "0");
+
+  // Pin menu
+  const pinButton = page.getByRole("button", { name: "Pin main menu open" });
+  await expect(pinButton).toBeVisible();
+  await pinButton.click();
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
+  await expect(badges).toHaveCSS("opacity", "0");
+  await expect(badges).toHaveCSS("pointer-events", "none");
+  await expect(page.locator(".desktop-status-chip-row-container .current-service")).not.toBeAttached();
+
+  // 1. Switch map mode
+  await page.getByRole("button", { name: "GO & UP" }).first().click();
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
+  await expect(badges).toHaveCSS("opacity", "0");
+  await expect(badges).toHaveCSS("pointer-events", "none");
+  await expect(page.locator(".desktop-status-chip-row-container .current-service")).not.toBeAttached();
+
+  // 2. Reload page
+  await page.reload();
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
+  await expect(badges).toHaveCSS("opacity", "0");
+  await expect(badges).toHaveCSS("pointer-events", "none");
+  await expect(page.locator(".desktop-status-chip-row-container .current-service")).not.toBeAttached();
+
+  // 3. Navigate parts of the map (click "Map" item in pinned menu)
+  await page.getByRole("menuitem", { name: "Map", exact: true }).click();
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
+  await expect(badges).toHaveCSS("opacity", "0");
+  await expect(badges).toHaveCSS("pointer-events", "none");
+  await expect(page.locator(".desktop-status-chip-row-container .current-service")).not.toBeAttached();
+
+  // 4. Unpin menu: badges should reappear with opacity 1
+  const unpinButton = page.getByRole("button", { name: "Unpin main menu" });
+  await unpinButton.click();
+  await expect(page.locator(".linewatch-shell")).not.toHaveAttribute("data-menu-pinned", "true");
+  await expect(badges).toHaveCSS("opacity", "1");
 });
 
 test("global search opens a condensed alert result in its detailed card and mobile map inspector", async ({ page, request, isMobile }) => {

@@ -58,7 +58,7 @@ test("falls back without presenting fixture data as live", async ({ page, reques
     await page.getByRole("button", { name: "More", exact: true }).click();
   } else {
     await page.getByRole("button", { name: "Toggle menu" }).click();
-    await expect(page.getByText("Last Polled: fixture mode", { exact: true }).first()).toBeVisible();
+    await expect(page.locator(".desktop-status-poll").filter({ hasText: "Unknown" })).toBeVisible();
   }
 
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);

@@ -553,6 +553,8 @@
   min-height: 56px;
   overflow: visible;
   padding: 4px 2px;
+  position: relative;
+  z-index: 1;
 }
 
 .desktop-header-impact-chips .desktop-status-chip {
