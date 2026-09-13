@@ -9,8 +9,7 @@ import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDire
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
   estimatedTrainMarkerLanePoint,
-  estimatedTrainMarkerMotionDurationMs,
-  estimatedTrainMarkerMotionStartedAt,
+  createEstimatedTrainMarkerTransition,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
   estimatedTrainMarkerRenderKey,
@@ -1405,6 +1404,7 @@ function animateRegionalTrainMarker(
   if (current?.targetObservationKey === targetObservationKey && animate) return;
   cancelRegionalTrainMarkerMotion(current);
   if (!current || !animate) {
+    group.style.opacity = "1";
     setRegionalTrainMarkerTransform(group, targetFrame);
     runtimes.set(markerKey, {
       marker,
@@ -1421,8 +1421,7 @@ function animateRegionalTrainMarker(
   const settledFrame = settledSegment
     ? regionalTrainMarkerFrame(documentNode, settledSegment, settledMarker) ?? current.frame
     : current.frame;
-  const duration = estimatedTrainMarkerMotionDurationMs(waypoints);
-  const startedAt = estimatedTrainMarkerMotionStartedAt(settledMarker, duration);
+  const transition = createEstimatedTrainMarkerTransition(waypoints);
   const runtime: RegionalTrainMarkerMotionRuntime = {
     ...current,
     targetObservationKey,
@@ -1430,11 +1429,17 @@ function animateRegionalTrainMarker(
   };
   runtimes.set(markerKey, runtime);
 
+  let previousSample: ReturnType<typeof sampleEstimatedTrainMarkerMotion> | null = null;
+  let previousMotion: ReturnType<typeof regionalTrainMarkerMotionFrame> = null;
+
   const update = (now: number) => {
-    const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
-    const sample = sampleEstimatedTrainMarkerMotion(waypoints, progress);
-    const motion = regionalTrainMarkerMotionFrame(sample, segmentById, documentNode);
+    const { sample, opacity, done } = transition(now);
+    group.style.opacity = String(opacity);
+    const motion = sample === previousSample ? previousMotion : regionalTrainMarkerMotionFrame(sample, segmentById, documentNode);
+    previousSample = sample;
+    previousMotion = motion;
     if (!motion) {
+      group.style.opacity = "1";
       setRegionalTrainMarkerTransform(group, settledFrame);
       setRegionalTrainMarkerMetadata(group, settledMarker);
       runtime.marker = settledMarker;
@@ -1446,7 +1451,7 @@ function animateRegionalTrainMarker(
     setRegionalTrainMarkerMetadata(group, motion.marker);
     runtime.marker = motion.marker;
     runtime.frame = motion.frame;
-    if (progress >= 1) {
+    if (done) {
       runtime.marker = settledMarker;
       runtime.frame = settledFrame;
       runtime.cancelAnimation = null;
@@ -1456,7 +1461,9 @@ function animateRegionalTrainMarker(
     }
     return true;
   };
-  runtime.cancelAnimation = scheduleEstimatedTrainMarkerAnimation(update);
+  if (update(performance.now())) {
+    runtime.cancelAnimation = scheduleEstimatedTrainMarkerAnimation(update);
+  }
 }
 
 function regionalTrainMarkerMotionFrame(

@@ -317,7 +317,7 @@ describe("station arrival grouping", () => {
     assert.equal(formatArrivalSourceBadgeLabel([]), "Unavailable");
     assert.equal(
       formatArrivalDisclaimer([liveArrival, scheduledArrival], null),
-      "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.",
+      "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions. Live arrival times and ranges may fluctuate as new GTFS-RT feed samples are received.",
     );
   });
 
@@ -516,7 +516,7 @@ describe("station arrival grouping", () => {
           status: "scheduled",
         },
       ], "Scheduled arrivals use TTC timetable data and are not live train predictions."),
-      "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.",
+      "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions. Live arrival times and ranges may fluctuate as new GTFS-RT feed samples are received.",
     );
   });
 

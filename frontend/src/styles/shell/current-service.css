@@ -839,6 +839,18 @@
   .linewatch-shell .mobile-bottom-nav-item[data-active="true"] .mobile-bottom-nav-label {
     transform: none;
   }
+
+  @keyframes mobile-service-sheet-enter {
+    from {
+      opacity: 0;
+      transform: translate3d(0, calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height) + 32px), 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height)), 0);
+    }
+  }
+
   .linewatch-shell .mobile-service-sheet {
     bottom: var(--mobile-bottom-nav-occupied-height);
     inset-inline: 0;
@@ -870,6 +882,23 @@
   .linewatch-shell .mobile-service-sheet[data-snap="halfway"] { --service-sheet-visible-height: var(--service-sheet-middle-height); }
   .linewatch-shell .mobile-service-sheet[data-snap="expanded"] { --service-sheet-visible-height: var(--service-sheet-expanded-height); }
   .linewatch-shell .mobile-service-sheet[data-position-restored="false"] { visibility: hidden; }
+  .linewatch-shell .mobile-service-sheet[data-entering="true"][data-position-restored="true"] {
+    animation: mobile-service-sheet-enter 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .linewatch-shell .mobile-service-sheet[data-animate-position="true"],
+  .linewatch-shell .mobile-service-sheet[data-dragging="true"],
+  .linewatch-shell .mobile-service-sheet[data-entering="true"][data-animate-position="true"],
+  .linewatch-shell .mobile-service-sheet[data-entering="true"][data-dragging="true"],
+  .motion-paused .mobile-service-sheet,
+  .linewatch-shell.motion-paused .mobile-service-sheet {
+    animation: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .linewatch-shell .mobile-service-sheet,
+    .linewatch-shell .mobile-service-sheet[data-entering="true"] {
+      animation: none;
+    }
+  }
   .linewatch-shell .mobile-service-sheet[data-animate-position="false"],
   .linewatch-shell .mobile-service-sheet[data-dragging="true"] { transition: none; }
   .mobile-service-sheet-minimum { position: absolute; height: var(--service-sheet-overview-height); width: 0; visibility: hidden; pointer-events: none; }
@@ -1812,7 +1841,7 @@
   .linewatch-shell .floating-panel-shell {
     border: 0;
     padding: 0;
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 124px);
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 106px);
   }
   .linewatch-shell .floating-panel-shell .floating-panel-scroll {
     border-radius: 22px 22px 0 0;

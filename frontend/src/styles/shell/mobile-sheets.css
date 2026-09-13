@@ -22,7 +22,7 @@
     gap: 10px;
     justify-content: space-between;
     margin: 0 calc(-1 * var(--mobile-sheet-gutter, 16px));
-    padding: 8px var(--mobile-sheet-gutter, 16px) 14px;
+    padding: 6px var(--mobile-sheet-gutter, 16px) 6px;
     position: relative;
     z-index: 2;
   }
@@ -405,7 +405,7 @@
     align-items: center;
     display: flex;
     gap: 10px;
-    padding-top: 13px;
+    padding-top: 0;
   }
 
   .mobile-more-title-block {

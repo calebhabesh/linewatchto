@@ -621,9 +621,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           className="station-detail-content-swap w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col"
         >
           {station && (
-            <div className="mt-0 sm:-mt-0.5 flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0" data-station-header-line-details>
+            <div className="mt-0 sm:-mt-0.5 md:mt-3.5 flex w-full min-w-0 max-w-full flex-col gap-1.5 md:gap-2.5 shrink-0" data-station-header-line-details>
               {station.lines.map((line) => (
-                <div key={line.id} className="station-header-line-row flex items-center justify-between gap-2 sm:gap-2.5 min-w-0">
+                <div key={line.id} className="station-header-line-row flex items-center justify-between gap-2 sm:gap-2.5 min-w-0 md:py-0.5">
                   <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                     <TransitLineBadge
                       lineId={line.id}
@@ -654,7 +654,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             />
           )}
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 pb-3 station-detail-scroll station-detail-section-stack">
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
             {station && station.arrivalContext?.scheduleMayBeDisrupted && (
               <div
                 className="station-detail-disruption-card flex w-full flex-wrap items-center justify-start gap-2.5 shrink-0 rounded-md p-2.5 text-xs font-semibold"
@@ -1179,7 +1179,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     });
                   })()}
                 </div>
-                <p className="mt-2 text-[11px] text-slate-500">{arrivalDisclaimer}</p>
+                <p className="mt-2 text-[11px] leading-relaxed text-amber-800/70 dark:text-amber-200/55">{arrivalDisclaimer}</p>
 	              </section>
 	            );
 	          })()}

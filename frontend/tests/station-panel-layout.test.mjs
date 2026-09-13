@@ -453,4 +453,33 @@ describe("station detail panel layout", () => {
     assert.match(globalCss, /\.station-search-amenity-chip span:not\(\.station-search-amenity-chip-count\)\s*\{[^}]*white-space:\s*nowrap;/s);
     assert.match(globalCss, /\.station-search-panel\[data-expanded="true"\] \.station-search-amenity-chips\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s);
   });
+
+  it("uniformly increases spacing around station name, transit line badges, and Jump To grid on desktop while keeping mobile compact", () => {
+    // StationDetailHeader: relieves collision above station name on desktop
+    assert.match(stationHeaderSource, /-mt-1 md:mt-0\.5/);
+
+    // StationDetailPanel line badges and scroll area desktop margins
+    assert.match(panelSource, /md:mt-3\.5[\s\S]*?md:gap-2\.5[\s\S]*?data-station-header-line-details/);
+    assert.match(panelSource, /station-header-line-row[\s\S]*?md:py-0\.5/);
+    assert.match(panelSource, /md:mt-3\.5 mt-2 pb-3 station-detail-scroll/);
+
+    // RegionalStationDetailPanel line badges and scroll area desktop margins
+    assert.match(regionalPanelSource, /md:mt-3\.5[\s\S]*?md:gap-2\.5[\s\S]*?data-station-header-line-details/);
+    assert.match(regionalPanelSource, /station-header-line-row[\s\S]*?md:py-0\.5/);
+    assert.match(regionalPanelSource, /md:mt-3\.5 mt-2 pb-3 station-detail-scroll/);
+
+    // StationSubmenuNavButtons: desktop top margin, gap, and button padding
+    assert.match(navButtonsSource, /md:gap-2[\s\S]*?className \?\? "mt-1 md:mt-3\.5"[\s\S]*?data-station-submenu-nav/);
+    assert.match(navButtonsSource, /grid-cols-3[\s\S]*?md:gap-2/);
+    assert.match(navButtonsSource, /station-submenu-nav-btn[\s\S]*?md:h-9\.5/);
+    assert.match(navButtonsSource, /station-submenu-nav-btn[\s\S]*?md:px-2\.5[\s\S]*?md:py-1\.5/);
+
+    // Mobile preserves its compact margins and padding
+    assert.match(panelSource, /mt-0 sm:-mt-0\.5/);
+    assert.match(regionalPanelSource, /mt-0 sm:-mt-0\.5/);
+    assert.match(navButtonsSource, /className \?\? "mt-1 md:mt-3\.5"/);
+    assert.match(navButtonsSource, /h-8\.5 md:h-9\.5/);
+    assert.match(navButtonsSource, /px-1\.5 md:px-2\.5 py-1 md:py-1\.5/);
+  });
 });
+

@@ -52,8 +52,7 @@ import type { StationSummary } from "../app/station-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
   estimatedTrainMarkerLanePoint,
-  estimatedTrainMarkerMotionDurationMs,
-  estimatedTrainMarkerMotionStartedAt,
+  createEstimatedTrainMarkerTransition,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
   estimatedTrainMarkerRenderKey,
@@ -5539,6 +5538,7 @@ function AnimatedTtcTrainMarker({
     if (current?.targetObservationKey === targetObservationKey && animate) return;
     current?.cancelAnimation?.();
     if (!current || !animate) {
+      group.style.opacity = "1";
       setTrainMarkerTransform(group, targetFrame);
       motionRef.current = { marker, frame: targetFrame, targetObservationKey, cancelAnimation: null };
       return;
@@ -5548,8 +5548,7 @@ function AnimatedTtcTrainMarker({
     const settledMarker = waypoints.at(-1) ?? current.marker;
     const settledFrame = ttcTrainMarkerFrame(settledMarker, segmentById, pathMetricCacheRef.current)
       ?? current.frame;
-    const duration = estimatedTrainMarkerMotionDurationMs(waypoints);
-    const startedAt = estimatedTrainMarkerMotionStartedAt(settledMarker, duration);
+    const transition = createEstimatedTrainMarkerTransition(waypoints);
     const runtime: TrainMarkerMotionRuntime = {
       ...current,
       targetObservationKey,
@@ -5557,11 +5556,17 @@ function AnimatedTtcTrainMarker({
     };
     motionRef.current = runtime;
 
+    let previousSample: ReturnType<typeof sampleEstimatedTrainMarkerMotion> | null = null;
+    let previousMotion: ReturnType<typeof ttcTrainMarkerMotionFrame> = null;
+
     const update = (now: number) => {
-      const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
-      const sample = sampleEstimatedTrainMarkerMotion(waypoints, progress);
-      const motion = ttcTrainMarkerMotionFrame(sample, segmentById, pathMetricCacheRef.current);
+      const { sample, opacity, done } = transition(now);
+      group.style.opacity = String(opacity);
+      const motion = sample === previousSample ? previousMotion : ttcTrainMarkerMotionFrame(sample, segmentById, pathMetricCacheRef.current);
+      previousSample = sample;
+      previousMotion = motion;
       if (!motion) {
+        group.style.opacity = "1";
         setTrainMarkerTransform(group, settledFrame);
         setTtcTrainMarkerMetadata(group, settledMarker, segmentById);
         runtime.marker = settledMarker;
@@ -5573,7 +5578,7 @@ function AnimatedTtcTrainMarker({
       setTtcTrainMarkerMetadata(group, motion.marker, segmentById);
       runtime.marker = motion.marker;
       runtime.frame = motion.frame;
-      if (progress >= 1) {
+      if (done) {
         runtime.marker = settledMarker;
         runtime.frame = settledFrame;
         runtime.cancelAnimation = null;
@@ -5583,7 +5588,9 @@ function AnimatedTtcTrainMarker({
       }
       return true;
     };
-    runtime.cancelAnimation = scheduleEstimatedTrainMarkerAnimation(update);
+    if (update(performance.now())) {
+      runtime.cancelAnimation = scheduleEstimatedTrainMarkerAnimation(update);
+    }
     return () => {
       runtime.cancelAnimation?.();
       runtime.cancelAnimation = null;

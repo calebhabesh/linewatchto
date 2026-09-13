@@ -1541,8 +1541,7 @@ test("renders regional accessibility outages in the global and station views", a
   await expect(accessibilityOutages.getByText("Elevator out of service", { exact: true })).toBeVisible();
 });
 
-test("renders regional estimated train markers from the network-scoped endpoint", async ({ page, request, isMobile }) => {
-  test.skip(isMobile, "regional network selection is covered on desktop");
+test("renders regional estimated train markers from the network-scoped endpoint", async ({ page, request }) => {
   await setStubMode(request, "regional-live");
   await page.goto("/");
   const networkSelector = page.getByRole("group", { name: "Select transit network" });

@@ -665,7 +665,7 @@ export function RegionalStationDetailPanel({
           className="station-detail-content-swap w-full min-w-0 max-w-full flex-1 min-h-0 flex flex-col"
         >
           {routes.length > 2 ? (
-            <div className="mt-0 sm:-mt-0.5 flex w-full min-w-0 max-w-full flex-col gap-2 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+            <div className="mt-0 sm:-mt-0.5 md:mt-3.5 flex w-full min-w-0 max-w-full flex-col gap-2 md:gap-2.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Regional Corridors · {routes.length} Lines
@@ -686,11 +686,11 @@ export function RegionalStationDetailPanel({
               </div>
             </div>
           ) : (
-            <div className="mt-0 sm:-mt-0.5 flex w-full min-w-0 max-w-full flex-col gap-1.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
+            <div className="mt-0 sm:-mt-0.5 md:mt-3.5 flex w-full min-w-0 max-w-full flex-col gap-1.5 md:gap-2.5 shrink-0" data-station-header-line-details aria-label="Regional rail corridors">
               {routes.map((route) => {
                 const direction = REGIONAL_ROUTE_CARDINAL_DIRECTIONS[route.number as keyof typeof REGIONAL_ROUTE_CARDINAL_DIRECTIONS];
                 return (
-                  <div key={route.id} className="station-header-line-row flex items-center justify-between gap-2 sm:gap-2.5 min-w-0">
+                  <div key={route.id} className="station-header-line-row flex items-center justify-between gap-2 sm:gap-2.5 min-w-0 md:py-0.5">
                     <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                       <TransitLineBadge
                         lineId={route.id}
@@ -720,7 +720,7 @@ export function RegionalStationDetailPanel({
             onJumpToSection={handleJumpToSection}
           />
 
-          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-2 pb-3 station-detail-scroll station-detail-section-stack">
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto md:mt-3.5 mt-2 pb-3 station-detail-scroll station-detail-section-stack">
             {hasAccessibilityOutages && (
               <button
                 type="button"

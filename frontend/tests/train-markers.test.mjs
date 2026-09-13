@@ -5,16 +5,16 @@ import {
   EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
   EMPTY_REGIONAL_TRAIN_SNAPSHOT,
   createEstimatedTrainMarkerContinuityState,
+  createEstimatedTrainMarkerMotionSampler,
   estimatedTrainMarkerLanePoint,
   estimatedTrainMarkerMotionDurationMs,
-  estimatedTrainMarkerMotionStartedAt,
+  createEstimatedTrainMarkerTransition,
   estimatedTrainMarkerMotionWaypoints,
   estimatedTrainMarkerObservationKey,
   estimatedTrainMarkerRenderKey,
   estimatedTrainMarkerRefreshMs,
   getEstimatedTrainMarkers,
   reconcileEstimatedTrainSnapshot,
-  sampleEstimatedTrainMarkerMotion,
   scheduleEstimatedTrainMarkerAnimation,
 } from "../src/app/train-markers.ts";
 
@@ -276,40 +276,48 @@ describe("estimated train marker data adapter", () => {
     assert.doesNotMatch(duplicate.message, /holding 0/i);
   });
 
-  it("spreads movement across a bounded source cadence instead of stopping early", () => {
+  it("moves small updates gradually without backdating to an old source timestamp", () => {
     const previous = markerFixture();
-    const target = {
-      ...previous,
-      progress: 0.58,
-      updatedAt: "2026-07-02T10:00:30Z",
-    };
-
-    assert.equal(estimatedTrainMarkerMotionDurationMs([previous, target]), 31_500);
-    assert.equal(
-      estimatedTrainMarkerMotionDurationMs([
-        previous,
-        { ...target, updatedAt: "2026-07-02T10:02:00Z" },
-      ]),
-      45_000,
-    );
+    const target = { ...previous, progress: previous.progress + 0.005 };
+    const transition = createEstimatedTrainMarkerTransition([previous, target], 0);
+    assert.equal(transition(0).sample.progress, 0);
+    const midway = transition(325);
+    assert.ok(midway.sample.progress > 0 && midway.sample.progress < 1);
+    assert.equal(midway.opacity, 1);
+    assert.equal(transition(1_200).done, true);
   });
 
-  it("anchors motion to source time so slower clients catch up to the same wall clock", () => {
-    const target = {
-      ...markerFixture(),
-      updatedAt: "2026-07-02T10:00:04Z",
-    };
-    const wallNow = Date.parse("2026-07-02T10:00:05Z");
+  it("fades a large correction instead of racing through the intervening track", () => {
+    const previous = markerFixture();
+    const target = { ...previous, progress: 0.9 };
+    const transition = createEstimatedTrainMarkerTransition([previous, target], 0);
+    assert.equal(transition(100).sample.progress, 0);
+    assert.equal(transition(250).opacity, 0);
+    assert.equal(transition(300).sample.progress, 1);
+    assert.deepEqual(transition(500), {
+      sample: { from: previous, to: target, progress: 1 }, opacity: 1, done: true,
+    });
+  });
 
-    assert.equal(estimatedTrainMarkerMotionStartedAt(target, 4_200, 5_000, wallNow), 4_000);
-    assert.equal(
-      estimatedTrainMarkerMotionStartedAt(target, 4_200, 5_000, wallNow + 10_000),
-      800,
-    );
-    assert.equal(
-      estimatedTrainMarkerMotionStartedAt({ ...target, updatedAt: null, feedCreatedAt: null }, 4_200, 5_000, wallNow),
-      5_000,
-    );
+  it("resumes from the last displayed position with a fade after a background frame gap", () => {
+    const previous = markerFixture();
+    const target = { ...previous, progress: previous.progress + 0.005 };
+    const transition = createEstimatedTrainMarkerTransition([previous, target], 0);
+    const beforePause = transition(200);
+    const resumed = transition(60_000);
+    assert.deepEqual(resumed.sample, beforePause.sample);
+    assert.equal(resumed.done, false);
+    assert.equal(transition(60_250).opacity, 0);
+    assert.equal(transition(60_500).done, true);
+  });
+
+  it("treats a new observation after a long feed gap as a correction even for small distances", () => {
+    const previous = markerFixture();
+    const target = { ...previous, progress: previous.progress + 0.005,
+      updatedAt: "2026-07-02T10:02:00Z" };
+    const transition = createEstimatedTrainMarkerTransition([previous, target], 0);
+    assert.equal(transition(250).opacity, 0);
+    assert.equal(transition(500).done, true);
   });
 
   it("builds a track-following motion plan across adjacent and skipped segments", () => {
@@ -340,11 +348,14 @@ describe("estimated train marker data adapter", () => {
         [target.segmentId, target.progress],
       ],
     );
-    assert.ok(estimatedTrainMarkerMotionDurationMs(waypoints) <= 14_000);
-    const midway = sampleEstimatedTrainMarkerMotion(waypoints, 0.5);
+    assert.ok(estimatedTrainMarkerMotionDurationMs(waypoints) <= 1_200);
+    const sampleMotion = createEstimatedTrainMarkerMotionSampler(waypoints);
+    assert.equal(sampleMotion(-1).progress, 0);
+    assert.equal(sampleMotion(2).progress, 1);
+    const midway = sampleMotion(0.5);
     assert.equal(midway.from.segmentId, "line-2-bay-sherbourne");
     for (let step = 0; step <= 20; step += 1) {
-      const sample = sampleEstimatedTrainMarkerMotion(waypoints, step / 20);
+      const sample = sampleMotion(step / 20);
       assert.equal(sample.from.segmentId, sample.to.segmentId);
     }
   });

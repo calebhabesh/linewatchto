@@ -176,3 +176,61 @@ for (const saved of ["overview", "halfway", "expanded", "invalid", null]) {
     expect(await sheet.evaluate(node => getComputedStyle(node).transitionDuration)).not.toBe("0s");
   });
 }
+
+test("service sheet enters with slide-up animation when returning to map view", async ({ page, isMobile }) => {
+  test.skip(!isMobile);
+  await installDismissedTransientUi(page);
+  await page.goto("/");
+  const sheet = page.locator(".mobile-service-sheet");
+  await expect(sheet).toBeVisible();
+
+  // Navigate to Status view
+  await page.locator('.mobile-bottom-nav-item[data-nav-key="status"]').click();
+  await sheet.waitFor({ state: "detached" });
+
+  // Return to Map view
+  await page.locator('.mobile-bottom-nav-item[data-nav-key="map"]').click();
+  await sheet.waitFor({ state: "attached" });
+  await expect(sheet).toHaveAttribute("data-entering", "true");
+
+  const runningAnimation = await sheet.evaluate(el =>
+    el.getAnimations().some(a => a instanceof CSSAnimation && a.animationName === "mobile-service-sheet-enter" && a.playState === "running")
+  );
+  expect(runningAnimation).toBe(true);
+
+  // After animation settles, data-entering is cleared
+  await expect(sheet).not.toHaveAttribute("data-entering", "true");
+});
+
+test("mobile menus extend vertically to right below the shortcut pill entries", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile);
+  await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });
+  await installDismissedTransientUi(page);
+  await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+
+  const shortcuts = page.locator(".mobile-app-shortcuts");
+  const shortcutsBox = (await shortcuts.boundingBox())!;
+
+  // Test 1: "More" menu expands to right below the shortcuts
+  const moreBtn = page.locator('.mobile-bottom-nav-item[data-nav-key="more"]');
+  await moreBtn.click();
+  const panel = page.locator(".floating-panel-shell");
+  await expect(panel).toBeVisible();
+
+  const morePanelBox = (await panel.boundingBox())!;
+  const moreGap = morePanelBox.y - (shortcutsBox.y + shortcutsBox.height);
+  expect(moreGap).toBeGreaterThanOrEqual(6);
+  expect(moreGap).toBeLessThanOrEqual(12);
+
+  // Test 2: Submenu (e.g. Delays) also expands to right below the shortcuts
+  const statusBtn = page.locator('.mobile-bottom-nav-item[data-nav-key="status"]');
+  await statusBtn.click();
+  await page.locator(".mobile-status-sheet .mobile-status-btn-delays").click();
+  await expect(panel.getByRole("heading", { name: "Delays" })).toBeVisible();
+
+  const submenuPanelBox = (await panel.boundingBox())!;
+  const submenuGap = submenuPanelBox.y - (shortcutsBox.y + shortcutsBox.height);
+  expect(submenuGap).toBeGreaterThanOrEqual(6);
+  expect(submenuGap).toBeLessThanOrEqual(12);
+});
+

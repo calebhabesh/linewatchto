@@ -118,9 +118,9 @@ const SCHEDULED_ARRIVALS_DISCLAIMER =
 const UNAVAILABLE_ARRIVALS_DISCLAIMER =
   "Scheduled arrival data is currently unavailable. Arrival predictions are not live TTC predictions.";
 const LIVE_ARRIVALS_DISCLAIMER =
-  "Arrival predictions are source-labeled and may be affected by active TTC service alerts.";
+  "Arrival predictions are source-labeled and may be affected by active TTC service alerts. Live arrival times and ranges may fluctuate as new GTFS-RT feed samples are received.";
 const MIXED_ARRIVALS_DISCLAIMER =
-  "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.";
+  "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions. Live arrival times and ranges may fluctuate as new GTFS-RT feed samples are received.";
 const DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
 export const ARRIVAL_COUNTDOWN_TICK_MS = 3_000;
 

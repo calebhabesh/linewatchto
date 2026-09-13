@@ -419,7 +419,7 @@
     border-bottom: none;
     margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px));
     min-height: 44px;
-    padding: 8px var(--mobile-sheet-gutter, 10px) 14px;
+    padding: 6px var(--mobile-sheet-gutter, 10px) 6px;
   }
 
   .mobile-sheet-heading h2 {

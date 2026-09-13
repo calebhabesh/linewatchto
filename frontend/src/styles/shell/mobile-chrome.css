@@ -468,7 +468,7 @@
     position: fixed;
     text-align: left;
     z-index: 42;
-    animation: floating-mobile-sheet-enter 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    animation: none;
     overflow: visible;
     pointer-events: none;
   }

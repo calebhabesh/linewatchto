@@ -55,6 +55,7 @@ type Props = {
   pollText: string;
   dataSource: "backend" | "fallback";
   networkId?: NetworkId;
+  isReturningToMap?: boolean;
   operatingNotice?: MobileOperatingNotice | null;
   connectionNotice?: MobileConnectionNotice | null;
   onOpenStatus: () => void;
@@ -68,6 +69,7 @@ export function MobileStatusPeek({
   children,
   fresh = false,
   isConnectionIssue = false,
+  isReturningToMap = false,
   lineStatuses,
   activeAlertCount,
   delayCount,
@@ -89,6 +91,14 @@ export function MobileStatusPeek({
   const [snap, setSnap] = useState<"overview" | "halfway" | "expanded">("overview");
   const [positionRestored, setPositionRestored] = useState(false);
   const [animatePosition, setAnimatePosition] = useState(false);
+  const [entering, setEntering] = useState(isReturningToMap);
+
+  useEffect(() => {
+    if (!entering) return;
+    const timer = window.setTimeout(() => setEntering(false), 260);
+    return () => window.clearTimeout(timer);
+  }, [entering]);
+
   useEffect(() => {
     // Keep the server-rendered sheet hidden until its device preference is restored.
     const restore = requestAnimationFrame(() => {
@@ -312,6 +322,7 @@ export function MobileStatusPeek({
         data-snap={snap}
         data-position-restored={positionRestored}
         data-animate-position={animatePosition}
+        data-entering={entering ? "true" : undefined}
         data-dragging={isDragging}
         data-category-count={categoryCount}
         data-has-notice={operatingNotice || connectionNotice ? "true" : undefined}

@@ -111,9 +111,8 @@ const TTC_TRAIN_MARKER_RETENTION_MS = 30_000;
 const REGIONAL_TRAIN_MARKER_RETENTION_MS = 90_000;
 const MAX_TRAIN_MARKER_SKIPPED_SEGMENTS = 4;
 const MIN_TRAIN_MARKER_MOTION_MS = 650;
-const MAX_FALLBACK_TRAIN_MARKER_MOTION_MS = 14_000;
-const MAX_CADENCE_TRAIN_MARKER_MOTION_MS = 45_000;
-const TRAIN_MARKER_CADENCE_COVERAGE = 1.05;
+const MAX_TRAIN_MARKER_MOTION_MS = 1_200;
+const TRAIN_MARKER_CORRECTION_FADE_MS = 500;
 const estimatedTrainMarkerAnimations = new Map<number, EstimatedTrainMarkerAnimation>();
 let nextEstimatedTrainMarkerAnimationId = 1;
 let estimatedTrainMarkerAnimationFrame: number | null = null;
@@ -336,50 +335,78 @@ export function estimatedTrainMarkerMotionWaypoints(
 export function estimatedTrainMarkerMotionDurationMs(waypoints: EstimatedTrainMarker[]) {
   const weightedSeconds = motionLegs(waypoints)
     .reduce((total, leg) => total + leg.weight, 0);
-  const first = waypoints[0];
-  const last = waypoints.at(-1);
-  const sourceCadence = first && last
-    ? Math.max(0, markerTimestamp(last) - markerTimestamp(first)) * TRAIN_MARKER_CADENCE_COVERAGE
-    : 0;
-  const fallbackDuration = Math.min(MAX_FALLBACK_TRAIN_MARKER_MOTION_MS, weightedSeconds * 80);
   return Math.max(
     MIN_TRAIN_MARKER_MOTION_MS,
-    Math.min(MAX_CADENCE_TRAIN_MARKER_MOTION_MS, Math.max(fallbackDuration, sourceCadence)),
+    Math.min(MAX_TRAIN_MARKER_MOTION_MS, weightedSeconds * 1_000),
   );
 }
 
-export function estimatedTrainMarkerMotionStartedAt(
-  target: EstimatedTrainMarker,
-  durationMs: number,
-  performanceNow = performance.now(),
-  wallNow = Date.now(),
+export function createEstimatedTrainMarkerTransition(
+  waypoints: EstimatedTrainMarker[],
+  startedAt = performance.now(),
 ) {
-  const observedAt = markerTimestamp(target);
-  const sourceAge = observedAt > 0
-    ? Math.max(0, Math.min(durationMs, wallNow - observedAt))
-    : 0;
-  return performanceNow - sourceAge;
+  const sampleMotion = createEstimatedTrainMarkerMotionSampler(waypoints);
+  const legs = motionLegs(waypoints);
+  const travelSeconds = legs.reduce((total, leg) => total + leg.weight, 0);
+  const first = waypoints[0];
+  const last = waypoints.at(-1);
+  // Large corrections are observations, not evidence of rapid movement. Fade
+  // between placements instead of racing along several stations to catch up.
+  let correction = travelSeconds > 8 || legs.length > 1
+    || Boolean(first && last && markerTimestamp(last) - markerTimestamp(first) > 15_000);
+  let previousFrameAt = startedAt;
+  const correctionEnd = sampleMotion(1);
+  let correctionStart = sampleMotion(0);
+  let lastSample = correctionStart;
+  const motionDuration = estimatedTrainMarkerMotionDurationMs(waypoints);
+  return (now: number) => {
+    // rAF is suspended in background tabs. Restart as a correction on resume;
+    // never replay the missed journey or compress it into the remaining frames.
+    if (now - previousFrameAt > 2_000) {
+      correction = true;
+      correctionStart = lastSample;
+      startedAt = now;
+    }
+    previousFrameAt = now;
+    const duration = correction ? TRAIN_MARKER_CORRECTION_FADE_MS : motionDuration;
+    const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
+    lastSample = correction
+      ? (progress < 0.5 ? correctionStart : correctionEnd)
+      : sampleMotion(progress);
+    return {
+      sample: lastSample,
+      opacity: correction ? Math.abs(1 - 2 * progress) : 1,
+      done: progress >= 1,
+    };
+  };
 }
 
 export function sampleEstimatedTrainMarkerMotion(
   waypoints: EstimatedTrainMarker[],
   progress: number,
 ): EstimatedTrainMarkerMotionSample {
+  return createEstimatedTrainMarkerMotionSampler(waypoints)(progress);
+}
+
+export function createEstimatedTrainMarkerMotionSampler(
+  waypoints: EstimatedTrainMarker[],
+): (progress: number) => EstimatedTrainMarkerMotionSample {
+  // Compile once per accepted observation, not once per marker per frame.
   const legs = motionLegs(waypoints);
-  if (legs.length === 0) {
-    const marker = waypoints.at(-1) ?? EMPTY_MARKER_FOR_MOTION;
-    return { from: marker, to: marker, progress: 1 };
-  }
   const totalWeight = legs.reduce((total, leg) => total + leg.weight, 0);
-  let remaining = Math.max(0, Math.min(1, progress)) * totalWeight;
-  for (const leg of legs) {
-    if (remaining <= leg.weight) {
-      return { from: leg.from, to: leg.to, progress: leg.weight === 0 ? 1 : remaining / leg.weight };
+  const fallback = waypoints.at(-1) ?? EMPTY_MARKER_FOR_MOTION;
+  return (progress) => {
+    if (legs.length === 0) return { from: fallback, to: fallback, progress: 1 };
+    let remaining = Math.max(0, Math.min(1, progress)) * totalWeight;
+    for (const leg of legs) {
+      if (remaining <= leg.weight) {
+        return { from: leg.from, to: leg.to, progress: leg.weight === 0 ? 1 : remaining / leg.weight };
+      }
+      remaining -= leg.weight;
     }
-    remaining -= leg.weight;
-  }
-  const last = legs.at(-1)!;
-  return { from: last.from, to: last.to, progress: 1 };
+    const last = legs.at(-1)!;
+    return { from: last.from, to: last.to, progress: 1 };
+  };
 }
 
 export function resolveEstimatedTrainMarkerSegmentDirection(
