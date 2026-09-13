@@ -20,3 +20,24 @@ test('desktop search hides current service only when their bounds overlap', asyn
   await page.getByRole('searchbox', { name: 'Station Search', exact: true }).press('Escape');
   await expect(service).toBeVisible();
 });
+
+for (const network of ['ttc', 'regional']) {
+  test(`desktop ${network} station details keep current service when panels fit`, async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Desktop floating panels');
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.addInitScript(() => {
+      localStorage.setItem('linewatch-welcome-seen-v1', 'true');
+      localStorage.setItem('linewatch-unofficial-notice-ack-v1', 'true');
+    });
+    await page.goto(`/?network=${network}&station=union&previewTime=2026-08-14T16:00:00.000Z`);
+    const station = page.locator('.station-detail-panel');
+    const service = page.locator('.desktop-status-chip-row-container .current-service');
+    await expect(station).toBeVisible();
+    await expect(service).toBeVisible();
+    await page.screenshot({ path: `/tmp/${network}-station-service.png` });
+    await page.setViewportSize({ width: 1000, height: 700 });
+    await expect(service).toBeHidden();
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await expect(service).toBeVisible();
+  });
+}

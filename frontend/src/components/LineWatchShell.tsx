@@ -5298,8 +5298,11 @@ export function LineWatchShell({
           className={`desktop-status-chip-row-container fixed bottom-6 left-6 z-20 pointer-events-auto transition-opacity duration-200 ${menuVisible ? "opacity-0 pointer-events-none" : "opacity-100"}`}
           aria-hidden={menuVisible ? "true" : undefined}
         >
-          {!isMobile && !menuVisible && (showMobileStatusPeek || (activeView === "search" && !selection && !selectedStationId && !commutePathPreview)) && <CurrentServicePanel
-              avoidSearchOverlap={activeView === "search" || isClosingSearch}
+          {!isMobile && !menuVisible && !rotatedMapMode && !showPwaInstallNudge && !commutePathPreview && (activeView === "map" || activeView === "search") && <CurrentServicePanel
+              overlapSelectors={[
+                activeView === "search" || isClosingSearch ? "#station-search-panel" : "",
+                selectedStationId ? ".station-detail-panel" : "",
+              ].filter(Boolean).join(",")}
               data={displayData}
               notices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
               onNotice={handleSearchOpenSurfaceNotice}

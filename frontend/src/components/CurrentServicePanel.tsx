@@ -12,7 +12,7 @@ import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 
 
 type Props = {
-  avoidSearchOverlap?: boolean;
+  overlapSelectors?: string;
   data: DashboardData;
   notices: SurfaceNoticeResponse | null;
   onNotice: (notice: SurfaceNoticeDetail) => void;
@@ -82,7 +82,7 @@ function GoodServiceCheckIcon({ size = 16 }: { size?: number }) {
 
 const COLLAPSED_LIST_HEIGHT = 116;
 
-export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotices, avoidSearchOverlap = false }: Props) {
+export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotices, overlapSelectors = "" }: Props) {
   const [now, setNow] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -101,33 +101,36 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
 
   useLayoutEffect(() => {
     const panel = sectionRef.current;
-    const search = panel?.closest(".linewatch-shell")?.querySelector<HTMLElement>("#station-search-panel");
-    if (!panel || !search || !avoidSearchOverlap) return;
+    const shell = panel?.closest(".linewatch-shell");
+    if (!panel || !shell || !overlapSelectors) return;
+    const obstacles = [...shell.querySelectorAll<HTMLElement>(overlapSelectors)];
     const measure = () => {
       const a = panel.getBoundingClientRect();
-      const b = search.getBoundingClientRect();
-      const overlaps = b.width > 0 && b.height > 0
-        && a.left < b.right && a.right > b.left
-        && a.top < b.bottom && a.bottom > b.top;
+      const overlaps = obstacles.some((obstacle) => {
+        const b = obstacle.getBoundingClientRect();
+        return b.width > 0 && b.height > 0
+          && a.left < b.right && a.right > b.left
+          && a.top < b.bottom && a.bottom > b.top;
+      });
       panel.style.visibility = overlaps ? "hidden" : "";
     };
     measure();
     const frame = requestAnimationFrame(measure);
     const observer = new ResizeObserver(measure);
     observer.observe(panel);
-    observer.observe(search);
+    obstacles.forEach((obstacle) => observer.observe(obstacle));
     window.addEventListener("resize", measure);
-    search.addEventListener("transitionend", measure);
-    search.addEventListener("animationend", measure);
+    shell.addEventListener("transitionend", measure);
+    shell.addEventListener("animationend", measure);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("resize", measure);
-      search.removeEventListener("transitionend", measure);
-      search.removeEventListener("animationend", measure);
+      shell.removeEventListener("transitionend", measure);
+      shell.removeEventListener("animationend", measure);
       panel.style.visibility = "";
     };
-  }, [avoidSearchOverlap]);
+  }, [overlapSelectors]);
 
   const measureMaxContentHeight = () => {
     const lists = sectionRef.current?.querySelectorAll<HTMLElement>(".current-service-list");
