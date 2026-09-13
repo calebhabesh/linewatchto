@@ -1343,7 +1343,7 @@ export function MyStationsPanel({
 
   if (dashboard.snapshot) return (
     <section className="my-stations-panel panel rounded-lg" aria-label="My Stations">
-      <PanelHeader title="My Stations" onBack={onBack} onClose={onClose} />
+      <PanelHeader title="My Stations" titleCompact onBack={onBack} onClose={onClose} />
       <div className="p-4 space-y-3">
         <p role="status">Current station impacts and arrivals are unavailable. Reconnect to check your stations.</p>
         {savedStations.map((saved) => <button type="button" className="block font-semibold" key={`${saved.networkId}:${saved.station.id}`} onClick={() => onSelectStation(saved.station.id, saved.networkId)}>{saved.station.name}</button>)}
@@ -1357,6 +1357,7 @@ export function MyStationsPanel({
         className="my-stations-heading"
         titleGroupClassName="my-stations-title"
         title="My Stations"
+        titleCompact
         icon={<MapPin className="my-stations-title-icon w-5 h-5 text-sky-500 shrink-0" aria-hidden="true" />}
         actions={
           authenticated && savedStations.length > 0 ? (

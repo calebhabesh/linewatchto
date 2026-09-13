@@ -1403,7 +1403,9 @@
   .floating-panel-shell .panel-header-title--compact,
   .mobile-view-content-wrapper[data-active-view="reduced-speed-zones"] .panel-heading h2,
   .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2,
-  .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading h2 {
+  .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading h2,
+  .mobile-view-content-wrapper[data-active-view="commutes"] .panel-heading h2,
+  .mobile-view-content-wrapper[data-active-view="my-stations"] .panel-heading h2 {
     font-size: clamp(17.5px, 4.8vw, 19px);
   }
 

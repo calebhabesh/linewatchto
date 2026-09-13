@@ -188,7 +188,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /View \$\{routeStops\.length\} Stops`\}[\s\S]*?<ChevronDown size=\{16\}/);
     assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
-    assert.match(savedCommutesSource, /View path on map/);
+    assert.match(savedCommutesSource, /commute-route-map-button[\s\S]*?View on Map/);
     assert.match(savedCommutesSource, /saved-commute-edit-delete-button/);
     assert.match(savedCommutesSource, /Delete this commute/);
     assert.match(savedCommutesSource, /saved-commute-delete-confirm-box/);

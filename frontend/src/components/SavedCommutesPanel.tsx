@@ -1933,11 +1933,11 @@ export function SavedCommutesPanel({
               }}
               disabled={!canViewPath}
               aria-pressed={viewingPath}
-              aria-label={viewingPath ? `Viewing path for ${commute.label} on map` : `View path for ${commute.label} on map`}
+              aria-label={viewingPath ? `Viewing on map for ${commute.label}` : `View on map for ${commute.label}`}
             >
               <MapPinned size={14} aria-hidden="true" />
-              <span className="commute-action-label-full">{viewingPath ? "Viewing path" : "View path on map"}</span>
-              <span className="commute-action-label-short" aria-hidden="true">{viewingPath ? "Viewing map" : "Map"}</span>
+              <span className="commute-action-label-full">{viewingPath ? "Viewing on Map" : "View on Map"}</span>
+              <span className="commute-action-label-short" aria-hidden="true">{viewingPath ? "Viewing on Map" : "View on Map"}</span>
             </button>
           </div>
           {stopsExpanded ? (
@@ -1974,7 +1974,7 @@ export function SavedCommutesPanel({
 
   if (dashboard.snapshot) return (
     <section className="commute-panel min-w-0 rounded-lg">
-      <PanelHeader title="My Commutes" onBack={onBack} onClose={onClose} />
+      <PanelHeader title="My Commutes" titleCompact onBack={onBack} onClose={onClose} />
       <div className="p-4 space-y-3">
         <p role="status">Current commute impacts and travel-time estimates are unavailable. Reconnect to check your routes.</p>
         {accountCommutes.map((commute) => <p key={commute.id} className="font-semibold">{commute.label}</p>)}
@@ -1986,6 +1986,7 @@ export function SavedCommutesPanel({
     <section className="commute-panel min-w-0 border border-transparent rounded-lg shadow-xl">
       <PanelHeader
         title="My Commutes"
+        titleCompact
         icon={<Navigation className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden="true" />}
         titleBadge={
           accountState.user?.demo ? (

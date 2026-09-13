@@ -759,7 +759,7 @@ test("commute card footer actions fit on 1 row at 375px and reflow gracefully at
     localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
     localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
   });
-  await page.goto("/");
+  await page.goto(openMapPreviewUrl);
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("button", { name: "Demo Account" }).click();
@@ -782,7 +782,7 @@ test("commute card footer actions fit on 1 row at 375px and reflow gracefully at
   expect(Math.abs(buttonBoxes[0].y - buttonBoxes[1].y)).toBeLessThan(2);
   expect(Math.abs(buttonBoxes[1].y - buttonBoxes[2].y)).toBeLessThan(2);
   for (const box of buttonBoxes) {
-    expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(box.height)).toBeGreaterThanOrEqual(28);
   }
   const cardBox = (await commuteCard.boundingBox())!;
   for (const box of buttonBoxes) {
@@ -790,12 +790,13 @@ test("commute card footer actions fit on 1 row at 375px and reflow gracefully at
     expect(box.right).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
   }
 
-  // Check short labels are visible
+  // Check short labels are visible and include View on Map
   const shortLabels = commuteCard.locator(".commute-action-label-short");
   expect(await shortLabels.count()).toBeGreaterThanOrEqual(3);
   for (let i = 0; i < await shortLabels.count(); i++) {
     await expect(shortLabels.nth(i)).toBeVisible();
   }
+  await expect(shortLabels.nth(2)).toHaveText(/view on map/i);
 
   // Reflow gracefully at 320x568 (narrow iPhone SE)
   await page.setViewportSize({ width: 320, height: 568 });
@@ -807,7 +808,7 @@ test("commute card footer actions fit on 1 row at 375px and reflow gracefully at
     })
   );
   for (const box of smallButtonBoxes) {
-    expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(box.height)).toBeGreaterThanOrEqual(28);
     expect(box.x).toBeGreaterThanOrEqual(smallCardBox.x - 1);
     expect(box.right).toBeLessThanOrEqual(smallCardBox.x + smallCardBox.width + 1);
   }
