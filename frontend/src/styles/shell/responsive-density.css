@@ -588,9 +588,13 @@
     margin: -9px -9px -9px;
   }
 
-  .mobile-more-sheet .mobile-sheet-heading,
   .mobile-status-sheet .mobile-sheet-heading {
     margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px));
+  }
+
+  .mobile-more-sheet .mobile-sheet-heading {
+    margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px)) -6px;
+    padding-bottom: 0;
   }
 
   .mobile-sheet-heading {

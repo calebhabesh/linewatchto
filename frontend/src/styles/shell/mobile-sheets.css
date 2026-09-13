@@ -396,9 +396,18 @@
     padding: 10px var(--mobile-sheet-gutter, 16px);
   }
 
-  .mobile-more-sheet .mobile-sheet-heading,
   .mobile-status-sheet .mobile-sheet-heading {
     margin: 0 calc(-1 * var(--mobile-sheet-gutter, 16px));
+  }
+
+  .mobile-more-sheet .mobile-sheet-heading {
+    margin: 0 calc(-1 * var(--mobile-sheet-gutter, 16px)) -6px;
+    padding-bottom: 0;
+  }
+
+  .mobile-more-section:first-child .station-subsection-header,
+  .mobile-more-install-section + .mobile-more-section .station-subsection-header {
+    padding-top: 0;
   }
 
   .mobile-more-brand {
