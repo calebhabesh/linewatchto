@@ -289,8 +289,8 @@ describe("My Stations UI", () => {
   });
 
   it("renders red circle affected badges on mobile saved dual sliding selector and equalizes header gap", () => {
-    assert.match(shell, /savedStationsAffectedCount > 0 \? \(\s*<OverlappingCountBadge className="mobile-saved-section-badge" count=\{savedStationsAffectedCount\} \/>/);
-    assert.match(shell, /commuteAffectedCount > 0 \? \(\s*<OverlappingCountBadge className="mobile-saved-section-badge" count=\{commuteAffectedCount\} \/>/);
+    assert.match(shell, /savedStationsAffectedCount > 0 \? \(\s*<span\s+className="mobile-saved-section-badge"[\s\S]*?\{savedStationsAffectedCount\}\s*<\/span>/);
+    assert.match(shell, /commuteAffectedCount > 0 \? \(\s*<span\s+className="mobile-saved-section-badge"[\s\S]*?\{commuteAffectedCount\}\s*<\/span>/);
     assert.match(styles, /\.mobile-saved-section-badge\s*\{[^}]*background:\s*#ef4444;[^}]*color:\s*#ffffff;/s);
     assert.match(styles, /\.floating-panel-shell \.panel-header-actions,\s*\.floating-panel-shell \.panel-heading > div:last-child\s*\{[^}]*gap:\s*12px;/s);
   });

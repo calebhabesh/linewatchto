@@ -3736,7 +3736,14 @@ export function LineWatchShell({
               <MapPin size={17} aria-hidden="true" />
               <span>My Stations</span>
               {savedStationsAffectedCount > 0 ? (
-                <OverlappingCountBadge className="mobile-saved-section-badge" count={savedStationsAffectedCount} />
+                <span
+                  className="mobile-saved-section-badge"
+                  data-count="positive"
+                  data-single-digit={savedStationsAffectedCount < 10 ? "true" : "false"}
+                  aria-label={`${savedStationsAffectedCount} saved station alerts`}
+                >
+                  {savedStationsAffectedCount}
+                </span>
               ) : null}
             </button>
             <button
@@ -3747,7 +3754,14 @@ export function LineWatchShell({
               <Navigation size={17} aria-hidden="true" />
               <span>My Commutes</span>
               {commuteAffectedCount > 0 ? (
-                <OverlappingCountBadge className="mobile-saved-section-badge" count={commuteAffectedCount} />
+                <span
+                  className="mobile-saved-section-badge"
+                  data-count="positive"
+                  data-single-digit={commuteAffectedCount < 10 ? "true" : "false"}
+                  aria-label={`${commuteAffectedCount} commute alerts`}
+                >
+                  {commuteAffectedCount}
+                </span>
               ) : null}
             </button>
           </nav>

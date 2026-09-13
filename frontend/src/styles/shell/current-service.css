@@ -1917,7 +1917,6 @@
     color: #ffffff;
   }
   .mobile-saved-section-badge {
-    --overlapping-count-font-size: 11.5px;
     align-items: center;
     background: #ef4444;
     background-image: linear-gradient(180deg, #ea3838 0%, #dc2626 100%);
@@ -1926,23 +1925,23 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 1px 2px rgba(220, 38, 38, 0.25);
     color: #ffffff;
     display: inline-flex;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 850;
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
     height: 20px;
     justify-content: center;
     line-height: 1;
     min-width: 20px;
-    padding: 0 4.5px;
+    padding: 0 5px;
     flex-shrink: 0;
+    text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.30);
   }
   .mobile-saved-section-badge[data-single-digit="true"] {
     aspect-ratio: 1 / 1;
     padding: 0;
     width: 20px;
-  }
-  .mobile-saved-section-badge .overlapping-count-badge__text {
-    font-weight: 850;
-    text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.30);
   }
   .dark .mobile-saved-section-badge {
     background: #ef4444;
@@ -1950,9 +1949,6 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 3px rgba(0, 0, 0, 0.35);
     color: #ffffff;
-  }
-  .dark .mobile-saved-section-badge .overlapping-count-badge__text {
-    font-weight: 850;
     text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.40);
   }
   .high-contrast .mobile-saved-section-badge,
@@ -1962,10 +1958,6 @@
     border: 1.5px solid #ffffff;
     color: #ffffff;
     box-shadow: none;
-    text-shadow: none;
-  }
-  .high-contrast .mobile-saved-section-badge .overlapping-count-badge__text,
-  .linewatch-shell.high-contrast .mobile-saved-section-badge .overlapping-count-badge__text {
     text-shadow: none;
   }
   .mobile-saved-sections + .mobile-view-content-wrapper { min-height: 0; flex: 1; }
