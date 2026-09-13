@@ -539,7 +539,7 @@ export function MobileImpactInspector({
 
         {showDetailedMetadata ? (
           <MetadataGrid
-            className="mobile-impact-inspector-metadata"
+            className={`mobile-impact-inspector-metadata${selection.kind === "planned-closure" ? " planned-closure-metadata" : ""}`}
             cause={details.cause}
             resolution={details.resolution}
             reason={details.reason}

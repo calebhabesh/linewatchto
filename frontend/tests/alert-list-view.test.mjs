@@ -62,7 +62,7 @@ describe("alert card and list views", () => {
     assert.ok(compactRowSource.indexOf("</button>") < compactRowSource.indexOf("<details"));
     assert.match(panelSources[3], /title="Planned Closure"/);
     assert.match(panelSources[3], /closure.shuttle && "Shuttle"/);
-    assert.match(globalCss, /\.planned-closure-metadata > \.is-window-row\s*\{[^}]*grid-column: auto;/s);
+    assert.match(globalCss, /\.planned-closure-metadata > \.is-window-row\s*\{[^}]*grid-column: 1 \/ -1;/s);
   });
 
   it("hides repeated type labels consistently in dedicated submenus", () => {

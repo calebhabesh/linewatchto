@@ -1589,12 +1589,17 @@
 }
 
 .planned-closure-metadata > .is-window-row {
-  grid-column: auto;
+  grid-column: 1 / -1;
 }
 
 .planned-closure-metadata .closure-window-value {
   flex-wrap: wrap;
   white-space: normal;
+}
+
+.planned-closure-metadata .closure-window-time {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .dark .compact-impact-list-item__detail {

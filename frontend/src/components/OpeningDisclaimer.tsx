@@ -2,6 +2,15 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
+// Static imports give refreshed captures content-hashed URLs, avoiding stale image caches.
+import onboardingDesktopMapGuide from "../../public/assets/linewatch/onboarding/desktop-map-guide.png";
+import onboardingDesktopImpactDetails from "../../public/assets/linewatch/onboarding/desktop-impact-details.png";
+import onboardingDesktopMyCommutesV3 from "../../public/assets/linewatch/onboarding/desktop-my-commutes-v3.png";
+import onboardingDesktopMyStationsV3 from "../../public/assets/linewatch/onboarding/desktop-my-stations-v3.png";
+import onboardingMobileMapGuide from "../../public/assets/linewatch/onboarding/mobile-map-guide.png";
+import onboardingMobileImpactDetails from "../../public/assets/linewatch/onboarding/mobile-impact-details.png";
+import onboardingMobileMyCommutesV3 from "../../public/assets/linewatch/onboarding/mobile-my-commutes-v3.png";
+import onboardingMobileMyStationsV3 from "../../public/assets/linewatch/onboarding/mobile-my-stations-v3.png";
 import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 
 export const WELCOME_SEEN_STORAGE_KEY = "linewatch-welcome-seen-v1";
@@ -447,7 +456,7 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-1">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--wide">
-                          <Image src="/assets/linewatch/onboarding/desktop-map-guide.png" alt="LineWatchTO map with delays, closures, Reduced Speed Zones, planned previews, and station impacts" fill sizes="520px" priority draggable={false} />
+                          <Image src={onboardingDesktopMapGuide} alt="LineWatchTO map with a suspension, delay, Reduced Speed Zone, and station impact" fill sizes="520px" priority draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-desktop-slide-1">Read the Live Map</h2>
@@ -464,7 +473,7 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-2">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--wide">
-                          <Image src="/assets/linewatch/onboarding/desktop-impact-details.png" alt="A selected Reduced Speed Zone card shown beside its highlighted map segment" fill sizes="520px" draggable={false} />
+                          <Image src={onboardingDesktopImpactDetails} alt="A selected Reduced Speed Zone card shown beside its highlighted map segment" fill sizes="520px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-desktop-slide-2">Explore an Impact</h2>
@@ -482,13 +491,13 @@ export function OpeningDisclaimer({
                         <div className="opening-welcome-personal-grid">
                           <figure>
                             <div className="opening-welcome-portrait-frame">
-                              <Image src="/assets/linewatch/onboarding/desktop-my-commutes-v3.png" alt="My Commutes route with current impact and planning-time details" fill sizes="250px" draggable={false} />
+                              <Image src={onboardingDesktopMyCommutesV3} alt="My Commutes route with current impact and planning-time details" fill sizes="250px" draggable={false} />
                             </div>
                             <figcaption>Your Commutes</figcaption>
                           </figure>
                           <figure>
                             <div className="opening-welcome-portrait-frame">
-                              <Image src="/assets/linewatch/onboarding/desktop-my-stations-v3.png" alt="My Stations panel with a saved station and upcoming arrivals" fill sizes="250px" draggable={false} />
+                              <Image src={onboardingDesktopMyStationsV3} alt="My Stations panel with a saved station and upcoming arrivals" fill sizes="250px" draggable={false} />
                             </div>
                             <figcaption>Your Stations</figcaption>
                           </figure>
@@ -534,7 +543,7 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-1">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
-                          <Image src="/assets/linewatch/onboarding/mobile-map-guide.png" alt="Mobile map showing a delay, Reduced Speed Zone, and station impact" fill sizes="340px" priority draggable={false} />
+                          <Image src={onboardingMobileMapGuide} alt="Mobile map showing a delay, Reduced Speed Zone, and station impact" fill sizes="340px" priority draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-mobile-slide-1">Read the Live Map</h2>
@@ -551,7 +560,7 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-2">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
-                          <Image src="/assets/linewatch/onboarding/mobile-impact-details.png" alt="Mobile Reduced Speed Zone details for a selected map impact" fill sizes="340px" draggable={false} />
+                          <Image src={onboardingMobileImpactDetails} alt="Mobile Reduced Speed Zone details for a selected map impact" fill sizes="340px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-mobile-slide-2">Tap for Alert Details</h2>
@@ -567,7 +576,7 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-3">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
-                          <Image src="/assets/linewatch/onboarding/mobile-my-commutes-v3.png" alt="Mobile My Commutes route with a current service impact" fill sizes="340px" draggable={false} />
+                          <Image src={onboardingMobileMyCommutesV3} alt="Mobile My Commutes route with a current service impact" fill sizes="340px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-mobile-slide-3">Monitor Your Commutes</h2>
@@ -586,7 +595,7 @@ export function OpeningDisclaimer({
                     >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-4">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
-                          <Image src="/assets/linewatch/onboarding/mobile-my-stations-v3.png" alt="Mobile My Stations panel showing a saved station" fill sizes="340px" draggable={false} />
+                          <Image src={onboardingMobileMyStationsV3} alt="Mobile My Stations panel showing a saved station" fill sizes="340px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-mobile-slide-4">Watch Your Stations</h2>

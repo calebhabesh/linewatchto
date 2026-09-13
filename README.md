@@ -1090,6 +1090,44 @@ backend profile, database snapshot, and workload match. See
 [`docs/superpowers/specs/2026-07-29-portfolio-performance-measurements-design.md`](docs/superpowers/specs/2026-07-29-portfolio-performance-measurements-design.md)
 for the methodology and interpretation guardrails.
 
+## Refreshing onboarding screenshots
+
+The first-visit slideshow uses eight Playwright captures of the current web UI,
+with separate desktop and mobile framing. From the repository root:
+
+```bash
+npm --prefix frontend run screenshots:onboarding
+npm --prefix frontend run screenshots:onboarding:check
+```
+
+The capture command starts its own Next.js development server and synthetic API
+on ports **4193/4194**, using isolated `.next-onboarding` output. It requires the
+frontend dependencies and Playwright Chromium (`cd frontend && npx playwright install chromium`);
+no backend, database, production credentials, or signed-in browser is needed.
+Do not run multiple onboarding commands simultaneously.
+
+The examples use a fixed Toronto time, demo account, source-labeled demo arrivals,
+service impacts, and an Eglinton–Davisville commute. They illustrate features and
+are not current TTC service information. The scenario adapter lives in
+`frontend/tests/onboarding/presentation.mjs`; capture framing and UI actions live
+in `frontend/tests/onboarding/capture.spec.ts`. Ordinary smoke fixtures are unchanged
+unless the dedicated capture environment flag is enabled.
+
+Refresh only selected assets using Playwright filters:
+
+```bash
+npm --prefix frontend run screenshots:onboarding -- --project=mobile
+npm --prefix frontend run screenshots:onboarding -- --grep impact-details
+```
+
+All selected captures must pass before the command replaces their PNGs under
+`frontend/public/assets/linewatch/onboarding/`. Other slideshow images remain intact.
+Static image imports give changed images new content-hashed URLs automatically.
+Review the generated contact sheet at `artifacts/onboarding/index.html`; the check
+command also saves all seven rendered slideshow views in that directory and verifies
+that their images load and fit at desktop and phone widths. Generated review artifacts
+are ignored by Git. Commit the refreshed PNGs with the relevant UI changes.
+
 ## Portfolio Story
 
 LineWatchTO is intended to demonstrate:

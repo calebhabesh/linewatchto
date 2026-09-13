@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { onboardingResponse } from "../onboarding/presentation.mjs";
 import { regionalDashboardDataForScenario, regionalStationSummaries } from "../../src/app/regional-data.ts";
 import {
   activeAlertsResponse,
@@ -306,7 +307,9 @@ function sendJson(request, response, status, body, extraHeaders = {}) {
     ...corsHeaders(request, extraHeaders),
     "content-type": "application/json",
   });
-  response.end(JSON.stringify(body));
+  response.end(JSON.stringify(process.env.LINEWATCH_ONBOARDING_CAPTURE === "true"
+    ? onboardingResponse(body)
+    : body));
 }
 
 async function readJson(request) {

@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "screenshots:onboarding:check": "playwright test verify.spec.ts --config playwright.onboarding.config.ts",
+    "screenshots:onboarding": "node scripts/generate-onboarding-screenshots.mjs",
     "generate:map-rasters": "node scripts/generate-map-rasters.mjs",
     "metrics:css": "node scripts/measure-css.mjs",
     "preview:closing-soon": "node scripts/preview-closing-soon.mjs",
