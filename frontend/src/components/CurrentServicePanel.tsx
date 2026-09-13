@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, BusFront, Info, TrainFront } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
@@ -12,6 +12,7 @@ import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 
 
 type Props = {
+  avoidSearchOverlap?: boolean;
   data: DashboardData;
   notices: SurfaceNoticeResponse | null;
   onNotice: (notice: SurfaceNoticeDetail) => void;
@@ -81,7 +82,7 @@ function GoodServiceCheckIcon({ size = 16 }: { size?: number }) {
 
 const COLLAPSED_LIST_HEIGHT = 116;
 
-export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotices }: Props) {
+export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotices, avoidSearchOverlap = false }: Props) {
   const [now, setNow] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -97,6 +98,36 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
     const timer = window.setInterval(update, 30_000);
     return () => { cancelAnimationFrame(frame); window.clearInterval(timer); };
   }, []);
+
+  useLayoutEffect(() => {
+    const panel = sectionRef.current;
+    const search = panel?.closest(".linewatch-shell")?.querySelector<HTMLElement>("#station-search-panel");
+    if (!panel || !search || !avoidSearchOverlap) return;
+    const measure = () => {
+      const a = panel.getBoundingClientRect();
+      const b = search.getBoundingClientRect();
+      const overlaps = b.width > 0 && b.height > 0
+        && a.left < b.right && a.right > b.left
+        && a.top < b.bottom && a.bottom > b.top;
+      panel.style.visibility = overlaps ? "hidden" : "";
+    };
+    measure();
+    const frame = requestAnimationFrame(measure);
+    const observer = new ResizeObserver(measure);
+    observer.observe(panel);
+    observer.observe(search);
+    window.addEventListener("resize", measure);
+    search.addEventListener("transitionend", measure);
+    search.addEventListener("animationend", measure);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      search.removeEventListener("transitionend", measure);
+      search.removeEventListener("animationend", measure);
+      panel.style.visibility = "";
+    };
+  }, [avoidSearchOverlap]);
 
   const measureMaxContentHeight = () => {
     const lists = sectionRef.current?.querySelectorAll<HTMLElement>(".current-service-list");
