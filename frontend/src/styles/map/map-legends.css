@@ -313,7 +313,8 @@
     --legend-led-bright: #a8ffda;
     --legend-led-glow: rgba(54, 216, 135, 0.85);
     border-radius: 0;
-    clip-path: polygon(100% 0, 100% 100%, 0 75%, 0 25%);
+    /* Same tapered trapezoid as before but with ~0.6px rounded corners via bezier curves. */
+    clip-path: path("M 3.105 0.452 Q 3.5 0 3.5 0.6 L 3.5 15.4 Q 3.5 16 3.105 15.548 L 0.395 12.452 Q 0 12 0 11.4 L 0 4.6 Q 0 4 0.395 3.548 Z");
     background: radial-gradient(ellipse at 70% 50%, var(--legend-led-bright) 0%, var(--legend-led-color) 65%);
     box-shadow:
       0 0 3px 1px var(--legend-led-glow),
