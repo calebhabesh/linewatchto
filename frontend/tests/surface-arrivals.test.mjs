@@ -269,6 +269,16 @@ describe("surface station arrivals", () => {
     }), now), 16);
   });
 
+  it("does not describe route-only placeholders as scheduled departures", () => {
+    const placeholder = row({ status: "scheduled", scheduledAt: null, predictedAt: null, minutes: null });
+    assert.equal(surfaceSourceSummary({
+      networkId: "ttc", availability: "available", arrivals: [placeholder],
+    }), "Route connections · predictions unavailable");
+    assert.equal(surfaceSourceSummary({
+      networkId: "ttc", availability: "available", arrivals: [row(), placeholder],
+    }), "TTC live surface estimates");
+  });
+
   it("distinguishes mixed GO Bus data from TTC live estimates", () => {
     assert.equal(surfaceSourceSummary({
       networkId: "regional",

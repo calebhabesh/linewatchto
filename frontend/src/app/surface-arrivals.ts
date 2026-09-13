@@ -542,8 +542,8 @@ export function surfaceSourceSummary(snapshot: SurfaceArrivalSnapshot): string {
     return snapshot.networkId === "regional" ? "GO Bus connections" : "TTC bus and streetcar connections";
   }
   const live = snapshot.arrivals.some((arrival) => arrival.status === "live");
-  const scheduled = snapshot.arrivals.some((arrival) => arrival.status === "scheduled");
+  const scheduled = snapshot.arrivals.some((arrival) => arrival.status === "scheduled" && arrival.scheduledAt !== null);
   if (live && scheduled) return "Live estimates + scheduled departures";
   if (live) return snapshot.networkId === "regional" ? "Metrolinx live GO Bus estimates" : "TTC live surface estimates";
-  return "Published scheduled departures";
+  return scheduled ? "Published scheduled departures" : "Route connections · predictions unavailable";
 }

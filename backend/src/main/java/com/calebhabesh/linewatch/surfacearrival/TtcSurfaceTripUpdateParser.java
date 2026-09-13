@@ -1,5 +1,7 @@
 package com.calebhabesh.linewatch.surfacearrival;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class TtcSurfaceTripUpdateParser {
+    private static final ObjectMapper JSON = new ObjectMapper();
     private static final Pattern HEADER_TIMESTAMP = Pattern.compile("\\btimestamp:\\s*(\\d+)");
     private static final Pattern TRIP_ID = Pattern.compile("\\btrip_id:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern ROUTE_ID = Pattern.compile("\\broute_id:\\s*\"((?:\\\\.|[^\"])*)\"");
@@ -21,6 +24,7 @@ public class TtcSurfaceTripUpdateParser {
 
     public Feed parse(String text) {
         if (text == null || text.isBlank()) return new Feed(null, List.of());
+        if (text.stripLeading().startsWith("{")) return parseJson(text);
         List<TripUpdate> trips = new ArrayList<>();
         for (String entity : blocks(text, "entity")) {
             String update = firstBlock(entity, "trip_update");
@@ -42,6 +46,44 @@ public class TtcSurfaceTripUpdateParser {
             if (!stops.isEmpty()) trips.add(new TripUpdate(tripId, routeId, List.copyOf(stops)));
         }
         return new Feed(epoch(number(HEADER_TIMESTAMP, text)), List.copyOf(trips));
+    }
+
+    // The TTC endpoint can return protobuf JSON even when format=text is requested.
+    private Feed parseJson(String text) {
+        try {
+            JsonNode root = JSON.readTree(text);
+            if (!root.path("header").hasNonNull("timestamp") || !root.path("entity").isArray()) {
+                throw new IllegalArgumentException("Invalid TTC surface TripUpdates JSON feed");
+            }
+            List<TripUpdate> trips = new ArrayList<>();
+            for (JsonNode entity : root.path("entity")) {
+                JsonNode update = entity.path("tripUpdate");
+                JsonNode trip = update.path("trip");
+                if ("CANCELED".equals(trip.path("scheduleRelationship").asText())) continue;
+                String tripId = trip.path("tripId").asText(null);
+                String routeId = trip.path("routeId").asText(null);
+                if (tripId == null && routeId == null) continue;
+                List<StopUpdate> stops = new ArrayList<>();
+                for (JsonNode stop : update.path("stopTimeUpdate")) {
+                    String relationship = stop.path("scheduleRelationship").asText();
+                    if ("SKIPPED".equals(relationship) || "NO_DATA".equals(relationship)) continue;
+                    String stopId = stop.path("stopId").asText(null);
+                    Event arrival = jsonEvent(stop.path("arrival"));
+                    Event preferred = arrival != null ? arrival : jsonEvent(stop.path("departure"));
+                    if (stopId != null && preferred != null) stops.add(new StopUpdate(stopId, preferred));
+                }
+                if (!stops.isEmpty()) trips.add(new TripUpdate(tripId, routeId, List.copyOf(stops)));
+            }
+            return new Feed(epoch(Long.parseLong(root.path("header").path("timestamp").asText())), List.copyOf(trips));
+        } catch (java.io.IOException exception) {
+            throw new IllegalArgumentException("Invalid TTC surface TripUpdates JSON feed", exception);
+        }
+    }
+
+    private Event jsonEvent(JsonNode event) {
+        if (!event.hasNonNull("time")) return null;
+        return new Event(epoch(Long.parseLong(event.path("time").asText())),
+            event.hasNonNull("delay") ? Integer.valueOf(event.path("delay").asText()) : null);
     }
 
     private Event event(String text, String name) {

@@ -49,7 +49,7 @@ function arrivalSourceBadgeClassName(label: string) {
   if (label === "Mixed") {
     return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
   }
-  if (label === "No Service" || label === "None") {
+  if (label === "Unavailable" || label === "None") {
     return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
   }
   return `${base} border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400`;
@@ -79,7 +79,7 @@ function SurfaceRouteCard({
   const hasLive = group.arrivals.some((arrival) => arrival.status === "live");
   const hasScheduled = group.arrivals.some((arrival) => arrival.status === "scheduled");
   const groupSourceLabel = !hasArrivals
-    ? "No Service"
+    ? "Unavailable"
     : hasLive
       ? hasScheduled ? "Mixed" : "Live"
       : "Scheduled";
@@ -218,7 +218,7 @@ function SurfaceRouteCard({
       ) : (
         <div className="py-2.5 flex items-center justify-center text-center">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            No active arrivals
+            Arrival predictions unavailable
           </p>
         </div>
       )}
@@ -395,7 +395,7 @@ function SurfaceCompactRouteRow({
       ) : (
         <div className="py-2 flex items-center justify-center text-center">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            No active arrivals
+            Arrival predictions unavailable
           </p>
         </div>
       )}
