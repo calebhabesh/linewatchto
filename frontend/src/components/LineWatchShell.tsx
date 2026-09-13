@@ -3973,7 +3973,8 @@ export function LineWatchShell({
               <nav className="mobile-app-chip-scroll" aria-label="Dashboard shortcuts">
                 <button type="button" aria-current={activeView === "alert-history" ? "page" : undefined} onClick={() => openMobileShortcut("alert-history")}><History className="text-emerald-500" size={16} aria-hidden="true" />Alert History</button>
                 <button type="button" aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"} title={isDark ? "Light theme" : "Dark theme"} onClick={handleToggleTheme}>{isDark ? <Sun className="text-yellow-400" size={19} aria-hidden="true" /> : <Moon className="text-purple-500" size={19} aria-hidden="true" />}</button>
-                <button type="button" onClick={handleOpenRotatedMap}><PhoneRotateLandscapeIcon size={18} />Rotate map</button>
+                <SiteGuideDropdown onOpenChange={setGuideOpen} variant="chip" />
+                <button type="button" onClick={handleOpenRotatedMap}><PhoneRotateLandscapeIcon size={18} />Rotate Map</button>
                 <button type="button" aria-current={activeView === "analytics" ? "page" : undefined} onClick={() => openMobileShortcut("analytics")}><BarChart3 className="text-purple-500 dark:text-purple-400" size={16} aria-hidden="true" />Reliability Analytics</button>
                 {selectedNetwork === "ttc" && <button type="button" aria-current={activeView === "announcements" ? "page" : undefined} onClick={() => openMobileShortcut("announcements")}><Megaphone className="text-sky-600 dark:text-sky-400" size={16} aria-hidden="true" />TTC Announcements</button>}
                 <button type="button" aria-current={activeView === "accessibility-outages" ? "page" : undefined} onClick={() => openMobileShortcut("accessibility-outages")}><Accessibility className="text-sky-600 dark:text-sky-400" size={16} aria-hidden="true" />Accessibility</button>
@@ -5064,13 +5065,15 @@ export function LineWatchShell({
           </button>
           <div className="site-guide-network-stack">
             <SiteGuideDropdown onOpenChange={setGuideOpen} />
-            <div className="mobile-network-selector-slot">
-              <NetworkSelector
-                network={selectedNetwork}
-                onChange={handleNetworkChange}
-                compactVertical
-              />
-            </div>
+            {!isMobile && (
+              <div className="mobile-network-selector-slot">
+                <NetworkSelector
+                  network={selectedNetwork}
+                  onChange={handleNetworkChange}
+                  compactVertical
+                />
+              </div>
+            )}
             {activeView === "map" && !selection && !selectedStationId && !commutePathPreview ? (
               <>
                 <button
@@ -5411,15 +5414,14 @@ export function LineWatchShell({
 
       {isMobile && showMobileStatusPeek && (
         <div
+          id="mobile-app-info-slot"
           className="mobile-app-info"
           data-guide-open={guideOpen ? "true" : undefined}
-        >
-          <SiteGuideDropdown onOpenChange={setGuideOpen} />
-        </div>
+        />
       )}
 
       {isMobile && showMobileStatusPeek && (
-        <div className="mobile-map-network-switch" data-map-chooser-keepout>
+        <div className="mobile-map-network-switch mobile-network-selector-slot" data-map-chooser-keepout>
           <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} compactVertical />
         </div>
       )}

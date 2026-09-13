@@ -320,12 +320,15 @@
   .floating-panel-shell .closure-stack,
   .floating-panel-shell .line-impact-panel-stack,
   .floating-panel-shell .commute-grid,
+  .floating-panel-shell .saved-commute-list-scroll,
   .floating-panel-shell .accessibility-outages-scroll,
   .floating-panel-shell .surface-notices-scroll,
   .floating-panel-shell .reliability-list,
   .floating-panel-shell .notification-settings-scroll,
   .floating-panel-shell .my-stations-list,
-  .floating-panel-shell .alert-history-scroll {
+  .floating-panel-shell .alert-history-scroll,
+  .floating-panel-shell .feedback-content,
+  .floating-panel-shell .logs-dropdown-scroll {
     padding-left: var(--mobile-sheet-gutter, 16px);
     padding-right: calc(var(--mobile-sheet-gutter, 16px) - 8px);
     scrollbar-gutter: stable;
@@ -336,7 +339,8 @@
     padding-bottom: 16px;
   }
 
-  .floating-panel-shell .commute-grid {
+  .floating-panel-shell .commute-grid,
+  .floating-panel-shell .saved-commute-list-scroll {
     padding-top: 0;
   }
 
@@ -359,7 +363,8 @@
 
   .floating-panel-shell .surface-notices-controls + .surface-notices-scroll,
   .floating-panel-shell .my-stations-controls + .my-stations-list,
-  .floating-panel-shell .saved-commute-controls + .commute-grid {
+  .floating-panel-shell .saved-commute-controls + .commute-grid,
+  .floating-panel-shell .saved-commute-controls + .saved-commute-list-scroll {
     padding-top: 0;
   }
 }
@@ -373,6 +378,7 @@
 .alert-stack,
 .closure-stack,
 .commute-grid,
+.saved-commute-list-scroll,
 .my-stations-list,
 .reliability-list,
 .health-grid,
@@ -385,7 +391,9 @@
 .release-notes-content,
 .privacy-acknowledgements-scroll,
 .mobile-status-content-scroll,
-.alert-history-scroll {
+.alert-history-scroll,
+.feedback-content,
+.logs-dropdown-scroll {
   overflow-y: auto;
   flex: 1 1 auto;
 }

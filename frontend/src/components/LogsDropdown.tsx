@@ -254,7 +254,7 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
             </div>
           ) : null}
 
-          <div className="max-h-[60vh] overflow-y-auto p-4 flex flex-col gap-3">
+          <div className="logs-dropdown-scroll max-h-[60vh] overflow-y-auto p-4 flex flex-col gap-3">
             {activeView === "records" && rawAlertsEnabled ? (
               <RawAlertDiagnostics network={network} />
             ) : loading && !ttcHealth && !regionalHealth ? (

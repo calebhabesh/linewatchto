@@ -650,6 +650,7 @@ function InteractiveTtcMapComponent({
   const defaultMapFrame = useMemo(() => ({
     bounds: TTC_MAP_CONTENT_BOUNDS,
     mobileZoom: 1.65,
+    mobileCenterStationId: "union",
     topInset: desktopMapTopInset,
     bottomInset: desktopMapBottomInset,
     horizontalInsetRatio: desktopMapTopInset > 0

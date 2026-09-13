@@ -691,17 +691,24 @@ for (const width of [320, 375, 412]) {
       const trains = rect(".mobile-train-toggle");
       const controls = rect(".mobile-map-controls-group");
       const status = rect(".mobile-status-peek");
-      return trains.top >= legend.bottom + 5
+      return trains.top >= legend.bottom + 8
         && Math.abs(trains.bottom - controls.bottom) <= 1
         && trains.right < controls.left
-        && controls.top >= rail.bottom + 5
+        && controls.top >= rail.bottom + 8
         && controls.bottom <= status.top - 5;
     })).toBe(true);
-    for (const selector of [".mobile-app-info .site-guide-trigger", ".mobile-map-recenter-btn", ".mobile-map-zoom-btn"]) {
-      const bounds = await page.locator(selector).first().boundingBox();
-      expect(bounds!.width).toBeGreaterThanOrEqual(44);
-      expect(bounds!.height).toBeGreaterThanOrEqual(44);
-    }
+
+    const chipTriggerBounds = await page.locator(".mobile-app-chip-scroll .site-guide-trigger").first().boundingBox();
+    expect(chipTriggerBounds!.width).toBeGreaterThanOrEqual(44);
+    expect(chipTriggerBounds!.height).toBeGreaterThanOrEqual(36);
+
+    const recenterBounds = await page.locator(".mobile-map-recenter-btn").first().boundingBox();
+    expect(recenterBounds!.width).toBeGreaterThanOrEqual(44);
+    expect(recenterBounds!.height).toBeGreaterThanOrEqual(44);
+
+    const zoomBounds = await page.locator(".mobile-map-zoom-btn").first().boundingBox();
+    expect(zoomBounds!.width).toBeGreaterThanOrEqual(44);
+    expect(zoomBounds!.height).toBeGreaterThanOrEqual(36);
   });
 }
 
@@ -809,5 +816,75 @@ test("commute card footer actions fit on 1 row at 375px and reflow gracefully at
   );
   expect(hasHorizontalScroll).toBe(false);
 });
+
+for (const { width, height } of [{ width: 375, height: 667 }, { width: 320, height: 568 }, { width: 375, height: 568 }]) {
+  for (const network of ["ttc", "regional"] as const) {
+    test(`compact ${width}x${height} preserves >=8px control gaps with notices in ${network}`, async ({ page, request, isMobile }) => {
+      test.skip(!isMobile, "compact mobile layout");
+      await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+      await page.setViewportSize({ width, height });
+      await page.addInitScript(() => {
+        localStorage.setItem("linewatch-welcome-seen-v1", "true");
+        localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+        localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+      });
+      await page.goto("/?previewTime=2026-06-04T01:15:00-04:00");
+      if (network === "regional") {
+        const switcher = page.locator(".mobile-map-network-switch");
+        await expect(switcher).toBeVisible({ timeout: 15_000 });
+        await switcher.getByRole("button", { name: "GO/UP", exact: true }).click();
+        await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional", { timeout: 15_000 });
+      }
+      await expect(page.locator(network === "ttc" ? ".ttc-map-stage" : ".regional-map-stage")).toBeVisible({ timeout: 15_000 });
+      const notice = page.locator(".mobile-service-sheet-notice-row");
+      await expect(notice).toBeVisible({ timeout: 10_000 });
+
+      const metrics = await page.evaluate(() => {
+        const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+        const rail = rect(".mobile-map-network-switch");
+        const legend = rect(".mobile-legend-pill");
+        const trains = rect(".mobile-train-toggle");
+        const controls = rect(".mobile-map-controls-group");
+        const status = rect(".mobile-status-peek");
+        return {
+          gapRailToControls: controls.top - rail.bottom,
+          gapLegendToTrains: trains.top - legend.bottom,
+          controlsBottom: controls.bottom,
+          statusTop: status.top,
+          trainsRight: trains.right,
+          controlsLeft: controls.left,
+          railRect: { top: rail.top, bottom: rail.bottom, height: rail.height },
+          controlsRect: { top: controls.top, bottom: controls.bottom, height: controls.height },
+        };
+      });
+      console.log(`METRICS 375x568 ${network}:`, JSON.stringify(metrics, null, 2));
+
+      expect(metrics.gapRailToControls).toBeGreaterThanOrEqual(8);
+      expect(metrics.gapLegendToTrains).toBeGreaterThanOrEqual(8);
+      expect(metrics.controlsBottom).toBeLessThanOrEqual(metrics.statusTop);
+      expect(metrics.trainsRight).toBeLessThan(metrics.controlsLeft);
+
+      const recenterBtn = page.locator(".mobile-map-recenter-btn");
+      await expect(recenterBtn).toBeVisible();
+      const recenterBox = (await recenterBtn.boundingBox())!;
+      expect(recenterBox.width).toBeGreaterThanOrEqual(40);
+      expect(recenterBox.height).toBeGreaterThanOrEqual(40);
+
+      const chipTrigger = page.locator(".mobile-app-chip-scroll .site-guide-trigger");
+      await expect(chipTrigger).toBeVisible();
+      const chipBox = (await chipTrigger.boundingBox())!;
+      expect(chipBox.width).toBeGreaterThanOrEqual(44);
+      expect(chipBox.height).toBeGreaterThanOrEqual(32);
+
+      await chipTrigger.click();
+      const panel = page.locator(".site-guide-panel");
+      await expect(panel).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(panel).toBeHidden();
+
+      await page.screenshot({ path: `/tmp/linewatch-compact-${network}-${width}x${height}.png` });
+    });
+  }
+}
 
 

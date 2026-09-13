@@ -1,5 +1,5 @@
 import { useMapViewportPersistence } from "./useMapViewportPersistence";
-import { readMobileMapFrameInsets } from "./mobileMapFrame";
+import { readMapStationCenterX, readMobileMapFrameInsets } from "./mobileMapFrame";
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, type PointerEvent, type WheelEvent } from "react";
 import {
@@ -43,6 +43,7 @@ type UsePanZoomOptions = {
     horizontalInsetRatio?: number;
     minHorizontalInset?: number;
     mobileZoom?: number;
+    mobileCenterStationId?: string;
   };
   animateInitialEntrance?: boolean;
 };
@@ -129,8 +130,11 @@ export function usePanZoom({
       const zoom = Math.max(1, Math.min(defaultFrame.mobileZoom,
         availableHeight * 0.9 / (defaultFrame.bounds.height * frame.scale)));
       const focus = computeInsetViewportFocus(width, height, mobileInsets);
+      const stationX = defaultFrame.mobileCenterStationId
+        ? readMapStationCenterX(containerRef.current, defaultFrame.mobileCenterStationId) : null;
       return {
-        x: focus.focusX - (focus.focusX - frame.x) * zoom,
+        x: stationX !== null ? focus.focusX - stationX * frame.scale * zoom
+          : focus.focusX - (focus.focusX - frame.x) * zoom,
         y: focus.focusY - (focus.focusY - frame.y) * zoom,
         scale: frame.scale * zoom,
       };

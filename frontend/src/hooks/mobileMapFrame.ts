@@ -25,3 +25,12 @@ export function readMobileMapFrameInsets(viewport: HTMLElement | null) {
     bottom: Math.max(0, rect.bottom - overviewTop),
   };
 }
+/** Station center in the rendered SVG viewport, before the map camera transform. */
+export function readMapStationCenterX(viewport: HTMLElement | null, stationId: string) {
+  const station = viewport?.querySelector<SVGGraphicsElement>(`svg #station-${stationId}`);
+  const matrix = station?.getCTM();
+  if (!station || !matrix) return null;
+  const bounds = station.getBBox();
+  return new DOMPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+    .matrixTransform(matrix).x;
+}

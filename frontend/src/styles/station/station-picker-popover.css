@@ -421,14 +421,10 @@
     margin-top: 0px !important;
     padding-top: 12px !important;
     padding-bottom: 12px !important;
-    mask-image: none !important;
-    -webkit-mask-image: none !important;
   }
 
   .mobile-view-content-wrapper[data-active-view="status"] .mobile-status-content-scroll {
     padding-bottom: 0 !important;
-    mask-image: none !important;
-    -webkit-mask-image: none !important;
   }
 
   .mobile-view-content-wrapper[data-active-view="status"] .mobile-status-sheet {

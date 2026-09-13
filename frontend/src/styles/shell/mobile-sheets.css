@@ -1077,6 +1077,7 @@
   .alert-stack,
   .closure-stack,
   .commute-grid,
+  .saved-commute-list-scroll,
   .my-stations-list,
   .reliability-list,
   .health-grid,
@@ -1091,7 +1092,9 @@
   .station-detail-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll,
-  .mobile-status-content-scroll {
+  .mobile-status-content-scroll,
+  .feedback-content,
+  .logs-dropdown-scroll {
     overflow-y: auto;
     flex: 1 1 auto;
   }
@@ -1102,6 +1105,7 @@
   .alert-stack,
   .closure-stack,
   .commute-grid,
+  .saved-commute-list-scroll,
   .my-stations-list,
   .reliability-list {
     padding-bottom: 12px;
@@ -1138,6 +1142,7 @@
   }
 
   .commute-grid,
+  .saved-commute-list-scroll,
   .my-stations-list,
   .surface-notices-controls + .surface-notices-scroll,
   .surface-notices-scroll {
@@ -1148,7 +1153,12 @@
   .station-search-lines-column,
   .station-search-stations-column,
   .station-detail-scroll {
-    padding-bottom: 0;
+    padding-top: 10px;
+  }
+
+  .station-detail-scroll {
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .notification-settings-scroll,
@@ -1164,8 +1174,6 @@
 
   .mobile-status-content-scroll {
     padding-bottom: 0;
-    mask-image: none;
-    -webkit-mask-image: none;
   }
 
   /* Keep a compact position indicator without rendering a full-height rail. */

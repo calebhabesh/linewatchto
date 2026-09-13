@@ -129,7 +129,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(mobileLegendSource, /size=\{24\}/);
     assert.match(mobileLegendSource, /name:\s*"UP Express"/);
     assert.match(globalsCss, /\.mobile-legend-pill--regional\s*\{[^}]*max-width:\s*44px/);
-    assert.match(globalsCss, /\.mobile-legend-line-list\s*\{[^}]*overflow-y:\s*auto/s);
+    assert.match(globalsCss, /\.mobile-legend-line-list\s*\{[^}]*position:\s*absolute/s);
     assert.match(
       globalsCss,
       /\.mobile-legend-pill--regional\.mobile-legend-pill--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)/,
@@ -991,7 +991,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /right:\s*horizontalInset/);
     assert.match(regionalMapSource, /top:\s*desktopMapTopInset/);
     assert.match(regionalMapSource, /bottom:\s*desktopMapBottomInset/);
-    assert.match(regionalMapSource, /x: focus\.focusX - \(focus\.focusX - frame\.x\) \* frameScale/);
+    assert.match(regionalMapSource, /focus\.focusX - \(focus\.focusX - frame\.x\) \* frameScale/);
     assert.match(regionalMapSource, /y: focus\.focusY - \(focus\.focusY - frame\.y\) \* frameScale/);
     assert.match(regionalMapSource, /scale: frame\.scale \* frameScale/);
   });

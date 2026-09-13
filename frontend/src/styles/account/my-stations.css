@@ -1512,7 +1512,7 @@
   }
 
   .my-stations-body {
-    padding: 0 var(--mobile-sheet-gutter, 16px) 16px;
+    padding: 0 var(--mobile-sheet-gutter, 16px) 0;
   }
 
   .my-stations-body > .my-stations-controls {
@@ -1529,6 +1529,7 @@
   .my-stations-list {
     padding-left: 0;
     padding-right: 0;
+    padding-bottom: 12px;
   }
 
   .my-stations-panel-empty .my-stations-empty {

@@ -71,7 +71,7 @@ test.describe("vertical centering and mode switch stability", () => {
       await page.locator(".mobile-network-selector-slot .network-btn-regional").click();
       const surface = page.locator(".network-map-transition-surface");
       await expect(surface).toHaveAttribute("data-map-surface-transition", "loading");
-      await expect(page.getByRole("button", { name: "Rotate map", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Rotate Map", exact: true })).toBeVisible();
       await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
       expect(await surface.evaluate((node) => getComputedStyle(node).opacity)).toBe("0");
       releaseAsset();

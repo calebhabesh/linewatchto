@@ -22,7 +22,7 @@ test("service sheet expands by tap, keyboard and drag without moving the map", a
   const before = await camera.getAttribute("style");
   await page.getByRole("button", { name: "Expand service sheet" }).click();
   await expect(sheet).toHaveAttribute("data-snap", "halfway");
-  for (const selector of [".mobile-app-shortcuts", ".mobile-app-info", ".mobile-map-network-switch", ".mobile-train-toggle", ".mobile-map-controls-group"]) {
+  for (const selector of [".mobile-app-shortcuts", ".mobile-app-chip-scroll .site-guide-trigger", ".mobile-map-network-switch", ".mobile-train-toggle", ".mobile-map-controls-group"]) {
     await expect(page.locator(selector)).toBeVisible();
     expect(await page.locator(selector).evaluate(node => getComputedStyle(node).display)).not.toBe("none");
   }

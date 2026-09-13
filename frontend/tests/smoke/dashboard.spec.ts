@@ -4516,7 +4516,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await page.screenshot({ path: `/tmp/linewatch-commute-spine-${isMobile ? "mobile" : "desktop"}.png` });
 
 
-  const viewPathButton = page.getByRole("button", { name: "View path on map" });
+  const viewPathButton = page.getByRole("button", { name: /View path.*on map/i });
   await expect(viewPathButton).toBeVisible();
   const viewPathButtonStyle = await viewPathButton.evaluate((button) => {
     const style = getComputedStyle(button);

@@ -9,6 +9,7 @@ const SCROLL_LIST_SELECTOR = [
   ".alert-stack",
   ".closure-stack",
   ".commute-grid",
+  ".saved-commute-list-scroll",
   ".reliability-list",
   ".health-grid",
   ".my-stations-list",
@@ -34,6 +35,14 @@ const SCROLL_LIST_SELECTOR = [
   ".push-diagnostics-scroll",
   ".alert-history-line-filter-options",
   ".alert-history-scroll",
+  ".saved-commute-sort-options",
+  ".impact-list-select-options",
+  ".opening-disclaimer-panel",
+  ".mobile-legend-line-list",
+  ".logs-dropdown-scroll",
+  ".feedback-content",
+  ".subway-closed-content",
+  ".mobile-service-sheet-details",
 ].join(",");
 
 const MORE_BELOW_ATTRIBUTE = "data-scroll-more-below";
@@ -99,24 +108,46 @@ export function ScrollOverflowAffordances() {
       });
     };
     const mutationObserver = new MutationObserver((mutations) => {
+      let needsUpdate = false;
       mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node instanceof HTMLElement) visitListsWithin(node, registerElement);
-        });
-        mutation.removedNodes.forEach((node) => {
-          if (node instanceof HTMLElement) visitListsWithin(node, unregisterElement);
-        });
+        if (mutation.type === "childList") {
+          mutation.addedNodes.forEach((node) => {
+            if (node instanceof HTMLElement) visitListsWithin(node, registerElement);
+          });
+          mutation.removedNodes.forEach((node) => {
+            if (node instanceof HTMLElement) visitListsWithin(node, unregisterElement);
+          });
+          needsUpdate = true;
+        } else if (mutation.type === "attributes") {
+          if (
+            mutation.attributeName !== MORE_BELOW_ATTRIBUTE &&
+            mutation.attributeName !== "data-scroll-more-right"
+          ) {
+            needsUpdate = true;
+          }
+        }
       });
-      scheduleUpdate();
+      if (needsUpdate) {
+        scheduleUpdate();
+      }
     });
 
     visitListsWithin(shell, registerElement);
     shell.addEventListener("scroll", handleScroll, true);
+    shell.addEventListener("animationend", scheduleUpdate, true);
+    shell.addEventListener("transitionend", scheduleUpdate, true);
     window.addEventListener("resize", handleResize);
-    mutationObserver.observe(shell, { childList: true, subtree: true });
+    mutationObserver.observe(shell, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "hidden", "aria-expanded", "data-expanded", "data-nav-direction"],
+    });
 
     return () => {
       shell.removeEventListener("scroll", handleScroll, true);
+      shell.removeEventListener("animationend", scheduleUpdate, true);
+      shell.removeEventListener("transitionend", scheduleUpdate, true);
       window.removeEventListener("resize", handleResize);
       mutationObserver.disconnect();
       resizeObserver?.disconnect();

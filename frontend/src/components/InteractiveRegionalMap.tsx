@@ -1,7 +1,7 @@
 "use client";
 
 import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
-import { observeMobileMapFrame, readMobileMapFrameInsets } from "../hooks/mobileMapFrame";
+import { observeMobileMapFrame, readMapStationCenterX, readMobileMapFrameInsets } from "../hooks/mobileMapFrame";
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
@@ -3290,8 +3290,10 @@ function InteractiveRegionalMapComponent({
     const frameScale = REGIONAL_MAP_DEFAULT_FRAME_SCALE * (mobileInsets ? 1.15 : 1);
     // Use more of the available horizontal canvas while keeping the enlarged
     // default frame centered in the space between the top console and alerts.
+    const unionX = mobileInsets ? readMapStationCenterX(viewport, "union") : null;
     const defaultFrame = {
-      x: focus.focusX - (focus.focusX - frame.x) * frameScale,
+      x: unionX !== null ? focus.focusX - unionX * frame.scale * frameScale
+        : focus.focusX - (focus.focusX - frame.x) * frameScale,
       y: focus.focusY - (focus.focusY - frame.y) * frameScale,
       scale: frame.scale * frameScale,
     };

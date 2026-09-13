@@ -12,6 +12,10 @@ for (const network of ['ttc', 'regional'] as const) {
     if (network === 'regional') await page.locator('.mobile-map-network-switch').getByRole('button', { name: 'GO/UP', exact: true }).click();
     await expect(page.locator(`.${network}-map-stage[data-raster-map-ready="true"]`)).toBeVisible();
     await expect(page.locator(".network-map-transition-surface")).not.toHaveAttribute("data-map-surface-transition");
+    await expect.poll(() => page.locator(`.${network}-map-stage svg #station-union`).first().evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return Math.abs((rect.left + rect.right) / 2 - innerWidth / 2);
+    })).toBeLessThan(2);
     await expect.poll(() => page.evaluate((mode) => {
       const stage = document.querySelector<HTMLElement>(`.${mode}-map-stage`)!;
       const viewport = document.querySelector<HTMLElement>(mode === 'ttc' ? '[data-map-pan-zoom-viewport]' : '.regional-map-viewport')!;

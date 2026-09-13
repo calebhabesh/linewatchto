@@ -129,7 +129,7 @@ for (const network of ["ttc", "regional"] as const) {
     await expect(shell).toHaveCSS("width", "393px");
     await expect(shell).toHaveCSS("height", "556px");
     await page.getByRole("button", { name: "Exit rotated map", exact: true }).click();
-    await page.getByRole("button", { name: "Rotate map", exact: true }).click();
+    await page.getByRole("button", { name: "Rotate Map", exact: true }).click();
     await expect(shell).toHaveCSS("width", "393px");
     await expect(shell).toHaveCSS("height", "556px");
     await page.evaluate(() => {
@@ -165,11 +165,11 @@ for (const network of ["ttc", "regional"] as const) {
     // both orientations still match the mobile layout query.
     await page.setViewportSize({ width: 852, height: 393 });
     await expect(shell).not.toHaveClass(/mobile-map-rotated/);
-    await expect(page.getByRole("button", { name: "Rotate map", exact: true })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Rotate Map", exact: true })).toBeHidden();
     await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
     await expect(page.locator("[data-map-viewport-orientation]")).toHaveAttribute("data-map-viewport-orientation", "standard");
     await page.setViewportSize({ width: 393, height: 556 });
-    await page.getByRole("button", { name: "Rotate map", exact: true }).click();
+    await page.getByRole("button", { name: "Rotate Map", exact: true }).click();
     await page.getByRole("button", { name: "Exit rotated map", exact: true }).click();
     await expect(shell).not.toHaveClass(/mobile-map-rotated/);
   });

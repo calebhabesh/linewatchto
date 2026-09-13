@@ -1114,7 +1114,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.regional-map-legend/);
     assert.match(content, /\.mobile-legend-pill/);
     assert.match(content, /\.mobile-legend-route-badge/);
-    assert.match(content, /\.mobile-legend-heading/);
+    assert.match(content, /\.mobile-legend-line-list/);
     assert.match(content, /\.mobile-legend-line-row/);
   });
 

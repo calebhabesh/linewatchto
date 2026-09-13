@@ -38,6 +38,7 @@
   .alert-stack,
   .closure-stack,
   .commute-grid,
+  .saved-commute-list-scroll,
   .reliability-list,
   .health-grid,
   .mobile-more-content-scroll,
@@ -51,8 +52,21 @@
   .release-notes-content,
   .privacy-acknowledgements-scroll,
   .saved-commute-sort-options,
+  .impact-list-select-options,
   .my-stations-list,
-  .alert-history-scroll {
+  .alert-history-scroll,
+  .opening-disclaimer-panel,
+  .logs-dropdown-scroll,
+  .feedback-content,
+  .overlap-chooser-list,
+  .site-guide-body,
+  .commute-station-options,
+  .commute-station-lines-column,
+  .commute-station-stations-scroll,
+  .commute-route-stop-list,
+  .push-devices-list,
+  .push-diagnostics-scroll,
+  .alert-history-line-filter-options {
     scrollbar-width: thin; /* Firefox */
     scrollbar-color: #303641 transparent; /* Firefox */
     -ms-overflow-style: auto; /* IE 10+ */
@@ -64,6 +78,7 @@
   .alert-stack::-webkit-scrollbar,
   .closure-stack::-webkit-scrollbar,
   .commute-grid::-webkit-scrollbar,
+  .saved-commute-list-scroll::-webkit-scrollbar,
   .reliability-list::-webkit-scrollbar,
   .health-grid::-webkit-scrollbar,
   .mobile-more-content-scroll::-webkit-scrollbar,
@@ -76,8 +91,21 @@
   .release-notes-content::-webkit-scrollbar,
   .privacy-acknowledgements-scroll::-webkit-scrollbar,
   .saved-commute-sort-options::-webkit-scrollbar,
+  .impact-list-select-options::-webkit-scrollbar,
   .my-stations-list::-webkit-scrollbar,
-  .alert-history-scroll::-webkit-scrollbar {
+  .alert-history-scroll::-webkit-scrollbar,
+  .opening-disclaimer-panel::-webkit-scrollbar,
+  .logs-dropdown-scroll::-webkit-scrollbar,
+  .feedback-content::-webkit-scrollbar,
+  .overlap-chooser-list::-webkit-scrollbar,
+  .site-guide-body::-webkit-scrollbar,
+  .commute-station-options::-webkit-scrollbar,
+  .commute-station-lines-column::-webkit-scrollbar,
+  .commute-station-stations-scroll::-webkit-scrollbar,
+  .commute-route-stop-list::-webkit-scrollbar,
+  .push-devices-list::-webkit-scrollbar,
+  .push-diagnostics-scroll::-webkit-scrollbar,
+  .alert-history-line-filter-options::-webkit-scrollbar {
     display: block;
     width: 8px;
     height: 8px;
@@ -95,6 +123,7 @@
   .alert-stack::-webkit-scrollbar-track,
   .closure-stack::-webkit-scrollbar-track,
   .commute-grid::-webkit-scrollbar-track,
+  .saved-commute-list-scroll::-webkit-scrollbar-track,
   .reliability-list::-webkit-scrollbar-track,
   .health-grid::-webkit-scrollbar-track,
   .mobile-more-content-scroll::-webkit-scrollbar-track,
@@ -108,8 +137,21 @@
   .release-notes-content::-webkit-scrollbar-track,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-track,
   .saved-commute-sort-options::-webkit-scrollbar-track,
+  .impact-list-select-options::-webkit-scrollbar-track,
   .my-stations-list::-webkit-scrollbar-track,
-  .alert-history-scroll::-webkit-scrollbar-track {
+  .alert-history-scroll::-webkit-scrollbar-track,
+  .opening-disclaimer-panel::-webkit-scrollbar-track,
+  .logs-dropdown-scroll::-webkit-scrollbar-track,
+  .feedback-content::-webkit-scrollbar-track,
+  .overlap-chooser-list::-webkit-scrollbar-track,
+  .site-guide-body::-webkit-scrollbar-track,
+  .commute-station-options::-webkit-scrollbar-track,
+  .commute-station-lines-column::-webkit-scrollbar-track,
+  .commute-station-stations-scroll::-webkit-scrollbar-track,
+  .commute-route-stop-list::-webkit-scrollbar-track,
+  .push-devices-list::-webkit-scrollbar-track,
+  .push-diagnostics-scroll::-webkit-scrollbar-track,
+  .alert-history-line-filter-options::-webkit-scrollbar-track {
     background: transparent;
   }
 
@@ -119,6 +161,7 @@
   .alert-stack::-webkit-scrollbar-thumb,
   .closure-stack::-webkit-scrollbar-thumb,
   .commute-grid::-webkit-scrollbar-thumb,
+  .saved-commute-list-scroll::-webkit-scrollbar-thumb,
   .reliability-list::-webkit-scrollbar-thumb,
   .health-grid::-webkit-scrollbar-thumb,
   .mobile-more-content-scroll::-webkit-scrollbar-thumb,
@@ -132,8 +175,21 @@
   .release-notes-content::-webkit-scrollbar-thumb,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
   .saved-commute-sort-options::-webkit-scrollbar-thumb,
+  .impact-list-select-options::-webkit-scrollbar-thumb,
   .my-stations-list::-webkit-scrollbar-thumb,
-  .alert-history-scroll::-webkit-scrollbar-thumb {
+  .alert-history-scroll::-webkit-scrollbar-thumb,
+  .opening-disclaimer-panel::-webkit-scrollbar-thumb,
+  .logs-dropdown-scroll::-webkit-scrollbar-thumb,
+  .feedback-content::-webkit-scrollbar-thumb,
+  .overlap-chooser-list::-webkit-scrollbar-thumb,
+  .site-guide-body::-webkit-scrollbar-thumb,
+  .commute-station-options::-webkit-scrollbar-thumb,
+  .commute-station-lines-column::-webkit-scrollbar-thumb,
+  .commute-station-stations-scroll::-webkit-scrollbar-thumb,
+  .commute-route-stop-list::-webkit-scrollbar-thumb,
+  .push-devices-list::-webkit-scrollbar-thumb,
+  .push-diagnostics-scroll::-webkit-scrollbar-thumb,
+  .alert-history-line-filter-options::-webkit-scrollbar-thumb {
     background: #303641;
     border-radius: 999px;
     border: 1px solid transparent;
@@ -145,6 +201,7 @@
   .alert-stack::-webkit-scrollbar-thumb:hover,
   .closure-stack::-webkit-scrollbar-thumb:hover,
   .commute-grid::-webkit-scrollbar-thumb:hover,
+  .saved-commute-list-scroll::-webkit-scrollbar-thumb:hover,
   .reliability-list::-webkit-scrollbar-thumb:hover,
   .health-grid::-webkit-scrollbar-thumb:hover,
   .mobile-more-content-scroll::-webkit-scrollbar-thumb:hover,
@@ -158,8 +215,21 @@
   .release-notes-content::-webkit-scrollbar-thumb:hover,
   .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb:hover,
   .saved-commute-sort-options::-webkit-scrollbar-thumb:hover,
+  .impact-list-select-options::-webkit-scrollbar-thumb:hover,
   .my-stations-list::-webkit-scrollbar-thumb:hover,
-  .alert-history-scroll::-webkit-scrollbar-thumb:hover {
+  .alert-history-scroll::-webkit-scrollbar-thumb:hover,
+  .opening-disclaimer-panel::-webkit-scrollbar-thumb:hover,
+  .logs-dropdown-scroll::-webkit-scrollbar-thumb:hover,
+  .feedback-content::-webkit-scrollbar-thumb:hover,
+  .overlap-chooser-list::-webkit-scrollbar-thumb:hover,
+  .site-guide-body::-webkit-scrollbar-thumb:hover,
+  .commute-station-options::-webkit-scrollbar-thumb:hover,
+  .commute-station-lines-column::-webkit-scrollbar-thumb:hover,
+  .commute-station-stations-scroll::-webkit-scrollbar-thumb:hover,
+  .commute-route-stop-list::-webkit-scrollbar-thumb:hover,
+  .push-devices-list::-webkit-scrollbar-thumb:hover,
+  .push-diagnostics-scroll::-webkit-scrollbar-thumb:hover,
+  .alert-history-line-filter-options::-webkit-scrollbar-thumb:hover {
     background: #4d5667;
   }
 
@@ -232,24 +302,43 @@
   }
 }
 
-/* A shallow content fade signals that a list continues without adding a
-   visible edge or painting a dark overlay across the next row. This rule
-   intentionally lives after the mobile list resets above. */
+/* Standardized subtle content fade signals that a list continues without adding a
+   harsh edge or covering too much of the next item. Applied consistently across
+   all scrollable pages, menus, submenus, and dialogs on mobile and desktop. */
 .linewatch-shell [data-scroll-more-below] {
   -webkit-mask-image: linear-gradient(
     to bottom,
     #000 0,
-    #000 calc(100% - 36px),
-    rgba(0, 0, 0, 0.72) calc(100% - 24px),
-    rgba(0, 0, 0, 0.32) calc(100% - 10px),
+    #000 calc(100% - 20px),
+    rgba(0, 0, 0, 0.85) calc(100% - 12px),
+    rgba(0, 0, 0, 0.45) calc(100% - 5px),
     transparent 100%
   );
   mask-image: linear-gradient(
     to bottom,
     #000 0,
-    #000 calc(100% - 36px),
-    rgba(0, 0, 0, 0.72) calc(100% - 24px),
-    rgba(0, 0, 0, 0.32) calc(100% - 10px),
+    #000 calc(100% - 20px),
+    rgba(0, 0, 0, 0.85) calc(100% - 12px),
+    rgba(0, 0, 0, 0.45) calc(100% - 5px),
+    transparent 100%
+  );
+}
+
+.linewatch-shell [data-scroll-more-right] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - 20px),
+    rgba(0, 0, 0, 0.85) calc(100% - 12px),
+    rgba(0, 0, 0, 0.45) calc(100% - 5px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - 20px),
+    rgba(0, 0, 0, 0.85) calc(100% - 12px),
+    rgba(0, 0, 0, 0.45) calc(100% - 5px),
     transparent 100%
   );
 }

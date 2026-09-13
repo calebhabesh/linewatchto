@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
   AlertTriangle,
@@ -174,7 +175,12 @@ function OverlayAssetPreview({
 
 const SITE_GUIDE_SEEN_STORAGE_KEY = "linewatch-site-guide-seen-v1";
 
-export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
+export interface SiteGuideDropdownProps {
+  onOpenChange?: (open: boolean) => void;
+  variant?: "default" | "chip";
+}
+
+export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGuideDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -188,6 +194,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
     }
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const closeTimerRef = useRef<number | null>(null);
@@ -195,13 +202,15 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
   const closeGuide = useCallback(() => {
     if (!isOpen || isClosing) return;
     setIsClosing(true);
-    const reducedMotion = Boolean(dropdownRef.current?.closest(".motion-paused"))
-      || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const container = dropdownRef.current ?? triggerRef.current;
+    const reducedMotion = Boolean(container?.closest(".motion-paused"))
+      || (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     closeTimerRef.current = window.setTimeout(() => {
       setIsOpen(false);
       setIsClosing(false);
       closeTimerRef.current = null;
       onOpenChange?.(false);
+      triggerRef.current?.focus();
     }, reducedMotion ? 0 : 220);
   }, [isClosing, isOpen, onOpenChange]);
 
@@ -228,7 +237,11 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent | MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const insideTrigger = (dropdownRef.current && dropdownRef.current.contains(target))
+        || (triggerRef.current && triggerRef.current.contains(target));
+      const insidePanel = panelRef.current && panelRef.current.contains(target);
+      if (!insideTrigger && !insidePanel) {
         closeGuide();
       }
     }
@@ -247,43 +260,31 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
     };
   }, [closeGuide]);
 
-  return (
-    <div className="site-guide-dropdown relative pointer-events-auto" ref={dropdownRef}>
-      <button
-        type="button"
-        className="site-guide-trigger panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
-        suppressHydrationWarning
-        aria-controls={panelId}
-        aria-expanded={isOpen && !isClosing}
-        aria-label="Open site guide"
-        data-menu-attention={(!guideSeen && (!isOpen || isClosing)) ? "true" : "false"}
-        onClick={() => {
-          if (isOpen) {
-            closeGuide();
-            return;
-          }
-          /* Mark the guide as seen on first open so the pulse never returns. */
-          if (!guideSeen) {
-            setGuideSeen(true);
-            try { window.localStorage.setItem(SITE_GUIDE_SEEN_STORAGE_KEY, "true"); } catch { /* noop */ }
-          }
-          setIsClosing(false);
-          setIsOpen(true);
-          onOpenChange?.(true);
-        }}
-      >
-        <Image
-          src="/assets/linewatch/site-guide.svg"
-          alt=""
-          aria-hidden="true"
-          width={24}
-          height={24}
-          className="site-guide-trigger-icon"
-          priority
-        />
-      </button>
+  const handleToggle = () => {
+    if (isOpen) {
+      closeGuide();
+      return;
+    }
+    /* Mark the guide as seen on first open so the pulse never returns. */
+    if (!guideSeen) {
+      setGuideSeen(true);
+      try { window.localStorage.setItem(SITE_GUIDE_SEEN_STORAGE_KEY, "true"); } catch { /* noop */ }
+    }
+    setIsClosing(false);
+    setIsOpen(true);
+    onOpenChange?.(true);
+  };
 
-      {isOpen && isMobile ? (
+  const portalTarget = typeof document !== "undefined"
+    ? (document.getElementById("mobile-app-info-slot")
+       || document.querySelector(".mobile-app-info")
+       || document.querySelector(".linewatch-shell")
+       || document.body)
+    : null;
+
+  const panelContent = (
+    <>
+      {(isOpen && (isMobile || variant === "chip")) ? (
         <div
           className={`site-guide-backdrop fixed inset-0 z-[67] transition-opacity duration-200 ${isClosing ? "opacity-0 pointer-events-none" : "opacity-100"}`}
           onClick={closeGuide}
@@ -525,6 +526,64 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
           </div>
         </section>
       ) : null}
+    </>
+  );
+
+  if (variant === "chip") {
+    return (
+      <>
+        <button
+          ref={triggerRef}
+          type="button"
+          className="site-guide-trigger mobile-app-chip-guide"
+          suppressHydrationWarning
+          aria-controls={panelId}
+          aria-expanded={isOpen && !isClosing}
+          aria-label="Open site guide"
+          title="Open site guide"
+          data-menu-attention={(!guideSeen && (!isOpen || isClosing)) ? "true" : "false"}
+          onClick={handleToggle}
+        >
+          <Image
+            src="/assets/linewatch/site-guide.svg"
+            alt=""
+            aria-hidden="true"
+            width={20}
+            height={20}
+            className="site-guide-trigger-icon"
+            priority
+          />
+        </button>
+        {isOpen && portalTarget ? createPortal(panelContent, portalTarget) : null}
+      </>
+    );
+  }
+
+  return (
+    <div className="site-guide-dropdown relative pointer-events-auto" ref={dropdownRef}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="site-guide-trigger panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+        suppressHydrationWarning
+        aria-controls={panelId}
+        aria-expanded={isOpen && !isClosing}
+        aria-label="Open site guide"
+        data-menu-attention={(!guideSeen && (!isOpen || isClosing)) ? "true" : "false"}
+        onClick={handleToggle}
+      >
+        <Image
+          src="/assets/linewatch/site-guide.svg"
+          alt=""
+          aria-hidden="true"
+          width={24}
+          height={24}
+          className="site-guide-trigger-icon"
+          priority
+        />
+      </button>
+
+      {panelContent}
     </div>
   );
 }

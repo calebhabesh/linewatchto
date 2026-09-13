@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useLayoutEffect, useRef, type CSSProperties } from "react";
 import type { ImpactKind } from "../app/linewatch-data";
 import { useDashboardData } from "../app/DataContext";
@@ -160,85 +160,57 @@ export function MobileLegend({
       className={`mobile-legend-pill fixed left-4 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl overflow-hidden select-none md:hidden ${modifierClasses}`}
       style={{ zIndex: expanded ? 41 : 35 }}
     >
-      {expanded ? (
-        <>
-          <div
-            className="mobile-legend-heading cursor-pointer"
-            onClick={onToggleExpanded}
-          >
-            <span>Service by line</span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleExpanded?.();
-              }}
-              className="mobile-legend-collapse"
-              aria-expanded="true"
-              aria-label="Transit line legend"
-              title="Collapse transit line legend"
-            >
-              <ChevronDown size={17} aria-hidden="true" />
-            </button>
-          </div>
-          <nav className="mobile-legend-line-list" aria-label="Service impacts by transit line">
-            {lineSummaries.map((line) => {
-              const impactDescription = line.impacts
-                .map((impact) => `${impact.count} ${impact.label}${impact.count === 1 ? "" : "s"}`)
-                .join(", ");
-              return (
-                <button
-                  type="button"
-                  key={line.id}
-                  className={`mobile-legend-line-row service-tone-${line.tone}`}
-                  onClick={() => onLineClick?.(line.dataLineId)}
-                  aria-label={`View all service impacts for ${line.name}: ${snapshot ? "current status unknown" : impactDescription || "normal service"}`}
-                >
-                  <MobileLegendRouteBadge
-                    lineId={line.id}
-                    lineNumber={line.number}
-                    tone={line.tone}
-                    expanded
-                    regional={isRegional}
-                  />
-                  <span className="mobile-legend-line-name">{line.name}</span>
-                  <span className="mobile-legend-line-status" aria-hidden="true">
-                    {snapshot ? <span>Unknown</span> : line.totalCount > 0 ? (
-                      <strong className="service-tone-affected">{line.totalCount}</strong>
-                    ) : (
-                      <span className="mobile-legend-regular-label">Normal</span>
-                    )}
-                  </span>
-                  <ChevronRight className="mobile-legend-row-chevron" size={13} aria-hidden="true" />
-                </button>
-              );
-            })}
-          </nav>
-        </>
-      ) : (
-        <button
-          type="button"
-          onClick={onToggleExpanded}
-          className={`mobile-legend-collapsed-toggle ${modifierClasses}`}
-          aria-expanded="false"
-          aria-label="Transit line legend"
-          title={legendLabel}
-        >
-          <span className="sr-only">{legendLabel}</span>
-          {lineSummaries.map((line) => (
-            <span key={line.id} className={`mobile-legend-compact-row service-tone-${line.tone}`} aria-hidden="true">
-              <MobileLegendRouteBadge
-                lineId={line.id}
-                lineNumber={line.number}
-                tone={line.tone}
-                expanded={false}
-                regional={isRegional}
-              />
-              <span className="mobile-legend-status-rib" />
-            </span>
-          ))}
-        </button>
+      {expanded && (
+        <nav className="mobile-legend-line-list" aria-label="Service impacts by transit line">
+          {lineSummaries.map((line) => {
+            const impactDescription = line.impacts
+              .map((impact) => `${impact.count} ${impact.label}${impact.count === 1 ? "" : "s"}`)
+              .join(", ");
+            return (
+              <button
+                type="button"
+                key={line.id}
+                className={`mobile-legend-line-row service-tone-${line.tone}`}
+                onClick={() => onLineClick?.(line.dataLineId)}
+                aria-label={`View all service impacts for ${line.name}: ${snapshot ? "current status unknown" : impactDescription || "normal service"}`}
+              >
+                <span className="mobile-legend-line-name">{line.name}</span>
+                <span className="mobile-legend-line-status" aria-hidden="true">
+                  {snapshot ? <span>Unknown</span> : line.totalCount > 0 ? (
+                    <strong className="service-tone-affected">{line.totalCount}</strong>
+                  ) : (
+                    <span className="mobile-legend-regular-label">Normal</span>
+                  )}
+                </span>
+                <ChevronRight className="mobile-legend-row-chevron" size={13} aria-hidden="true" />
+              </button>
+            );
+          })}
+        </nav>
       )}
+
+      <button
+        type="button"
+        onClick={onToggleExpanded}
+        className="mobile-legend-collapsed-toggle"
+        aria-expanded={expanded}
+        aria-label="Transit line legend"
+        title={expanded ? "Collapse transit line legend" : legendLabel}
+      >
+        <span className="sr-only">{legendLabel}</span>
+        {lineSummaries.map((line) => (
+          <span key={line.id} className={`mobile-legend-compact-row service-tone-${line.tone}`} aria-hidden="true">
+            <MobileLegendRouteBadge
+              lineId={line.id}
+              lineNumber={line.number}
+              tone={line.tone}
+              expanded={false}
+              regional={isRegional}
+            />
+            <span className="mobile-legend-status-rib" />
+          </span>
+        ))}
+      </button>
     </div>
   );
 }
