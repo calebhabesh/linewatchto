@@ -33,11 +33,21 @@
 @media (max-width: 400px), (orientation: landscape) and (max-height: 520px) {
   :root {
     --mobile-edge-inset: 10px;
+    --mobile-map-control-edge-inset: 10px;
     --mobile-sheet-gutter: 12px;
     --mobile-bottom-nav-height: 64px;
     --mobile-bottom-nav-side-inset: 10px;
     --mobile-status-peek-height: 44px;
+    --mobile-map-controls-gap: 6px;
+    --mobile-train-toggle-height: 48px;
+    --mobile-train-toggle-padding: 2px;
   }
+
+  .mobile-train-toggle svg {
+    width: 20px;
+    height: 20px;
+  }
+
 
   /* Welcome and first-run notices */
   .opening-disclaimer-backdrop {
@@ -263,7 +273,7 @@
     padding: 4px 2px;
   }
 
-  .mobile-bottom-nav-icon svg {
+  .mobile-bottom-nav-icon > svg {
     height: 19px;
     width: 19px;
   }
@@ -886,6 +896,60 @@
       max-width: 100% !important;
       border-radius: 22px 22px 0 0 !important;
     }
+  }
+}
+
+/* Short-portrait phone accommodations (for example, iPhone SE portrait 375x667, 320x568)
+ * Tightens vertical spacing and panel padding while keeping text legible and touch targets >=44px. */
+@media (max-width: 767px) and (max-height: 700px) and (orientation: portrait) {
+  .floating-panel-shell {
+    max-height: min(84dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - 48px));
+  }
+
+  .floating-panel-shell .panel-heading,
+  .panel-header {
+    min-height: 40px;
+    padding-block: 8px;
+  }
+
+  .mobile-sheet-heading {
+    min-height: 40px;
+    padding-block: 4px;
+  }
+
+  .alert-stack,
+  .closure-stack,
+  .commute-grid,
+  .reliability-list,
+  .health-grid,
+  .notification-settings-scroll,
+  .accessibility-outages-scroll,
+  .surface-notices-scroll,
+  .release-notes-content,
+  .privacy-acknowledgements-scroll,
+  .alert-history-scroll {
+    gap: 6px;
+    padding-block: 6px;
+  }
+
+  .mobile-status-sheet,
+  .mobile-more-sheet {
+    gap: 6px;
+    padding-block: 6px;
+  }
+
+  .mobile-status-content-scroll,
+  .mobile-more-content-scroll {
+    gap: 6px;
+  }
+
+  .mobile-line-status-list {
+    gap: 4px;
+  }
+
+  .mobile-more-section {
+    gap: 3px;
+    padding: 5px;
   }
 }
 

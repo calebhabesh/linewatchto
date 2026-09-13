@@ -1390,55 +1390,59 @@ export function MyStationsPanel({
 
       <div key={mode} className="my-stations-body" data-nav-direction={mode === "add" ? "forward" : "back"}>
         {accountState?.source === "unavailable" ? (
-          <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
+          <div className="my-stations-list min-w-0 pb-3 flex flex-col gap-3">
+            <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
+          </div>
         ) : !authenticated ? (
-          <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-transparent">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
-                <Bookmark className="w-4 h-4 text-sky-500 shrink-0" aria-hidden="true" />
-                Save Favorite Stations
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Save rapid-transit stations for quick access to live arrivals, line disruptions, and elevator or escalator outages.
-              </p>
-            </div>
+          <div className="my-stations-list min-w-0 pb-3 flex flex-col gap-3">
+            <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-transparent">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
+                  <Bookmark className="w-4 h-4 text-sky-500 shrink-0" aria-hidden="true" />
+                  Save Favorite Stations
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Save rapid-transit stations for quick access to live arrivals, line disruptions, and elevator or escalator outages.
+                </p>
+              </div>
 
-            <div className="space-y-3 my-1 border-t border-b border-black/5 dark:border-white/5 py-3">
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Personal Station Watchlist</span>
-                  <span className="text-slate-500 dark:text-slate-400">Save stations across Lines 1, 2, 4, 5, and 6 for fast monitoring.</span>
+              <div className="space-y-3 my-1 border-t border-b border-black/5 dark:border-white/5 py-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Personal Station Watchlist</span>
+                    <span className="text-slate-500 dark:text-slate-400">Save stations across Lines 1, 2, 4, 5, and 6 for fast monitoring.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Disruptions & Accessibility Outages</span>
+                    <span className="text-slate-500 dark:text-slate-400">View active delays, suspensions, closures, and elevator or escalator outages in one place.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Live & Scheduled Arrivals</span>
+                    <span className="text-slate-500 dark:text-slate-400">Check live subway trip updates and scheduled arrivals for all your saved stops.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Free</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Disruptions & Accessibility Outages</span>
-                  <span className="text-slate-500 dark:text-slate-400">View active delays, suspensions, closures, and elevator or escalator outages in one place.</span>
-                </div>
+              <div className="account-action-row mt-1">
+                <button type="button" onClick={onRequestSignIn}>Sign In</button>
+                <button type="button" onClick={onRequestCreateAccount} className="saved-commute-signup-btn">Create Account</button>
               </div>
-
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Live & Scheduled Arrivals</span>
-                  <span className="text-slate-500 dark:text-slate-400">Check live subway trip updates and scheduled arrivals for all your saved stops.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
-                <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Free</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="account-action-row mt-1">
-              <button type="button" onClick={onRequestSignIn}>Sign In</button>
-              <button type="button" onClick={onRequestCreateAccount} className="saved-commute-signup-btn">Create Account</button>
             </div>
           </div>
         ) : (

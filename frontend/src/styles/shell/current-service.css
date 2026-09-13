@@ -807,12 +807,14 @@
     display: none;
   }
   .linewatch-shell .mobile-bottom-nav-icon {
-    width: min(64px, 100%);
+    width: auto;
     height: 40px;
     align-items: center;
     justify-content: center;
     border-radius: 0;
     border: 0;
+    position: relative;
+    display: inline-flex;
   }
   .linewatch-shell .mobile-bottom-nav-item[data-active="true"] .mobile-bottom-nav-icon {
     transform: none;
@@ -823,9 +825,22 @@
   }
   .linewatch-shell .mobile-bottom-nav-icon > svg { width: 26px; height: 26px; }
   .linewatch-shell .mobile-bottom-nav-badge {
-    left: calc(50% + 5px);
-    right: auto;
-    top: 0;
+    left: auto;
+    right: -7px;
+    top: -4px;
+    height: 15px;
+    min-width: 15px;
+    border-radius: 9999px;
+    padding: 0 3.5px;
+    font-size: 10px;
+    --overlapping-count-font-size: 10px;
+    font-weight: 800;
+  }
+  .linewatch-shell .mobile-bottom-nav-badge[data-single-digit="true"] {
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    aspect-ratio: 1 / 1;
   }
   .linewatch-shell .mobile-bottom-nav-label {
     font-size: 11px;
@@ -1800,7 +1815,7 @@
   }
   .mobile-map-network-switch {
     position: fixed;
-    right: calc(var(--mobile-safe-right) + 12px);
+    right: calc(var(--mobile-safe-right) + var(--mobile-map-control-edge-inset, 12px));
     top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 158px);
     z-index: 42;
     transition: bottom 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
@@ -1808,7 +1823,7 @@
     background: transparent;
     box-shadow: none;
   }
-  .mobile-map-network-switch .network-selector { width: 48px; }
+  .mobile-map-network-switch .network-selector { width: var(--mobile-top-action-button-size, 48px); }
   .mobile-app-topbar button:focus-visible,
   .mobile-saved-sections button:focus-visible { outline: 2px solid var(--text); outline-offset: -3px; }
 
@@ -1816,17 +1831,17 @@
   .linewatch-shell .mobile-train-toggle {
     top: auto !important;
     right: auto !important;
-    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 12px) !important;
-    left: calc(var(--mobile-safe-left) + 12px) !important;
-    width: 48px;
-    min-width: 48px;
-    height: 54px;
-    padding: 4px;
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + var(--mobile-map-control-edge-inset, 12px)) !important;
+    left: calc(var(--mobile-safe-left) + var(--mobile-map-control-edge-inset, 12px)) !important;
+    width: var(--mobile-top-action-button-size, 48px);
+    min-width: var(--mobile-top-action-button-size, 48px);
+    height: var(--mobile-train-toggle-height, 54px);
+    padding: var(--mobile-train-toggle-padding, 4px);
   }
   .linewatch-shell .mobile-map-controls-group {
-    right: calc(var(--mobile-safe-right) + 12px);
-    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + 12px);
-    gap: 8px;
+    right: calc(var(--mobile-safe-right) + var(--mobile-map-control-edge-inset, 12px));
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + var(--mobile-map-control-edge-inset, 12px));
+    gap: var(--mobile-map-controls-gap, 8px);
   }
   .linewatch-shell .mobile-map-recenter-btn,
   .linewatch-shell .mobile-map-zoom-btn {

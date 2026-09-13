@@ -697,7 +697,7 @@ for (const width of [320, 375, 412]) {
         && controls.top >= rail.bottom + 5
         && controls.bottom <= status.top - 5;
     })).toBe(true);
-    for (const selector of [".site-guide-trigger", ".mobile-map-recenter-btn", ".mobile-map-zoom-btn"]) {
+    for (const selector of [".mobile-app-info .site-guide-trigger", ".mobile-map-recenter-btn", ".mobile-map-zoom-btn"]) {
       const bounds = await page.locator(selector).first().boundingBox();
       expect(bounds!.width).toBeGreaterThanOrEqual(44);
       expect(bounds!.height).toBeGreaterThanOrEqual(44);
@@ -742,3 +742,72 @@ for (const width of [320, 375, 412]) {
     })).toBe(true);
   });
 }
+
+test("commute card footer actions fit on 1 row at 375px and reflow gracefully at narrow widths", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile commute card layout");
+  await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.addInitScript(() => {
+    localStorage.setItem("linewatch-welcome-seen-v1", "true");
+    localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
+    localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
+  });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Demo Account" }).click();
+  await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
+
+  const commuteCard = page.locator('[data-commute-card-id="commute_demo_finch_union"]');
+  await expect(commuteCard).toBeVisible();
+
+  const actions = commuteCard.locator(".commute-route-actions button");
+  await expect(actions).toHaveCount(3);
+
+  // Verify all 3 buttons are on 1 row at 375px
+  const buttonBoxes = await actions.evaluateAll((buttons) =>
+    buttons.map((b) => {
+      const rect = b.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right, bottom: rect.bottom };
+    })
+  );
+  expect(buttonBoxes.length).toBe(3);
+  expect(Math.abs(buttonBoxes[0].y - buttonBoxes[1].y)).toBeLessThan(2);
+  expect(Math.abs(buttonBoxes[1].y - buttonBoxes[2].y)).toBeLessThan(2);
+  for (const box of buttonBoxes) {
+    expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
+  }
+  const cardBox = (await commuteCard.boundingBox())!;
+  for (const box of buttonBoxes) {
+    expect(box.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+    expect(box.right).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
+  }
+
+  // Check short labels are visible
+  const shortLabels = commuteCard.locator(".commute-action-label-short");
+  expect(await shortLabels.count()).toBeGreaterThanOrEqual(3);
+  for (let i = 0; i < await shortLabels.count(); i++) {
+    await expect(shortLabels.nth(i)).toBeVisible();
+  }
+
+  // Reflow gracefully at 320x568 (narrow iPhone SE)
+  await page.setViewportSize({ width: 320, height: 568 });
+  const smallCardBox = (await commuteCard.boundingBox())!;
+  const smallButtonBoxes = await actions.evaluateAll((buttons) =>
+    buttons.map((b) => {
+      const rect = b.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right, bottom: rect.bottom };
+    })
+  );
+  for (const box of smallButtonBoxes) {
+    expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
+    expect(box.x).toBeGreaterThanOrEqual(smallCardBox.x - 1);
+    expect(box.right).toBeLessThanOrEqual(smallCardBox.x + smallCardBox.width + 1);
+  }
+  const hasHorizontalScroll = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+  );
+  expect(hasHorizontalScroll).toBe(false);
+});
+
+

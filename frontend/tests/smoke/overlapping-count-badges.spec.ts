@@ -161,3 +161,82 @@ test("TTC hover repaints overlay artwork above default-priority corridors", asyn
   await target.dispatchEvent("pointerout", { pointerType: "mouse" });
   await expect(visual).toHaveCount(0);
 });
+
+test("nav badges are visibly centered for single and multi-digit counts (1, 2, 9, 20, 99)", async ({ page, isMobile }) => {
+  await page.setViewportSize(isMobile ? { width: 375, height: 667 } : { width: 1280, height: 800 });
+  await page.goto(openMapPreviewUrl);
+
+  const testCounts = [1, 2, 9, 20, 99];
+  const results = await page.evaluate((counts) => {
+    const container = document.createElement("div");
+    container.className = "linewatch-shell";
+    container.style.position = "fixed";
+    container.style.top = "0";
+    container.style.left = "0";
+    container.style.zIndex = "99999";
+    document.body.appendChild(container);
+
+    const data = counts.map((count) => {
+      const label = String(count);
+      const viewBoxWidth = Math.max(9, label.length * 7 + 2);
+      const isSingle = label.length <= 1;
+
+      const span = document.createElement("span");
+      span.className = "overlapping-count-badge mobile-bottom-nav-badge";
+      span.setAttribute("data-count-digits", String(label.length));
+      span.setAttribute("data-single-digit", isSingle ? "true" : "false");
+      span.setAttribute("aria-hidden", "true");
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "overlapping-count-badge__svg");
+      svg.setAttribute("viewBox", `0 0 ${viewBoxWidth} 16`);
+      svg.setAttribute("width", String(viewBoxWidth));
+      svg.setAttribute("height", "16");
+
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("class", "overlapping-count-badge__text");
+      text.setAttribute("x", String(viewBoxWidth / 2));
+      text.setAttribute("y", "8.75");
+      text.setAttribute("dominant-baseline", "central");
+      text.setAttribute("text-anchor", "middle");
+      text.textContent = label;
+
+      svg.appendChild(text);
+      span.appendChild(svg);
+      container.appendChild(span);
+
+      const spanBounds = span.getBoundingClientRect();
+      const textBounds = text.getBoundingClientRect();
+
+      return {
+        count,
+        isSingle,
+        width: spanBounds.width,
+        height: spanBounds.height,
+        leftInset: textBounds.left - spanBounds.left,
+        rightInset: spanBounds.right - textBounds.right,
+        topInset: textBounds.top - spanBounds.top,
+        bottomInset: spanBounds.bottom - textBounds.bottom,
+      };
+    });
+
+    document.body.removeChild(container);
+    return data;
+  }, testCounts);
+
+  for (const r of results) {
+    expect(r.height).toBe(15);
+    if (r.isSingle) {
+      expect(r.width).toBe(15);
+    } else {
+      expect(r.width).toBeGreaterThanOrEqual(15);
+    }
+    expect(r.leftInset).toBeGreaterThanOrEqual(0);
+    expect(r.rightInset).toBeGreaterThanOrEqual(0);
+    expect(r.topInset).toBeGreaterThanOrEqual(0);
+    expect(r.bottomInset).toBeGreaterThanOrEqual(0);
+    expect(Math.abs(r.leftInset - r.rightInset)).toBeLessThanOrEqual(2);
+    expect(Math.abs(r.topInset - r.bottomInset)).toBeLessThanOrEqual(2);
+  }
+});
+

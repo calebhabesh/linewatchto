@@ -46,7 +46,7 @@ describe("overlapping count badge sizing", () => {
     );
     assert.match(
       css,
-      /\.mobile-bottom-nav-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*16px;)[^}]*\}/s,
+      /\.mobile-bottom-nav-badge\[data-single-digit="true"\]\s*\{(?=[^}]*padding:\s*0;)(?=[^}]*width:\s*15px;)[^}]*\}/s,
     );
     assert.match(
       css,

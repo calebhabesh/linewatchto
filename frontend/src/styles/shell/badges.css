@@ -18,9 +18,12 @@
 .overlapping-count-badge {
   --overlapping-count-font-size: 11px;
   -webkit-text-size-adjust: none;
+  align-items: center;
   box-sizing: border-box;
+  display: inline-flex;
   flex: none;
   font-size: 0 !important;
+  justify-content: center;
   line-height: 1;
   overflow: hidden;
   text-size-adjust: none;
@@ -45,11 +48,13 @@
 
 .overlapping-count-badge__text {
   dominant-baseline: central;
+  alignment-baseline: central;
   text-anchor: middle;
   fill: currentColor;
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   font-size: var(--overlapping-count-font-size);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   font-weight: 900;
 }
 

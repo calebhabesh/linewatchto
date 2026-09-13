@@ -184,8 +184,8 @@ describe("account UI source", () => {
       globalCss,
       /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*gap:\s*0\.42rem;)(?=[^}]*justify-content:\s*center;)(?=[^}]*letter-spacing:\s*0\.015em;)[^}]*\}/s,
     );
-    assert.match(savedCommutesSource, /<SquarePen size=\{16\}[^>]*\/>\s*Edit Route/);
-    assert.match(savedCommutesSource, /View \$\{routeStops\.length\} Stops`\}\s*<ChevronDown size=\{16\}/);
+    assert.match(savedCommutesSource, /<SquarePen size=\{16\}[^>]*\/>[\s\S]*?Edit Route/);
+    assert.match(savedCommutesSource, /View \$\{routeStops\.length\} Stops`\}[\s\S]*?<ChevronDown size=\{16\}/);
     assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
     assert.match(savedCommutesSource, /View path on map/);

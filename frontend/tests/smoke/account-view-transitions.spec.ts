@@ -65,3 +65,32 @@ test("service section badges align with their heading row", async ({ page, reque
     expect(difference).toBeLessThan(1);
   }
 });
+
+test("unauthenticated My Stations view scrolls to reveal Sign In and Create Account actions", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await installDismissedTransientUi(page);
+  await page.route("**/api/auth/me**", (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ authenticated: false, user: null }),
+    });
+  });
+  await page.goto("/");
+  if (isMobile) {
+    await page.getByRole("navigation", { name: "Primary mobile navigation" }).getByRole("button", { name: "Saved", exact: true }).click();
+  } else {
+    await page.locator(".desktop-quick-action-btn--stations").click();
+  }
+
+  const list = page.locator(".my-stations-list");
+  await expect(list).toBeVisible();
+
+  const signInBtn = page.getByRole("button", { name: "Sign In", exact: true });
+  const createAccountBtn = page.getByRole("button", { name: "Create Account", exact: true });
+
+  await createAccountBtn.scrollIntoViewIfNeeded();
+  await expect(signInBtn).toBeVisible();
+  await expect(createAccountBtn).toBeVisible();
+});
+

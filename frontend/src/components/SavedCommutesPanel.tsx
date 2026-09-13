@@ -1907,7 +1907,8 @@ export function SavedCommutesPanel({
               aria-label={`Edit commute ${commute.label}`}
             >
               <SquarePen size={16} aria-hidden="true" />
-              Edit Route
+              <span className="commute-action-label-full">Edit Route</span>
+              <span className="commute-action-label-short" aria-hidden="true">Edit</span>
             </button>
             <button
               type="button"
@@ -1916,8 +1917,10 @@ export function SavedCommutesPanel({
               aria-expanded={stopsExpanded}
               aria-controls={`commute-stops-${commute.id}`}
               disabled={routeStops.length === 0}
+              aria-label={stopsExpanded ? `Hide stops for ${commute.label}` : `View ${routeStops.length} stops for ${commute.label}`}
             >
-              {stopsExpanded ? "Hide Stops" : `View ${routeStops.length} Stops`}
+              <span className="commute-action-label-full">{stopsExpanded ? "Hide Stops" : `View ${routeStops.length} Stops`}</span>
+              <span className="commute-action-label-short" aria-hidden="true">{stopsExpanded ? "Hide stops" : `${routeStops.length} stops`}</span>
               <ChevronDown size={16} aria-hidden="true" className={`transition-transform duration-200 ${stopsExpanded ? "rotate-180" : ""}`} />
             </button>
             <button
@@ -1930,9 +1933,11 @@ export function SavedCommutesPanel({
               }}
               disabled={!canViewPath}
               aria-pressed={viewingPath}
+              aria-label={viewingPath ? `Viewing path for ${commute.label} on map` : `View path for ${commute.label} on map`}
             >
               <MapPinned size={14} aria-hidden="true" />
-              {viewingPath ? "Viewing path" : "View path on map"}
+              <span className="commute-action-label-full">{viewingPath ? "Viewing path" : "View path on map"}</span>
+              <span className="commute-action-label-short" aria-hidden="true">{viewingPath ? "Viewing map" : "Map"}</span>
             </button>
           </div>
           {stopsExpanded ? (
