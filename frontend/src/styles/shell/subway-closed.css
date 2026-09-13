@@ -237,6 +237,12 @@
   transition: filter 220ms ease, opacity 220ms ease, transform 220ms ease;
 }
 
+/* Hide mobile legend chrome immediately, before the closed overlay fades in. */
+.subway-closed-map-backdrop .mobile-legend-pill {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .subway-closed-backdrop {
   background: rgba(5, 7, 12, 0.72);
   inset: 0;

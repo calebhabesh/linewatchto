@@ -305,6 +305,8 @@
   }
 
   .mobile-legend-status-rib {
+    opacity: 1;
+    transition: opacity 180ms ease, right 180ms ease;
     position: absolute;
     right: 0;
     width: 3.5px;
@@ -320,6 +322,10 @@
       0 0 3px 1px var(--legend-led-glow),
       0 0 8px 3px var(--legend-led-glow),
       0 0 16px 5px rgba(54, 216, 135, 0.4);
+  }
+
+  .mobile-legend-pill--expanded .mobile-legend-status-rib {
+    opacity: 0;
   }
 
   /* The borderless pill is 2px wider than its fixed badge rail. */
@@ -572,7 +578,8 @@
      ------------------------------------------------------------ */
   @media (prefers-reduced-motion: reduce) {
     .mobile-legend-pill,
-    .mobile-legend-pill--expanded {
+    .mobile-legend-pill--expanded,
+    .mobile-legend-status-rib {
       transition-duration: 0.01ms;
       transition-delay: 0ms;
     }
