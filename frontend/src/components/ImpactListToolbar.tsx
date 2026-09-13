@@ -2,7 +2,7 @@
 
 import { FilterOptionCount } from "./FilterOptionCount";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Check, ChevronDown, LayoutList, PanelsTopLeft, Search } from "lucide-react";
 import type { ImpactListSort } from "../app/impact-list-controls";
 import type { ImpactListView } from "../hooks/useImpactListView";

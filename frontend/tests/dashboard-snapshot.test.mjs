@@ -47,3 +47,14 @@ test('retained station-only impacts survive a storage round trip', () => {
  saveDashboardSnapshot(s,withRing,1000);
  assert.deepEqual(readDashboardSnapshot(s,'ttc',2000).data.stationNodeImpacts,withRing.stationNodeImpacts);
 });
+
+test('saved timestamps use Toronto local time and the year-round ET label', () => {
+ for (const [instant, expected] of [
+  ['2026-09-13T04:05:00Z', '(Sep 13, 12:05 A.M., ET)'],
+  ['2026-01-13T05:05:00Z', '(Jan 13, 12:05 A.M., ET)'],
+  ['2026-09-13T16:05:00Z', '(Sep 13, 12:05 P.M., ET)'],
+ ]) {
+  const savedAt = Date.parse(instant);
+  assert.ok(snapshotNotice({ savedAt, reason: 'offline' }, savedAt).includes(expected));
+ }
+});

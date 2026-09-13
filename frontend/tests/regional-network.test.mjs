@@ -991,9 +991,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /right:\s*horizontalInset/);
     assert.match(regionalMapSource, /top:\s*desktopMapTopInset/);
     assert.match(regionalMapSource, /bottom:\s*desktopMapBottomInset/);
-    assert.match(regionalMapSource, /x: focus\.focusX - \(focus\.focusX - frame\.x\) \* REGIONAL_MAP_DEFAULT_FRAME_SCALE/);
-    assert.match(regionalMapSource, /y: focus\.focusY - \(focus\.focusY - frame\.y\) \* REGIONAL_MAP_DEFAULT_FRAME_SCALE/);
-    assert.match(regionalMapSource, /scale: frame\.scale \* REGIONAL_MAP_DEFAULT_FRAME_SCALE/);
+    assert.match(regionalMapSource, /x: focus\.focusX - \(focus\.focusX - frame\.x\) \* frameScale/);
+    assert.match(regionalMapSource, /y: focus\.focusY - \(focus\.focusY - frame\.y\) \* frameScale/);
+    assert.match(regionalMapSource, /scale: frame\.scale \* frameScale/);
   });
 
   it("matches the TTC map fitted zoom range and button increments", () => {

@@ -102,18 +102,6 @@ export function ActiveAlertsPanel({
     }
   };
 
-  const getSeverityShadow = (severity: string) => {
-    switch (severity) {
-      case "suspension":
-      case "planned":
-        return "shadow-[inset_2px_0_6px_-2px_rgba(239,68,68,0.2)]";
-      case "delay":
-        return "shadow-[inset_2px_0_6px_-2px_rgba(254,236,65,0.18)]";
-      default:
-        return "shadow-[inset_2px_0_6px_-2px_rgba(100,116,139,0.2)]";
-    }
-  };
-
   return (
     <section className={`panel min-w-0 border border-transparent rounded-2xl ${embedded ? "embedded-impact-panel" : ""}`}>
       <PanelHeader

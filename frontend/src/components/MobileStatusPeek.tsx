@@ -163,7 +163,10 @@ export function MobileStatusPeek({
     const el = containerRef.current;
     if (!el) return;
 
+    const notice = el.querySelector<HTMLElement>(".mobile-service-sheet-notice-row");
     const updateHeight = () => {
+      // Reserve the notice's natural height, including wrapped saved timestamps.
+      el.style.setProperty("--service-sheet-notice-height", `${notice?.getBoundingClientRect().height ?? 0}px`);
       const height = el.querySelector<HTMLElement>(".mobile-service-sheet-minimum")?.getBoundingClientRect().height ?? 0;
       if (height > 0) {
         document.documentElement.style.setProperty(
@@ -183,6 +186,7 @@ export function MobileStatusPeek({
         updateHeight();
       });
       resizeObserver.observe(el);
+      if (notice) resizeObserver.observe(notice);
     }
 
     return () => {

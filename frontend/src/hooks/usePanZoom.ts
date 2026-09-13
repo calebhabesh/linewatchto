@@ -1,4 +1,5 @@
 import { useMapViewportPersistence } from "./useMapViewportPersistence";
+import { readMobileMapFrameInsets } from "./mobileMapFrame";
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, type PointerEvent, type WheelEvent } from "react";
 import {
@@ -41,6 +42,7 @@ type UsePanZoomOptions = {
     bottomInset?: number;
     horizontalInsetRatio?: number;
     minHorizontalInset?: number;
+    mobileZoom?: number;
   };
   animateInitialEntrance?: boolean;
 };
@@ -104,21 +106,34 @@ export function usePanZoom({
 
   const defaultTransformForViewport = useCallback((width: number, height: number) => {
     if (defaultFrame) {
+      const mobileInsets = viewportOrientation === "standard"
+        ? readMobileMapFrameInsets(containerRef.current) : null;
       const minHorizontalInset = defaultFrame.minHorizontalInset ?? (width < 768 ? 12 : 32);
       const horizontalInset = defaultFrame.horizontalInsetRatio
         ? Math.min(64, Math.max(minHorizontalInset, width * defaultFrame.horizontalInsetRatio))
         : (width < 768 ? 12 : 0);
-      return computeBoundedMapFrame(
+      const frame = computeBoundedMapFrame(
         width,
         height,
         defaultFrame.bounds,
         {
           left: horizontalInset,
           right: horizontalInset,
-          top: defaultFrame.topInset,
-          bottom: defaultFrame.bottomInset ?? 0,
+          top: mobileInsets?.top ?? defaultFrame.topInset,
+          bottom: mobileInsets?.bottom ?? defaultFrame.bottomInset ?? 0,
         },
       );
+      if (!mobileInsets || !defaultFrame.mobileZoom) return frame;
+      const availableHeight = Math.max(1, height - mobileInsets.top - mobileInsets.bottom);
+      // Keep the north/south extent inside the opening on short phones.
+      const zoom = Math.max(1, Math.min(defaultFrame.mobileZoom,
+        availableHeight * 0.9 / (defaultFrame.bounds.height * frame.scale)));
+      const focus = computeInsetViewportFocus(width, height, mobileInsets);
+      return {
+        x: focus.focusX - (focus.focusX - frame.x) * zoom,
+        y: focus.focusY - (focus.focusY - frame.y) * zoom,
+        scale: frame.scale * zoom,
+      };
     }
 
     const mapWidth = 4500;
@@ -130,7 +145,7 @@ export function usePanZoom({
       y: height / 2 - (mapHeight * 0.435) * scale,
       scale,
     };
-  }, [defaultFrame]);
+  }, [defaultFrame, viewportOrientation]);
 
   const writeMapTransform = useCallback((next: PanZoomTransform) => {
     if (mapRef.current) {

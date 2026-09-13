@@ -82,6 +82,7 @@ export function snapshotNotice(snapshot: NonNullable<DashboardData["snapshot"]>,
   const prefix = snapshot.reason === "offline" ? "Offline" : snapshot.reason === "stale" ? "Updates unavailable" : "Reconnecting";
   if (snapshot.savedAt === null) return `${prefix} — No saved dashboard for this network. Current status unknown.`;
   const age = Math.max(0, Math.floor((now - snapshot.savedAt) / 60_000));
-  const downloaded = new Date(snapshot.savedAt).toLocaleString("en-CA", { timeZone: "America/Toronto", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  return `${prefix} — Saved ${age < 1 ? "less than a minute" : `${age} min`} ago (${downloaded}, Toronto). Service may have changed.`;
+  const downloaded = new Date(snapshot.savedAt).toLocaleString("en-US", { timeZone: "America/Toronto", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })
+    .replace(/AM|PM/, period => period === "AM" ? "A.M." : "P.M.");
+  return `${prefix} — Saved ${age < 1 ? "less than a minute" : `${age} min`} ago (${downloaded}, ET). Service may have changed.`;
 }

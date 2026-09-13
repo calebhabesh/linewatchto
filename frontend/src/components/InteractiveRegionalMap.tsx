@@ -1,6 +1,7 @@
 "use client";
 
 import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
+import { observeMobileMapFrame, readMobileMapFrameInsets } from "../hooks/mobileMapFrame";
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
@@ -3262,7 +3263,11 @@ function InteractiveRegionalMapComponent({
     const horizontalInset = desktopMapTopInset > 0
       ? Math.min(64, Math.max(32, width * REGIONAL_MAP_HORIZONTAL_INSET_RATIO))
       : Math.min(32, Math.max(12, width * REGIONAL_MAP_MOBILE_INSET_RATIO));
-    const insets = desktopMapTopInset > 0
+    const mobileInsets = viewportOrientation === "standard"
+      ? readMobileMapFrameInsets(viewport) : null;
+    const insets = mobileInsets
+      ? { left: horizontalInset, right: horizontalInset, ...mobileInsets }
+      : desktopMapTopInset > 0
       ? {
           left: horizontalInset,
           right: horizontalInset,
@@ -3282,19 +3287,20 @@ function InteractiveRegionalMapComponent({
       insets,
     );
     const focus = computeInsetViewportFocus(width, height, insets);
+    const frameScale = REGIONAL_MAP_DEFAULT_FRAME_SCALE * (mobileInsets ? 1.15 : 1);
     // Use more of the available horizontal canvas while keeping the enlarged
     // default frame centered in the space between the top console and alerts.
     const defaultFrame = {
-      x: focus.focusX - (focus.focusX - frame.x) * REGIONAL_MAP_DEFAULT_FRAME_SCALE,
-      y: focus.focusY - (focus.focusY - frame.y) * REGIONAL_MAP_DEFAULT_FRAME_SCALE,
-      scale: frame.scale * REGIONAL_MAP_DEFAULT_FRAME_SCALE,
+      x: focus.focusX - (focus.focusX - frame.x) * frameScale,
+      y: focus.focusY - (focus.focusY - frame.y) * frameScale,
+      scale: frame.scale * frameScale,
     };
     return {
       camera: snapCameraToDevicePixels(defaultFrame),
       scale: defaultFrame.scale,
       focus: { x: focus.focusX, y: focus.focusY },
     };
-  }, [desktopMapBottomInset, desktopMapTopInset, logicalViewportSize]);
+  }, [desktopMapBottomInset, desktopMapTopInset, logicalViewportSize, viewportOrientation]);
 
   const fitNetwork = useCallback(() => {
     const fitted = fittedCamera();
@@ -3319,6 +3325,10 @@ function InteractiveRegionalMapComponent({
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
     refitUntouchedNetwork();
   }, [refitUntouchedNetwork]);
+
+  useLayoutEffect(() => observeMobileMapFrame(viewportRef.current, () => {
+    if (window.innerWidth < 768 && !automaticResizeRefitBlockedRef.current) refitUntouchedNetwork();
+  }), [refitUntouchedNetwork]);
 
   const resetNetworkCamera = useCallback(() => {
     cameraAdjustedByUserRef.current = false;

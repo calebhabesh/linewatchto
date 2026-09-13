@@ -234,3 +234,49 @@ test("mobile menus extend vertically to right below the shortcut pill entries", 
   expect(submenuGap).toBeLessThanOrEqual(12);
 });
 
+for (const [state, time] of [
+  ["cached", "2026-08-14T16:00:00.000Z"],
+  ["closing", "2026-08-15T05:45:00.000Z"],
+  ["closed", "2026-08-15T08:00:00.000Z"],
+]) {
+  test(`overview reserves room for ${state} notice without resizing badges`, async ({ page, context, request, isMobile }) => {
+    test.skip(!isMobile);
+    await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });
+    await installDismissedTransientUi(page);
+    await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+    const sheet = page.locator(".mobile-service-sheet");
+    const badge = sheet.locator(".mobile-status-peek-count-badge").first();
+    const controls = page.locator(".mobile-map-controls-group");
+    await expect(sheet).toBeVisible();
+    await page.waitForTimeout(350);
+    const initialBadge = (await badge.boundingBox())!;
+    const initialSheet = (await sheet.boundingBox())!;
+    const initialControls = (await controls.boundingBox())!;
+    const controlGap = initialSheet.y - initialControls.y - initialControls.height;
+    if (state === "cached") {
+      await expect.poll(() => page.evaluate(() => Boolean(localStorage.getItem("linewatch-dashboard-snapshot-v1:ttc")))).toBe(true);
+      await context.setOffline(true);
+    } else {
+      await page.goto(`/?previewTime=${time}`);
+      if (state === "closed") await page.getByRole("button", { name: "Peek at Map", exact: true }).click();
+    }
+    const notice = sheet.locator(".mobile-service-sheet-notice-row");
+    await expect(notice).toBeVisible();
+    await page.waitForTimeout(400);
+    const box = (await sheet.boundingBox())!;
+    const noticeBox = (await notice.boundingBox())!;
+    const heading = (await sheet.locator(".mobile-service-sheet-heading").boundingBox())!;
+    const grid = (await sheet.locator(".mobile-status-peek-grid").boundingBox())!;
+    const nav = (await page.locator(".mobile-bottom-nav").boundingBox())!;
+    const badgeBox = (await badge.boundingBox())!;
+    const controlsBox = (await controls.boundingBox())!;
+    expect(badgeBox.height).toBeCloseTo(initialBadge.height, 0);
+    expect(badgeBox.width).toBeCloseTo(initialBadge.width, 0);
+    expect(initialSheet.y - box.y).toBeCloseTo(noticeBox.height + 15, 0);
+    expect(noticeBox.y - heading.y - heading.height).toBeCloseTo(15, 0);
+    expect(grid.y - noticeBox.y - noticeBox.height).toBeCloseTo(15, 0);
+    expect(grid.y + grid.height).toBeLessThan(nav.y);
+    expect(box.y - controlsBox.y - controlsBox.height).toBeCloseTo(controlGap, 0);
+    await page.screenshot({ path: `/tmp/linewatch-sheet-${state}.png` });
+  });
+}

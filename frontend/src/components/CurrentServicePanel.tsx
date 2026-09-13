@@ -5,7 +5,7 @@ import { ArrowRight, BusFront, Info, TrainFront } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
-import { currentServiceSummary, currentSurfaceNotices, getCanonicalAlertTitle, type CurrentServiceRow } from "../app/current-service";
+import { currentServiceSummary, currentSurfaceNotices, getCanonicalAlertTitle } from "../app/current-service";
 import { LineBadge } from "./ImpactCardFields";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
@@ -127,12 +127,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
       }
 
       if (dragMoved.current) {
-        const lists = sectionRef.current?.querySelectorAll<HTMLElement>(".current-service-list");
-        let maxContent = COLLAPSED_LIST_HEIGHT;
-        lists?.forEach((l) => {
-          if (l.scrollHeight > maxContent) maxContent = l.scrollHeight;
-        });
-        const maxH = Math.max(maxContent, 340);
+        const maxH = measureMaxContentHeight();
         const minH = COLLAPSED_LIST_HEIGHT;
         const targetH = Math.max(minH, Math.min(maxH, dragStartHeight.current + delta));
         currentHeightRef.current = targetH;

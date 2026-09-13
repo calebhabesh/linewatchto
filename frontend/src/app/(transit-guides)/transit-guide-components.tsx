@@ -31,7 +31,6 @@ import {
   stationsForGuideRoute,
   ttcGuideRoutes,
   ttcGuideStations,
-  type TransitGuideAmenity,
   type TransitGuideNetworkSlug,
   type TransitGuideRoute,
   type TransitGuideStation,

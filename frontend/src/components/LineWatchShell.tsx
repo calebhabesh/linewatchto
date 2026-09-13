@@ -3802,12 +3802,10 @@ export function LineWatchShell({
 
   const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !commutePathPreview;
 
-  const hasLeftMapRef = useRef(false);
-  useEffect(() => {
-    if (!showMobileStatusPeek) {
-      hasLeftMapRef.current = true;
-    }
-  }, [showMobileStatusPeek]);
+  const [hasLeftMap, setHasLeftMap] = useState(false);
+  if (!showMobileStatusPeek && !hasLeftMap) {
+    setHasLeftMap(true);
+  }
 
   const mobileOperatingNotice: MobileOperatingNotice | null = useMemo(() => {
     if (selectedNetwork === "ttc") {
@@ -5430,7 +5428,7 @@ export function LineWatchShell({
         <MobileStatusPeek
           fresh={isLive}
           isConnectionIssue={isConnectionIssue}
-          isReturningToMap={hasLeftMapRef.current}
+          isReturningToMap={hasLeftMap}
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
           delayCount={delays.length}

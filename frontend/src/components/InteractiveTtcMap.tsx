@@ -74,6 +74,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
+import { observeMobileMapFrame } from "../hooks/mobileMapFrame";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
 import { useRotatedListDragScroll } from "../hooks/useRotatedListDragScroll";
@@ -123,7 +124,6 @@ const TTC_MAP_CONTENT_BOUNDS: MapContentBounds = {
   width: (7925 - 65) * SVG_TO_RENDERED_MAP_SCALE,
   height: (3840 - 120) * SVG_TO_RENDERED_MAP_SCALE,
 };
-const DESKTOP_MAP_CONTENT_BOUNDS = TTC_MAP_CONTENT_BOUNDS;
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
 
@@ -649,6 +649,7 @@ function InteractiveTtcMapComponent({
 
   const defaultMapFrame = useMemo(() => ({
     bounds: TTC_MAP_CONTENT_BOUNDS,
+    mobileZoom: 1.65,
     topInset: desktopMapTopInset,
     bottomInset: desktopMapBottomInset,
     horizontalInsetRatio: desktopMapTopInset > 0
@@ -700,6 +701,10 @@ function InteractiveTtcMapComponent({
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
   const automaticResizeRefitBlockedRef = useRef(false);
+
+  useLayoutEffect(() => observeMobileMapFrame(containerRef.current, () => {
+    if (window.innerWidth < 768 && !automaticResizeRefitBlockedRef.current) refitIfCameraUntouched();
+  }), [containerRef, refitIfCameraUntouched]);
 
   useEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
