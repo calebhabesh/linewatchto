@@ -33,7 +33,7 @@ export function OverlappingCountBadge({ className, count }: OverlappingCountBadg
         <text
           className="overlapping-count-badge__text"
           x={viewBoxWidth / 2}
-          y="8.75"
+          y="8"
           dominantBaseline="central"
           textAnchor="middle"
         >
