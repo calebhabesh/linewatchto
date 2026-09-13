@@ -2906,6 +2906,7 @@ function InteractiveRegionalMapComponent({
   animateInitialEntrance = true,
   deferInitialEntrance = false,
   desktopMenuPinned = false,
+  mapChromeVisible = false,
   preserveCameraOnSelectionClear = false,
   viewportOrientation = "standard",
   onReady,
@@ -2929,6 +2930,7 @@ function InteractiveRegionalMapComponent({
   animateInitialEntrance?: boolean;
   deferInitialEntrance?: boolean;
   desktopMenuPinned?: boolean;
+  mapChromeVisible?: boolean;
   preserveCameraOnSelectionClear?: boolean;
   viewportOrientation?: MapViewportOrientation;
   onReady?: () => void;
@@ -3253,7 +3255,7 @@ function InteractiveRegionalMapComponent({
       observer.disconnect();
       window.removeEventListener("resize", measureDesktopInsets);
     };
-  }, []);
+  }, [mapChromeVisible]);
 
   const fittedCamera = useCallback(() => {
     const viewport = viewportRef.current;
@@ -3330,7 +3332,7 @@ function InteractiveRegionalMapComponent({
 
   useLayoutEffect(() => observeMobileMapFrame(viewportRef.current, () => {
     if (window.innerWidth < 768 && !automaticResizeRefitBlockedRef.current) refitUntouchedNetwork();
-  }), [refitUntouchedNetwork]);
+  }), [refitUntouchedNetwork, mapChromeVisible]);
 
   const resetNetworkCamera = useCallback(() => {
     cameraAdjustedByUserRef.current = false;

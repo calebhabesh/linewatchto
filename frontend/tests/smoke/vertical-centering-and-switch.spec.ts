@@ -83,10 +83,12 @@ test.describe("vertical centering and mode switch stability", () => {
     }
   });
 
-  test("desktop TTC and Regional maps are vertically centered between their top console and bottom badges, and stay centered across switches", async ({ page, isMobile }) => {
+  for (const closedLaunch of [false, true]) {
+  test(`desktop TTC and Regional maps center between the top controls and alert badges (${closedLaunch ? "closed-screen peek" : "open launch"})`, async ({ page, isMobile }) => {
     test.skip(isMobile, "desktop project only");
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+    await page.goto(`/?previewTime=2026-08-14T${closedLaunch ? "07" : "16"}:00:00.000Z`);
+    if (closedLaunch) await page.getByRole("button", { name: "Peek at Map" }).click();
 
     const desktopCapsule = page.locator(".desktop-status-capsule");
     await expect(desktopCapsule).toBeVisible({ timeout: 15_000 });
@@ -138,7 +140,7 @@ test.describe("vertical centering and mode switch stability", () => {
     console.log("TTC VERTICAL METRICS:", ttcMetrics);
     expect(ttcMetrics.paddingAbove).toBeGreaterThanOrEqual(-1);
     expect(ttcMetrics.paddingBelow).toBeGreaterThanOrEqual(-1);
-    // Vertical padding above the console and below to badges should be balanced
+    // Vertical padding between the top controls and alert badges should be balanced
     expect(ttcMetrics.diff).toBeLessThan(2.0);
 
 
@@ -193,7 +195,7 @@ test.describe("vertical centering and mode switch stability", () => {
     console.log("REGIONAL VERTICAL METRICS:", regionalMetrics);
     expect(regionalMetrics.paddingAbove).toBeGreaterThan(15);
     expect(regionalMetrics.paddingBelow).toBeGreaterThan(15);
-    // Regional vertical padding above the console and below to badges should be balanced
+    // Regional vertical padding between the console and alert badges should be balanced
     expect(regionalMetrics.diff).toBeLessThan(2.0);
 
 
@@ -234,4 +236,5 @@ test.describe("vertical centering and mode switch stability", () => {
     console.log("REGIONAL SECOND SWITCH TRANSFORM:", regionalSecondSwitchTransform);
     expect(regionalSecondSwitchTransform).toBe(regionalInitialTransform);
   });
+  }
 });

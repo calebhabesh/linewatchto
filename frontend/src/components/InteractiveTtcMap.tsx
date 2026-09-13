@@ -430,6 +430,7 @@ function InteractiveTtcMapComponent({
   reducedMotion,
   mobilePerformanceMode = false,
   desktopMenuPinned = false,
+  mapChromeVisible = false,
   preserveCameraOnSelectionClear = false,
   commutePathPreview,
   onClearCommutePathPreview,
@@ -456,6 +457,7 @@ function InteractiveTtcMapComponent({
   reducedMotion: boolean;
   mobilePerformanceMode?: boolean;
   desktopMenuPinned?: boolean;
+  mapChromeVisible?: boolean;
   preserveCameraOnSelectionClear?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
@@ -705,7 +707,7 @@ function InteractiveTtcMapComponent({
 
   useLayoutEffect(() => observeMobileMapFrame(containerRef.current, () => {
     if (window.innerWidth < 768 && !automaticResizeRefitBlockedRef.current) refitIfCameraUntouched();
-  }), [containerRef, refitIfCameraUntouched]);
+  }), [containerRef, refitIfCameraUntouched, mapChromeVisible]);
 
   useEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
@@ -758,7 +760,7 @@ function InteractiveTtcMapComponent({
       observer.disconnect();
       window.removeEventListener("resize", measureDesktopInsets);
     };
-  }, [refitIfCameraUntouched]);
+  }, [refitIfCameraUntouched, mapChromeVisible]);
 
   useEffect(() => {
     const viewport = containerRef.current;

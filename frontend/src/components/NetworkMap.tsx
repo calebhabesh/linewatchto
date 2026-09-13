@@ -40,6 +40,7 @@ export function NetworkMap({
           animateInitialEntrance={props.animateInitialEntrance}
           deferInitialEntrance={props.deferInitialEntrance}
           desktopMenuPinned={props.desktopMenuPinned}
+          mapChromeVisible={props.mapChromeVisible}
           preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
           viewportOrientation={props.viewportOrientation}
           onReady={onMapReady}

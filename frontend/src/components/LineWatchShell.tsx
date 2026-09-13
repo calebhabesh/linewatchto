@@ -5122,6 +5122,7 @@ export function LineWatchShell({
             : regionalRailOperatingState.closingSoon
               || (regionalRailOperatingState.status === "closed" && closedMapPeek)}
           legendProps={legendProps}
+          mapChromeVisible={!showClosedScreen}
           selection={selection}
           selectedStationId={selectedStationId}
           stations={stationSummaries}
