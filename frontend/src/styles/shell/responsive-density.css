@@ -75,13 +75,13 @@
   }
 
   .mobile-legend-pill--regional .mobile-legend-collapsed-toggle {
-    padding: 4px 0;
-    gap: 2.5px;
+    padding: 6px 0;
+    gap: 4px;
   }
   .mobile-legend-pill--regional .mobile-legend-compact-row {
     height: 20px;
   }
-  .mobile-legend-pill--regional .mobile-legend-route-badge--compact {
+  .mobile-legend-pill--regional .mobile-legend-route-badge--regional.mobile-legend-route-badge--compact {
     --mobile-regional-badge-size: 20px;
     height: 20px;
     width: 20px;
@@ -170,7 +170,7 @@
     .mobile-legend-pill--regional .mobile-legend-compact-row {
       height: 15px;
     }
-    .mobile-legend-pill--regional .mobile-legend-route-badge--compact {
+    .mobile-legend-pill--regional .mobile-legend-route-badge--regional.mobile-legend-route-badge--compact {
       --mobile-regional-badge-size: 15px;
       height: 15px;
       width: 15px;
