@@ -250,6 +250,9 @@ for (const [state, time] of [
     await expect(sheet).toBeVisible();
     await page.waitForTimeout(350);
     const initialBadge = (await badge.boundingBox())!;
+    const gridLocator = sheet.locator(".mobile-status-peek-grid");
+    const initialRowGap = await gridLocator.evaluate(el => getComputedStyle(el).rowGap);
+    expect(initialRowGap).toBe("10px");
     const initialSheet = (await sheet.boundingBox())!;
     const initialControls = (await controls.boundingBox())!;
     const controlGap = initialSheet.y - initialControls.y - initialControls.height;
@@ -270,6 +273,7 @@ for (const [state, time] of [
     const nav = (await page.locator(".mobile-bottom-nav").boundingBox())!;
     const badgeBox = (await badge.boundingBox())!;
     const controlsBox = (await controls.boundingBox())!;
+    expect(await gridLocator.evaluate(el => getComputedStyle(el).rowGap)).toBe(initialRowGap);
     expect(badgeBox.height).toBeCloseTo(initialBadge.height, 0);
     expect(badgeBox.width).toBeCloseTo(initialBadge.width, 0);
     expect(initialSheet.y - box.y).toBeCloseTo(noticeBox.height + 15, 0);

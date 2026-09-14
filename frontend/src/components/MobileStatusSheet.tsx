@@ -34,20 +34,20 @@ export function MobileStatusSheet({ dataSource = "backend", onOpenCategory, onCl
 
   return (
     <section className="mobile-status-sheet panel" aria-label="Current service status">
-      <div className="mobile-sheet-heading">
-        <div>
-          <p className="mobile-sheet-kicker">
-            <span className="mobile-status-sheet-live-blip" aria-hidden="true" />
-            <span>{networkStatusKicker(networkId)}</span>
-          </p>
-          <h2 className="mobile-status-sheet-title">System Status</h2>
-        </div>
-        <button type="button" className="mobile-sheet-icon-button" onClick={onClose} aria-label="Close status">
-          <X size={20} />
-        </button>
-      </div>
-
       <div className="mobile-status-content-scroll">
+        <div className="mobile-sheet-heading">
+          <div>
+            <p className="mobile-sheet-kicker">
+              <span className="mobile-status-sheet-live-blip" aria-hidden="true" />
+              <span>{networkStatusKicker(networkId)}</span>
+            </p>
+            <h2 className="mobile-status-sheet-title">System Status</h2>
+          </div>
+          <button type="button" className="mobile-sheet-icon-button" onClick={onClose} aria-label="Close status">
+            <X size={20} />
+          </button>
+        </div>
+
         <div className="mobile-status-section">
           <div className="mobile-status-section-heading">
             <span

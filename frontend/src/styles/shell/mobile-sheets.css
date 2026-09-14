@@ -1332,8 +1332,8 @@
     gap: 14px;
     margin-right: -12px;
     padding-right: 12px;
-    margin-top: -12px !important;
-    padding-top: 12px !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 
   /* Mobile panel heading and header contract */
@@ -1984,5 +1984,17 @@
     box-shadow: none;
     color: #000000;
     text-shadow: none;
+  }
+}
+
+/* Overview titles and dismissal scroll together above the list. */
+@media (max-width: 767px) {
+  .mobile-status-content-scroll .mobile-sheet-heading,
+  .mobile-more-content-scroll .mobile-sheet-heading {
+    margin: 0 0 -6px;
+    padding-inline: 0;
+    padding-bottom: 0;
+    min-height: 44px;
+    background: transparent;
   }
 }

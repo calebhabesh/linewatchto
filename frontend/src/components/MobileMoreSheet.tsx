@@ -127,25 +127,25 @@ export function MobileMoreSheet({
 
   return (
     <section className="mobile-more-sheet panel" aria-label="More LineWatchTO options">
-      <div className="mobile-sheet-heading">
-        <div className="mobile-more-brand">
-          <Image src="/assets/linewatch/logo.svg" alt="" width={28} height={28} aria-hidden="true" />
-          <div className="mobile-more-title-block">
-            <div className="mobile-more-kicker-row">
-              <p className="mobile-sheet-kicker linewatch-wordmark mobile-more-wordmark">LineWatchTO</p>
-              <span className="mobile-more-build-label" aria-label={`App version ${lineWatchAppVersionLabel}`}>
-                {lineWatchAppVersionLabel}
-              </span>
-            </div>
-            <h2>More</h2>
-          </div>
-        </div>
-        <button type="button" className="mobile-sheet-icon-button" onClick={onClose} aria-label="Close more options">
-          <X size={20} />
-        </button>
-      </div>
-
       <div className="mobile-more-content-scroll">
+        <div className="mobile-sheet-heading">
+          <div className="mobile-more-brand">
+            <Image src="/assets/linewatch/logo.svg" alt="" width={28} height={28} aria-hidden="true" />
+            <div className="mobile-more-title-block">
+              <div className="mobile-more-kicker-row">
+                <p className="mobile-sheet-kicker linewatch-wordmark mobile-more-wordmark">LineWatchTO</p>
+                <span className="mobile-more-build-label" aria-label={`App version ${lineWatchAppVersionLabel}`}>
+                  {lineWatchAppVersionLabel}
+                </span>
+              </div>
+              <h2>More</h2>
+            </div>
+          </div>
+          <button type="button" className="mobile-sheet-icon-button" onClick={onClose} aria-label="Close more options">
+            <X size={20} />
+          </button>
+        </div>
+
         {canShowPwaInstallHelp ? (
           <div className="mobile-more-section mobile-more-install-section">
             <div className="station-subsection-header flex items-center gap-2 px-0 pt-1.5 pb-2 mb-0.5 select-none">

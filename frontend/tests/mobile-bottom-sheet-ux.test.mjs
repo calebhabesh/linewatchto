@@ -409,7 +409,6 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.dark \.mobile-status-actions button\.mobile-status-btn-alerts:not\(\[data-count="zero"\]\)\s*\{[\s\S]*?background:\s*linear-gradient\(180deg,\s*#5c1c1c/);
     assert.match(globalCss, /\.mobile-more-row\s*\{[\s\S]*?border:\s*none\s*!important;[\s\S]*?border-radius:\s*12px;[\s\S]*?box-shadow:\s*var\(--mobile-card-shadow\);/);
     assert.match(globalCss, /\.high-contrast \.mobile-more-row[\s\S]*?\{[\s\S]*?border:\s*1px solid #ffffff/);
-    assert.match(globalCss, /\.mobile-status-content-scroll\s*\{[\s\S]*?margin-top:\s*-12px\s*!important;[\s\S]*?padding-top:\s*12px\s*!important;/);
     assert.match(globalCss, /\.mobile-status-section-heading::before\s*\{[\s\S]*?height:\s*28px;/);
     assert.match(globalCss, /\.dark \.mobile-status-actions button\.mobile-status-btn-alerts \.mobile-status-btn-circle\[data-count="positive"\]/);
     assert.match(globalCss, /\.dark \.mobile-line-status-row[\s\S]*?inset 0 1px 0 rgba\(255,\s*255,\s*255,\s*0\.08\)/);
