@@ -1,5 +1,9 @@
 "use client";
 
+import { FilterSearchRow, FilterResultCount } from "./FilterSearchRow";
+
+import { availableFilterOptions } from "../app/filter-options";
+
 import { FilterOptionCount } from "./FilterOptionCount";
 
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
@@ -227,6 +231,11 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
     until: historyWindow.until,
   }, searchIndex).length;
 
+  const statusOptions = FILTERS.map(option => ({ ...option, count: loading ? undefined : filterAndSortAlertHistory(history, {
+    statusFilter: option.value, lineId: selectedLineId, typeId: selectedTypeId,
+    searchQuery: deferredSearchQuery, sortBy: selectedSortBy, since: historyWindow.since, until: historyWindow.until,
+  }, searchIndex).length }));
+
   const resultSetKey = [
     network,
     period,
@@ -281,7 +290,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
         </div>
         <div className="alert-history-divider" aria-hidden="true" />
         <div className="alert-history-chip-group" aria-label="Incident status">
-          {FILTERS.map((option) => (
+          {availableFilterOptions(statusOptions, filter).map((option) => (
             <button
               key={option.value}
               type="button"
@@ -289,11 +298,14 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
               onClick={() => setFilter(option.value)}
               aria-pressed={filter === option.value}
             >
-              {option.label}
+              {option.label}<FilterOptionCount count={option.count} />
             </button>
           ))}
         </div>
         <div className="alert-history-search-row" aria-label="Alert history search and line selector">
+          <FilterSearchRow active={Boolean(searchQuery || selectedLineId !== ALL_LINES_VALUE || selectedTypeId !== ALL_TYPES_VALUE || filter !== "all")} onReset={() => {
+            setSearchQuery(""); setSelectedLineId(ALL_LINES_VALUE); setSelectedTypeId(ALL_TYPES_VALUE); setFilter("all");
+          }}>
           <label className="alert-history-search-field">
             <Search size={14} aria-hidden="true" />
             <input
@@ -305,6 +317,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
               aria-label="Search alert history"
             />
           </label>
+          </FilterSearchRow>
           <div className="alert-history-selects-row">
             {/* Line / Corridor Selector */}
             <div className="alert-history-line-filter relative" ref={lineDropdownRef}>
@@ -339,7 +352,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                 as="ul"
                 className="alert-history-line-filter-options"
               >
-                {lineOptions.map((option) => (
+                {availableFilterOptions(lineOptions.map(option => ({ ...option, count: countHistoryOption(option.value, selectedTypeId) })), selectedLineId, ALL_LINES_VALUE).map((option) => (
                   <li key={option.value}>
                     <button
                       type="button"
@@ -397,7 +410,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
                 as="ul"
                 className="alert-history-line-filter-options"
               >
-                {typeOptions.map((option) => (
+                {availableFilterOptions(typeOptions.map(option => ({ ...option, count: countHistoryOption(selectedLineId, option.value) })), selectedTypeId, ALL_TYPES_VALUE).map((option) => (
                   <li key={option.value}>
                     <button
                       type="button"
@@ -494,9 +507,7 @@ export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
           </p>
         ) : (
           <>
-            <p className="alert-history-result-count" aria-live="polite">
-              Showing <strong>{displayedItems.length}</strong> of <strong>{visibleItems.length}</strong> matching {visibleItems.length === 1 ? "incident" : "incidents"}
-            </p>
+            <FilterResultCount shown={displayedItems.length} total={visibleItems.length} noun="incidents" />
             <ol className="alert-history-list" aria-busy={searchQuery !== deferredSearchQuery}>
               {displayedItems.map((item) => (
                 <HistoryIncident

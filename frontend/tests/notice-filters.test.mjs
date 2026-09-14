@@ -23,3 +23,17 @@ test("route sorting is numeric and missing start dates sort last", () => {
  assert.ok(compareSurfaceNotices({ ...notice, routeIds: ["9"] }, { ...notice, routeIds: ["100"] }, "route") < 0);
  assert.ok(compareSurfaceNotices(notice, { ...notice, startAt: null }, "start") < 0);
 });
+
+test("facet options narrow by other filters but keep alternatives within their own filter", async () => {
+ const { noticeFacetRows } = await import("../src/app/notice-filters.ts");
+ const rows = [
+   { ...notice, id: "bus", routeType: "Bus", routeIds: ["9"] },
+   { ...notice, id: "streetcar", routeType: "Streetcar", routeIds: ["509", "510"] },
+   { ...notice, id: "other", routeType: "Streetcar", routeIds: ["511"], title: "Elsewhere", stops: [], stopIds: [], description: "" },
+ ];
+ const filters = { service: "Streetcar", route: "509", query: "Union" };
+ assert.deepEqual(noticeFacetRows(rows, filters, "route", now).map(row => row.id), ["streetcar"]);
+ assert.deepEqual(noticeFacetRows(rows, filters, "service", now).map(row => row.id), ["streetcar"]);
+ assert.deepEqual(noticeFacetRows(rows, { ...filters, query: "missing" }, "route", now), []);
+ assert.deepEqual(noticeFacetRows(rows, { service: "Streetcar", route: "509" }, "route", now).map(row => row.id), ["streetcar", "other"]);
+});

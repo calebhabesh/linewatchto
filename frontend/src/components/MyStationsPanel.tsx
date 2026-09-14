@@ -1,5 +1,7 @@
 "use client";
 
+import { FilterSearchRow } from "./FilterSearchRow";
+
 import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AlertCircle, ArrowDownToLine, Bookmark, CalendarCheck2, ChevronDown, ChevronRight, FileText, Layers, LoaderCircle, MapPin, Plus, Search, Train, X } from "lucide-react";
@@ -1157,14 +1159,17 @@ export function MyStationsPanel({
   );
   const lineOptions = useMemo<ToolbarSelectOption<string>[]>(() => {
     const networkStations = savedStations.filter((saved) => networkFilter === "all" || saved.networkId === networkFilter);
-    const countForLine = (id: string) => filterAndSortSavedStations(networkStations, query, id, "attention").length;
+    const countForLine = (id: string) => mode === "add"
+      ? pickerCatalog.filter(({ station }) => (id === "all" || station.lineIds.includes(id))
+        && station.name.toLocaleLowerCase("en-CA").includes(query.trim().toLocaleLowerCase("en-CA"))).length
+      : filterAndSortSavedStations(networkStations, query, id, "attention").length;
     return [
       { value: "all", label: "All Lines", count: countForLine("all") },
       ...availableLines.filter((line) => mode === "add" || networkStations.some((saved) => saved.station.lineIds.includes(line.id))).map((line) => ({
         value: line.id, label: line.name, lineId: line.id, count: countForLine(line.id),
       })),
     ];
-  }, [availableLines, savedStations, networkFilter, query, mode]);
+  }, [availableLines, savedStations, networkFilter, query, mode, pickerCatalog]);
   if (lineId !== "all" && !lineOptions.some((option) => option.value === lineId)) {
     setLineId("all");
   }
@@ -1450,6 +1455,9 @@ export function MyStationsPanel({
           <>
             <div className="my-stations-controls">
               <div className="my-stations-controls-top">
+                <FilterSearchRow active={Boolean(query || lineId !== "all" || networkFilter !== "all")} onReset={() => {
+                  setQuery(""); setLineId("all"); setNetworkFilter("all");
+                }}>
                 <label className={`impact-list-search my-stations-search${mode === "add" ? " picker-nudge" : ""}`}>
                   <Search size={15} aria-hidden="true" />
                   <span className="sr-only">{mode === "add" ? "Search all stations" : "Search saved stations"}</span>
@@ -1461,6 +1469,7 @@ export function MyStationsPanel({
                     placeholder={mode === "add" ? "Search All Stations..." : "Search saved stations..."}
                   />
                 </label>
+                </FilterSearchRow>
                 <button
                   ref={modeButtonRef}
                   type="button"
@@ -1505,6 +1514,7 @@ export function MyStationsPanel({
                   </button>
                 ))}
               </div>
+
               <div className="my-stations-selects">
                 <ToolbarSelectMenu
                   ariaLabel="Filter stations by line"

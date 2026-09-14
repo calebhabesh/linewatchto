@@ -11,7 +11,11 @@ export function matchesNoticeFilters(notice: SurfaceNoticeDetail, filters: {
   const routes = notice.routeIds.map(canonicalNoticeRoute);
   if (filters.route && filters.route !== "all"
     && (filters.route === "unspecified" ? routes.length > 0 : !routes.includes(canonicalNoticeRoute(filters.route)))) return false;
-  if (filters.service && filters.service !== "all" && notice.routeType !== filters.service) return false;
+  if (filters.service && filters.service !== "all") {
+    const matchesService = filters.service === "train" ? notice.routeType !== "GO Bus"
+      : notice.routeType === (filters.service === "bus" ? "GO Bus" : filters.service);
+    if (!matchesService) return false;
+  }
   if (filters.category && filters.category !== "all" && notice.category !== filters.category) return false;
   const start = Date.parse(notice.startAt ?? "");
   const end = Date.parse(notice.endAt ?? "");
@@ -22,4 +26,13 @@ export function matchesNoticeFilters(notice: SurfaceNoticeDetail, filters: {
     notice.source, notice.routeType, ...routes, ...notice.stopIds, ...(notice.stops ?? []).map(stop => stop.stopName)]
     .filter(Boolean).join(" ").toLocaleLowerCase();
   return (filters.query ?? "").trim().toLocaleLowerCase().split(/\s+/).every(term => text.includes(term));
+}
+
+
+// Each dropdown respects every other filter, while keeping alternatives in its
+// own dimension available (for example, switching between matching routes).
+export function noticeFacetRows(notices: SurfaceNoticeDetail[],
+  filters: Parameters<typeof matchesNoticeFilters>[1],
+  facet: "service" | "route" | "category" | "timing", now: number) {
+  return notices.filter(notice => matchesNoticeFilters(notice, { ...filters, [facet]: "all" }, now));
 }

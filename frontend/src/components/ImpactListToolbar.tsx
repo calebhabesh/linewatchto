@@ -1,5 +1,8 @@
 "use client";
 
+import { FilterSearchRow } from "./FilterSearchRow";
+
+import { availableFilterOptions } from "../app/filter-options";
 import { FilterOptionCount } from "./FilterOptionCount";
 
 import { useRef, useState } from "react";
@@ -112,6 +115,7 @@ export function ToolbarSelectMenu<T extends string>({
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const selectedOption = options.find((option) => option.value === value) ?? options[0];
+  const visibleOptions = availableFilterOptions(options, value);
   const resolvedAlign = align ?? (prefix === "Sort" ? "right" : "left");
 
   return (
@@ -124,7 +128,7 @@ export function ToolbarSelectMenu<T extends string>({
         tabIndex={-1}
         disabled={disabled}
       >
-        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        {visibleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
       <button
         type="button"
@@ -152,7 +156,7 @@ export function ToolbarSelectMenu<T extends string>({
         role="listbox"
         className="saved-commute-sort-options impact-list-select-options"
       >
-        {options.map((option) => {
+        {visibleOptions.map((option) => {
           const selected = option.value === value;
           const line = option.lineId ? LINE_FILTER_DETAILS[option.lineId] : null;
           return (
@@ -204,11 +208,12 @@ export function ImpactListToolbar({
   const filtering = lineId !== "all" || Boolean(query.trim());
   const lineOptions: ToolbarSelectOption<string>[] = [
     { value: "all", label: "All Lines", count: Object.values(lineCounts).reduce((sum, count) => sum + count, 0) },
-    ...lineIds.map((id) => ({ value: id, label: lineLabel(id), lineId: id, count: lineCounts[id] ?? 0 })),
+    ...[...new Set([...lineIds, ...(lineId === "all" ? [] : [lineId])])].map((id) => ({ value: id, label: lineLabel(id), lineId: id, count: lineCounts[id] ?? 0 })),
   ];
 
   return (
     <div className="impact-list-toolbar" aria-label={`Filter and sort ${noun}`}>
+      <FilterSearchRow active={filtering} onReset={() => { onLineIdChange("all"); onQueryChange(""); }}>
       <label className="impact-list-search">
         <Search size={14} aria-hidden="true" />
         <span className="sr-only">Filter {noun}</span>
@@ -221,6 +226,7 @@ export function ImpactListToolbar({
           aria-label={`Filter ${noun}`}
         />
       </label>
+      </FilterSearchRow>
       <div className="impact-list-selects">
         <ToolbarSelectMenu
           ariaLabel={`Filter ${noun} by line`}

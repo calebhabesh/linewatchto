@@ -1,5 +1,7 @@
 "use client";
 
+import { FilterSearchRow } from "./FilterSearchRow";
+
 import { useEffect, useMemo, useState } from "react";
 import { SurfaceNoticesPanel } from "./SurfaceNoticesPanel";
 import { getSurfaceNotices, type SurfaceNoticeResponse } from "../app/surface-notice-data";
@@ -89,6 +91,13 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, on
   const visibleCategories = (Object.keys(CATEGORY_LABELS) as Array<Exclude<LineImpactCategory, "all">>)
     .filter((key) => dashboard.networkId === "ttc" ? key !== "notices" : key !== "reduced-speed-zones");
   const normalizedQuery = query.trim().toLocaleLowerCase();
+  const categoryCounts = {
+    alerts: lineAlerts.filter(item => matchesQuery(item, normalizedQuery)).length,
+    delays: lineDelays.filter(item => matchesQuery(item, normalizedQuery)).length,
+    "reduced-speed-zones": countReducedSpeedZones(lineZones.filter(item => matchesQuery(item, normalizedQuery))),
+    closures: lineClosures.filter(item => matchesQuery(item, normalizedQuery)).length,
+    notices: lineNotices.filter(notice => matchesNoticeFilters(notice, { query }, Date.parse(noticesResponse?.generatedAt ?? ""))).length,
+  };
   const searchableItems = category === "alerts" ? lineAlerts
     : category === "delays" ? lineDelays
     : category === "reduced-speed-zones" ? lineZones
@@ -117,23 +126,25 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, on
 
       <div className="line-impact-category-filters" role="group" aria-label={`Filter ${lineName} impacts by alert type`}>
         <button type="button" data-category="all" aria-pressed={category === "all"} onClick={() => setCategory("all")}>
-          <span>All</span><strong>{totalEntries}</strong>
+          <span>All</span><strong>{Object.values(categoryCounts).reduce((sum, count) => sum + count, 0)}</strong>
         </button>
-        {visibleCategories.map((key) => (
+        {visibleCategories.filter(key => categoryCounts[key] > 0 || key === category).map((key) => (
           <button key={key} type="button" data-category={key} aria-pressed={category === key} onClick={() => setCategory(key)}>
             {key === "notices" ? <Megaphone size={16} /> : <ImpactTypeIcon kind={key === "alerts" ? "suspension" : key === "delays" ? "delay" : key === "reduced-speed-zones" ? "reduced-speed-zone" : "planned-closure"} size={16} />}
-            <span>{CATEGORY_LABELS[key]}</span><strong>{counts[key]}</strong>
+            <span>{CATEGORY_LABELS[key]}</span><strong>{categoryCounts[key]}</strong>
           </button>
         ))}
       </div>
 
       {totalEntries > 0 ? (
         <div className="impact-list-toolbar" aria-label={`Filter and sort ${lineName} impacts`}>
+          <FilterSearchRow active={Boolean(query || category !== "all")} onReset={() => { setQuery(""); setCategory("all"); }}>
           <label className="impact-list-search">
             <Search size={14} aria-hidden="true" />
             <span className="sr-only">Filter {lineName} impacts</span>
             <input type="search" className="submenu-search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={dashboard.networkId === "regional" ? "Search impacts and notices..." : "Filter Impacts..."} aria-label={`Filter ${lineName} impacts`} />
           </label>
+          </FilterSearchRow>
           <div className="impact-list-selects">
             <ToolbarSelectMenu
               ariaLabel={`Sort ${lineName} impacts`}
@@ -151,6 +162,8 @@ export function LineImpactsPanel({ lineId, selection, onSelectImpact, onBack, on
           <span className="sr-only" role="status">{visibleItemCount} matching impact cards</span>
         </div>
       ) : null}
+
+
 
       <div className={`line-impact-panel-stack ${visibleItemCount === 0 ? "is-empty" : ""}`}>
         {visibleItemCount === 0 ? (

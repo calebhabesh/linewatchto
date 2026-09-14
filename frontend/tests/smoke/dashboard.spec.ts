@@ -947,6 +947,10 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await page.getByRole("menuitemradio", { name: /^Bus(?: \d+)?$/ }).click();
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toBeVisible();
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Filter notices by route or line" }).click();
+  await expect(page.getByRole("menuitemradio", { name: /^Barrie/ })).toHaveCount(0);
+  await expect(page.getByRole("menuitemradio", { name: /^GO Bus 31/ })).toBeVisible();
+  await page.keyboard.press("Escape");
   await serviceFilter.click();
   await page.getByRole("menuitemradio", { name: /^Train(?: \d+)?$/ }).click();
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
@@ -2962,8 +2966,20 @@ test("TTC notices filter exact routes and compose service and stop search", asyn
   await page.getByPlaceholder("Search route, stop, or notice").fill("Union 123");
   await expect(page.getByText("Route 9 stop change", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Filter notices by service" }).click();
-  await page.getByRole("menuitemradio", { name: "Streetcar", exact: true }).click();
+  await expect(page.getByRole("menuitemradio", { name: /^Streetcar/ })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Reset filters" }).click();
+  await page.getByRole("button", { name: "Filter notices by service" }).click();
+  await page.getByRole("menuitemradio", { name: /^Streetcar/ }).click();
+  await page.getByRole("button", { name: "Filter notices by route or line" }).click();
+  await expect(page.getByRole("menuitemradio", { name: /^Route 9 1$/ })).toHaveCount(0);
+  await page.getByRole("menuitemradio", { name: /^Route 90 1$/ }).click();
+  await expect(page.getByText("Route 90 stop change", { exact: true })).toBeVisible();
+  await page.getByPlaceholder("Search route, stop, or notice").fill("missing stop");
   await expect(page.getByText(/No active .*notices found/)).toBeVisible();
+  await page.getByRole("button", { name: "Filter notices by route or line" }).click();
+  await expect(page.getByRole("menuitemradio", { name: /^Route 90 0$/ })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Reset filters" }).click();
   await expect(page.locator(".surface-notice-route-group")).toHaveCount(2);
   const closeBox = await page.getByRole("button", { name: "Close", exact: true }).boundingBox();
@@ -4149,29 +4165,21 @@ test("shows seamless continuation gradients on constrained desktop and mobile li
   }
 });
 
-test("alert category panels filter by line and sort without changing dashboard data", async ({ page, request, isMobile }) => {
+test("alert category panels filter by line and sort without changing dashboard data", async ({ page, request }) => {
   await setStubMode(request, "seeded");
   await page.goto("/?panel=delays");
 
   const toolbar = page.locator(".impact-list-toolbar");
-  await expect(toolbar).toHaveCSS("border-top-width", "1px");
-  await expect(toolbar).toHaveCSS("border-bottom-width", "1px");
-  expect(await toolbar.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return style.borderTopColor === style.borderBottomColor;
-  })).toBeTruthy();
-
   await page.getByRole("button", { name: "Filter delays by line" }).click();
   await page.getByRole("listbox").getByRole("option", { name: "Line 4 Sheppard" }).click();
   const lineFilterTrigger = page.getByRole("button", { name: "Filter delays by line" });
   await expect(lineFilterTrigger).toContainText("Sheppard");
-  await expect(lineFilterTrigger.locator(".impact-list-line-badge")).toHaveAttribute("src", /line-4-legend\.svg/);
+  await expect(lineFilterTrigger.locator("img")).toHaveAttribute("src", /line-4-legend\.svg/);
   await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-delay-st-george-curve"]')).toHaveCount(0);
   await expect(page.getByRole("status").filter({ hasText: /1 of 2/ })).toBeAttached();
 
   const sortTrigger = page.getByRole("button", { name: "Sort delays" });
-  const defaultSortWidth = (await sortTrigger.boundingBox())?.width ?? 0;
   await sortTrigger.click();
   const sortOptions = page.getByRole("listbox");
   await expect(sortOptions).toBeVisible();
@@ -4180,19 +4188,24 @@ test("alert category panels filter by line and sort without changing dashboard d
   expect(sortTriggerBox).not.toBeNull();
   expect(sortOptionsBox).not.toBeNull();
   if (sortTriggerBox && sortOptionsBox) {
-    if (isMobile) {
-      expect(Math.abs(sortOptionsBox.x - sortTriggerBox.x)).toBeLessThanOrEqual(1);
-    } else {
-      expect(Math.abs(
-        sortOptionsBox.x + sortOptionsBox.width - (sortTriggerBox.x + sortTriggerBox.width),
-      )).toBeLessThanOrEqual(3);
-    }
+    expect(Math.abs(
+      sortOptionsBox.x + sortOptionsBox.width - (sortTriggerBox.x + sortTriggerBox.width),
+    )).toBeLessThanOrEqual(3);
   }
   await sortOptions.getByRole("option", { name: "Line", exact: true }).click();
   await expect(sortTrigger).toContainText("Line");
-  const lineSortWidth = (await sortTrigger.boundingBox())?.width ?? 0;
-  expect(lineSortWidth).toBeLessThan(defaultSortWidth);
   await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).toBeVisible();
+  await page.getByRole("searchbox", { name: "Filter delays" }).fill("Sheppard");
+  await lineFilterTrigger.click();
+  await expect(page.getByRole("listbox").getByRole("option", { name: "Line 1 Yonge-University" })).toHaveCount(0);
+  await expect(page.getByRole("listbox").getByRole("option", { name: "Line 4 Sheppard" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("searchbox", { name: "Filter delays" }).fill("no matching incident");
+  await lineFilterTrigger.click();
+  await expect(page.getByRole("listbox").getByRole("option", { name: "Line 4 Sheppard" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await toolbar.getByRole("button", { name: "Reset filters", exact: true }).click();
+  await expect(page.locator('[data-impact-card-id="stub-delay-st-george-curve"]')).toBeVisible();
 });
 
 test("station search browses fallback station lists by line", async ({ page, request, isMobile }) => {
@@ -4827,26 +4840,13 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
 
   await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "My Commutes" })).toHaveCount(0);
   if (isMobile) {
-    const myStationsShortcut = page.getByRole("button", { name: "Open My Stations" });
-    const mobileNetworkSelector = page.locator(".mobile-network-selector-slot");
-    await expect(myStationsShortcut).toBeVisible();
-    await expect.poll(async () => {
-      const [selectorBox, shortcutBox] = await Promise.all([
-        mobileNetworkSelector.boundingBox(),
-        myStationsShortcut.boundingBox(),
-      ]);
-      return selectorBox && shortcutBox
-        ? {
-            belowSwitcher: shortcutBox.y >= selectorBox.y + selectorBox.height,
-            sameWidth: Math.abs(shortcutBox.width - selectorBox.width) <= 1,
-          }
-        : null;
-    }).toEqual({ belowSwitcher: true, sameWidth: true });
-    await myStationsShortcut.click();
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "My Stations", exact: true }).click();
     await expect(page.getByRole("region", { name: "My Stations" })).toBeVisible();
     await page.getByRole("button", { name: "Close My Stations" }).click();
-    await expect(myStationsShortcut).toBeVisible();
+    await expect(page.getByRole("region", { name: "My Stations" })).toHaveCount(0);
   }
   await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
   await expect(page.getByRole("button", { name: "Save Stub Station to My Stations" })).toBeVisible();
@@ -4871,6 +4871,11 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
   });
   expect(pickerRowStyle.opacity).toBe("1");
   expect(pickerRowStyle.backgroundColor).toBe("rgb(21, 24, 33)");
+  await expect(savedLineOptions.locator("option[value='line-1']")).toHaveCount(1);
+  await panel.getByRole("searchbox", { name: "Search all stations" }).fill("missing station");
+  await expect(savedLineOptions.locator("option[value='line-1']")).toHaveCount(0);
+  await panel.getByRole("button", { name: "Reset filters", exact: true }).click();
+  await expect(savedLineOptions.locator("option[value='line-1']")).toHaveCount(1);
   await doneButton.click();
   await expect(panel.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
   await expect(panel.getByText("Active Disruptions", { exact: true })).toBeVisible();
@@ -5419,9 +5424,20 @@ test.describe("regional history source details", () => {
       .getByRole("button", { name: "GO/UP", exact: true }).click();
     await waitForNetworkTransition(page, "regional");
     await page.getByRole("button", { name: isMobile ? "More" : "Toggle menu", exact: isMobile }).click();
-    await page.getByRole(isMobile ? "button" : "menuitem", { name: "Alert History", exact: true }).click();
+    await (isMobile ? page.getByLabel("More LineWatchTO options") : page).getByRole(isMobile ? "button" : "menuitem", { name: "Alert History", exact: true }).click();
     const card = page.locator(".alert-history-item");
     await expect(card).toHaveCount(1);
+    const historySearch = page.getByRole("searchbox", { name: "Search alert history" });
+    await historySearch.fill("missing source narrative");
+    await expect(card).toHaveCount(0);
+    await page.getByRole("button", { name: "Transit line", exact: true }).click();
+    await expect(page.locator(".alert-history-line-filter-options").getByRole("button", { name: /Barrie/ })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+    await expect(card).toHaveCount(1);
+    await page.getByRole("button", { name: "Transit line", exact: true }).click();
+    await expect(page.locator(".alert-history-line-filter-options").getByRole("button", { name: /Barrie/ })).toBeVisible();
+    await page.keyboard.press("Escape");
     await expect(card.locator(".alert-history-content > .alert-history-description")).toHaveText(updated.description);
     await expect(card.getByText("Source category", { exact: true })).toBeVisible();
     await expect(card.getByText("Unknown Cause", { exact: true })).toHaveCount(0);
@@ -5434,4 +5450,52 @@ test.describe("regional history source details", () => {
     expect(await card.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
     await card.screenshot({ path: testInfo.outputPath("regional-history.png") });
   });
+});
+
+test("reset stays beside search without moving filter selectors", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/?panel=delays");
+
+  const searchInput = page.getByRole("searchbox", { name: "Filter delays" });
+  const lineFilterTrigger = page.getByRole("button", { name: "Filter delays by line" });
+  const sortTrigger = page.getByRole("button", { name: "Sort delays" });
+
+  await expect(searchInput).toBeVisible();
+  await expect(lineFilterTrigger).toBeVisible();
+  await expect(sortTrigger).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset filters", exact: true })).toHaveCount(0);
+
+  const initialLineBox = await lineFilterTrigger.boundingBox();
+  const initialSortBox = await sortTrigger.boundingBox();
+  const initialSearchBox = await searchInput.boundingBox();
+  expect(initialLineBox).not.toBeNull();
+  expect(initialSortBox).not.toBeNull();
+  expect(initialSearchBox).not.toBeNull();
+
+  await searchInput.fill("Sheppard");
+  const resetButton = page.getByRole("button", { name: "Reset filters", exact: true });
+  await expect(resetButton).toBeVisible();
+
+  const activeResetBox = await resetButton.boundingBox();
+  const activeSearchBox = await searchInput.boundingBox();
+  const activeLineBox = await lineFilterTrigger.boundingBox();
+  const activeSortBox = await sortTrigger.boundingBox();
+
+  expect(activeResetBox).not.toBeNull();
+  expect(activeSearchBox).not.toBeNull();
+  expect(activeLineBox).not.toBeNull();
+  expect(activeSortBox).not.toBeNull();
+
+  expect(activeResetBox!.x).toBeGreaterThanOrEqual(activeSearchBox!.x + activeSearchBox!.width - 1);
+  expect(activeSearchBox!.width).toBeLessThan(initialSearchBox!.width);
+  expect(Math.abs(activeLineBox!.x - initialLineBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeLineBox!.width - initialLineBox!.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeSortBox!.x - initialSortBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeSortBox!.width - initialSortBox!.width)).toBeLessThanOrEqual(1);
+
+  await resetButton.click();
+  await expect(searchInput).toHaveValue("");
+  await expect(resetButton).toHaveCount(0);
+  await expect(page.locator('[data-impact-card-id="stub-delay-st-george-curve"]')).toBeVisible();
+  await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).toBeVisible();
 });

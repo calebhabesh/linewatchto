@@ -1661,3 +1661,51 @@
 .high-contrast .alert-history-line-filter-trigger .filter-option-count {
   color: #b8a66f;
 }
+
+/* Reset consumes search space only; the adjacent selectors retain their width. */
+.filter-search-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+}
+.filter-search-row > :first-child {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+}
+.filter-reset-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid #64748b30;
+  border-radius: 7px;
+  background: #e2e5e9;
+  color: #475569;
+  cursor: pointer;
+}
+.filter-reset-button:hover { background: #cbd0d7; color: #1e293b; }
+.dark .filter-reset-button { background: #252a32; color: #cbd5e1; border-color: #ffffff12; }
+.dark .filter-reset-button:hover { background: #343b46; color: #f1f5f9; }
+.filter-reset-button:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.high-contrast .filter-reset-button { border-color: currentColor; }
+.filter-result-count {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #64748b;
+}
+.filter-result-count strong { font-weight: 500; color: #334155; }
+.dark .filter-result-count { color: #94a3b8; }
+.dark .filter-result-count strong { color: #e2e8f0; }
+.high-contrast .filter-result-count { color: #cbd5e1; }
+.high-contrast .filter-result-count strong { color: #fff; }

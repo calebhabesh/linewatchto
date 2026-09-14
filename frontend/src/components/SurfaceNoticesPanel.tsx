@@ -1,7 +1,10 @@
 "use client";
 
+import { FilterSearchRow, FilterResultCount } from "./FilterSearchRow";
+
+import { availableFilterOptions } from "../app/filter-options";
 import { goBusRouteColor, goBusRouteTextColor } from "../app/go-bus-route-colors";
-import { canonicalNoticeRoute, matchesNoticeFilters } from "../app/notice-filters";
+import { canonicalNoticeRoute, matchesNoticeFilters, noticeFacetRows } from "../app/notice-filters";
 import { FilterOptionCount } from "./FilterOptionCount";
 
 import React, { useState, useEffect, useRef, useId } from "react";
@@ -75,7 +78,7 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
         aria-label={label}
         className="alert-history-line-filter-options"
       >
-        {options.map((option) => (
+        {availableFilterOptions(options, value).map((option) => (
           <li key={option.value} role="none">
             <button
               type="button"
@@ -239,35 +242,31 @@ export function SurfaceNoticesPanel({
     }
   };
 
-  // Find counts from full summaries
-  const getCategoryCount = (cat: string) => {
-    if (!data) return 0;
-    return data.notices.filter(notice => notice.category === cat && (!scopedRoute ||
-      notice.routeIds.some(id => canonicalNoticeRoute(id) === canonicalNoticeRoute(scopedRoute)))).length;
-  };
-
-  const totalCount = data?.notices.filter(notice => !scopedRoute || notice.routeIds.some(id => canonicalNoticeRoute(id) === canonicalNoticeRoute(scopedRoute))).length ?? 0;
-  const visibleCategories = regional
-    ? (["service-change", "bypass", "detour", "no-service", "notice"] as SurfaceNoticeCategory[]).filter((cat) => getCategoryCount(cat) > 0)
-    : (["service-change", "bypass", "detour", "no-service", "notice"] as SurfaceNoticeCategory[]);
-
   const isFallback = data?.source?.toLowerCase().includes("fixture") || false;
   const availableNotices = (embeddedNotices ?? (data?.fresh || data?.savedAt ? data.notices : [])).filter(notice =>
     !scopedRoute || notice.routeIds.some(id => canonicalNoticeRoute(id) === canonicalNoticeRoute(scopedRoute)));
-  const routeOptions = [...new Set(availableNotices.flatMap(notice => notice.routeIds.map(canonicalNoticeRoute)))]
+  const query = (externalQuery ?? debouncedQuery).toLocaleLowerCase();
+  const expandedQuery = regional ? REGIONAL_STATION_SEARCH_LINES.reduce((text, line) =>
+    text.replaceAll(line.name.toLocaleLowerCase(), line.number.toLocaleLowerCase()), query) : query;
+  const now = Date.parse(data?.generatedAt ?? "");
+  const filters = { route, service: serviceType, category, timing, query: expandedQuery };
+  const serviceRows = noticeFacetRows(availableNotices, filters, "service", now);
+  const routeRows = noticeFacetRows(availableNotices, filters, "route", now);
+  const categoryRows = noticeFacetRows(availableNotices, filters, "category", now);
+  const timingRows = noticeFacetRows(availableNotices, filters, "timing", now);
+  const getCategoryCount = (cat: string) => categoryRows.filter(notice => notice.category === cat).length;
+  const totalCount = categoryRows.length;
+  const visibleCategories = ["service-change", "bypass", "detour", "no-service", "notice"] as SurfaceNoticeCategory[];
+  // Retain a selected zero-result value so search/polling never silently clears a filter.
+  const routeOptions = [...new Set([...routeRows.flatMap(notice => notice.routeIds.map(canonicalNoticeRoute)),
+    ...(route !== "all" && route !== "unspecified" ? [route] : [])])]
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const serviceOptions = [...new Set([...serviceRows.map(notice => notice.routeType),
+    ...(serviceType !== "all" ? [serviceType] : [])])].sort();
   const routeLabel = (code: string) => regional
     ? REGIONAL_STATION_SEARCH_LINES.find(line => line.number === code)?.name ?? `GO Bus ${code}`
     : `Route ${code}`;
-  const serviceFilteredNotices = availableNotices.filter(notice => {
-    const service = serviceType === "bus" ? "GO Bus" : serviceType;
-    if (serviceType === "train" && notice.routeType === "GO Bus") return false;
-    const query = (externalQuery ?? debouncedQuery).toLocaleLowerCase();
-    const expandedQuery = regional ? REGIONAL_STATION_SEARCH_LINES.reduce((text, line) =>
-      text.replaceAll(line.name.toLocaleLowerCase(), line.number.toLocaleLowerCase()), query) : query;
-    return matchesNoticeFilters(notice, { route, service: serviceType === "train" ? "all" : service,
-      category, timing, query: expandedQuery }, Date.parse(data?.generatedAt ?? ""));
-  });
+  const serviceFilteredNotices = availableNotices.filter(notice => matchesNoticeFilters(notice, filters, now));
   const resetFilters = () => {
     setRoute("all"); setServiceType("all"); setCategory("all"); setTiming("all");
     setSearchQuery(""); setDebouncedQuery(""); setSortOrder("importance");
@@ -440,6 +439,7 @@ export function SurfaceNoticesPanel({
         {!embeddedNotices && <div className="surface-notices-controls flex flex-col gap-2 px-3 pt-2.5 pb-2.5 sm:px-4 sm:pt-2.5 sm:pb-2.5 shrink-0">
           {/* Search Bar */}
           <div className="surface-notices-search-row">
+            <FilterSearchRow active={Boolean(searchQuery || route !== "all" || serviceType !== "all" || category !== "all" || timing !== "all" || sortOrder !== "importance")} onReset={resetFilters}>
             <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-slate-400 dark:text-slate-500" />
               <input
@@ -452,6 +452,7 @@ export function SurfaceNoticesPanel({
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </form>
+            </FilterSearchRow>
           </div>
 
           {regional && !scopedRoute ? (
@@ -485,17 +486,17 @@ export function SurfaceNoticesPanel({
             <div className="alert-history-selects-row surface-notice-filters">
               {regional ? <NoticeFilter label="Filter GO / UP notices by service" prefix="Service"
                 value={serviceType} onChange={(value) => setServiceType(value as typeof serviceType)}
-                options={[{ value: "all", label: "All services", count: data?.notices.length }, { value: "train", label: "Train", count: data?.notices.filter((notice) => notice.routeType !== "GO Bus").length }, { value: "bus", label: "Bus", count: data?.notices.filter((notice) => notice.routeType === "GO Bus").length }]} /> : null}
+                options={[{ value: "all", label: "All services", count: serviceRows.length }, { value: "train", label: "Train", count: serviceRows.filter((notice) => notice.routeType !== "GO Bus").length }, { value: "bus", label: "Bus", count: serviceRows.filter((notice) => notice.routeType === "GO Bus").length }]} /> : null}
               {!regional ? <NoticeFilter label="Filter notices by service" prefix="Service" value={serviceType}
-                onChange={setServiceType} options={[{ value: "all", label: "All services" },
-                  ...[...new Set(availableNotices.map(notice => notice.routeType))].sort().map(value => ({ value, label: value }))]} /> : null}
+                onChange={setServiceType} options={[{ value: "all", label: "All services", count: serviceRows.length },
+                  ...serviceOptions.map(value => ({ value, label: value, count: serviceRows.filter(notice => notice.routeType === value).length }))]} /> : null}
               {!scopedRoute ? <NoticeFilter label="Filter notices by route or line" prefix={regional ? "Line / route" : "Route"}
-                value={route} onChange={setRoute} options={[{ value: "all", label: "All routes" },
-                  ...routeOptions.map(value => ({ value, label: routeLabel(value), icon: renderRouteBadge(value), badgeOnly: true, count: availableNotices.filter(notice => notice.routeIds.some(id => canonicalNoticeRoute(id) === value)).length })),
-                  { value: "unspecified", label: "No route specified", count: availableNotices.filter(notice => !notice.routeIds.length).length }]} /> : null}
+                value={route} onChange={setRoute} options={[{ value: "all", label: "All routes", count: routeRows.length },
+                  ...routeOptions.map(value => ({ value, label: routeLabel(value), icon: renderRouteBadge(value), badgeOnly: true, count: routeRows.filter(notice => notice.routeIds.some(id => canonicalNoticeRoute(id) === value)).length })),
+                  { value: "unspecified", label: "No route specified", count: routeRows.filter(notice => !notice.routeIds.length).length }]} /> : null}
               <NoticeFilter label="Filter notices by timing" prefix="Timing" value={timing} onChange={setTiming}
                 options={[{ value: "all", label: "Any time" }, { value: "ongoing", label: "Started" },
-                  { value: "upcoming", label: "Upcoming" }, { value: "unknown", label: "Start not supplied" }]} />
+                  { value: "upcoming", label: "Upcoming" }, { value: "unknown", label: "Start not supplied" }].map(option => ({ ...option, count: timingRows.filter(notice => matchesNoticeFilters(notice, { timing: option.value }, now)).length }))}  />
               <NoticeFilter label="Notice type" prefix="Type" value={category}
                 onChange={(value) => setCategory(value as typeof category)}
                 options={[{ value: "all", label: "All Types", count: data ? totalCount : undefined },
@@ -517,8 +518,8 @@ export function SurfaceNoticesPanel({
             </div>
           ) : null}
           {regionalContent === "notices" && <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <span role="status">{serviceFilteredNotices.length} of {availableNotices.length} notices{sortOrder === "recent" ? " · Newest updates first" : ""}</span>
-            <button type="button" onClick={resetFilters} className="px-2 py-1 font-bold underline">Reset filters</button>
+            <FilterResultCount shown={serviceFilteredNotices.length} total={availableNotices.length} noun="notices" />
+            {sortOrder === "recent" && <span className="sr-only" role="status">Newest updates first</span>}
           </div>}
           {scopedRoute && <p className="text-xs text-slate-500 dark:text-slate-400">Source-tagged service information for this corridor, separate from service impacts. Notices do not change line status.</p>}
         </div>}
