@@ -75,7 +75,7 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /displayRouteGroups/);
     assert.match(panelSource, /notices: \[notice\]/);
     assert.match(panelSource, /group\.routeType !== "GO Bus"/);
-    assert.match(panelSource, /GO Bus \{routeId\}/);
+    assert.match(panelSource, /goBusRouteColor\(routeId\)/);
     assert.match(panelSource, /regional \? "pt-3" : ""/);
     assert.match(panelSource, /Filter GO \/ UP notices by service/);
     assert.match(panelSource, /value: "train", label: "Train"/);

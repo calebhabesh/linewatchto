@@ -78,7 +78,8 @@ public class SurfaceServiceNoticeService {
         }
 
         // Setup limit
-        int finalLimit = 100;
+        // Unfiltered dashboard reads must contain every notice for local route filtering and offline search.
+        int finalLimit = Integer.MAX_VALUE;
         if (limit != null) {
             finalLimit = Math.min(limit, 250);
         }

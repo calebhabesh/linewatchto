@@ -24,6 +24,18 @@ class RegionalSurfaceServiceNoticeServiceTest {
     @Mock private MetrolinxProperties properties;
 
     @Test
+    void completeCollectionDoesNotTruncateRouteFiltersAtOneHundredNotices() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        when(repository.findActiveRecords(any())).thenReturn(java.util.stream.IntStream.range(0, 120)
+            .mapToObj(index -> record(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "notice-" + index,
+                "{\"Code\":\"notice-" + index + "\",\"SubjectEnglish\":\"Station information\",\"Lines\":[{\"Code\":\"BR\"}]}"))
+            .toList());
+        assertThat(service().getSurfaceNotices(null, null, null).notices()).hasSize(120);
+        assertThat(service().getSurfaceNotices(null, null, 10).notices()).hasSize(10);
+    }
+
+    @Test
     void exposesFreshInformationAndMarketingCollectionsAsSearchableNotices() {
         when(freshness.isFresh()).thenReturn(true);
         when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));

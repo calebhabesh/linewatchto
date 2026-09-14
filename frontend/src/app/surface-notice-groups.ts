@@ -614,10 +614,20 @@ export function hasExactRouteMatch(notice: SurfaceNoticeDetail, query?: string |
 export function compareSurfaceNotices(
   a: SurfaceNoticeDetail,
   b: SurfaceNoticeDetail,
-  sort: "importance" | "recent" = "importance",
+  sort: "importance" | "recent" | "route" | "location" | "start" = "importance",
   query?: string | null,
 ): number {
-  if (query) {
+  if (sort === "route" || sort === "location") {
+    const key = (notice: SurfaceNoticeDetail) => sort === "route" ? [...notice.routeIds].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))[0] ?? "\uffff" : notice.location || notice.stops?.[0]?.stopName || "\uffff";
+    const order = key(a).localeCompare(key(b), undefined, { numeric: true });
+    if (order) return order;
+  }
+  if (sort === "start") {
+    const time = (value?: string | null) => Number.isFinite(Date.parse(value ?? "")) ? Date.parse(value!) : Infinity;
+    const order = time(a.startAt) - time(b.startAt);
+    if (order) return order;
+  }
+  if (query && (sort === "importance" || sort === "recent")) {
     const aMatch = hasExactRouteMatch(a, query);
     const bMatch = hasExactRouteMatch(b, query);
     if (aMatch !== bMatch) {

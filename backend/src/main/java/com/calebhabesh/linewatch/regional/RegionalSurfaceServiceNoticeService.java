@@ -73,7 +73,7 @@ public class RegionalSurfaceServiceNoticeService {
             .toList();
 
         String search = query == null ? "" : query.trim().toLowerCase(Locale.CANADA);
-        int resultLimit = limit == null ? 100 : Math.max(0, Math.min(limit, 250));
+        int resultLimit = limit == null ? Integer.MAX_VALUE : Math.max(0, Math.min(limit, 250));
         List<NoticeDetail> notices = all.stream()
             .filter(notice -> category == null || category.equals(notice.category()))
             .filter(notice -> search.isBlank() || matches(notice, search))

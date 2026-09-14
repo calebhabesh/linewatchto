@@ -30,6 +30,19 @@ class SurfaceServiceNoticeServiceTest {
     }
 
     @Test
+    void completeCollectionDoesNotTruncateRouteFiltersAtOneHundredNotices() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        when(repository.findActiveNotices()).thenReturn(java.util.stream.IntStream.range(0, 120)
+            .mapToObj(index -> new SurfaceServiceNotice(
+                "notice-" + index, "" + index, "bypass", "Bus", "Stop bypass", "", "Stop", null,
+                null, null, null, null, null, now, null, now, true, "{}",
+                List.of("" + index), List.of())).toList());
+        assertThat(getService().getSurfaceNotices(null, null, null).notices()).hasSize(120);
+        assertThat(getService().getSurfaceNotices(null, null, 10).notices()).hasSize(10);
+    }
+
+    @Test
     void staleIngestionReturnsEmptyFreshFalseResponse() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(false);
         SurfaceServiceNoticeService service = getService();

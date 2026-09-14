@@ -1,5 +1,7 @@
 "use client";
 
+import { goBusRouteColor, goBusRouteTextColor } from "../app/go-bus-route-colors";
+import { canonicalNoticeRoute, matchesNoticeFilters } from "../app/notice-filters";
 import { FilterOptionCount } from "./FilterOptionCount";
 
 import React, { useState, useEffect, useRef, useId } from "react";
@@ -10,6 +12,7 @@ import {
   getSurfaceNotices,
   SurfaceNoticeResponse,
   SurfaceNoticeCategory,
+  SurfaceNoticeDetail,
 } from "../app/surface-notice-data";
 import { groupSurfaceNoticesByRoute, compareSurfaceNotices, surfaceNoticeEmphasis, SurfaceNoticeGroupItem } from "../app/surface-notice-groups";
 import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
@@ -24,7 +27,7 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
   label: string;
   prefix: string;
   value: string;
-  options: { value: string; label: string; icon?: React.ReactNode; count?: number }[];
+  options: { value: string; label: string; icon?: React.ReactNode; badgeOnly?: boolean; count?: number }[];
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -45,10 +48,16 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen(!open)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
         <span className="truncate inline-flex items-center gap-1.5">
-          {selectedOption?.icon}
-          <span>{selectedOption?.label}</span>
+          <span className="inline-flex min-w-0 items-center" aria-hidden="true">{selectedOption?.icon}</span>
+          <span className={selectedOption?.badgeOnly ? "sr-only" : undefined}>{selectedOption?.label}</span>
         </span>
         <FilterOptionCount count={selectedOption?.count} />
         <ChevronDown size={13} className="shrink-0 ml-1.5" aria-hidden="true" />
@@ -56,7 +65,9 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
       <DropdownMenuPortal
         open={open}
         onClose={() => setOpen(false)}
-        triggerRef={root}
+        triggerRef={trigger}
+        anchorRef={root}
+        matchAnchorWidth
         align="left"
         as="ul"
         id={menuId}
@@ -77,8 +88,8 @@ function NoticeFilter({ label, prefix, value, options, onChange }: {
                 trigger.current?.focus();
               }}
             >
-              {option.icon}
-              <span>{option.label}</span>
+              <span className="inline-flex min-w-0 items-center" aria-hidden="true">{option.icon}</span>
+              <span className={option.badgeOnly ? "sr-only" : undefined}>{option.label}</span>
               <FilterOptionCount count={option.count} />
             </button>
           </li>
@@ -92,6 +103,11 @@ interface Props {
   onBack: () => void;
   onClose: () => void;
   initialQuery?: string;
+  scopedRoute?: string;
+  embeddedNotices?: SurfaceNoticeDetail[];
+  externalQuery?: string;
+  externalSort?: "updated" | "type" | "location";
+  savedAt?: number;
   initialRegionalContent?: "notices" | "trip-changes";
   networkId?: NetworkId;
 }
@@ -100,18 +116,25 @@ export function SurfaceNoticesPanel({
   onBack,
   onClose,
   initialQuery = "",
+  scopedRoute,
+  embeddedNotices,
+  externalQuery,
+  externalSort,
+  savedAt,
   initialRegionalContent = "notices",
   networkId = "ttc",
 }: Props) {
   const regional = networkId === "regional";
   const [category, setCategory] = useState<SurfaceNoticeCategory | "all">("all");
-  const [serviceType, setServiceType] = useState<"all" | "train" | "bus">("all");
+  const [serviceType, setServiceType] = useState("all");
+  const [route, setRoute] = useState("all");
+  const [timing, setTiming] = useState("all");
   const [regionalContent, setRegionalContent] = useState<"notices" | "trip-changes">(initialRegionalContent);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [data, setData] = useState<SurfaceNoticeResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [sortOrder, setSortOrder] = useState<"importance" | "recent">("importance");
+  const [sortOrder, setSortOrder] = useState<"importance" | "recent" | "route" | "location" | "start">("importance");
   const [tripChangesState, setTripChangesState] = useState<{
     query: string;
     response: RegionalTripChangeResponse;
@@ -147,14 +170,13 @@ export function SurfaceNoticesPanel({
 
   // Fetch data
   useEffect(() => {
+    if (embeddedNotices) return;
     let active = true;
     async function load() {
       if (regional && regionalContent === "trip-changes") return;
       setLoading(true);
       const res = await getSurfaceNotices({
         networkId,
-        category: category === "all" ? undefined : category,
-        query: debouncedQuery,
       });
       if (active) {
         setData(res.data);
@@ -169,7 +191,7 @@ export function SurfaceNoticesPanel({
       window.removeEventListener("online", load);
       active = false;
     };
-  }, [category, debouncedQuery, networkId, regional, regionalContent]);
+  }, [networkId, regional, regionalContent, embeddedNotices]);
 
   useEffect(() => {
     if (!regional || regionalContent !== "trip-changes") return;
@@ -220,21 +242,36 @@ export function SurfaceNoticesPanel({
   // Find counts from full summaries
   const getCategoryCount = (cat: string) => {
     if (!data) return 0;
-    const summary = data.categories.find((c) => c.category === cat);
-    return summary ? summary.count : 0;
+    return data.notices.filter(notice => notice.category === cat && (!scopedRoute ||
+      notice.routeIds.some(id => canonicalNoticeRoute(id) === canonicalNoticeRoute(scopedRoute)))).length;
   };
 
-  const totalCount = data ? data.categories.reduce((sum, c) => sum + c.count, 0) : 0;
+  const totalCount = data?.notices.filter(notice => !scopedRoute || notice.routeIds.some(id => canonicalNoticeRoute(id) === canonicalNoticeRoute(scopedRoute))).length ?? 0;
   const visibleCategories = regional
     ? (["service-change", "bypass", "detour", "no-service", "notice"] as SurfaceNoticeCategory[]).filter((cat) => getCategoryCount(cat) > 0)
     : (["service-change", "bypass", "detour", "no-service", "notice"] as SurfaceNoticeCategory[]);
 
   const isFallback = data?.source?.toLowerCase().includes("fixture") || false;
-  const serviceFilteredNotices = data?.notices.filter((notice) => {
-    if (!regional || serviceType === "all") return true;
-    const busNotice = notice.routeType === "GO Bus";
-    return serviceType === "bus" ? busNotice : !busNotice;
-  }) ?? [];
+  const availableNotices = (embeddedNotices ?? (data?.fresh || data?.savedAt ? data.notices : [])).filter(notice =>
+    !scopedRoute || notice.routeIds.some(id => canonicalNoticeRoute(id) === canonicalNoticeRoute(scopedRoute)));
+  const routeOptions = [...new Set(availableNotices.flatMap(notice => notice.routeIds.map(canonicalNoticeRoute)))]
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const routeLabel = (code: string) => regional
+    ? REGIONAL_STATION_SEARCH_LINES.find(line => line.number === code)?.name ?? `GO Bus ${code}`
+    : `Route ${code}`;
+  const serviceFilteredNotices = availableNotices.filter(notice => {
+    const service = serviceType === "bus" ? "GO Bus" : serviceType;
+    if (serviceType === "train" && notice.routeType === "GO Bus") return false;
+    const query = (externalQuery ?? debouncedQuery).toLocaleLowerCase();
+    const expandedQuery = regional ? REGIONAL_STATION_SEARCH_LINES.reduce((text, line) =>
+      text.replaceAll(line.name.toLocaleLowerCase(), line.number.toLocaleLowerCase()), query) : query;
+    return matchesNoticeFilters(notice, { route, service: serviceType === "train" ? "all" : service,
+      category, timing, query: expandedQuery }, Date.parse(data?.generatedAt ?? ""));
+  });
+  const resetFilters = () => {
+    setRoute("all"); setServiceType("all"); setCategory("all"); setTiming("all");
+    setSearchQuery(""); setDebouncedQuery(""); setSortOrder("importance");
+  };
   const routeGroups = groupSurfaceNoticesByRoute(serviceFilteredNotices);
   const displayRouteGroups = (regional
     ? routeGroups.flatMap((group) => group.notices.map((notice) => ({
@@ -242,8 +279,8 @@ export function SurfaceNoticesPanel({
         key: `${group.key}:${notice.id}`,
         notices: [notice],
       })))
-    : routeGroups).map((group) => ({ ...group, notices: [...group.notices].sort((a, b) => compareSurfaceNotices(a, b, sortOrder, debouncedQuery)) }))
-    .sort((a, b) => compareSurfaceNotices(a.notices[0], b.notices[0], sortOrder, debouncedQuery));
+    : routeGroups).map((group) => ({ ...group, notices: [...group.notices].sort((a, b) => compareSurfaceNotices(a, b, externalSort === "location" ? "location" : externalSort ? "recent" : sortOrder, externalQuery ?? debouncedQuery)) }))
+    .sort((a, b) => compareSurfaceNotices(a.notices[0], b.notices[0], externalSort === "location" ? "location" : externalSort ? "recent" : sortOrder, externalQuery ?? debouncedQuery));
 
   const renderCompactField = (
     label: string,
@@ -343,19 +380,11 @@ export function SurfaceNoticesPanel({
         </span>
       );
     }
-    if (regional) {
-      return (
-        <span key={routeId} className="regional-line-identity inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
-          <Bus className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-          GO Bus {routeId}
-        </span>
-      );
-    }
     return (
-      <span
-        key={routeId}
-        className="inline-flex items-center justify-center rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white"
-      >
+      <span key={routeId} aria-label={regional ? `GO Bus ${routeId}` : `Route ${routeId}`}
+        className="notice-route-badge inline-flex shrink-0 items-center justify-center rounded px-2 py-0.5 text-xs font-black"
+        style={{ backgroundColor: regional ? goBusRouteColor(routeId) : "#dc2626",
+          color: regional ? goBusRouteTextColor(routeId) : "#ffffff" }}>
         {routeId}
       </span>
     );
@@ -373,10 +402,10 @@ export function SurfaceNoticesPanel({
   );
 
   return (
-    <section className="panel min-w-0 border border-transparent rounded-2xl flex flex-col h-full bg-white dark:bg-[#0a0c10]">
+    <section className={embeddedNotices ? "surface-notices-panel embedded-line-notices" : "panel surface-notices-panel min-w-0 border border-transparent rounded-2xl flex flex-col h-full bg-white dark:bg-[#0a0c10]"}>
       {/* Panel Header */}
-      <PanelHeader
-        title={regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}
+      {!embeddedNotices && <PanelHeader
+        title={scopedRoute ? `${routeLabel(canonicalNoticeRoute(scopedRoute))} Notices` : regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}
         titleCompact
         icon={
           regional ? (
@@ -403,12 +432,12 @@ export function SurfaceNoticesPanel({
             ) : null}
           </>
         }
-      />
+      />}
 
       {/* Panel Body (Opaque Container) */}
-      {data?.savedAt && <p className="px-4 py-2 text-xs" role="status">Saved notices from {new Date(data.savedAt).toLocaleString("en-CA", { timeZone: "America/Toronto" })} (Toronto). These reports may have changed; current notice coverage is unknown.</p>}
+      {(savedAt ?? data?.savedAt) && <p className="px-4 py-2 text-xs" role="status">Saved notices from {new Date((savedAt ?? data?.savedAt)!).toLocaleString("en-CA", { timeZone: "America/Toronto" })} (Toronto). These reports may have changed; current notice coverage is unknown.</p>}
       <div className="surface-notices-body flex-1 flex flex-col min-h-0 min-w-0">
-        <div className="surface-notices-controls flex flex-col gap-2 px-3 pt-2.5 pb-2.5 sm:px-4 sm:pt-2.5 sm:pb-2.5 shrink-0">
+        {!embeddedNotices && <div className="surface-notices-controls flex flex-col gap-2 px-3 pt-2.5 pb-2.5 sm:px-4 sm:pt-2.5 sm:pb-2.5 shrink-0">
           {/* Search Bar */}
           <div className="surface-notices-search-row">
             <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center">
@@ -425,7 +454,7 @@ export function SurfaceNoticesPanel({
             </form>
           </div>
 
-          {regional ? (
+          {regional && !scopedRoute ? (
             <div role="group" aria-label="GO / UP notice content">
               <div
                 className="account-network-filter regional-notices-filter"
@@ -457,6 +486,16 @@ export function SurfaceNoticesPanel({
               {regional ? <NoticeFilter label="Filter GO / UP notices by service" prefix="Service"
                 value={serviceType} onChange={(value) => setServiceType(value as typeof serviceType)}
                 options={[{ value: "all", label: "All services", count: data?.notices.length }, { value: "train", label: "Train", count: data?.notices.filter((notice) => notice.routeType !== "GO Bus").length }, { value: "bus", label: "Bus", count: data?.notices.filter((notice) => notice.routeType === "GO Bus").length }]} /> : null}
+              {!regional ? <NoticeFilter label="Filter notices by service" prefix="Service" value={serviceType}
+                onChange={setServiceType} options={[{ value: "all", label: "All services" },
+                  ...[...new Set(availableNotices.map(notice => notice.routeType))].sort().map(value => ({ value, label: value }))]} /> : null}
+              {!scopedRoute ? <NoticeFilter label="Filter notices by route or line" prefix={regional ? "Line / route" : "Route"}
+                value={route} onChange={setRoute} options={[{ value: "all", label: "All routes" },
+                  ...routeOptions.map(value => ({ value, label: routeLabel(value), icon: renderRouteBadge(value), badgeOnly: true, count: availableNotices.filter(notice => notice.routeIds.some(id => canonicalNoticeRoute(id) === value)).length })),
+                  { value: "unspecified", label: "No route specified", count: availableNotices.filter(notice => !notice.routeIds.length).length }]} /> : null}
+              <NoticeFilter label="Filter notices by timing" prefix="Timing" value={timing} onChange={setTiming}
+                options={[{ value: "all", label: "Any time" }, { value: "ongoing", label: "Started" },
+                  { value: "upcoming", label: "Upcoming" }, { value: "unknown", label: "Start not supplied" }]} />
               <NoticeFilter label="Notice type" prefix="Type" value={category}
                 onChange={(value) => setCategory(value as typeof category)}
                 options={[{ value: "all", label: "All Types", count: data ? totalCount : undefined },
@@ -470,11 +509,19 @@ export function SurfaceNoticesPanel({
                 onChange={(value) => setSortOrder(value as typeof sortOrder)}
                 options={[
                   { value: "importance", label: "Importance", icon: <ArrowUpDown size={12} className="shrink-0 text-amber-500 dark:text-amber-400" /> },
+                  { value: "route", label: "Route / line" },
+                  { value: "location", label: "Station / stop" },
+                  { value: "start", label: "Start time" },
                   { value: "recent", label: "Most Recent", icon: <CalendarClock size={12} className="shrink-0 text-blue-500 dark:text-blue-400" /> },
                 ]} />
             </div>
           ) : null}
-        </div>
+          {regionalContent === "notices" && <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span role="status">{serviceFilteredNotices.length} of {availableNotices.length} notices{sortOrder === "recent" ? " · Newest updates first" : ""}</span>
+            <button type="button" onClick={resetFilters} className="px-2 py-1 font-bold underline">Reset filters</button>
+          </div>}
+          {scopedRoute && <p className="text-xs text-slate-500 dark:text-slate-400">Source-tagged service information for this corridor, separate from service impacts. Notices do not change line status.</p>}
+        </div>}
 
         {/* Notices Content */}
         <div className="flex-1 overflow-y-auto min-w-0 px-3 pb-3 sm:px-4 sm:pb-4 pt-0 surface-notices-scroll">
@@ -488,7 +535,7 @@ export function SurfaceNoticesPanel({
             <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
               {regional ? "GO / UP notices" : "Streetcar & Bus notices"} are unavailable in fixture mode.
             </div>
-          ) : !data || serviceFilteredNotices.length === 0 ? (
+          ) : (!data && !embeddedNotices) || serviceFilteredNotices.length === 0 ? (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
               No active {regional && serviceType !== "all" ? `${serviceType} ` : regional ? "GO / UP " : "streetcar & bus "}notices found matching your filters.
             </div>
@@ -503,7 +550,7 @@ export function SurfaceNoticesPanel({
                   <div className="flex items-start justify-between gap-2 px-3.5 pt-3 pb-2">
                     <div className="min-w-0 flex flex-col gap-1">
                       <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        {regional && group.notices[0].scheduleAnnouncement ? "Schedule announcement" : regional && group.routeType !== "GO Bus" ? "Station / Lines Affected" : "Routes Affected"}
+                        {regional && group.routeType === "GO Bus" ? "GO Bus routes tagged by source" : regional && group.notices[0].scheduleAnnouncement ? "Schedule announcement" : regional && group.routeType !== "GO Bus" ? "Station / Lines Affected" : "Routes Affected"}
                       </p>
                       {regional ? (
                         <>
@@ -575,6 +622,7 @@ export function SurfaceNoticesPanel({
                           <p className="surface-notice-footnote px-3.5 pb-3 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
                             {regional && notice.scheduleAnnouncement
                               ? "Corridor tags are source-published. Check the notice for service changes and exceptions."
+                              : regional && group.routeType === "GO Bus" ? "Route tags and notice type are supplied by Metrolinx. The text may describe connecting rail service."
                               : "Check the notice for details on affected routes."}
                           </p>
                         </article>

@@ -895,7 +895,7 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
   await expect(page.getByText("Metrolinx notices", { exact: true })).toBeVisible();
   await expect(page.locator(".surface-notice-route-group").getByText("Barrie", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("GO Bus 31", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("GO Bus 31", { exact: true })).toBeVisible();
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toBeVisible();
 
   const scheduleCard = page.locator(".surface-notice-route-group").filter({
@@ -918,6 +918,25 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await page.screenshot({ path: `/tmp/notices-${isMobile ? "mobile" : "desktop"}.png` });
   await expect(scheduleCard.getByText("There will be no GO train service on Richmond Hill or Milton lines.", { exact: true })).toBeVisible();
 
+  const routeControl = page.getByRole("button", { name: "Filter notices by route or line" });
+  await routeControl.click();
+  const controlBox = await routeControl.locator("..").boundingBox();
+  const menuBox = await page.getByRole("menu", { name: "Filter notices by route or line" }).boundingBox();
+  expect(Math.abs(menuBox!.x - controlBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(menuBox!.width - controlBox!.width)).toBeLessThanOrEqual(2);
+  await expect(page.getByRole("menu", { name: "Filter notices by route or line" }).locator(".notice-route-badge").first()).toHaveCSS("background-color", "rgb(0, 133, 62)");
+
+  await page.getByRole("menuitemradio", { name: /^Barrie/ }).click();
+  await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
+  const selectedIdentity = routeControl.locator(".regional-line-identity");
+  const imageBox = await selectedIdentity.locator("img").boundingBox();
+  const identityBox = await selectedIdentity.boundingBox();
+  expect(Math.abs(imageBox!.y + imageBox!.height / 2 - identityBox!.y - identityBox!.height / 2)).toBeLessThanOrEqual(1);
+  await expect(scheduleCard).toHaveCount(0);
+  await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Reset filters" }).click();
+  await expect(scheduleCard).toBeVisible();
+
   const serviceFilter = page.getByRole("button", { name: "Filter GO / UP notices by service" });
   await serviceFilter.click();
   await page.screenshot({ path: `/tmp/notices-menu-${isMobile ? "mobile" : "desktop"}.png` });
@@ -925,11 +944,11 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await expect(serviceFilter).toBeFocused();
   await expect(page.getByRole("heading", { name: "GO / UP Notices" })).toBeVisible();
   await serviceFilter.press("ArrowDown");
-  await page.getByRole("menuitemradio", { name: "Bus", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: /^Bus(?: \d+)?$/ }).click();
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toBeVisible();
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toHaveCount(0);
   await serviceFilter.click();
-  await page.getByRole("menuitemradio", { name: "Train", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: /^Train(?: \d+)?$/ }).click();
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toHaveCount(0);
 
@@ -2917,6 +2936,69 @@ test("desktop line names open the all-types submenu with keyboard and pointer", 
   await waitForNetworkTransition(page, "regional");
   await legend.getByRole("button", { name: /View all service impacts for Barrie Line:/ }).click();
   await expect(page.getByRole("heading", { name: /Barrie/ })).toBeVisible();
+});
+
+test("TTC notices filter exact routes and compose service and stop search", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.context().route("**/api/surface-notices*", route => route.fulfill({ headers: { "Access-Control-Allow-Origin": "*" }, json: {
+    generatedAt: new Date().toISOString(), fresh: true, source: "TTC test notices",
+    categories: [{ category: "notice", label: "Notice", count: 2 }],
+    notices: ["9", "90"].map((id, index) => ({ id, category: "notice", routeType: index ? "Streetcar" : "Bus",
+      routeIds: [id], title: `Route ${id} stop change`, description: "Use temporary stop", stopIds: ["123"],
+      stops: [{ stopId: "123", stopName: "Union" }], updatedAt: new Date().toISOString(), source: "TTC test notices" })),
+  } }));
+  await page.goto("/");
+  if (isMobile) {
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.getByRole("button", { name: /Streetcar & Bus Notices/ }).click();
+  } else {
+    await openDashboardMenu(page);
+    await page.getByRole("menuitem", { name: "Streetcar & Bus Notices" }).click();
+  }
+  await page.getByRole("button", { name: "Filter notices by route or line" }).click();
+  await page.getByRole("menuitemradio", { name: /^Route 9 1$/ }).click();
+  await expect(page.getByText("Route 9 stop change", { exact: true })).toBeVisible();
+  await expect(page.getByText("Route 90 stop change", { exact: true })).toHaveCount(0);
+  await page.getByPlaceholder("Search route, stop, or notice").fill("Union 123");
+  await expect(page.getByText("Route 9 stop change", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Filter notices by service" }).click();
+  await page.getByRole("menuitemradio", { name: "Streetcar", exact: true }).click();
+  await expect(page.getByText(/No active .*notices found/)).toBeVisible();
+  await page.getByRole("button", { name: "Reset filters" }).click();
+  await expect(page.locator(".surface-notice-route-group")).toHaveCount(2);
+  const closeBox = await page.getByRole("button", { name: "Close", exact: true }).boundingBox();
+  expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.screenshot({ path: `/tmp/ttc-notices-${isMobile ? "mobile" : "desktop"}.png` });
+});
+
+test("regional line menus show impacts before notices in one filterable list", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "regional-live");
+  await page.context().route(url => url.pathname === "/api/dashboard" && url.searchParams.get("network") === "regional", async route => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.delays.push({ ...data.delays[0], id: "test-barrie-delay", lineId: "regional-br", title: "Barrie test delay" });
+    await route.fulfill({ response, json: data });
+  });
+  await page.goto("/");
+  const selector = isMobile ? page.locator(".mobile-network-selector-slot") : page;
+  await selector.getByRole("group", { name: "Select transit network" }).getByRole("button", { name: "GO/UP", exact: true }).click();
+  await waitForNetworkTransition(page, "regional");
+  if (isMobile) await page.getByRole("button", { name: "Transit line legend" }).click();
+  await page.getByRole("button", { name: /View all service impacts for Barrie(?: Line)?:/ }).filter({ visible: true }).click();
+  const panel = page.locator(".line-impacts-panel");
+  await expect(panel.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
+  await expect(panel.getByText("Barrie test delay", { exact: true })).toBeVisible();
+  await expect(panel.getByRole("group", { name: "Line content" })).toHaveCount(0);
+  expect(await panel.evaluate(element => Boolean(element.querySelector(".embedded-impact-panel")!
+    .compareDocumentPosition(element.querySelector(".line-notice-section")!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  await panel.getByRole("button", { name: /Service Notices/ }).click();
+  await expect(panel.getByText("Barrie test delay", { exact: true })).toHaveCount(0);
+  await expect(panel.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
+  await panel.getByRole("searchbox").fill("unmatched station");
+  await expect(panel.getByText("No items match these filters", { exact: true })).toBeVisible();
+  await panel.getByRole("searchbox").fill("");
+  await panel.getByRole("button", { name: /^All/ }).click();
+  await page.screenshot({ path: `/tmp/combined-line-${isMobile ? "mobile" : "desktop"}.png` });
 });
 
 test("mobile map legend summarizes line impacts and opens the all-types line view", async ({ page, request, isMobile }) => {

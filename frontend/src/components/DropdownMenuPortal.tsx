@@ -24,6 +24,8 @@ export interface DropdownMenuPortalProps {
   open: boolean;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | null>;
+  anchorRef?: React.RefObject<HTMLElement | null>;
+  matchAnchorWidth?: boolean;
   align?: "left" | "right";
   minWidth?: number;
   maxWidth?: number;
@@ -52,6 +54,8 @@ export function DropdownMenuPortal({
   open,
   onClose,
   triggerRef,
+  anchorRef,
+  matchAnchorWidth = false,
   align = "left",
   minWidth,
   maxWidth,
@@ -70,7 +74,7 @@ export function DropdownMenuPortal({
   const menuRef = useRef<HTMLElement | null>(null);
 
   const updateCoords = useCallback(() => {
-    const trigger = triggerRef.current;
+    const trigger = anchorRef?.current ?? triggerRef.current;
     if (!trigger) {
       setCoords(null);
       return;
@@ -103,7 +107,7 @@ export function DropdownMenuPortal({
 
     const resolvedMinWidth = minWidth ?? Math.max(140, Math.round(rect.width));
     const resolvedMaxWidth = Math.min(
-      maxWidth ?? 300,
+      matchAnchorWidth ? rect.width : maxWidth ?? 300,
       viewportWidth - 2 * edgeMargin,
     );
 
@@ -141,7 +145,7 @@ export function DropdownMenuPortal({
     };
 
     setCoords(newCoords);
-  }, [align, maxHeight, maxWidth, minWidth, onClose, triggerRef]);
+  }, [align, anchorRef, matchAnchorWidth, maxHeight, maxWidth, minWidth, onClose, triggerRef]);
 
   useIsomorphicLayoutEffect(() => {
     if (!open) {
