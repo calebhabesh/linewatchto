@@ -147,5 +147,12 @@ describe("unified search alert group headings", () => {
     assert.match(globalCss, /\.commute-station-trigger,\s*\.commute-station-search-row,\s*\.commute-station-popover\s*\{[\s\S]*?border:\s*none\s*!important;/);
     assert.match(globalCss, /\.commute-station-line-trigger,\s*\.commute-station-option\s*\{[\s\S]*?border:\s*none\s*!important;/);
     assert.match(globalCss, /\.dark \.commute-station-trigger,\s*\.dark \.commute-station-popover/);
+
+    // Empty search state uses borderless, transparent layout matching mobile
+    assert.match(globalCss, /\.station-search-empty\s*\{[\s\S]*?border:\s*none;/);
+    assert.match(globalCss, /\.station-search-empty\s*\{[\s\S]*?background:\s*transparent;/);
+    assert.match(globalCss, /\.station-search-empty\s*\{[\s\S]*?color:\s*rgb\(100,\s*116,\s*139\);/);
+    assert.match(globalCss, /\.dark \.station-search-empty\s*\{[\s\S]*?color:\s*rgb\(148,\s*163,\s*184\);/);
+    assert.doesNotMatch(globalCss, /\.station-search-empty\s*\{[^}]*border:\s*1px solid rgba\(254,\s*236,\s*65/);
   });
 });

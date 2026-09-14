@@ -116,3 +116,39 @@ test("current service content stays hidden during map transition and animates in
   await expect(panel).toContainText(/GO & UP rail/i);
 });
 
+
+test("desktop service sheet restores clicked and dragged positions after reload", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  const panel = page.getByRole("region", { name: "Current Service", exact: true });
+  await panel.getByRole("button", { name: /Expand current service sheet/ }).click();
+  await page.reload();
+  await expect(panel).toHaveAttribute("data-expanded", "true");
+  await panel.getByRole("button", { name: /Collapse current service sheet/ }).click();
+  await page.reload();
+  await expect(panel).toHaveAttribute("data-expanded", "false");
+  const handle = panel.locator(".current-service-handle");
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 10, { steps: 6 });
+  await page.mouse.up();
+  const height = await panel.evaluate(node => (node as HTMLElement).style.getPropertyValue("--custom-sheet-height"));
+  expect(parseFloat(height)).toBeCloseTo(126, 0);
+  await page.reload();
+  await expect(panel).toHaveAttribute("data-expanded", "true");
+  await expect.poll(() => panel.evaluate(node => (node as HTMLElement).style.getPropertyValue("--custom-sheet-height"))).toBe(height);
+});
+
+ test("desktop sheet reveals its restored geometry without a height transition", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.addInitScript(() => localStorage.setItem("linewatch-desktop-service-sheet-position-v1",
+    JSON.stringify({ expanded: true, height: 350 })));
+  await page.goto("/");
+  const panel = page.getByRole("region", { name: "Current Service", exact: true });
+  await expect(panel).toHaveAttribute("data-position-ready", "true");
+  const list = panel.locator(".current-service-list").first();
+  await expect.poll(() => list.evaluate(node => node.clientHeight)).toBe(350);
+  await page.waitForTimeout(300);
+  expect(await list.evaluate(node => node.clientHeight)).toBe(350);
+});

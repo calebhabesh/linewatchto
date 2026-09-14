@@ -6,6 +6,7 @@ import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { currentServiceSummary, currentSurfaceNotices, getCanonicalAlertTitle } from "../app/current-service";
+import { DESKTOP_SERVICE_SHEET_STORAGE_KEY, parseDesktopServiceSheetPosition } from "../app/desktop-service-sheet-state";
 import { LineBadge } from "./ImpactCardFields";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
@@ -82,10 +83,30 @@ function GoodServiceCheckIcon({ size = 16 }: { size?: number }) {
 
 const COLLAPSED_LIST_HEIGHT = 116;
 
+function desktopContentHeight(panel: HTMLElement): number {
+  let height = COLLAPSED_LIST_HEIGHT;
+  panel.querySelectorAll<HTMLElement>(".current-service-list").forEach(list => {
+    // A fixed height inflates scrollHeight. Measure natural overflow with no height floor.
+    const previousTransition = list.style.transition;
+    list.style.transition = "none";
+    const previousHeight = list.style.height;
+    const previousMax = list.style.maxHeight;
+    list.style.height = "0px";
+    list.style.maxHeight = "none";
+    height = Math.max(height, list.scrollHeight);
+    list.style.height = previousHeight;
+    list.style.maxHeight = previousMax;
+    void list.offsetHeight;
+    list.style.transition = previousTransition;
+  });
+  return Math.max(COLLAPSED_LIST_HEIGHT, Math.min(height, window.innerHeight - 200));
+}
+
 export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotices, overlapSelectors = "" }: Props) {
   const [now, setNow] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [positionReady, setPositionReady] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const dragStartY = useRef<number | null>(null);
   const dragStartHeight = useRef<number>(COLLAPSED_LIST_HEIGHT);
@@ -132,14 +153,58 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
     };
   }, [overlapSelectors]);
 
-  const measureMaxContentHeight = () => {
-    const lists = sectionRef.current?.querySelectorAll<HTMLElement>(".current-service-list");
-    let maxContent = COLLAPSED_LIST_HEIGHT;
-    lists?.forEach((l) => {
-      if (l.scrollHeight > maxContent) maxContent = l.scrollHeight;
+  useLayoutEffect(() => {
+    if (!sectionRef.current?.closest(".desktop-status-chip-row-container")) return;
+    let revealFrame = 0;
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved = parseDesktopServiceSheetPosition(window.localStorage.getItem(DESKTOP_SERVICE_SHEET_STORAGE_KEY));
+        if (saved) {
+          setIsExpanded(saved.expanded);
+          const height = Math.max(COLLAPSED_LIST_HEIGHT,
+            Math.min(saved.height ?? (saved.expanded ? 460 : COLLAPSED_LIST_HEIGHT), window.innerHeight - 200));
+          sectionRef.current?.style.setProperty("--custom-sheet-height", `${height}px`);
+        }
+      } catch {
+        // Storage may be unavailable in private browsing.
+      }
+      // Let the restored geometry commit without height transitions before revealing it.
+      revealFrame = requestAnimationFrame(() => {
+        const panel = sectionRef.current;
+        if (panel) {
+          const requested = parseFloat(panel.style.getPropertyValue("--custom-sheet-height")) || COLLAPSED_LIST_HEIGHT;
+          panel.style.setProperty("--custom-sheet-height", `${Math.min(requested, desktopContentHeight(panel))}px`);
+        }
+        setPositionReady(true);
+      });
     });
-    return Math.max(maxContent, 340);
+    return () => { cancelAnimationFrame(frame); cancelAnimationFrame(revealFrame); };
+  }, []);
+
+  const savePosition = (expanded: boolean, height: number | null = null) => {
+    if (!sectionRef.current?.closest(".desktop-status-chip-row-container")) return;
+    try {
+      window.localStorage.setItem(DESKTOP_SERVICE_SHEET_STORAGE_KEY, JSON.stringify({ expanded, height }));
+    } catch {
+      // Keep the sheet usable when storage is blocked or full.
+    }
   };
+
+  useLayoutEffect(() => {
+    const panel = sectionRef.current;
+    if (!panel?.closest(".desktop-status-chip-row-container") || !positionReady) return;
+    const clamp = () => {
+      const max = desktopContentHeight(panel);
+      const requested = parseFloat(panel.style.getPropertyValue("--custom-sheet-height"))
+        || (isExpanded ? 460 : COLLAPSED_LIST_HEIGHT);
+      if (requested > max) panel.style.setProperty("--custom-sheet-height", `${max}px`);
+    };
+    clamp();
+    const observer = new MutationObserver(clamp);
+    observer.observe(panel, { childList: true, subtree: true, characterData: true });
+    window.addEventListener("resize", clamp);
+    return () => { observer.disconnect(); window.removeEventListener("resize", clamp); };
+  }, [positionReady, isExpanded]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
@@ -161,7 +226,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
       }
 
       if (dragMoved.current) {
-        const maxH = measureMaxContentHeight();
+        const maxH = sectionRef.current ? desktopContentHeight(sectionRef.current) : COLLAPSED_LIST_HEIGHT;
         const minH = COLLAPSED_LIST_HEIGHT;
         const targetH = Math.max(minH, Math.min(maxH, dragStartHeight.current + delta));
         currentHeightRef.current = targetH;
@@ -178,24 +243,11 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
       setIsDragging(false);
 
       if (dragMoved.current) {
-        const lists = sectionRef.current?.querySelectorAll<HTMLElement>(".current-service-list");
-        let maxContent = COLLAPSED_LIST_HEIGHT;
-        lists?.forEach((l) => {
-          if (l.scrollHeight > maxContent) maxContent = l.scrollHeight;
-        });
-        const maxH = Math.max(maxContent, 340);
-        const minH = COLLAPSED_LIST_HEIGHT;
         const h = currentHeightRef.current;
+        const expanded = h > COLLAPSED_LIST_HEIGHT;
+        setIsExpanded(expanded);
+        savePosition(expanded, h);
 
-        if (h <= minH + 20) {
-          setIsExpanded(false);
-          sectionRef.current?.style.removeProperty("--custom-sheet-height");
-        } else if (h >= maxH - 20) {
-          setIsExpanded(true);
-          sectionRef.current?.style.removeProperty("--custom-sheet-height");
-        } else {
-          setIsExpanded(true);
-        }
       }
     };
 
@@ -219,7 +271,8 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
       return;
     }
     sectionRef.current?.style.removeProperty("--custom-sheet-height");
-    setIsExpanded((prev) => !prev);
+    savePosition(!isExpanded);
+    setIsExpanded(!isExpanded);
   };
 
   const summary = currentServiceSummary(data, now);
@@ -246,6 +299,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
     className="current-service"
     aria-label="Current Service"
     data-expanded={isExpanded ? "true" : "false"}
+    data-position-ready={positionReady ? "true" : "false"}
     data-dragging={isDragging ? "true" : undefined}
   >
     <div
@@ -336,8 +390,9 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
                           <span className="current-service-impact-heading">
                             <strong data-kind={row.iconKind || row.kind}><ImpactTypeIcon kind={row.iconKind || row.kind} size={16} />{getCanonicalAlertTitle(row)}</strong>
                           </span>
+                          <span className="current-service-impact-location">{row.condition} · {row.location}</span>
+                          {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
                           {timingLabel && <span className="current-service-impact-timing">{timingLabel}</span>}
-                          <span className="current-service-impact-location">{row.location}{row.direction && <span className="current-service-inline-direction"> · {row.direction}</span>}</span>
                         </button>
                       );
                     })}

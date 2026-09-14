@@ -39,6 +39,14 @@ const row = (overrides = {}) => ({
 });
 
 describe("surface station arrivals", () => {
+  it("counts down, orders and expires scheduled-only departures", () => {
+    const first = row({ predictedAt: null, scheduledAt: "2026-08-14T12:05:00Z", status: "scheduled", minutes: 5, tripId: "s1" });
+    const second = row({ predictedAt: null, scheduledAt: "2026-08-14T12:10:00Z", status: "scheduled", minutes: 10, tripId: "s2" });
+    assert.deepEqual(groupSurfaceArrivals([second, first])[0].arrivals, [first, second]);
+    assert.equal(formatSurfaceArrivalTileLabel(first, { now: Date.parse("2026-08-14T12:02:00Z") }), "3m");
+    assert.deepEqual(filterActiveSurfaceArrivals([first, second], Date.parse("2026-08-14T12:08:00Z")), [second]);
+  });
+
   it("mounts the independently refreshed section in both station map modes", () => {
     const ttc = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
     const regional = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");

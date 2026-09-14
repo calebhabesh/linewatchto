@@ -42,6 +42,35 @@ class GtfsScheduleImportWriterTest {
     private final GtfsScheduleImportWriter writer = new GtfsScheduleImportWriter(repository, clock);
 
     @Test
+    void storesOnlyBoardableMappedSurfaceDeparturesAndPreservesAfterMidnightTimes() throws Exception {
+        Path zip = tempDir.resolve("surface.zip");
+        try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(zip))) {
+            out.putNextEntry(new ZipEntry("stop_times.txt"));
+            out.write("""
+                trip_id,stop_id,arrival_time,departure_time,stop_sequence,pickup_type
+                bus,bay,25:00:00,25:01:00,1,0
+                bus,unmapped,25:02:00,25:02:00,2,0
+                bus,bay,25:03:00,25:03:00,3,1
+                bus,bay,25:04:00,25:04:00,4,2
+                bus,bay,25:05:00,25:05:00,5,0
+                """.getBytes(StandardCharsets.UTF_8));
+        }
+        var prepared = new GtfsSchedulePreparedImport(List.of(), List.of(), List.of(), List.of(), List.of(),
+            List.of(), List.of(),
+            List.of(new GtfsImportModels.SurfaceStationStopRow("bay", "union", "Union at Bay 1", "", "Bay 1")),
+            List.of(new GtfsImportModels.SurfaceTripRow("bus", "995", "East", "weekday", 5)),
+            List.of(), Set.of(), LocalDate.parse("2026-06-01"), LocalDate.parse("2026-12-31"));
+        writer.write(zip, "test", prepared);
+        ArgumentCaptor<List<GtfsImportModels.StopTimeRow>> rows = ArgumentCaptor.forClass(List.class);
+        verify(repository).insertSurfaceStopTimes(anyLong(), rows.capture());
+        assertThat(rows.getValue()).singleElement().satisfies(row -> {
+            assertThat(row.stopId()).isEqualTo("bay");
+            assertThat(row.departureSeconds()).isEqualTo(25 * 3600 + 60);
+        });
+        verify(repository).markSurfaceScheduleAvailable(anyLong());
+    }
+
+    @Test
     void batchesStopTimesAndActivatesImportOnSuccess() throws Exception {
         Path zip = tempDir.resolve("gtfs_large.zip");
         writeLargeZip(zip, 2501);

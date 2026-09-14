@@ -21,19 +21,22 @@ public class TtcSurfaceArrivalService {
     private final TtcSurfaceScheduleCatalog catalogRepository;
     private final SurfaceArrivalProperties properties;
     private final Clock clock;
+    private final TtcSurfaceScheduledArrivalRepository scheduled;
 
     public TtcSurfaceArrivalService(
         StationRepository stations,
         TtcSurfaceArrivalCache cache,
         TtcSurfaceScheduleCatalog catalogRepository,
         SurfaceArrivalProperties properties,
-        Clock clock
+        Clock clock,
+        TtcSurfaceScheduledArrivalRepository scheduled
     ) {
         this.stations = stations;
         this.cache = cache;
         this.catalogRepository = catalogRepository;
         this.properties = properties;
         this.clock = clock;
+        this.scheduled = scheduled;
     }
 
     public SurfaceArrivalResponses.SnapshotResponse arrivals(String stationId) {
@@ -51,30 +54,6 @@ public class TtcSurfaceArrivalService {
         List<TtcSurfaceArrivalSnapshot> fresh = available.stream()
             .filter(item -> fresh(item.sourceUpdatedAt(), now, properties.getTtcMaxSourceAge()))
             .toList();
-        if (fresh.isEmpty()) {
-            if (catalog.available() && !catalog.connectionsFor(stationId).isEmpty()) {
-                List<SurfaceArrivalRecord> scheduledOnly = catalog.connectionsFor(stationId).stream()
-                    .map(conn -> new SurfaceArrivalRecord(
-                        stationId, "TTC", conn.mode(), conn.routeShortName(), conn.routeLongName(),
-                        conn.destination(), null, null, conn.bayPlatform(), conn.stopName(),
-                        "", TtcSurfaceArrivalIndexer.SOURCE, "scheduled"
-                    ))
-                    .toList();
-                return snapshot(station, "available", now, null,
-                    TtcSurfaceArrivalIndexer.SOURCE,
-                    "Published TTC surface connections for this station.",
-                    bound(scheduledOnly));
-            }
-            String message = available.isEmpty()
-                ? "TTC bus and streetcar predictions have not been received yet."
-                : available.stream().anyMatch(TtcSurfaceArrivalSnapshot::catalogAvailable)
-                    ? "The latest TTC bus and streetcar predictions are stale or unavailable."
-                    : "An active TTC GTFS schedule import is required to link surface stops to stations.";
-            return snapshot(station, "unavailable", now, null, "TTC GTFS-RT", message, List.of());
-        }
-
-        boolean mapped = fresh.stream().anyMatch(item -> item.mappedStationIds().contains(stationId))
-            || catalog.mappedStationIds().contains(stationId);
         List<SurfaceArrivalRecord> visible = fresh.stream()
             .flatMap(item -> item.arrivals().stream())
             .filter(item -> stationId.equals(item.stationId()))
@@ -84,41 +63,53 @@ public class TtcSurfaceArrivalService {
             .toList();
 
         List<SurfaceArrivalRecord> merged = new ArrayList<>(visible);
-        java.util.Set<String> seenRoutes = visible.stream()
-            .map(r -> r.mode() + ":" + r.route())
-            .collect(Collectors.toSet());
-
-        for (TtcSurfaceScheduleCatalog.Connection conn : catalog.connectionsFor(stationId)) {
-            String routeKey = conn.mode() + ":" + conn.routeShortName();
-            if (!seenRoutes.contains(routeKey)) {
-                merged.add(new SurfaceArrivalRecord(
-                    stationId, "TTC", conn.mode(), conn.routeShortName(), conn.routeLongName(),
-                    conn.destination(), null, null, conn.bayPlatform(), conn.stopName(),
-                    "", TtcSurfaceArrivalIndexer.SOURCE, "scheduled"
-                ));
-                seenRoutes.add(routeKey);
-            }
+        // Without an exact realtime trip match, avoid duplicate timetable tiles for a
+        // direction/bay that already has predictions. Other directions remain scheduled.
+        java.util.Set<String> liveGroups = visible.stream().map(this::connectionKey).collect(Collectors.toSet());
+        java.util.Set<String> liveTrips = visible.stream().map(SurfaceArrivalRecord::tripId)
+            .filter(id -> id != null && !id.isBlank()).collect(Collectors.toSet());
+        for (SurfaceArrivalRecord row : scheduled.arrivals(stationId, now, properties.getHorizon())) {
+            if (!liveGroups.contains(connectionKey(row)) && !liveTrips.contains(row.tripId())) merged.add(row);
         }
+        java.util.Set<String> seen = merged.stream().map(this::connectionKey).collect(Collectors.toSet());
+        for (TtcSurfaceScheduleCatalog.Connection conn : catalog.connectionsFor(stationId)) {
+            SurfaceArrivalRecord placeholder = new SurfaceArrivalRecord(
+                stationId, "TTC", conn.mode(), conn.routeShortName(), conn.routeLongName(),
+                conn.destination(), null, null, conn.bayPlatform(), conn.stopName(), "",
+                "TTC published station connections", "scheduled");
+            if (seen.add(connectionKey(placeholder))) merged.add(placeholder);
+        }
+        merged.sort(Comparator.comparing(this::eventTime, Comparator.nullsLast(Comparator.naturalOrder())));
 
         List<SurfaceArrivalRecord> bounded = bound(merged);
         OffsetDateTime updatedAt = fresh.stream().map(TtcSurfaceArrivalSnapshot::sourceUpdatedAt)
             .max(OffsetDateTime::compareTo).orElse(null);
         if (bounded.isEmpty()) {
-            String message = "No surface connections originating at this station.";
-            return snapshot(station, "no-service", now, updatedAt,
+            String message = fresh.isEmpty() ? "Surface predictions and scheduled departures are unavailable."
+                : "No surface connections originating at this station.";
+            return snapshot(station, fresh.isEmpty() ? "unavailable" : "no-service", now, updatedAt,
                 TtcSurfaceArrivalIndexer.SOURCE, message, List.of());
         }
-        return snapshot(station, "available", now, updatedAt,
-            TtcSurfaceArrivalIndexer.SOURCE,
+        return snapshot(station, "available", now, visible.isEmpty() ? null : updatedAt,
+            visible.isEmpty() ? TtcSurfaceScheduledArrivalRepository.SOURCE : TtcSurfaceArrivalIndexer.SOURCE,
             "TTC bus and streetcar connections for this station. Bay or platform is shown only when TTC publishes it.",
             bounded);
+    }
+
+    private OffsetDateTime eventTime(SurfaceArrivalRecord row) {
+        return row.predictedAt() != null ? row.predictedAt() : row.scheduledAt();
+    }
+
+    private String connectionKey(SurfaceArrivalRecord row) {
+        // Bay identifies boarding direction even when realtime NEW trips lack headsigns.
+        return row.mode() + ":" + row.route() + ":" + row.stopName() + ":" + row.bayPlatform();
     }
 
     private List<SurfaceArrivalRecord> bound(List<SurfaceArrivalRecord> rows) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         List<SurfaceArrivalRecord> result = new ArrayList<>();
         for (SurfaceArrivalRecord row : rows) {
-            String key = row.mode() + ":" + row.route() + ":" + row.destination();
+            String key = connectionKey(row) + ":" + row.destination();
             int count = counts.getOrDefault(key, 0);
             if (count < Math.max(1, properties.getMaxArrivalsPerRoute())) {
                 result.add(row);
@@ -147,8 +138,8 @@ public class TtcSurfaceArrivalService {
             "ttc", station.getId(), station.getName(), availability, now, updatedAt, source, message,
             rows.stream().map(row -> new SurfaceArrivalResponses.ArrivalResponse(
                 row.agency(), row.mode(), row.route(), row.routeName(), row.destination(),
-                row.predictedAt() != null
-                    ? Math.max(0, (int) Math.ceil(Duration.between(now, row.predictedAt()).toSeconds() / 60.0))
+                eventTime(row) != null
+                    ? Math.max(0, (int) Math.ceil(Duration.between(now, eventTime(row)).toSeconds() / 60.0))
                     : null,
                 row.predictedAt(), row.scheduledAt(), row.bayPlatform(), row.stopName(), row.tripId(),
                 row.source(), row.status()

@@ -10,7 +10,7 @@ export type SurfaceArrival = {
   routeName: string;
   destination: string;
   minutes: number;
-  predictedAt: string;
+  predictedAt: string | null;
   scheduledAt: string | null;
   bayPlatform: string;
   stopName: string;
@@ -109,7 +109,7 @@ export async function getSurfaceArrivals(
 export function hasValidSurfaceArrival(
   arrival: Pick<SurfaceArrival, "minutes" | "predictedAt" | "scheduledAt">,
 ): boolean {
-  if (arrival.predictedAt && !Number.isNaN(Date.parse(arrival.predictedAt))) {
+  if (arrival.predictedAt && !Number.isNaN(Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? ""))) {
     return true;
   }
   if (arrival.scheduledAt && !Number.isNaN(Date.parse(arrival.scheduledAt))) {
@@ -153,15 +153,15 @@ export function groupSurfaceArrivals(
   return [...groups.values()]
     .map((group) => ({
       ...group,
-      arrivals: group.arrivals.toSorted((a, b) => Date.parse(a.predictedAt) - Date.parse(b.predictedAt)),
+      arrivals: group.arrivals.toSorted((a, b) => Date.parse(a.predictedAt ?? a.scheduledAt ?? "") - Date.parse(b.predictedAt ?? b.scheduledAt ?? "")),
     }))
     .toSorted((a, b) => {
       const hasA = a.arrivals.length > 0;
       const hasB = b.arrivals.length > 0;
       if (hasA && !hasB) return -1;
       if (!hasA && hasB) return 1;
-      const timeA = Date.parse(a.arrivals[0]?.predictedAt ?? "");
-      const timeB = Date.parse(b.arrivals[0]?.predictedAt ?? "");
+      const timeA = Date.parse(a.arrivals[0]?.predictedAt ?? a.arrivals[0]?.scheduledAt ?? "");
+      const timeB = Date.parse(b.arrivals[0]?.predictedAt ?? b.arrivals[0]?.scheduledAt ?? "");
       if (!Number.isNaN(timeA) && !Number.isNaN(timeB) && timeA !== timeB) {
         return timeA - timeB;
       }
@@ -365,8 +365,8 @@ export function groupSurfaceArrivalsByBay(
       const bPinned = isGroupPinned(b) ? 0 : 1;
       if (aPinned !== bPinned) return aPinned - bPinned;
 
-      const timeA = Date.parse(a.arrivals[0]?.predictedAt ?? "");
-      const timeB = Date.parse(b.arrivals[0]?.predictedAt ?? "");
+      const timeA = Date.parse(a.arrivals[0]?.predictedAt ?? a.arrivals[0]?.scheduledAt ?? "");
+      const timeB = Date.parse(b.arrivals[0]?.predictedAt ?? b.arrivals[0]?.scheduledAt ?? "");
       if (!Number.isNaN(timeA) && !Number.isNaN(timeB) && timeA !== timeB) {
         return timeA - timeB;
       }
@@ -394,11 +394,11 @@ export function groupSurfaceArrivalsByBay(
 }
 
 export function isSurfaceArrivalDue(
-  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt">,
+  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
   now: number | Date = Date.now(),
 ): boolean {
   const nowMs = now instanceof Date ? now.getTime() : now;
-  const predictedAt = Date.parse(arrival.predictedAt);
+  const predictedAt = Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? "");
   if (!Number.isNaN(predictedAt)) {
     return predictedAt <= nowMs;
   }
@@ -406,12 +406,12 @@ export function isSurfaceArrivalDue(
 }
 
 export function isSurfaceArrivalExpired(
-  arrival: Pick<SurfaceArrival, "predictedAt">,
+  arrival: Pick<SurfaceArrival, "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
   now: number | Date = Date.now(),
   graceSeconds: number = SURFACE_DUE_EXPIRY_SECONDS,
 ): boolean {
   const nowMs = now instanceof Date ? now.getTime() : now;
-  const predictedAt = Date.parse(arrival.predictedAt);
+  const predictedAt = Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? "");
   if (Number.isNaN(predictedAt)) return false;
   return nowMs - predictedAt > graceSeconds * 1000;
 }
@@ -425,11 +425,11 @@ export function filterActiveSurfaceArrivals(
 }
 
 export function shouldUseDetailedSurfaceArrivalCountdown(
-  arrival: Pick<SurfaceArrival, "predictedAt">,
+  arrival: Pick<SurfaceArrival, "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
   now: number | Date = Date.now(),
 ): boolean {
   const nowMs = now instanceof Date ? now.getTime() : now;
-  const predictedAt = Date.parse(arrival.predictedAt);
+  const predictedAt = Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? "");
   if (Number.isNaN(predictedAt)) return false;
   const secondsUntilArrival = Math.ceil((predictedAt - nowMs) / 1000);
   return secondsUntilArrival > 0 && secondsUntilArrival < SURFACE_DETAILED_COUNTDOWN_THRESHOLD_SECONDS;
@@ -450,13 +450,13 @@ export function formatSurfaceArrivalMinutesDuration(minutes: number): string {
 }
 
 export function formatSurfaceArrivalTileLabel(
-  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt">,
+  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
   options: { detailedCountdown?: boolean; now?: number | Date } = {},
 ): string {
   const nowMs = options.now instanceof Date
     ? options.now.getTime()
     : options.now ?? Date.now();
-  const predictedAt = Date.parse(arrival.predictedAt);
+  const predictedAt = Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? "");
 
   if (options.detailedCountdown && shouldUseDetailedSurfaceArrivalCountdown(arrival, nowMs)) {
     const secondsUntilArrival = Math.ceil((predictedAt - nowMs) / 1000);
@@ -496,10 +496,10 @@ export function formatSurfaceArrivalClockTime(
 }
 
 export function surfaceArrivalMinutes(
-  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt">,
+  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
   now: number | Date = Date.now(),
 ): number {
-  const predictedAt = Date.parse(arrival.predictedAt);
+  const predictedAt = Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? "");
   const nowMs = now instanceof Date ? now.getTime() : now;
   return Number.isNaN(predictedAt)
     ? arrival.minutes
@@ -511,7 +511,7 @@ export function getSurfaceArrivalDelayMinutes(
   now: number | Date = Date.now(),
 ): number | null {
   if (arrival.status !== "live" || !arrival.scheduledAt) return null;
-  const predictedAt = Date.parse(arrival.predictedAt);
+  const predictedAt = Date.parse(arrival.predictedAt ?? arrival.scheduledAt ?? "");
   const scheduledAt = Date.parse(arrival.scheduledAt);
   if (Number.isNaN(predictedAt) || Number.isNaN(scheduledAt)) return null;
 
@@ -526,7 +526,7 @@ export function getSurfaceArrivalDelayMinutes(
 }
 
 export function surfaceArrivalLabel(
-  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt">,
+  arrival: Pick<SurfaceArrival, "minutes" | "predictedAt"> & Partial<Pick<SurfaceArrival, "scheduledAt">>,
   now?: number | Date,
 ): string {
   const minutes = surfaceArrivalMinutes(arrival, now);

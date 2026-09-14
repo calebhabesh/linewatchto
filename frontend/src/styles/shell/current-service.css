@@ -414,26 +414,22 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     pointer-events: none;
     background: var(--panel-opaque);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.75),
-      0 -2px 12px -2px rgba(0, 0, 0, 0.08);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 28px), transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 28px), transparent 100%);
+    box-shadow: 0 -8px 28px #0003, inset 0 1px 2px rgba(255, 255, 255, 0.45), inset 0 6px 10px -7px rgba(255, 255, 255, 0.22);
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .dark .desktop-status-chip-row-container > .current-service::before {
-    background: var(--panel-opaque);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 -4px 20px -2px rgba(0, 0, 0, 0.45);
+    background: #111315;
+    box-shadow: 0 -8px 28px #0004, inset 0 1px 2px rgba(255, 255, 255, 0.09), inset 0 6px 10px -7px rgba(255, 255, 255, 0.10);
   }
 
   .high-contrast .desktop-status-chip-row-container > .current-service::before {
@@ -465,7 +461,7 @@
     border-top-right-radius: 8px;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -6px 16px #0002, inset 0 1px 2px rgba(255, 255, 255, 0.45);
     cursor: ns-resize;
     z-index: 2;
     user-select: none;
@@ -482,8 +478,8 @@
   }
 
   .dark .desktop-status-chip-row-container .current-service-handle-container {
-    background: var(--panel-opaque);
-    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.10);
+    background: #111315;
+    box-shadow: 0 -6px 16px #0004, inset 0 1px 2px rgba(255, 255, 255, 0.09);
   }
 
   .high-contrast .desktop-status-chip-row-container .current-service-handle-container {
@@ -648,7 +644,8 @@
 .current-service-impact-heading strong svg { width: 16px; height: 16px; min-width: 16px; min-height: 16px; flex-shrink: 0; display: inline-block; vertical-align: middle; margin: 0; }
 .current-service-impact-timing { display: block; font-size: 12px; color: var(--muted); line-height: 1.35; }
 .current-service-impact-location { display: block; font-size: 12px; line-height: 1.35; color: var(--foreground); }
-.current-service-inline-timing, .current-service-inline-direction { color: var(--muted); font-size: inherit; }
+.current-service-inline-timing { color: var(--muted); font-size: inherit; }
+.current-service-impact-direction { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; }
 .current-service-notice-text, .current-service-notice-copy > span { display: block; font-size: 12px; line-height: 1.35; color: var(--foreground); }
 .current-service-notice-copy strong { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; }
 
@@ -2034,5 +2031,43 @@
       #774111 75% 87.5%,
       #4084cd 87.5% 100%
     ) border-box;
+  }
+}
+
+/* Restore desktop geometry while hidden, then introduce the complete sheet. */
+@media (min-width: 768px) {
+  .desktop-status-chip-row-container > .current-service[data-position-ready="false"] {
+    opacity: 0;
+    pointer-events: none;
+    animation: none;
+  }
+  .desktop-status-chip-row-container > .current-service[data-position-ready="false"] .current-service-list {
+    transition: none;
+  }
+  .desktop-status-chip-row-container > .current-service[data-position-ready="true"] {
+    animation: current-service-enter 260ms ease-out both;
+  }
+  .desktop-status-chip-row-container > .current-service .current-service-list {
+    height: var(--custom-sheet-height, auto);
+  }
+}
+@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
+  .desktop-status-chip-row-container > .current-service[data-position-ready="true"] {
+    animation: none;
+  }
+}
+
+@media (min-width: 768px) {
+  /* Join the raised handle to the sheet, covering the sheet's inset top edge. */
+  .desktop-status-chip-row-container .current-service-handle-container::after {
+    content: "";
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background: inherit;
+    pointer-events: none;
   }
 }

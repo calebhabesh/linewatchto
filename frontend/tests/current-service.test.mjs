@@ -168,15 +168,15 @@ test("CurrentServicePanel implements exception-first layout with consolidated re
   assert.match(stylesSource, /\.current-service-all-clear\s*\{/);
 });
 
-test("CurrentServicePanel pull up sheet has vanishing bottom edge into badges and unified alert item body text size", () => {
+test("CurrentServicePanel pull up sheet has an opaque mobile-style container and unified alert item body text size", () => {
   const panelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
 
   // Bottom edge positioned closer to alert badges
   assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service\s*\{[^}]*bottom:\s*calc\(100%\s*-\s*20px\);/s);
 
-  // Vanishing edge on bottom of pull up sheet via mask-image on ::before
-  assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service::before\s*\{[^}]*mask-image:\s*linear-gradient\(to bottom,[^}]*transparent\s*100%\);/s);
+  // The desktop container is opaque like the mobile sheet.
+  assert.match(stylesSource, /\.desktop-status-chip-row-container\s*>\s*\.current-service::before\s*\{[^}]*mask-image:\s*none;/s);
 
   // Surface notices item body text has dedicated class
   assert.match(panelSource, /className="current-service-notice-text"/);
@@ -198,3 +198,11 @@ test("CurrentServicePanel desktop content animates on entrance and suppresses du
 
 
 
+
+ test("pull-up impact rows name the condition and put direction below the location", () => {
+  const panel = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
+  assert.ok(panel.includes('className="current-service-impact-location">{row.condition} · {row.location}</span>'));
+  assert.ok(panel.includes('className="current-service-impact-direction">{row.direction}</span>'));
+  assert.match(styles, /\.current-service-impact-direction\s*\{[^}]*display:\s*block;/);
+});

@@ -20,6 +20,41 @@ class TtcSurfaceArrivalServiceTest {
     private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-08-14T13:00:00Z");
 
     @Test
+    void fillsMissingBaysWithSchedulesButFreshPredictionsWin() {
+        StationRepository stations = mock(StationRepository.class);
+        when(stations.findById("broadview")).thenReturn(Optional.of(
+            new StationEntity("broadview", "Broadview", 0, 0, false, 1, null)));
+        TtcSurfaceArrivalCache cache = new TtcSurfaceArrivalCache();
+        TtcSurfaceScheduleCatalog catalog = mock(TtcSurfaceScheduleCatalog.class);
+        when(catalog.active()).thenReturn(new TtcSurfaceScheduleCatalog.Catalog(
+            1, Map.of(), Map.of(), Map.of(), Map.of(), Set.of("broadview")));
+        var scheduled = mock(TtcSurfaceScheduledArrivalRepository.class);
+        SurfaceArrivalProperties properties = new SurfaceArrivalProperties();
+        properties.setTtcEnabled(true);
+        var live = row(NOW.plusMinutes(5), "new-realtime-id");
+        var sameBay = new SurfaceArrivalRecord("broadview", "TTC", live.mode(), live.route(), live.routeName(),
+            "Different static headsign", NOW.plusMinutes(4), null, live.bayPlatform(), live.stopName(),
+            "static-id", TtcSurfaceScheduledArrivalRepository.SOURCE, "scheduled");
+        var otherBay = new SurfaceArrivalRecord("broadview", "TTC", live.mode(), live.route(), live.routeName(),
+            "Other direction", NOW.plusMinutes(8), null, "Bay 9", "Broadview at Bay 9",
+            "other-id", TtcSurfaceScheduledArrivalRepository.SOURCE, "scheduled");
+        when(scheduled.arrivals("broadview", NOW, properties.getHorizon())).thenReturn(List.of(sameBay, otherBay));
+        cache.replace(new TtcSurfaceArrivalSnapshot("streetcar", NOW, NOW, true, Set.of("broadview"), List.of(live)));
+        var service = new TtcSurfaceArrivalService(stations, cache, catalog, properties,
+            Clock.fixed(NOW.toInstant(), ZoneOffset.UTC), scheduled);
+        assertThat(service.arrivals("broadview").arrivals()).hasSize(2).anySatisfy(arrival -> {
+            assertThat(arrival.status()).isEqualTo("scheduled");
+            assertThat(arrival.predictedAt()).isNull();
+            assertThat(arrival.scheduledAt()).isEqualTo(NOW.plusMinutes(8));
+            assertThat(arrival.minutes()).isEqualTo(8);
+        });
+        cache.replace(new TtcSurfaceArrivalSnapshot("streetcar", NOW.minusHours(1), NOW, true,
+            Set.of("broadview"), List.of(live)));
+        assertThat(service.arrivals("broadview").arrivals()).hasSize(2)
+            .allSatisfy(arrival -> assertThat(arrival.status()).isEqualTo("scheduled"));
+    }
+
+    @Test
     void returnsOnlyFreshHorizonBoundParentLinkedPredictions() {
         StationRepository stations = mock(StationRepository.class);
         TtcSurfaceArrivalCache cache = mock(TtcSurfaceArrivalCache.class);
@@ -41,7 +76,7 @@ class TtcSurfaceArrivalServiceTest {
             Set.of("broadview"), List.of(first, second)
         )));
         TtcSurfaceArrivalService service = new TtcSurfaceArrivalService(
-            stations, cache, catalog, properties, Clock.fixed(Instant.parse("2026-08-14T13:00:00Z"), ZoneOffset.UTC)
+            stations, cache, catalog, properties, Clock.fixed(Instant.parse("2026-08-14T13:00:00Z"), ZoneOffset.UTC), mock(TtcSurfaceScheduledArrivalRepository.class)
         );
 
         SurfaceArrivalResponses.SnapshotResponse response = service.arrivals("broadview");
@@ -85,7 +120,7 @@ class TtcSurfaceArrivalServiceTest {
         )));
         when(cache.get("streetcar")).thenReturn(Optional.empty());
         TtcSurfaceArrivalService service = new TtcSurfaceArrivalService(
-            stations, cache, catalog, properties, Clock.fixed(Instant.parse("2026-08-14T13:00:00Z"), ZoneOffset.UTC)
+            stations, cache, catalog, properties, Clock.fixed(Instant.parse("2026-08-14T13:00:00Z"), ZoneOffset.UTC), mock(TtcSurfaceScheduledArrivalRepository.class)
         );
 
         SurfaceArrivalResponses.SnapshotResponse response = service.arrivals("keele");
@@ -115,7 +150,7 @@ class TtcSurfaceArrivalServiceTest {
         )));
         when(cache.get("streetcar")).thenReturn(Optional.empty());
         TtcSurfaceArrivalService service = new TtcSurfaceArrivalService(
-            stations, cache, catalog, properties, Clock.fixed(Instant.parse("2026-08-14T13:00:00Z"), ZoneOffset.UTC)
+            stations, cache, catalog, properties, Clock.fixed(Instant.parse("2026-08-14T13:00:00Z"), ZoneOffset.UTC), mock(TtcSurfaceScheduledArrivalRepository.class)
         );
 
         SurfaceArrivalResponses.SnapshotResponse response = service.arrivals("bay");

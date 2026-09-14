@@ -176,6 +176,22 @@ public class GtfsScheduleImportRepository {
         jdbc.batchUpdate(sql, batch);
     }
 
+    public void insertSurfaceStopTimes(long importId, List<GtfsImportModels.StopTimeRow> rows) {
+        if (rows.isEmpty()) return;
+        jdbc.batchUpdate("""
+            insert into ttc_surface_stop_times(import_id, trip_id, stop_id, stop_sequence, departure_seconds)
+            values (:importId, :tripId, :stopId, :sequence, :departure)
+            """, rows.stream().map(row -> new MapSqlParameterSource()
+                .addValue("importId", importId).addValue("tripId", row.tripId())
+                .addValue("stopId", row.stopId()).addValue("sequence", row.stopSequence())
+                .addValue("departure", row.departureSeconds())).toArray(SqlParameterSource[]::new));
+    }
+
+    public void markSurfaceScheduleAvailable(long importId) {
+        jdbc.update("update gtfs_schedule_imports set surface_schedule_available = true where id = :id",
+            java.util.Map.of("id", importId));
+    }
+
     public void insertStationStops(long importId, List<GtfsImportModels.StationStopRow> rows) {
         if (rows.isEmpty()) return;
         String sql = """
@@ -259,9 +275,9 @@ public class GtfsScheduleImportRepository {
         if (rows.isEmpty()) return;
         String sql = """
             insert into ttc_surface_trips (
-                import_id, trip_id, route_id, trip_headsign
+                import_id, trip_id, route_id, trip_headsign, service_id
             ) values (
-                :importId, :tripId, :routeId, :tripHeadsign
+                :importId, :tripId, :routeId, :tripHeadsign, :serviceId
             )
             """;
         for (int start = 0; start < rows.size(); start += 1000) {
@@ -271,7 +287,8 @@ public class GtfsScheduleImportRepository {
                     .addValue("importId", importId)
                     .addValue("tripId", row.tripId())
                     .addValue("routeId", row.routeId())
-                    .addValue("tripHeadsign", row.tripHeadsign()))
+                    .addValue("tripHeadsign", row.tripHeadsign())
+                    .addValue("serviceId", row.serviceId()))
                 .toArray(SqlParameterSource[]::new);
             jdbc.batchUpdate(sql, batch);
         }

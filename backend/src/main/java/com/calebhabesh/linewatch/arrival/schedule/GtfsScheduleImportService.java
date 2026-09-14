@@ -61,6 +61,7 @@ public class GtfsScheduleImportService {
         Set<String> rapidTransitTripIds = new HashSet<>();
         Set<String> surfaceTripIds = new HashSet<>();
         Map<String, Set<String>> surfaceTripsByStop = new HashMap<>();
+        Set<String> retainedServiceIds = new HashSet<>();
         Set<String> rapidTransitServiceIds = new HashSet<>();
         Set<String> rapidTransitStopIds = new HashSet<>();
 
@@ -109,6 +110,7 @@ public class GtfsScheduleImportService {
                     String tripId = row.value("trip_id");
                     String serviceId = row.value("service_id");
                     rapidTransitTripIds.add(tripId);
+                    retainedServiceIds.add(serviceId);
                     rapidTransitServiceIds.add(serviceId);
                     Integer directionId = null;
                     String dirVal = row.value("direction_id");
@@ -186,10 +188,12 @@ public class GtfsScheduleImportService {
                 ));
             }
 
+            Map<String, Integer> lastStopSequences = new HashMap<>();
             // 4. First stop-time pass: collect rapid-transit stops and retain
             // only surface trips that actually serve a parent-linked station stop.
             forEachRow(zipFile, "stop_times.txt", row -> {
                 String tripId = row.value("trip_id");
+                lastStopSequences.merge(tripId, Integer.parseInt(row.value("stop_sequence")), Math::max);
                 if (rapidTransitTripIds.contains(tripId)) {
                     rapidTransitStopIds.add(row.value("stop_id"));
                 }
@@ -207,10 +211,13 @@ public class GtfsScheduleImportService {
                 if (surfaceTripIds.contains(row.value("trip_id"))
                     && surfaceRouteIds.contains(row.value("route_id"))) {
                     validSurfaceTripIds.add(row.value("trip_id"));
+                    retainedServiceIds.add(row.value("service_id"));
                     surfaceTrips.add(new GtfsImportModels.SurfaceTripRow(
                         row.value("trip_id"),
                         row.value("route_id"),
-                        row.value("trip_headsign")
+                        row.value("trip_headsign"),
+                        row.value("service_id"),
+                        lastStopSequences.getOrDefault(row.value("trip_id"), Integer.MAX_VALUE)
                     ));
                 }
             });
@@ -305,13 +312,13 @@ public class GtfsScheduleImportService {
             // 5. Process calendar.txt
             forEachRow(zipFile, "calendar.txt", row -> {
                 String serviceId = row.value("service_id");
-                if (rapidTransitServiceIds.contains(serviceId)) {
+                if (retainedServiceIds.contains(serviceId)) {
                     LocalDate start = LocalDate.parse(row.value("start_date"), dateGen);
                     LocalDate end = LocalDate.parse(row.value("end_date"), dateGen);
-                    if (dateRange[0] == null || start.isBefore(dateRange[0])) {
+                    if (rapidTransitServiceIds.contains(serviceId) && (dateRange[0] == null || start.isBefore(dateRange[0]))) {
                         dateRange[0] = start;
                     }
-                    if (dateRange[1] == null || end.isAfter(dateRange[1])) {
+                    if (rapidTransitServiceIds.contains(serviceId) && (dateRange[1] == null || end.isAfter(dateRange[1]))) {
                         dateRange[1] = end;
                     }
                     services.add(new GtfsImportModels.ServiceRow(
@@ -332,7 +339,7 @@ public class GtfsScheduleImportService {
             // 6. Process calendar_dates.txt
             forEachRowOptional(zipFile, "calendar_dates.txt", row -> {
                 String serviceId = row.value("service_id");
-                if (rapidTransitServiceIds.contains(serviceId)) {
+                if (retainedServiceIds.contains(serviceId)) {
                     serviceExceptions.add(new GtfsImportModels.ServiceExceptionRow(
                         serviceId,
                         LocalDate.parse(row.value("date"), dateGen),

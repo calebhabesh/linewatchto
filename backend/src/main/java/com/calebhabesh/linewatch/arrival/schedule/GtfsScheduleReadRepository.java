@@ -94,7 +94,8 @@ public class GtfsScheduleReadRepository {
 
     public boolean hasSurfaceCatalog(long importId) {
         Boolean available = jdbc.queryForObject("""
-            select exists (
+            select exists (select 1 from gtfs_schedule_imports where id = :importId and surface_schedule_available = true)
+               and exists (
                        select 1 from ttc_surface_routes where import_id = :importId
                    )
                and exists (

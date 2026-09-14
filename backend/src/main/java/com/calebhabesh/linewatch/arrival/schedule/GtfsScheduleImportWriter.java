@@ -59,7 +59,31 @@ public class GtfsScheduleImportWriter {
             importId,
             prepared.rapidTransitTripIds()
         );
-        streamStopTimes(zipPath, batcher::accept);
+        Set<String> surfaceTrips = prepared.surfaceTrips().stream()
+            .map(GtfsImportModels.SurfaceTripRow::tripId).collect(java.util.stream.Collectors.toSet());
+        var lastSurfaceStops = prepared.surfaceTrips().stream().collect(java.util.stream.Collectors.toMap(
+            GtfsImportModels.SurfaceTripRow::tripId, GtfsImportModels.SurfaceTripRow::lastStopSequence));
+        Set<String> surfaceStops = prepared.surfaceStationStops().stream()
+            .map(GtfsImportModels.SurfaceStationStopRow::stopId).collect(java.util.stream.Collectors.toSet());
+        List<GtfsImportModels.StopTimeRow> surfaceBatch = new ArrayList<>();
+        streamStopTimes(zipPath, row -> {
+            batcher.accept(row);
+            // Only ordinary, published boarding departures at reviewed station stops.
+            if (!surfaceTrips.contains(row.value("trip_id")) || !surfaceStops.contains(row.value("stop_id"))) return;
+            if (Integer.parseInt(row.value("stop_sequence")) >= lastSurfaceStops.get(row.value("trip_id"))) return;
+            String pickup = row.value("pickup_type");
+            if (!pickup.isBlank() && !"0".equals(pickup)) return;
+            if (row.value("departure_time").isBlank()) return;
+            int departure = GtfsCsvReader.seconds(row.value("departure_time"));
+            surfaceBatch.add(new GtfsImportModels.StopTimeRow(row.value("trip_id"), row.value("stop_id"),
+                departure, departure, Integer.parseInt(row.value("stop_sequence"))));
+            if (surfaceBatch.size() >= STOP_TIME_BATCH_SIZE) {
+                repository.insertSurfaceStopTimes(importId, List.copyOf(surfaceBatch));
+                surfaceBatch.clear();
+            }
+        });
+        repository.insertSurfaceStopTimes(importId, List.copyOf(surfaceBatch));
+        repository.markSurfaceScheduleAvailable(importId);
         batcher.finish();
 
         repository.insertStationStops(importId, prepared.stationStops());

@@ -64,6 +64,11 @@ class GtfsScheduleImportServiceTest {
             .extracting(GtfsImportModels.SurfaceTripRow::tripId)
             .containsExactly("QUEEN_1");
 
+        assertThat(prepared.getValue().services()).extracting(GtfsImportModels.ServiceRow::serviceId)
+            .contains("SURFACE");
+        assertThat(prepared.getValue().serviceExceptions()).extracting(GtfsImportModels.ServiceExceptionRow::serviceId)
+            .contains("SURFACE");
+
         // Prove that the first pass ignores surface stop times
         assertThat(prepared.getValue().stops())
             .extracting(GtfsImportModels.StopRow::stopId)
@@ -211,15 +216,17 @@ class GtfsScheduleImportServiceTest {
             entry(output, "calendar.txt", """
                 service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
                 WEEKDAY,1,1,1,1,1,0,0,20260601,20261231
+                SURFACE,1,1,1,1,1,0,0,20260601,20261231
                 """);
             entry(output, "calendar_dates.txt", """
                 service_id,date,exception_type
                 WEEKDAY,20260701,2
+                SURFACE,20260701,2
                 """);
             entry(output, "trips.txt", """
                 route_id,service_id,trip_id,trip_headsign,direction_id
                 1,WEEKDAY,L1_N_1,Northbound to Finch,0
-                501,WEEKDAY,QUEEN_1,Eastbound to Neville Park,0
+                501,SURFACE,QUEEN_1,Eastbound to Neville Park,0
                 """);
             entry(output, "stop_times.txt", """
                 trip_id,arrival_time,departure_time,stop_id,stop_sequence

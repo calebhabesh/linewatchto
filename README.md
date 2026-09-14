@@ -767,6 +767,8 @@ LINEWATCH_TTC_SURFACE_ARRIVALS_TRIP_UPDATES_URL=https://gtfsrt.ttc.ca/trips/upda
 LINEWATCH_REGIONAL_SURFACE_ARRIVALS_ENABLED=true
 ```
 
+TTC surface connections also retain published static-GTFS departure times at mapped station stops. When a route/boarding stop has no fresh predictions, valid departures within the configured horizon appear as **Scheduled**, with no invented realtime timestamp. Fresh predictions take precedence for that route/boarding stop; another bay or direction can still use scheduled fallback. Calendar weekdays, date exceptions, after-midnight service times, pickup restrictions, and terminating stops are respected. Route-only listings without valid departures remain unavailable. This requires one refreshed merged GTFS import after the scheduled-surface migration; automatic refresh detects older imports and keeps the last-good import active if replacement fails.
+
 TTC's combined bus and streetcar Trip Updates feed defaults to 15-second backend polling with a two-minute freshness window. On the first refresh after deploying the surface-catalog schema, an active GTFS import without surface routes, parent-linked stops, or trips is replaced even when its service calendar has more than the normal refresh threshold remaining. GO Bus reads are cached for 30 seconds and use a five-minute source-freshness window. Both endpoints return explicit `available`, `no-service`, `disabled`, or `unavailable` states, and each row is labeled `live` or `scheduled`. A missing bay is omitted rather than inferred. These connections do not feed maps, status, saved commutes, reliability, surface notices, or push notifications.
 
 > [!NOTE]
