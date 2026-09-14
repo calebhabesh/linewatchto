@@ -1070,7 +1070,6 @@
     width: var(--mobile-top-action-button-size);
     gap: 7px;
     pointer-events: auto;
-    transition: bottom 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
   }
 
   .mobile-map-recenter-btn {

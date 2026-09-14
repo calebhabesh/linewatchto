@@ -1826,7 +1826,6 @@
     right: calc(var(--mobile-safe-right) + var(--mobile-map-control-edge-inset, 12px));
     top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + var(--mobile-map-controls-top-offset, 106px));
     z-index: 42;
-    transition: bottom 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
     border: none;
     background: transparent;
     box-shadow: none;
@@ -1850,6 +1849,7 @@
     right: calc(var(--mobile-safe-right) + var(--mobile-map-control-edge-inset, 12px));
     bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + var(--mobile-map-control-edge-inset, 12px));
     gap: var(--mobile-map-controls-gap, 8px);
+    transition: none;
   }
   .linewatch-shell .mobile-map-recenter-btn {
     width: var(--mobile-map-recenter-size, var(--mobile-top-action-button-size, 44px));

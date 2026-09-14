@@ -67,6 +67,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-map-recenter-btn\s*\{[^}]*width:\s*var\(--mobile-top-action-button-size\)/s);
     assert.match(globalCss, /\.mobile-map-zoom-capsule\s*\{[^}]*width:\s*var\(--mobile-top-action-button-size\)/s);
     assert.match(globalCss, /\.mobile-map-controls-group\s*\{[^}]*position:\s*fixed/s);
+    assert.doesNotMatch(globalCss, /\.mobile-map-controls-group\s*\{[^}]*transition:[^}]*bottom/s);
   });
 
   it("maintains balanced vertical centering around mobile badge grid in standard configuration", () => {
