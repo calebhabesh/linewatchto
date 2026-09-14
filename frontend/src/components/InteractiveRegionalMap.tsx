@@ -2914,6 +2914,7 @@ function InteractiveRegionalMapComponent({
   estimatedTrainMarkers = [],
   commutePathPreview = null,
   onClearCommutePathPreview,
+  isMapActive = true,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -2938,6 +2939,7 @@ function InteractiveRegionalMapComponent({
   estimatedTrainMarkers?: EstimatedTrainMarker[];
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
+  isMapActive?: boolean;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   const regionalMapRef = useRef<HTMLElement>(null);
@@ -2945,6 +2947,10 @@ function InteractiveRegionalMapComponent({
   const mapStageRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
+  const isMapActiveRef = useRef(isMapActive);
+  useEffect(() => {
+    isMapActiveRef.current = isMapActive;
+  }, [isMapActive]);
   const lastRecenterSignalRef = useRef(recenterSignal);
   const lastViewportOrientationRef = useRef(viewportOrientation);
   const automaticResizeRefitBlockedRef = useRef(false);
@@ -3022,7 +3028,7 @@ function InteractiveRegionalMapComponent({
 
   useEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
-  }, [commutePathPreview, selectedStationId, selection]);
+  }, [commutePathPreview, selection, selectedStationId]);
   const animTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
   const dragAnimationFrameRef = useRef<number | null>(null);
@@ -3314,9 +3320,18 @@ function InteractiveRegionalMapComponent({
   }, [animateCameraTo, fittedCamera]);
 
   const refitUntouchedNetwork = useCallback(() => {
+    if (!isMapActiveRef.current) return;
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
     const fitted = fittedCamera();
     if (!fitted) return;
+    if (
+      Math.abs(cameraRef.current.x - fitted.camera.x) < 0.5 &&
+      Math.abs(cameraRef.current.y - fitted.camera.y) < 0.5 &&
+      Math.abs(cameraRef.current.scale - fitted.camera.scale) < 0.0001
+    ) {
+      setFitScale((current) => fitted.scale !== current ? fitted.scale : current);
+      return;
+    }
     clearProgrammaticAnimation();
     setMapTransition("none");
     cameraRef.current = fitted.camera;
@@ -3331,8 +3346,9 @@ function InteractiveRegionalMapComponent({
   }, [refitUntouchedNetwork]);
 
   useLayoutEffect(() => observeMobileMapFrame(viewportRef.current, () => {
+    if (!isMapActive) return;
     if (window.innerWidth < 768 && !automaticResizeRefitBlockedRef.current) refitUntouchedNetwork();
-  }), [refitUntouchedNetwork, mapChromeVisible]);
+  }), [isMapActive, refitUntouchedNetwork, mapChromeVisible]);
 
   const resetNetworkCamera = useCallback(() => {
     cameraAdjustedByUserRef.current = false;
@@ -3896,6 +3912,7 @@ function InteractiveRegionalMapComponent({
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
+      if (!isMapActiveRef.current) return;
       if (!cameraInitializedRef.current) {
         initializeMapCamera();
         return;

@@ -20,11 +20,13 @@ export function NetworkMap({
   ...props
 }: NetworkMapProps) {
   const regionalSelected = network === "regional";
+  const isMapActive = props.isMapActive ?? (props.mapChromeVisible);
 
   return (
     <>
       {regionalSelected ? (
         <InteractiveRegionalMap
+          isMapActive={isMapActive}
           selection={props.selection}
           onSelectImpact={props.onSelectImpact}
           selectedStationId={props.selectedStationId}
@@ -52,6 +54,7 @@ export function NetworkMap({
       ) : (
         <InteractiveTtcMap
           {...props}
+          isMapActive={isMapActive}
           onReady={onMapReady}
         />
       )}

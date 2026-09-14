@@ -46,6 +46,7 @@ type UsePanZoomOptions = {
     mobileCenterStationId?: string;
   };
   animateInitialEntrance?: boolean;
+  isMapActive?: boolean;
 };
 
 type ZoomToPointOptions = {
@@ -66,7 +67,23 @@ export function usePanZoom({
   disableProgrammaticMotion = false,
   defaultFrame,
   animateInitialEntrance = true,
+  isMapActive = true,
 }: UsePanZoomOptions = {}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isMapActiveRef = useRef(isMapActive);
+  useEffect(() => {
+    isMapActiveRef.current = isMapActive;
+  }, [isMapActive]);
+
+  const isMapCurrentlyActive = useCallback(() => {
+    if (!isMapActiveRef.current) return false;
+    const shell = containerRef.current?.closest(".linewatch-shell");
+    if (!shell) return true;
+    if (shell.getAttribute("data-active-view") !== "map") return false;
+    if (shell.querySelector(".mobile-app-topbar[data-searching='true']")) return false;
+    return true;
+  }, []);
+
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
   const [recenterFeedbackKey, setRecenterFeedbackKey] = useState(0);
@@ -75,7 +92,6 @@ export function usePanZoom({
   const programmaticAnimationFrameRef = useRef<number | null>(null);
   const wheelCommitTimeoutRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const dragRafRef = useRef<number | null>(null);
@@ -271,6 +287,17 @@ export function usePanZoom({
     }
 
     const snapped = snapTransform(next);
+    if (
+      Math.abs(transformRef.current.x - snapped.x) < 0.5 &&
+      Math.abs(transformRef.current.y - snapped.y) < 0.5 &&
+      Math.abs(transformRef.current.scale - snapped.scale) < 0.0001
+    ) {
+      if (nextFitScale !== undefined && nextFitScale !== fitScaleRef.current) {
+        fitScaleRef.current = nextFitScale;
+        setFitScale(nextFitScale);
+      }
+      return;
+    }
     transformRef.current = snapped;
 
     clearProgrammaticAnimation();
@@ -395,6 +422,7 @@ export function usePanZoom({
 
     const reconcileViewport = (physicalWidth: number, physicalHeight: number) => {
       if (document.visibilityState === "hidden" || physicalWidth <= 0 || physicalHeight <= 0) return;
+      if (!isMapCurrentlyActive()) return;
       const { width, height } = logicalViewportSizeForOrientation(
         physicalWidth,
         physicalHeight,
@@ -457,7 +485,52 @@ export function usePanZoom({
       observer.disconnect();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [defaultTransformForViewport, viewportOrientation]);
+  }, [defaultTransformForViewport, isMapCurrentlyActive, viewportOrientation]);
+
+  useEffect(() => {
+    if (!isMapActive) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const physicalWidth = el.clientWidth;
+    const physicalHeight = el.clientHeight;
+    if (physicalWidth <= 0 || physicalHeight <= 0) return;
+    const { width, height } = logicalViewportSizeForOrientation(
+      physicalWidth,
+      physicalHeight,
+      viewportOrientation,
+    );
+    const diffW = Math.abs(lastDimensions.current.width - width);
+    const diffH = Math.abs(lastDimensions.current.height - height);
+    if (diffW >= 1 || diffH >= 1) {
+      const previousViewport = lastDimensions.current;
+      const defaultTransform = defaultTransformForViewport(width, height);
+      const newFit = defaultTransform.scale;
+      const current = transformRef.current;
+      const previousFit = fitScaleRef.current;
+      const hasCustomCamera = isProgrammaticCameraMotionRef.current
+        || current.scale !== 1
+        || current.x !== 0
+        || current.y !== 0;
+
+      const next = previousViewport.width <= 0 || previousViewport.height <= 0
+        ? (hasCustomCamera ? current : defaultTransform)
+        : (current.scale === 1 && previousFit === 1)
+          ? defaultTransform
+          : transformForViewportResize(
+              current,
+              previousViewport,
+              { width, height },
+              previousFit,
+              newFit,
+            );
+      const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
+      lastDimensions.current = { width, height };
+      fitScaleRef.current = newFit;
+      transformRef.current = snapped;
+      setFitScale(newFit);
+      setTransform(snapped);
+    }
+  }, [defaultTransformForViewport, isMapActive, viewportOrientation]);
 
   const logicalViewportSize = useCallback(() => {
     const element = containerRef.current;
@@ -864,9 +937,10 @@ export function usePanZoom({
   }, [recenter, reducedMotion, persistenceKey]);
 
   const refitIfCameraUntouched = useCallback(() => {
+    if (!isMapCurrentlyActive()) return;
     if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
     moveToDefaultCamera(false, false);
-  }, [moveToDefaultCamera]);
+  }, [isMapCurrentlyActive, moveToDefaultCamera]);
 
   const replayEntrance = useCallback(() => {
     cameraInitializedRef.current = false;

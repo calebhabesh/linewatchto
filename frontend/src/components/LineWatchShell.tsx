@@ -2951,7 +2951,7 @@ export function LineWatchShell({
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
-    window.setTimeout(() => stationSearchInputRef.current?.focus(), 0);
+    window.setTimeout(() => stationSearchInputRef.current?.focus({ preventScroll: true }), 0);
     navigateRoot("search");
   };
 
@@ -5125,6 +5125,7 @@ export function LineWatchShell({
       >
         <NetworkMap
           network={selectedNetwork}
+          isMapActive={activeView === "map" && !isClosingSearch}
           animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
           deferInitialEntrance={disclaimerVisible
             || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)

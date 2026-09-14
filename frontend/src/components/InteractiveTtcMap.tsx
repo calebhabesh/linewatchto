@@ -439,6 +439,7 @@ function InteractiveTtcMapComponent({
   estimatedTrainMarkers = [],
   animateInitialEntrance = true,
   deferInitialEntrance = false,
+  isMapActive = true,
   onReady,
 }: {
   selection: ImpactSelection;
@@ -466,6 +467,7 @@ function InteractiveTtcMapComponent({
   estimatedTrainMarkers?: EstimatedTrainMarker[];
   animateInitialEntrance?: boolean;
   deferInitialEntrance?: boolean;
+  isMapActive?: boolean;
   onReady?: () => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
@@ -706,8 +708,9 @@ function InteractiveTtcMapComponent({
   const automaticResizeRefitBlockedRef = useRef(false);
 
   useLayoutEffect(() => observeMobileMapFrame(containerRef.current, () => {
+    if (!isMapActive) return;
     if (window.innerWidth < 768 && !automaticResizeRefitBlockedRef.current) refitIfCameraUntouched();
-  }), [containerRef, refitIfCameraUntouched, mapChromeVisible]);
+  }), [containerRef, isMapActive, refitIfCameraUntouched, mapChromeVisible]);
 
   useEffect(() => {
     automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
