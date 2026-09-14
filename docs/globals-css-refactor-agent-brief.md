@@ -22,7 +22,7 @@ Re-measure before editing. The repository may have changed.
 
 ## Session contract
 
-1. Read `AGENTS.md`, `GEMINI.md`, this brief, and
+1. Read `AGENTS.md`, `frontend/AGENTS.md`, this brief, and
    `docs/globals-css-refactor-progress.md`.
 2. Find the next session in the progress file. Read that session's section in
    `docs/globals-css-refactor-playbook.md`. Do not load unrelated session
@@ -80,7 +80,7 @@ git diff --check
 Continue the LineWatchTO global CSS refactor as one short implementation
 session.
 
-Read AGENTS.md, GEMINI.md,
+Read AGENTS.md, frontend/AGENTS.md,
 docs/globals-css-refactor-agent-brief.md, and
 docs/globals-css-refactor-progress.md. From the progress log, identify the exact
 next session. Read only that session's section of

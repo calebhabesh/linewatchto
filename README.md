@@ -142,9 +142,20 @@ docs/      design specs and implementation plans
 Important project guidance files:
 
 ```text
-AGENTS.md  Agent operating guide for Codex, antigravity-cli, and similar tools
-GEMINI.md  Copy of AGENTS.md for Gemini-style agent tooling
+AGENTS.md           Project-wide agent rules and task routing
+frontend/AGENTS.md  Web UI conventions and scoped verification
+backend/AGENTS.md   API, persistence, ingestion, and backend checks
+mobile/AGENTS.md    Native prototype conventions and checks
 ```
+
+For small design iterations, give the affected view and desired change; the agent
+guides select focused verification automatically. Feature inventories and
+runbooks are linked for on-demand reading rather than loaded for every edit.
+
+Start a fresh Codex session after instruction changes to rebuild its guidance
+chain; launching in `frontend/` also includes its scoped guide at startup.
+Other agents should read the root and applicable scoped guides. See
+[Codex instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 
 ## Local Setup
 

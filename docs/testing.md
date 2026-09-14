@@ -82,3 +82,25 @@ npm --prefix mobile run typecheck
 npm --prefix mobile run lint
 npm --prefix mobile test
 ```
+
+## Validation policy
+
+The [root guide](../AGENTS.md) defines proportional iteration and honest reporting;
+[frontend](../frontend/AGENTS.md), [backend](../backend/AGENTS.md), and
+[mobile](../mobile/AGENTS.md) guides define final checks for their layers.
+Validate once when stable, unless the user explicitly defers validation. Cross-stack
+changes need affected-layer and integration coverage, not unrelated platform suites.
+
+Reuse passing checks when their covered code has not changed. After a fix, rerun
+failed checks and those affected by the fix, rather than restarting all suites.
+Read final results once; open detailed logs/traces only to investigate a failure or
+uncertainty. Run suites sharing mutable stub services serially.
+
+Review image differences before updating visual baselines. Reserve full browser
+compatibility sweeps for affected environments or release validation. A small CSS
+change does not require a production build just to inspect it; an existing dev
+server and focused browser inspection are sufficient for the local feedback loop.
+
+Report checked behavior, failures, and material untested areas concisely. A design
+iteration can be ready for review with final validation pending; do not claim
+checks passed when skipped, blocked, or invalidated by subsequent edits.

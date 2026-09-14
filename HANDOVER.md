@@ -52,4 +52,4 @@ The "View" and basic "Controller" layer are done. The next major phase is the **
 5. **Reliability Aggregation (Backend):** Build duration and frequency summaries from persisted snapshots.
 
 **Guidelines for Codex:**
-Please adhere strictly to the rules in `AGENTS.md` and `GEMINI.md`. Do not strip the graceful UI fallback logic, and do not introduce entirely new dependencies unless strictly necessary. Ensure you verify code using the provided CLI commands.
+Please adhere strictly to the rules in root and applicable scoped `AGENTS.md` files. Do not strip the graceful UI fallback logic, and do not introduce entirely new dependencies unless strictly necessary. Ensure you verify code using the provided CLI commands.

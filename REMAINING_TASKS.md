@@ -102,7 +102,7 @@ Acceptance criteria:
 - [ ] Clock-based backend tests cover before, during, between, and after nightly
       windows.
 - [ ] Fixture and smoke coverage protect the card and map behavior.
-- [ ] README, `AGENTS.md`, and `GEMINI.md` claims are updated together.
+- [ ] README claims reflect working code; agent guidance changes only when durable rules change.
 
 ### Slice 2: Public Live Station Arrivals
 
@@ -339,7 +339,7 @@ For every slice:
 - [ ] Write the smallest meaningful failing test before behavior changes where
       practical.
 - [ ] Run and read the relevant verification gate.
-- [ ] Keep `README.md`, `AGENTS.md`, and `GEMINI.md` aligned with working code.
+- [ ] Keep `README.md` claims aligned with working code; update scoped `AGENTS.md` only for durable rule changes.
 - [ ] Merge the verified slice, remove its temporary worktree, and delete the
       merged feature branch.
 - [ ] Refresh this handoff baseline and mark the completed slice before starting

@@ -54,7 +54,7 @@ Important findings:
 
 ## Non-negotiable rules
 
-Every session must follow the repository `AGENTS.md` and `GEMINI.md` instructions.
+Every session must follow the root and applicable scoped `AGENTS.md` files.
 In addition:
 
 1. Start with `git status --short`. Preserve all unrelated user changes.
@@ -179,7 +179,7 @@ Each Gemini session follows this exact lifecycle.
 Read, in order:
 
 1. `AGENTS.md`
-2. `GEMINI.md`
+2. `frontend/AGENTS.md`
 3. this playbook
 4. `docs/globals-css-refactor-progress.md`, once it exists
 5. the most recent relevant Git commits
