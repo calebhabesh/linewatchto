@@ -76,6 +76,11 @@ export function readMobileMapFrameInsets(viewport: HTMLElement | null) {
   const shell = viewport.closest?.(".linewatch-shell");
   if (!shell) return null;
 
+  // Inspectors have their own viewport framing (impact details shrink main).
+  // Overview insets cached for search would reserve the sheet space twice here.
+  // Keep the cache intact so closing search can still preserve the overview.
+  if (shell.classList?.contains("mobile-map-inspector")) return null;
+
   const chips = shell.querySelector<HTMLElement>(".mobile-app-chip-scroll");
   const sheet = shell.querySelector<HTMLElement>(".mobile-service-sheet");
   const minimum = sheet?.querySelector<HTMLElement>(".mobile-service-sheet-minimum");

@@ -24,3 +24,39 @@ test('mobile default frame uses shortcuts and overview height independently of s
     else globalThis.window = previous;
   }
 });
+
+test('cached search framing does not shrink an impact or station inspector camera', () => {
+  const previous = globalThis.window;
+  let inspector = false;
+  let overviewVisible = true;
+  const minimum = { getBoundingClientRect: () => ({ height: 176 }) };
+  const sheet = { querySelector: () => minimum };
+  const chips = { getBoundingClientRect: () => ({ height: 40, bottom: 112 }) };
+  const shell = {
+    getAttribute: () => 'ttc',
+    classList: { contains: name => name === 'mobile-map-inspector' && inspector },
+    querySelector: selector => overviewVisible
+      ? (selector === '.mobile-app-chip-scroll' ? chips : sheet) : null,
+  };
+  const viewport = {
+    closest: () => shell,
+    getBoundingClientRect: () => ({ top: 0, bottom: inspector ? 425 : 850 }),
+  };
+  try {
+    globalThis.window = { innerWidth: 393, innerHeight: 850, getComputedStyle: () => ({ bottom: '70px' }) };
+    const overviewInsets = { top: 112, bottom: 246 };
+    assert.deepEqual(readMobileMapFrameInsets(viewport), overviewInsets);
+    overviewVisible = false;
+    assert.deepEqual(readMobileMapFrameInsets(viewport), overviewInsets, 'search retains the overview frame');
+    inspector = true;
+    assert.equal(readMobileMapFrameInsets(viewport), null, 'inspector uses its own frame');
+    overviewVisible = true;
+    assert.equal(readMobileMapFrameInsets(viewport), null, 'outgoing overview DOM cannot override inspector framing');
+    inspector = false;
+    overviewVisible = false;
+    assert.deepEqual(readMobileMapFrameInsets(viewport), overviewInsets, 'inspector leaves the search cache intact');
+  } finally {
+    if (previous === undefined) delete globalThis.window;
+    else globalThis.window = previous;
+  }
+});

@@ -454,7 +454,8 @@ export function usePanZoom({
               previousViewport,
               { width, height },
               previousFit,
-              newFit,
+              // Mobile sheets change the opening, not the rider's zoom level.
+              window.innerWidth < 768 && diffW < 1 ? previousFit : newFit,
             );
       const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
 
@@ -521,7 +522,8 @@ export function usePanZoom({
               previousViewport,
               { width, height },
               previousFit,
-              newFit,
+              // Mobile sheets change the opening, not the rider's zoom level.
+              window.innerWidth < 768 && diffW < 1 ? previousFit : newFit,
             );
       const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
       lastDimensions.current = { width, height };

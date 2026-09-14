@@ -2569,6 +2569,34 @@ test("paints current delays above planned closures on both maps", async ({ page,
   expect(regionalDelayPaintsAfterPlanned).toBe(true);
 });
 
+test("mobile View on Map from a delay submenu centers the affected section", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only submenu camera behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.locator('.ttc-map-stage[data-raster-map-ready="true"]')).toBeVisible();
+  await openServiceCategory(page, isMobile, /^Delays/);
+  await page.locator('.alert-card').filter({ hasText: 'Sheppard-Yonge' })
+    .getByRole('button', { name: 'View on Map' }).click();
+  await expect(page.locator('[data-mobile-impact-inspector]')).toBeVisible();
+  await page.waitForTimeout(700);
+  const geometry = await page.locator('[data-map-pan-zoom-viewport]').evaluate((viewport) => {
+    const target = viewport.querySelector('[data-selected-impact-emphasis]');
+    if (!target) throw new Error('Missing selected impact');
+    const frame = viewport.getBoundingClientRect();
+    const impact = target.getBoundingClientRect();
+    return {
+      dx: Math.abs((impact.left + impact.right - frame.left - frame.right) / 2),
+      dy: Math.abs((impact.top + impact.bottom - frame.top - frame.bottom) / 2),
+      width: impact.width,
+      frameWidth: frame.width,
+    };
+  });
+  expect(geometry.dx).toBeLessThan(5);
+  expect(geometry.dy).toBeLessThan(5);
+  // Keep the selected section readable; cached overview insets reduced it to ~14px.
+  expect(geometry.width).toBeGreaterThan(geometry.frameWidth * 0.3);
+});
+
 test("mobile closing impact details preserves the focused map camera", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only impact camera behavior");
   await setStubMode(request, "seeded");
