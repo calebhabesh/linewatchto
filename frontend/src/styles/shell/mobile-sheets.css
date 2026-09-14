@@ -1082,6 +1082,21 @@
   .mobile-sheet-heading {
     flex-shrink: 0;
   }
+
+  .floating-panel-shell .floating-panel-scroll .analytics-panel,
+  .floating-panel-shell .floating-panel-scroll .ttc-announcements-panel {
+    overflow-y: auto;
+  }
+
+  .floating-panel-scroll .analytics-panel > .reliability-list,
+  .floating-panel-scroll .ttc-announcements-panel > .notification-settings-scroll {
+    flex: none;
+    overflow: visible;
+  }
+
+  .floating-panel-shell .analytics-panel > .panel-heading {
+    padding-bottom: 6px;
+  }
   .line-impact-panel-stack,
   .alert-stack,
   .closure-stack,

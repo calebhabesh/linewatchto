@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDisruptionDuration } from "../app/reliability-time";
+
 import { Fragment } from "react";
 import Image from "next/image";
 import { useDashboardData } from "../app/DataContext";
@@ -166,15 +168,14 @@ function getMetricDetails(id: string, originalLabel: string) {
   }
 }
 
-function formatDisruptionDuration(minutes: number | null | undefined): string {
-  if (minutes == null || isNaN(minutes) || minutes <= 0) return "0 min";
-  if (minutes < 60) return `${Math.round(minutes)} min`;
-  const hours = Math.floor(minutes / 60);
-  const remMinutes = Math.round(minutes % 60);
-  const hourLabel = hours === 1 ? "hr" : "hrs";
-  return remMinutes === 0
-    ? `${hours.toLocaleString()} ${hourLabel}`
-    : `${hours.toLocaleString()} ${hourLabel} ${remMinutes} min`;
+function DisruptionDuration({ minutes }: { minutes: number | null | undefined }) {
+  const [precise, equivalent] = formatDisruptionDuration(minutes).split(" (");
+  return (
+    <>
+      <span className="block">{precise}</span>
+      {equivalent ? <span className="block whitespace-nowrap">({equivalent}</span> : null}
+    </>
+  );
 }
 
 function formatReliabilityRange(since: string, until: string): string {
@@ -274,12 +275,12 @@ function AlertTypeBreakdownChart({
 
       {/* Bar section with linked metrics on top */}
       <div className="flex flex-col gap-1.5 min-w-0 w-full mt-1">
-        <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[10.5px] font-mono tabular-nums text-slate-500 dark:text-slate-400 w-full min-w-0 whitespace-nowrap">
+        <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] sm:text-[10.5px] font-mono tabular-nums text-slate-500 dark:text-slate-400 w-full min-w-0">
           <span className="shrink-0 font-normal">
             {totalIncidents} total {totalIncidents === 1 ? "incident" : "incidents"}
           </span>
-          <span className="font-semibold text-slate-700 dark:text-slate-300 text-right shrink-0">
-            {formatDisruptionDuration(totalMinutes)} Total
+          <span className="font-semibold text-slate-700 dark:text-slate-300 text-right min-w-0">
+            <DisruptionDuration minutes={totalMinutes} /> Total
           </span>
         </div>
 
@@ -338,8 +339,8 @@ function AlertTypeBreakdownChart({
 
             {/* Bottom line: Duration + Incidents */}
             <div className="flex items-center justify-between gap-2 min-w-0 text-[11px] font-mono tabular-nums pl-4">
-              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
-                {formatDisruptionDuration(slice.incidentDisruptionMinutes)}
+              <span className="font-semibold text-slate-700 dark:text-slate-300 break-words">
+                <DisruptionDuration minutes={slice.incidentDisruptionMinutes} />
               </span>
               <span className="text-slate-500 dark:text-slate-400 shrink-0 text-right">
                 {slice.incidents} {slice.incidents === 1 ? "incident" : "incidents"}
@@ -407,19 +408,20 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
         icon={<BarChart3 className="w-5 h-5 text-purple-500 shrink-0" aria-hidden="true" />}
         onBack={onBack}
         onClose={onClose}
-        metadata={
-          <p className="truncate text-slate-500 dark:text-slate-400">
-            {formatReliabilityTitleCase(reliability.coverageLabel)} · {formatReliabilityTitleCase(`${reliability.confidence} confidence`)}
-          </p>
-        }
       />
       <div className="reliability-list min-w-0 max-w-full w-full p-3 flex flex-col gap-2 overflow-x-hidden">
+        <p className="text-center text-[11px] text-slate-500 dark:text-slate-400 break-words">
+          {formatReliabilityTitleCase(reliability.coverageLabel)} · {formatReliabilityTitleCase(`${reliability.confidence} confidence`)}
+        </p>
         <div className="flex flex-col gap-2 min-w-0">
           <div className="min-w-0 flex flex-col gap-1.5">
             <h3 className="text-[15px] font-black text-slate-900 dark:text-white break-words">
               Observed Disruptions · Rolling 30 Day Basis
             </h3>
             <ul className="grid grid-cols-1 gap-1 text-[11px] text-slate-500 dark:text-slate-400 list-none p-0 m-0">
+              <li className="break-words leading-tight">
+                Confidence reflects how complete the records are, using the lower of polling and schedule-date coverage: low below 75%, medium from 75% to below 95%, and high at 95% or above. Gaps can leave disruptions uncounted.
+              </li>
               <li className="flex items-start gap-1.5 min-w-0">
                 <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
                 <span className="min-w-0 break-words leading-tight">
@@ -506,7 +508,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-1 border-t border-black/[0.04] dark:border-white/[0.04] text-[11px]">
                     <div className="flex flex-col min-w-0">
                       <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
-                        {formatDisruptionDuration(item.serviceImpactMinutes)}
+                        <DisruptionDuration minutes={item.serviceImpactMinutes} />
                       </span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
                         Active Alert Time
@@ -517,7 +519,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                     </span>
                     <div className="flex flex-col min-w-0 text-right">
                       <span className="font-mono tabular-nums font-bold text-xs text-slate-900 dark:text-white leading-tight">
-                        {formatDisruptionDuration(item.observedServiceMinutes)}
+                        <DisruptionDuration minutes={item.observedServiceMinutes} />
                       </span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-tight mt-0.5">
                         Observed Service Time
@@ -532,8 +534,8 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                     <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
                       Incident-Hours
                     </span>
-                    <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 truncate">
-                      {formatDisruptionDuration(item.incidentDisruptionMinutes)}
+                    <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
+                      <DisruptionDuration minutes={item.incidentDisruptionMinutes} />
                     </strong>
                     <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight" title="Sum of durations across all concurrent alerts">
                       Overlapping alerts sum
@@ -545,8 +547,8 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                       <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500 dark:text-slate-400 leading-tight min-h-[24px] sm:min-h-[26px] flex items-start">
                         Median Completed Incident
                       </span>
-                      <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 truncate">
-                        {formatDisruptionDuration(item.medianDurationMinutes)}
+                      <strong className="mt-0.5 font-mono tabular-nums text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 break-words">
+                        <DisruptionDuration minutes={item.medianDurationMinutes} />
                       </strong>
                       <span className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
                         Resolution turnaround
