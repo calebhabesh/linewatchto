@@ -350,14 +350,14 @@ describe("floating menu layout", () => {
     assert.match(lineLegendSource, /limited-service/);
   });
 
-  it("uses larger lettering inside fixed-size GO and UP legend badges", () => {
-    assert.match(lineLegendSource, /h-\[44px\] w-\[44px\][^"\n]*text-\[22px\]/);
+  it("uses readable lettering inside compact GO and UP legend badges", () => {
+    assert.match(lineLegendSource, /h-\[36px\] w-\[36px\][^"\n]*text-\[18px\]/);
     assert.match(lineLegendSource, /backgroundColor: LINE_COLORS\[line\.id\]/);
   });
 
-  it("scales the regional desktop legend above its map attribution", () => {
-    assert.match(networkMapLegendsSource, /desktop-map-legend--regional bottom-7/);
-    assert.match(globalCss, /\.desktop-map-legend--regional\s*\{[^}]*transform:\s*scale\(0\.9\);[^}]*transform-origin:\s*bottom right;/s);
+  it("positions the regional desktop legend without cosmetic CSS scaling transforms", () => {
+    assert.match(networkMapLegendsSource, /desktop-map-legend--regional/);
+    assert.doesNotMatch(globalCss, /\.desktop-map-legend--regional\s*\{[^}]*transform:\s*scale/s);
   });
 
   it("LineLegend formats alert icons compactly depending on count in regional mode (vertical stack for 2, triangle for 3, 2x2 grid for 4)", () => {
@@ -365,7 +365,7 @@ describe("floating menu layout", () => {
     assert.match(lineLegendSource, /flex-col justify-center/);
     assert.match(lineLegendSource, /count === 3/);
     assert.match(lineLegendSource, /col-span-2 flex justify-center/);
-    assert.match(lineLegendSource, /w-\[58px\]/);
+    assert.match(lineLegendSource, /w-\[48px\]/);
   });
 
   it("LineLegend displays service-tone rings around desktop line badges and overlapping count badges on multiple alerts", () => {

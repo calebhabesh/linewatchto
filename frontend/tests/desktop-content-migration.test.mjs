@@ -10,22 +10,21 @@ const globalCss = readAppStylesheet();
 
 describe("desktop content and navigation migration (Session 2)", () => {
   describe("desktop status overview", () => {
-    it("renders network service summary with freshness and all-clear indicator", () => {
-      assert.match(statusOverviewSource, /desktop-status-summary-card/);
-      assert.match(statusOverviewSource, /desktop-status-live-dot/);
-      assert.match(statusOverviewSource, /desktop-status-state-pill--good/);
-      assert.match(statusOverviewSource, /desktop-status-state-pill--disrupted/);
+    it("renders network service summary with header, live pill, and diagnostics", () => {
+      assert.match(statusOverviewSource, /desktop-status-header-row/);
+      assert.match(statusOverviewSource, /mobile-service-sheet-recessed-badge/);
+      assert.match(statusOverviewSource, /desktop-status-poll-row/);
     });
 
-    it("presents up to three priority disruptions before full category drilldowns", () => {
-      assert.match(statusOverviewSource, /desktop-status-priority-section/);
-      assert.match(statusOverviewSource, /priorityDisruptions[\s\S]*?\.slice\(0,\s*3\)/);
-      assert.match(statusOverviewSource, /desktop-status-priority-item/);
+    it("presents imminent rail disruptions within 24h before surface preview", () => {
+      assert.match(statusOverviewSource, /desktop-status-rail-section/);
+      assert.match(statusOverviewSource, /currentServiceSummary/);
+      assert.match(statusOverviewSource, /desktop-status-incident-row/);
     });
 
     it("provides impact category navigation for alerts, delays, RSZ, and closures", () => {
       assert.match(statusOverviewSource, /desktop-status-categories-grid/);
-      assert.match(statusOverviewSource, /desktop-status-cat-btn/);
+      assert.match(statusOverviewSource, /desktop-status-category-capsule/);
       assert.match(statusOverviewSource, /onOpenCategory\("alerts"\)/);
       assert.match(statusOverviewSource, /onOpenCategory\("delays"\)/);
       assert.match(statusOverviewSource, /onOpenCategory\("reduced-speed-zones"\)/);
@@ -38,10 +37,11 @@ describe("desktop content and navigation migration (Session 2)", () => {
       assert.match(statusOverviewSource, /onOpenCategory\("surface-notices"\)/);
     });
 
-    it("lists transit lines with status badges leading to line impacts", () => {
-      assert.match(statusOverviewSource, /desktop-status-line-card/);
+    it("renders clickable line badges for unaffected lines with honest reassurance", () => {
+      assert.match(statusOverviewSource, /desktop-status-remaining-group/);
       assert.match(statusOverviewSource, /TransitLineBadge/);
-      assert.match(statusOverviewSource, /desktop-status-line-clear-badge/);
+      assert.match(statusOverviewSource, /desktop-status-line-badge-btn/);
+      assert.match(statusOverviewSource, /No (?:other )?imminent alerts/);
     });
   });
 
@@ -135,7 +135,7 @@ describe("desktop content and navigation migration (Session 2)", () => {
       assert.match(globalCss, /\.desktop-saved-nav/);
       assert.match(globalCss, /\.desktop-saved-tab/);
       assert.match(globalCss, /\.desktop-status-overview/);
-      assert.match(globalCss, /\.desktop-status-summary-card/);
+      assert.match(globalCss, /\.desktop-status-header-row/);
       assert.match(globalCss, /\.desktop-more-panel/);
       assert.match(globalCss, /\.desktop-more-account-card/);
     });

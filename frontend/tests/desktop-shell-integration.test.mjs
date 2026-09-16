@@ -27,11 +27,9 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
     );
   });
 
-  it("initializes activeView to status on desktop", () => {
-    assert.match(
-      shellSource,
-      /const \[activeView, setActiveView\] = useState<ActiveView>\(\(\) => \{\s*if \(typeof window !== "undefined" && !window\.matchMedia\(MOBILE_VIEWPORT_QUERY\)\.matches\) \{\s*return "status";\s*\}\s*return "map";\s*\}\);/,
-    );
+  it("initializes activeView deterministically and syncs status on desktop mount", () => {
+    assert.match(shellSource, /const \[activeView, setActiveView\] = useState<ActiveView>\("map"\);/);
+    assert.match(shellSource, /setActiveView\(\(curr\) => \(curr === "map" \? "status" : curr\)\);/);
   });
 
   it("expands desktop sidebar in-memory when station or impact is selected on map", () => {
@@ -39,8 +37,8 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
     assert.match(shellSource, /if \(desktopSidebarCollapsed\) \{\s*setDesktopSidebarCollapsed\(false\);\s*\}/);
   });
 
-  it("persists explicit sidebar collapse preference on rail toggle", () => {
-    assert.match(shellSource, /const handleToggleDesktopSidebar = useCallback\(\(\) => \{\s*setDesktopSidebarCollapsed\(\(prev\) => \{\s*const next = !prev;\s*if \(typeof window !== "undefined"\) \{\s*saveDesktopSidebarCollapsed\(window\.localStorage, next\);\s*\}\s*return next;\s*\}\);\s*\}, \[\]\);/);
+  it("toggles desktop sidebar in-memory for active session", () => {
+    assert.match(shellSource, /const handleToggleDesktopSidebar = useCallback\(\(\) => \{\s*setDesktopSidebarCollapsed\(\(prev\) => !prev\);\s*\}, \[\]\);/);
   });
 
   it("accounts for desktop overlay insets in pan zoom camera fitting for both TTC and GO/UP", () => {

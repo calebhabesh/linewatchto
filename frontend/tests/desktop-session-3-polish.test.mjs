@@ -119,35 +119,33 @@ describe("desktop responsive and accessibility polish (Session 3)", () => {
     });
   });
 
-  describe("visual polish: category cards, disruption pills, and layout hygiene", () => {
-    it("groups category icons and labels inside desktop-status-cat-label-group", () => {
-      assert.match(statusOverviewSource, /desktop-status-cat-label-group/);
-      assert.match(globalCss, /\.desktop-status-cat-label-group/);
+  describe("visual polish: category capsules, rail incidents, and layout hygiene", () => {
+    it("renders category capsules with icon, label, count circle, and chevron", () => {
+      assert.match(statusOverviewSource, /desktop-status-category-capsule/);
+      assert.match(statusOverviewSource, /mobile-status-peek-badge-label/);
+      assert.match(statusOverviewSource, /mobile-status-peek-count-circle/);
+      assert.match(globalCss, /\.desktop-status-category-capsule/);
     });
 
-    it("renders line disruption badges as structured colored pills with icons", () => {
-      assert.match(statusOverviewSource, /desktop-status-line-disruptions/);
-      assert.match(statusOverviewSource, /desktop-status-line-pill--alerts/);
-      assert.match(statusOverviewSource, /desktop-status-line-pill--delays/);
-      assert.match(statusOverviewSource, /desktop-status-line-pill--rsz/);
-      assert.match(statusOverviewSource, /desktop-status-line-pill--closures/);
-      assert.match(globalCss, /\.desktop-status-line-pill--alerts/);
-      assert.match(globalCss, /\.desktop-status-line-pill--delays/);
-      assert.match(globalCss, /\.desktop-status-line-pill--rsz/);
-      assert.match(globalCss, /\.desktop-status-line-pill--closures/);
+    it("renders rail section with line badge buttons and honest reassurance", () => {
+      assert.match(statusOverviewSource, /desktop-status-rail-section/);
+      assert.match(statusOverviewSource, /desktop-status-line-badge-btn/);
+      assert.match(statusOverviewSource, /desktop-status-remaining-group/);
+      assert.match(globalCss, /\.desktop-status-rail-section/);
+      assert.match(globalCss, /\.desktop-status-line-badge-btn/);
+      assert.match(globalCss, /\.desktop-status-remaining-group/);
     });
 
-    it("styles line trigger button to fill card with focus-visible and chevron hover", () => {
-      assert.match(statusOverviewSource, /desktop-status-line-main/);
-      assert.match(globalCss, /\.desktop-status-line-trigger/);
-      assert.match(globalCss, /\.desktop-status-line-trigger:focus-visible/);
-      assert.match(globalCss, /\.desktop-status-line-chevron/);
+    it("styles line badge buttons with focus-visible and click targets", () => {
+      assert.match(statusOverviewSource, /onOpenCategory\("line-impacts",\s*line\.id\)/);
+      assert.match(globalCss, /\.desktop-status-line-badge-btn:focus-visible/);
     });
 
-    it("structures informational collection rows with desktop-status-info-main and count badges", () => {
-      assert.match(statusOverviewSource, /desktop-status-info-main/);
-      assert.match(globalCss, /\.desktop-status-info-main/);
-      assert.match(globalCss, /\.desktop-status-info-badge/);
+    it("structures informational collection rows with desktop-status-info-row and buttons", () => {
+      assert.match(statusOverviewSource, /desktop-status-info-row/);
+      assert.match(statusOverviewSource, /desktop-status-info-btn/);
+      assert.match(globalCss, /\.desktop-status-info-row/);
+      assert.match(globalCss, /\.desktop-status-info-btn/);
     });
   });
 });

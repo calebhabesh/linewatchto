@@ -75,30 +75,22 @@ describe("desktop profile navigation and back-state restoration", () => {
 });
 
 describe("transient 'View on map' collapse contract", () => {
-  it("preserves durable preference during transient collapse, unlike explicit rail collapse", () => {
+  it("ensures desktop sidebar opens expanded on fresh page loads and collapse is session-only", () => {
     const storage = memoryStorage();
-    // User preference is expanded (default: false)
+    // Fresh page load always starts expanded
     assert.equal(readDesktopSidebarCollapsed(storage), false);
 
-    // In-memory state
-    let inMemoryCollapsed = false;
+    // Legacy storage key if present is cleaned up
+    storage.setItem("linewatch-desktop-sidebar-collapsed", "true");
+    assert.equal(readDesktopSidebarCollapsed(storage), false);
+    assert.equal(storage.getItem("linewatch-desktop-sidebar-collapsed"), null);
 
-    // Transient collapse: triggered by "View on map" in overlay mode
-    // Sets in-memory state to true WITHOUT mutating storage
+    // In-memory state manages session collapse without durable storage mutation
+    let inMemoryCollapsed = false;
     inMemoryCollapsed = true;
     assert.equal(inMemoryCollapsed, true);
-    // Durable storage remains false!
-    assert.equal(readDesktopSidebarCollapsed(storage), false);
-
-    // Re-opening via rail toggle button writes the new explicit preference (false)
-    inMemoryCollapsed = false;
-    saveDesktopSidebarCollapsed(storage, false);
-    assert.equal(readDesktopSidebarCollapsed(storage), false);
-
-    // Explicit rail collapse: writes true to storage
-    inMemoryCollapsed = true;
     saveDesktopSidebarCollapsed(storage, true);
-    assert.equal(readDesktopSidebarCollapsed(storage), true);
+    assert.equal(readDesktopSidebarCollapsed(storage), false);
   });
 
   it("yields zero overlay insets when collapsed, preventing duplicate camera jumps", () => {

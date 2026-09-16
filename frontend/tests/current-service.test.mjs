@@ -160,8 +160,7 @@ test("CurrentServicePanel implements exception-first layout with consolidated re
   assert.match(panelSource, /current-service-reassurance/);
   assert.match(panelSource, /current-service-reassurance-badges/);
   assert.match(panelSource, /current-service-all-clear/);
-  assert.match(panelSource, /Normal service/);
-  assert.match(panelSource, /Normal service on all subway & light rail lines/);
+  assert.match(panelSource, /No other imminent alerts|No imminent alerts/);
 
   assert.match(stylesSource, /\.current-service-reassurance\s*\{/);
   assert.match(stylesSource, /\.current-service-reassurance-badges\s*\{/);

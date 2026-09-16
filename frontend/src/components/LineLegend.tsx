@@ -115,12 +115,12 @@ export function LineLegend({
             onAlertClick?.(dataLineId);
           }}
           className={`pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all flex items-center justify-center relative ${
-            isRegional ? "w-7 h-7 shrink-0" : "p-2"
+            isRegional ? "w-6 h-6 shrink-0" : "p-1.5"
           }`}
           title={`View Alert for ${line.name}`}
           aria-label={`View Alert for ${line.name}`}
         >
-          <ImpactTypeIcon kind="suspension" size={isRegional ? 17 : 20} />
+          <ImpactTypeIcon kind="suspension" size={isRegional ? 15 : 17} />
           {alertCount > 1 && <LegendImpactCountBadge count={alertCount} isRegional={isRegional} />}
         </button>
       );
@@ -135,12 +135,12 @@ export function LineLegend({
             onDelayClick?.(dataLineId);
           }}
           className={`legend-delay-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border hover:scale-110 transition-all flex items-center justify-center relative ${
-            isRegional ? "w-7 h-7 shrink-0" : "p-2"
+            isRegional ? "w-6 h-6 shrink-0" : "p-1.5"
           }`}
           title={`View delay for ${line.name}`}
           aria-label={`View delay for ${line.name}`}
         >
-          <ImpactTypeIcon kind="delay" size={isRegional ? 17 : 20} />
+          <ImpactTypeIcon kind="delay" size={isRegional ? 15 : 17} />
           {delayCount > 1 && <LegendImpactCountBadge count={delayCount} isRegional={isRegional} />}
         </button>
       );
@@ -155,12 +155,12 @@ export function LineLegend({
             onReducedSpeedZoneClick?.(dataLineId);
           }}
           className={`legend-rsz-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border hover:scale-110 transition-all flex items-center justify-center relative ${
-            isRegional ? "w-7 h-7 shrink-0" : "p-2"
+            isRegional ? "w-6 h-6 shrink-0" : "p-1.5"
           }`}
           title={`View reduced speed zone for ${line.name}`}
           aria-label={`View reduced speed zone for ${line.name}`}
         >
-          <ImpactTypeIcon kind="reduced-speed-zone" size={isRegional ? 17 : 20} />
+          <ImpactTypeIcon kind="reduced-speed-zone" size={isRegional ? 15 : 17} />
           {rszCount > 1 && <LegendImpactCountBadge count={rszCount} isRegional={isRegional} />}
         </button>
       );
@@ -175,12 +175,12 @@ export function LineLegend({
             onClosureClick?.(dataLineId);
           }}
           className={`pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all flex items-center justify-center relative ${
-            isRegional ? "w-7 h-7 shrink-0" : "p-2"
+            isRegional ? "w-6 h-6 shrink-0" : "p-1.5"
           }`}
           title={`View Closure for ${line.name}`}
           aria-label={`View Closure for ${line.name}`}
         >
-          <ImpactTypeIcon kind="planned-closure" size={isRegional ? 17 : 20} />
+          <ImpactTypeIcon kind="planned-closure" size={isRegional ? 15 : 17} />
           {closureCount > 1 && <LegendImpactCountBadge count={closureCount} isRegional={isRegional} />}
         </button>
       );
@@ -189,7 +189,7 @@ export function LineLegend({
     const renderIconsContainer = () => {
       if (!isRegional) {
         return (
-          <div className="w-28 h-[44px] flex items-center gap-2 shrink-0 justify-end">
+          <div className="w-22 h-[36px] flex items-center gap-1.5 shrink-0 justify-end">
             {buttons}
           </div>
         );
@@ -197,12 +197,12 @@ export function LineLegend({
 
       const count = buttons.length;
       if (count === 0) {
-        return <div className="w-[58px] h-[58px] shrink-0" aria-hidden="true" />;
+        return <div className="w-[48px] h-[48px] shrink-0" aria-hidden="true" />;
       }
 
       if (count === 1) {
         return (
-          <div className="w-[58px] h-[58px] flex items-center justify-end shrink-0">
+          <div className="w-[48px] h-[48px] flex items-center justify-end shrink-0">
             {buttons[0]}
           </div>
         );
@@ -210,7 +210,7 @@ export function LineLegend({
 
       if (count === 2) {
         return (
-          <div className="w-[58px] h-[58px] flex flex-col justify-center items-end gap-0.5 shrink-0">
+          <div className="w-[48px] h-[48px] flex flex-col justify-center items-end gap-0.5 shrink-0">
             {buttons[0]}
             {buttons[1]}
           </div>
@@ -219,7 +219,7 @@ export function LineLegend({
 
       if (count === 3) {
         return (
-          <div className="w-[58px] h-[58px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0">
+          <div className="w-[48px] h-[48px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0">
             <div className="col-span-2 flex justify-center">
               {buttons[0]}
             </div>
@@ -230,7 +230,7 @@ export function LineLegend({
       }
 
       return (
-        <div className="w-[58px] h-[58px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0">
+        <div className="w-[48px] h-[48px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0">
           <div>{buttons[0]}</div>
           <div>{buttons[1]}</div>
           <div>{buttons[2]}</div>
@@ -249,7 +249,7 @@ export function LineLegend({
       <div
         key={line.id}
         className={`flex items-center ${
-          isRegional ? "gap-2.5 min-w-0" : "gap-3.5"
+          isRegional ? "gap-2 min-w-0" : "gap-2.5"
         }`}
       >
         {renderIconsContainer()}
@@ -259,33 +259,33 @@ export function LineLegend({
             className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
             style={{
               backgroundColor: LINE_COLORS[line.id] ?? "#64748b",
-              width: "18px",
-              height: "44px",
+              width: "15px",
+              height: "36px",
             }}
             aria-hidden="true"
           >
             {line.id === "up-express" && (
               <svg
                 className="absolute inset-0 w-full h-full pointer-events-none z-0"
-                viewBox="0 0 18 44"
+                viewBox="0 0 15 36"
                 fill="none"
               >
                 <line
-                  x1="9"
+                  x1="7.5"
                   y1="0"
-                  x2="9"
-                  y2="44"
+                  x2="7.5"
+                  y2="36"
                   stroke="#ffffff"
-                  strokeWidth="2.5"
-                  strokeDasharray="10 4"
+                  strokeWidth="2"
+                  strokeDasharray="8 3"
                 />
               </svg>
             )}
             <span
               className="rounded-full bg-white shrink-0 relative z-10"
               style={{
-                width: "14px",
-                height: "14px",
+                width: "11px",
+                height: "11px",
                 border: "2px solid #000000",
               }}
             />
@@ -298,7 +298,7 @@ export function LineLegend({
             aria-hidden="true"
           >
             <span
-              className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[4px] text-[22px] font-extrabold leading-none text-white opacity-95"
+              className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] text-[18px] font-extrabold leading-none text-white opacity-95"
               style={{ backgroundColor: LINE_COLORS[line.id] ?? "#64748b" }}
               aria-hidden="true"
             >
@@ -325,19 +325,19 @@ export function LineLegend({
         >
           <span
             className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap leading-none ${
-              isRegional ? "text-[24px]" : "text-[22px]"
+              isRegional ? "text-[19px]" : "text-[18px]"
             }`}
           >
             {line.name}
           </span>
           <span className="desktop-legend-status-chip" aria-hidden="true">
-            {snapshot ? <Info size={15} aria-label="Current status unknown" /> : totalImpactCount > 0 ? (
+            {snapshot ? <Info size={13} aria-label="Current status unknown" /> : totalImpactCount > 0 ? (
               <>
-                <Info size={15} strokeWidth={2.5} />
+                <Info size={13} strokeWidth={2.5} />
                 <span>{totalImpactCount}</span>
               </>
             ) : (
-              <Check size={15} strokeWidth={3} />
+              <Check size={13} strokeWidth={3} />
             )}
           </span>
         </button>
@@ -349,52 +349,52 @@ export function LineLegend({
   const LIMITED_SERVICE_GREY = "#8292a7";
 
   const renderLimitedServiceItem = () => (
-    <div key="limited-service" className="flex items-center gap-2.5 min-w-0">
-      <div className="w-[58px] h-[58px] shrink-0" aria-hidden="true" />
+    <div key="limited-service" className="flex items-center gap-2 min-w-0">
+      <div className="w-[48px] h-[48px] shrink-0" aria-hidden="true" />
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
         style={{
           backgroundColor: LIMITED_SERVICE_GREY,
-          width: "80px",
-          height: "18px",
+          width: "64px",
+          height: "15px",
         }}
         aria-hidden="true"
       >
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none z-0"
-          viewBox="0 0 80 18"
+          viewBox="0 0 64 15"
           fill="none"
         >
           <line
             x1="0"
-            y1="9"
-            x2="80"
-            y2="9"
+            y1="7.5"
+            x2="64"
+            y2="7.5"
             stroke="#ffffff"
-            strokeWidth="2.5"
-            strokeDasharray="10 4"
+            strokeWidth="2"
+            strokeDasharray="8 3"
           />
         </svg>
       </div>
-      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[24px] leading-none">
+      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[19px] leading-none">
         Limited Service
       </span>
     </div>
   );
 
   const renderRegularServiceItem = () => (
-    <div key="regular-service" className="flex items-center gap-2.5 min-w-0">
-      <div className="w-[58px] h-[58px] shrink-0" aria-hidden="true" />
+    <div key="regular-service" className="flex items-center gap-2 min-w-0">
+      <div className="w-[48px] h-[48px] shrink-0" aria-hidden="true" />
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
         style={{
           backgroundColor: REGULAR_SERVICE_GREY,
-          width: "80px",
-          height: "18px",
+          width: "64px",
+          height: "15px",
         }}
         aria-hidden="true"
       />
-      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[24px] leading-none">
+      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[19px] leading-none">
         Regular Service
       </span>
     </div>
@@ -411,8 +411,8 @@ export function LineLegend({
     <div
       className={`select-none pointer-events-none ${
         isRegional
-          ? "grid grid-cols-[max-content_max-content] gap-x-4 gap-y-4"
-          : "flex flex-col gap-4"
+          ? "grid grid-cols-[max-content_max-content] gap-x-3 gap-y-2.5"
+          : "flex flex-col gap-2.5"
       }`}
     >
       {isRegional ? (

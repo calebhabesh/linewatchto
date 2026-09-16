@@ -292,7 +292,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
   const clearLines = railLines.filter(item => item.rows.length === 0 && item.line.status !== ("closed" as string) && item.line.statusLabel.toLowerCase() !== "closed");
   const activeCount = summary.rows.length;
   const surfaceRows = notices?.fresh && now > 0 ? currentSurfaceNotices(notices.notices, now) : [];
-  const visibleNoticeCount = Math.min(surfaceRows.length, 6);
+  const visibleNoticeCount = Math.min(surfaceRows.length, 3);
 
   return <section
     ref={sectionRef}
@@ -355,9 +355,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
           {summary.fresh && affectedLines.length === 0 && closedLines.length === 0 && clearLines.length > 0 ? (
             <div
               className="current-service-all-clear"
-              aria-label={data.networkId === "regional"
-                ? "All GO and UP rail corridors operating normally"
-                : "Normal service on all subway and light rail lines"}
+              aria-label="No imminent alerts"
             >
               <div className="current-service-reassurance-badges" aria-hidden="true">
                 {clearLines.map(item => (
@@ -366,11 +364,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
               </div>
               <p className="current-service-clear">
                 <GoodServiceCheckIcon size={16} />
-                <span>
-                  {data.networkId === "regional"
-                    ? "All GO & UP rail corridors operating normally"
-                    : "Normal service on all subway & light rail lines"}
-                </span>
+                <span>No imminent alerts</span>
               </p>
             </div>
           ) : (
@@ -421,9 +415,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
         {summary.fresh && (affectedLines.length > 0 || closedLines.length > 0) && clearLines.length > 0 && (
           <div
             className="current-service-reassurance"
-            aria-label={data.networkId === "regional"
-              ? `${clearLines.length} other corridor${clearLines.length === 1 ? "" : "s"} operating normally`
-              : `Normal service on Lines ${clearLines.map(item => item.line.number).join(", ")}`}
+            aria-label="No other imminent alerts"
           >
             <div className="current-service-reassurance-badges" aria-hidden="true">
               {clearLines.map(item => (
@@ -432,9 +424,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
             </div>
             <GoodServiceCheckIcon size={14} />
             <span className="current-service-reassurance-text">
-              {data.networkId === "regional"
-                ? `${clearLines.length} other corridor${clearLines.length === 1 ? "" : "s"} operating normally`
-                : "Normal service"}
+              No other imminent alerts
             </span>
           </div>
         )}

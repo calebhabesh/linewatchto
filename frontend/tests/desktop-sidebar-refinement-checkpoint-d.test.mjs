@@ -72,10 +72,10 @@ describe("desktop sidebar refinement - Checkpoint D: Map Chrome & Data Relocatio
     assert.match(ttcMapSource, /className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-5/);
 
     // Regional Map
-    assert.match(regionalMapSource, /className="map-control-rail regional-map-control-rail absolute top-40 sm:top-5/);
+    assert.match(regionalMapSource, /className="map-control-rail desktop-map-control-rail regional-map-control-rail absolute top-14 sm:top-5/);
 
     // Stylesheet positioning
-    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.desktop-map-control-rail\s*\{[\s\S]*?top:\s*20px\s*!important/);
-    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.regional-map-control-rail\s*\{[\s\S]*?top:\s*20px/);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.desktop-map-control-rail[\s\S]*?top:\s*20px\s*!important/);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.regional-map-control-rail[\s\S]*?top:\s*20px/);
   });
 });

@@ -32,11 +32,12 @@
     border-radius: 12px;
     box-sizing: border-box;
   }
+
   .regional-map-control-rail {
     top: 20px;
-    right: 20px !important;
-    left: auto;
-    transform: none;
+    height: 56px;
+    border-radius: 12px;
+    box-sizing: border-box;
   }
 }
 
@@ -142,34 +143,7 @@
   line-height: 1;
 }
 
-.regional-map-control-rail {
-  width: 62px;
-  border-radius: 12px;
-  padding: 4px;
-}
 
-.regional-map-control-rail .map-control-button {
-  box-sizing: border-box;
-  height: 52px;
-  min-height: 52px;
-  min-width: 52px;
-  width: 52px;
-  padding: 0 10px;
-  border-radius: 8px;
-}
-
-.regional-map-control-rail .map-control-slider {
-  height: auto;
-  min-height: 84px;
-  min-width: 52px;
-  width: 52px;
-  padding: 4px 0;
-}
-
-.regional-map-control-rail .map-control-recenter-desktop-label {
-  font-size: 8.5px;
-  letter-spacing: 0.04em;
-}
 
 .map-control-zoom-group {
   display: contents;

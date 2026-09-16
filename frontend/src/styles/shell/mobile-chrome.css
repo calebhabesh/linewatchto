@@ -649,15 +649,16 @@
     box-shadow: none;
     pointer-events: auto;
   }
+}
 
-  .mobile-status-peek-count-badge {
-    align-items: center;
-    border-radius: 9999px;
-    display: flex;
-    justify-content: flex-start;
-    height: 44px;
-    min-height: 44px;
-    padding: 0 7px 0 6.5px;
+.mobile-status-peek-count-badge {
+  align-items: center;
+  border-radius: 9999px;
+  display: flex;
+  justify-content: flex-start;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 7px 0 6.5px;
     gap: 5.5px;
     transition: transform 100ms ease, opacity 150ms ease, box-shadow 150ms ease, background-color 150ms ease, filter 150ms ease;
     user-select: none;
@@ -1057,6 +1058,7 @@
     color: #000000 !important;
   }
 
+@media (max-width: 767px) {
   /* Right-Side Detached Map Controls Cluster (VisionOS Frameless Frosted Glass) */
   .mobile-map-controls-group {
     position: fixed;

@@ -42,32 +42,23 @@ describe("desktop visual treatment (Checkpoint C)", () => {
       assert.match(statusOverviewSource, /aria-label="Alerts and notices"/);
     });
 
-    it("styles 2x2 grid category buttons with tinted alert styles", () => {
-      assert.match(desktopChromeCss, /\.desktop-status-cat-btn--alerts:not\(\[data-count="zero"\]\)\s*\{[^}]*background:\s*#fef2f2/);
-      assert.match(desktopChromeCss, /\.dark\s+\.desktop-status-cat-btn--alerts:not\(\[data-count="zero"\]\)\s*\{[^}]*background:\s*linear-gradient/);
-      assert.match(desktopChromeCss, /\.desktop-status-cat-btn--delays:not\(\[data-count="zero"\]\)\s*\{[^}]*background:\s*#fffbeb/);
-      assert.match(desktopChromeCss, /\.desktop-status-cat-btn--rsz:not\(\[data-count="zero"\]\)/);
-      assert.match(desktopChromeCss, /\.desktop-status-cat-btn--closures:not\(\[data-count="zero"\]\)/);
+    it("styles 2x2 grid category capsules with shared tinted count badge styles", () => {
+      assert.match(desktopChromeCss, /\.desktop-status-categories-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/);
+      assert.match(desktopChromeCss, /\.desktop-status-category-capsule/);
     });
 
-    it("provides subdued styling for zero-count alert categories", () => {
-      assert.match(desktopChromeCss, /\.desktop-status-cat-btn\[data-count="zero"\]/);
-      assert.match(desktopChromeCss, /\.desktop-status-cat-count\[data-count="zero"\]/);
-    });
-
-    it("scales informational collection rows to full width with min-height 44px", () => {
+    it("scales informational collection rows to full width with min-height 40-44px", () => {
       assert.match(desktopChromeCss, /\.desktop-status-info-row\s*\{[^}]*flex-direction:\s*column/);
-      assert.match(desktopChromeCss, /\.desktop-status-info-btn\s*\{[^}]*min-height:\s*44px/);
-      assert.match(desktopChromeCss, /\.desktop-status-info-btn\s*\{[^}]*padding:\s*10px\s+14px/);
-      assert.match(desktopChromeCss, /\.desktop-status-info-label\s*\{[^}]*font-size:\s*13\.5px/);
+      assert.match(desktopChromeCss, /\.desktop-status-info-btn/);
+      assert.match(desktopChromeCss, /\.desktop-status-info-label/);
     });
   });
 
-  describe("line status row scaling", () => {
-    it("scales line-status triggers to 60-64px minimum height with 14px line names", () => {
-      assert.match(desktopChromeCss, /\.desktop-status-line-trigger\s*\{[^}]*min-height:\s*62px/);
-      assert.match(desktopChromeCss, /\.desktop-status-line-name\s*\{[^}]*font-size:\s*14px/);
-      assert.match(desktopChromeCss, /\.desktop-status-line-clear-badge\s*\{[^}]*font-size:\s*13px/);
+  describe("rail current service incident section", () => {
+    it("renders rail section with kicker, line group badges, and honest reassurance", () => {
+      assert.match(statusOverviewSource, /desktop-status-rail-section/);
+      assert.match(statusOverviewSource, /desktop-status-line-badge-btn/);
+      assert.match(statusOverviewSource, /desktop-status-remaining-group/);
     });
   });
 

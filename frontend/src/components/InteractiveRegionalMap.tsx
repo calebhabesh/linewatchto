@@ -2946,6 +2946,7 @@ function InteractiveRegionalMapComponent({
   const regionalMapRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
+  const mapControlRailRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
   const cameraAdjustedByUserRef = useRef(false);
   const isMapActiveRef = useRef(isMapActive);
@@ -3230,20 +3231,20 @@ function InteractiveRegionalMapComponent({
     const viewport = viewportRef.current;
     const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
     const shell = viewport?.closest<HTMLElement>(".linewatch-shell");
-    const consoleCapsule = shell?.querySelector<HTMLElement>(".desktop-status-capsule");
+    const rail = mapControlRailRef.current ?? shell?.querySelector<HTMLElement>(".desktop-map-control-rail");
     const impactBadges = shell?.querySelector<HTMLElement>(".desktop-status-chip-row-container");
-    if (!viewport || !mapSurface || !consoleCapsule || !impactBadges) return;
+    if (!viewport || !mapSurface) return;
 
     const measureDesktopInsets = () => {
       const viewportRect = viewport.getClientRects().length > 0
         ? viewport.getBoundingClientRect()
         : mapSurface.getBoundingClientRect();
-      const consoleRect = consoleCapsule.getBoundingClientRect();
-      const badgesRect = impactBadges.getBoundingClientRect();
-      const nextTopInset = consoleRect.width > 0 && consoleRect.height > 0
+      const railRect = rail?.getBoundingClientRect();
+      const badgesRect = impactBadges?.getBoundingClientRect();
+      const nextTopInset = railRect && railRect.width > 0 && railRect.height > 0
         ? Math.min(
             viewportRect.height,
-            Math.max(0, Math.round(consoleRect.bottom - viewportRect.top)),
+            Math.max(0, Math.round(railRect.bottom - viewportRect.top)),
           )
         : 0;
       const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
@@ -3251,7 +3252,7 @@ function InteractiveRegionalMapComponent({
         ? legend.getBoundingClientRect()
         : { width: 0, height: 0, top: viewportRect.bottom };
       const nextBottomInset = Math.max(
-        badgesRect.width > 0 && badgesRect.height > 0
+        badgesRect && badgesRect.width > 0 && badgesRect.height > 0
           ? Math.min(
               viewportRect.height - nextTopInset,
               Math.max(0, Math.round(viewportRect.bottom - badgesRect.top)),
@@ -3272,8 +3273,8 @@ function InteractiveRegionalMapComponent({
     const observer = new ResizeObserver(measureDesktopInsets);
     observer.observe(viewport);
     observer.observe(mapSurface);
-    observer.observe(consoleCapsule);
-    observer.observe(impactBadges);
+    if (rail) observer.observe(rail);
+    if (impactBadges) observer.observe(impactBadges);
     const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
     if (legend) observer.observe(legend);
     window.addEventListener("resize", measureDesktopInsets);
@@ -5144,15 +5145,15 @@ function InteractiveRegionalMapComponent({
           </button>
         </div>
       ) : null}
-      {/* Regional map controls positioned vertically on right side */}
-      <div className="map-control-rail regional-map-control-rail absolute top-40 sm:top-5 right-4 sm:right-6 z-30 flex flex-col items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
+      {/* Top center regional map controls matching TTC */}
+      <div ref={mapControlRailRef} className="map-control-rail desktop-map-control-rail regional-map-control-rail absolute top-14 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
         <div className="map-control-recenter-container">
           <button
             type="button"
             onClick={handleFitNetwork}
             className="map-control-button group"
-            title="Fit regional network"
-            aria-label="Fit regional network"
+            title="Center map view"
+            aria-label="Center map view"
           >
             <Locate size={22} className="map-control-recenter-icon" />
             <span className="map-control-recenter-desktop-label text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
@@ -5160,8 +5161,8 @@ function InteractiveRegionalMapComponent({
           <span className="map-control-recenter-mobile-label">Center</span>
         </div>
 
-        <div className="map-control-zoom-group flex flex-col items-center gap-1 sm:gap-2">
-          <div className="map-control-divider-v" aria-hidden="true" />
+        <div className="map-control-zoom-group">
+          <div className="map-control-divider" aria-hidden="true" />
 
           <button
             type="button"
@@ -5174,7 +5175,7 @@ function InteractiveRegionalMapComponent({
             <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
           </button>
 
-          <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 my-0.5 sm:my-1">
+          <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1">
             <input
               type="range"
               min={PAN_ZOOM_MIN_RELATIVE_SCALE}
@@ -5182,7 +5183,7 @@ function InteractiveRegionalMapComponent({
               step="0.05"
               value={relativeScale}
               onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-              className="h-16 md:h-20 w-1.5 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none [writing-mode:vertical-lr] [direction:rtl]"
+              className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
               title="Zoom level"
               aria-label="Zoom level slider"
             />

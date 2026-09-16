@@ -31,8 +31,6 @@
 }
 
 .desktop-map-legend--regional {
-  transform: scale(0.9);
-  transform-origin: bottom right;
   backface-visibility: hidden;
 }
 
@@ -48,17 +46,17 @@
    3. Desktop Line Legend Route Badge Rings and Squircles
    ------------------------------------------------------------ */
 .desktop-legend-route-badge {
-  --desktop-legend-outline-width: 4.5px;
+  --desktop-legend-outline-width: 3.5px;
   align-items: center;
   animation: desktop-legend-badge-pulse 3.5s ease-in-out infinite;
   box-shadow: 0 0 4px color-mix(in srgb, var(--desktop-legend-ring-color) 40%, transparent);
   box-sizing: border-box;
   display: flex;
-  height: 44px;
+  height: 36px;
   justify-content: center;
   position: relative;
-  width: 44px;
-  flex: 0 0 44px;
+  width: 36px;
+  flex: 0 0 36px;
   transform: translateZ(0);
   backface-visibility: hidden;
   contain: layout paint style;
@@ -81,7 +79,7 @@
   align-items: center;
   color: var(--desktop-legend-badge-number-color);
   display: flex;
-  font-size: 24px;
+  font-size: 20px;
   font-variant-numeric: lining-nums tabular-nums;
   font-weight: 900;
   height: 100%;
@@ -96,7 +94,7 @@
 .desktop-legend-route-badge--regional {
   background: linear-gradient(var(--desktop-legend-ring-color), var(--desktop-legend-ring-color)) border-box;
   border: var(--desktop-legend-outline-width) solid transparent;
-  border-radius: 7px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -620,8 +618,8 @@
 .desktop-legend-line-button {
   display: inline-flex;
   align-items: center;
-  gap: 17px;
-  min-height: 44px;
+  gap: 12px;
+  min-height: 36px;
   padding: 0 4px 0 0;
   border: 0;
   border-radius: 4px;
@@ -636,15 +634,15 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  gap: 5px;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 7px;
+  gap: 4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
   border: 1px solid #16a34a;
-  border-radius: 7px;
+  border-radius: 6px;
   background: #16a34a;
   color: #fff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;

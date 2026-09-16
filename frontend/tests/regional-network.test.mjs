@@ -902,7 +902,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /onWheel=\{onWheel\}/);
     assert.match(regionalMapSource, /onPointerDown=\{onPointerDown\}/);
     assert.match(regionalMapSource, /event\.key !== "Enter" && event\.key !== " "/);
-    assert.match(regionalMapSource, /aria-label="Fit regional network"/);
+    assert.match(regionalMapSource, /aria-label="(?:Center map view|Fit regional network)"/);
     assert.match(globalsCss, /\.regional-map-viewport\s*\{[^}]*-webkit-user-select:\s*none;[^}]*user-select:\s*none;/s);
     assert.match(globalsCss, /\.regional-map-stage :is\(text, tspan\)[^{]*\{[^}]*user-select:\s*none;/s);
   });

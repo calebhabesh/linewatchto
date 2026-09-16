@@ -51,8 +51,6 @@ import { DesktopNavRail } from "./DesktopNavRail";
 import { DesktopStatusOverview } from "./DesktopStatusOverview";
 import { DesktopMorePanel } from "./DesktopMorePanel";
 import {
-  readDesktopSidebarCollapsed,
-  saveDesktopSidebarCollapsed,
   computeDesktopLayoutMetrics,
   desktopRailDestinationForView,
   resolveDesktopDestinationProfile,
@@ -539,12 +537,7 @@ export function LineWatchShell({
   const [dotBackgroundEnabled, setDotBackgroundEnabled] = useState(initialVisualPreferences.dotBackgroundEnabled);
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
-  const [activeView, setActiveView] = useState<ActiveView>(() => {
-    if (typeof window !== "undefined" && !window.matchMedia(MOBILE_VIEWPORT_QUERY).matches) {
-      return "status";
-    }
-    return "map";
-  });
+  const [activeView, setActiveView] = useState<ActiveView>("map");
   const lastSavedViewRef = useRef<"my-stations" | "commutes">("my-stations");
 
   useEffect(() => {
@@ -590,14 +583,8 @@ export function LineWatchShell({
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return readDesktopSidebarCollapsed(window.localStorage);
-  });
-  const [windowWidth, setWindowWidth] = useState<number>(() => {
-    if (typeof window === "undefined") return 1200;
-    return window.innerWidth;
-  });
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(false);
+  const [windowWidth, setWindowWidth] = useState<number>(1200);
   const activeViewRef = useRef<ActiveView>("map");
   const viewHistoryRef = useRef<ActiveView[]>([]);
   const viewScrollPositionsRef = useRef<Partial<Record<ActiveView, number>>>({});
@@ -862,6 +849,7 @@ export function LineWatchShell({
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
     };
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -3952,13 +3940,7 @@ export function LineWatchShell({
   };
 
   const handleToggleDesktopSidebar = useCallback(() => {
-    setDesktopSidebarCollapsed((prev) => {
-      const next = !prev;
-      if (typeof window !== "undefined") {
-        saveDesktopSidebarCollapsed(window.localStorage, next);
-      }
-      return next;
-    });
+    setDesktopSidebarCollapsed((prev) => !prev);
   }, []);
 
   const prevSidebarCollapsedRef = useRef(desktopSidebarCollapsed);
@@ -4123,6 +4105,7 @@ export function LineWatchShell({
           }
           surfaceNoticeCount={surfaceNoticeCount ?? 0}
           tripChangeCount={regionalTripChangeCount ?? 0}
+          surfaceNotices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
           operatingState={selectedNetwork === "ttc" ? subwayOperatingState : regionalRailOperatingState}
           onOpenMore={() => setActiveView("more")}
           onOpenCategory={(view, lineId) => {
@@ -4149,6 +4132,7 @@ export function LineWatchShell({
           onSelectImpact={(impactSelection) => {
             handleMapSelectImpact(impactSelection);
           }}
+          onSelectSurfaceNotice={handleSearchOpenSurfaceNotice}
         />
       );
     }

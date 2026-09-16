@@ -3,31 +3,32 @@ export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 export const DESKTOP_SIDEBAR_COLLAPSED_KEY = "linewatch-desktop-sidebar-collapsed";
 
 /**
- * Reads the durable desktop sidebar collapse preference.
- * Defaults to false (expanded) on first visit or if storage is unavailable.
+ * Desktop sidebar opens expanded on every fresh page load.
+ * Returns false (expanded) regardless of legacy storage.
  */
 export function readDesktopSidebarCollapsed(storage: StorageLike | null): boolean {
   if (!storage) return false;
   try {
-    return storage.getItem(DESKTOP_SIDEBAR_COLLAPSED_KEY) === "true";
+    // Clean up obsolete durable collapse key if present.
+    if (storage.getItem(DESKTOP_SIDEBAR_COLLAPSED_KEY) !== null) {
+      storage.removeItem(DESKTOP_SIDEBAR_COLLAPSED_KEY);
+    }
   } catch {
-    return false;
+    /* Optional cleanup. */
   }
+  return false;
 }
 
 /**
- * Saves an explicit desktop sidebar collapse preference.
+ * Desktop sidebar collapse state is session-only; durable persistence is retired.
  */
 export function saveDesktopSidebarCollapsed(
-  storage: StorageLike | null,
-  collapsed: boolean,
+  _storage: StorageLike | null,
+  _collapsed: boolean,
 ): void {
-  if (!storage) return;
-  try {
-    storage.setItem(DESKTOP_SIDEBAR_COLLAPSED_KEY, String(collapsed));
-  } catch {
-    /* Optional preference. */
-  }
+  void _storage;
+  void _collapsed;
+  // Session-only; do not persist durable collapse state.
 }
 
 export const DESKTOP_RAIL_WIDTH = 80;

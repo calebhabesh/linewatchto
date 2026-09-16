@@ -23,19 +23,14 @@ const memoryStorage = () => {
   };
 };
 
-describe("desktop sidebar collapse preference persistence", () => {
-  it("defaults to expanded (false) when storage is empty or null", () => {
+describe("desktop sidebar startup behavior and session-only collapse", () => {
+  it("always defaults to expanded (false) on fresh load even when legacy storage says collapsed", () => {
     assert.equal(readDesktopSidebarCollapsed(null), false);
-    assert.equal(readDesktopSidebarCollapsed(memoryStorage()), false);
-  });
-
-  it("persists and restores explicit collapsed and expanded states", () => {
     const storage = memoryStorage();
-    saveDesktopSidebarCollapsed(storage, true);
-    assert.equal(readDesktopSidebarCollapsed(storage), true);
-
-    saveDesktopSidebarCollapsed(storage, false);
+    storage.setItem("linewatch-desktop-sidebar-collapsed", "true");
     assert.equal(readDesktopSidebarCollapsed(storage), false);
+    // Cleans up obsolete key
+    assert.equal(storage.getItem("linewatch-desktop-sidebar-collapsed"), null);
   });
 
   it("handles throwing storage gracefully without errors", () => {
