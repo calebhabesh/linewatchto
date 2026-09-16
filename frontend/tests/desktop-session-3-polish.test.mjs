@@ -67,7 +67,8 @@ describe("desktop responsive and accessibility polish (Session 3)", () => {
     it("announces rail destination navigation", () => {
       assert.match(shellSource, /announceDesktop\("System status overview"\)/);
       assert.match(shellSource, /announceDesktop\("Search stations, lines, and alerts"\)/);
-      assert.match(shellSource, /announceDesktop\("Saved stations and commutes"\)/);
+      assert.match(shellSource, /announceDesktop\("My Stations"\)/);
+      assert.match(shellSource, /announceDesktop\("My Commutes"\)/);
       assert.match(shellSource, /announceDesktop\("More options and settings"\)/);
     });
 
@@ -83,14 +84,14 @@ describe("desktop responsive and accessibility polish (Session 3)", () => {
   });
 
   describe("narrow desktop overlay transitions and layout budget", () => {
-    it("computes docked mode when window width meets layout budget (932px)", () => {
-      assert.equal(DESKTOP_DOCK_BUDGET, 932);
+    it("computes docked mode when window width meets layout budget (940px)", () => {
+      assert.equal(DESKTOP_DOCK_BUDGET, 940);
       const docked = computeDesktopLayoutMetrics({ windowWidth: 1024, isMobile: false });
       assert.equal(docked.mode, "docked");
       assert.equal(docked.railWidth, DESKTOP_RAIL_WIDTH);
       assert.equal(docked.sidebarWidth, DESKTOP_SIDEBAR_DEFAULT_WIDTH);
 
-      const budgetExact = computeDesktopLayoutMetrics({ windowWidth: 932, isMobile: false });
+      const budgetExact = computeDesktopLayoutMetrics({ windowWidth: 940, isMobile: false });
       assert.equal(budgetExact.mode, "docked");
       assert.equal(budgetExact.sidebarWidth, DESKTOP_SIDEBAR_DEFAULT_WIDTH);
     });

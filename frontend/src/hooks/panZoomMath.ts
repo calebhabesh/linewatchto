@@ -312,20 +312,31 @@ export function transformForViewportResize(
   nextViewport: PanZoomViewportSize,
   previousFitScale: number,
   nextFitScale: number,
+  previousLeftInset = 0,
+  nextLeftInset = 0,
+  preserveZoom = false,
 ): PanZoomTransform {
   const safeTransformScale = transform.scale || 1;
   const relativeScale = transform.scale / (previousFitScale || 1);
-  const nextScale = relativeScale * nextFitScale;
+  const nextScale = preserveZoom
+    ? safeTransformScale
+    : relativeScale * nextFitScale;
+
+  const prevCenterX = (previousLeftInset + previousViewport.width) / 2;
+  const prevCenterY = previousViewport.height / 2;
   const mapPointAtPreviousCenter = mapPointFromViewportPoint(transform, {
-    x: previousViewport.width / 2,
-    y: previousViewport.height / 2,
+    x: prevCenterX,
+    y: prevCenterY,
   });
+
+  const nextCenterX = (nextLeftInset + nextViewport.width) / 2;
+  const nextCenterY = nextViewport.height / 2;
 
   return transformForMapPointAtViewportPoint(
     mapPointAtPreviousCenter,
     {
-      x: nextViewport.width / 2,
-      y: nextViewport.height / 2,
+      x: nextCenterX,
+      y: nextCenterY,
     },
     Number.isFinite(nextScale) && nextScale > 0
       ? nextScale

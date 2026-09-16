@@ -7,6 +7,7 @@ import {
   Bus,
   ChevronRight,
   CircleCheck,
+  Clock,
   Construction,
   Megaphone,
   TrainFront,
@@ -38,22 +39,34 @@ type Props = {
   pollText?: string;
   dataSource?: "backend" | "fallback";
   networkId?: NetworkId;
+  snapshot?: { savedAt: number | null } | null;
   accessibilityOutageCount?: number;
   surfaceNoticeCount?: number;
   tripChangeCount?: number;
+  operatingState?: {
+    status: "open" | "closed" | "unknown";
+    closingSoon: boolean;
+    minutesUntilClose: number | null;
+    nextCloseLabel: string | null;
+    nextResumeLabel: string | null;
+  };
   onOpenCategory: (view: StatusCategory, lineId?: string) => void;
   onSelectImpact?: (selection: ImpactSelection) => void;
+  onOpenMore?: () => void;
 };
 
 export function DesktopStatusOverview({
   pollText = "just now",
   dataSource = "backend",
   networkId = "ttc",
+  snapshot,
   accessibilityOutageCount = 0,
   surfaceNoticeCount = 0,
   tripChangeCount = 0,
+  operatingState,
   onOpenCategory,
   onSelectImpact,
+  onOpenMore,
 }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, lineStatuses } =
     useDashboardData();
@@ -131,21 +144,26 @@ export function DesktopStatusOverview({
 
         <div className="desktop-status-poll desktop-status-poll-row">
           <span>
-            {dataSource === "fallback"
-              ? "Cached updates"
+            {snapshot
+              ? snapshot.savedAt ? "Cached updates" : "Current status: Unknown"
+              : dataSource === "fallback"
+              ? "Current status: Unknown"
               : `Last polled: ${pollText.toLowerCase() === "just now" ? "Just now" : pollText}`}
           </span>
+          {onOpenMore && (
+            <button
+              type="button"
+              className="desktop-status-diagnostics-link"
+              onClick={onOpenMore}
+            >
+              Data & diagnostics
+            </button>
+          )}
         </div>
-      </section>
 
-      {/* Highest-Priority Current Disruptions (up to 3) */}
-      {priorityDisruptions.length > 0 && (
-        <section className="desktop-status-priority-section" aria-label="Top active disruptions">
-          <div className="desktop-status-section-header">
-            <span className="desktop-status-section-bar" aria-hidden="true" />
-            <h3 className="desktop-status-section-title">Active Disruptions</h3>
-          </div>
-          <div className="desktop-status-priority-list">
+        {/* Highest-Priority Current Disruptions within summary (up to 3) */}
+        {priorityDisruptions.length > 0 && (
+          <div className="desktop-status-priority-section desktop-status-priority-list desktop-status-priority-list--embedded">
             {priorityDisruptions.map((item) => (
               <button
                 key={`${item.kind}-${item.id}`}
@@ -183,14 +201,35 @@ export function DesktopStatusOverview({
               </button>
             )}
           </div>
-        </section>
+        )}
+      </section>
+
+      {/* Operating status banner if closing soon or closed */}
+      {operatingState?.closingSoon && operatingState.minutesUntilClose !== null && operatingState.nextCloseLabel && (
+        <div className="desktop-status-operating-banner desktop-status-operating-banner--closing" role="status">
+          <Clock size={16} className="text-amber-500 shrink-0" aria-hidden="true" />
+          <div className="desktop-status-operating-text">
+            <strong>Closing Soon ({operatingState.minutesUntilClose}m)</strong>
+            <span>Service ends at {operatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "")}.</span>
+          </div>
+        </div>
       )}
 
-      {/* Category Counts and Quick Links */}
-      <section className="desktop-status-categories-section" aria-label="Service impact categories">
+      {operatingState?.status === "closed" && (
+        <div className="desktop-status-operating-banner desktop-status-operating-banner--closed" role="status">
+          <Clock size={16} className="text-purple-400 shrink-0" aria-hidden="true" />
+          <div className="desktop-status-operating-text">
+            <strong>{regional ? "GO & UP Rail Closed" : "Subway Closed"}</strong>
+            <span>Resumes {operatingState.nextResumeLabel ?? "in the morning"}.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Category Counts and Quick Links: Alerts & Notices */}
+      <section className="desktop-status-categories-section" aria-label="Alerts and notices">
         <div className="desktop-status-section-header">
-          <span className="desktop-status-section-bar" aria-hidden="true" />
-          <h3 className="desktop-status-section-title">Impact Categories</h3>
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
+          <h3 className="desktop-status-section-title">Alerts & Notices</h3>
         </div>
         <div className="desktop-status-categories-grid">
           <button
@@ -362,7 +401,7 @@ export function DesktopStatusOverview({
       {/* Line Status Section */}
       <section className="desktop-status-lines-section" aria-label="Transit lines status">
         <div className="desktop-status-section-header">
-          <span className="desktop-status-section-bar" aria-hidden="true" />
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-status-section-title">Line Status</h3>
         </div>
         <div className="desktop-status-lines-list">

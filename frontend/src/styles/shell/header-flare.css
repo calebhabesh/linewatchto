@@ -4,7 +4,9 @@
 
 .station-subsection-header,
 .station-connections-title,
-.mobile-status-section-heading {
+.mobile-status-section-heading,
+.desktop-status-section-header,
+.desktop-more-section-header {
   position: relative;
   isolation: isolate;
   width: 100%;
@@ -14,6 +16,8 @@
 .station-subsection-header > .bg-logo-blue,
 .station-connections-title > .bg-logo-blue,
 .mobile-status-section-heading > .bg-logo-blue,
+.desktop-status-section-header > .desktop-status-section-bar,
+.desktop-more-section-header > .desktop-status-section-bar,
 [data-station-section] .station-subsection-header > .bg-logo-blue,
 [data-station-section] .station-connections-title > .bg-logo-blue {
   position: relative;
@@ -28,7 +32,9 @@
 /* 2. Uniform Diffuse Light Strip across Header Text */
 .station-subsection-header::before,
 .station-connections-title::before,
-.mobile-status-section-heading::before {
+.mobile-status-section-heading::before,
+.desktop-status-section-header::before,
+.desktop-more-section-header::before {
   content: "";
   position: absolute;
   left: -4px;
@@ -56,7 +62,9 @@
 /* Ensure text, icons, and badges stay razor-sharp above the diffuse light beam */
 .station-subsection-header > *:not(.bg-logo-blue),
 .station-connections-title > *:not(.bg-logo-blue),
-.mobile-status-section-heading > *:not(.bg-logo-blue) {
+.mobile-status-section-heading > *:not(.bg-logo-blue),
+.desktop-status-section-header > *:not(.desktop-status-section-bar),
+.desktop-more-section-header > *:not(.desktop-status-section-bar) {
   position: relative;
   z-index: 2;
 }
@@ -64,7 +72,9 @@
 /* Light Theme: Subtle Cerulean Watercolor Plume */
 :root:not(.dark) .station-subsection-header::before,
 :root:not(.dark) .station-connections-title::before,
-:root:not(.dark) .mobile-status-section-heading::before {
+:root:not(.dark) .mobile-status-section-heading::before,
+:root:not(.dark) .desktop-status-section-header::before,
+:root:not(.dark) .desktop-more-section-header::before {
   opacity: 0.75;
   filter: blur(4px);
   background:
@@ -77,7 +87,9 @@
 
 :root:not(.dark) .station-subsection-header > .bg-logo-blue,
 :root:not(.dark) .station-connections-title > .bg-logo-blue,
-:root:not(.dark) .mobile-status-section-heading > .bg-logo-blue {
+:root:not(.dark) .mobile-status-section-heading > .bg-logo-blue,
+:root:not(.dark) .desktop-status-section-header > .desktop-status-section-bar,
+:root:not(.dark) .desktop-more-section-header > .desktop-status-section-bar {
   box-shadow:
     0 0 4px rgba(0, 102, 184, 0.50),
     0 0 8px rgba(0, 130, 201, 0.25),
@@ -111,6 +123,8 @@
 /* High-Contrast / Reduced-Motion Accommodations */
 .high-contrast .station-subsection-header::before,
 .high-contrast .station-connections-title::before,
-.high-contrast .mobile-status-section-heading::before {
+.high-contrast .mobile-status-section-heading::before,
+.high-contrast .desktop-status-section-header::before,
+.high-contrast .desktop-more-section-header::before {
   opacity: 0.4;
 }

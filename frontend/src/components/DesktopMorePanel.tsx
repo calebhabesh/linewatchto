@@ -20,6 +20,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import Image from "next/image";
+import { SourceDiagnosticsBody } from "./LogsDropdown";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { NetworkId } from "../app/regional-data";
@@ -90,7 +91,7 @@ export function DesktopMorePanel({
       {/* Account Section */}
       <section className="desktop-more-section" aria-label="Account">
         <div className="desktop-more-section-header">
-          <span className="desktop-status-section-bar" aria-hidden="true" />
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-more-section-title">Account</h3>
         </div>
         <div className="desktop-more-card desktop-more-account-card">
@@ -165,7 +166,7 @@ export function DesktopMorePanel({
       {/* Preferences & Appearance */}
       <section className="desktop-more-section" aria-label="Appearance & Preferences">
         <div className="desktop-more-section-header">
-          <span className="desktop-status-section-bar" aria-hidden="true" />
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-more-section-title">Appearance</h3>
         </div>
         <div className="desktop-more-card">
@@ -237,7 +238,7 @@ export function DesktopMorePanel({
       {/* Default Network */}
       <section className="desktop-more-section" aria-label="Default Network">
         <div className="desktop-more-section-header">
-          <span className="desktop-status-section-bar" aria-hidden="true" />
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-more-section-title">Default Map</h3>
         </div>
         <div className="desktop-more-card">
@@ -267,7 +268,7 @@ export function DesktopMorePanel({
       {/* Navigation & Tools */}
       <section className="desktop-more-section" aria-label="Tools and Guides">
         <div className="desktop-more-section-header">
-          <span className="desktop-status-section-bar" aria-hidden="true" />
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-more-section-title">Navigation & Tools</h3>
         </div>
         <div className="desktop-more-card desktop-more-links-card">
@@ -306,10 +307,23 @@ export function DesktopMorePanel({
         </div>
       </section>
 
+      {/* Source Status & Diagnostics */}
+      <section className="desktop-more-section" aria-label="Data Source Status">
+        <div className="desktop-more-section-header">
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
+          <h3 className="desktop-more-section-title">
+            {currentNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}
+          </h3>
+        </div>
+        <div className="desktop-more-card desktop-more-diagnostics-card">
+          <SourceDiagnosticsBody network={currentNetwork} />
+        </div>
+      </section>
+
       {/* Info & Legal */}
       <section className="desktop-more-section" aria-label="Information and Feedback">
         <div className="desktop-more-section-header">
-          <span className="desktop-status-section-bar" aria-hidden="true" />
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-more-section-title">About</h3>
         </div>
         <div className="desktop-more-card desktop-more-links-card">

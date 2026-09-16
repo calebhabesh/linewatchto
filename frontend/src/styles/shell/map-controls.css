@@ -25,12 +25,12 @@
 
 .regional-map-controls svg { width: 1.15rem; }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .desktop-map-control-rail {
-    top: 96px !important;
+    top: 20px !important;
   }
   .regional-map-control-rail {
-    top: 176px;
+    top: 20px;
     right: 24px !important;
     left: auto;
     transform: none;

@@ -30,7 +30,7 @@ export function saveDesktopSidebarCollapsed(
   }
 }
 
-export const DESKTOP_RAIL_WIDTH = 72;
+export const DESKTOP_RAIL_WIDTH = 80;
 export const DESKTOP_MAP_MIN_WIDTH = 480;
 export const DESKTOP_OVERLAY_MIN_MAP_EXPOSED = 160;
 
@@ -44,15 +44,15 @@ export const DESKTOP_PROFILE_WIDTHS: Record<DesktopSidebarProfile, number> = {
 
 /**
  * Concrete dock layout thresholds for available window width W:
- * rail (72px) + profile target (P) + minimum map width (480px)
- * - Compact: 72 + 380 + 480 = 932px
- * - Medium:  72 + 560 + 480 = 1112px
- * - Wide:    72 + 680 + 480 = 1232px
+ * rail (80px) + profile target (P) + minimum map width (480px)
+ * - Compact: 80 + 380 + 480 = 940px
+ * - Medium:  80 + 560 + 480 = 1120px
+ * - Wide:    80 + 680 + 480 = 1240px
  */
 export const DESKTOP_PROFILE_DOCK_BUDGETS: Record<DesktopSidebarProfile, number> = {
-  compact: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.compact + DESKTOP_MAP_MIN_WIDTH, // 932
-  medium: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.medium + DESKTOP_MAP_MIN_WIDTH,   // 1112
-  wide: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.wide + DESKTOP_MAP_MIN_WIDTH,       // 1232
+  compact: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.compact + DESKTOP_MAP_MIN_WIDTH, // 940
+  medium: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.medium + DESKTOP_MAP_MIN_WIDTH,   // 1120
+  wide: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.wide + DESKTOP_MAP_MIN_WIDTH,       // 1240
 };
 
 export const DESKTOP_SIDEBAR_DEFAULT_WIDTH = DESKTOP_PROFILE_WIDTHS.compact;
@@ -81,29 +81,28 @@ export type DesktopDestinationContext = {
 /**
  * Explicitly resolves the target profile for any reachable desktop destination.
  * Sizing is governed by named content profiles, never by counts or polling data:
- * - Compact (380px): Status, Search, More, Saved collection/navigation roots
- * - Medium (560px): Station detail, account/commute editing and substantive forms
- * - Wide (680px): Rich impact collections/details, line impacts, reliability/analytics
+ * - Compact (380px): Status, More
+ * - Medium (560px): Search, Station detail, substantive forms
+ * - Wide (680px): Stations collection, My Commutes (collection and editor), rich impact collections, Alert History
  */
 export function resolveDesktopDestinationProfile(
   context: DesktopDestinationContext | string,
 ): DesktopSidebarProfile {
   const activeView = typeof context === "string" ? context : context.activeView;
   const selectedStationId = typeof context === "string" ? null : context.selectedStationId;
-  const commutesTab = typeof context === "string" ? null : context.commutesTab;
 
   // Station detail takes precedence -> Medium (560px)
   if (selectedStationId) {
     return "medium";
   }
 
-  // Commute creation / editing form -> Medium (560px), saved collection root -> Compact (380px)
+  // Both collection and create/edit flow for My Commutes -> Wide (680px)
   if (activeView === "commutes") {
-    return commutesTab === "create" ? "medium" : "compact";
+    return "wide";
   }
 
   switch (activeView) {
-    // Rich impact collections/details, line impacts, reliability/analytics -> Wide (680px)
+    // Rich impact collections/details, line impacts, reliability/analytics, Stations collection -> Wide (680px)
     case "alerts":
     case "delays":
     case "reduced-speed-zones":
@@ -114,22 +113,22 @@ export function resolveDesktopDestinationProfile(
     case "announcements":
     case "analytics":
     case "alert-history":
+    case "my-stations":
       return "wide";
 
-    // Substantive forms & documents -> Medium (560px)
+    // Search and substantive forms & documents -> Medium (560px)
+    case "search":
     case "notifications":
     case "feedback":
     case "privacy-acknowledgements":
     case "release-notes":
       return "medium";
 
-    // Status, Search, More, Saved collection/navigation roots -> Compact (380px)
+    // Status, More, Saved root alias -> Compact (380px)
     case "status":
-    case "search":
     case "more":
     case "menu":
     case "saved":
-    case "my-stations":
     case "map":
     default:
       return "compact";
@@ -219,7 +218,7 @@ export function readDesktopOverlayInsets(viewport: HTMLElement | null): { left: 
   return { left: 0 };
 }
 
-export type DesktopRailDestination = "status" | "search" | "saved" | "more";
+export type DesktopRailDestination = "status" | "search" | "stations" | "commutes" | "alert-history" | "more";
 
 export function desktopRailDestinationForView(view: string): DesktopRailDestination {
   switch (view) {
@@ -235,15 +234,17 @@ export function desktopRailDestinationForView(view: string): DesktopRailDestinat
       return "status";
     case "search":
       return "search";
-    case "saved":
-    case "commutes":
     case "my-stations":
-      return "saved";
+    case "saved":
+      return "stations";
+    case "commutes":
+      return "commutes";
+    case "alert-history":
+      return "alert-history";
     case "more":
     case "menu":
     case "notifications":
     case "analytics":
-    case "alert-history":
     case "feedback":
     case "privacy-acknowledgements":
     case "release-notes":

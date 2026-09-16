@@ -3,10 +3,10 @@ import { describe, it } from "node:test";
 import { desktopRailDestinationForView } from "../src/app/desktop-sidebar-state.ts";
 
 describe("desktop navigation destinations", () => {
-  const RAIL_DESTINATIONS = ["status", "search", "saved", "more"];
+  const RAIL_DESTINATIONS = ["status", "search", "stations", "commutes", "more"];
 
-  it("defines the agreed four top-level desktop destinations", () => {
-    assert.deepEqual(RAIL_DESTINATIONS, ["status", "search", "saved", "more"]);
+  it("defines the agreed five top-level desktop destinations in order", () => {
+    assert.deepEqual(RAIL_DESTINATIONS, ["status", "search", "stations", "commutes", "more"]);
   });
 
   it("maps views to top-level desktop destinations", () => {
@@ -17,8 +17,9 @@ describe("desktop navigation destinations", () => {
     assert.equal(destinationForView("delays"), "status");
     assert.equal(destinationForView("reduced-speed-zones"), "status");
     assert.equal(destinationForView("search"), "search");
-    assert.equal(destinationForView("commutes"), "saved");
-    assert.equal(destinationForView("my-stations"), "saved");
+    assert.equal(destinationForView("commutes"), "commutes");
+    assert.equal(destinationForView("my-stations"), "stations");
+    assert.equal(destinationForView("saved"), "stations");
     assert.equal(destinationForView("analytics"), "more");
     assert.equal(destinationForView("feedback"), "more");
     assert.equal(destinationForView("map"), "status");

@@ -11,19 +11,19 @@ const globalCss = readAppStylesheet();
 
 describe("desktop shell layout & geometry integration (Session 1)", () => {
   it("renders DesktopNavRail and desktop sidebar container when not mobile", () => {
-    assert.match(shellSource, /<div className=\{!isMobile \? "linewatch-desktop-layout" : "contents"\}>/);
+    assert.match(shellSource, /!isMobile \? \(\s*<div className="linewatch-desktop-layout">/);
     assert.match(shellSource, /<DesktopNavRail[\s\S]*?activeDestination=\{desktopRailDestinationForView\(activeView\)\}/);
     assert.match(shellSource, /id="desktop-sidebar-container"/);
     assert.match(shellSource, /desktop-sidebar-container--docked/);
     assert.match(shellSource, /desktop-sidebar-container--overlay/);
     assert.match(shellSource, /desktop-sidebar-container--collapsed/);
-    assert.match(shellSource, /className=\{!isMobile \? "desktop-map-workspace" : "contents"\}/);
+    assert.match(shellSource, /className="desktop-map-workspace"/);
   });
 
   it("keeps map interactive on desktop beside open sidebar", () => {
     assert.match(
       shellSource,
-      /isMapActive=\{isMobile \? \(activeView === "map" && !isClosingSearch\) : !showClosedScreen\}/,
+      /isMapActive=\{!showClosedScreen\}/,
     );
   });
 
@@ -63,7 +63,7 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
 
   it("defines correct CSS layout classes for desktop rail, sidebar, and workspace", () => {
     assert.match(globalCss, /\.linewatch-desktop-layout\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*row;/s);
-    assert.match(globalCss, /\.desktop-nav-rail\s*\{[^}]*width:\s*var\(--desktop-rail-width,\s*72px\);/s);
+    assert.match(globalCss, /\.desktop-nav-rail\s*\{[^}]*width:\s*var\(--desktop-rail-width,\s*80px\);/s);
     assert.match(globalCss, /\.desktop-sidebar-container\s*\{/);
     assert.match(globalCss, /\.desktop-sidebar-container--docked\s*\{/);
     assert.match(globalCss, /\.desktop-sidebar-container--overlay\s*\{/);

@@ -3,15 +3,19 @@
 import { useRef, type RefObject } from "react";
 import {
   AlertTriangle,
-  Bookmark,
+  History,
+  MapPin,
   Menu,
+  Navigation,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
 } from "lucide-react";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
+import { NetworkSelector } from "./NetworkSelector";
+import type { NetworkId } from "../app/regional-data";
 
-export type DesktopRailDestination = "status" | "search" | "saved" | "more";
+export type DesktopRailDestination = "status" | "search" | "stations" | "commutes" | "alert-history" | "more";
 
 export type DesktopNavRailProps = {
   activeDestination: DesktopRailDestination;
@@ -22,6 +26,8 @@ export type DesktopNavRailProps = {
   commuteAffectedCount?: number;
   savedStationsAffectedCount?: number;
   toggleButtonRef?: RefObject<HTMLButtonElement | null>;
+  selectedNetwork?: NetworkId;
+  onNetworkChange?: (network: NetworkId) => void;
 };
 
 type RailItemDef = {
@@ -33,7 +39,9 @@ type RailItemDef = {
 const RAIL_ITEMS: readonly RailItemDef[] = [
   { key: "status", label: "Status", Icon: AlertTriangle },
   { key: "search", label: "Search", Icon: Search },
-  { key: "saved", label: "Saved", Icon: Bookmark },
+  { key: "stations", label: "My Stations", Icon: MapPin },
+  { key: "commutes", label: "My Commutes", Icon: Navigation },
+  { key: "alert-history", label: "Alert History", Icon: History },
   { key: "more", label: "More", Icon: Menu },
 ];
 
@@ -46,8 +54,9 @@ export function DesktopNavRail({
   commuteAffectedCount = 0,
   savedStationsAffectedCount = 0,
   toggleButtonRef,
+  selectedNetwork,
+  onNetworkChange,
 }: DesktopNavRailProps) {
-  const savedBadge = commuteAffectedCount + savedStationsAffectedCount;
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const handleToggleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -113,10 +122,16 @@ export function DesktopNavRail({
         {RAIL_ITEMS.map(({ key, label, Icon }, index) => {
           const isSelected = activeDestination === key;
           let badge: number | null = null;
+          let badgeLabel = "";
           if (key === "status" && statusAlertCount > 0) {
             badge = statusAlertCount;
-          } else if (key === "saved" && savedBadge > 0) {
-            badge = savedBadge;
+            badgeLabel = `${badge} active alerts`;
+          } else if (key === "stations" && savedStationsAffectedCount > 0) {
+            badge = savedStationsAffectedCount;
+            badgeLabel = `${badge} affected stations`;
+          } else if (key === "commutes" && commuteAffectedCount > 0) {
+            badge = commuteAffectedCount;
+            badgeLabel = `${badge} affected commutes`;
           }
 
           return (
@@ -130,7 +145,7 @@ export function DesktopNavRail({
               data-active={isSelected ? "true" : "false"}
               data-dest={key}
               aria-current={isSelected ? "page" : undefined}
-              aria-label={badge ? `${label}, ${badge} active alerts` : label}
+              aria-label={badge ? `${label}, ${badgeLabel}` : label}
               title={label}
               onClick={() => onSelectDestination(key)}
               onKeyDown={(e) => handleItemKeyDown(index, e)}
@@ -149,6 +164,16 @@ export function DesktopNavRail({
           );
         })}
       </nav>
+
+      {selectedNetwork && onNetworkChange ? (
+        <div className="desktop-rail-network-slot">
+          <NetworkSelector
+            network={selectedNetwork}
+            onChange={onNetworkChange}
+            compactVertical
+          />
+        </div>
+      ) : null}
     </aside>
   );
 }

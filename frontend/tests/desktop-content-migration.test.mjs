@@ -82,11 +82,11 @@ describe("desktop content and navigation migration (Session 2)", () => {
       assert.match(shellSource, /if \(selectedStationId\) \{[\s\S]*?<StationDetailPanel[\s\S]*?<RegionalStationDetailPanel/);
     });
 
-    it("renders saved section switcher with tabs for My Stations and My Commutes", () => {
-      assert.match(shellSource, /desktop-saved-nav/);
-      assert.match(shellSource, /desktop-saved-tab/);
-      assert.match(shellSource, /My Stations/);
-      assert.match(shellSource, /My Commutes/);
+    it("renders My Stations and My Commutes as independent full-width sidebar destinations", () => {
+      assert.match(shellSource, /case "my-stations":/);
+      assert.match(shellSource, /<MyStationsPanel/);
+      assert.match(shellSource, /case "commutes":/);
+      assert.match(shellSource, /<SavedCommutesPanel/);
     });
 
     it("includes persistent search field in sidebar header with clear affordance", () => {

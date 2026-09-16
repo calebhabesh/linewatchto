@@ -2632,6 +2632,8 @@ export function LineWatchShell({
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
   const desktopRailToggleRef = useRef<HTMLButtonElement>(null);
   const searchOriginRef = useRef<ActiveView>("status");
+  const searchSessionActiveRef = useRef<boolean>(false);
+  const suppressSearchReopenRef = useRef<boolean>(false);
   const headerSearchBarRef = useRef<HTMLDivElement>(null);
   const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
@@ -3033,6 +3035,8 @@ export function LineWatchShell({
     if (isClosingSearch) return;
     stationSearchInputRef.current?.blur();
     desktopSearchInputRef.current?.blur();
+    suppressSearchReopenRef.current = true;
+    searchSessionActiveRef.current = false;
     const destination = !isMobile ? (searchOriginRef.current || "status") : "map";
     if (reducedMotion) {
       if (searchClosingTimeoutRef.current) {
@@ -3040,7 +3044,6 @@ export function LineWatchShell({
         searchClosingTimeoutRef.current = null;
       }
       setIsClosingSearch(false);
-      setStationSearchQuery("");
       navigateRoot(destination);
       return;
     }
@@ -3050,7 +3053,6 @@ export function LineWatchShell({
     }
     searchClosingTimeoutRef.current = window.setTimeout(() => {
       setIsClosingSearch(false);
-      setStationSearchQuery("");
       navigateRoot(destination);
       searchClosingTimeoutRef.current = null;
     }, isMobile ? 220 : 200);
@@ -3068,15 +3070,13 @@ export function LineWatchShell({
         return;
       }
 
-      // If search query is non-empty or search input is focused / activeView === 'search'
+      // If search query is active or search input is focused / activeView === 'search'
       if (activeView === "search" || document.activeElement === desktopSearchInputRef.current) {
         event.preventDefault();
-        if (stationSearchQuery.trim()) {
-          setStationSearchQuery("");
-          desktopSearchInputRef.current?.focus();
-        } else {
-          handleCloseSearch();
-        }
+        desktopSearchInputRef.current?.blur();
+        suppressSearchReopenRef.current = true;
+        searchSessionActiveRef.current = false;
+        handleCloseSearch();
         return;
       }
 
@@ -3122,7 +3122,6 @@ export function LineWatchShell({
   }, [
     isMobile,
     activeView,
-    stationSearchQuery,
     selectedStationId,
     selection,
     handleCloseSearch,
@@ -3138,8 +3137,9 @@ export function LineWatchShell({
       if (desktopSidebarCollapsed) {
         setDesktopSidebarCollapsed(false);
       }
-      if (activeView !== "search") {
+      if (activeView !== "search" && !searchSessionActiveRef.current) {
         searchOriginRef.current = activeView;
+        searchSessionActiveRef.current = true;
       }
       window.setTimeout(() => desktopSearchInputRef.current?.focus({ preventScroll: true }), 0);
     } else {
@@ -3304,6 +3304,9 @@ export function LineWatchShell({
     }
     setIsClosingSearch(false);
     stationSearchInputRef.current?.blur();
+    desktopSearchInputRef.current?.blur();
+    suppressSearchReopenRef.current = true;
+    searchSessionActiveRef.current = false;
     if (networkId === selectedNetwork) {
       handleSelectStationId(stationId);
       return;
@@ -3322,6 +3325,10 @@ export function LineWatchShell({
       searchClosingTimeoutRef.current = null;
     }
     setIsClosingSearch(false);
+    stationSearchInputRef.current?.blur();
+    desktopSearchInputRef.current?.blur();
+    suppressSearchReopenRef.current = true;
+    searchSessionActiveRef.current = false;
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(null);
@@ -3333,6 +3340,10 @@ export function LineWatchShell({
       window.clearTimeout(searchClosingTimeoutRef.current);
       searchClosingTimeoutRef.current = null;
     }
+    stationSearchInputRef.current?.blur();
+    desktopSearchInputRef.current?.blur();
+    suppressSearchReopenRef.current = true;
+    searchSessionActiveRef.current = false;
     setIsClosingSearch(false);
     const targetQuery = notice.routeIds[0]
       ?? notice.stops?.[0]?.stopName
@@ -3973,15 +3984,24 @@ export function LineWatchShell({
         announceDesktop("System status overview");
         return;
       case "search":
-        if (activeView !== "search") {
+        if (activeView !== "search" && !searchSessionActiveRef.current) {
           searchOriginRef.current = activeView;
+          searchSessionActiveRef.current = true;
         }
         handleOpenSearch();
         announceDesktop("Search stations, lines, and alerts");
         return;
-      case "saved":
-        navigateRoot(lastSavedViewRef.current || "my-stations");
-        announceDesktop("Saved stations and commutes");
+      case "stations":
+        navigateRoot("my-stations");
+        announceDesktop("My Stations");
+        return;
+      case "commutes":
+        navigateRoot("commutes");
+        announceDesktop("My Commutes");
+        return;
+      case "alert-history":
+        navigateRoot("alert-history");
+        announceDesktop("Alert History");
         return;
       case "more":
         navigateRoot("more");
@@ -4097,11 +4117,14 @@ export function LineWatchShell({
           pollText={pollText}
           dataSource={displayData.dataSource}
           networkId={selectedNetwork}
+          snapshot={displayData.snapshot}
           accessibilityOutageCount={
             accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
           }
           surfaceNoticeCount={surfaceNoticeCount ?? 0}
           tripChangeCount={regionalTripChangeCount ?? 0}
+          operatingState={selectedNetwork === "ttc" ? subwayOperatingState : regionalRailOperatingState}
+          onOpenMore={() => setActiveView("more")}
           onOpenCategory={(view, lineId) => {
             if (view === "line-impacts" && lineId) {
               openLineImpacts(lineId);
@@ -4130,51 +4153,7 @@ export function LineWatchShell({
       );
     }
 
-    if (activeView === "my-stations" || activeView === "commutes") {
-      return (
-        <div className="desktop-saved-container">
-          <div className="desktop-saved-nav" role="tablist" aria-label="Saved transit options">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeView === "my-stations"}
-              className={`desktop-saved-tab ${activeView === "my-stations" ? "desktop-saved-tab--active" : ""}`}
-              onClick={() => {
-                if (activeView !== "my-stations") {
-                  navigateForward("my-stations");
-                }
-              }}
-            >
-              <MapPin size={16} aria-hidden="true" />
-              <span>My Stations</span>
-              {savedStations.length > 0 && (
-                <span className="desktop-saved-tab-count">{savedStations.length}</span>
-              )}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeView === "commutes"}
-              className={`desktop-saved-tab ${activeView === "commutes" ? "desktop-saved-tab--active" : ""}`}
-              onClick={() => {
-                if (activeView !== "commutes") {
-                  navigateForward("commutes");
-                }
-              }}
-            >
-              <Navigation size={16} aria-hidden="true" />
-              <span>My Commutes</span>
-              {accountCommutes.length > 0 && (
-                <span className="desktop-saved-tab-count">{accountCommutes.length}</span>
-              )}
-            </button>
-          </div>
-          <div className="desktop-saved-content">
-            {renderPanelContent()}
-          </div>
-        </div>
-      );
-    }
+
 
     if (activeView === "more") {
       return (
@@ -4686,7 +4665,7 @@ export function LineWatchShell({
                {/* Branding */}
                 <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
                   <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
-                     <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
+                     <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={24} height={24} className="drop-shadow-sm" />
                   </div>
                   <strong className="linewatch-wordmark -ml-1 text-slate-900 dark:text-white">LineWatchTO</strong>
                   <div className="ml-auto hidden md:flex items-center gap-1">
@@ -5405,154 +5384,122 @@ export function LineWatchShell({
         </div>
         )}
 
-        {/* Floating Desktop Status Capsule (Top Center) */}
-        <div className="desktop-status-capsule-anchor hidden sm:flex absolute top-6 left-1/2 z-20 pointer-events-auto items-center gap-3">
-          <div className="desktop-status-stack">
-            <div className="desktop-status-capsule desktop-top-chrome" aria-label="Current dashboard status summary">
-              <div className="desktop-status-primary-row">
-                <div className="flex items-center justify-center shrink-0 w-10 h-10 rounded-xl shadow-sm border border-black/10 dark:border-white/10 bg-slate-50 dark:bg-white/10 p-1">
-                 <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={32} height={32} className="drop-shadow-sm dark:brightness-200" />
-                </div>
-                <span className="desktop-status-divider" />
-                <div className="desktop-status-time">
-                  {clock.date ? (
-                    <div className="flex flex-col">
-                      <strong className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">
-                        {clock.time} <span className="text-[10px] text-slate-400 font-medium tracking-wider ml-0.5">{clock.zone}</span>
-                      </strong>
-                      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-none">{clock.date}</span>
-                    </div>
-                  ) : (
-                    <strong className="text-sm font-bold text-slate-800 dark:text-white">{clock.time}</strong>
-                  )}
-                </div>
-                <span className="desktop-status-divider" />
-                <div className="desktop-status-train-control">
-                    <Train size={24} className="desktop-status-train-icon" aria-hidden="true" />
-                    <span className="desktop-status-train-copy">
-                      <strong>Estimated Train Markers</strong>
-                      <span className="desktop-status-train-status">
-                        <span>{estimatedTrainStatusLabel}</span>
-                        {estimatedTrainDisplayPending ? (
-                          <span
-                            className="estimated-train-pending-indicator"
-                            role="status"
-                            aria-label={estimatedTrainPendingLabel}
-                            title={estimatedTrainPendingLabel}
-                          >
-                            <Loader2 className="estimated-train-pending-spinner animate-spin" size={11} aria-hidden="true" />
-                          </span>
-                        ) : null}
-                      </span>
-                    </span>
-                    <span className="desktop-status-train-copy desktop-status-train-copy--compact" aria-hidden="true">
-                      <strong>Trains</strong>
-                      <span className="desktop-status-train-status">
-                        <span>{estimatedTrainStatusLabel}</span>
-                        {estimatedTrainDisplayPending ? (
-                          <span
-                            className="estimated-train-pending-indicator"
-                            aria-hidden="true"
-                          >
-                            <Loader2 className="estimated-train-pending-spinner animate-spin" size={11} aria-hidden="true" />
-                          </span>
-                        ) : null}
-                      </span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleToggleEstimatedTrains}
-                      disabled={!trainNetworkOpen}
-                      className="desktop-status-train-switch"
-                      aria-pressed={estimatedTrainsEnabled}
-                      aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
-                    >
-                      <span aria-hidden="true" />
-                    </button>
-                </div>
-                <span className="desktop-status-divider" />
-                <div
-                  className={`desktop-status-poll ${
-                    isLive
-                      ? ""
-                      : isConnectionIssue
-                        ? "desktop-status-poll--cached"
-                        : "desktop-status-poll--source"
-                  }`}
-                  role="status"
-                  aria-label={
-                    isLive
-                      ? "Live updates active"
-                      : isConnectionIssue
-                        ? displayData.snapshot?.savedAt ? "Cached updates" : "Current status unknown"
-                        : `Source: ${displayData.dataSource}`
-                  }
-                >
-                  <div className="desktop-status-live-dot" aria-hidden="true" />
-                  <span>
-                    {displayData.snapshot
-                      ? displayData.snapshot.savedAt ? "Cached" : "Unknown"
-                      : `Last Polled: ${pollText.toLowerCase() === "just now" ? "Just Now" : pollText}`}
+        {/* Desktop Conditional Notices (Top Center) */}
+        {!isMobile && (
+          <div className="desktop-conditional-notices-anchor desktop-status-capsule-anchor hidden sm:flex absolute top-5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto items-center gap-2">
+            {selectedNetwork === "ttc" && subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel && !isMobile ? (
+              <SubwayClosingSoonChip
+                minutesUntilClose={subwayOperatingState.minutesUntilClose}
+                nextCloseLabel={subwayOperatingState.nextCloseLabel}
+              />
+            ) : null}
+
+            {selectedNetwork === "regional" && regionalRailOperatingState.closingSoon && regionalRailOperatingState.minutesUntilClose !== null && regionalRailOperatingState.nextCloseLabel && !isMobile ? (
+              <GoUpClosingSoonChip
+                minutesUntilClose={regionalRailOperatingState.minutesUntilClose}
+                nextCloseLabel={regionalRailOperatingState.nextCloseLabel}
+              />
+            ) : null}
+
+            {selectedNetworkIsClosed && closedMapPeek ? (
+              <div
+                className={`${
+                  selectedNetwork === "regional" ? "go-up-closed-peek-chip" : "subway-closed-peek-chip"
+                } ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
+                role="status"
+                aria-live="polite"
+              >
+                <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={1} fill="currentColor" aria-hidden="true" />
+                <div className="subway-closed-peek-text">
+                  <strong className="subway-closed-peek-title">
+                    {selectedNetwork === "ttc" ? "Subway Closed" : "GO & UP Rail Closed"}
+                  </strong>
+                  <span className="subway-closed-peek-subtitle">
+                    {selectedNetwork === "ttc" ? "Resumes" : "Trains return"}{" "}
+                    {(selectedNetwork === "ttc"
+                      ? subwayOperatingState.nextResumeLabel
+                      : regionalRailOperatingState.nextResumeLabel)
+                      ?.replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
+                      .replace(/\.$/, "")}.
                   </span>
                 </div>
+                <button type="button" onClick={handleOpenClosedScreen}>
+                  Closed Screen
+                </button>
               </div>
-            </div>
+            ) : null}
+
+            {/* Compact conditional map indication when collapsed or non-status view */}
+            {(desktopSidebarCollapsed || activeView !== "status") && !selectedNetworkIsClosed && !(selectedNetwork === "ttc" ? subwayOperatingState.closingSoon : regionalRailOperatingState.closingSoon) && (
+              isConnectionIssue || !isLive ? (
+                <div className="desktop-map-conditional-pill desktop-map-conditional-pill--stale" role="status">
+                  <AlertTriangle size={13} className="shrink-0 text-amber-500" aria-hidden="true" />
+                  <span>
+                    {displayData.snapshot
+                      ? (displayData.snapshot.savedAt ? "Cached Snapshot" : "Status Unknown")
+                      : dashboardRequestState === "reconnecting"
+                      ? "Reconnecting"
+                      : "Data Stale"}
+                  </span>
+                </div>
+              ) : null
+            )}
           </div>
-
-          {selectedNetwork === "ttc" && subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel && !isMobile ? (
-            <SubwayClosingSoonChip
-              minutesUntilClose={subwayOperatingState.minutesUntilClose}
-              nextCloseLabel={subwayOperatingState.nextCloseLabel}
-            />
-          ) : null}
-
-          {selectedNetwork === "regional" && regionalRailOperatingState.closingSoon && regionalRailOperatingState.minutesUntilClose !== null && regionalRailOperatingState.nextCloseLabel && !isMobile ? (
-            <GoUpClosingSoonChip
-              minutesUntilClose={regionalRailOperatingState.minutesUntilClose}
-              nextCloseLabel={regionalRailOperatingState.nextCloseLabel}
-            />
-          ) : null}
-
-          {selectedNetworkIsClosed && closedMapPeek && !isMobile ? (
-            <div
-              className={`${
-                selectedNetwork === "regional" ? "go-up-closed-peek-chip" : "subway-closed-peek-chip"
-              } ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
-              role="status"
-              aria-live="polite"
-            >
-              <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={1} fill="currentColor" aria-hidden="true" />
-              <div className="subway-closed-peek-text">
-                <strong className="subway-closed-peek-title">
-                  {selectedNetwork === "ttc" ? "Subway Closed" : "GO & UP Rail Closed"}
-                </strong>
-                <span className="subway-closed-peek-subtitle">
-                  {selectedNetwork === "ttc" ? "Resumes" : "Trains return"}{" "}
-                  {(selectedNetwork === "ttc"
-                    ? subwayOperatingState.nextResumeLabel
-                    : regionalRailOperatingState.nextResumeLabel)
-                    ?.replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-                    .replace(/\.$/, "")}.
-                </span>
-              </div>
-              <button type="button" onClick={handleOpenClosedScreen}>
-                Closed Screen
-              </button>
-            </div>
-          ) : null}
-        </div>
+        )}
 
         <div className="map-utility-cluster ml-auto pointer-events-auto flex items-center gap-2" data-map-chooser-keepout>
-          <LogsDropdown network={selectedNetwork} />
+          {isMobile && <LogsDropdown network={selectedNetwork} />}
+          {isMobile && (
+            <button
+              type="button"
+              onClick={() => navigateForward("alert-history")}
+              className="alert-history-shortcut panel hidden md:flex items-center justify-center w-14 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+              aria-label="Open Alert History"
+              aria-expanded={activeView === "alert-history"}
+              title="Alert History"
+            >
+              <History className="alert-history-shortcut-icon text-emerald-500" size={23} aria-hidden="true" />
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => navigateForward("alert-history")}
-            className="alert-history-shortcut panel hidden md:flex items-center justify-center w-14 h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
-            aria-label="Open Alert History"
-            aria-expanded={activeView === "alert-history"}
-            title="Alert History"
+            onClick={handleToggleEstimatedTrains}
+            disabled={!trainNetworkOpen}
+            className="desktop-train-toggle-btn panel flex items-center gap-3 px-3.5 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-[1.02] active:scale-[0.98] outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] select-none text-left"
+            aria-pressed={estimatedTrainsEnabled}
+            aria-busy={estimatedTrainDisplayPending}
+            aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
+            title={`Estimated Train Markers (${estimatedTrainStatusLabel})`}
           >
-            <History className="alert-history-shortcut-icon text-emerald-500" size={23} aria-hidden="true" />
+            <div className="shrink-0 flex items-center justify-center">
+              {estimatedTrainDisplayPending ? (
+                <Loader2 className="animate-spin text-blue-500" size={21} aria-hidden="true" />
+              ) : (
+                <Train
+                  size={21}
+                  className={
+                    estimatedTrainsEnabled
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-slate-500 dark:text-slate-400"
+                  }
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+            <div className="hidden sm:flex flex-col items-start leading-tight min-w-0 pr-0.5">
+              <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                Estimated Trains
+              </span>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                {!trainNetworkOpen ? "Closed" : estimatedTrainStatusLabel ?? (estimatedTrainsEnabled ? "On" : "Off")}
+              </span>
+            </div>
+            <div
+              className="desktop-status-train-switch pointer-events-none hidden sm:flex shrink-0"
+              aria-hidden="true"
+            >
+              <span />
+            </div>
           </button>
           <button
             onClick={handleToggleTheme}
@@ -5575,9 +5522,9 @@ export function LineWatchShell({
               Rotate<br />Map
             </span>
           </button>
-          <div className="site-guide-network-stack">
-            <SiteGuideDropdown onOpenChange={setGuideOpen} />
-            {!isMobile && (
+          {isMobile && (
+            <div className="site-guide-network-stack">
+              <SiteGuideDropdown onOpenChange={setGuideOpen} />
               <div className="mobile-network-selector-slot">
                 <NetworkSelector
                   network={selectedNetwork}
@@ -5585,30 +5532,30 @@ export function LineWatchShell({
                   compactVertical
                 />
               </div>
-            )}
-            {activeView === "map" && !selection && !selectedStationId && !commutePathPreview ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigateForward("alert-history")}
-                  className="mobile-alert-history-shortcut md:hidden"
-                  aria-label="Open Alert History"
-                  title="Alert History"
-                >
-                  <History className="alert-history-shortcut-icon" size={19} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={openMyStations}
-                  className="mobile-my-stations-shortcut md:hidden"
-                  aria-label="Open My Stations"
-                  title="My Stations"
-                >
-                  <MapPin className="mobile-my-stations-shortcut-icon" size={19} aria-hidden="true" />
-                </button>
-              </>
-            ) : null}
-          </div>
+              {activeView === "map" && !selection && !selectedStationId && !commutePathPreview ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigateForward("alert-history")}
+                    className="mobile-alert-history-shortcut md:hidden"
+                    aria-label="Open Alert History"
+                    title="Alert History"
+                  >
+                    <History className="alert-history-shortcut-icon" size={19} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openMyStations}
+                    className="mobile-my-stations-shortcut md:hidden"
+                    aria-label="Open My Stations"
+                    title="My Stations"
+                  >
+                    <MapPin className="mobile-my-stations-shortcut-icon" size={19} aria-hidden="true" />
+                  </button>
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
       </header>
       )}
@@ -5617,8 +5564,8 @@ export function LineWatchShell({
       {activeFloatingPanel}
 
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
-      <div className={!isMobile ? "linewatch-desktop-layout" : "contents"}>
-        {!isMobile && (
+      {!isMobile ? (
+        <div className="linewatch-desktop-layout">
           <DesktopNavRail
             activeDestination={desktopRailDestinationForView(activeView)}
             collapsed={desktopSidebarCollapsed}
@@ -5628,9 +5575,9 @@ export function LineWatchShell({
             commuteAffectedCount={commuteAffectedCount}
             savedStationsAffectedCount={savedStationsAffectedCount}
             toggleButtonRef={desktopRailToggleRef}
+            selectedNetwork={selectedNetwork}
+            onNetworkChange={handleNetworkChange}
           />
-        )}
-        {!isMobile && (
           <aside
             id="desktop-sidebar-container"
             className={`desktop-sidebar-container desktop-sidebar-container--${desktopProfile} ${
@@ -5648,16 +5595,38 @@ export function LineWatchShell({
           >
             <header className="desktop-sidebar-header">
               <div className="desktop-sidebar-header-top">
-                <div className="flex items-center gap-2 select-none">
-                  <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={22} height={22} className="shrink-0 drop-shadow-sm dark:brightness-200" />
-                  <strong className="font-extrabold text-sm tracking-tight text-slate-800 dark:text-white">LineWatchTO</strong>
+                <div className="flex items-end gap-2.5 select-none">
+                  <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={28} height={28} className="shrink-0 drop-shadow-sm" />
+                  <strong className="linewatch-wordmark desktop-sidebar-wordmark text-slate-800 dark:text-white">LineWatchTO</strong>
                 </div>
-                <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
+                {clock && (
+                  <div
+                    className="desktop-sidebar-clock"
+                    aria-label={`Current time ${clock.time} ${clock.zone}, ${clock.date}`}
+                  >
+                    <div className="desktop-sidebar-clock-time-row">
+                      <span className="desktop-sidebar-clock-time">{clock.time}</span>
+                      {clock.zone && <span className="desktop-sidebar-clock-zone">{clock.zone}</span>}
+                    </div>
+                    {clock.date && <span className="desktop-sidebar-clock-date">{clock.date}</span>}
+                  </div>
+                )}
               </div>
               {isTopLevelDesktopView && (
                 <div className="desktop-sidebar-search-row">
-                  <div className="desktop-sidebar-search-input">
-                    <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-400" aria-hidden="true" />
+                  <div
+                    className="desktop-sidebar-search-input"
+                    data-active={activeView === "search" ? "true" : undefined}
+                  >
+                    <Search
+                      size={20}
+                      className={`shrink-0 transition-colors duration-200 ${
+                        activeView === "search"
+                          ? "text-blue-500 dark:text-blue-400"
+                          : "text-slate-400 dark:text-slate-400"
+                      }`}
+                      aria-hidden="true"
+                    />
                     <input
                       ref={desktopSearchInputRef}
                       type="search"
@@ -5665,18 +5634,28 @@ export function LineWatchShell({
                       onChange={(e) => {
                         setStationSearchQuery(e.target.value);
                         if (activeView !== "search") {
-                          searchOriginRef.current = activeView;
+                          if (!searchSessionActiveRef.current) {
+                            searchOriginRef.current = activeView;
+                            searchSessionActiveRef.current = true;
+                          }
                           setActiveView("search");
                         }
                       }}
                       onFocus={() => {
+                        if (suppressSearchReopenRef.current) {
+                          suppressSearchReopenRef.current = false;
+                          return;
+                        }
                         if (activeView !== "search") {
-                          searchOriginRef.current = activeView;
+                          if (!searchSessionActiveRef.current) {
+                            searchOriginRef.current = activeView;
+                            searchSessionActiveRef.current = true;
+                          }
                           setActiveView("search");
                         }
                       }}
                       onKeyDown={(e) => stationKeyDownHandlerRef.current?.(e)}
-                      placeholder="Search stations, lines, alerts..."
+                      placeholder="Search Stations and Alerts..."
                       aria-label="Station Search"
                       aria-controls="station-search-panel"
                       className="desktop-sidebar-search-field"
@@ -5702,84 +5681,127 @@ export function LineWatchShell({
               {renderDesktopSidebarContent()}
             </div>
           </aside>
-        )}
-        <div className={!isMobile ? "desktop-map-workspace" : "contents"}>
-          <main
-            ref={networkMapSurfaceRef}
-            className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}
-          >
-            <NetworkMap
-              network={selectedNetwork}
-              isMapActive={isMobile ? (activeView === "map" && !isClosingSearch) : !showClosedScreen}
-              animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
-              deferInitialEntrance={disclaimerVisible
-                || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
-                || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
-              onMapReady={handleMapReady}
-              mobileAnnouncementVisible={selectedNetwork === "ttc"
-                ? subwayOperatingState.closingSoon
-                  || (subwayOperatingState.status === "closed" && closedMapPeek)
-                : regionalRailOperatingState.closingSoon
-                  || (regionalRailOperatingState.status === "closed" && closedMapPeek)}
-              legendProps={legendProps}
-              mapChromeVisible={!showClosedScreen}
-              selection={selection}
-              selectedStationId={selectedStationId}
-              stations={stationSummaries}
-              onSelectImpact={handleMapSelectImpact}
-              onSelectStationId={handleSelectStationId}
-              isDark={isDark}
-              highContrast={highContrast}
-              onToggleTheme={handleToggleTheme}
-              layoutResetSignal={mapLayoutSignal}
-              recenterSignal={recenterSignal}
-              zoomInSignal={zoomInSignal}
-              zoomOutSignal={zoomOutSignal}
-              reducedMotion={reducedMotion}
-              mobilePerformanceMode={mobileMapPerformanceMode}
-              desktopMenuPinned={menuPinned}
-              preserveCameraOnSelectionClear
-              commutePathPreview={commutePathPreview}
-              onClearCommutePathPreview={handleClearCommutePathPreview}
-              viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
-              estimatedTrainsEnabled={estimatedTrainMarkersVisible}
-              estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
-            />
-
-            {selectedNetwork === "ttc" && (!initialMapReady || mobileMapPerformanceMode) ? (
-              <div
-                className={`ttc-map-entrance-reveal${initialMapReady ? " ttc-map-entrance-reveal--ready" : ""}`}
-                aria-hidden="true"
+          <div className="desktop-map-workspace">
+            <main
+              ref={networkMapSurfaceRef}
+              className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}
+            >
+              <NetworkMap
+                network={selectedNetwork}
+                isMapActive={!showClosedScreen}
+                animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
+                deferInitialEntrance={disclaimerVisible
+                  || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
+                  || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
+                onMapReady={handleMapReady}
+                mobileAnnouncementVisible={selectedNetwork === "ttc"
+                  ? subwayOperatingState.closingSoon
+                    || (subwayOperatingState.status === "closed" && closedMapPeek)
+                  : regionalRailOperatingState.closingSoon
+                    || (regionalRailOperatingState.status === "closed" && closedMapPeek)}
+                legendProps={legendProps}
+                mapChromeVisible={!showClosedScreen}
+                selection={selection}
+                selectedStationId={selectedStationId}
+                stations={stationSummaries}
+                onSelectImpact={handleMapSelectImpact}
+                onSelectStationId={handleSelectStationId}
+                isDark={isDark}
+                highContrast={highContrast}
+                onToggleTheme={handleToggleTheme}
+                layoutResetSignal={mapLayoutSignal}
+                recenterSignal={recenterSignal}
+                zoomInSignal={zoomInSignal}
+                zoomOutSignal={zoomOutSignal}
+                reducedMotion={reducedMotion}
+                mobilePerformanceMode={mobileMapPerformanceMode}
+                desktopMenuPinned={menuPinned}
+                preserveCameraOnSelectionClear
+                commutePathPreview={commutePathPreview}
+                onClearCommutePathPreview={handleClearCommutePathPreview}
+                viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
+                estimatedTrainsEnabled={estimatedTrainMarkersVisible}
+                estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
               />
-            ) : null}
+            </main>
+          </div>
+        </div>
+      ) : (
+        <main
+          ref={networkMapSurfaceRef}
+          className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}
+        >
+          <NetworkMap
+            network={selectedNetwork}
+            isMapActive={activeView === "map" && !isClosingSearch}
+            animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
+            deferInitialEntrance={disclaimerVisible
+              || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
+              || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
+            onMapReady={handleMapReady}
+            mobileAnnouncementVisible={selectedNetwork === "ttc"
+              ? subwayOperatingState.closingSoon
+                || (subwayOperatingState.status === "closed" && closedMapPeek)
+              : regionalRailOperatingState.closingSoon
+                || (regionalRailOperatingState.status === "closed" && closedMapPeek)}
+            legendProps={legendProps}
+            mapChromeVisible={!showClosedScreen}
+            selection={selection}
+            selectedStationId={selectedStationId}
+            stations={stationSummaries}
+            onSelectImpact={handleMapSelectImpact}
+            onSelectStationId={handleSelectStationId}
+            isDark={isDark}
+            highContrast={highContrast}
+            onToggleTheme={handleToggleTheme}
+            layoutResetSignal={mapLayoutSignal}
+            recenterSignal={recenterSignal}
+            zoomInSignal={zoomInSignal}
+            zoomOutSignal={zoomOutSignal}
+            reducedMotion={reducedMotion}
+            mobilePerformanceMode={mobileMapPerformanceMode}
+            desktopMenuPinned={menuPinned}
+            preserveCameraOnSelectionClear
+            commutePathPreview={commutePathPreview}
+            onClearCommutePathPreview={handleClearCommutePathPreview}
+            viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
+            estimatedTrainsEnabled={estimatedTrainMarkersVisible}
+            estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
+          />
 
-            {rotatedMapMode ? (
-              <div className="rotated-map-ui-surface">
-                <div className="rotated-map-hud" aria-label="Rotated map controls" data-map-chooser-keepout>
-                  <MobileMapControls
-                    presentationMode="rotated-landscape"
-                    onExitRotated={() => {
-                      setMapPresentationMode("standard");
-                    }}
-                    onRecenter={() => setRecenterSignal((prev) => prev + 1)}
+          {selectedNetwork === "ttc" && (!initialMapReady || mobileMapPerformanceMode) ? (
+            <div
+              className={`ttc-map-entrance-reveal${initialMapReady ? " ttc-map-entrance-reveal--ready" : ""}`}
+              aria-hidden="true"
+            />
+          ) : null}
+
+          {rotatedMapMode ? (
+            <div className="rotated-map-ui-surface">
+              <div className="rotated-map-hud" aria-label="Rotated map controls" data-map-chooser-keepout>
+                <MobileMapControls
+                  presentationMode="rotated-landscape"
+                  onExitRotated={() => {
+                    setMapPresentationMode("standard");
+                  }}
+                  onRecenter={() => setRecenterSignal((prev) => prev + 1)}
+                />
+              </div>
+              {rotatedSelectionVisible && !mobileInspectorOpen ? (
+                <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item" data-map-chooser-keepout>
+                  <RotatedMapSelectionCard
+                    selection={selection}
+                    selectedStationId={selectedStationId}
+                    stations={stationSummaries}
+                    onOpenDetails={handleOpenRotatedSelectionDetails}
+                    onClearSelection={handleClearRotatedSelection}
                   />
                 </div>
-                {rotatedSelectionVisible && !mobileInspectorOpen ? (
-                  <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item" data-map-chooser-keepout>
-                    <RotatedMapSelectionCard
-                      selection={selection}
-                      selectedStationId={selectedStationId}
-                      stations={stationSummaries}
-                      onOpenDetails={handleOpenRotatedSelectionDetails}
-                      onClearSelection={handleClearRotatedSelection}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </main>
-        </div>
-      </div>
+              ) : null}
+            </div>
+          ) : null}
+        </main>
+      )}
 
       {!showClosedScreen && !rotatedMapMode && (
         <button

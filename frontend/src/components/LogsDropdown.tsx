@@ -80,9 +80,7 @@ type DiagnosticsCapabilities = {
   rawAlertsEnabled: boolean;
 };
 
-export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+export function SourceDiagnosticsBody({ network = "ttc" }: { network?: NetworkId }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [ttcHealth, setTtcHealth] = useState<TtcIngestionHealth | null>(null);
@@ -90,30 +88,6 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
   const [regionalScheduleHealth, setRegionalScheduleHealth] = useState<RegionalScheduleHealth | null>(null);
   const [rawAlertsEnabled, setRawAlertsEnabled] = useState(false);
   const [activeView, setActiveView] = useState<"status" | "records">("status");
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const closeTimerRef = useRef<number | null>(null);
-
-  const closeDropdown = useCallback(() => {
-    if (!isOpen || isClosing) return;
-    setIsClosing(true);
-    const reducedMotion = Boolean(dropdownRef.current?.closest(".motion-paused"))
-      || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    closeTimerRef.current = window.setTimeout(() => {
-      setIsOpen(false);
-      setIsClosing(false);
-      closeTimerRef.current = null;
-    }, reducedMotion ? 0 : 220);
-  }, [isClosing, isOpen]);
-
-  const toggleDropdown = () => {
-    if (isOpen) {
-      closeDropdown();
-      return;
-    }
-    setIsClosing(false);
-    setIsOpen(true);
-  };
 
   const fetchJson = useCallback(async <T,>(path: string): Promise<T> => {
     const response = await fetch(apiUrl(path), { cache: "no-store" });
@@ -151,6 +125,204 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
     setLoading(false);
   }, [fetchJson, network]);
 
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      if (network === "regional") {
+        const [ingestion, schedule, capabilities] = await Promise.allSettled([
+          fetchJson<RegionalIngestionHealth>("/api/health/regional-ingestion"),
+          fetchJson<RegionalScheduleHealth>("/api/health/regional-schedule"),
+          fetchJson<DiagnosticsCapabilities>("/api/diagnostics/capabilities"),
+        ]);
+        if (!ignore) {
+          setRegionalHealth(ingestion.status === "fulfilled" ? ingestion.value : null);
+          setRegionalScheduleHealth(schedule.status === "fulfilled" ? schedule.value : null);
+          setTtcHealth(null);
+          setRawAlertsEnabled(capabilities.status === "fulfilled" && capabilities.value.rawAlertsEnabled);
+          setError(ingestion.status === "rejected" || schedule.status === "rejected");
+          setLoading(false);
+        }
+      } else {
+        const [ingestion, capabilities] = await Promise.allSettled([
+          fetchJson<TtcIngestionHealth>("/api/health/ingestion"),
+          fetchJson<DiagnosticsCapabilities>("/api/diagnostics/capabilities"),
+        ]);
+        if (!ignore) {
+          setTtcHealth(ingestion.status === "fulfilled" ? ingestion.value : null);
+          setRegionalHealth(null);
+          setRegionalScheduleHealth(null);
+          setRawAlertsEnabled(capabilities.status === "fulfilled" && capabilities.value.rawAlertsEnabled);
+          setError(ingestion.status === "rejected");
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [fetchJson, network]);
+
+  const fresh = network === "regional" ? regionalHealth?.fresh : ttcHealth?.dashboardLive;
+  const status = network === "regional" ? regionalHealth?.status : ttcHealth?.status;
+  const completedAt = network === "regional" ? regionalHealth?.completedAt : ttcHealth?.completedAt;
+  const sourceUpdatedAt = network === "regional" ? regionalHealth?.sourceUpdatedAt : ttcHealth?.sourceFeedUpdatedAt;
+
+  return (
+    <div className="source-diagnostics-body flex flex-col w-full">
+      <div className="flex items-center justify-between p-3 border-b border-black/10 dark:border-white/10">
+        <div className="flex items-center gap-2 min-w-0">
+          <Activity size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
+          <strong className="text-xs font-bold tracking-wide truncate text-slate-800 dark:text-slate-200">
+            {network === "regional" ? "GO / UP Source Diagnostics" : "TTC Source Diagnostics"}
+          </strong>
+          {error ? (
+            <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black uppercase tracking-wider border border-amber-500/20 shrink-0">
+              Partial
+            </span>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={() => void refreshStatus()}
+          disabled={loading}
+          className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50 text-slate-600 dark:text-slate-300"
+          title="Refresh source status"
+          aria-label="Refresh source status"
+        >
+          <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      {rawAlertsEnabled ? (
+        <div className="grid grid-cols-2 border-b border-black/10 px-3 dark:border-white/10" role="tablist" aria-label="Source diagnostics view">
+          <button
+            role="tab"
+            aria-selected={activeView === "status"}
+            onClick={() => setActiveView("status")}
+            className={`cursor-pointer border-b-2 px-2 py-2 text-xs font-bold transition-colors ${activeView === "status"
+              ? "border-blue-500 text-slate-900 dark:text-white"
+              : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"}`}
+          >
+            Source status
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeView === "records"}
+            onClick={() => setActiveView("records")}
+            className={`cursor-pointer border-b-2 px-2 py-2 text-xs font-bold transition-colors ${activeView === "records"
+              ? "border-amber-500 text-slate-900 dark:text-white"
+              : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"}`}
+          >
+            Source records
+          </button>
+        </div>
+      ) : null}
+
+      <div className="logs-dropdown-scroll max-h-[440px] overflow-y-auto p-3 flex flex-col gap-2.5">
+        {activeView === "records" && rawAlertsEnabled ? (
+          <RawAlertDiagnostics network={network} />
+        ) : loading && !ttcHealth && !regionalHealth ? (
+          <div className="flex flex-col items-center justify-center py-6 gap-2">
+            <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
+            <span className="text-xs text-slate-500">Checking source status...</span>
+          </div>
+        ) : !ttcHealth && !regionalHealth ? (
+          <div className="flex flex-col items-center justify-center py-6 gap-2 text-slate-500">
+            <AlertCircle className="w-5 h-5" />
+            <span className="text-xs">Source status is unavailable.</span>
+          </div>
+        ) : (
+          <>
+            <section className="source-status-card rounded-lg bg-slate-50 p-3 dark:bg-white/5">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Dashboard feed</h3>
+                <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${fresh
+                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                  : "bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
+                >
+                  {fresh ? "Fresh" : "Not fresh"}
+                </span>
+              </div>
+              <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[11px]">
+                <dt className="text-slate-500 dark:text-slate-400">Availability</dt>
+                <dd className="text-right font-semibold capitalize">{status?.replaceAll("-", " ") ?? "Unavailable"}</dd>
+                <dt className="text-slate-500 dark:text-slate-400">Last completed</dt>
+                <dd className="text-right font-semibold">{completedAt ? formatImpactTimestamp(completedAt) : "Not available"}</dd>
+                <dt className="text-slate-500 dark:text-slate-400">Source updated</dt>
+                <dd className="text-right font-semibold">{sourceUpdatedAt ? formatImpactTimestamp(sourceUpdatedAt) : "Not Reported"}</dd>
+              </dl>
+            </section>
+
+            {network === "regional" && regionalHealth ? (
+              <>
+                {regionalHealth.feedAvailability ? (
+                  <FeedAvailabilitySummary
+                    availability={regionalHealth.feedAvailability}
+                    sourceEndpoints={regionalHealth.sourceEndpoints ?? []}
+                    endpointLabels={["GO Service Alerts", "UP Express Alerts"]}
+                    sharedPathSegments={1}
+                    sourceLabel="required Metrolinx alert feeds"
+                    note="Required GO and UP alert requests only. Supplemental collections and LineWatchTO processing failures are excluded."
+                  />
+                ) : null}
+                <RegionalCoverage health={regionalHealth} schedule={regionalScheduleHealth} />
+              </>
+            ) : ttcHealth ? (
+              <>
+                {ttcHealth.feedAvailability ? (
+                  <FeedAvailabilitySummary
+                    availability={ttcHealth.feedAvailability}
+                    sourceEndpoints={ttcHealth.sourceEndpoint ? [ttcHealth.sourceEndpoint] : []}
+                    endpointLabels={["TTC Live Alerts"]}
+                    sharedPathSegments={0}
+                    sourceLabel="TTC Live Alerts feed"
+                    note="TTC Live Alerts requests only. LineWatchTO processing failures are excluded."
+                  />
+                ) : null}
+                <TtcCoverage health={ttcHealth} />
+              </>
+            ) : null}
+
+            <p className="source-status-note rounded-lg bg-blue-500/5 px-3 py-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+              {rawAlertsEnabled
+                ? "Source records are available only because this non-production environment explicitly enables diagnostics. Production shows this sanitized status view only."
+                : "This public panel shows allowlisted source health and normalization counts only. Rider-facing disruption summaries appear in the dashboard; original source records are not publicly exposed."}
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const closeDropdown = useCallback(() => {
+    if (!isOpen || isClosing) return;
+    setIsClosing(true);
+    const reducedMotion = Boolean(dropdownRef.current?.closest(".motion-paused"))
+      || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsOpen(false);
+      setIsClosing(false);
+      closeTimerRef.current = null;
+    }, reducedMotion ? 0 : 220);
+  }, [isClosing, isOpen]);
+
+  const toggleDropdown = () => {
+    if (isOpen) {
+      closeDropdown();
+      return;
+    }
+    setIsClosing(false);
+    setIsOpen(true);
+  };
+
   useEffect(() => () => {
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
   }, []);
@@ -164,17 +336,6 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [closeDropdown]);
-
-  useEffect(() => {
-    if (isOpen) {
-      void Promise.resolve().then(refreshStatus);
-    }
-  }, [isOpen, refreshStatus]);
-
-  const fresh = network === "regional" ? regionalHealth?.fresh : ttcHealth?.dashboardLive;
-  const status = network === "regional" ? regionalHealth?.status : ttcHealth?.status;
-  const completedAt = network === "regional" ? regionalHealth?.completedAt : ttcHealth?.completedAt;
-  const sourceUpdatedAt = network === "regional" ? regionalHealth?.sourceUpdatedAt : ttcHealth?.sourceFeedUpdatedAt;
 
   return (
     <div className={`relative ${isMobileMore ? "w-full" : "pointer-events-auto order-last"}`} ref={dropdownRef}>
@@ -207,126 +368,7 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
           className={`logs-dropdown-panel source-status-panel utility-popover ${isClosing ? "utility-popover--closing" : "utility-popover--opening"} absolute top-[48px] sm:top-[64px] ${isMobileMore ? "left-0 right-0 w-full" : "right-0 w-[min(calc(100vw-32px),550px)]"} rounded-2xl shadow-2xl flex flex-col z-50 bg-white/95 dark:bg-[#0a0c10]/95 backdrop-blur-md text-slate-800 dark:text-slate-200`}
           data-popover-state={isClosing ? "closing" : "open"}
         >
-          <div className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
-            <div className="flex items-center gap-2 min-w-0">
-              <Activity size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-              <strong className="text-sm font-bold tracking-wide truncate">
-                {network === "regional" ? "GO / UP Source Status" : "TTC Source Status"}
-              </strong>
-              {error ? (
-                <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black uppercase tracking-wider border border-amber-500/20 shrink-0">
-                  Partial
-                </span>
-              ) : null}
-            </div>
-            <button
-              onClick={() => void refreshStatus()}
-              disabled={loading}
-              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
-              title="Refresh source status"
-            >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            </button>
-          </div>
-
-          {rawAlertsEnabled ? (
-            <div className="grid grid-cols-2 border-b border-black/10 px-4 dark:border-white/10" role="tablist" aria-label="Source diagnostics view">
-              <button
-                role="tab"
-                aria-selected={activeView === "status"}
-                onClick={() => setActiveView("status")}
-                className={`cursor-pointer border-b-2 px-2 py-2.5 text-xs font-bold transition-colors ${activeView === "status"
-                  ? "border-blue-500 text-slate-900 dark:text-white"
-                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"}`}
-              >
-                Source status
-              </button>
-              <button
-                role="tab"
-                aria-selected={activeView === "records"}
-                onClick={() => setActiveView("records")}
-                className={`cursor-pointer border-b-2 px-2 py-2.5 text-xs font-bold transition-colors ${activeView === "records"
-                  ? "border-amber-500 text-slate-900 dark:text-white"
-                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"}`}
-              >
-                Source records
-              </button>
-            </div>
-          ) : null}
-
-          <div className="logs-dropdown-scroll max-h-[60vh] overflow-y-auto p-4 flex flex-col gap-3">
-            {activeView === "records" && rawAlertsEnabled ? (
-              <RawAlertDiagnostics network={network} />
-            ) : loading && !ttcHealth && !regionalHealth ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-2">
-                <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
-                <span className="text-xs text-slate-500">Checking source status...</span>
-              </div>
-            ) : !ttcHealth && !regionalHealth ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-2 text-slate-500">
-                <AlertCircle className="w-6 h-6" />
-                <span className="text-xs">Source status is unavailable.</span>
-              </div>
-            ) : (
-              <>
-                <section className="source-status-card rounded-lg bg-slate-50 p-3 dark:bg-white/5">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Dashboard feed</h3>
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${fresh
-                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
-                    >
-                      {fresh ? "Fresh" : "Not fresh"}
-                    </span>
-                  </div>
-                  <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[11px]">
-                    <dt className="text-slate-500 dark:text-slate-400">Availability</dt>
-                    <dd className="text-right font-semibold capitalize">{status?.replaceAll("-", " ") ?? "Unavailable"}</dd>
-                    <dt className="text-slate-500 dark:text-slate-400">Last completed</dt>
-                    <dd className="text-right font-semibold">{completedAt ? formatImpactTimestamp(completedAt) : "Not available"}</dd>
-                    <dt className="text-slate-500 dark:text-slate-400">Source updated</dt>
-                    <dd className="text-right font-semibold">{sourceUpdatedAt ? formatImpactTimestamp(sourceUpdatedAt) : "Not Reported"}</dd>
-                  </dl>
-                </section>
-
-                {network === "regional" && regionalHealth ? (
-                  <>
-                    {regionalHealth.feedAvailability ? (
-                      <FeedAvailabilitySummary
-                        availability={regionalHealth.feedAvailability}
-                        sourceEndpoints={regionalHealth.sourceEndpoints ?? []}
-                        endpointLabels={["GO Service Alerts", "UP Express Alerts"]}
-                        sharedPathSegments={1}
-                        sourceLabel="required Metrolinx alert feeds"
-                        note="Required GO and UP alert requests only. Supplemental collections and LineWatchTO processing failures are excluded."
-                      />
-                    ) : null}
-                    <RegionalCoverage health={regionalHealth} schedule={regionalScheduleHealth} />
-                  </>
-                ) : ttcHealth ? (
-                  <>
-                    {ttcHealth.feedAvailability ? (
-                      <FeedAvailabilitySummary
-                        availability={ttcHealth.feedAvailability}
-                        sourceEndpoints={ttcHealth.sourceEndpoint ? [ttcHealth.sourceEndpoint] : []}
-                        endpointLabels={["TTC Live Alerts"]}
-                        sharedPathSegments={0}
-                        sourceLabel="TTC Live Alerts feed"
-                        note="TTC Live Alerts requests only. LineWatchTO processing failures are excluded."
-                      />
-                    ) : null}
-                    <TtcCoverage health={ttcHealth} />
-                  </>
-                ) : null}
-
-                <p className="source-status-note rounded-lg bg-blue-500/5 px-3 py-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                  {rawAlertsEnabled
-                    ? "Source records are available only because this non-production environment explicitly enables diagnostics. Production shows this sanitized status view only."
-                    : "This public panel shows allowlisted source health and normalization counts only. Rider-facing disruption summaries appear in the dashboard; original source records are not publicly exposed."}
-                </p>
-              </>
-            )}
-          </div>
+          <SourceDiagnosticsBody network={network} />
         </div>
       ) : null}
     </div>

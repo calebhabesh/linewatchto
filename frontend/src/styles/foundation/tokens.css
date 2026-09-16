@@ -15,6 +15,8 @@
   --map-overlay-pulse-easing: cubic-bezier(0.37, 0, 0.63, 1);
   --map-overlay-rail-width: 102px;
   --map-overlay-rail-pulse-width: 114px;
+  --color-logo-blue: #81c9ff;
+  --logo-blue: var(--color-logo-blue, #81c9ff);
   --station-selection-accent: var(--color-logo-blue);
   --station-selection-accent-rgb: 129 201 255;
   --mobile-announcement-chip-height: var(--mobile-top-action-button-size);

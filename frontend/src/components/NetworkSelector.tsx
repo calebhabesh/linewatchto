@@ -92,9 +92,8 @@ export function NetworkSelector({
         onClick={() => requestNetworkChange("ttc")}
         className="network-selector-btn network-btn-ttc"
       >
-        <span className="network-indicator-dot network-dot-ttc" aria-hidden="true" />
-        <span className="network-btn-text">TTC</span>
         <span className="network-accent-ridges" aria-hidden="true"><span /><span /></span>
+        <span className="network-btn-text">TTC</span>
       </button>
       <button
         type="button"
@@ -103,9 +102,8 @@ export function NetworkSelector({
         onClick={() => requestNetworkChange("regional")}
         className="network-selector-btn network-btn-regional"
       >
-        <span className="network-indicator-dot network-dot-regional" aria-hidden="true" />
-        <span className="network-btn-text">GO/UP</span>
         <span className="network-accent-ridges" aria-hidden="true"><span /><span /></span>
+        <span className="network-btn-text">GO/UP</span>
       </button>
     </div>
   );

@@ -418,7 +418,7 @@ export function usePanZoom({
     };
   }, [setProgrammaticCameraMotion, setUserGestureMotion, setUserZoomMotion]);
 
-  const lastDimensions = useRef({ width: 0, height: 0 });
+  const lastDimensions = useRef({ width: 0, height: 0, overlayLeft: 0 });
 
   // Track real viewport changes without accepting background-tab layout
   // measurements. Chromium may briefly report a collapsed content rect while
@@ -437,12 +437,15 @@ export function usePanZoom({
         viewportOrientation,
       );
 
+      const desktopOverlay = readDesktopOverlayInsets(el);
+      const overlayLeft = desktopOverlay.left;
       const previousViewport = lastDimensions.current;
       const diffW = Math.abs(previousViewport.width - width);
       const diffH = Math.abs(previousViewport.height - height);
+      const diffOverlay = Math.abs(previousViewport.overlayLeft - overlayLeft);
 
       // Ignore subpixel variations to prevent layout feedback loops from layer promotion.
-      if (diffW < 1 && diffH < 1) return;
+      if (diffW < 1 && diffH < 1 && diffOverlay < 1) return;
 
       const defaultTransform = defaultTransformForViewport(width, height);
       const newFit = defaultTransform.scale;
@@ -453,31 +456,35 @@ export function usePanZoom({
         || current.x !== 0
         || current.y !== 0;
 
+      const isUntouched = !cameraAdjustedByUserRef.current && !hasCustomCamera;
+
       const next = previousViewport.width <= 0 || previousViewport.height <= 0
         ? (hasCustomCamera ? current : defaultTransform)
-        : (current.scale === 1 && previousFit === 1)
+        : isUntouched
           ? defaultTransform
           : transformForViewportResize(
               current,
               previousViewport,
               { width, height },
               previousFit,
-              // Mobile sheets change the opening, not the rider's zoom level.
-              window.innerWidth < 768 && diffW < 1 ? previousFit : newFit,
+              newFit,
+              previousViewport.overlayLeft,
+              overlayLeft,
+              window.innerWidth >= 768,
             );
       const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
 
-      lastDimensions.current = { width, height };
+      lastDimensions.current = { width, height, overlayLeft };
       fitScaleRef.current = newFit;
       transformRef.current = snapped;
       setFitScale(newFit);
       setTransform(snapped);
     };
 
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        reconcileViewport(entry.contentRect.width, entry.contentRect.height);
-      }
+    const observer = new ResizeObserver(() => {
+      const target = containerRef.current;
+      if (!target) return;
+      reconcileViewport(target.clientWidth, target.clientHeight);
     });
 
     const handleVisibilityChange = () => {
@@ -489,6 +496,10 @@ export function usePanZoom({
     };
 
     observer.observe(el);
+    const shell = el.closest<HTMLElement>(".linewatch-shell");
+    const sidebar = shell?.querySelector<HTMLElement>(".desktop-sidebar-container");
+    if (sidebar) observer.observe(sidebar);
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       observer.disconnect();
@@ -508,9 +519,12 @@ export function usePanZoom({
       physicalHeight,
       viewportOrientation,
     );
+    const desktopOverlay = readDesktopOverlayInsets(el);
+    const overlayLeft = desktopOverlay.left;
     const diffW = Math.abs(lastDimensions.current.width - width);
     const diffH = Math.abs(lastDimensions.current.height - height);
-    if (diffW >= 1 || diffH >= 1) {
+    const diffOverlay = Math.abs(lastDimensions.current.overlayLeft - overlayLeft);
+    if (diffW >= 1 || diffH >= 1 || diffOverlay >= 1) {
       const previousViewport = lastDimensions.current;
       const defaultTransform = defaultTransformForViewport(width, height);
       const newFit = defaultTransform.scale;
@@ -521,20 +535,24 @@ export function usePanZoom({
         || current.x !== 0
         || current.y !== 0;
 
+      const isUntouched = !cameraAdjustedByUserRef.current && !hasCustomCamera;
+
       const next = previousViewport.width <= 0 || previousViewport.height <= 0
         ? (hasCustomCamera ? current : defaultTransform)
-        : (current.scale === 1 && previousFit === 1)
+        : isUntouched
           ? defaultTransform
           : transformForViewportResize(
               current,
               previousViewport,
               { width, height },
               previousFit,
-              // Mobile sheets change the opening, not the rider's zoom level.
-              window.innerWidth < 768 && diffW < 1 ? previousFit : newFit,
+              newFit,
+              previousViewport.overlayLeft,
+              overlayLeft,
+              window.innerWidth >= 768,
             );
       const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
-      lastDimensions.current = { width, height };
+      lastDimensions.current = { width, height, overlayLeft };
       fitScaleRef.current = newFit;
       transformRef.current = snapped;
       setFitScale(newFit);

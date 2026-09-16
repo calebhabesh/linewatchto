@@ -3933,6 +3933,68 @@ function InteractiveRegionalMapComponent({
     return () => window.cancelAnimationFrame(frame);
   }, [fitNetwork, viewportOrientation]);
 
+  const lastRegionalDimensionsRef = useRef<{ width: number; height: number; overlayLeft: number }>({
+    width: 0,
+    height: 0,
+    overlayLeft: 0,
+  });
+
+  const reconcileRegionalViewport = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || !isMapActiveRef.current || !cameraInitializedRef.current) return;
+    const physicalWidth = viewport.clientWidth;
+    const physicalHeight = viewport.clientHeight;
+    if (physicalWidth <= 0 || physicalHeight <= 0) return;
+
+    const { width, height } = logicalViewportSizeForOrientation(
+      physicalWidth,
+      physicalHeight,
+      viewportOrientation,
+    );
+
+    const overlay = readDesktopOverlayInsets(viewport);
+    const overlayLeft = overlay.left;
+    const prev = lastRegionalDimensionsRef.current;
+    const diffW = Math.abs(prev.width - width);
+    const diffH = Math.abs(prev.height - height);
+    const diffOverlay = Math.abs(prev.overlayLeft - overlayLeft);
+
+    if (diffW < 1 && diffH < 1 && diffOverlay < 1) return;
+
+    const isUntouched = !cameraAdjustedByUserRef.current;
+
+    if (prev.width <= 0 || prev.height <= 0) {
+      lastRegionalDimensionsRef.current = { width, height, overlayLeft };
+      if (isUntouched) {
+        refitUntouchedNetwork();
+      }
+      return;
+    }
+
+    if (isUntouched) {
+      lastRegionalDimensionsRef.current = { width, height, overlayLeft };
+      refitUntouchedNetwork();
+      return;
+    }
+
+    // Explored camera: preserve zoom and center current geographic focus in new usable rectangle
+    const prevCenterX = (prev.overlayLeft + prev.width) / 2;
+    const prevCenterY = prev.height / 2;
+    const mapPoint = mapPointFromViewportPoint(cameraRef.current, { x: prevCenterX, y: prevCenterY });
+    const nextCenterX = (overlayLeft + width) / 2;
+    const nextCenterY = height / 2;
+    const nextCamera = transformForMapPointAtViewportPoint(
+      mapPoint,
+      { x: nextCenterX, y: nextCenterY },
+      cameraRef.current.scale,
+    );
+    const snapped = snapTransformToDevicePixels(nextCamera, currentDevicePixelRatio());
+    cameraRef.current = snapped;
+    writeMapTransform(snapped);
+    setCamera({ ...snapped });
+    lastRegionalDimensionsRef.current = { width, height, overlayLeft };
+  }, [cameraInitializedRef, cameraAdjustedByUserRef, refitUntouchedNetwork, viewportOrientation, writeMapTransform]);
+
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -3942,21 +4004,26 @@ function InteractiveRegionalMapComponent({
         initializeMapCamera();
         return;
       }
+      reconcileRegionalViewport();
     });
     observer.observe(viewport);
     const mapSurface = viewport.closest<HTMLElement>(".network-map-transition-surface");
     if (mapSurface) observer.observe(mapSurface);
+    const shell = viewport.closest<HTMLElement>(".linewatch-shell");
+    const sidebar = shell?.querySelector<HTMLElement>(".desktop-sidebar-container");
+    if (sidebar) observer.observe(sidebar);
     return () => observer.disconnect();
-  }, [initializeMapCamera]);
+  }, [initializeMapCamera, reconcileRegionalViewport]);
 
   useEffect(() => {
     const handleWindowResize = () => {
       if (automaticResizeRefitBlockedRef.current) return;
       refitUntouchedNetwork();
+      reconcileRegionalViewport();
     };
     window.addEventListener("resize", handleWindowResize);
     return () => window.removeEventListener("resize", handleWindowResize);
-  }, [refitUntouchedNetwork]);
+  }, [reconcileRegionalViewport, refitUntouchedNetwork]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -5077,8 +5144,8 @@ function InteractiveRegionalMapComponent({
           </button>
         </div>
       ) : null}
-      {/* Regional map controls positioned vertically on right side centered below top-right info button */}
-      <div className="map-control-rail regional-map-control-rail absolute top-40 sm:top-[176px] right-4 sm:right-6 z-30 flex flex-col items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
+      {/* Regional map controls positioned vertically on right side */}
+      <div className="map-control-rail regional-map-control-rail absolute top-40 sm:top-5 right-4 sm:right-6 z-30 flex flex-col items-center justify-center gap-1 sm:gap-2 pointer-events-auto" data-map-chooser-keepout>
         <div className="map-control-recenter-container">
           <button
             type="button"
