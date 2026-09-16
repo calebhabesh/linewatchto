@@ -38,7 +38,6 @@ describe("desktop sidebar refinement - Checkpoint D: Map Chrome & Data Relocatio
 
   it("passes required props to DesktopStatusOverview and configures train button in LineWatchShell", () => {
     assert.match(shellSource, /<DesktopStatusOverview/);
-    assert.match(shellSource, /onOpenMore=\{/);
     assert.match(shellSource, /operatingState=\{selectedNetwork === "ttc" \? subwayOperatingState : regionalRailOperatingState\}/);
     assert.match(shellSource, /desktop-train-toggle-btn/);
   });

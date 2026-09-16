@@ -59,7 +59,6 @@ type Props = {
   onOpenCategory: (view: StatusCategory, lineId?: string) => void;
   onSelectImpact?: (selection: ImpactSelection) => void;
   onSelectSurfaceNotice?: (notice: SurfaceNoticeDetail) => void;
-  onOpenMore?: () => void;
 };
 
 const noticeLabels: Record<string, string> = {
@@ -82,7 +81,6 @@ export function DesktopStatusOverview({
   onOpenCategory,
   onSelectImpact,
   onSelectSurfaceNotice,
-  onOpenMore,
 }: Props) {
   const dashboardData = useDashboardData();
   const {
@@ -180,28 +178,6 @@ export function DesktopStatusOverview({
         )}
       </div>
 
-      {/* Diagnostics / Poll row */}
-      <div className="desktop-status-poll desktop-status-poll-row">
-        <span>
-          {snapshot
-            ? snapshot.savedAt
-              ? "Cached updates"
-              : "Current status: Unknown"
-            : dataSource === "fallback" || availability === "fixture" || availability === "unavailable"
-            ? "Current status: Unknown"
-            : `Last polled: ${pollText.toLowerCase() === "just now" ? "Just now" : pollText}`}
-        </span>
-        {onOpenMore && (
-          <button
-            type="button"
-            className="desktop-status-diagnostics-link"
-            onClick={onOpenMore}
-          >
-            Data & diagnostics
-          </button>
-        )}
-      </div>
-
       {/* Operating status banner if closing soon or closed */}
       {operatingState?.closingSoon && operatingState.minutesUntilClose !== null && operatingState.nextCloseLabel && (
         <div className="desktop-status-operating-banner desktop-status-operating-banner--closing" role="status">
@@ -222,209 +198,6 @@ export function DesktopStatusOverview({
           </div>
         </div>
       )}
-
-      {/* ALERTS & NOTICES Categories */}
-      <section className="desktop-status-categories-section" aria-label="Alerts and notices">
-        <div className="desktop-status-section-header">
-          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
-          <h3 className="desktop-status-section-title">Alerts & Notices</h3>
-        </div>
-        <div className="desktop-status-categories-grid">
-          <button
-            type="button"
-            className={`mobile-status-peek-count-badge active-alerts ${
-              activeAlerts.length === 0 ? "mobile-status-peek-count-badge--empty" : ""
-            } desktop-status-category-capsule`}
-            onClick={() => onOpenCategory("alerts")}
-            aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
-          >
-            <span className="mobile-status-peek-badge-icon" aria-hidden="true">
-              <AlertTriangle size={13} />
-            </span>
-            <span
-              className="mobile-status-peek-count-circle"
-              data-digit-count={activeAlerts.length >= 10 ? "multiple" : "single"}
-            >
-              <span className="mobile-status-peek-count-circle-value">{activeAlerts.length}</span>
-            </span>
-            <span className="mobile-status-peek-badge-label">
-              {activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}
-            </span>
-            <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
-          </button>
-
-          <button
-            type="button"
-            className={`mobile-status-peek-count-badge delays ${
-              delays.length === 0 ? "mobile-status-peek-count-badge--empty" : ""
-            } desktop-status-category-capsule`}
-            onClick={() => onOpenCategory("delays")}
-            aria-label={`${delays.length} ${delays.length === 1 ? "Delay" : "Delays"}`}
-          >
-            <span className="mobile-status-peek-badge-icon" aria-hidden="true">
-              <DelayIcon size={13} />
-            </span>
-            <span
-              className="mobile-status-peek-count-circle"
-              data-digit-count={delays.length >= 10 ? "multiple" : "single"}
-            >
-              <span className="mobile-status-peek-count-circle-value">{delays.length}</span>
-            </span>
-            <span className="mobile-status-peek-badge-label">
-              {delays.length === 1 ? "Delay" : "Delays"}
-            </span>
-            <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
-          </button>
-
-          {!regional ? (
-            <button
-              type="button"
-              className={`mobile-status-peek-count-badge reduced-speed-zones ${
-                reducedSpeedZoneCount === 0 ? "mobile-status-peek-count-badge--empty" : ""
-              } desktop-status-category-capsule`}
-              onClick={() => onOpenCategory("reduced-speed-zones")}
-              aria-label={`${reducedSpeedZoneCount} ${
-                reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"
-              }`}
-            >
-              <span className="mobile-status-peek-badge-icon" aria-hidden="true">
-                <Construction size={13} />
-              </span>
-              <span
-                className="mobile-status-peek-count-circle"
-                data-digit-count={reducedSpeedZoneCount >= 10 ? "multiple" : "single"}
-              >
-                <span className="mobile-status-peek-count-circle-value">{reducedSpeedZoneCount}</span>
-              </span>
-              <span className="mobile-status-peek-badge-label">
-                {reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
-              </span>
-              <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              className={`mobile-status-peek-count-badge trip-changes ${
-                tripChangeCount === 0 ? "mobile-status-peek-count-badge--empty" : ""
-              } desktop-status-category-capsule`}
-              onClick={() => onOpenCategory("trip-changes")}
-              aria-label={`${tripChangeCount} ${
-                tripChangeCount === 1 ? "Trip Change" : "Trip Changes"
-              }`}
-            >
-              <span className="mobile-status-peek-badge-icon" aria-hidden="true">
-                <TrainFront size={13} />
-              </span>
-              <span
-                className="mobile-status-peek-count-circle"
-                data-digit-count={tripChangeCount >= 10 ? "multiple" : "single"}
-              >
-                <span className="mobile-status-peek-count-circle-value">{tripChangeCount}</span>
-              </span>
-              <span className="mobile-status-peek-badge-label">
-                {tripChangeCount === 1 ? "Trip Change" : "Trip Changes"}
-              </span>
-              <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
-            </button>
-          )}
-
-          <button
-            type="button"
-            className={`mobile-status-peek-count-badge planned-closures ${
-              plannedClosures.length === 0 ? "mobile-status-peek-count-badge--empty" : ""
-            } desktop-status-category-capsule`}
-            onClick={() => onOpenCategory("closures")}
-            aria-label={`${plannedClosures.length} ${
-              plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"
-            }`}
-          >
-            <span className="mobile-status-peek-badge-icon" aria-hidden="true">
-              <PlannedClosureIcon size={13} />
-            </span>
-            <span
-              className="mobile-status-peek-count-circle"
-              data-digit-count={plannedClosures.length >= 10 ? "multiple" : "single"}
-            >
-              <span className="mobile-status-peek-count-circle-value">{plannedClosures.length}</span>
-            </span>
-            <span className="mobile-status-peek-badge-label">
-              {plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}
-            </span>
-            <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
-          </button>
-        </div>
-
-        {/* Secondary Informational Collections */}
-        <div className="desktop-status-info-row">
-          <button
-            type="button"
-            className="desktop-status-info-btn"
-            onClick={() => onOpenCategory("accessibility-outages")}
-          >
-            <div className="desktop-status-info-main">
-              <Image
-                src="/assets/linewatch/accessibility-alert.svg"
-                alt=""
-                width={16}
-                height={16}
-                className="w-4 h-4 shrink-0"
-              />
-              <span className="desktop-status-info-label">Accessibility</span>
-            </div>
-            <div className="desktop-status-info-end">
-              <span
-                className="desktop-status-info-badge"
-                data-count={accessibilityOutageCount > 0 ? "positive" : "zero"}
-              >
-                {accessibilityOutageCount}
-              </span>
-              <ChevronRight size={16} className="desktop-status-info-chevron" aria-hidden="true" />
-            </div>
-          </button>
-
-          <button
-            type="button"
-            className="desktop-status-info-btn"
-            onClick={() => onOpenCategory("surface-notices")}
-          >
-            <div className="desktop-status-info-main">
-              {regional ? (
-                <Megaphone size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-              ) : (
-                <Bus size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-              )}
-              <span className="desktop-status-info-label">
-                {regional ? "Service Notices" : "Surface Notices"}
-              </span>
-            </div>
-            <div className="desktop-status-info-end">
-              <span
-                className="desktop-status-info-badge"
-                data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}
-              >
-                {surfaceNoticeCount}
-              </span>
-              <ChevronRight size={16} className="desktop-status-info-chevron" aria-hidden="true" />
-            </div>
-          </button>
-
-          {!regional && (
-            <button
-              type="button"
-              className="desktop-status-info-btn"
-              onClick={() => onOpenCategory("announcements")}
-            >
-              <div className="desktop-status-info-main">
-                <Megaphone size={16} className="text-sky-600 dark:text-sky-400 shrink-0" />
-                <span className="desktop-status-info-label">Announcements</span>
-              </div>
-              <div className="desktop-status-info-end">
-                <ChevronRight size={16} className="desktop-status-info-chevron" aria-hidden="true" />
-              </div>
-            </button>
-          )}
-        </div>
-      </section>
 
       {/* Rail Incidents Overview (imminent within 24h) */}
       <section
@@ -633,6 +406,209 @@ export function DesktopStatusOverview({
           All {regional ? "service notices" : "streetcar and bus notices"}
           <ArrowRight size={12} aria-hidden="true" />
         </button>
+      </section>
+
+      {/* ALERTS & NOTICES Categories */}
+      <section className="desktop-status-categories-section" aria-label="Alerts and notices">
+        <div className="desktop-status-section-header">
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
+          <h3 className="desktop-status-section-title">Alerts & Notices</h3>
+        </div>
+        <div className="desktop-status-categories-grid">
+          <button
+            type="button"
+            className={`mobile-status-peek-count-badge active-alerts ${
+              activeAlerts.length === 0 ? "mobile-status-peek-count-badge--empty" : ""
+            } desktop-status-category-capsule`}
+            onClick={() => onOpenCategory("alerts")}
+            aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
+          >
+            <span className="mobile-status-peek-badge-icon" aria-hidden="true">
+              <AlertTriangle size={13} />
+            </span>
+            <span
+              className="mobile-status-peek-count-circle"
+              data-digit-count={activeAlerts.length >= 10 ? "multiple" : "single"}
+            >
+              <span className="mobile-status-peek-count-circle-value">{activeAlerts.length}</span>
+            </span>
+            <span className="mobile-status-peek-badge-label">
+              {activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}
+            </span>
+            <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            className={`mobile-status-peek-count-badge delays ${
+              delays.length === 0 ? "mobile-status-peek-count-badge--empty" : ""
+            } desktop-status-category-capsule`}
+            onClick={() => onOpenCategory("delays")}
+            aria-label={`${delays.length} ${delays.length === 1 ? "Delay" : "Delays"}`}
+          >
+            <span className="mobile-status-peek-badge-icon" aria-hidden="true">
+              <DelayIcon size={13} />
+            </span>
+            <span
+              className="mobile-status-peek-count-circle"
+              data-digit-count={delays.length >= 10 ? "multiple" : "single"}
+            >
+              <span className="mobile-status-peek-count-circle-value">{delays.length}</span>
+            </span>
+            <span className="mobile-status-peek-badge-label">
+              {delays.length === 1 ? "Delay" : "Delays"}
+            </span>
+            <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
+          </button>
+
+          {!regional ? (
+            <button
+              type="button"
+              className={`mobile-status-peek-count-badge reduced-speed-zones ${
+                reducedSpeedZoneCount === 0 ? "mobile-status-peek-count-badge--empty" : ""
+              } desktop-status-category-capsule`}
+              onClick={() => onOpenCategory("reduced-speed-zones")}
+              aria-label={`${reducedSpeedZoneCount} ${
+                reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"
+              }`}
+            >
+              <span className="mobile-status-peek-badge-icon" aria-hidden="true">
+                <Construction size={13} />
+              </span>
+              <span
+                className="mobile-status-peek-count-circle"
+                data-digit-count={reducedSpeedZoneCount >= 10 ? "multiple" : "single"}
+              >
+                <span className="mobile-status-peek-count-circle-value">{reducedSpeedZoneCount}</span>
+              </span>
+              <span className="mobile-status-peek-badge-label">
+                {reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
+              </span>
+              <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`mobile-status-peek-count-badge trip-changes ${
+                tripChangeCount === 0 ? "mobile-status-peek-count-badge--empty" : ""
+              } desktop-status-category-capsule`}
+              onClick={() => onOpenCategory("trip-changes")}
+              aria-label={`${tripChangeCount} ${
+                tripChangeCount === 1 ? "Trip Change" : "Trip Changes"
+              }`}
+            >
+              <span className="mobile-status-peek-badge-icon" aria-hidden="true">
+                <TrainFront size={13} />
+              </span>
+              <span
+                className="mobile-status-peek-count-circle"
+                data-digit-count={tripChangeCount >= 10 ? "multiple" : "single"}
+              >
+                <span className="mobile-status-peek-count-circle-value">{tripChangeCount}</span>
+              </span>
+              <span className="mobile-status-peek-badge-label">
+                {tripChangeCount === 1 ? "Trip Change" : "Trip Changes"}
+              </span>
+              <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={`mobile-status-peek-count-badge planned-closures ${
+              plannedClosures.length === 0 ? "mobile-status-peek-count-badge--empty" : ""
+            } desktop-status-category-capsule`}
+            onClick={() => onOpenCategory("closures")}
+            aria-label={`${plannedClosures.length} ${
+              plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"
+            }`}
+          >
+            <span className="mobile-status-peek-badge-icon" aria-hidden="true">
+              <PlannedClosureIcon size={13} />
+            </span>
+            <span
+              className="mobile-status-peek-count-circle"
+              data-digit-count={plannedClosures.length >= 10 ? "multiple" : "single"}
+            >
+              <span className="mobile-status-peek-count-circle-value">{plannedClosures.length}</span>
+            </span>
+            <span className="mobile-status-peek-badge-label">
+              {plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}
+            </span>
+            <ArrowRight size={10} strokeWidth={2.75} className="mobile-status-peek-chevron" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Secondary Informational Collections */}
+        <div className="desktop-status-info-row">
+          <button
+            type="button"
+            className="desktop-status-info-btn"
+            onClick={() => onOpenCategory("accessibility-outages")}
+          >
+            <div className="desktop-status-info-main">
+              <Image
+                src="/assets/linewatch/accessibility-alert.svg"
+                alt=""
+                width={16}
+                height={16}
+                className="w-4 h-4 shrink-0"
+              />
+              <span className="desktop-status-info-label">Accessibility</span>
+            </div>
+            <div className="desktop-status-info-end">
+              <span
+                className="desktop-status-info-badge"
+                data-count={accessibilityOutageCount > 0 ? "positive" : "zero"}
+              >
+                {accessibilityOutageCount}
+              </span>
+              <ChevronRight size={16} className="desktop-status-info-chevron" aria-hidden="true" />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className="desktop-status-info-btn"
+            onClick={() => onOpenCategory("surface-notices")}
+          >
+            <div className="desktop-status-info-main">
+              {regional ? (
+                <Megaphone size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              ) : (
+                <Bus size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              )}
+              <span className="desktop-status-info-label">
+                {regional ? "Service Notices" : "Surface Notices"}
+              </span>
+            </div>
+            <div className="desktop-status-info-end">
+              <span
+                className="desktop-status-info-badge"
+                data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}
+              >
+                {surfaceNoticeCount}
+              </span>
+              <ChevronRight size={16} className="desktop-status-info-chevron" aria-hidden="true" />
+            </div>
+          </button>
+
+          {!regional && (
+            <button
+              type="button"
+              className="desktop-status-info-btn"
+              onClick={() => onOpenCategory("announcements")}
+            >
+              <div className="desktop-status-info-main">
+                <Megaphone size={16} className="text-sky-600 dark:text-sky-400 shrink-0" />
+                <span className="desktop-status-info-label">Announcements</span>
+              </div>
+              <div className="desktop-status-info-end">
+                <ChevronRight size={16} className="desktop-status-info-chevron" aria-hidden="true" />
+              </div>
+            </button>
+          )}
+        </div>
       </section>
     </div>
   );

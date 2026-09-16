@@ -732,6 +732,158 @@
 }
 .mobile-service-sheet-handle, .mobile-service-sheet-heading { display: none; }
 
+/* Inset / Recessed Live Indicator Slot */
+.mobile-service-sheet-recessed-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 22px;
+  padding: 2px 10px 2px 8px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  border-top-color: rgba(0, 0, 0, 0.7);
+  box-shadow: 
+    inset 0 2px 3.5px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 12px rgba(22, 163, 74, 0.35);
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+
+.dark .mobile-service-sheet-recessed-badge {
+  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-top-color: rgba(0, 0, 0, 0.85);
+  box-shadow: 
+    inset 0 2.5px 4px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.22),
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 14px rgba(22, 163, 74, 0.4);
+}
+
+.high-contrast .mobile-service-sheet-recessed-badge {
+  background: #008000;
+  border: 2px solid #00ff66;
+  box-shadow: none;
+}
+
+/* Recessed Optical LED Jewel */
+.mobile-service-sheet-led-jewel {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcfce7 45%, #bbf7d0 100%);
+  box-shadow: 
+    0 0 4px 1px rgba(255, 255, 255, 0.9),
+    0 0 8px rgba(187, 247, 208, 0.8),
+    inset 0 0.5px 0.5px #ffffff;
+  flex-shrink: 0;
+  animation: recessed-led-glow 2.4s ease-in-out infinite;
+}
+
+.dark .mobile-service-sheet-led-jewel {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcfce7 45%, #bbf7d0 100%);
+}
+
+.high-contrast .mobile-service-sheet-led-jewel {
+  background: #ffffff;
+  box-shadow: none;
+  animation: none;
+}
+
+.mobile-service-sheet-led-jewel--muted {
+  background: radial-gradient(circle at 35% 35%, #94a3b8 0%, #64748b 60%, #334155 100%);
+  box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.25);
+  animation: none;
+}
+
+.motion-paused .mobile-service-sheet-led-jewel {
+  animation: none;
+}
+
+/* Inset / Debossed Micro-typography */
+.mobile-service-sheet-recessed-text {
+  font-family: var(--font-inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.dark .mobile-service-sheet-recessed-text {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.high-contrast .mobile-service-sheet-recessed-text {
+  color: #ffffff;
+  text-shadow: none;
+}
+
+.mobile-service-sheet-recessed-badge--source {
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(0, 0, 0, 0.7);
+  box-shadow: 
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.6),
+    inset 0 -0.5px 0.5px rgba(255, 255, 255, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.mobile-service-sheet-recessed-badge--source .mobile-service-sheet-recessed-text {
+  color: #cbd5e1;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.08em;
+}
+
+.mobile-service-sheet-recessed-badge--cached {
+  background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  border-top-color: rgba(0, 0, 0, 0.7);
+  box-shadow: 
+    inset 0 2px 3.5px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 12px rgba(217, 119, 6, 0.38);
+  color: #ffffff;
+  padding: 2px 10px 2px 8px;
+  gap: 5px;
+}
+
+.dark .mobile-service-sheet-recessed-badge--cached {
+  background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-top-color: rgba(0, 0, 0, 0.85);
+  box-shadow: 
+    inset 0 2.5px 4px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.22),
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 14px rgba(217, 119, 6, 0.45);
+  color: #ffffff;
+}
+
+.high-contrast .mobile-service-sheet-recessed-badge--cached {
+  background: #b45309;
+  border: 2px solid #fbbf24;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.mobile-service-sheet-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
 @media (max-width: 767px) {
   :root {
     --mobile-bottom-nav-height: 70px;
@@ -934,163 +1086,11 @@
     touch-action: none;
     cursor: grab;
   }
-  /* Inset / Recessed Live Indicator Slot */
-  .mobile-service-sheet-recessed-badge {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    height: 23px;
-    padding: 2px 11px 2px 9px;
-    border-radius: 9999px;
-    background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
-    border: 1px solid rgba(0, 0, 0, 0.45);
-    border-top-color: rgba(0, 0, 0, 0.7);
-    box-shadow: 
-      inset 0 2px 3.5px rgba(0, 0, 0, 0.45),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.28),
-      0 1px 0 rgba(255, 255, 255, 0.08),
-      0 0 12px rgba(22, 163, 74, 0.35);
-    pointer-events: none;
-    user-select: none;
-    z-index: 1;
-  }
-
   .mobile-service-sheet .mobile-service-sheet-recessed-badge {
     position: absolute;
     left: 50%;
     top: 20px;
     transform: translateX(-50%);
-  }
-
-  .dark .mobile-service-sheet-recessed-badge {
-    background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
-    border: 1px solid rgba(0, 0, 0, 0.6);
-    border-top-color: rgba(0, 0, 0, 0.85);
-    box-shadow: 
-      inset 0 2.5px 4px rgba(0, 0, 0, 0.55),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.22),
-      0 1px 0 rgba(255, 255, 255, 0.06),
-      0 0 14px rgba(22, 163, 74, 0.4);
-  }
-
-  .high-contrast .mobile-service-sheet-recessed-badge {
-    background: #008000;
-    border: 2px solid #00ff66;
-    box-shadow: none;
-  }
-
-  /* Recessed Optical LED Jewel */
-  .mobile-service-sheet-led-jewel {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcfce7 45%, #bbf7d0 100%);
-    box-shadow: 
-      0 0 4px 1px rgba(255, 255, 255, 0.9),
-      0 0 8px rgba(187, 247, 208, 0.8),
-      inset 0 0.5px 0.5px #ffffff;
-    flex-shrink: 0;
-    animation: recessed-led-glow 2.4s ease-in-out infinite;
-  }
-
-  .dark .mobile-service-sheet-led-jewel {
-    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcfce7 45%, #bbf7d0 100%);
-  }
-
-  .high-contrast .mobile-service-sheet-led-jewel {
-    background: #ffffff;
-    box-shadow: none;
-    animation: none;
-  }
-
-  .mobile-service-sheet-led-jewel--muted {
-    background: radial-gradient(circle at 35% 35%, #94a3b8 0%, #64748b 60%, #334155 100%);
-    box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.25);
-    animation: none;
-  }
-
-  .motion-paused .mobile-service-sheet-led-jewel {
-    animation: none;
-  }
-
-  /* Inset / Debossed Micro-typography */
-  .mobile-service-sheet-recessed-text {
-    font-family: var(--font-inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-    font-size: 11px;
-    font-weight: 850;
-    letter-spacing: 0.12em;
-    line-height: 1;
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
-  }
-
-  .dark .mobile-service-sheet-recessed-text {
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-  }
-
-  .high-contrast .mobile-service-sheet-recessed-text {
-    color: #ffffff;
-    text-shadow: none;
-  }
-
-  .mobile-service-sheet-recessed-badge--source {
-    background: rgba(30, 41, 59, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-top-color: rgba(0, 0, 0, 0.7);
-    box-shadow: 
-      inset 0 1.5px 3px rgba(0, 0, 0, 0.6),
-      inset 0 -0.5px 0.5px rgba(255, 255, 255, 0.08),
-      0 1px 0 rgba(255, 255, 255, 0.04);
-  }
-
-  .mobile-service-sheet-recessed-badge--source .mobile-service-sheet-recessed-text {
-    color: #cbd5e1;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
-    letter-spacing: 0.08em;
-  }
-
-  .mobile-service-sheet-recessed-badge--cached {
-    background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
-    border: 1px solid rgba(0, 0, 0, 0.45);
-    border-top-color: rgba(0, 0, 0, 0.7);
-    box-shadow: 
-      inset 0 2px 3.5px rgba(0, 0, 0, 0.45),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.28),
-      0 1px 0 rgba(255, 255, 255, 0.08),
-      0 0 12px rgba(217, 119, 6, 0.38);
-    color: #ffffff;
-    padding: 2px 10px 2px 8px;
-    gap: 5px;
-  }
-
-  .dark .mobile-service-sheet-recessed-badge--cached {
-    background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
-    border: 1px solid rgba(0, 0, 0, 0.6);
-    border-top-color: rgba(0, 0, 0, 0.85);
-    box-shadow: 
-      inset 0 2.5px 4px rgba(0, 0, 0, 0.55),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.22),
-      0 1px 0 rgba(255, 255, 255, 0.06),
-      0 0 14px rgba(217, 119, 6, 0.45);
-    color: #ffffff;
-  }
-
-  .high-contrast .mobile-service-sheet-recessed-badge--cached {
-    background: #b45309;
-    border: 2px solid #fbbf24;
-    color: #ffffff;
-    box-shadow: none;
-  }
-
-  .mobile-service-sheet-badge-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: #ffffff;
   }
 
   .mobile-service-sheet-handle:focus-visible .station-sheet-drag-pill {

@@ -3225,7 +3225,7 @@ test("renders fixture fallback when the dashboard API is unavailable", async ({ 
 
   if (!isMobile) {
     await expect(
-      page.locator(".desktop-status-poll").filter({ hasText: "Unknown" })
+      page.locator(".mobile-service-sheet-recessed-badge").filter({ hasText: /Unknown/i })
     ).toBeVisible();
   }
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);

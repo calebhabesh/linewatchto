@@ -17,10 +17,7 @@ export function formatTorontoClock(date: Date) {
 
   const getPart = (type: string) => parts.find(p => p.type === type)?.value || "";
   
-  let ampm = getPart("dayPeriod").replace(/\./g, "").toUpperCase();
-  if (ampm === "AM" || ampm === "PM") {
-    ampm = ampm[0] + "." + ampm[1] + ".";
-  }
+  const ampm = getPart("dayPeriod").replace(/\./g, "").toUpperCase();
   const timeStr = `${getPart("hour")}:${getPart("minute")} ${ampm}`;
   const dateStr = `${getPart("weekday")}, ${getPart("month")} ${getPart("day")}, ${getPart("year")}`;
   const zoneStr = getPart("timeZoneName").toUpperCase();
@@ -29,7 +26,8 @@ export function formatTorontoClock(date: Date) {
 }
 
 export function useTorontoClock(initialTime: string) {
-  const [clock, setClock] = useState({ time: initialTime, date: "", zone: "" });
+  const sanitizedInitialTime = (initialTime || "").replace(/\./g, "");
+  const [clock, setClock] = useState({ time: sanitizedInitialTime, date: "", zone: "" });
 
   useEffect(() => {
     const update = () => setClock(formatTorontoClock(new Date()));

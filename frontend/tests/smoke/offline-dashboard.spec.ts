@@ -22,7 +22,7 @@ test('saved dashboard reopens offline and recovers on reconnect', async ({ page,
   await expect(page.locator('.dashboard-availability-notice')).toContainText('Saved');
   await expect(page.locator('.ttc-map-stage')).toHaveAttribute('data-raster-map-ready', 'true');
   if (!test.info().project.name.startsWith("mobile")) {
-    await expect(page.locator(".desktop-status-poll")).toHaveText("Cached");
+    await expect(page.locator(".mobile-service-sheet-recessed-badge")).toHaveText(/Cached/i);
   }
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('linewatch-dashboard-snapshot-v1:ttc')!).savedAt)).toBe(before);
   await expect(page.locator('.estimated-train-marker')).toHaveCount(0);

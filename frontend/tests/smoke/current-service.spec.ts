@@ -46,7 +46,7 @@ test("unavailable data cannot read as clear service", async ({ page, request }) 
 
   const sidebar = page.locator("#desktop-sidebar-container");
   await expect(sidebar).toBeVisible();
-  await expect(sidebar.locator(".desktop-status-poll").filter({ hasText: "Unknown" }).first()).toBeVisible();
+  await expect(sidebar.locator(".mobile-service-sheet-recessed-badge").filter({ hasText: /Unknown/i }).first()).toBeVisible();
   await expect(sidebar).not.toContainText("No active alerts/delays");
   await expect(sidebar.locator(".desktop-status-incident-row")).toHaveCount(0);
 });

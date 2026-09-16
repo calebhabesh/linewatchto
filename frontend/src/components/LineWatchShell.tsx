@@ -4107,7 +4107,6 @@ export function LineWatchShell({
           tripChangeCount={regionalTripChangeCount ?? 0}
           surfaceNotices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
           operatingState={selectedNetwork === "ttc" ? subwayOperatingState : regionalRailOperatingState}
-          onOpenMore={() => setActiveView("more")}
           onOpenCategory={(view, lineId) => {
             if (view === "line-impacts" && lineId) {
               openLineImpacts(lineId);
