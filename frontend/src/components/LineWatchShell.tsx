@@ -4478,7 +4478,7 @@ export function LineWatchShell({
 
       {!showClosedScreen && (
       <header
-        className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start pointer-events-none"
+        className="absolute top-0 left-0 w-full p-4 sm:p-5 flex justify-between items-start pointer-events-none"
         style={{ zIndex: guideOpen ? 68 : 40 }}
       >
         {isMobile && (
@@ -5488,7 +5488,7 @@ export function LineWatchShell({
             </div>
             <div className="hidden sm:flex flex-col items-start leading-tight min-w-0 pr-0.5">
               <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                Estimated Trains
+                Train Markers
               </span>
               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
                 {!trainNetworkOpen ? "Closed" : estimatedTrainStatusLabel ?? (estimatedTrainsEnabled ? "On" : "Off")}

@@ -28,10 +28,13 @@
 @media (min-width: 768px) {
   .desktop-map-control-rail {
     top: 20px !important;
+    height: 56px;
+    border-radius: 12px;
+    box-sizing: border-box;
   }
   .regional-map-control-rail {
     top: 20px;
-    right: 24px !important;
+    right: 20px !important;
     left: auto;
     transform: none;
   }
@@ -40,10 +43,12 @@
 .map-control-rail {
   background: var(--panel-strong, #ffffff);
   border: 1px solid var(--border, rgba(15, 23, 42, 0.16));
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: var(--shadow, 0 10px 28px rgba(15, 23, 42, 0.18));
   color: var(--text, #0f172a);
   padding: 4px;
+  height: 56px;
+  box-sizing: border-box;
 }
 
 .dark .map-control-rail {
@@ -63,7 +68,7 @@
 .map-control-divider {
   align-self: center;
   background-color: rgba(15, 23, 42, 0.16);
-  height: 28px;
+  height: 24px;
   margin: 0 4px;
   width: 1px;
 }
@@ -97,13 +102,13 @@
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  height: 52px;
+  gap: 2px;
+  height: 48px;
   justify-content: center;
   outline: none;
   padding: 0 10px;
   transition: background-color 150ms ease, color 150ms ease, transform 120ms ease;
-  min-width: 52px;
+  min-width: 48px;
 }
 
 .map-control-button span {
