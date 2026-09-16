@@ -177,8 +177,7 @@ test.describe("Visual Regression Baselines", () => {
       viewport: { width: 1280, height: 800 },
     });
 
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: /Active Alerts/i }).click();
+    await page.locator(".desktop-status-cat-btn--alerts").click();
     await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
     await expect(page).toHaveScreenshot("high-contrast-panel-state.png");
   });
@@ -193,8 +192,7 @@ test.describe("Visual Regression Baselines", () => {
       viewport: { width: 1280, height: 800 },
     });
 
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: /Active Alerts/i }).click();
+    await page.locator(".desktop-status-cat-btn--alerts").click();
     await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
     await expect(page).toHaveScreenshot("current-status-alerts-panel.png");
   });
@@ -226,8 +224,8 @@ test.describe("Visual Regression Baselines", () => {
       viewport: { width: 1280, height: 800 },
     });
 
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+    await page.locator('.desktop-rail-item[data-dest="saved"]').click();
+    await page.getByRole("tab", { name: /My Commutes/i }).click();
     await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
     await expect(page).toHaveScreenshot("my-commutes-panel.png");
   });

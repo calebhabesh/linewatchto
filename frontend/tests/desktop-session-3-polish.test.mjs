@@ -7,7 +7,6 @@ import {
   DESKTOP_DOCK_BUDGET,
   DESKTOP_RAIL_WIDTH,
   DESKTOP_SIDEBAR_DEFAULT_WIDTH,
-  DESKTOP_SIDEBAR_MIN_WIDTH,
   DESKTOP_MAP_MIN_WIDTH,
 } from "../src/app/desktop-sidebar-state.ts";
 
@@ -84,22 +83,22 @@ describe("desktop responsive and accessibility polish (Session 3)", () => {
   });
 
   describe("narrow desktop overlay transitions and layout budget", () => {
-    it("computes docked mode when window width meets layout budget (872px)", () => {
-      assert.equal(DESKTOP_DOCK_BUDGET, 872);
+    it("computes docked mode when window width meets layout budget (932px)", () => {
+      assert.equal(DESKTOP_DOCK_BUDGET, 932);
       const docked = computeDesktopLayoutMetrics({ windowWidth: 1024, isMobile: false });
       assert.equal(docked.mode, "docked");
       assert.equal(docked.railWidth, DESKTOP_RAIL_WIDTH);
       assert.equal(docked.sidebarWidth, DESKTOP_SIDEBAR_DEFAULT_WIDTH);
 
-      const budgetExact = computeDesktopLayoutMetrics({ windowWidth: 872, isMobile: false });
+      const budgetExact = computeDesktopLayoutMetrics({ windowWidth: 932, isMobile: false });
       assert.equal(budgetExact.mode, "docked");
-      assert.equal(budgetExact.sidebarWidth, DESKTOP_SIDEBAR_MIN_WIDTH);
+      assert.equal(budgetExact.sidebarWidth, DESKTOP_SIDEBAR_DEFAULT_WIDTH);
     });
 
     it("computes overlay mode on narrow desktop below dock budget", () => {
       const overlay = computeDesktopLayoutMetrics({ windowWidth: 820, isMobile: false });
       assert.equal(overlay.mode, "overlay");
-      assert.equal(overlay.sidebarWidth, DESKTOP_SIDEBAR_MIN_WIDTH);
+      assert.equal(overlay.sidebarWidth, DESKTOP_SIDEBAR_DEFAULT_WIDTH);
       assert.equal(overlay.minMapWidth, DESKTOP_MAP_MIN_WIDTH);
     });
 
@@ -112,8 +111,8 @@ describe("desktop responsive and accessibility polish (Session 3)", () => {
       assert.equal(mobileFlag.mode, "mobile");
     });
 
-    it("applies smooth transitions to sidebar width and shadow in stylesheet", () => {
-      assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*transition:\s*width/);
+    it("applies shadow transitions without sliding width animation in stylesheet", () => {
+      assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*transition:\s*box-shadow/);
       assert.match(globalCss, /\.desktop-sidebar-container--overlay\s*\{[^}]*box-shadow/);
       assert.match(globalCss, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.desktop-sidebar-container/);
     });

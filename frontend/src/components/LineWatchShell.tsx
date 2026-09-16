@@ -55,6 +55,7 @@ import {
   saveDesktopSidebarCollapsed,
   computeDesktopLayoutMetrics,
   desktopRailDestinationForView,
+  resolveDesktopDestinationProfile,
   type DesktopRailDestination,
 } from "../app/desktop-sidebar-state";
 import { PwaInstallNudge } from "./PwaInstallNudge";
@@ -597,9 +598,6 @@ export function LineWatchShell({
     if (typeof window === "undefined") return 1200;
     return window.innerWidth;
   });
-  const desktopMetrics = useMemo(() => {
-    return computeDesktopLayoutMetrics({ windowWidth, isMobile });
-  }, [windowWidth, isMobile]);
   const activeViewRef = useRef<ActiveView>("map");
   const viewHistoryRef = useRef<ActiveView[]>([]);
   const viewScrollPositionsRef = useRef<Partial<Record<ActiveView, number>>>({});
@@ -1211,6 +1209,30 @@ export function LineWatchShell({
   );
   const stationSummaries = stationCatalogs[selectedNetwork];
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+
+  const desktopProfile = useMemo(() => {
+    return resolveDesktopDestinationProfile({
+      activeView,
+      selectedStationId,
+      commutesTab: activeView === "commutes" ? commutesActiveTab : null,
+    });
+  }, [activeView, selectedStationId, commutesActiveTab]);
+
+  const desktopMetrics = useMemo(() => {
+    return computeDesktopLayoutMetrics({ windowWidth, isMobile, profile: desktopProfile });
+  }, [windowWidth, isMobile, desktopProfile]);
+
+  const isTopLevelDesktopView = useMemo(() => {
+    return (
+      !selectedStationId &&
+      (activeView === "status" ||
+        activeView === "map" ||
+        activeView === "search" ||
+        activeView === "more" ||
+        activeView === "my-stations" ||
+        (activeView === "commutes" && commutesActiveTab !== "create"))
+    );
+  }, [selectedStationId, activeView, commutesActiveTab]);
   const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
     if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
     return readStoredSheetHeightRatio(window.localStorage);
@@ -2507,7 +2529,16 @@ export function LineWatchShell({
     setCommutePathPreview(preview);
     setSelection(null);
     setSelectedStationId(null);
-    navigateToMapDrilldown();
+    if (isMobile) {
+      navigateToMapDrilldown();
+    } else if (desktopMetrics.mode === "overlay") {
+      setDesktopSidebarCollapsed(true);
+      requestAnimationFrame(() => {
+        desktopRailToggleRef.current?.focus();
+      });
+    } else {
+      setMapLayoutSignal((prev) => prev + 1);
+    }
   };
 
   const handleViewCommuteImpactOnPath = (
@@ -3585,6 +3616,20 @@ export function LineWatchShell({
     }
   };
 
+  const handleFocusMapFromPanel = useCallback(() => {
+    if (isMobile) {
+      setActiveView("map");
+      return;
+    }
+    if (desktopMetrics.mode === "overlay") {
+      setDesktopSidebarCollapsed(true);
+      requestAnimationFrame(() => {
+        desktopRailToggleRef.current?.focus();
+      });
+    }
+    setMapLayoutSignal((prev) => prev + 1);
+  }, [isMobile, desktopMetrics.mode]);
+
   const renderPanelContent = () => {
     switch (activeView) {
       case "status":
@@ -3631,7 +3676,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
-            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            onFocusMap={handleFocusMapFromPanel}
           />
         ) : null;
       case "alerts":
@@ -3642,7 +3687,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
-            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            onFocusMap={handleFocusMapFromPanel}
             initialLineId={impactListLaunch.lineId}
             commutePathPreview={commutePathPreview}
             onClearCommutePathPreview={handleClearCommutePathPreview}
@@ -3656,7 +3701,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
-            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            onFocusMap={handleFocusMapFromPanel}
             initialLineId={impactListLaunch.lineId}
             commutePathPreview={commutePathPreview}
             onClearCommutePathPreview={handleClearCommutePathPreview}
@@ -3670,7 +3715,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
-            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            onFocusMap={handleFocusMapFromPanel}
             initialLineId={impactListLaunch.lineId}
             commutePathPreview={commutePathPreview}
             onClearCommutePathPreview={handleClearCommutePathPreview}
@@ -3684,7 +3729,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
-            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            onFocusMap={handleFocusMapFromPanel}
             initialLineId={impactListLaunch.lineId}
             commutePathPreview={commutePathPreview}
             onClearCommutePathPreview={handleClearCommutePathPreview}
@@ -5497,7 +5542,7 @@ export function LineWatchShell({
           ) : null}
         </div>
 
-        <div className="map-utility-cluster pointer-events-auto flex items-center gap-2" data-map-chooser-keepout>
+        <div className="map-utility-cluster ml-auto pointer-events-auto flex items-center gap-2" data-map-chooser-keepout>
           <LogsDropdown network={selectedNetwork} />
           <button
             type="button"
@@ -5588,7 +5633,7 @@ export function LineWatchShell({
         {!isMobile && (
           <aside
             id="desktop-sidebar-container"
-            className={`desktop-sidebar-container ${
+            className={`desktop-sidebar-container desktop-sidebar-container--${desktopProfile} ${
               desktopMetrics.mode === "docked"
                 ? "desktop-sidebar-container--docked"
                 : "desktop-sidebar-container--overlay"
@@ -5597,6 +5642,7 @@ export function LineWatchShell({
               width: `${desktopMetrics.sidebarWidth}px`,
               maxWidth: `${desktopMetrics.sidebarWidth}px`,
             }}
+            data-profile={desktopProfile}
             aria-hidden={desktopSidebarCollapsed ? "true" : undefined}
             aria-label="Sidebar navigation and details"
           >
@@ -5608,47 +5654,49 @@ export function LineWatchShell({
                 </div>
                 <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
               </div>
-              <div className="desktop-sidebar-search-row">
-                <div className="desktop-sidebar-search-input">
-                  <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-400" aria-hidden="true" />
-                  <input
-                    ref={desktopSearchInputRef}
-                    type="search"
-                    value={stationSearchQuery}
-                    onChange={(e) => {
-                      setStationSearchQuery(e.target.value);
-                      if (activeView !== "search") {
-                        searchOriginRef.current = activeView;
-                        setActiveView("search");
-                      }
-                    }}
-                    onFocus={() => {
-                      if (activeView !== "search") {
-                        searchOriginRef.current = activeView;
-                        setActiveView("search");
-                      }
-                    }}
-                    onKeyDown={(e) => stationKeyDownHandlerRef.current?.(e)}
-                    placeholder="Search stations, lines, alerts..."
-                    aria-label="Station Search"
-                    aria-controls="station-search-panel"
-                    className="desktop-sidebar-search-field"
-                  />
-                  {stationSearchQuery ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStationSearchQuery("");
-                        desktopSearchInputRef.current?.focus();
+              {isTopLevelDesktopView && (
+                <div className="desktop-sidebar-search-row">
+                  <div className="desktop-sidebar-search-input">
+                    <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-400" aria-hidden="true" />
+                    <input
+                      ref={desktopSearchInputRef}
+                      type="search"
+                      value={stationSearchQuery}
+                      onChange={(e) => {
+                        setStationSearchQuery(e.target.value);
+                        if (activeView !== "search") {
+                          searchOriginRef.current = activeView;
+                          setActiveView("search");
+                        }
                       }}
-                      className="desktop-sidebar-search-clear"
-                      aria-label="Clear search"
-                    >
-                      <X size={14} aria-hidden="true" />
-                    </button>
-                  ) : null}
+                      onFocus={() => {
+                        if (activeView !== "search") {
+                          searchOriginRef.current = activeView;
+                          setActiveView("search");
+                        }
+                      }}
+                      onKeyDown={(e) => stationKeyDownHandlerRef.current?.(e)}
+                      placeholder="Search stations, lines, alerts..."
+                      aria-label="Station Search"
+                      aria-controls="station-search-panel"
+                      className="desktop-sidebar-search-field"
+                    />
+                    {stationSearchQuery ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStationSearchQuery("");
+                          desktopSearchInputRef.current?.focus();
+                        }}
+                        className="desktop-sidebar-search-clear"
+                        aria-label="Clear search"
+                      >
+                        <X size={14} aria-hidden="true" />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
+              )}
             </header>
             <div className="desktop-sidebar-content">
               {renderDesktopSidebarContent()}

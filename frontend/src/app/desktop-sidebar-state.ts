@@ -2,28 +2,6 @@ export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 export const DESKTOP_SIDEBAR_COLLAPSED_KEY = "linewatch-desktop-sidebar-collapsed";
 
-export const DESKTOP_RAIL_WIDTH = 72;
-export const DESKTOP_SIDEBAR_DEFAULT_WIDTH = 380;
-export const DESKTOP_SIDEBAR_MIN_WIDTH = 320;
-export const DESKTOP_MAP_MIN_WIDTH = 480;
-
-/**
- * The layout budget required to dock the sidebar beside the map:
- * rail (72px) + minimum readable content (320px) + minimum usable map (480px) = 872px.
- */
-export const DESKTOP_DOCK_BUDGET =
-  DESKTOP_RAIL_WIDTH + DESKTOP_SIDEBAR_MIN_WIDTH + DESKTOP_MAP_MIN_WIDTH;
-
-export type DesktopLayoutMode = "docked" | "overlay" | "mobile";
-
-export type DesktopLayoutMetrics = {
-  mode: DesktopLayoutMode;
-  sidebarWidth: number;
-  minMapWidth: number;
-  dockBudget: number;
-  railWidth: number;
-};
-
 /**
  * Reads the durable desktop sidebar collapse preference.
  * Defaults to false (expanded) on first visit or if storage is unavailable.
@@ -52,51 +30,164 @@ export function saveDesktopSidebarCollapsed(
   }
 }
 
+export const DESKTOP_RAIL_WIDTH = 72;
+export const DESKTOP_MAP_MIN_WIDTH = 480;
+export const DESKTOP_OVERLAY_MIN_MAP_EXPOSED = 160;
+
+export type DesktopSidebarProfile = "compact" | "medium" | "wide";
+
+export const DESKTOP_PROFILE_WIDTHS: Record<DesktopSidebarProfile, number> = {
+  compact: 380,
+  medium: 560,
+  wide: 680,
+};
+
 /**
- * Computes the responsive desktop layout metrics given window width and mobile status.
+ * Concrete dock layout thresholds for available window width W:
+ * rail (72px) + profile target (P) + minimum map width (480px)
+ * - Compact: 72 + 380 + 480 = 932px
+ * - Medium:  72 + 560 + 480 = 1112px
+ * - Wide:    72 + 680 + 480 = 1232px
+ */
+export const DESKTOP_PROFILE_DOCK_BUDGETS: Record<DesktopSidebarProfile, number> = {
+  compact: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.compact + DESKTOP_MAP_MIN_WIDTH, // 932
+  medium: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.medium + DESKTOP_MAP_MIN_WIDTH,   // 1112
+  wide: DESKTOP_RAIL_WIDTH + DESKTOP_PROFILE_WIDTHS.wide + DESKTOP_MAP_MIN_WIDTH,       // 1232
+};
+
+export const DESKTOP_SIDEBAR_DEFAULT_WIDTH = DESKTOP_PROFILE_WIDTHS.compact;
+export const DESKTOP_SIDEBAR_MIN_WIDTH = 320;
+
+/** Backwards-compatibility alias for compact dock budget */
+export const DESKTOP_DOCK_BUDGET = DESKTOP_PROFILE_DOCK_BUDGETS.compact;
+
+export type DesktopLayoutMode = "docked" | "overlay" | "mobile";
+
+export type DesktopLayoutMetrics = {
+  mode: DesktopLayoutMode;
+  sidebarWidth: number;
+  minMapWidth: number;
+  dockBudget: number;
+  railWidth: number;
+  profile: DesktopSidebarProfile;
+};
+
+export type DesktopDestinationContext = {
+  activeView: string;
+  selectedStationId?: string | null;
+  commutesTab?: "saved" | "create" | null;
+};
+
+/**
+ * Explicitly resolves the target profile for any reachable desktop destination.
+ * Sizing is governed by named content profiles, never by counts or polling data:
+ * - Compact (380px): Status, Search, More, Saved collection/navigation roots
+ * - Medium (560px): Station detail, account/commute editing and substantive forms
+ * - Wide (680px): Rich impact collections/details, line impacts, reliability/analytics
+ */
+export function resolveDesktopDestinationProfile(
+  context: DesktopDestinationContext | string,
+): DesktopSidebarProfile {
+  const activeView = typeof context === "string" ? context : context.activeView;
+  const selectedStationId = typeof context === "string" ? null : context.selectedStationId;
+  const commutesTab = typeof context === "string" ? null : context.commutesTab;
+
+  // Station detail takes precedence -> Medium (560px)
+  if (selectedStationId) {
+    return "medium";
+  }
+
+  // Commute creation / editing form -> Medium (560px), saved collection root -> Compact (380px)
+  if (activeView === "commutes") {
+    return commutesTab === "create" ? "medium" : "compact";
+  }
+
+  switch (activeView) {
+    // Rich impact collections/details, line impacts, reliability/analytics -> Wide (680px)
+    case "alerts":
+    case "delays":
+    case "reduced-speed-zones":
+    case "closures":
+    case "line-impacts":
+    case "accessibility-outages":
+    case "surface-notices":
+    case "announcements":
+    case "analytics":
+    case "alert-history":
+      return "wide";
+
+    // Substantive forms & documents -> Medium (560px)
+    case "notifications":
+    case "feedback":
+    case "privacy-acknowledgements":
+    case "release-notes":
+      return "medium";
+
+    // Status, Search, More, Saved collection/navigation roots -> Compact (380px)
+    case "status":
+    case "search":
+    case "more":
+    case "menu":
+    case "saved":
+    case "my-stations":
+    case "map":
+    default:
+      return "compact";
+  }
+}
+
+/**
+ * Computes responsive desktop layout metrics for a given window width, mobile flag, and profile:
+ * 1. Mobile or width < 768px: mode = "mobile", sidebarWidth = 0.
+ * 2. Docked when W >= R (72px) + P + 480px: sidebarWidth = P; map receives remaining layout width.
+ * 3. Overlay otherwise beside rail: sidebarWidth = min(P, W - R - 160px), leaving >= 160px exposed map.
  */
 export function computeDesktopLayoutMetrics({
   windowWidth,
   isMobile,
+  profile = "compact",
 }: {
   windowWidth: number;
   isMobile: boolean;
+  profile?: DesktopSidebarProfile;
 }): DesktopLayoutMetrics {
+  const dockBudget = DESKTOP_PROFILE_DOCK_BUDGETS[profile];
+  const targetWidth = DESKTOP_PROFILE_WIDTHS[profile];
+
   if (isMobile || windowWidth < 768) {
     return {
       mode: "mobile",
       sidebarWidth: 0,
       minMapWidth: 0,
-      dockBudget: DESKTOP_DOCK_BUDGET,
+      dockBudget,
       railWidth: 0,
+      profile,
     };
   }
 
-  if (windowWidth >= DESKTOP_DOCK_BUDGET) {
-    // Docked mode: scale content width between min (320) and default (380)
-    // based on remaining space after reserving rail and min map width.
-    const availableForSidebar = windowWidth - DESKTOP_RAIL_WIDTH - DESKTOP_MAP_MIN_WIDTH;
-    const sidebarWidth = Math.min(
-      DESKTOP_SIDEBAR_DEFAULT_WIDTH,
-      Math.max(DESKTOP_SIDEBAR_MIN_WIDTH, Math.round(availableForSidebar)),
-    );
-
+  if (windowWidth >= dockBudget) {
+    // Docked mode: sidebar width is fixed P; map receives remaining layout width
     return {
       mode: "docked",
-      sidebarWidth,
+      sidebarWidth: targetWidth,
       minMapWidth: DESKTOP_MAP_MIN_WIDTH,
-      dockBudget: DESKTOP_DOCK_BUDGET,
+      dockBudget,
       railWidth: DESKTOP_RAIL_WIDTH,
+      profile,
     };
   }
 
-  // Narrow desktop: overlay mode with minimum content width
+  // Overlay mode: overlay beside the rail, leaving at least 160px of map exposed
+  const maxOverlayWidth = Math.max(0, windowWidth - DESKTOP_RAIL_WIDTH - DESKTOP_OVERLAY_MIN_MAP_EXPOSED);
+  const sidebarWidth = Math.min(targetWidth, maxOverlayWidth);
+
   return {
     mode: "overlay",
-    sidebarWidth: DESKTOP_SIDEBAR_MIN_WIDTH,
+    sidebarWidth,
     minMapWidth: DESKTOP_MAP_MIN_WIDTH,
-    dockBudget: DESKTOP_DOCK_BUDGET,
+    dockBudget,
     railWidth: DESKTOP_RAIL_WIDTH,
+    profile,
   };
 }
 
