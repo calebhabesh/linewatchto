@@ -1,5 +1,6 @@
 import { useMapViewportPersistence } from "./useMapViewportPersistence";
 import { readMapStationCenterX, readMobileMapFrameInsets } from "./mobileMapFrame";
+import { readDesktopOverlayInsets } from "../app/desktop-sidebar-state";
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, type PointerEvent, type WheelEvent } from "react";
 import {
@@ -125,16 +126,21 @@ export function usePanZoom({
     if (defaultFrame) {
       const mobileInsets = viewportOrientation === "standard"
         ? readMobileMapFrameInsets(containerRef.current) : null;
+      const desktopOverlay = readDesktopOverlayInsets(containerRef.current);
       const minHorizontalInset = defaultFrame.minHorizontalInset ?? (width < 768 ? 12 : 32);
       const horizontalInset = defaultFrame.horizontalInsetRatio
         ? Math.min(64, Math.max(minHorizontalInset, width * defaultFrame.horizontalInsetRatio))
         : (width < 768 ? 12 : 0);
+      const leftInset = Math.max(
+        horizontalInset,
+        desktopOverlay.left + (desktopOverlay.left > 0 ? 24 : 0),
+      );
       const frame = computeBoundedMapFrame(
         width,
         height,
         defaultFrame.bounds,
         {
-          left: horizontalInset,
+          left: leftInset,
           right: horizontalInset,
           top: mobileInsets?.top ?? defaultFrame.topInset,
           bottom: mobileInsets?.bottom ?? defaultFrame.bottomInset ?? 0,
@@ -156,12 +162,14 @@ export function usePanZoom({
       };
     }
 
+    const desktopOverlay = readDesktopOverlayInsets(containerRef.current);
     const mapWidth = 4500;
     const mapHeight = 2181.82;
     const scale = computeMapFitScale(width, height, mapWidth, mapHeight);
     const artworkCenterX = (65 + 7925) * (4500 / 8250) / 2;
+    const effectiveCenterX = (width + desktopOverlay.left) / 2;
     return {
-      x: width / 2 - artworkCenterX * scale,
+      x: effectiveCenterX - artworkCenterX * scale,
       y: height / 2 - (mapHeight * 0.435) * scale,
       scale,
     };

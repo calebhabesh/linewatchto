@@ -47,6 +47,16 @@ import { RotatedMapSelectionCard } from "./RotatedMapSelectionCard";
 import { MobileImpactInspector, type MobileInspectorDetent } from "./MobileImpactInspector";
 import { MobileStatusSheet } from "./MobileStatusSheet";
 import { MobileMoreSheet } from "./MobileMoreSheet";
+import { DesktopNavRail } from "./DesktopNavRail";
+import { DesktopStatusOverview } from "./DesktopStatusOverview";
+import { DesktopMorePanel } from "./DesktopMorePanel";
+import {
+  readDesktopSidebarCollapsed,
+  saveDesktopSidebarCollapsed,
+  computeDesktopLayoutMetrics,
+  desktopRailDestinationForView,
+  type DesktopRailDestination,
+} from "../app/desktop-sidebar-state";
 import { PwaInstallNudge } from "./PwaInstallNudge";
 import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -528,7 +538,12 @@ export function LineWatchShell({
   const [dotBackgroundEnabled, setDotBackgroundEnabled] = useState(initialVisualPreferences.dotBackgroundEnabled);
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
-  const [activeView, setActiveView] = useState<ActiveView>("map");
+  const [activeView, setActiveView] = useState<ActiveView>(() => {
+    if (typeof window !== "undefined" && !window.matchMedia(MOBILE_VIEWPORT_QUERY).matches) {
+      return "status";
+    }
+    return "map";
+  });
   const lastSavedViewRef = useRef<"my-stations" | "commutes">("my-stations");
 
   useEffect(() => {
@@ -574,6 +589,17 @@ export function LineWatchShell({
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return readDesktopSidebarCollapsed(window.localStorage);
+  });
+  const [windowWidth, setWindowWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return 1200;
+    return window.innerWidth;
+  });
+  const desktopMetrics = useMemo(() => {
+    return computeDesktopLayoutMetrics({ windowWidth, isMobile });
+  }, [windowWidth, isMobile]);
   const activeViewRef = useRef<ActiveView>("map");
   const viewHistoryRef = useRef<ActiveView[]>([]);
   const viewScrollPositionsRef = useRef<Partial<Record<ActiveView, number>>>({});
@@ -821,10 +847,25 @@ export function LineWatchShell({
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
-    const sync = () => setIsMobile(mediaQuery.matches);
+    const sync = () => {
+      const mobile = mediaQuery.matches;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setActiveView((curr) => (curr === "map" ? "status" : curr));
+      }
+    };
     sync();
     mediaQuery.addEventListener("change", sync);
     return () => mediaQuery.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -1040,7 +1081,7 @@ export function LineWatchShell({
       ? "commutes"
       : isMobile
         ? "map"
-        : "menu";
+        : "status";
     const previous = popViewHistory(viewHistoryRef.current, fallback);
     viewHistoryRef.current = previous.history;
     activeViewRef.current = previous.view;
@@ -1188,6 +1229,10 @@ export function LineWatchShell({
   const [stationPanelActivationKey, setStationPanelActivationKey] = useState(0);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
+  const [desktopLiveAnnouncement, setDesktopLiveAnnouncement] = useState("");
+  const announceDesktop = useCallback((message: string) => {
+    setDesktopLiveAnnouncement(message);
+  }, []);
   const [accessibilityOutageState, setAccessibilityOutageState] = useState<{
     networkId: NetworkId;
     data: AccessibilityOutageResponse;
@@ -1260,22 +1305,26 @@ export function LineWatchShell({
     }
 
     const stationOriginId = stationDrilldownOriginRef.current;
-    const mobileFallback = activeView === "alerts"
-      || activeView === "delays"
-      || activeView === "reduced-speed-zones"
-      || activeView === "closures"
-      || activeView === "line-impacts"
-      || activeView === "accessibility-outages"
-      || activeView === "surface-notices"
-        ? "status"
-        : activeView === "commutes"
-          ? "map"
-          : "more";
+    const isStatusView =
+      activeView === "alerts" ||
+      activeView === "delays" ||
+      activeView === "reduced-speed-zones" ||
+      activeView === "closures" ||
+      activeView === "line-impacts" ||
+      activeView === "accessibility-outages" ||
+      activeView === "surface-notices" ||
+      activeView === "announcements";
+    const desktopFallback: ActiveView = isStatusView ? "status" : "more";
+    const mobileFallback: ActiveView = isStatusView
+      ? "status"
+      : activeView === "commutes"
+        ? "map"
+        : "more";
     const fallback: ActiveView = commutePathPreviewRef.current
       ? "commutes"
       : isMobile
         ? mobileFallback
-        : "menu";
+        : desktopFallback;
     const previous = stationOriginId
       ? { history: [] as ActiveView[], view: "map" as ActiveView }
       : popViewHistory(viewHistoryRef.current, fallback);
@@ -1311,7 +1360,7 @@ export function LineWatchShell({
       viewHistoryRef.current = previous.history.length > 0
         ? previous.history
         : returningToCommutesFromPreview
-          ? (isMobile ? ["more"] : ["menu"])
+          ? (isMobile ? ["more"] : ["status"])
           : [];
       activeViewRef.current = targetView;
       setActiveView(targetView);
@@ -1537,7 +1586,8 @@ export function LineWatchShell({
     stationDrilldownOriginRef.current = null;
     selectedStationIdRef.current = null;
     setSelectedStationId((current) => current === expectedStationId ? null : current);
-  }, [consumeBrowserNavigationEntries, setSelectedStationId]);
+    announceDesktop("Station details closed");
+  }, [consumeBrowserNavigationEntries, setSelectedStationId, announceDesktop]);
 
   const currentSavedStations = useMemo(
     () => savedStations.filter((saved) => saved.networkId === selectedNetwork),
@@ -1797,10 +1847,16 @@ export function LineWatchShell({
       setSelectedStationId(requestedStationId);
       setStationPanelActivationKey((current) => current + 1);
       setMobileInspectorDetent("details-focus");
+      if (!isMobile) {
+        setDesktopSidebarCollapsed(false);
+      }
       setActiveView("map");
     } else if (resolvedLineDeepLink) {
       if (resolvedLineDeepLink.network !== requestedNetwork) {
         setSelectedNetwork(resolvedLineDeepLink.network);
+      }
+      if (!isMobile) {
+        setDesktopSidebarCollapsed(false);
       }
       openLineImpacts(resolvedLineDeepLink.lineId);
       nextParams.delete("line");
@@ -1809,11 +1865,10 @@ export function LineWatchShell({
       shouldReplaceUrl = true;
     } else if (panel && panelToView[panel]) {
       const targetView = panelToView[panel];
-      if (targetView === "status" && !isMobile) {
-        navigateForward("menu");
-      } else {
-        navigateForward(targetView);
+      if (!isMobile) {
+        setDesktopSidebarCollapsed(false);
       }
+      navigateForward(targetView);
       nextParams.delete("panel");
       shouldReplaceUrl = true;
     }
@@ -2534,7 +2589,7 @@ export function LineWatchShell({
       setSelection(null);
       setSelectedStationId(null);
       setAccessibilityOutageTarget(null);
-      viewHistoryRef.current = isMobile ? ["more"] : ["menu"];
+      viewHistoryRef.current = isMobile ? ["more"] : ["status"];
       activeViewRef.current = "commutes";
       setActiveView("commutes");
       setIsGoingBack(false);
@@ -2543,6 +2598,9 @@ export function LineWatchShell({
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopRailToggleRef = useRef<HTMLButtonElement>(null);
+  const searchOriginRef = useRef<ActiveView>("status");
   const headerSearchBarRef = useRef<HTMLDivElement>(null);
   const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
@@ -2834,7 +2892,25 @@ export function LineWatchShell({
       setSelectedStationId(pendingStationSelection?.stationId ?? null);
       setVisibleStationResult(null);
       setStationSearchQuery("");
-      setActiveView("map");
+      if (!isMobile) {
+        announceDesktop(
+          network === "regional"
+            ? "Switched to GO Transit and UP Express network"
+            : "Switched to TTC Subway and LRT network",
+        );
+        if (
+          activeView === "search" ||
+          activeView === "my-stations" ||
+          activeView === "commutes" ||
+          activeView === "more"
+        ) {
+          // Keep active top-level rail section
+        } else {
+          setActiveView("status");
+        }
+      } else {
+        setActiveView("map");
+      }
       setMapPresentationMode("standard");
       setMobileInspectorDetent(pendingStationSelection ? "details-focus" : "map-focus");
     };
@@ -2925,6 +3001,8 @@ export function LineWatchShell({
   const handleCloseSearch = useCallback(() => {
     if (isClosingSearch) return;
     stationSearchInputRef.current?.blur();
+    desktopSearchInputRef.current?.blur();
+    const destination = !isMobile ? (searchOriginRef.current || "status") : "map";
     if (reducedMotion) {
       if (searchClosingTimeoutRef.current) {
         window.clearTimeout(searchClosingTimeoutRef.current);
@@ -2932,7 +3010,7 @@ export function LineWatchShell({
       }
       setIsClosingSearch(false);
       setStationSearchQuery("");
-      navigateRoot("map");
+      navigateRoot(destination);
       return;
     }
     setIsClosingSearch(true);
@@ -2942,18 +3020,102 @@ export function LineWatchShell({
     searchClosingTimeoutRef.current = window.setTimeout(() => {
       setIsClosingSearch(false);
       setStationSearchQuery("");
-      navigateRoot("map");
+      navigateRoot(destination);
       searchClosingTimeoutRef.current = null;
     }, isMobile ? 220 : 200);
   }, [isClosingSearch, isMobile, navigateRoot, reducedMotion]);
 
-  const handleOpenSearch = () => {
+  // Desktop keyboard shortcuts (Escape key navigation)
+  useEffect(() => {
+    if (isMobile) return;
+
+    const handleDesktopKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      // If an active modal dialog is open, let the modal handle its own Escape
+      if (document.querySelector("[role='dialog'][aria-modal='true'], [role='alertdialog'][aria-modal='true']")) {
+        return;
+      }
+
+      // If search query is non-empty or search input is focused / activeView === 'search'
+      if (activeView === "search" || document.activeElement === desktopSearchInputRef.current) {
+        event.preventDefault();
+        if (stationSearchQuery.trim()) {
+          setStationSearchQuery("");
+          desktopSearchInputRef.current?.focus();
+        } else {
+          handleCloseSearch();
+        }
+        return;
+      }
+
+      // If a station is selected on desktop
+      if (selectedStationId) {
+        event.preventDefault();
+        closeSelectedStation(selectedStationId);
+        return;
+      }
+
+      // If map selection is active
+      if (selection) {
+        event.preventDefault();
+        setSelection(null);
+        return;
+      }
+
+      // If in a subpanel view
+      const subviews: ActiveView[] = [
+        "alerts",
+        "delays",
+        "reduced-speed-zones",
+        "closures",
+        "line-impacts",
+        "accessibility-outages",
+        "surface-notices",
+        "announcements",
+        "analytics",
+        "alert-history",
+        "notifications",
+        "feedback",
+        "privacy-acknowledgements",
+        "release-notes",
+      ];
+      if (subviews.includes(activeView)) {
+        event.preventDefault();
+        handleSubmenuBack();
+      }
+    };
+
+    window.addEventListener("keydown", handleDesktopKeyDown);
+    return () => window.removeEventListener("keydown", handleDesktopKeyDown);
+  }, [
+    isMobile,
+    activeView,
+    stationSearchQuery,
+    selectedStationId,
+    selection,
+    handleCloseSearch,
+    closeSelectedStation,
+    handleSubmenuBack,
+  ]);
+
+  const handleOpenSearch = useCallback(() => {
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
-    window.setTimeout(() => stationSearchInputRef.current?.focus({ preventScroll: true }), 0);
+    if (!isMobile) {
+      if (desktopSidebarCollapsed) {
+        setDesktopSidebarCollapsed(false);
+      }
+      if (activeView !== "search") {
+        searchOriginRef.current = activeView;
+      }
+      window.setTimeout(() => desktopSearchInputRef.current?.focus({ preventScroll: true }), 0);
+    } else {
+      window.setTimeout(() => stationSearchInputRef.current?.focus({ preventScroll: true }), 0);
+    }
     navigateRoot("search");
-  };
+  }, [activeView, desktopSidebarCollapsed, isMobile, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection]);
 
   // Dismiss search when clicking outside the header bar and the search panel
   useEffect(() => {
@@ -2963,9 +3125,13 @@ export function LineWatchShell({
       const target = event.target as Node;
       const barEl = headerSearchBarRef.current;
       const panelEl = document.getElementById("station-search-panel");
+      const sidebarEl = document.getElementById("desktop-sidebar-container");
+      const railEl = document.querySelector(".desktop-nav-rail");
 
       if (barEl?.contains(target)) return;
       if (panelEl?.contains(target)) return;
+      if (sidebarEl?.contains(target)) return;
+      if (railEl?.contains(target)) return;
       if (target instanceof Element && target.closest(".mobile-bottom-nav, .mobile-app-topbar")) return;
 
       handleCloseSearch();
@@ -2999,13 +3165,19 @@ export function LineWatchShell({
     setSelection(null);
     setCommutePathPreview(null);
     if (id) {
+      if (!isMobile && desktopSidebarCollapsed) {
+        setDesktopSidebarCollapsed(false);
+      }
+      if (!isMobile) {
+        announceDesktop("Station details opened");
+      }
       recordPwaInstallEngagement();
       if (isMobile) {
         setMobileInspectorDetent("details-focus");
       }
       navigateToMapDrilldown();
     }
-  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, isMobile, recordPwaInstallEngagement]);
+  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, isMobile, recordPwaInstallEngagement, desktopSidebarCollapsed, announceDesktop]);
 
 
   const openMobileShortcut = (view: ActiveView, noticeContent?: "notices" | "trip-changes") => {
@@ -3232,9 +3404,12 @@ export function LineWatchShell({
       navigateToMapDrilldown();
       return;
     }
+    if (desktopSidebarCollapsed) {
+      setDesktopSidebarCollapsed(false);
+    }
     activeViewRef.current = targetView;
     setActiveView(targetView);
-  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
+  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement, desktopSidebarCollapsed]);
 
   const handleStationSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     if (selectedStationIdRef.current) {
@@ -3720,6 +3895,284 @@ export function LineWatchShell({
     }
   };
 
+  const handleToggleDesktopSidebar = useCallback(() => {
+    setDesktopSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        saveDesktopSidebarCollapsed(window.localStorage, next);
+      }
+      return next;
+    });
+  }, []);
+
+  const prevSidebarCollapsedRef = useRef(desktopSidebarCollapsed);
+  useEffect(() => {
+    if (isMobile) return;
+    if (prevSidebarCollapsedRef.current !== desktopSidebarCollapsed) {
+      prevSidebarCollapsedRef.current = desktopSidebarCollapsed;
+      announceDesktop(desktopSidebarCollapsed ? "Sidebar collapsed" : "Sidebar expanded");
+    }
+  }, [desktopSidebarCollapsed, isMobile, announceDesktop]);
+
+  const handleSelectRailDestination = useCallback((dest: DesktopRailDestination) => {
+    if (desktopSidebarCollapsed) {
+      setDesktopSidebarCollapsed(false);
+      announceDesktop("Sidebar expanded");
+    }
+    setSelection(null);
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    switch (dest) {
+      case "status":
+        navigateRoot("status");
+        announceDesktop("System status overview");
+        return;
+      case "search":
+        if (activeView !== "search") {
+          searchOriginRef.current = activeView;
+        }
+        handleOpenSearch();
+        announceDesktop("Search stations, lines, and alerts");
+        return;
+      case "saved":
+        navigateRoot(lastSavedViewRef.current || "my-stations");
+        announceDesktop("Saved stations and commutes");
+        return;
+      case "more":
+        navigateRoot("more");
+        announceDesktop("More options and settings");
+        return;
+    }
+  }, [activeView, desktopSidebarCollapsed, handleOpenSearch, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop]);
+
+  const renderDesktopSidebarContent = () => {
+    if (selectedStationId) {
+      if (selectedNetwork === "ttc") {
+        return (
+          <StationDetailPanel
+            key={`${selectedStationId}:${stationPanelActivationKey}`}
+            stationResult={visibleStationResult}
+            loading={stationLoading}
+            updating={stationLoading && Boolean(visibleStationResult?.data)}
+            selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
+            onClose={() => closeSelectedStation(selectedStationId)}
+            onSelectImpact={handleStationSelectImpact}
+            reducedMotion={reducedMotion}
+            authenticated={accountState.authenticated || accountState.source === "unavailable"}
+            saved={savedStationIds.has(selectedStationId)}
+            savePending={pendingSavedStationIds.has(selectedStationId)}
+            onToggleSaved={handleToggleSavedStation}
+            onRequestSignIn={() => {
+              setAccountEntryIntent("register");
+              openAccountDialog("auth-choice");
+              setAccountError(null);
+            }}
+          />
+        );
+      }
+      return (
+        <RegionalStationDetailPanel
+          key={`${selectedStationId}:${stationPanelActivationKey}`}
+          station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}
+          accessibilityOutages={Array.from(new Map(
+            (accessibilityOutageResult?.groups ?? [])
+              .flatMap((group) => group.stations)
+              .filter((station) => station.stationId === selectedStationId)
+              .flatMap((station) => station.outages)
+              .map((outage) => [outage.id, outage]),
+          ).values())}
+          accessibilityFresh={!displayData.snapshot && accessibilityOutageResult?.fresh === true}
+          onClose={() => closeSelectedStation(selectedStationId)}
+          onSelectImpact={handleStationSelectImpact}
+          authenticated={accountState.authenticated || accountState.source === "unavailable"}
+          saved={savedStationIds.has(selectedStationId)}
+          savePending={pendingSavedStationIds.has(selectedStationId)}
+          onToggleSaved={handleToggleSavedStation}
+          onRequestSignIn={() => {
+            setAccountEntryIntent("register");
+            openAccountDialog("auth-choice");
+            setAccountError(null);
+          }}
+        />
+      );
+    }
+
+    if (activeView === "search") {
+      return (
+        <StationSearchPanel
+          open
+          isClosing={isClosingSearch}
+          stationCatalogs={stationCatalogs}
+          currentNetwork={selectedNetwork}
+          selectedStationId={selectedStationId}
+          onSelectStation={handleSearchSelectStation}
+          onSelectImpact={handleSearchSelectImpact}
+          onOpenImpactCategory={handleSearchOpenImpactCategory}
+          onClose={handleCloseSearch}
+          onDismiss={handleCloseSearch}
+          query={stationSearchQuery}
+          onQueryChange={setStationSearchQuery}
+          inputRef={desktopSearchInputRef}
+          keyDownHandlerRef={stationKeyDownHandlerRef}
+          isMobile={false}
+          externalMobileInput
+          authenticated={accountState.authenticated || accountState.source === "unavailable"}
+          savedStationKeys={savedStationKeys}
+          pendingSavedStationIds={pendingSavedStationIds}
+          onToggleSavedStation={handleToggleSavedStation}
+          onRequestSignIn={() => {
+            setAccountEntryIntent("register");
+            openAccountDialog("auth-choice");
+            setAccountError(null);
+          }}
+          savedCommutes={accountCommutes}
+          surfaceSearchEnabled
+          onOpenDestination={(view) => {
+            if (view === "commutes") {
+              setCommutesActiveTab("saved");
+              setCommutesDraft(null);
+              clearPersistedCommuteDraft();
+            }
+            navigateForward(view);
+          }}
+          onOpenSavedCommute={() => {
+            setCommutesActiveTab("saved");
+            setCommutesDraft(null);
+            clearPersistedCommuteDraft();
+            navigateForward("commutes");
+          }}
+          onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
+        />
+      );
+    }
+
+    if (activeView === "status" || activeView === "map") {
+      return (
+        <DesktopStatusOverview
+          pollText={pollText}
+          dataSource={displayData.dataSource}
+          networkId={selectedNetwork}
+          accessibilityOutageCount={
+            accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
+          }
+          surfaceNoticeCount={surfaceNoticeCount ?? 0}
+          tripChangeCount={regionalTripChangeCount ?? 0}
+          onOpenCategory={(view, lineId) => {
+            if (view === "line-impacts" && lineId) {
+              openLineImpacts(lineId);
+              return;
+            }
+            if (
+              view === "alerts"
+              || view === "delays"
+              || view === "reduced-speed-zones"
+              || view === "closures"
+            ) {
+              openImpactCategory(view, lineId);
+              return;
+            }
+            if (view === "trip-changes") {
+              openRegionalTripChanges();
+              return;
+            }
+            setSelection(null);
+            navigateForward(view);
+          }}
+          onSelectImpact={(impactSelection) => {
+            handleMapSelectImpact(impactSelection);
+          }}
+        />
+      );
+    }
+
+    if (activeView === "my-stations" || activeView === "commutes") {
+      return (
+        <div className="desktop-saved-container">
+          <div className="desktop-saved-nav" role="tablist" aria-label="Saved transit options">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeView === "my-stations"}
+              className={`desktop-saved-tab ${activeView === "my-stations" ? "desktop-saved-tab--active" : ""}`}
+              onClick={() => {
+                if (activeView !== "my-stations") {
+                  navigateForward("my-stations");
+                }
+              }}
+            >
+              <MapPin size={16} aria-hidden="true" />
+              <span>My Stations</span>
+              {savedStations.length > 0 && (
+                <span className="desktop-saved-tab-count">{savedStations.length}</span>
+              )}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeView === "commutes"}
+              className={`desktop-saved-tab ${activeView === "commutes" ? "desktop-saved-tab--active" : ""}`}
+              onClick={() => {
+                if (activeView !== "commutes") {
+                  navigateForward("commutes");
+                }
+              }}
+            >
+              <Navigation size={16} aria-hidden="true" />
+              <span>My Commutes</span>
+              {accountCommutes.length > 0 && (
+                <span className="desktop-saved-tab-count">{accountCommutes.length}</span>
+              )}
+            </button>
+          </div>
+          <div className="desktop-saved-content">
+            {renderPanelContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeView === "more") {
+      return (
+        <DesktopMorePanel
+          accountState={accountState}
+          accountBusy={accountBusy}
+          highContrast={highContrast}
+          reducedMotion={reducedMotion}
+          dotBackgroundEnabled={dotBackgroundEnabled}
+          isDark={isDark}
+          defaultNetwork={defaultNetworkPreference}
+          currentNetwork={selectedNetwork}
+          shareStatusLabel={shareStatusLabel}
+          onToggleTheme={handleToggleTheme}
+          onRequestSignIn={() => openAuthChoice("login")}
+          onRequestCreateAccount={() => openAuthChoice("register")}
+          onDemoAccount={handleDemoAccount}
+          onSignOut={handleSignOut}
+          onToggleHighContrast={handleToggleHighContrast}
+          onToggleReducedMotion={handleToggleReducedMotion}
+          onToggleDotBackground={handleToggleDotBackground}
+          onDefaultNetworkChange={handleDefaultNetworkChange}
+          onOpenAnalytics={() => navigateForward("analytics")}
+          onOpenAlertHistory={() => navigateForward("alert-history")}
+          onOpenAnnouncements={() => navigateForward("announcements")}
+          onOpenAccessibilityOutages={() => navigateForward("accessibility-outages")}
+          onOpenSurfaceNotices={() => navigateForward("surface-notices")}
+          onOpenFeedback={() => navigateForward("feedback")}
+          onOpenPrivacyAcknowledgements={() => navigateForward("privacy-acknowledgements")}
+          onOpenReleaseNotes={() => navigateForward("release-notes")}
+          onOpenGuide={() => setGuideOpen(true)}
+          onShareApp={handleShareLineWatchApp}
+        />
+      );
+    }
+
+    return (
+      <div key={activeView} className="desktop-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection}>
+        {renderPanelContent()}
+      </div>
+    );
+  };
+
   const isDesktopPanel = activeView !== "map" && activeView !== "search" && activeView !== "menu" && activeView !== "status";
   const showMenuAttention = !menuVisible && !isDesktopPanel;
 
@@ -3770,7 +4223,7 @@ export function LineWatchShell({
           {renderPanelContent()}
         </div>
       </FloatingPanelShell>
-    ) : (isDesktopPanel || isGoingBack || isClosingPanel) ? (
+    ) : (isMobile && (isDesktopPanel || isGoingBack || isClosingPanel)) ? (
       <FloatingPanelShell key="desktop-panel" panel={activeView} mobileSheetLabel={getMobileSheetLabel()} navDirection={navDirection} isClosing={isClosingPanel} isGoingBack={isGoingBack}>
         <div key={activeView} className="desktop-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection} data-closing={isClosingPanel ? "true" : undefined} data-going-back={isGoingBack ? "true" : undefined}>
           {renderPanelContent()}
@@ -4004,6 +4457,7 @@ export function LineWatchShell({
         className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start pointer-events-none"
         style={{ zIndex: guideOpen ? 68 : 40 }}
       >
+        {isMobile && (
         <div className="flex items-start gap-3 pointer-events-auto relative">
           <div className="flex flex-col items-center gap-2">
             {/* Menu Toggle Button */}
@@ -4904,6 +5358,7 @@ export function LineWatchShell({
             onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
           />
         </div>
+        )}
 
         {/* Floating Desktop Status Capsule (Top Center) */}
         <div className="desktop-status-capsule-anchor hidden sm:flex absolute top-6 left-1/2 z-20 pointer-events-auto items-center gap-3">
@@ -4995,8 +5450,6 @@ export function LineWatchShell({
                       : `Last Polled: ${pollText.toLowerCase() === "just now" ? "Just Now" : pollText}`}
                   </span>
                 </div>
-                <span className="desktop-status-divider" />
-                <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
               </div>
             </div>
           </div>
@@ -5119,80 +5572,166 @@ export function LineWatchShell({
       {activeFloatingPanel}
 
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
-      <main
-        ref={networkMapSurfaceRef}
-        className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}
-      >
-        <NetworkMap
-          network={selectedNetwork}
-          isMapActive={activeView === "map" && !isClosingSearch}
-          animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
-          deferInitialEntrance={disclaimerVisible
-            || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
-            || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
-          onMapReady={handleMapReady}
-          mobileAnnouncementVisible={selectedNetwork === "ttc"
-            ? subwayOperatingState.closingSoon
-              || (subwayOperatingState.status === "closed" && closedMapPeek)
-            : regionalRailOperatingState.closingSoon
-              || (regionalRailOperatingState.status === "closed" && closedMapPeek)}
-          legendProps={legendProps}
-          mapChromeVisible={!showClosedScreen}
-          selection={selection}
-          selectedStationId={selectedStationId}
-          stations={stationSummaries}
-          onSelectImpact={handleMapSelectImpact}
-          onSelectStationId={handleSelectStationId}
-          isDark={isDark}
-          highContrast={highContrast}
-          onToggleTheme={handleToggleTheme}
-          layoutResetSignal={mapLayoutSignal}
-          recenterSignal={recenterSignal}
-          zoomInSignal={zoomInSignal}
-          zoomOutSignal={zoomOutSignal}
-          reducedMotion={reducedMotion}
-          mobilePerformanceMode={mobileMapPerformanceMode}
-          desktopMenuPinned={menuPinned}
-          preserveCameraOnSelectionClear
-          commutePathPreview={commutePathPreview}
-          onClearCommutePathPreview={handleClearCommutePathPreview}
-          viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
-          estimatedTrainsEnabled={estimatedTrainMarkersVisible}
-          estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
-        />
-
-        {selectedNetwork === "ttc" && (!initialMapReady || mobileMapPerformanceMode) ? (
-          <div
-            className={`ttc-map-entrance-reveal${initialMapReady ? " ttc-map-entrance-reveal--ready" : ""}`}
-            aria-hidden="true"
+      <div className={!isMobile ? "linewatch-desktop-layout" : "contents"}>
+        {!isMobile && (
+          <DesktopNavRail
+            activeDestination={desktopRailDestinationForView(activeView)}
+            collapsed={desktopSidebarCollapsed}
+            onToggleCollapse={handleToggleDesktopSidebar}
+            onSelectDestination={handleSelectRailDestination}
+            statusAlertCount={totalAlertCount}
+            commuteAffectedCount={commuteAffectedCount}
+            savedStationsAffectedCount={savedStationsAffectedCount}
+            toggleButtonRef={desktopRailToggleRef}
           />
-        ) : null}
-
-        {rotatedMapMode ? (
-          <div className="rotated-map-ui-surface">
-            <div className="rotated-map-hud" aria-label="Rotated map controls" data-map-chooser-keepout>
-              <MobileMapControls
-                presentationMode="rotated-landscape"
-                onExitRotated={() => {
-                  setMapPresentationMode("standard");
-                }}
-                onRecenter={() => setRecenterSignal((prev) => prev + 1)}
-              />
+        )}
+        {!isMobile && (
+          <aside
+            id="desktop-sidebar-container"
+            className={`desktop-sidebar-container ${
+              desktopMetrics.mode === "docked"
+                ? "desktop-sidebar-container--docked"
+                : "desktop-sidebar-container--overlay"
+            } ${desktopSidebarCollapsed ? "desktop-sidebar-container--collapsed" : ""}`}
+            style={{
+              width: `${desktopMetrics.sidebarWidth}px`,
+              maxWidth: `${desktopMetrics.sidebarWidth}px`,
+            }}
+            aria-hidden={desktopSidebarCollapsed ? "true" : undefined}
+            aria-label="Sidebar navigation and details"
+          >
+            <header className="desktop-sidebar-header">
+              <div className="desktop-sidebar-header-top">
+                <div className="flex items-center gap-2 select-none">
+                  <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={22} height={22} className="shrink-0 drop-shadow-sm dark:brightness-200" />
+                  <strong className="font-extrabold text-sm tracking-tight text-slate-800 dark:text-white">LineWatchTO</strong>
+                </div>
+                <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
+              </div>
+              <div className="desktop-sidebar-search-row">
+                <div className="desktop-sidebar-search-input">
+                  <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-400" aria-hidden="true" />
+                  <input
+                    ref={desktopSearchInputRef}
+                    type="search"
+                    value={stationSearchQuery}
+                    onChange={(e) => {
+                      setStationSearchQuery(e.target.value);
+                      if (activeView !== "search") {
+                        searchOriginRef.current = activeView;
+                        setActiveView("search");
+                      }
+                    }}
+                    onFocus={() => {
+                      if (activeView !== "search") {
+                        searchOriginRef.current = activeView;
+                        setActiveView("search");
+                      }
+                    }}
+                    onKeyDown={(e) => stationKeyDownHandlerRef.current?.(e)}
+                    placeholder="Search stations, lines, alerts..."
+                    aria-label="Station Search"
+                    aria-controls="station-search-panel"
+                    className="desktop-sidebar-search-field"
+                  />
+                  {stationSearchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStationSearchQuery("");
+                        desktopSearchInputRef.current?.focus();
+                      }}
+                      className="desktop-sidebar-search-clear"
+                      aria-label="Clear search"
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </header>
+            <div className="desktop-sidebar-content">
+              {renderDesktopSidebarContent()}
             </div>
-            {rotatedSelectionVisible && !mobileInspectorOpen ? (
-              <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item" data-map-chooser-keepout>
-                <RotatedMapSelectionCard
-                  selection={selection}
-                  selectedStationId={selectedStationId}
-                  stations={stationSummaries}
-                  onOpenDetails={handleOpenRotatedSelectionDetails}
-                  onClearSelection={handleClearRotatedSelection}
-                />
+          </aside>
+        )}
+        <div className={!isMobile ? "desktop-map-workspace" : "contents"}>
+          <main
+            ref={networkMapSurfaceRef}
+            className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}
+          >
+            <NetworkMap
+              network={selectedNetwork}
+              isMapActive={isMobile ? (activeView === "map" && !isClosingSearch) : !showClosedScreen}
+              animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
+              deferInitialEntrance={disclaimerVisible
+                || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
+                || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
+              onMapReady={handleMapReady}
+              mobileAnnouncementVisible={selectedNetwork === "ttc"
+                ? subwayOperatingState.closingSoon
+                  || (subwayOperatingState.status === "closed" && closedMapPeek)
+                : regionalRailOperatingState.closingSoon
+                  || (regionalRailOperatingState.status === "closed" && closedMapPeek)}
+              legendProps={legendProps}
+              mapChromeVisible={!showClosedScreen}
+              selection={selection}
+              selectedStationId={selectedStationId}
+              stations={stationSummaries}
+              onSelectImpact={handleMapSelectImpact}
+              onSelectStationId={handleSelectStationId}
+              isDark={isDark}
+              highContrast={highContrast}
+              onToggleTheme={handleToggleTheme}
+              layoutResetSignal={mapLayoutSignal}
+              recenterSignal={recenterSignal}
+              zoomInSignal={zoomInSignal}
+              zoomOutSignal={zoomOutSignal}
+              reducedMotion={reducedMotion}
+              mobilePerformanceMode={mobileMapPerformanceMode}
+              desktopMenuPinned={menuPinned}
+              preserveCameraOnSelectionClear
+              commutePathPreview={commutePathPreview}
+              onClearCommutePathPreview={handleClearCommutePathPreview}
+              viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
+              estimatedTrainsEnabled={estimatedTrainMarkersVisible}
+              estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
+            />
+
+            {selectedNetwork === "ttc" && (!initialMapReady || mobileMapPerformanceMode) ? (
+              <div
+                className={`ttc-map-entrance-reveal${initialMapReady ? " ttc-map-entrance-reveal--ready" : ""}`}
+                aria-hidden="true"
+              />
+            ) : null}
+
+            {rotatedMapMode ? (
+              <div className="rotated-map-ui-surface">
+                <div className="rotated-map-hud" aria-label="Rotated map controls" data-map-chooser-keepout>
+                  <MobileMapControls
+                    presentationMode="rotated-landscape"
+                    onExitRotated={() => {
+                      setMapPresentationMode("standard");
+                    }}
+                    onRecenter={() => setRecenterSignal((prev) => prev + 1)}
+                  />
+                </div>
+                {rotatedSelectionVisible && !mobileInspectorOpen ? (
+                  <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item" data-map-chooser-keepout>
+                    <RotatedMapSelectionCard
+                      selection={selection}
+                      selectedStationId={selectedStationId}
+                      stations={stationSummaries}
+                      onOpenDetails={handleOpenRotatedSelectionDetails}
+                      onClearSelection={handleClearRotatedSelection}
+                    />
+                  </div>
+                ) : null}
               </div>
             ) : null}
-          </div>
-        ) : null}
-      </main>
+          </main>
+        </div>
+      </div>
 
       {!showClosedScreen && !rotatedMapMode && (
         <button
@@ -5224,7 +5763,7 @@ export function LineWatchShell({
         </button>
       )}
 
-      {!showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && selectedStationId && (
+      {isMobile && !showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && selectedStationId && (
         <StationDetailPanel
           key={`${selectedStationId}:${stationPanelActivationKey}`}
           stationResult={visibleStationResult}
@@ -5246,7 +5785,7 @@ export function LineWatchShell({
         />
       )}
 
-      {!showClosedScreen && !rotatedMapMode && selectedNetwork === "regional" && selectedStationId ? (
+      {isMobile && !showClosedScreen && !rotatedMapMode && selectedNetwork === "regional" && selectedStationId ? (
         <RegionalStationDetailPanel
           key={`${selectedStationId}:${stationPanelActivationKey}`}
           station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}
@@ -5979,6 +6518,15 @@ export function LineWatchShell({
         onOpenSignIn={() => openAuthChoice("login")}
         hideNoticeOnMobile={isMobile && !showMobileStatusPeek}
       />
+      {/* Desktop live region for screen reader announcements */}
+      <div
+        className="desktop-live-region"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {desktopLiveAnnouncement}
+      </div>
     </div>
     </DataProvider>
   );

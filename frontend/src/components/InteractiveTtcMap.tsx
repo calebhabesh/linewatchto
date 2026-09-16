@@ -22,6 +22,7 @@ import {
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
 import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
+import { readDesktopOverlayInsets } from "../app/desktop-sidebar-state";
 import {
   clampPanZoomScale,
   clientRectToLogicalViewportBounds,
@@ -529,9 +530,14 @@ function InteractiveTtcMapComponent({
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(() => {
     if (typeof window === "undefined" || window.innerWidth < 768) return 0;
     const badges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
-    return badges && window.getComputedStyle(badges).display !== "none"
+    const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
+    let inset = badges && window.getComputedStyle(badges).display !== "none"
       ? Math.max(0, Math.round(window.innerHeight - badges.getBoundingClientRect().top))
       : 0;
+    if (legend && window.getComputedStyle(legend).display !== "none") {
+      inset = Math.max(inset, Math.round(window.innerHeight - legend.getBoundingClientRect().top));
+    }
+    return inset;
   });
   const desktopMapInsetsRef = useRef({ top: desktopMapTopInset, bottom: desktopMapBottomInset });
   const lastFittedInsetsRef = useRef<{ top: number; bottom: number } | null>(null);
@@ -734,11 +740,18 @@ function InteractiveTtcMapComponent({
       const nextTopInset = Math.max(0, Math.round(railRect.bottom - rootRect.top));
 
       const impactBadges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
+      const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
       let nextBottomInset = 0;
-      if (impactBadges) {
+      if (impactBadges && window.getComputedStyle(impactBadges).display !== "none") {
         const badgesRect = impactBadges.getBoundingClientRect();
         if (badgesRect.width > 0 && badgesRect.height > 0) {
           nextBottomInset = Math.max(0, Math.round(rootRect.bottom - badgesRect.top));
+        }
+      }
+      if (legend && window.getComputedStyle(legend).display !== "none") {
+        const legendRect = legend.getBoundingClientRect();
+        if (legendRect.width > 0 && legendRect.height > 0) {
+          nextBottomInset = Math.max(nextBottomInset, Math.round(rootRect.bottom - legendRect.top));
         }
       }
 
@@ -758,6 +771,8 @@ function InteractiveTtcMapComponent({
     observer.observe(rail);
     const impactBadges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
     if (impactBadges) observer.observe(impactBadges);
+    const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
+    if (legend) observer.observe(legend);
     window.addEventListener("resize", measureDesktopInsets);
     return () => {
       observer.disconnect();
@@ -1116,11 +1131,14 @@ function InteractiveTtcMapComponent({
     };
 
     if (!isMobile && typeof window !== "undefined") {
+      const desktopOverlay = readDesktopOverlayInsets(viewport);
       const shell = viewport.closest<HTMLElement>(".linewatch-shell");
       const overlayRightEdges = [
+        desktopOverlay.left > 0 ? viewportRect.left + desktopOverlay.left : null,
         desktopMenuPinned ? shell?.querySelector<HTMLElement>("#linewatch-main-menu") : null,
         shell?.querySelector<HTMLElement>(".floating-panel-shell"),
       ].flatMap((element) => {
+        if (typeof element === "number") return [element];
         if (!element || element.getAttribute("aria-hidden") === "true") return [];
         const rect = element.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0 ? [rect.right] : [];
@@ -1145,7 +1163,9 @@ function InteractiveTtcMapComponent({
         const mapY = pt.y * scaleFactor;
         const targetScale = preferredTargetScale;
         const storedRatio = readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null);
-        const focusX = logicalWidth / 2;
+        const focusX = isMobile
+          ? logicalWidth / 2
+          : (logicalWidth + selectionFocusInsets.left - selectionFocusInsets.right) / 2;
         const focusY =
           isMobile && viewportOrientation !== "rotated-landscape"
             ? (logicalHeight * (1 - storedRatio)) / 2

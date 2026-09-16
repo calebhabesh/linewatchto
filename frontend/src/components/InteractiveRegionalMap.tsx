@@ -69,6 +69,7 @@ import {
   type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
+import { readDesktopOverlayInsets } from "../app/desktop-sidebar-state";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
@@ -2986,9 +2987,14 @@ function InteractiveRegionalMapComponent({
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(() => {
     if (typeof window === "undefined" || window.innerWidth < 768) return 0;
     const badges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
-    return badges && window.getComputedStyle(badges).display !== "none"
+    const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
+    let inset = badges && window.getComputedStyle(badges).display !== "none"
       ? Math.max(0, Math.round(window.innerHeight - badges.getBoundingClientRect().top))
       : 0;
+    if (legend && window.getComputedStyle(legend).display !== "none") {
+      inset = Math.max(inset, Math.round(window.innerHeight - legend.getBoundingClientRect().top));
+    }
+    return inset;
   });
   const [activeHoveredStationLabel, setHoveredStationLabel] = useState<{
     stationId: string;
@@ -3240,12 +3246,24 @@ function InteractiveRegionalMapComponent({
             Math.max(0, Math.round(consoleRect.bottom - viewportRect.top)),
           )
         : 0;
-      const nextBottomInset = badgesRect.width > 0 && badgesRect.height > 0
-        ? Math.min(
-            viewportRect.height - nextTopInset,
-            Math.max(0, Math.round(viewportRect.bottom - badgesRect.top)),
-          )
-        : 0;
+      const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
+      const legendRect = legend && window.getComputedStyle(legend).display !== "none"
+        ? legend.getBoundingClientRect()
+        : { width: 0, height: 0, top: viewportRect.bottom };
+      const nextBottomInset = Math.max(
+        badgesRect.width > 0 && badgesRect.height > 0
+          ? Math.min(
+              viewportRect.height - nextTopInset,
+              Math.max(0, Math.round(viewportRect.bottom - badgesRect.top)),
+            )
+          : 0,
+        legendRect.width > 0 && legendRect.height > 0
+          ? Math.min(
+              viewportRect.height - nextTopInset,
+              Math.max(0, Math.round(viewportRect.bottom - legendRect.top)),
+            )
+          : 0,
+      );
       setDesktopMapTopInset((current) => current === nextTopInset ? current : nextTopInset);
       setDesktopMapBottomInset((current) => current === nextBottomInset ? current : nextBottomInset);
     };
@@ -3256,6 +3274,8 @@ function InteractiveRegionalMapComponent({
     observer.observe(mapSurface);
     observer.observe(consoleCapsule);
     observer.observe(impactBadges);
+    const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
+    if (legend) observer.observe(legend);
     window.addEventListener("resize", measureDesktopInsets);
     return () => {
       observer.disconnect();
@@ -3273,17 +3293,22 @@ function InteractiveRegionalMapComponent({
       : Math.min(32, Math.max(12, width * REGIONAL_MAP_MOBILE_INSET_RATIO));
     const mobileInsets = viewportOrientation === "standard"
       ? readMobileMapFrameInsets(viewport) : null;
+    const desktopOverlay = readDesktopOverlayInsets(viewport);
+    const desktopLeftInset = Math.max(
+      horizontalInset,
+      desktopOverlay.left + (desktopOverlay.left > 0 ? 24 : 0),
+    );
     const insets = mobileInsets
       ? { left: horizontalInset, right: horizontalInset, ...mobileInsets }
       : desktopMapTopInset > 0
       ? {
-          left: horizontalInset,
+          left: desktopLeftInset,
           right: horizontalInset,
           top: desktopMapTopInset,
           bottom: desktopMapBottomInset,
         }
       : {
-          left: horizontalInset,
+          left: desktopLeftInset,
           right: horizontalInset,
           top: height * 0.05,
           bottom: height * 0.05,
@@ -4095,13 +4120,16 @@ function InteractiveRegionalMapComponent({
     };
 
     if (!isMobile) {
+      const desktopOverlay = readDesktopOverlayInsets(viewport);
       const shell = viewport.closest<HTMLElement>(".linewatch-shell");
       const overlayRightEdges = [
+        desktopOverlay.left > 0 ? viewportRect.left + desktopOverlay.left : null,
         desktopMenuPinned
           ? shell?.querySelector<HTMLElement>("#linewatch-main-menu")
           : null,
         shell?.querySelector<HTMLElement>(".floating-panel-shell"),
       ].flatMap((element) => {
+        if (typeof element === "number") return [element];
         if (!element || element.getAttribute("aria-hidden") === "true") return [];
         const rect = element.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0 ? [rect.right] : [];
@@ -4119,7 +4147,9 @@ function InteractiveRegionalMapComponent({
     if (selectedStationId) {
       const targetScale = preferredTargetScale;
       const storedRatio = readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null);
-      const focusX = logicalWidth / 2;
+      const focusX = isMobile
+        ? logicalWidth / 2
+        : (logicalWidth + focusInsets.left - focusInsets.right) / 2;
       const focusY =
         isMobile && viewportOrientation !== "rotated-landscape"
           ? (logicalHeight * (1 - storedRatio)) / 2

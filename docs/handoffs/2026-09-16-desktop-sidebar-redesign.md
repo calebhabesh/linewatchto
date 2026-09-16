@@ -224,6 +224,33 @@ Read [testing guide](../testing.md). For this broad shell/navigation/shared styl
 
 Provide screenshots demonstrating overview, collapsed rail, station/impact detail, search, Saved editing, and narrow overlay, covering both networks and themes across the set. Review visual diffs before updating baselines. Report what changed, actual checks/results, and any remaining limitations. Never claim browser verification from source inspection alone.
 
-## Planning verification
+## Implementation verification and completion
 
-This handoff is based on repository inspection and the user's accepted design decisions. It has not been implemented or browser-validated. Initial dimensions and overview item count are bounded engineering defaults to verify during implementation; the interaction, scope, persistence, and camera contracts are agreed requirements.
+All three implementation checkpoints were delivered and verified across Sessions 1, 2, and 3:
+
+1. **Shell and Camera (Checkpoint 1)**:
+   - Always-mounted desktop navigation rail ([`DesktopNavRail.tsx`](../../frontend/src/components/DesktopNavRail.tsx)) with Status, Search, Saved, More, and toggle collapse.
+   - Expandable content sidebar with persistent layout state ([`desktop-sidebar-state.ts`](../../frontend/src/app/desktop-sidebar-state.ts)).
+   - Responsive dock vs. narrow overlay budget (`DESKTOP_DOCK_BUDGET = 872px`) and measured occlusion insets for map viewport calculation without double subtraction ([`InteractiveTtcMap.tsx`](../../frontend/src/components/InteractiveTtcMap.tsx), [`InteractiveRegionalMap.tsx`](../../frontend/src/components/InteractiveRegionalMap.tsx), [`usePanZoom.ts`](../../frontend/src/hooks/usePanZoom.ts)).
+   - Clean retirement of legacy desktop floating menu, pin preferences, and bottom sheet chrome.
+
+2. **Content and Navigation Migration (Checkpoint 2)**:
+   - Dedicated desktop status overview ([`DesktopStatusOverview.tsx`](../../frontend/src/components/DesktopStatusOverview.tsx)) featuring priority disruptions, categorized impacts, line cards, and freshness polling.
+   - Integrated desktop search within the sidebar header and body, eliminating duplicate DOM search inputs and floating result shells.
+   - Grouped Saved section (My Stations and My Commutes) and comprehensive More destinations panel ([`DesktopMorePanel.tsx`](../../frontend/src/components/DesktopMorePanel.tsx)).
+   - Single-source network selection in sidebar header with zero duplicate switches.
+
+3. **Polish and Verification (Checkpoint 3 & End-to-End Release Gates)**:
+   - Pill badge styling with distinct semantic tints and fixed run-together label counts.
+   - Full keyboard navigation: roving focus (`ArrowUp`/`ArrowDown`/`Home`/`End`) on navigation rail, global `Escape` sequence unwinding.
+   - Polite screen reader live region (`.desktop-live-region`, `role="status"`, `aria-live="polite"`).
+   - Bottom map control and legend inset reconciliation ensuring unobstructed interactive paths.
+
+### Verification Results
+
+- **Fast Test Suite**: 1,497 passing tests (`npm --prefix frontend run test:fast`).
+- **Smoke Suite (Playwright Desktop Chrome & Mobile Chromium)**: 6/6 passing tests (`npm --prefix frontend run test:smoke`).
+- **CSS Architecture Guardrails**: 0 new `!important` declarations and 0 class substring selectors in [`desktop-chrome.css`](../../frontend/src/styles/shell/desktop-chrome.css).
+- **Typecheck & Lint**: Clean pass with 0 errors and 0 warnings (`npm --prefix frontend run typecheck && npm --prefix frontend run lint`).
+- **Production Build**: Built cleanly with Turbopack (`npm --prefix frontend run build`).
+
