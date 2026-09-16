@@ -46,6 +46,9 @@
   padding-left: 14px;
   min-width: 0;
   width: 100%;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
 }
 .current-service-line-copy-main::before {
   content: "";
@@ -59,7 +62,7 @@
   background: var(--border-strong);
   pointer-events: none;
 }
-.current-service-clear { display: inline-flex; align-items: center; gap: 9px; min-height: 20px; font-size: 10px; line-height: 1.3; white-space: nowrap; }
+.current-service-clear { display: inline-flex; align-items: center; gap: 12px; min-height: 20px; font-size: 10px; line-height: 1.3; white-space: nowrap; }
 .current-service-clear svg { flex-shrink: 0; margin-bottom: 0; }
 .current-service-clear span { line-height: 1; }
 .current-service-good-service-icon { flex-shrink: 0; display: inline-block; vertical-align: middle; }
@@ -685,89 +688,50 @@
 .current-service-line--snapshot,
 .current-service-line--unaffected {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   min-height: 28px;
   padding: 3px 0;
 }
-.current-service-line--normal .current-service-line-copy,
-.current-service-line--reduced-speed-zones .current-service-line-copy,
-.current-service-line--closed .current-service-line-copy,
-.current-service-line--ready .current-service-line-copy,
-.current-service-line--delay .current-service-line-copy,
-.current-service-line--suspension .current-service-line-copy,
-.current-service-line--unavailable .current-service-line-copy,
-.current-service-line--snapshot .current-service-line-copy,
-.current-service-line--unaffected .current-service-line-copy {
-  min-height: 28px;
-  display: flex;
-  align-items: center;
-}
-.current-service-line--normal .current-service-clear,
-.current-service-line--reduced-speed-zones .current-service-clear,
-.current-service-line--closed .current-service-clear,
-.current-service-line--ready .current-service-clear,
-.current-service-line--delay .current-service-clear,
-.current-service-line--suspension .current-service-clear,
-.current-service-line--unavailable .current-service-clear,
-.current-service-line--snapshot .current-service-clear,
-.current-service-line--unaffected .current-service-clear {
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
-  margin: 0;
-  gap: 8px;
-}
-.current-service-line--normal .current-service-clear svg,
-.current-service-line--reduced-speed-zones .current-service-clear svg,
-.current-service-line--closed .current-service-clear svg,
-.current-service-line--ready .current-service-clear svg,
-.current-service-line--delay .current-service-clear svg,
-.current-service-line--suspension .current-service-clear svg,
-.current-service-line--unavailable .current-service-clear svg,
-.current-service-line--snapshot .current-service-clear svg,
-.current-service-line--unaffected .current-service-clear svg {
-  margin: 0;
-  display: inline-block;
-  vertical-align: middle;
-}
-.current-service-line--normal .current-service-clear strong,
-.current-service-line--normal .current-service-clear span,
-.current-service-line--reduced-speed-zones .current-service-clear strong,
-.current-service-line--reduced-speed-zones .current-service-clear span,
-.current-service-line--closed .current-service-clear strong,
-.current-service-line--closed .current-service-clear span,
-.current-service-line--ready .current-service-clear span,
-.current-service-line--delay .current-service-clear span,
-.current-service-line--suspension .current-service-clear span,
-.current-service-line--unavailable .current-service-clear span,
-.current-service-line--snapshot .current-service-clear span,
-.current-service-line--unaffected .current-service-clear span {
-  line-height: 1;
-  display: inline-block;
-  vertical-align: middle;
-}
 
-.current-service-remaining-body {
-  align-items: flex-start;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
+.current-service-clear-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: block;
+  margin: 0;
+  padding: 0;
+  text-align: left;
   width: 100%;
 }
 
 .current-service-normal-label {
   align-items: center;
   display: inline-flex;
+  font-size: 13.5px;
   gap: 8px;
+  line-height: 1.3;
 }
 
 .current-service-normal-label strong {
   color: var(--text, #0f172a);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .dark .current-service-normal-label strong {
   color: #ffffff;
+}
+
+.current-service-rsz-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  color: #d97706;
+  font-weight: 600;
+}
+
+.dark .current-service-rsz-label {
+  color: #f59e0b;
 }
 
 .current-service-sub-badges {
@@ -1616,56 +1580,23 @@
   }
   .mobile-service-sheet .current-service h3 { font-size: 16px; line-height: 1.25; align-items: center; margin-bottom: 8px; }
   .mobile-service-sheet .current-service-list { max-height: none; overflow: visible; display: flex; flex-direction: column; mask-image: none; }
-  .mobile-service-sheet .current-service-line { gap: 12px; padding: 10px 0; border-bottom: 0; }
+  .mobile-service-sheet .current-service-line { gap: 10px; padding: 6px 0; border-bottom: 0; }
   .mobile-service-sheet .current-service-line-badge-wrap {
-    width: 51px;
-    min-width: 51px;
-    flex: 0 0 51px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-shrink: 0;
   }
   .mobile-service-sheet .current-service-line-copy {
     flex: 1;
     min-width: 0;
     border-left: none;
     position: relative;
-    padding-left: 14px;
-  }
-  .mobile-service-sheet .current-service-line-copy::before {
-    content: "";
-    display: block;
-    position: absolute;
-    left: 0;
-    top: 2px;
-    bottom: 2px;
-    width: 2px;
-    border-radius: 9999px;
-    background: var(--border-strong);
-    pointer-events: none;
-  }
-  .mobile-service-sheet .current-service-line--unaffected { display: flex; align-items: center; min-height: 28px; }
-  .mobile-service-sheet .current-service-line--unaffected .current-service-line-copy {
-    min-height: 28px;
-    display: flex;
-    align-items: center;
-  }
-  .mobile-service-sheet .current-service-line--unaffected .current-service-clear {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    line-height: 1;
-    margin: 0;
-  }
-  .mobile-service-sheet .current-service-line--unaffected .current-service-clear svg {
-    margin: 0;
-    display: inline-block;
-    vertical-align: middle;
-  }
-  .mobile-service-sheet .current-service-line--unaffected .current-service-clear span {
-    line-height: 1;
-    display: inline-block;
-    vertical-align: middle;
+    padding-left: 0;
   }
   .mobile-service-sheet .current-service-reassurance {
     display: flex;
@@ -1694,18 +1625,18 @@
     gap: 8px;
     padding: 8px 0;
   }
-  .mobile-service-sheet .current-service-impact,
-  .mobile-service-sheet .current-service-impact strong,
-  .mobile-service-sheet .current-service-notice-copy,
-  .mobile-service-sheet .current-service-clear,
-  .mobile-service-sheet .current-service-empty,
-  .mobile-service-sheet .current-service-availability { font-size: 14px; line-height: 1.5; }
-  .mobile-service-sheet .current-service-impact { min-height: 44px; padding: 4px; }
+  .mobile-service-sheet .current-service-impact { min-height: 44px; padding: 2px 0 4px; }
+  .mobile-service-sheet .current-service-impact-heading strong { font-size: 14px; font-weight: 700; gap: 5px; }
+  .mobile-service-sheet .current-service-impact-location { font-size: 13px; line-height: 1.35; }
+  .mobile-service-sheet .current-service-impact-direction { font-size: 12px; line-height: 1.35; }
+  .mobile-service-sheet .current-service-impact-timing { font-size: 11.5px; line-height: 1.35; }
+  .mobile-service-sheet .current-service-normal-label strong { font-size: 14px; font-weight: 700; }
+  .mobile-service-sheet .current-service-rsz-label { font-size: 13.5px; font-weight: 600; }
   .mobile-service-sheet .current-service-notice {
     display: flex;
     align-items: flex-start;
-    padding: 10px 0;
-    gap: 12px;
+    padding: 6px 0;
+    gap: 10px;
     width: 100%;
   }
   .mobile-service-sheet .current-service-routes {
@@ -1723,18 +1654,11 @@
     position: relative;
     padding-left: 14px;
   }
-  .mobile-service-sheet .current-service-notice-copy::before {
-    content: "";
-    display: block;
-    position: absolute;
-    left: 0;
-    top: 2px;
-    bottom: 2px;
-    width: 2px;
-    border-radius: 9999px;
-    background: var(--border-strong);
-    pointer-events: none;
-  }
+  .mobile-service-sheet .current-service-notice-copy strong { font-size: 14px; font-weight: 700; gap: 5px; }
+  .mobile-service-sheet .current-service-notice-text { font-size: 13px; line-height: 1.35; }
+  .mobile-service-sheet .current-service-clear,
+  .mobile-service-sheet .current-service-empty,
+  .mobile-service-sheet .current-service-availability { font-size: 14px; line-height: 1.5; }
   .mobile-service-sheet .current-service-all { min-height: 44px; font-size: 13px; }
   .linewatch-shell:has(.mobile-service-sheet) .mobile-map-controls-group { z-index: 41; }
   /* Map chrome stays mounted beneath the sheet throughout direct manipulation. */
@@ -1756,7 +1680,7 @@
     box-shadow: none;
     backdrop-filter: none;
   }
-  .linewatch-shell.high-contrast .mobile-service-sheet .current-service-line-copy::before,
+  .linewatch-shell.high-contrast .mobile-service-sheet .current-service-line-copy-main::before,
   .linewatch-shell.high-contrast .mobile-service-sheet .current-service-notice-copy::before {
     background: #fff;
   }
@@ -1765,6 +1689,7 @@
     color: #fff;
     border: 2px solid #fff;
     box-shadow: none;
+    border-radius: 9999px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

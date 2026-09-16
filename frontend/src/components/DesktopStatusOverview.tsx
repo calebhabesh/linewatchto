@@ -134,13 +134,13 @@ export function DesktopStatusOverview({
   const qualifyingLines = lineStatuses
     .map((line) => {
       const rows = summary.rows.filter((r) => r.lineId === line.id);
-      const futureClosures = (summary.upcoming ?? []).filter((c) => c.lineId === line.id);
-      const rszList = (dashboardData.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id);
+      const closureCount = (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length;
+      const rszCount = (dashboardData.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id).length;
       return {
         line,
         rows,
-        closureCount: futureClosures.length,
-        rszCount: rszList.length,
+        closureCount,
+        rszCount,
       };
     })
     .filter((item) => item.rows.length > 0);

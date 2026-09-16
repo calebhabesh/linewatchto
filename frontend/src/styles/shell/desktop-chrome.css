@@ -2378,7 +2378,7 @@
 .desktop-status-overview {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   padding: 12px 16px 16px 16px;
   width: 100%;
 }
@@ -2699,10 +2699,11 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 2px 4px;
+  margin: 0 -8px;
+  padding: 3px 8px;
   text-align: left;
   transition: background-color 120ms ease;
-  width: 100%;
+  width: calc(100% + 16px);
 }
 
 .desktop-status-incident-row:hover {
@@ -2987,11 +2988,14 @@
   color: #ffffff;
 }
 
-.desktop-status-remaining-status--rsz strong {
+.desktop-status-remaining-status--rsz strong,
+.desktop-status-remaining-status--rsz span {
   color: #d97706;
+  font-weight: 600;
 }
 
-.dark .desktop-status-remaining-status--rsz strong {
+.dark .desktop-status-remaining-status--rsz strong,
+.dark .desktop-status-remaining-status--rsz span {
   color: #fbbf24;
 }
 
@@ -3013,8 +3017,40 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 4px;
   width: 100%;
+}
+
+.desktop-status-surface-section .current-service-all {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 500;
+  gap: 5px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 4px 0 0;
+  text-align: left;
+  transition: color 120ms ease;
+  width: fit-content;
+}
+
+.desktop-status-surface-section .current-service-all:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.dark .desktop-status-surface-section .current-service-all:hover {
+  color: #f8fafc;
+}
+
+.desktop-status-surface-section .current-service-all:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--logo-blue, #2563eb);
+  outline-offset: 2px;
 }
 
 .desktop-status-surface-list {
@@ -3026,11 +3062,30 @@
 
 .desktop-status-surface-list .current-service-notice {
   align-items: flex-start;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
   display: flex;
   gap: 10px;
-  padding: 4px 0 6px;
+  margin: 0 -8px;
+  padding: 4px 8px;
   text-align: left;
-  width: 100%;
+  transition: background-color 120ms ease;
+  width: calc(100% + 16px);
+}
+
+.desktop-status-surface-list .current-service-notice:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.dark .desktop-status-surface-list .current-service-notice:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.desktop-status-surface-list .current-service-notice:focus-visible {
+  outline: 2px solid var(--logo-blue, #2563eb);
+  outline-offset: 1px;
 }
 
 .desktop-status-surface-list .current-service-routes {

@@ -285,13 +285,13 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
   const affectedLines = data.lineStatuses
     .map((line) => {
       const rows = summary.rows.filter((row) => row.lineId === line.id);
-      const futureClosures = (summary.upcoming ?? []).filter((c) => c.lineId === line.id);
-      const rszList = (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id);
+      const closureCount = (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length;
+      const rszCount = (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id).length;
       return {
         line,
         rows,
-        closureCount: futureClosures.length,
-        rszCount: rszList.length,
+        closureCount,
+        rszCount,
       };
     })
     .filter((item) => item.rows.length > 0);
@@ -367,7 +367,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
           {affectedLines.map((item) => (
             <div className="current-service-line" key={item.line.id}>
               <div className="current-service-line-badge-wrap">
-                <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={24} />
+                <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={28} />
               </div>
               <div className="current-service-line-copy">
                 <div className="current-service-line-copy-main">
@@ -402,6 +402,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                         type="button"
                         className="current-service-badge-incident-button"
                         onClick={onStatus}
+                        title={`View ${item.line.name} Planned Closures`}
                         aria-label={`${item.line.name}: ${getPlannedClosureCountBadgeLabel(item.closureCount)}`}
                       >
                         <span className="current-service-planned-pill">
@@ -415,6 +416,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                         type="button"
                         className="current-service-badge-incident-button"
                         onClick={onStatus}
+                        title={`View ${item.line.name} Reduced Speed Zones`}
                         aria-label={`${item.line.name}: ${item.rszCount > 1 ? `${item.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
                       >
                         <span className="current-service-rsz-pill">
@@ -436,62 +438,70 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
           {remainingLines.map(({ line, presentation, closureCount }) => (
             <div className={`current-service-line current-service-line--${presentation.state}`} key={line.id}>
               <div className="current-service-line-badge-wrap">
-                <LineBadge lineId={line.id} lineNumber={line.number} size={24} />
+                <LineBadge lineId={line.id} lineNumber={line.number} size={28} />
               </div>
-              <div className="current-service-line-copy current-service-line-copy--clear">
+              <div className="current-service-line-copy">
                 <button
                   type="button"
-                  className="current-service-clear w-full text-left"
+                  className="current-service-clear-btn w-full text-left"
                   onClick={onStatus}
                   aria-label={`${line.name}: ${presentation.label}`}
                 >
-                  <div className="current-service-remaining-body">
-                    <div className="current-service-line-copy-main">
-                      {presentation.isNormal ? (
-                        <span className="current-service-normal-label">
-                          <GoodServiceCheckIcon size={16} />
-                          <strong>{presentation.label}</strong>
-                        </span>
-                      ) : presentation.state === "closed" ? (
-                        <span className="desktop-status-remaining-status desktop-status-remaining-status--closed">
-                          <Info size={16} aria-hidden="true" />
-                          <strong>{presentation.label}</strong>
-                        </span>
-                      ) : (
-                        <span className="desktop-status-remaining-status desktop-status-remaining-status--info">
-                          <Info size={16} aria-hidden="true" />
-                          <span>{presentation.label}</span>
-                        </span>
-                      )}
-                    </div>
-                    {(closureCount > 0 || presentation.hasRsz) && (
-                      <div className="current-service-sub-badges">
-                        {closureCount > 0 && (
-                          <span
-                            className="current-service-planned-pill"
-                            title={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
-                          >
-                            <ImpactTypeIcon kind="planned-closure" size={11} />
-                            <span>{getPlannedClosureCountBadgeLabel(closureCount)}</span>
-                          </span>
-                        )}
-                        {presentation.hasRsz && (
-                          <span
-                            className="current-service-rsz-pill"
-                            title={`${presentation.rszCount ?? 1} Reduced Speed Zone${(presentation.rszCount ?? 1) === 1 ? "" : "s"}`}
-                          >
-                            <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
-                            <span>
-                              {presentation.rszCount && presentation.rszCount > 1
-                                ? `${presentation.rszCount} Reduced Speed Zones`
-                                : "Reduced Speed Zones"}
-                            </span>
-                          </span>
-                        )}
-                      </div>
+                  <div className="current-service-line-copy-main">
+                    {presentation.isNormal ? (
+                      <span className="current-service-normal-label">
+                        <GoodServiceCheckIcon size={16} />
+                        <strong>{presentation.label}</strong>
+                      </span>
+                    ) : presentation.state === "closed" ? (
+                      <span className="desktop-status-remaining-status desktop-status-remaining-status--closed">
+                        <Info size={16} aria-hidden="true" />
+                        <strong>{presentation.label}</strong>
+                      </span>
+                    ) : (
+                      <span className="desktop-status-remaining-status desktop-status-remaining-status--info">
+                        <Info size={16} aria-hidden="true" />
+                        <span>{presentation.label}</span>
+                      </span>
                     )}
                   </div>
                 </button>
+                {(closureCount > 0 || presentation.hasRsz) && (
+                  <div className="current-service-sub-badges">
+                    {closureCount > 0 && (
+                      <button
+                        type="button"
+                        className="current-service-badge-incident-button"
+                        onClick={onStatus}
+                        title={`View ${line.name} Planned Closures`}
+                        aria-label={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
+                      >
+                        <span className="current-service-planned-pill">
+                          <ImpactTypeIcon kind="planned-closure" size={11} />
+                          <span>{getPlannedClosureCountBadgeLabel(closureCount)}</span>
+                        </span>
+                      </button>
+                    )}
+                    {presentation.hasRsz && (
+                      <button
+                        type="button"
+                        className="current-service-badge-incident-button"
+                        onClick={onStatus}
+                        title={`View ${line.name} Reduced Speed Zones`}
+                        aria-label={`${line.name}: ${presentation.rszCount && presentation.rszCount > 1 ? `${presentation.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
+                      >
+                        <span className="current-service-rsz-pill">
+                          <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
+                          <span>
+                            {presentation.rszCount && presentation.rszCount > 1
+                              ? `${presentation.rszCount} Reduced Speed Zones`
+                              : "Reduced Speed Zones"}
+                          </span>
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
