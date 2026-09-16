@@ -6,7 +6,7 @@
  * - Alert and planned closure card shells, active, danger, and warning borders (.alert-card, .closure-card, .preview-button)
  * - Impact card route bounds, direction, metadata grids, RSZ timing & resolution breakdowns (.impact-card-heading, .impact-route, .impact-metadata-grid, .rsz-zone-count-label-*, .rsz-resolution-breakdown, .rsz-timing-breakdown, .impact-timestamp)
  * - Related planned closure action buttons, status pills, and closure window date/time formatting (.related-planned-closure-button, .planned-closure-metadata, .closure-window-*, .planned-closure-status-*)
- * - Impact list toolbar, category filters, line impact panel stacks, search inputs, selects, view toggles, and compact list items (.impact-list-toolbar, .line-impact-category-filters, .line-impact-total-badge, .line-impact-panel-stack, .embedded-impact-panel, .impact-list-search, .impact-list-selects, .impact-list-view-toggle, .compact-impact-list-item, .compact-impact-location__arrow)
+ * - Impact list toolbar, category filters, line impact panel stacks, search inputs, selects, view toggles, and compact list items (.impact-list-toolbar, .line-impact-category-filters, .line-impact-total-badge, .line-impact-panel-stack, .embedded-impact-panel, .impact-list-search, .impact-list-selects, .impact-list-view-toggle, .compact-impact-list-item, .compact-impact-location, .compact-impact-location__station, .compact-impact-location__arrow)
  * - Station impact jump actions and highlight pulse animation (.station-impact-jump-actions, .station-impact-jump-button, @keyframes station-impact-card-highlight-pulse, .station-impact-card-highlight)
  * - RSZ, delay, suspension, and planned closure status tones, badges, card borders, and legend buttons (.rsz-tone, .rsz-count-badge, .delay-tone, .delay-count-badge, .rsz-card-border, .delay-card-border, .suspension-card-border, .planned-closure-card-border, .legend-rsz-button, .legend-delay-button)
  * - Empty state centering and alignment overrides for alert and closure stacks (.line-impact-panel-stack.is-empty, .alert-stack.is-empty, .closure-stack.is-empty)
@@ -1469,6 +1469,51 @@
 }
 
 
+.compact-impact-location {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.compact-impact-location__station {
+  display: inline-flex;
+  align-items: center;
+  padding: 1.5px 7px;
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  color: rgb(15, 23, 42);
+  font-weight: 750;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.dark .compact-impact-location__station {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.high-contrast .compact-impact-location__station {
+  background: #000;
+  border-color: #fff;
+  color: #fff;
+}
+
+.compact-impact-list-item:hover .compact-impact-location__station {
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.dark .compact-impact-list-item:hover .compact-impact-location__station {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
 .compact-impact-location__arrow {
   color: rgb(71, 85, 105);
   display: block;
@@ -1618,7 +1663,8 @@
   margin-top: 0;
 }
 
-.compact-impact-list-item--organized .compact-impact-list-item__fact:has(> .rsz-zone-direction-breakdown) {
+.compact-impact-list-item--organized .compact-impact-list-item__fact:has(> .rsz-zone-direction-breakdown),
+.compact-impact-list-item--organized .compact-impact-list-item__fact:has(> .rsz-resolution-breakdown) {
   align-items: flex-start;
 }
 

@@ -162,6 +162,9 @@ export function ReducedSpeedZonesPanel({
                     { label: "Updated", value: showUpdatedBreakdown
                       ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
                       : <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} /> },
+                    { label: "Est. Resolution", value: showResolutionBreakdown
+                      ? <ReducedSpeedZoneResolutionBreakdown zone={zone} />
+                      : (reducedSpeedZoneResolutionText(zone) || "TBD") },
                   ]}
                   details={<MetadataGrid
                     startedAt={zone.startedAt}

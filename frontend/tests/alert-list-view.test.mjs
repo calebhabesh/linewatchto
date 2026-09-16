@@ -49,6 +49,7 @@ describe("alert card and list views", () => {
     assert.match(globalCss, /\.compact-impact-list-item\.suspension-card-border\s*\{[^}]*border-left-color:\s*#ef4444;/s);
     assert.match(globalCss, /\.compact-impact-list-item\.delay-card-border\s*\{[^}]*border-left-color:\s*#FEEC41;/s);
     assert.match(globalCss, /\.compact-impact-list-item\.planned-closure-card-border\s*\{[^}]*border-left-color:\s*#3b82f6;/s);
+    assert.match(globalCss, /\.compact-impact-location__station/);
     assert.doesNotMatch(globalCss, /\.compact-impact-list-item\s*\{[^}]*border-left-width:\s*4px;/s);
   });
 
@@ -57,6 +58,7 @@ describe("alert card and list views", () => {
       assert.match(source, /locationFirst/);
       assert.match(source, /details=\{/);
     }
+    assert.match(panelSources[2], /label: "Updated"[\s\S]*?label: "Est\. Resolution"/);
     assert.match(compactRowSource, /<details className="compact-impact-disclosure__details">/);
     assert.match(compactRowSource, /compact-impact-list-item compact-impact-disclosure/);
     assert.ok(compactRowSource.indexOf("</button>") < compactRowSource.indexOf("<details"));

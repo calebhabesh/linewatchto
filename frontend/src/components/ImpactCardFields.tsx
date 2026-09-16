@@ -145,12 +145,18 @@ export function formatCompactLocation(location: string): string {
 
 export function CompactImpactLocation({ location }: { location: string }) {
   const bounds = splitLocation(location);
-  if (!bounds) return <>{location || "Affected segment unavailable"}</>;
+  if (!bounds) {
+    return (
+      <span className="compact-impact-location">
+        <span className="compact-impact-location__station">{location || "Affected segment unavailable"}</span>
+      </span>
+    );
+  }
 
   const formattedLocation = formatCompactLocation(location);
   return (
     <span className="compact-impact-location" aria-label={formattedLocation}>
-      <span>{bounds.from}</span>
+      <span className="compact-impact-location__station">{bounds.from}</span>
       <svg
         className="compact-impact-location__arrow"
         viewBox="0 0 20 12"
@@ -168,7 +174,7 @@ export function CompactImpactLocation({ location }: { location: string }) {
           <path d="M1 6h17m-5-4 5 4-5 4" />
         )}
       </svg>
-      <span>{bounds.to}</span>
+      <span className="compact-impact-location__station">{bounds.to}</span>
     </span>
   );
 }
