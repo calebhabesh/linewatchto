@@ -30,9 +30,9 @@ describe("desktop visual treatment (Checkpoint C)", () => {
       assert.match(headerFlareCss, /\.desktop-status-section-header::before/);
     });
 
-    it("scales section titles to 13-14px", () => {
-      assert.match(desktopChromeCss, /\.desktop-status-section-title[\s\S]*?font-size:\s*13\.5px/);
-      assert.match(desktopChromeCss, /\.desktop-more-section-title[\s\S]*?font-size:\s*13\.5px/);
+    it("scales section titles to 15.5px", () => {
+      assert.match(desktopChromeCss, /\.desktop-status-section-title[\s\S]*?font-size:\s*15\.5px/);
+      assert.match(desktopChromeCss, /\.desktop-more-section-title[\s\S]*?font-size:\s*15\.5px/);
     });
   });
 
@@ -55,10 +55,10 @@ describe("desktop visual treatment (Checkpoint C)", () => {
   });
 
   describe("rail current service incident section", () => {
-    it("renders rail section with kicker, line group badges, and honest reassurance", () => {
+    it("renders rail section with kicker, line group badges, and remaining status rows", () => {
       assert.match(statusOverviewSource, /desktop-status-rail-section/);
       assert.match(statusOverviewSource, /desktop-status-line-badge-btn/);
-      assert.match(statusOverviewSource, /desktop-status-remaining-group/);
+      assert.match(statusOverviewSource, /desktop-status-remaining-list/);
     });
   });
 

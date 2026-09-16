@@ -1107,6 +1107,7 @@ export function MyStationsPanel({
   const dashboard = useDashboardData();
   const authenticated = accountState ? accountState.authenticated : true;
   const [mode, setMode] = useState<"list" | "add">("list");
+  const [navDirection, setNavDirection] = useState<"forward" | "back" | null>(null);
   const [query, setQuery] = useState("");
   const [lineId, setLineId] = useState("all");
 
@@ -1340,6 +1341,7 @@ export function MyStationsPanel({
   }
 
   function leavePicker() {
+    setNavDirection("back");
     setMode("list");
     setQuery("");
     setLineId("all");
@@ -1394,7 +1396,7 @@ export function MyStationsPanel({
         closeLabel="Close My Stations"
       />
 
-      <div key={mode} className="my-stations-body" data-nav-direction={mode === "add" ? "forward" : "back"}>
+      <div key={mode} className="my-stations-body" data-nav-direction={navDirection || undefined}>
         {accountState?.source === "unavailable" ? (
           <div className="my-stations-list min-w-0 pb-3 flex flex-col gap-3">
             <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />
@@ -1478,6 +1480,7 @@ export function MyStationsPanel({
                     if (mode === "add") {
                       leavePicker();
                     } else {
+                      setNavDirection("forward");
                       setMode("add");
                       setQuery("");
                       setLineId("all");

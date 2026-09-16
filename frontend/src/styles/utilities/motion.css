@@ -404,14 +404,14 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .my-stations-body[data-nav-direction="forward"],
 .commute-body[data-nav-direction="forward"],
 .accessibility-outages-scroll[data-nav-direction="forward"] {
-  animation: panel-container-forward 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: panel-container-forward 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: opacity, transform;
 }
 
 @keyframes panel-container-forward {
   from {
     opacity: 0;
-    transform: translateX(24px);
+    transform: translateX(10px);
   }
   to {
     opacity: 1;
@@ -424,14 +424,14 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .my-stations-body[data-nav-direction="back"],
 .commute-body[data-nav-direction="back"],
 .accessibility-outages-scroll[data-nav-direction="back"] {
-  animation: panel-container-back 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: panel-container-back 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: opacity, transform;
 }
 
 @keyframes panel-container-back {
   from {
     opacity: 0;
-    transform: translateX(-24px);
+    transform: translateX(-10px);
   }
   to {
     opacity: 1;
@@ -576,9 +576,3 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   animation: none;
 }
 
-
-.my-stations-body[data-nav-direction],
-.commute-body[data-nav-direction] {
-  animation-duration: 300ms;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}

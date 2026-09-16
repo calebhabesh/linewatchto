@@ -972,13 +972,13 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /activePointersRef\.current\.size >= 2/);
   });
 
-  it("centers the enlarged default desktop network frame between the upper console and regional impact badges", () => {
+  it("centers the enlarged default desktop network frame in the workspace beside the sidebar", () => {
     assert.match(regionalMapSource, /\.desktop-status-capsule/);
     assert.match(regionalMapSource, /\.desktop-status-chip-row-container/);
     assert.match(regionalMapSource, /setDesktopMapTopInset/);
     assert.match(regionalMapSource, /setDesktopMapBottomInset/);
+    assert.match(regionalMapSource, /computeDesktopMapFrame/);
     assert.match(regionalMapSource, /computeBoundedMapFrame/);
-    assert.match(regionalMapSource, /computeInsetViewportFocus/);
     assert.match(
       globalsCss,
       /\.regional-map-stage > div > svg\s*\{[^}]*display:\s*block;[^}]*width:\s*100%;[^}]*height:\s*100%;/s,
@@ -986,14 +986,6 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0\.025/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0\.95/);
     assert.doesNotMatch(regionalMapSource, /REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO/);
-    assert.match(regionalMapSource, /Math\.min\(64, Math\.max\(32, width \* REGIONAL_MAP_HORIZONTAL_INSET_RATIO\)\)/);
-    assert.match(regionalMapSource, /left:\s*horizontalInset/);
-    assert.match(regionalMapSource, /right:\s*horizontalInset/);
-    assert.match(regionalMapSource, /top:\s*desktopMapTopInset/);
-    assert.match(regionalMapSource, /bottom:\s*desktopMapBottomInset/);
-    assert.match(regionalMapSource, /focus\.focusX - \(focus\.focusX - frame\.x\) \* frameScale/);
-    assert.match(regionalMapSource, /y: focus\.focusY - \(focus\.focusY - frame\.y\) \* frameScale/);
-    assert.match(regionalMapSource, /scale: frame\.scale \* frameScale/);
   });
 
   it("matches the TTC map fitted zoom range and button increments", () => {

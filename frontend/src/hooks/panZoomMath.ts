@@ -85,6 +85,61 @@ export function computeBoundedMapFrame(
   };
 }
 
+export type DesktopMapFrameOptions = {
+  viewportWidth: number;
+  viewportHeight: number;
+  bounds: MapContentBounds;
+  overlayLeft?: number;
+  horizontalInsetRatio?: number;
+  minHorizontalInset?: number;
+  scaleMultiplier?: number;
+  minVerticalInset?: number;
+};
+
+/**
+ * Frames authored visible map artwork centered in the available desktop workspace.
+ * The transformed artwork center precisely aligns with the workspace center between
+ * the overlay occlusion edge and the right viewport boundary.
+ */
+export function computeDesktopMapFrame({
+  viewportWidth,
+  viewportHeight,
+  bounds,
+  overlayLeft = 0,
+  horizontalInsetRatio = 0.025,
+  minHorizontalInset = 32,
+  scaleMultiplier = 1,
+  minVerticalInset = 24,
+}: DesktopMapFrameOptions): PanZoomTransform {
+  const safeOverlayLeft = Math.min(Math.max(overlayLeft, 0), Math.max(viewportWidth - 160, 0));
+  const availableWorkspaceWidth = Math.max(1, viewportWidth - safeOverlayLeft);
+  const availableWorkspaceHeight = Math.max(1, viewportHeight);
+
+  const horizontalPadding = Math.min(64, Math.max(minHorizontalInset, availableWorkspaceWidth * horizontalInsetRatio));
+  const verticalPadding = Math.min(48, Math.max(minVerticalInset, availableWorkspaceHeight * 0.03));
+
+  const fitWidth = Math.max(1, availableWorkspaceWidth - 2 * horizontalPadding);
+  const fitHeight = Math.max(1, availableWorkspaceHeight - 2 * verticalPadding);
+
+  const baseScale = Math.min(
+    fitWidth / Math.max(bounds.width, 1),
+    fitHeight / Math.max(bounds.height, 1),
+  );
+  const scale = baseScale * scaleMultiplier;
+
+  const workspaceCenterX = safeOverlayLeft + availableWorkspaceWidth / 2;
+  const workspaceCenterY = availableWorkspaceHeight / 2;
+
+  const boundsCenterX = bounds.x + bounds.width / 2;
+  const boundsCenterY = bounds.y + bounds.height / 2;
+
+  return {
+    x: workspaceCenterX - boundsCenterX * scale,
+    y: workspaceCenterY - boundsCenterY * scale,
+    scale,
+  };
+}
+
 export function computeInsetViewportFocus(
   viewportWidth: number,
   viewportHeight: number,

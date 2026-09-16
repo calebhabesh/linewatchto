@@ -44,7 +44,7 @@ describe("mobile navigation motion", () => {
     assert.match(shellSource, /onOpenCommutes=\{\(\) => navigateForward\("commutes"\)\}/);
     assert.match(shellSource, /onOpenMyStations=\{\(\) => navigateForward\("my-stations"\)\}/);
     assert.match(shellSource, /popViewHistory\(viewHistoryRef\.current, fallback\)/);
-    assert.match(shellSource, /reducedMotion \|\| \(isMobile && targetView !== "map"\)/);
+    assert.match(shellSource, /reducedMotion \|\| !isMobile \|\| \(isMobile && targetView !== "map"\)/);
     assert.match(globalCss, /@media \(max-width:\s*767px\)\s*\{[\s\S]*?\.floating-panel-shell\[data-going-back="true"\],[\s\S]*?animation:\s*mobile-sheet-slide-down-exit 240ms/s);
     assert.doesNotMatch(globalCss, /\.mobile-view-content-wrapper\[data-closing="true"\][\s\S]*?animation:\s*mobile-sheet-slide-down-exit/);
     assert.match(shellSource, /<MobileStatusSheet[\s\S]*?onClose=\{handleClosePanel\}/);

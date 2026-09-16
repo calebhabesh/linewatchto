@@ -5,7 +5,13 @@ import { ArrowRight, BusFront, Info, TrainFront } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
-import { currentServiceSummary, currentSurfaceNotices, getCanonicalAlertTitle } from "../app/current-service";
+import {
+  currentServiceSummary,
+  currentSurfaceNotices,
+  getCanonicalAlertTitle,
+  getLineStatusPresentation,
+  getPlannedClosureCountBadgeLabel,
+} from "../app/current-service";
 import { DESKTOP_SERVICE_SHEET_STORAGE_KEY, parseDesktopServiceSheetPosition } from "../app/desktop-service-sheet-state";
 import { LineBadge } from "./ImpactCardFields";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
@@ -58,7 +64,7 @@ function ServiceList({ children, rail = false }: { children: ReactNode; rail?: b
   return <div ref={ref} className={`current-service-list${rail ? " current-service-rail-list" : ""}`}>{children}</div>;
 }
 
-function GoodServiceCheckIcon({ size = 16 }: { size?: number }) {
+export function GoodServiceCheckIcon({ size = 16 }: { size?: number }) {
   return (
     <svg
       width={size}
@@ -102,7 +108,7 @@ function desktopContentHeight(panel: HTMLElement): number {
   return Math.max(COLLAPSED_LIST_HEIGHT, Math.min(height, window.innerHeight - 200));
 }
 
-export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotices, overlapSelectors = "" }: Props) {
+export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatus, onNotices, overlapSelectors = "" }: Props) {
   const [now, setNow] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -276,20 +282,26 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
   };
 
   const summary = currentServiceSummary(data, now);
-  const railLines = summary.fresh
-    ? data.lineStatuses.map(line => ({
+  const affectedLines = data.lineStatuses
+    .map((line) => {
+      const rows = summary.rows.filter((row) => row.lineId === line.id);
+      const futureClosures = (summary.upcoming ?? []).filter((c) => c.lineId === line.id);
+      const rszList = (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id);
+      return {
         line,
-        rows: summary.rows.filter(row => row.lineId === line.id),
-      }))
-    : summary.rows.length > 0
-      ? data.lineStatuses.map(line => ({
-          line,
-          rows: summary.rows.filter(row => row.lineId === line.id),
-        })).filter(item => item.rows.length > 0)
-      : [];
-  const affectedLines = railLines.filter(item => item.rows.length > 0);
-  const closedLines = railLines.filter(item => item.rows.length === 0 && (item.line.status === ("closed" as string) || item.line.statusLabel.toLowerCase() === "closed"));
-  const clearLines = railLines.filter(item => item.rows.length === 0 && item.line.status !== ("closed" as string) && item.line.statusLabel.toLowerCase() !== "closed");
+        rows,
+        closureCount: futureClosures.length,
+        rszCount: rszList.length,
+      };
+    })
+    .filter((item) => item.rows.length > 0);
+  const remainingLines = data.lineStatuses
+    .filter((line) => !affectedLines.some((item) => item.line.id === line.id))
+    .map((line) => ({
+      line,
+      presentation: getLineStatusPresentation(line, data, summary),
+      closureCount: (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length,
+    }));
   const activeCount = summary.rows.length;
   const surfaceRows = notices?.fresh && now > 0 ? currentSurfaceNotices(notices.notices, now) : [];
   const visibleNoticeCount = Math.min(surfaceRows.length, 3);
@@ -352,82 +364,145 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onNotic
         </h3>
         {data.snapshot && <p className="p-2 text-xs">Current status unknown.{data.snapshot?.savedAt != null ? " Saved reports follow; service may have changed." : " Connect for service information."}</p>}
         <ServiceList rail>
-          {summary.fresh && affectedLines.length === 0 && closedLines.length === 0 && clearLines.length > 0 ? (
-            <div
-              className="current-service-all-clear"
-              aria-label="No imminent alerts"
-            >
-              <div className="current-service-reassurance-badges" aria-hidden="true">
-                {clearLines.map(item => (
-                  <LineBadge key={item.line.id} lineId={item.line.id} lineNumber={item.line.number} size={20} />
-                ))}
+          {affectedLines.map((item) => (
+            <div className="current-service-line" key={item.line.id}>
+              <div className="current-service-line-badge-wrap">
+                <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={24} />
               </div>
-              <p className="current-service-clear">
-                <GoodServiceCheckIcon size={16} />
-                <span>No imminent alerts</span>
-              </p>
-            </div>
-          ) : (
-            <>
-              {affectedLines.map(item => (
-                <div className="current-service-line" key={item.line.id}>
-                  <div className="current-service-line-badge-wrap">
-                    <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={24} />
-                  </div>
-                  <div className="current-service-line-copy">
-                    {item.rows.map(row => {
-                      const timingLabel = row.timing
-                        ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ") ? "Starts " : "") + row.timing
-                        : null;
-                      return (
-                        <button type="button" className="current-service-impact current-service-impact--compact" key={`${row.kind}:${row.id}`} onClick={() => onImpact({ kind: row.kind, id: row.id })}>
-                          <span className="current-service-impact-heading">
-                            <strong data-kind={row.iconKind || row.kind}><ImpactTypeIcon kind={row.iconKind || row.kind} size={16} />{getCanonicalAlertTitle(row)}</strong>
+              <div className="current-service-line-copy">
+                <div className="current-service-line-copy-main">
+                  {item.rows.map((row) => {
+                    const timingLabel = row.timing
+                      ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ") ? "Starts " : "") + row.timing
+                      : null;
+                    return (
+                      <button
+                        type="button"
+                        className="current-service-impact current-service-impact--compact"
+                        key={`${row.kind}:${row.id}`}
+                        onClick={() => onImpact({ kind: row.kind, id: row.id })}
+                      >
+                        <span className="current-service-impact-heading">
+                          <strong data-kind={row.iconKind || row.kind}>
+                            <ImpactTypeIcon kind={row.iconKind || row.kind} size={16} />
+                            {getCanonicalAlertTitle(row)}
+                          </strong>
+                        </span>
+                        <span className="current-service-impact-location">{row.condition} · {row.location}</span>
+                        {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
+                        {timingLabel && <span className="current-service-impact-timing">{timingLabel}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(item.closureCount > 0 || item.rszCount > 0) && (
+                  <div className="current-service-sub-badges">
+                    {item.closureCount > 0 && (
+                      <button
+                        type="button"
+                        className="current-service-badge-incident-button"
+                        onClick={onStatus}
+                        aria-label={`${item.line.name}: ${getPlannedClosureCountBadgeLabel(item.closureCount)}`}
+                      >
+                        <span className="current-service-planned-pill">
+                          <ImpactTypeIcon kind="planned-closure" size={11} />
+                          <span>{getPlannedClosureCountBadgeLabel(item.closureCount)}</span>
+                        </span>
+                      </button>
+                    )}
+                    {item.rszCount > 0 && (
+                      <button
+                        type="button"
+                        className="current-service-badge-incident-button"
+                        onClick={onStatus}
+                        aria-label={`${item.line.name}: ${item.rszCount > 1 ? `${item.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
+                      >
+                        <span className="current-service-rsz-pill">
+                          <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
+                          <span>
+                            {item.rszCount > 1
+                              ? `${item.rszCount} Reduced Speed Zones`
+                              : "Reduced Speed Zones"}
                           </span>
-                          <span className="current-service-impact-location">{row.condition} · {row.location}</span>
-                          {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
-                          {timingLabel && <span className="current-service-impact-timing">{timingLabel}</span>}
-                        </button>
-                      );
-                    })}
+                        </span>
+                      </button>
+                    )}
                   </div>
-                </div>
-              ))}
-              {closedLines.map(item => (
-                <div className="current-service-line current-service-line--closed" key={item.line.id}>
-                  <div className="current-service-line-badge-wrap">
-                    <LineBadge lineId={item.line.id} lineNumber={item.line.number} size={24} />
+                )}
+              </div>
+            </div>
+          ))}
+
+          {remainingLines.map(({ line, presentation, closureCount }) => (
+            <div className={`current-service-line current-service-line--${presentation.state}`} key={line.id}>
+              <div className="current-service-line-badge-wrap">
+                <LineBadge lineId={line.id} lineNumber={line.number} size={24} />
+              </div>
+              <div className="current-service-line-copy current-service-line-copy--clear">
+                <button
+                  type="button"
+                  className="current-service-clear w-full text-left"
+                  onClick={onStatus}
+                  aria-label={`${line.name}: ${presentation.label}`}
+                >
+                  <div className="current-service-remaining-body">
+                    <div className="current-service-line-copy-main">
+                      {presentation.isNormal ? (
+                        <span className="current-service-normal-label">
+                          <GoodServiceCheckIcon size={16} />
+                          <strong>{presentation.label}</strong>
+                        </span>
+                      ) : presentation.state === "closed" ? (
+                        <span className="desktop-status-remaining-status desktop-status-remaining-status--closed">
+                          <Info size={16} aria-hidden="true" />
+                          <strong>{presentation.label}</strong>
+                        </span>
+                      ) : (
+                        <span className="desktop-status-remaining-status desktop-status-remaining-status--info">
+                          <Info size={16} aria-hidden="true" />
+                          <span>{presentation.label}</span>
+                        </span>
+                      )}
+                    </div>
+                    {(closureCount > 0 || presentation.hasRsz) && (
+                      <div className="current-service-sub-badges">
+                        {closureCount > 0 && (
+                          <span
+                            className="current-service-planned-pill"
+                            title={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
+                          >
+                            <ImpactTypeIcon kind="planned-closure" size={11} />
+                            <span>{getPlannedClosureCountBadgeLabel(closureCount)}</span>
+                          </span>
+                        )}
+                        {presentation.hasRsz && (
+                          <span
+                            className="current-service-rsz-pill"
+                            title={`${presentation.rszCount ?? 1} Reduced Speed Zone${(presentation.rszCount ?? 1) === 1 ? "" : "s"}`}
+                          >
+                            <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
+                            <span>
+                              {presentation.rszCount && presentation.rszCount > 1
+                                ? `${presentation.rszCount} Reduced Speed Zones`
+                                : "Reduced Speed Zones"}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="current-service-line-copy current-service-line-copy--clear">
-                    <p className="current-service-clear">
-                      <Info size={16} aria-hidden="true" />
-                      <span>Closed</span>
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-          {summary.fresh && !summary.rows.length && !clearLines.length && !closedLines.length && (
-            <p className="current-service-clear"><GoodServiceCheckIcon size={14} /><span>No active alerts, delays, or upcoming closures</span></p>
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {!affectedLines.length && !remainingLines.length && (
+            <p className="current-service-clear">
+              <GoodServiceCheckIcon size={14} />
+              <span>No active alerts, delays, or upcoming closures</span>
+            </p>
           )}
         </ServiceList>
-        {summary.fresh && (affectedLines.length > 0 || closedLines.length > 0) && clearLines.length > 0 && (
-          <div
-            className="current-service-reassurance"
-            aria-label="No other imminent alerts"
-          >
-            <div className="current-service-reassurance-badges" aria-hidden="true">
-              {clearLines.map(item => (
-                <LineBadge key={item.line.id} lineId={item.line.id} lineNumber={item.line.number} size={18} />
-              ))}
-            </div>
-            <GoodServiceCheckIcon size={14} />
-            <span className="current-service-reassurance-text">
-              No other imminent alerts
-            </span>
-          </div>
-        )}
       </section>
       <section aria-label="Surface service notices">
         <h3>

@@ -44,6 +44,7 @@ export function AccessibilityOutagesPanel({
   networkId = "ttc",
 }: Props) {
   const [selectedAssetType, setSelectedAssetType] = useState<"elevator" | "escalator" | null>(initialTarget?.assetType ?? null);
+  const [navDirection, setNavDirection] = useState<"forward" | "back" | null>(null);
   const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>(
     () => initiallyExpandedStations(accessibilityOutageResult, initialTarget),
   );
@@ -91,6 +92,7 @@ export function AccessibilityOutagesPanel({
         onBack();
         return;
       }
+      setNavDirection("back");
       setSelectedAssetType(null);
     } else {
       onBack();
@@ -165,13 +167,16 @@ export function AccessibilityOutagesPanel({
       />
 
       {/* Panel Content */}
-      <div key={selectedAssetType || "all"} className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 accessibility-outages-scroll" data-nav-direction={selectedAssetType ? "forward" : "back"}>
+      <div key={selectedAssetType || "all"} className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 accessibility-outages-scroll" data-nav-direction={navDirection || undefined}>
         {!selectedAssetType ? (
           /* First View: Asset List */
           <div className="flex flex-col gap-4">
             {/* Elevator Entry */}
             <button
-              onClick={() => setSelectedAssetType("elevator")}
+              onClick={() => {
+                setNavDirection("forward");
+                setSelectedAssetType("elevator");
+              }}
               className="w-full text-left p-3.5 rounded-lg border border-transparent bg-slate-50 hover:bg-slate-100 dark:bg-[#12151c] dark:hover:bg-[#181d26] shadow-xs transition-all flex flex-col gap-3 group relative cursor-pointer"
             >
               <div className="flex items-center justify-between w-full">
@@ -226,7 +231,10 @@ export function AccessibilityOutagesPanel({
 
             {/* Escalator Entry */}
             <button
-              onClick={() => setSelectedAssetType("escalator")}
+              onClick={() => {
+                setNavDirection("forward");
+                setSelectedAssetType("escalator");
+              }}
               className="w-full text-left p-3.5 rounded-lg border border-transparent bg-slate-50 hover:bg-slate-100 dark:bg-[#12151c] dark:hover:bg-[#181d26] shadow-xs transition-all flex flex-col gap-3 group relative cursor-pointer"
             >
               <div className="flex items-center justify-between w-full">

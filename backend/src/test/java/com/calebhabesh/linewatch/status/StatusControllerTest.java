@@ -212,9 +212,42 @@ class StatusControllerTest {
         assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 3 days ago");
     }
 
+    @Test
+    void doesNotMarkLineDelayedWhenAlertIsReducedSpeedZone() {
+        when(repository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+                new TransitLineEntity("line-2", "2", "Bloor-Danforth", "#00923F", 2)
+        ));
+        when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of(
+                alert("line-2", "delay", "reduced-speed-zone", "Reduced Speed Zone", "2026-06-01T11:50:00Z")
+        ));
+        OffsetDateTime completedAt = OffsetDateTime.parse("2026-06-01T11:59:00Z");
+        when(ingestionRunStore.findLatestSuccessful()).thenReturn(Optional.of(new IngestionRunSnapshot(
+                12L, "success", completedAt.minusSeconds(5), completedAt,
+                8, 8, 2, 0, completedAt.minusMinutes(1), null
+        )));
+
+        StatusController.StatusResponse response = controller.getStatus();
+
+        assertThat(response.lines()).singleElement().satisfies(line -> {
+            assertThat(line.status()).isEqualTo("normal");
+            assertThat(line.statusLabel()).isEqualTo("Normal");
+            assertThat(line.summary()).isEqualTo("No active service impacts reported.");
+        });
+    }
+
     private AlertEntity alert(
             String lineId,
             String severity,
+            String title,
+            String sourceUpdatedAt
+    ) {
+        return alert(lineId, severity, severity.equals("suspension") ? "suspension" : "delay", title, sourceUpdatedAt);
+    }
+
+    private AlertEntity alert(
+            String lineId,
+            String severity,
+            String impactKind,
             String title,
             String sourceUpdatedAt
     ) {
@@ -228,6 +261,7 @@ class StatusControllerTest {
                 1
         ));
         ReflectionTestUtils.setField(alert, "severity", severity);
+        ReflectionTestUtils.setField(alert, "impactKind", impactKind);
         ReflectionTestUtils.setField(alert, "title", title);
         ReflectionTestUtils.setField(alert, "sourceUpdatedAt", OffsetDateTime.parse(sourceUpdatedAt));
         return alert;

@@ -1164,10 +1164,6 @@
     pointer-events: none;
   }
 
-  .desktop-map-control-rail {
-    top: 176px !important;
-  }
-
   .floating-panel-shell {
     width: min(680px, 72vw, calc(100vw - 48px));
   }

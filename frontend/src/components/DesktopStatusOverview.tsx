@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Clock,
   Construction,
+  Info,
   Megaphone,
   TrainFront,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
+import { GoodServiceCheckIcon } from "./CurrentServicePanel";
 import type { NetworkId } from "../app/regional-data";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -26,6 +28,8 @@ import {
   currentServiceSummary,
   currentSurfaceNotices,
   getCanonicalAlertTitle,
+  getLineStatusPresentation,
+  getPlannedClosureCountBadgeLabel,
 } from "../app/current-service";
 import { dashboardStatusSourceLabel } from "../app/network-presentation";
 
@@ -128,13 +132,26 @@ export function DesktopStatusOverview({
 
   const affectedLineIds = new Set(summary.rows.map((r) => r.lineId));
   const qualifyingLines = lineStatuses
-    .map((line) => ({
-      line,
-      rows: summary.rows.filter((r) => r.lineId === line.id),
-    }))
+    .map((line) => {
+      const rows = summary.rows.filter((r) => r.lineId === line.id);
+      const futureClosures = (summary.upcoming ?? []).filter((c) => c.lineId === line.id);
+      const rszList = (dashboardData.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id);
+      return {
+        line,
+        rows,
+        closureCount: futureClosures.length,
+        rszCount: rszList.length,
+      };
+    })
     .filter((item) => item.rows.length > 0);
 
-  const remainingLines = lineStatuses.filter((line) => !affectedLineIds.has(line.id));
+  const remainingLines = lineStatuses
+    .filter((line) => !affectedLineIds.has(line.id))
+    .map((line) => ({
+      line,
+      presentation: getLineStatusPresentation(line, dashboardData, summary),
+      closureCount: (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length,
+    }));
 
   const surfaceRows =
     surfaceNotices?.fresh && now > 0
@@ -244,46 +261,84 @@ export function DesktopStatusOverview({
                   />
                 </button>
                 <div className="desktop-status-rail-impacts">
-                  {item.rows.map((row) => {
-                    const timingLabel = row.timing
-                      ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ")
-                          ? "Starts "
-                          : "") + row.timing
-                      : null;
-                    return (
-                      <button
-                        key={`${row.kind}:${row.id}`}
-                        type="button"
-                        className="desktop-status-incident-row"
-                        onClick={() => {
-                          if (onSelectImpact) {
-                            onSelectImpact({ kind: row.kind, id: row.id });
-                          } else {
-                            onOpenCategory("alerts", row.lineId);
-                          }
-                        }}
-                      >
-                        <div className="desktop-status-incident-header">
-                          <strong
-                            className="desktop-status-incident-title"
-                            data-kind={row.iconKind || row.kind}
-                          >
-                            <ImpactTypeIcon kind={row.iconKind || row.kind} size={15} />
-                            <span>{getCanonicalAlertTitle(row)}</span>
-                          </strong>
-                        </div>
-                        <div className="desktop-status-incident-location">
-                          {row.condition} · {row.location}
-                        </div>
-                        {row.direction && (
-                          <div className="desktop-status-incident-direction">{row.direction}</div>
-                        )}
-                        {timingLabel && (
-                          <div className="desktop-status-incident-timing">{timingLabel}</div>
-                        )}
-                      </button>
-                    );
-                  })}
+                  <div className="desktop-status-rail-impacts-main">
+                    {item.rows.map((row) => {
+                      const timingLabel = row.timing
+                        ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ")
+                            ? "Starts "
+                            : "") + row.timing
+                        : null;
+                      return (
+                        <button
+                          key={`${row.kind}:${row.id}`}
+                          type="button"
+                          className="desktop-status-incident-row"
+                          onClick={() => {
+                            if (onSelectImpact) {
+                              onSelectImpact({ kind: row.kind, id: row.id });
+                            } else {
+                              onOpenCategory("alerts", row.lineId);
+                            }
+                          }}
+                        >
+                          <div className="desktop-status-incident-header">
+                            <strong
+                              className="desktop-status-incident-title"
+                              data-kind={row.iconKind || row.kind}
+                            >
+                              <ImpactTypeIcon kind={row.iconKind || row.kind} size={16} />
+                              <span>{getCanonicalAlertTitle(row)}</span>
+                            </strong>
+                          </div>
+                          <div className="desktop-status-incident-location">
+                            {row.condition} · {row.location}
+                          </div>
+                          {row.direction && (
+                            <div className="desktop-status-incident-direction">{row.direction}</div>
+                          )}
+                          {timingLabel && (
+                            <div className="desktop-status-incident-timing">{timingLabel}</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {(item.closureCount > 0 || item.rszCount > 0) && (
+                    <div className="desktop-status-sub-badges">
+                      {item.closureCount > 0 && (
+                        <button
+                          type="button"
+                          className="desktop-status-badge-incident-button"
+                          onClick={() => onOpenCategory("closures", item.line.id)}
+                          title={`View ${item.line.name} Planned Closures`}
+                          aria-label={`${item.line.name}: ${getPlannedClosureCountBadgeLabel(item.closureCount)}`}
+                        >
+                          <span className="desktop-status-planned-pill">
+                            <ImpactTypeIcon kind="planned-closure" size={11} />
+                            <span>{getPlannedClosureCountBadgeLabel(item.closureCount)}</span>
+                          </span>
+                        </button>
+                      )}
+                      {item.rszCount > 0 && (
+                        <button
+                          type="button"
+                          className="desktop-status-badge-incident-button"
+                          onClick={() => onOpenCategory("alerts", item.line.id)}
+                          title={`View ${item.line.name} Reduced Speed Zones`}
+                          aria-label={`${item.line.name}: ${item.rszCount > 1 ? `${item.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
+                        >
+                          <span className="desktop-status-rsz-pill">
+                            <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
+                            <span>
+                              {item.rszCount > 1
+                                ? `${item.rszCount} Reduced Speed Zones`
+                                : "Reduced Speed Zones"}
+                            </span>
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -292,36 +347,72 @@ export function DesktopStatusOverview({
 
         {/* Remaining lines without qualifying incidents */}
         {remainingLines.length > 0 && (
-          <div
-            className="desktop-status-remaining-group"
-            aria-label={
-              qualifyingLines.length > 0
-                ? "No other imminent alerts on remaining lines"
-                : "No imminent alerts"
-            }
-          >
-            <div className="desktop-status-remaining-badges">
-              {remainingLines.map((line) => (
-                <button
-                  key={line.id}
-                  type="button"
-                  className="desktop-status-line-badge-btn"
-                  onClick={() => onOpenCategory("line-impacts", line.id)}
-                  aria-label={`View ${line.name} menu`}
-                  title={`View ${line.name} menu`}
-                >
+          <div className="desktop-status-remaining-list">
+            {remainingLines.map(({ line, presentation, closureCount }) => (
+              <button
+                key={line.id}
+                type="button"
+                className="desktop-status-remaining-row"
+                onClick={() => onOpenCategory("line-impacts", line.id)}
+                aria-label={`View ${line.name} line impacts: ${presentation.label}`}
+                title={`View ${line.name} menu: ${presentation.label}`}
+              >
+                <div className="desktop-status-line-badge-btn" aria-hidden="true">
                   <TransitLineBadge
                     lineId={line.id}
                     lineNumber={line.number}
                     lineName={line.name}
-                    size={22}
+                    size={28}
                   />
-                </button>
-              ))}
-            </div>
-            <span className="desktop-status-reassurance-text">
-              {qualifyingLines.length > 0 ? "No other imminent alerts" : "No imminent alerts"}
-            </span>
+                </div>
+                <div className="desktop-status-remaining-copy">
+                  <div className="desktop-status-remaining-main">
+                    {presentation.isNormal ? (
+                      <span className="desktop-status-remaining-status desktop-status-remaining-status--normal">
+                        <GoodServiceCheckIcon size={16} />
+                        <strong>{presentation.label}</strong>
+                      </span>
+                    ) : presentation.state === "closed" ? (
+                      <span className="desktop-status-remaining-status desktop-status-remaining-status--closed">
+                        <Info size={16} aria-hidden="true" />
+                        <strong>{presentation.label}</strong>
+                      </span>
+                    ) : (
+                      <span className="desktop-status-remaining-status desktop-status-remaining-status--info">
+                        <Info size={16} aria-hidden="true" />
+                        <span>{presentation.label}</span>
+                      </span>
+                    )}
+                  </div>
+                  {(closureCount > 0 || presentation.hasRsz) && (
+                    <div className="desktop-status-sub-badges">
+                      {closureCount > 0 && (
+                        <span
+                          className="desktop-status-planned-pill"
+                          title={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
+                        >
+                          <ImpactTypeIcon kind="planned-closure" size={11} />
+                          <span>{getPlannedClosureCountBadgeLabel(closureCount)}</span>
+                        </span>
+                      )}
+                      {presentation.hasRsz && (
+                        <span
+                          className="desktop-status-rsz-pill"
+                          title={`${presentation.rszCount ?? 1} Reduced Speed Zone${(presentation.rszCount ?? 1) === 1 ? "" : "s"}`}
+                        >
+                          <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
+                          <span>
+                            {presentation.rszCount && presentation.rszCount > 1
+                              ? `${presentation.rszCount} Reduced Speed Zones`
+                              : "Reduced Speed Zones"}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </section>
@@ -376,7 +467,7 @@ export function DesktopStatusOverview({
               </span>
               <span className="current-service-notice-copy">
                 <strong data-category={notice.category}>
-                  <SurfaceCategoryIcon category={notice.category} size={12} className="shrink-0" />
+                  <SurfaceCategoryIcon category={notice.category} size={13} className="shrink-0" />
                   {noticeLabels[notice.category] || "Notice"}
                 </strong>
                 <span className="current-service-notice-text">

@@ -24,7 +24,7 @@ export type CurrentServiceRow = {
   priority: number;
 };
 
-function windowTime(value: string | null | undefined, now: number, ending = false) {
+export function windowTime(value: string | null | undefined, now: number, ending = false) {
   const time = Date.parse(value || "");
   if (!Number.isFinite(time)) return undefined;
   const dateFormat = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" });
@@ -36,6 +36,13 @@ function windowTime(value: string | null | undefined, now: number, ending = fals
   const minutes = Math.max(1, Math.ceil((time - now) / 60_000));
   const remaining = minutes < 60 ? `${minutes}min` : `${Math.round(minutes / 60)}hr`;
   return `${ending ? "Ends " : ""}${label}${now > 0 && time > now ? ` (${remaining})` : ""}`;
+}
+
+export function getPlannedClosureCountBadgeLabel(count: number): string {
+  if (count <= 1) {
+    return "1 Planned Closure";
+  }
+  return `${count} Planned Closures`;
 }
 
 /** Presentation of the dashboard's already time-gated impacts, never a second feed. */
@@ -62,24 +69,42 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
     if (rows.some((row) => row.id === delay.id && row.lineId === delay.lineId)) continue;
     rows.push({ id: delay.id, kind: "delay", lineId: delay.lineId, lineNumber: delay.lineNumber, condition: "Delays", location: delay.location || delay.title, direction: delay.displayDirection, shuttle: false, priority: 1 });
   }
-  // Only explicit published windows qualify; publication dates are not service windows.
-  const upcoming = data.plannedClosures.filter((closure) => {
+  // Published windows starting within 24 hours (or active now) qualify as current service entries.
+  const qualifyingClosures = data.plannedClosures.filter((closure) => {
     const start = Date.parse(closure.nextWindowStart || "");
     const end = Date.parse(closure.nextWindowEnd || "");
     return now > 0 && !closure.activeNow && Number.isFinite(start) && Number.isFinite(end)
       && end > start && end > now && start <= now + 24 * 60 * 60 * 1000
       && !data.activeAlerts.some((alert) => alert.id === closure.id || alert.relatedPlannedClosureId === closure.id);
   }).sort((a, b) => Date.parse(a.nextWindowStart!) - Date.parse(b.nextWindowStart!) || a.id.localeCompare(b.id));
-  for (const closure of upcoming) {
+
+  for (const closure of qualifyingClosures) {
     const start = Date.parse(closure.nextWindowStart!);
     const active = start <= now;
-
-    rows.push({ id: closure.id, kind: "planned-closure", lineId: closure.lineId, lineNumber: closure.lineNumber,
+    rows.push({
+      id: closure.id,
+      kind: "planned-closure",
+      lineId: closure.lineId,
+      lineNumber: closure.lineNumber,
       condition: active ? "Planned Closure in Effect" : "Upcoming Closure",
       iconKind: active ? "suspension" : undefined,
       timing: windowTime(active ? closure.nextWindowEnd : closure.nextWindowStart, now, active),
-      location: closure.location || closure.title, direction: closure.displayDirection, shuttle: closure.shuttle, priority: active ? 0 : 2 });
+      location: closure.location || closure.title,
+      direction: closure.displayDirection,
+      shuttle: closure.shuttle,
+      priority: active ? 0 : 2,
+    });
   }
+
+  // Planned closures with published windows that are > 24hrs out qualify for subtle line badges.
+  const upcoming = data.plannedClosures.filter((closure) => {
+    const start = Date.parse(closure.nextWindowStart || "");
+    const end = Date.parse(closure.nextWindowEnd || "");
+    return now > 0 && !closure.activeNow && Number.isFinite(start) && Number.isFinite(end)
+      && end > start && end > now && start > now + 24 * 60 * 60 * 1000
+      && !data.activeAlerts.some((alert) => alert.id === closure.id || alert.relatedPlannedClosureId === closure.id);
+  }).sort((a, b) => Date.parse(a.nextWindowStart || "") - Date.parse(b.nextWindowStart || "") || a.id.localeCompare(b.id));
+
   // Stable within severity and line: source timestamp changes must not move a row.
   const lineOrder = new Map(data.lineStatuses.map((line, index) => [line.id, index]));
   rows.sort((a, b) => a.priority - b.priority || (lineOrder.get(a.lineId) ?? 99) - (lineOrder.get(b.lineId) ?? 99) || a.id.localeCompare(b.id));
@@ -132,5 +157,113 @@ export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
   }
 
   return isSnapshot ? `Last reported: ${title}` : title;
+}
+
+export type LineStatusPresentationState =
+  | "normal"
+  | "reduced-speed-zones"
+  | "closed"
+  | "ready"
+  | "delay"
+  | "suspension"
+  | "unavailable"
+  | "snapshot";
+
+export type LineStatusPresentation = {
+  state: LineStatusPresentationState;
+  label: string;
+  isNormal: boolean;
+  hasRsz: boolean;
+  rszCount?: number;
+};
+
+export function getLineStatusPresentation(
+  line: LineStatus,
+  data: CurrentServiceData,
+  summary: { fresh: boolean; rows: CurrentServiceRow[] },
+): LineStatusPresentation {
+  if (data.snapshot) {
+    return {
+      state: "snapshot",
+      label: data.snapshot.savedAt != null ? (line.statusLabel || "Saved status") : "Current status unknown",
+      isNormal: false,
+      hasRsz: false,
+    };
+  }
+
+  if (data.availability === "fixture") {
+    return {
+      state: "snapshot",
+      label: line.statusLabel || "Demo status",
+      isNormal: false,
+      hasRsz: false,
+    };
+  }
+
+  if (!summary.fresh || data.availability === "unavailable" || !data.generatedAt?.live) {
+    return {
+      state: "unavailable",
+      label: "Current status unavailable",
+      isNormal: false,
+      hasRsz: false,
+    };
+  }
+
+  const rawStatus = (line.status || "").toLowerCase();
+  const rawStatusLabel = (line.statusLabel || "").toLowerCase();
+
+  if (rawStatus === "closed" || rawStatusLabel === "closed") {
+    return {
+      state: "closed",
+      label: line.statusLabel || "Closed",
+      isNormal: false,
+      hasRsz: false,
+    };
+  }
+
+  if (rawStatus === "ready" || rawStatusLabel.includes("not running") || rawStatusLabel.includes("ready")) {
+    return {
+      state: "ready",
+      label: line.statusLabel || "Not Running",
+      isNormal: false,
+      hasRsz: false,
+    };
+  }
+
+  if (rawStatus === "delay" || rawStatusLabel.includes("delay")) {
+    return {
+      state: "delay",
+      label: line.statusLabel || "Delays",
+      isNormal: false,
+      hasRsz: false,
+    };
+  }
+
+  if (rawStatus === "suspension" || rawStatusLabel.includes("no service")) {
+    return {
+      state: "suspension",
+      label: line.statusLabel || "No Service",
+      isNormal: false,
+      hasRsz: false,
+    };
+  }
+
+  const rszList = (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id);
+  if (rszList.length > 0) {
+    return {
+      state: "reduced-speed-zones",
+      label: "Normal Service",
+      isNormal: true,
+      hasRsz: true,
+      rszCount: rszList.length,
+    };
+  }
+
+  return {
+    state: "normal",
+    label: "Normal Service",
+    isNormal: true,
+    hasRsz: false,
+  };
 }
 

@@ -1383,9 +1383,9 @@ export function LineWatchShell({
       setAccessibilityOutageTarget(null);
     };
 
-    // A mobile panel-to-panel Back only swaps the keyed content so the shared
-    // sheet does not dismiss and immediately re-enter between nested views.
-    if (reducedMotion || (isMobile && targetView !== "map")) {
+    // Desktop Back commits the destination immediately so incoming content animates once.
+    // A mobile panel-to-panel Back also swaps content immediately without dismissing the sheet.
+    if (reducedMotion || !isMobile || (isMobile && targetView !== "map")) {
       finishBackNavigation();
       return;
     }
@@ -1393,7 +1393,7 @@ export function LineWatchShell({
     setIsGoingBack(true);
     backTimeoutRef.current = window.setTimeout(
       finishBackNavigation,
-      isMobile ? 240 : 380,
+      240,
     );
   }, [activeView, consumeBrowserNavigationEntries, isGoingBack, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setSelectedStationId, setSelection]);
 
@@ -3993,18 +3993,45 @@ export function LineWatchShell({
   }, [activeView, desktopSidebarCollapsed, handleOpenSearch, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop]);
 
   const renderDesktopSidebarContent = () => {
-    if (selectedStationId) {
-      if (selectedNetwork === "ttc") {
+    const renderDesktopActivePanel = () => {
+      if (selectedStationId) {
+        if (selectedNetwork === "ttc") {
+          return (
+            <StationDetailPanel
+              key={`${selectedStationId}:${stationPanelActivationKey}`}
+              stationResult={visibleStationResult}
+              loading={stationLoading}
+              updating={stationLoading && Boolean(visibleStationResult?.data)}
+              selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
+              onClose={() => closeSelectedStation(selectedStationId)}
+              onSelectImpact={handleStationSelectImpact}
+              reducedMotion={reducedMotion}
+              authenticated={accountState.authenticated || accountState.source === "unavailable"}
+              saved={savedStationIds.has(selectedStationId)}
+              savePending={pendingSavedStationIds.has(selectedStationId)}
+              onToggleSaved={handleToggleSavedStation}
+              onRequestSignIn={() => {
+                setAccountEntryIntent("register");
+                openAccountDialog("auth-choice");
+                setAccountError(null);
+              }}
+            />
+          );
+        }
         return (
-          <StationDetailPanel
+          <RegionalStationDetailPanel
             key={`${selectedStationId}:${stationPanelActivationKey}`}
-            stationResult={visibleStationResult}
-            loading={stationLoading}
-            updating={stationLoading && Boolean(visibleStationResult?.data)}
-            selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
+            station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}
+            accessibilityOutages={Array.from(new Map(
+              (accessibilityOutageResult?.groups ?? [])
+                .flatMap((group) => group.stations)
+                .filter((station) => station.stationId === selectedStationId)
+                .flatMap((station) => station.outages)
+                .map((outage) => [outage.id, outage]),
+            ).values())}
+            accessibilityFresh={!displayData.snapshot && accessibilityOutageResult?.fresh === true}
             onClose={() => closeSelectedStation(selectedStationId)}
             onSelectImpact={handleStationSelectImpact}
-            reducedMotion={reducedMotion}
             authenticated={accountState.authenticated || accountState.source === "unavailable"}
             saved={savedStationIds.has(selectedStationId)}
             savePending={pendingSavedStationIds.has(selectedStationId)}
@@ -4017,165 +4044,142 @@ export function LineWatchShell({
           />
         );
       }
-      return (
-        <RegionalStationDetailPanel
-          key={`${selectedStationId}:${stationPanelActivationKey}`}
-          station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}
-          accessibilityOutages={Array.from(new Map(
-            (accessibilityOutageResult?.groups ?? [])
-              .flatMap((group) => group.stations)
-              .filter((station) => station.stationId === selectedStationId)
-              .flatMap((station) => station.outages)
-              .map((outage) => [outage.id, outage]),
-          ).values())}
-          accessibilityFresh={!displayData.snapshot && accessibilityOutageResult?.fresh === true}
-          onClose={() => closeSelectedStation(selectedStationId)}
-          onSelectImpact={handleStationSelectImpact}
-          authenticated={accountState.authenticated || accountState.source === "unavailable"}
-          saved={savedStationIds.has(selectedStationId)}
-          savePending={pendingSavedStationIds.has(selectedStationId)}
-          onToggleSaved={handleToggleSavedStation}
-          onRequestSignIn={() => {
-            setAccountEntryIntent("register");
-            openAccountDialog("auth-choice");
-            setAccountError(null);
-          }}
-        />
-      );
-    }
 
-    if (activeView === "search") {
-      return (
-        <StationSearchPanel
-          open
-          isClosing={isClosingSearch}
-          stationCatalogs={stationCatalogs}
-          currentNetwork={selectedNetwork}
-          selectedStationId={selectedStationId}
-          onSelectStation={handleSearchSelectStation}
-          onSelectImpact={handleSearchSelectImpact}
-          onOpenImpactCategory={handleSearchOpenImpactCategory}
-          onClose={handleCloseSearch}
-          onDismiss={handleCloseSearch}
-          query={stationSearchQuery}
-          onQueryChange={setStationSearchQuery}
-          inputRef={desktopSearchInputRef}
-          keyDownHandlerRef={stationKeyDownHandlerRef}
-          isMobile={false}
-          externalMobileInput
-          authenticated={accountState.authenticated || accountState.source === "unavailable"}
-          savedStationKeys={savedStationKeys}
-          pendingSavedStationIds={pendingSavedStationIds}
-          onToggleSavedStation={handleToggleSavedStation}
-          onRequestSignIn={() => {
-            setAccountEntryIntent("register");
-            openAccountDialog("auth-choice");
-            setAccountError(null);
-          }}
-          savedCommutes={accountCommutes}
-          surfaceSearchEnabled
-          onOpenDestination={(view) => {
-            if (view === "commutes") {
+      if (activeView === "search") {
+        return (
+          <StationSearchPanel
+            open
+            isClosing={isClosingSearch}
+            stationCatalogs={stationCatalogs}
+            currentNetwork={selectedNetwork}
+            selectedStationId={selectedStationId}
+            onSelectStation={handleSearchSelectStation}
+            onSelectImpact={handleSearchSelectImpact}
+            onOpenImpactCategory={handleSearchOpenImpactCategory}
+            onClose={handleCloseSearch}
+            onDismiss={handleCloseSearch}
+            query={stationSearchQuery}
+            onQueryChange={setStationSearchQuery}
+            inputRef={desktopSearchInputRef}
+            keyDownHandlerRef={stationKeyDownHandlerRef}
+            isMobile={false}
+            externalMobileInput
+            authenticated={accountState.authenticated || accountState.source === "unavailable"}
+            savedStationKeys={savedStationKeys}
+            pendingSavedStationIds={pendingSavedStationIds}
+            onToggleSavedStation={handleToggleSavedStation}
+            onRequestSignIn={() => {
+              setAccountEntryIntent("register");
+              openAccountDialog("auth-choice");
+              setAccountError(null);
+            }}
+            savedCommutes={accountCommutes}
+            surfaceSearchEnabled
+            onOpenDestination={(view) => {
+              if (view === "commutes") {
+                setCommutesActiveTab("saved");
+                setCommutesDraft(null);
+                clearPersistedCommuteDraft();
+              }
+              navigateForward(view);
+            }}
+            onOpenSavedCommute={() => {
               setCommutesActiveTab("saved");
               setCommutesDraft(null);
               clearPersistedCommuteDraft();
-            }
-            navigateForward(view);
-          }}
-          onOpenSavedCommute={() => {
-            setCommutesActiveTab("saved");
-            setCommutesDraft(null);
-            clearPersistedCommuteDraft();
-            navigateForward("commutes");
-          }}
-          onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
-        />
-      );
-    }
+              navigateForward("commutes");
+            }}
+            onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
+          />
+        );
+      }
 
-    if (activeView === "status" || activeView === "map") {
-      return (
-        <DesktopStatusOverview
-          pollText={pollText}
-          dataSource={displayData.dataSource}
-          networkId={selectedNetwork}
-          snapshot={displayData.snapshot}
-          accessibilityOutageCount={
-            accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
-          }
-          surfaceNoticeCount={surfaceNoticeCount ?? 0}
-          tripChangeCount={regionalTripChangeCount ?? 0}
-          surfaceNotices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
-          operatingState={selectedNetwork === "ttc" ? subwayOperatingState : regionalRailOperatingState}
-          onOpenCategory={(view, lineId) => {
-            if (view === "line-impacts" && lineId) {
-              openLineImpacts(lineId);
-              return;
+      if (activeView === "status" || activeView === "map") {
+        return (
+          <DesktopStatusOverview
+            pollText={pollText}
+            dataSource={displayData.dataSource}
+            networkId={selectedNetwork}
+            snapshot={displayData.snapshot}
+            accessibilityOutageCount={
+              accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
             }
-            if (
-              view === "alerts"
-              || view === "delays"
-              || view === "reduced-speed-zones"
-              || view === "closures"
-            ) {
-              openImpactCategory(view, lineId);
-              return;
-            }
-            if (view === "trip-changes") {
-              openRegionalTripChanges();
-              return;
-            }
-            setSelection(null);
-            navigateForward(view);
-          }}
-          onSelectImpact={(impactSelection) => {
-            handleMapSelectImpact(impactSelection);
-          }}
-          onSelectSurfaceNotice={handleSearchOpenSurfaceNotice}
-        />
-      );
-    }
+            surfaceNoticeCount={surfaceNoticeCount ?? 0}
+            tripChangeCount={regionalTripChangeCount ?? 0}
+            surfaceNotices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
+            operatingState={selectedNetwork === "ttc" ? subwayOperatingState : regionalRailOperatingState}
+            onOpenCategory={(view, lineId) => {
+              if (view === "line-impacts" && lineId) {
+                openLineImpacts(lineId);
+                return;
+              }
+              if (
+                view === "alerts"
+                || view === "delays"
+                || view === "reduced-speed-zones"
+                || view === "closures"
+              ) {
+                openImpactCategory(view, lineId);
+                return;
+              }
+              if (view === "trip-changes") {
+                openRegionalTripChanges();
+                return;
+              }
+              setSelection(null);
+              navigateForward(view);
+            }}
+            onSelectImpact={(impactSelection) => {
+              handleMapSelectImpact(impactSelection);
+            }}
+            onSelectSurfaceNotice={handleSearchOpenSurfaceNotice}
+          />
+        );
+      }
 
+      if (activeView === "more") {
+        return (
+          <DesktopMorePanel
+            accountState={accountState}
+            accountBusy={accountBusy}
+            highContrast={highContrast}
+            reducedMotion={reducedMotion}
+            dotBackgroundEnabled={dotBackgroundEnabled}
+            isDark={isDark}
+            defaultNetwork={defaultNetworkPreference}
+            currentNetwork={selectedNetwork}
+            shareStatusLabel={shareStatusLabel}
+            onToggleTheme={handleToggleTheme}
+            onRequestSignIn={() => openAuthChoice("login")}
+            onRequestCreateAccount={() => openAuthChoice("register")}
+            onDemoAccount={handleDemoAccount}
+            onSignOut={handleSignOut}
+            onToggleHighContrast={handleToggleHighContrast}
+            onToggleReducedMotion={handleToggleReducedMotion}
+            onToggleDotBackground={handleToggleDotBackground}
+            onDefaultNetworkChange={handleDefaultNetworkChange}
+            onOpenAnalytics={() => navigateForward("analytics")}
+            onOpenAlertHistory={() => navigateForward("alert-history")}
+            onOpenAnnouncements={() => navigateForward("announcements")}
+            onOpenAccessibilityOutages={() => navigateForward("accessibility-outages")}
+            onOpenSurfaceNotices={() => navigateForward("surface-notices")}
+            onOpenFeedback={() => navigateForward("feedback")}
+            onOpenPrivacyAcknowledgements={() => navigateForward("privacy-acknowledgements")}
+            onOpenReleaseNotes={() => navigateForward("release-notes")}
+            onOpenGuide={() => setGuideOpen(true)}
+            onShareApp={handleShareLineWatchApp}
+          />
+        );
+      }
 
+      return renderPanelContent();
+    };
 
-    if (activeView === "more") {
-      return (
-        <DesktopMorePanel
-          accountState={accountState}
-          accountBusy={accountBusy}
-          highContrast={highContrast}
-          reducedMotion={reducedMotion}
-          dotBackgroundEnabled={dotBackgroundEnabled}
-          isDark={isDark}
-          defaultNetwork={defaultNetworkPreference}
-          currentNetwork={selectedNetwork}
-          shareStatusLabel={shareStatusLabel}
-          onToggleTheme={handleToggleTheme}
-          onRequestSignIn={() => openAuthChoice("login")}
-          onRequestCreateAccount={() => openAuthChoice("register")}
-          onDemoAccount={handleDemoAccount}
-          onSignOut={handleSignOut}
-          onToggleHighContrast={handleToggleHighContrast}
-          onToggleReducedMotion={handleToggleReducedMotion}
-          onToggleDotBackground={handleToggleDotBackground}
-          onDefaultNetworkChange={handleDefaultNetworkChange}
-          onOpenAnalytics={() => navigateForward("analytics")}
-          onOpenAlertHistory={() => navigateForward("alert-history")}
-          onOpenAnnouncements={() => navigateForward("announcements")}
-          onOpenAccessibilityOutages={() => navigateForward("accessibility-outages")}
-          onOpenSurfaceNotices={() => navigateForward("surface-notices")}
-          onOpenFeedback={() => navigateForward("feedback")}
-          onOpenPrivacyAcknowledgements={() => navigateForward("privacy-acknowledgements")}
-          onOpenReleaseNotes={() => navigateForward("release-notes")}
-          onOpenGuide={() => setGuideOpen(true)}
-          onShareApp={handleShareLineWatchApp}
-        />
-      );
-    }
+    const desktopKey = selectedStationId ? `station-${selectedStationId}` : (activeView === "map" ? "status" : activeView);
 
     return (
-      <div key={activeView} className="desktop-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection}>
-        {renderPanelContent()}
+      <div key={desktopKey} className="desktop-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection}>
+        {renderDesktopActivePanel()}
       </div>
     );
   };

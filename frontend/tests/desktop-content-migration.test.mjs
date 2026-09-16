@@ -36,11 +36,10 @@ describe("desktop content and navigation migration (Session 2)", () => {
       assert.match(statusOverviewSource, /onOpenCategory\("surface-notices"\)/);
     });
 
-    it("renders clickable line badges for unaffected lines with honest reassurance", () => {
-      assert.match(statusOverviewSource, /desktop-status-remaining-group/);
+    it("renders clickable line badges and status rows for remaining lines", () => {
+      assert.match(statusOverviewSource, /desktop-status-remaining-list/);
       assert.match(statusOverviewSource, /TransitLineBadge/);
-      assert.match(statusOverviewSource, /desktop-status-line-badge-btn/);
-      assert.match(statusOverviewSource, /No (?:other )?imminent alerts/);
+      assert.match(statusOverviewSource, /desktop-status-remaining-row/);
     });
   });
 

@@ -6,6 +6,7 @@ import {
   cameraFromOrientedTransformMatrix,
   clampPanZoomScale,
   computeBoundedMapFrame,
+  computeDesktopMapFrame,
   computeFittedCameraFlyInStart,
   computeMapFitScale,
   computeInsetViewportFocus,
@@ -108,7 +109,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.ok(paddingLeft >= 12);
   });
 
-  it("centers desktop Regional artwork horizontally and vertically between the top console and bottom badges with equal padding", () => {
+  it("centers desktop Regional artwork in the available workspace beside sidebar with balanced opposite gaps", () => {
     const regionalBounds = {
       x: 53.08,
       y: 110.78,
@@ -117,46 +118,44 @@ describe("pan zoom behavior guardrails", () => {
     };
     const desktopWidth = 1920;
     const desktopHeight = 1080;
-    const desktopTopInset = 86; // console bottom
-    const desktopBottomInset = 90; // badges top
-    const horizontalInset = Math.min(64, Math.max(32, desktopWidth * 0.025));
-    const insets = {
-      left: horizontalInset,
-      right: horizontalInset,
-      top: desktopTopInset,
-      bottom: desktopBottomInset,
-    };
-    const frame = computeBoundedMapFrame(desktopWidth, desktopHeight, regionalBounds, insets);
-    const focus = computeInsetViewportFocus(desktopWidth, desktopHeight, insets);
-    const defaultFrameScale = 0.95;
-    const defaultFrame = {
-      x: focus.focusX - (focus.focusX - frame.x) * defaultFrameScale,
-      y: focus.focusY - (focus.focusY - frame.y) * defaultFrameScale,
-      scale: frame.scale * defaultFrameScale,
-    };
-    const artworkLeft = defaultFrame.x + regionalBounds.x * defaultFrame.scale;
-    const artworkRight = defaultFrame.x + (regionalBounds.x + regionalBounds.width) * defaultFrame.scale;
-    const paddingLeft = artworkLeft;
-    const paddingRight = desktopWidth - artworkRight;
+    const overlayLeft = 380; // overlay sidebar width
+    const frame = computeDesktopMapFrame({
+      viewportWidth: desktopWidth,
+      viewportHeight: desktopHeight,
+      bounds: regionalBounds,
+      overlayLeft,
+      scaleMultiplier: 0.95,
+    });
 
-    const artworkTop = defaultFrame.y + regionalBounds.y * defaultFrame.scale;
-    const artworkBottom = defaultFrame.y + (regionalBounds.y + regionalBounds.height) * defaultFrame.scale;
-    const paddingTop = artworkTop - desktopTopInset;
-    const paddingBottom = (desktopHeight - desktopBottomInset) - artworkBottom;
+    const workspaceCenterX = (overlayLeft + desktopWidth) / 2;
+    const workspaceCenterY = desktopHeight / 2;
+    const boundsCenterX = regionalBounds.x + regionalBounds.width / 2;
+    const boundsCenterY = regionalBounds.y + regionalBounds.height / 2;
 
-    assert.ok(Math.abs(paddingLeft - paddingRight) < 1e-9);
-    assert.ok(paddingLeft >= horizontalInset);
-    assert.ok(Math.abs(paddingTop - paddingBottom) < 1e-9);
-    assert.ok(paddingTop > 20); // Comfortable padding around Allandale Waterfront
+    const transformedCenterX = frame.x + boundsCenterX * frame.scale;
+    const transformedCenterY = frame.y + boundsCenterY * frame.scale;
+
+    assert.ok(Math.abs(transformedCenterX - workspaceCenterX) < 1e-9);
+    assert.ok(Math.abs(transformedCenterY - workspaceCenterY) < 1e-9);
+
+    const leftGap = (frame.x + regionalBounds.x * frame.scale) - overlayLeft;
+    const rightGap = desktopWidth - (frame.x + (regionalBounds.x + regionalBounds.width) * frame.scale);
+    assert.ok(Math.abs(leftGap - rightGap) < 1e-9);
+
+    const topGap = frame.y + regionalBounds.y * frame.scale;
+    const bottomGap = desktopHeight - (frame.y + (regionalBounds.y + regionalBounds.height) * frame.scale);
+    assert.ok(Math.abs(topGap - bottomGap) < 1e-9);
+
     assert.match(regionalMapSource, /x:\s*53\.08/);
     assert.match(regionalMapSource, /y:\s*110\.78/);
     assert.match(regionalMapSource, /width:\s*4620\.46/);
     assert.match(regionalMapSource, /height:\s*2395\.26/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0\.95/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_MOBILE_INSET_RATIO = 0\.025/);
+    assert.match(regionalMapSource, /computeDesktopMapFrame/);
   });
 
-  it("centers desktop TTC artwork vertically between the center/magnify console and bottom badges with equal padding", () => {
+  it("centers desktop TTC artwork in the available workspace beside sidebar with balanced opposite gaps", () => {
     const scaleFactor = 4500 / 8250;
     const ttcBounds = {
       x: 65 * scaleFactor,
@@ -164,25 +163,36 @@ describe("pan zoom behavior guardrails", () => {
       width: (7925 - 65) * scaleFactor,
       height: (3840 - 120) * scaleFactor,
     };
-    const desktopWidth = 1920;
-    const desktopHeight = 1080;
-    const desktopTopInset = 140; // bottom of center/magnify console
-    const desktopBottomInset = 90; // top of alert badges
-    const horizontalInset = Math.min(64, Math.max(32, desktopWidth * 0.025));
-    const insets = {
-      left: horizontalInset,
-      right: horizontalInset,
-      top: desktopTopInset,
-      bottom: desktopBottomInset,
-    };
-    const frame = computeBoundedMapFrame(desktopWidth, desktopHeight, ttcBounds, insets);
-    const artworkTop = frame.y + ttcBounds.y * frame.scale;
-    const artworkBottom = frame.y + (ttcBounds.y + ttcBounds.height) * frame.scale;
-    const paddingTop = artworkTop - desktopTopInset;
-    const paddingBottom = (desktopHeight - desktopBottomInset) - artworkBottom;
+    const desktopWidth = 1440;
+    const desktopHeight = 900;
+    const overlayLeft = 0; // docked or collapsed sidebar
+    const frame = computeDesktopMapFrame({
+      viewportWidth: desktopWidth,
+      viewportHeight: desktopHeight,
+      bounds: ttcBounds,
+      overlayLeft,
+    });
 
-    assert.ok(Math.abs(paddingTop - paddingBottom) < 1e-9);
-    assert.match(mapSource, /desktopMapBottomInset/);
+    const workspaceCenterX = desktopWidth / 2;
+    const workspaceCenterY = desktopHeight / 2;
+    const boundsCenterX = ttcBounds.x + ttcBounds.width / 2;
+    const boundsCenterY = ttcBounds.y + ttcBounds.height / 2;
+
+    const transformedCenterX = frame.x + boundsCenterX * frame.scale;
+    const transformedCenterY = frame.y + boundsCenterY * frame.scale;
+
+    assert.ok(Math.abs(transformedCenterX - workspaceCenterX) < 1e-9);
+    assert.ok(Math.abs(transformedCenterY - workspaceCenterY) < 1e-9);
+
+    const leftGap = frame.x + ttcBounds.x * frame.scale;
+    const rightGap = desktopWidth - (frame.x + (ttcBounds.x + ttcBounds.width) * frame.scale);
+    assert.ok(Math.abs(leftGap - rightGap) < 1e-9);
+
+    const topGap = frame.y + ttcBounds.y * frame.scale;
+    const bottomGap = desktopHeight - (frame.y + (ttcBounds.y + ttcBounds.height) * frame.scale);
+    assert.ok(Math.abs(topGap - bottomGap) < 1e-9);
+
+    assert.match(hookSource, /computeDesktopMapFrame/);
   });
 
   it("keeps the cardinal north marker inside the transformed map layer", () => {
@@ -658,5 +668,89 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(mapSource, /animateTransformTo\(\{[\s\S]*scale: targetScale,[\s\S]*\}, effectiveFitScale\);/);
     assert.match(hookSource, /animateTransformTo\(\{ x: newX, y: newY, scale: targetAbsoluteScale \}, currentFitScale\);/);
     assert.match(hookSource, /animateTransformTo\(\{[\s\S]*scale: targetAbsoluteScale,[\s\S]*\}, currentFitScale\);/);
+  });
+
+  it("satisfies the desktop map frame contract across compact, medium, and wide profiles in docked and overlay modes", () => {
+    const scaleFactor = 4500 / 8250;
+    const ttcBounds = {
+      x: 65 * scaleFactor,
+      y: 120 * scaleFactor,
+      width: (7925 - 65) * scaleFactor,
+      height: (3840 - 120) * scaleFactor,
+    };
+    const boundsCenterX = ttcBounds.x + ttcBounds.width / 2;
+    const boundsCenterY = ttcBounds.y + ttcBounds.height / 2;
+
+    const testCases = [
+      { name: "1440x900 docked compact (380px)", width: 1440 - 80 - 380, height: 820, overlayLeft: 0 },
+      { name: "1440x900 docked medium (560px)", width: 1440 - 80 - 560, height: 820, overlayLeft: 0 },
+      { name: "1440x900 docked wide (680px)", width: 1440 - 80 - 680, height: 820, overlayLeft: 0 },
+      { name: "1000x700 overlay compact (380px)", width: 1000, height: 700, overlayLeft: 380 },
+      { name: "1000x700 overlay medium (560px)", width: 1000, height: 700, overlayLeft: 560 },
+      { name: "1280x800 collapsed (0px)", width: 1280, height: 800, overlayLeft: 0 },
+    ];
+
+    for (const tc of testCases) {
+      const frame = computeDesktopMapFrame({
+        viewportWidth: tc.width,
+        viewportHeight: tc.height,
+        bounds: ttcBounds,
+        overlayLeft: tc.overlayLeft,
+      });
+
+      const workspaceCenterX = (tc.overlayLeft + tc.width) / 2;
+      const workspaceCenterY = tc.height / 2;
+      const transformedCenterX = frame.x + boundsCenterX * frame.scale;
+      const transformedCenterY = frame.y + boundsCenterY * frame.scale;
+
+      assert.ok(
+        Math.abs(transformedCenterX - workspaceCenterX) < 1e-9,
+        `${tc.name}: transformed center X (${transformedCenterX}) should equal workspace center X (${workspaceCenterX})`,
+      );
+      assert.ok(
+        Math.abs(transformedCenterY - workspaceCenterY) < 1e-9,
+        `${tc.name}: transformed center Y (${transformedCenterY}) should equal workspace center Y (${workspaceCenterY})`,
+      );
+
+      const leftGap = (frame.x + ttcBounds.x * frame.scale) - tc.overlayLeft;
+      const rightGap = tc.width - (frame.x + (ttcBounds.x + ttcBounds.width) * frame.scale);
+      assert.ok(
+        Math.abs(leftGap - rightGap) < 1e-9,
+        `${tc.name}: left gap (${leftGap}) should equal right gap (${rightGap})`,
+      );
+
+      const topGap = frame.y + ttcBounds.y * frame.scale;
+      const bottomGap = tc.height - (frame.y + (ttcBounds.y + ttcBounds.height) * frame.scale);
+      assert.ok(
+        Math.abs(topGap - bottomGap) < 1e-9,
+        `${tc.name}: top gap (${topGap}) should equal bottom gap (${bottomGap})`,
+      );
+    }
+  });
+
+  it("preserves manual camera focus and zoom when the desktop sidebar opens or resizes", () => {
+    const userCamera = { x: -300, y: -150, scale: 0.65 };
+    const prevViewport = { width: 1440, height: 900 };
+    const nextViewport = { width: 1440 - 380, height: 900 };
+
+    const resized = transformForViewportResize(
+      userCamera,
+      prevViewport,
+      nextViewport,
+      0.2,
+      0.15,
+      0,
+      0,
+      true, // preserveZoom on desktop
+    );
+
+    // Zoom level must remain intact
+    assert.equal(resized.scale, userCamera.scale);
+
+    // Map point at previous center must now be at new center
+    const prevCenterMapPoint = mapPointFromViewportPoint(userCamera, { x: 720, y: 450 });
+    const newCenterMapPoint = mapPointFromViewportPoint(resized, { x: (1440 - 380) / 2, y: 450 });
+    assert.ok(Math.abs(prevCenterMapPoint.x - newCenterMapPoint.x) < 1e-9);
+    assert.ok(Math.abs(prevCenterMapPoint.y - newCenterMapPoint.y) < 1e-9);
   });
 });

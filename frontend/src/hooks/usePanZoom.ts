@@ -8,6 +8,7 @@ import {
   cameraFromOrientedTransformMatrix,
   clientPointToLogicalViewportPoint,
   computeBoundedMapFrame,
+  computeDesktopMapFrame,
   computeFittedCameraFlyInStart,
   computeInsetViewportFocus,
   computeMapFitScale,
@@ -126,40 +127,47 @@ export function usePanZoom({
     if (defaultFrame) {
       const mobileInsets = viewportOrientation === "standard"
         ? readMobileMapFrameInsets(containerRef.current) : null;
+      if (mobileInsets) {
+        const minHorizontalInset = defaultFrame.minHorizontalInset ?? (width < 768 ? 12 : 32);
+        const horizontalInset = defaultFrame.horizontalInsetRatio
+          ? Math.min(64, Math.max(minHorizontalInset, width * defaultFrame.horizontalInsetRatio))
+          : 12;
+        const frame = computeBoundedMapFrame(
+          width,
+          height,
+          defaultFrame.bounds,
+          {
+            left: horizontalInset,
+            right: horizontalInset,
+            top: mobileInsets.top,
+            bottom: mobileInsets.bottom,
+          },
+        );
+        if (!defaultFrame.mobileZoom) return frame;
+        const availableHeight = Math.max(1, height - mobileInsets.top - mobileInsets.bottom);
+        // Keep the north/south extent inside the opening on short phones.
+        const zoom = Math.max(1, Math.min(defaultFrame.mobileZoom,
+          availableHeight * 0.9 / (defaultFrame.bounds.height * frame.scale)));
+        const focus = computeInsetViewportFocus(width, height, mobileInsets);
+        const stationX = defaultFrame.mobileCenterStationId
+          ? readMapStationCenterX(containerRef.current, defaultFrame.mobileCenterStationId) : null;
+        return {
+          x: stationX !== null ? focus.focusX - stationX * frame.scale * zoom
+            : focus.focusX - (focus.focusX - frame.x) * zoom,
+          y: focus.focusY - (focus.focusY - frame.y) * zoom,
+          scale: frame.scale * zoom,
+        };
+      }
+
       const desktopOverlay = readDesktopOverlayInsets(containerRef.current);
-      const minHorizontalInset = defaultFrame.minHorizontalInset ?? (width < 768 ? 12 : 32);
-      const horizontalInset = defaultFrame.horizontalInsetRatio
-        ? Math.min(64, Math.max(minHorizontalInset, width * defaultFrame.horizontalInsetRatio))
-        : (width < 768 ? 12 : 0);
-      const leftInset = Math.max(
-        horizontalInset,
-        desktopOverlay.left + (desktopOverlay.left > 0 ? 24 : 0),
-      );
-      const frame = computeBoundedMapFrame(
-        width,
-        height,
-        defaultFrame.bounds,
-        {
-          left: leftInset,
-          right: horizontalInset,
-          top: mobileInsets?.top ?? defaultFrame.topInset,
-          bottom: mobileInsets?.bottom ?? defaultFrame.bottomInset ?? 0,
-        },
-      );
-      if (!mobileInsets || !defaultFrame.mobileZoom) return frame;
-      const availableHeight = Math.max(1, height - mobileInsets.top - mobileInsets.bottom);
-      // Keep the north/south extent inside the opening on short phones.
-      const zoom = Math.max(1, Math.min(defaultFrame.mobileZoom,
-        availableHeight * 0.9 / (defaultFrame.bounds.height * frame.scale)));
-      const focus = computeInsetViewportFocus(width, height, mobileInsets);
-      const stationX = defaultFrame.mobileCenterStationId
-        ? readMapStationCenterX(containerRef.current, defaultFrame.mobileCenterStationId) : null;
-      return {
-        x: stationX !== null ? focus.focusX - stationX * frame.scale * zoom
-          : focus.focusX - (focus.focusX - frame.x) * zoom,
-        y: focus.focusY - (focus.focusY - frame.y) * zoom,
-        scale: frame.scale * zoom,
-      };
+      return computeDesktopMapFrame({
+        viewportWidth: width,
+        viewportHeight: height,
+        bounds: defaultFrame.bounds,
+        overlayLeft: desktopOverlay.left,
+        horizontalInsetRatio: defaultFrame.horizontalInsetRatio ?? 0.025,
+        minHorizontalInset: defaultFrame.minHorizontalInset ?? 32,
+      });
     }
 
     const desktopOverlay = readDesktopOverlayInsets(containerRef.current);

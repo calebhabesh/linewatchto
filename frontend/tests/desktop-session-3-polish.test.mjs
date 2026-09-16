@@ -127,13 +127,13 @@ describe("desktop responsive and accessibility polish (Session 3)", () => {
       assert.match(globalCss, /\.desktop-status-category-capsule/);
     });
 
-    it("renders rail section with line badge buttons and honest reassurance", () => {
+    it("renders rail section with line badge buttons and remaining status rows", () => {
       assert.match(statusOverviewSource, /desktop-status-rail-section/);
       assert.match(statusOverviewSource, /desktop-status-line-badge-btn/);
-      assert.match(statusOverviewSource, /desktop-status-remaining-group/);
+      assert.match(statusOverviewSource, /desktop-status-remaining-list/);
       assert.match(globalCss, /\.desktop-status-rail-section/);
       assert.match(globalCss, /\.desktop-status-line-badge-btn/);
-      assert.match(globalCss, /\.desktop-status-remaining-group/);
+      assert.match(globalCss, /\.desktop-status-remaining-list/);
     });
 
     it("styles line badge buttons with focus-visible and click targets", () => {

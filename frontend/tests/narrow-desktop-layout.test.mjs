@@ -11,10 +11,6 @@ test("narrow desktop windows reflow dense chrome without switching to mobile nav
   );
   assert.match(
     globalCss,
-    /@media \(min-width: 768px\) and \(max-width: 1099px\)[\s\S]*?\.desktop-map-control-rail\s*\{[^}]*top:\s*176px\s*!important;/,
-  );
-  assert.match(
-    globalCss,
     /@media \(min-width: 768px\) and \(max-width: 1099px\)[\s\S]*?\.floating-panel-shell\s*\{[^}]*width:\s*min\(680px, 72vw, calc\(100vw - 48px\)\);/,
   );
   assert.match(

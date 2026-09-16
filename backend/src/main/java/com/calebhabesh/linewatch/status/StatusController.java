@@ -105,9 +105,10 @@ public class StatusController {
     ) {
         String route = getRouteForLine(entity.getId());
 
-        // Filter alerts for this specific line
+        // Filter acute alerts for this specific line (RSZs are tracked separately)
         List<AlertEntity> lineAlerts = allActiveAlerts.stream()
             .filter(a -> a.getLine() != null && a.getLine().getId().equals(entity.getId()))
+            .filter(a -> !"reduced-speed-zone".equalsIgnoreCase(a.getImpactKind()))
             .toList();
 
         // Filter active planned closures for this specific line
@@ -198,11 +199,6 @@ public class StatusController {
                 summary = "Active service alert affecting this line.";
             }
             updatedAgo = updatedAgo(mostRecent.getSourceUpdatedAt());
-        } else if (entity.getId().equals("line-5") || entity.getId().equals("line-6")) {
-            status = "ready";
-            statusLabel = "Ready";
-            summary = entity.getId().equals("line-5") ? "Layout is integrated for launch and planned service notices." : "Finch West LRT geometry is included for future service notices.";
-            updatedAgo = "Reference layout";
         }
 
         return new LineStatusDto(

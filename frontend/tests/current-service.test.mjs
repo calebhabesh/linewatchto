@@ -1,9 +1,25 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { currentServiceSummary, currentSurfaceNotices, getCanonicalAlertTitle } from "../src/app/current-service.ts";
+import {
+  currentServiceSummary,
+  currentSurfaceNotices,
+  getCanonicalAlertTitle,
+  getLineStatusPresentation,
+  getPlannedClosureCountBadgeLabel,
+} from "../src/app/current-service.ts";
 
-const line = (id, status = "normal") => ({ id, number: id, status });
+const line = (id, status = "normal", statusLabel = "Normal Service") => ({
+  id,
+  number: id,
+  name: `Line ${id}`,
+  route: id,
+  color: "#ffd100",
+  status,
+  statusLabel,
+  summary: "",
+  updatedAgo: "just now",
+});
 const impact = (id, lineId, extra = {}) => ({ id, lineId, lineNumber: lineId, title: id, location: "Jane to Keele", severity: "suspension", ...extra });
 const data = (extra = {}) => ({ generatedAt: { live: true }, availability: "available", lineStatuses: [line("1"), line("2"), line("4")], activeAlerts: [], delays: [], reducedSpeedZones: [], plannedClosures: [], ...extra });
 
@@ -74,7 +90,9 @@ test("published closure windows enter within 24 hours, transition, expire, and y
   const closure = impact("parent", "2", { nextWindowStart: "2026-09-10T16:00:00Z", nextWindowEnd: "2026-09-10T18:00:00Z" });
   const input = data({ plannedClosures: [closure] });
   assert.equal(currentServiceSummary(input, now - 1).rows.length, 0);
+  assert.equal(currentServiceSummary(input, now - 1).upcoming.length, 1);
   assert.equal(currentServiceSummary(input, now).rows[0].condition, "Upcoming Closure");
+  assert.equal(currentServiceSummary(input, now).upcoming.length, 0);
   assert.equal(currentServiceSummary(input, Date.parse(closure.nextWindowStart)).rows[0].condition, "Planned Closure in Effect");
   assert.equal(currentServiceSummary(input, Date.parse(closure.nextWindowEnd)).rows.length, 0);
   input.activeAlerts = [impact("child", "2", { relatedPlannedClosureId: "parent" })];
@@ -153,18 +171,88 @@ test("canonical alert type names match canonical specifications", () => {
   }), "Last reported: Delay");
 });
 
-test("CurrentServicePanel implements exception-first layout with consolidated reassurance summary and all-clear states", () => {
+test("getLineStatusPresentation accurately classifies operational states", () => {
+  const line1 = line("1", "normal", "Normal Service");
+  const line2 = line("2", "normal", "Normal Service");
+  const lineClosed = line("4", "closed", "Closed");
+  const lineReady = line("5", "ready", "Opening Soon");
+  const lineDelay = line("6", "delay", "Delays");
+
+  const normalData = data({ lineStatuses: [line1, line2, lineClosed, lineReady, lineDelay] });
+  const normalSummary = currentServiceSummary(normalData);
+
+  // 1. Fresh normal line -> Normal Service with isNormal: true
+  const resNormal = getLineStatusPresentation(line1, normalData, normalSummary);
+  assert.equal(resNormal.state, "normal");
+  assert.equal(resNormal.label, "Normal Service");
+  assert.equal(resNormal.isNormal, true);
+  assert.equal(resNormal.hasRsz, false);
+
+  // 2. RSZ-only line -> Normal Service with hasRsz: true (subtle indicator)
+  const rszData = data({
+    lineStatuses: [line1, line2],
+    reducedSpeedZones: [impact("rsz-1", "1", { location: "Lawrence to York Mills" })],
+  });
+  const rszSummary = currentServiceSummary(rszData);
+  const resRsz = getLineStatusPresentation(line1, rszData, rszSummary);
+  assert.equal(resRsz.state, "reduced-speed-zones");
+  assert.equal(resRsz.label, "Normal Service");
+  assert.equal(resRsz.isNormal, true);
+  assert.equal(resRsz.hasRsz, true);
+  assert.equal(resRsz.rszCount, 1);
+
+  // 3. Closed line
+  const resClosed = getLineStatusPresentation(lineClosed, normalData, normalSummary);
+  assert.equal(resClosed.state, "closed");
+  assert.equal(resClosed.label, "Closed");
+  assert.equal(resClosed.isNormal, false);
+
+  // 4. Ready / not running line
+  const resReady = getLineStatusPresentation(lineReady, normalData, normalSummary);
+  assert.equal(resReady.state, "ready");
+  assert.equal(resReady.label, "Opening Soon");
+  assert.equal(resReady.isNormal, false);
+
+  // 5. Delay line
+  const resDelay = getLineStatusPresentation(lineDelay, normalData, normalSummary);
+  assert.equal(resDelay.state, "delay");
+  assert.equal(resDelay.label, "Delays");
+  assert.equal(resDelay.isNormal, false);
+
+  // 6. Stale / offline / unavailable
+  const unavailData = data({ availability: "unavailable" });
+  const unavailSummary = currentServiceSummary(unavailData);
+  const resUnavail = getLineStatusPresentation(line1, unavailData, unavailSummary);
+  assert.equal(resUnavail.state, "unavailable");
+  assert.equal(resUnavail.label, "Current status unavailable");
+  assert.equal(resUnavail.isNormal, false);
+
+  // 7. Fixture / demo
+  const fixtureData = data({ availability: "fixture" });
+  const fixtureSummary = currentServiceSummary(fixtureData);
+  const resFixture = getLineStatusPresentation(line1, fixtureData, fixtureSummary);
+  assert.equal(resFixture.state, "snapshot");
+  assert.equal(resFixture.isNormal, false);
+
+  // 8. Snapshot
+  const snapData = data({ snapshot: { savedAt: 12345678 } });
+  const snapSummary = currentServiceSummary(snapData);
+  const resSnap = getLineStatusPresentation(line1, snapData, snapSummary);
+  assert.equal(resSnap.state, "snapshot");
+  assert.equal(resSnap.isNormal, false);
+});
+
+test("CurrentServicePanel renders individual remaining-line rows with route badges and accurate status text", () => {
   const panelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
 
-  assert.match(panelSource, /current-service-reassurance/);
-  assert.match(panelSource, /current-service-reassurance-badges/);
-  assert.match(panelSource, /current-service-all-clear/);
-  assert.match(panelSource, /No other imminent alerts|No imminent alerts/);
+  assert.match(panelSource, /remainingLines/);
+  assert.match(panelSource, /getLineStatusPresentation/);
+  assert.match(panelSource, /current-service-line--\$\{presentation\.state\}/);
+  assert.doesNotMatch(panelSource, /current-service-reassurance-badges/);
 
-  assert.match(stylesSource, /\.current-service-reassurance\s*\{/);
-  assert.match(stylesSource, /\.current-service-reassurance-badges\s*\{/);
-  assert.match(stylesSource, /\.current-service-all-clear\s*\{/);
+  assert.match(stylesSource, /\.current-service-line--normal/);
+  assert.match(stylesSource, /\.current-service-line--reduced-speed-zones/);
 });
 
 test("CurrentServicePanel pull up sheet has an opaque mobile-style container and unified alert item body text size", () => {
@@ -180,8 +268,8 @@ test("CurrentServicePanel pull up sheet has an opaque mobile-style container and
   // Surface notices item body text has dedicated class
   assert.match(panelSource, /className="current-service-notice-text"/);
 
-  // Alert item body text for subway/light rail and streetcar/bus alerts share matching 12px font size
-  assert.match(stylesSource, /\.current-service-impact-timing\s*\{[^}]*font-size:\s*12px;/s);
+  // Alert item body text for subway/light rail and streetcar/bus alerts
+  assert.match(stylesSource, /\.current-service-impact-timing\s*\{[^}]*font-size:\s*10\.5px;/s);
   assert.match(stylesSource, /\.current-service-impact-location\s*\{[^}]*font-size:\s*12px;/s);
   assert.match(stylesSource, /\.current-service-notice-text[^}]*\{[^}]*font-size:\s*12px;/s);
 });
@@ -195,13 +283,65 @@ test("CurrentServicePanel desktop content animates on entrance and suppresses du
   assert.match(stylesSource, /html\[data-network-transition-direction\]\s+\.current-service-columns/);
 });
 
-
-
-
- test("pull-up impact rows name the condition and put direction below the location", () => {
+test("pull-up impact rows name the condition and put direction below the location", () => {
   const panel = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
   assert.ok(panel.includes('className="current-service-impact-location">{row.condition} · {row.location}</span>'));
   assert.ok(panel.includes('className="current-service-impact-direction">{row.direction}</span>'));
   assert.match(styles, /\.current-service-impact-direction\s*\{[^}]*display:\s*block;/);
 });
+
+test("getPlannedClosureCountBadgeLabel formats planned closure count badge", () => {
+  assert.equal(getPlannedClosureCountBadgeLabel(1), "1 Planned Closure");
+  assert.equal(getPlannedClosureCountBadgeLabel(2), "2 Planned Closures");
+  assert.equal(getPlannedClosureCountBadgeLabel(5), "5 Planned Closures");
+});
+
+test("sub-badges and surface routes use flex alignment without letter wrapping", () => {
+  const currentServiceStyles = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
+  const desktopChromeStyles = readFileSync(new URL("../src/styles/shell/desktop-chrome.css", import.meta.url), "utf8");
+
+  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*display:\s*grid;/s);
+  assert.match(currentServiceStyles, /\.current-service-route\s*\{[^}]*white-space:\s*nowrap;/s);
+  assert.match(currentServiceStyles, /\.current-service-planned-pill\s*\{[^}]*white-space:\s*nowrap;/s);
+  assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*padding-left:\s*0;/s);
+  assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
+  assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-wrap:\s*wrap;/s);
+  assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*margin-top:\s*5px;/s);
+
+  assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-wrap:\s*wrap;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*margin-top:\s*5px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-kicker-header\s*\{[^}]*margin-top:\s*-6px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-kicker-header\s*\{[^}]*margin-bottom:\s*-2px;/s);
+
+  // Normal service text is white in dark mode
+  assert.match(desktopChromeStyles, /\.dark \.desktop-status-remaining-status--normal strong\s*\{[^}]*color:\s*#ffffff;/s);
+  assert.match(currentServiceStyles, /\.dark \.current-service-normal-label strong\s*\{[^}]*color:\s*#ffffff;/s);
+
+  // Planned closure incident title is blue
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-title\[data-kind="planned-closure"\]\s*\{[^}]*color:\s*#2563eb;/s);
+  assert.match(desktopChromeStyles, /\.dark \.desktop-status-incident-title\[data-kind="planned-closure"\]\s*\{[^}]*color:\s*#60a5fa;/s);
+
+  // Title and section header font sizes (title 22px > section header 15.5px)
+  assert.match(desktopChromeStyles, /\.desktop-status-title\s*\{[^}]*font-size:\s*22px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-section-title[^{]*\{[^}]*font-size:\s*15\.5px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-rail-kicker\s*\{[^}]*font-size:\s*11px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-rail-kicker\s*\{[^}]*opacity:\s*0\.75;/s);
+
+  // Font size hierarchy (title 14px > location 13px > direction 12px > timing 11.5px)
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-title\s*\{[^}]*font-size:\s*14px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-location\s*\{[^}]*font-size:\s*13px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-direction\s*\{[^}]*font-size:\s*12px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-timing\s*\{[^}]*font-size:\s*11\.5px;/s);
+
+  // Surface route badge column has 2-column grid layout (51px width)
+  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*display:\s*grid;/s);
+  assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*24px\);/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-routes\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*24px\);/s);
+
+  // Surface notice descriptions are left-aligned
+  assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-text\s*\{[^}]*text-align:\s*left;/s);
+  assert.match(currentServiceStyles, /\.current-service-notice\s*\{[^}]*text-align:\s*left;/s);
+});
+

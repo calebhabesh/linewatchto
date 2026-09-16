@@ -54,6 +54,7 @@ import {
   clientPointToLogicalViewportPoint,
   clientRectToLogicalViewportBounds,
   computeBoundedMapFrame,
+  computeDesktopMapFrame,
   computeFittedCameraFlyInStart,
   computeInsetViewportFocus,
   currentDevicePixelRatio,
@@ -3289,54 +3290,52 @@ function InteractiveRegionalMapComponent({
     if (!viewport) return null;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return null;
-    const horizontalInset = desktopMapTopInset > 0
-      ? Math.min(64, Math.max(32, width * REGIONAL_MAP_HORIZONTAL_INSET_RATIO))
-      : Math.min(32, Math.max(12, width * REGIONAL_MAP_MOBILE_INSET_RATIO));
     const mobileInsets = viewportOrientation === "standard"
       ? readMobileMapFrameInsets(viewport) : null;
+    if (mobileInsets) {
+      const horizontalInset = Math.min(32, Math.max(12, width * REGIONAL_MAP_MOBILE_INSET_RATIO));
+      const insets = { left: horizontalInset, right: horizontalInset, ...mobileInsets };
+      const frame = computeBoundedMapFrame(
+        width,
+        height,
+        REGIONAL_MAP_CONTENT_BOUNDS,
+        insets,
+      );
+      const focus = computeInsetViewportFocus(width, height, insets);
+      const frameScale = REGIONAL_MAP_DEFAULT_FRAME_SCALE * 1.15;
+      const unionX = readMapStationCenterX(viewport, "union");
+      const defaultFrame = {
+        x: unionX !== null ? focus.focusX - unionX * frame.scale * frameScale
+          : focus.focusX - (focus.focusX - frame.x) * frameScale,
+        y: focus.focusY - (focus.focusY - frame.y) * frameScale,
+        scale: frame.scale * frameScale,
+      };
+      return {
+        camera: snapCameraToDevicePixels(defaultFrame),
+        scale: defaultFrame.scale,
+        focus: { x: focus.focusX, y: focus.focusY },
+      };
+    }
+
     const desktopOverlay = readDesktopOverlayInsets(viewport);
-    const desktopLeftInset = Math.max(
-      horizontalInset,
-      desktopOverlay.left + (desktopOverlay.left > 0 ? 24 : 0),
-    );
-    const insets = mobileInsets
-      ? { left: horizontalInset, right: horizontalInset, ...mobileInsets }
-      : desktopMapTopInset > 0
-      ? {
-          left: desktopLeftInset,
-          right: horizontalInset,
-          top: desktopMapTopInset,
-          bottom: desktopMapBottomInset,
-        }
-      : {
-          left: desktopLeftInset,
-          right: horizontalInset,
-          top: height * 0.05,
-          bottom: height * 0.05,
-        };
-    const frame = computeBoundedMapFrame(
-      width,
-      height,
-      REGIONAL_MAP_CONTENT_BOUNDS,
-      insets,
-    );
-    const focus = computeInsetViewportFocus(width, height, insets);
-    const frameScale = REGIONAL_MAP_DEFAULT_FRAME_SCALE * (mobileInsets ? 1.15 : 1);
-    // Use more of the available horizontal canvas while keeping the enlarged
-    // default frame centered in the space between the top console and alerts.
-    const unionX = mobileInsets ? readMapStationCenterX(viewport, "union") : null;
-    const defaultFrame = {
-      x: unionX !== null ? focus.focusX - unionX * frame.scale * frameScale
-        : focus.focusX - (focus.focusX - frame.x) * frameScale,
-      y: focus.focusY - (focus.focusY - frame.y) * frameScale,
-      scale: frame.scale * frameScale,
-    };
+    const desktopFrame = computeDesktopMapFrame({
+      viewportWidth: width,
+      viewportHeight: height,
+      bounds: REGIONAL_MAP_CONTENT_BOUNDS,
+      overlayLeft: desktopOverlay.left,
+      horizontalInsetRatio: REGIONAL_MAP_HORIZONTAL_INSET_RATIO,
+      minHorizontalInset: 32,
+      scaleMultiplier: REGIONAL_MAP_DEFAULT_FRAME_SCALE,
+    });
     return {
-      camera: snapCameraToDevicePixels(defaultFrame),
-      scale: defaultFrame.scale,
-      focus: { x: focus.focusX, y: focus.focusY },
+      camera: snapCameraToDevicePixels(desktopFrame),
+      scale: desktopFrame.scale,
+      focus: {
+        x: (desktopOverlay.left + width) / 2,
+        y: height / 2,
+      },
     };
-  }, [desktopMapBottomInset, desktopMapTopInset, logicalViewportSize, viewportOrientation]);
+  }, [logicalViewportSize, viewportOrientation]);
 
   const fitNetwork = useCallback(() => {
     const fitted = fittedCamera();

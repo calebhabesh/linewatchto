@@ -521,24 +521,15 @@ function InteractiveTtcMapComponent({
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(() => {
     if (typeof window === "undefined" || window.innerWidth < 768) return 0;
     const rail = document.querySelector<HTMLElement>(".desktop-map-control-rail");
-    if (rail && window.getComputedStyle(rail).display !== "none") {
-      return Math.max(0, Math.round(rail.getBoundingClientRect().bottom));
+    const root = document.querySelector<HTMLElement>(".ttc-map-root");
+    if (rail && root && window.getComputedStyle(rail).display !== "none") {
+      const railRect = rail.getBoundingClientRect();
+      const rootRect = root.getBoundingClientRect();
+      return Math.max(0, Math.round(railRect.bottom - rootRect.top));
     }
-    const capsule = document.querySelector<HTMLElement>(".desktop-status-capsule");
-    return capsule ? Math.max(0, Math.round(capsule.getBoundingClientRect().bottom + 70)) : 156;
+    return 76;
   });
-  const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(() => {
-    if (typeof window === "undefined" || window.innerWidth < 768) return 0;
-    const badges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
-    const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
-    let inset = badges && window.getComputedStyle(badges).display !== "none"
-      ? Math.max(0, Math.round(window.innerHeight - badges.getBoundingClientRect().top))
-      : 0;
-    if (legend && window.getComputedStyle(legend).display !== "none") {
-      inset = Math.max(inset, Math.round(window.innerHeight - legend.getBoundingClientRect().top));
-    }
-    return inset;
-  });
+  const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const desktopMapInsetsRef = useRef({ top: desktopMapTopInset, bottom: desktopMapBottomInset });
   const lastFittedInsetsRef = useRef<{ top: number; bottom: number } | null>(null);
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());

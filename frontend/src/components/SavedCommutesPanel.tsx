@@ -1159,7 +1159,17 @@ export function SavedCommutesPanel({
   const [activePicker, setActivePicker] = useState<"origin" | "destination" | null>(null);
   const [activeViewInternal, setActiveViewInternal] = useState<"create" | "saved">("create");
   const activeView = propActiveView ?? activeViewInternal;
+  const [internalNavDirection, setInternalNavDirection] = useState<"forward" | "back" | null>(null);
+  const prevActiveViewRef = useRef(activeView);
+  useEffect(() => {
+    if (prevActiveViewRef.current !== activeView) {
+      setInternalNavDirection(activeView === "create" ? "forward" : "back");
+      prevActiveViewRef.current = activeView;
+    }
+  }, [activeView]);
+
   const setActiveView = (view: "create" | "saved") => {
+    setInternalNavDirection(view === "create" ? "forward" : "back");
     if (view !== "saved") {
       clearCommuteSwapAnimation();
     }
@@ -2042,7 +2052,7 @@ export function SavedCommutesPanel({
           }
         } : undefined}
       />
-      <div key={activeView} className="commute-body flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden" data-nav-direction={activeView === "create" ? "forward" : "back"}>
+      <div key={activeView} className="commute-body flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden" data-nav-direction={internalNavDirection || undefined}>
         {accountState.source === "unavailable" ? (
           <div className="commute-grid min-w-0 pb-3 flex flex-col gap-3">
             <AccountAvailabilityNotice knownAccountLabel={accountState.user?.displayName || accountState.user?.email || null} />

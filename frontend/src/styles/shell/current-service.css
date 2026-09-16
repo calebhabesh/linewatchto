@@ -37,10 +37,17 @@
   flex: 1;
   min-width: 0;
   border-left: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.current-service-line-copy-main {
   position: relative;
   padding-left: 14px;
+  min-width: 0;
+  width: 100%;
 }
-.current-service-line-copy::before {
+.current-service-line-copy-main::before {
   content: "";
   display: block;
   position: absolute;
@@ -70,10 +77,14 @@
 .current-service-impact strong, .current-service-notice strong { display: flex; gap: 4px; align-items: center; font-weight: 650; }
 .current-service-impact strong svg { flex-shrink: 0; color: inherit; }
 .current-service-notice strong svg { flex-shrink: 0; }
-.current-service-impact [data-kind="suspension"] { color: #dc2626; }
+.current-service-impact [data-kind="suspension"],
+.current-service-impact [data-kind="closure"] { color: #dc2626; }
 .current-service-impact [data-kind="delay"] { color: #b45309; }
-.dark .current-service-impact [data-kind="suspension"] { color: #f87171; }
+.current-service-impact [data-kind="planned-closure"] { color: #2563eb; }
+.dark .current-service-impact [data-kind="suspension"],
+.dark .current-service-impact [data-kind="closure"] { color: #f87171; }
 .dark .current-service-impact [data-kind="delay"] { color: #fbbf24; }
+.dark .current-service-impact [data-kind="planned-closure"] { color: #60a5fa; }
 
 .current-service-notice [data-category="no-service"] svg { color: #dc2626; }
 .current-service-notice [data-category="detour"] svg { color: #9333ea; }
@@ -89,9 +100,10 @@
 
 .high-contrast .current-service-notice strong svg { color: inherit; }
 .current-service-impact small { font-size: 10px; color: var(--muted); }
-.current-service-notice { display: grid; grid-template-columns: 55px minmax(0, 1fr); align-items: flex-start; gap: 7px; width: 100%; padding: 4px 0 7px; }
-.current-service-routes { display: grid; grid-template-columns: repeat(2, 26px); gap: 3px; }
-.current-service-route { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 3px; background: #da291c; color: #fff; font-size: 11px; line-height: 16px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+.current-service-notice { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 4px 0 7px; text-align: left; }
+.current-service-routes { display: grid; grid-template-columns: repeat(2, 24px); gap: 3px; min-width: 51px; width: 51px; flex: 0 0 51px; flex-shrink: 0; align-items: flex-start; }
+.current-service-route { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; width: 100%; height: 24px; padding: 0 2px; border-radius: 4px; background: #da291c; color: #fff; font-size: 11px; line-height: 1; font-weight: 700; text-align: center; white-space: nowrap; }
+.current-service-route:only-child { grid-column: 1 / -1; max-width: 51px; padding: 0 4.5px; width: auto; }
 .current-service-notice-copy {
   display: grid;
   gap: 3px;
@@ -102,6 +114,7 @@
   border-left: none;
   position: relative;
   padding-left: 14px;
+  text-align: left;
 }
 .current-service-notice-copy::before {
   content: "";
@@ -132,9 +145,9 @@
   .current-service-clear { font-size: 9px; gap: 3px; }
   .current-service-impact, .current-service-notice-copy { font-size: 10px; }
   .current-service-impact small { font-size: 9px; }
-  .current-service-notice { grid-template-columns: 51px minmax(0, 1fr); gap: 4px; }
-  .current-service-routes { grid-template-columns: repeat(2, 24px); }
-  .current-service-route { width: 24px; height: 24px; font-size: 10px; }
+  .current-service-notice { gap: 6px; }
+  .current-service-routes { min-width: 24px; max-width: 52px; }
+  .current-service-route { min-width: 24px; height: 22px; padding: 0 3.5px; font-size: 10px; }
   .current-service-notice-copy { padding-left: 4px; }
   .current-service-all { font-size: 9px; min-height: 26px; }
   .linewatch-shell:has(.current-service) header .map-utility-cluster { pointer-events: none; }
@@ -639,13 +652,13 @@
 
 .current-service .current-service-impact--compact { gap: 2px; padding-block: 3px; display: flex; flex-direction: column; }
 .current-service-impact--compact + .current-service-impact--compact { margin-top: 6px; }
-.current-service-impact-heading { display: flex; align-items: center; gap: 4px; font-size: 13px; }
-.current-service-impact-heading strong { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; }
+.current-service-impact-heading { display: flex; align-items: center; gap: 4px; font-size: 13.5px; }
+.current-service-impact-heading strong { display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 700; }
 .current-service-impact-heading strong svg { width: 16px; height: 16px; min-width: 16px; min-height: 16px; flex-shrink: 0; display: inline-block; vertical-align: middle; margin: 0; }
-.current-service-impact-timing { display: block; font-size: 12px; color: var(--muted); line-height: 1.35; }
 .current-service-impact-location { display: block; font-size: 12px; line-height: 1.35; color: var(--foreground); }
 .current-service-inline-timing { color: var(--muted); font-size: inherit; }
-.current-service-impact-direction { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; }
+.current-service-impact-direction { display: block; color: var(--muted); font-size: 11px; line-height: 1.35; }
+.current-service-impact-timing { display: block; font-size: 10.5px; color: var(--muted); line-height: 1.35; }
 .current-service-notice-text, .current-service-notice-copy > span { display: block; font-size: 12px; line-height: 1.35; color: var(--foreground); }
 .current-service-notice-copy strong { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; }
 
@@ -662,37 +675,222 @@
   transform: translateY(-1px);
 }
 
-.current-service-line--unaffected,
-.current-service-line--closed {
+.current-service-line--normal,
+.current-service-line--reduced-speed-zones,
+.current-service-line--closed,
+.current-service-line--ready,
+.current-service-line--delay,
+.current-service-line--suspension,
+.current-service-line--unavailable,
+.current-service-line--snapshot,
+.current-service-line--unaffected {
   display: flex;
   align-items: center;
   min-height: 28px;
   padding: 3px 0;
 }
-.current-service-line--unaffected .current-service-line-copy,
-.current-service-line--closed .current-service-line-copy {
+.current-service-line--normal .current-service-line-copy,
+.current-service-line--reduced-speed-zones .current-service-line-copy,
+.current-service-line--closed .current-service-line-copy,
+.current-service-line--ready .current-service-line-copy,
+.current-service-line--delay .current-service-line-copy,
+.current-service-line--suspension .current-service-line-copy,
+.current-service-line--unavailable .current-service-line-copy,
+.current-service-line--snapshot .current-service-line-copy,
+.current-service-line--unaffected .current-service-line-copy {
   min-height: 28px;
   display: flex;
   align-items: center;
 }
-.current-service-line--unaffected .current-service-clear,
-.current-service-line--closed .current-service-clear {
+.current-service-line--normal .current-service-clear,
+.current-service-line--reduced-speed-zones .current-service-clear,
+.current-service-line--closed .current-service-clear,
+.current-service-line--ready .current-service-clear,
+.current-service-line--delay .current-service-clear,
+.current-service-line--suspension .current-service-clear,
+.current-service-line--unavailable .current-service-clear,
+.current-service-line--snapshot .current-service-clear,
+.current-service-line--unaffected .current-service-clear {
   display: inline-flex;
   align-items: center;
   line-height: 1;
   margin: 0;
+  gap: 8px;
 }
-.current-service-line--unaffected .current-service-clear svg,
-.current-service-line--closed .current-service-clear svg {
+.current-service-line--normal .current-service-clear svg,
+.current-service-line--reduced-speed-zones .current-service-clear svg,
+.current-service-line--closed .current-service-clear svg,
+.current-service-line--ready .current-service-clear svg,
+.current-service-line--delay .current-service-clear svg,
+.current-service-line--suspension .current-service-clear svg,
+.current-service-line--unavailable .current-service-clear svg,
+.current-service-line--snapshot .current-service-clear svg,
+.current-service-line--unaffected .current-service-clear svg {
   margin: 0;
   display: inline-block;
   vertical-align: middle;
 }
-.current-service-line--unaffected .current-service-clear span,
-.current-service-line--closed .current-service-clear span {
+.current-service-line--normal .current-service-clear strong,
+.current-service-line--normal .current-service-clear span,
+.current-service-line--reduced-speed-zones .current-service-clear strong,
+.current-service-line--reduced-speed-zones .current-service-clear span,
+.current-service-line--closed .current-service-clear strong,
+.current-service-line--closed .current-service-clear span,
+.current-service-line--ready .current-service-clear span,
+.current-service-line--delay .current-service-clear span,
+.current-service-line--suspension .current-service-clear span,
+.current-service-line--unavailable .current-service-clear span,
+.current-service-line--snapshot .current-service-clear span,
+.current-service-line--unaffected .current-service-clear span {
   line-height: 1;
   display: inline-block;
   vertical-align: middle;
+}
+
+.current-service-remaining-body {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  width: 100%;
+}
+
+.current-service-normal-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.current-service-normal-label strong {
+  color: var(--text, #0f172a);
+}
+
+.dark .current-service-normal-label strong {
+  color: #ffffff;
+}
+
+.current-service-sub-badges {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 5px;
+  padding-left: 0;
+  width: 100%;
+}
+
+.current-service-badge-incident-button {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  width: fit-content;
+}
+
+.current-service-badge-incident-button:hover .current-service-rsz-pill,
+.current-service-rsz-incident-button:hover .current-service-rsz-pill {
+  background: rgba(217, 119, 6, 0.20);
+  border-color: rgba(217, 119, 6, 0.45);
+}
+
+.dark .current-service-badge-incident-button:hover .current-service-rsz-pill,
+.dark .current-service-rsz-incident-button:hover .current-service-rsz-pill {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.50);
+}
+
+.current-service-badge-incident-button:hover .current-service-planned-pill {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.45);
+}
+
+.dark .current-service-badge-incident-button:hover .current-service-planned-pill {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.50);
+}
+
+.current-service-badge-incident-button:focus-visible,
+.current-service-rsz-incident-button:focus-visible {
+  outline: 2px solid var(--logo-blue, #2563eb);
+  outline-offset: 1px;
+}
+
+.current-service-planned-pill {
+  align-items: center;
+  background: rgba(37, 99, 235, 0.10);
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: 9999px;
+  color: #1d4ed8;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 3.5px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  margin-left: 0;
+  padding: 2px 7px 2px 6px;
+  white-space: nowrap;
+}
+
+.dark .current-service-planned-pill {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.32);
+  color: #93c5fd;
+}
+
+.current-service-planned-pill svg {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.current-service-rsz-pill {
+  align-items: center;
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  border-radius: 9999px;
+  color: #b45309;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 3.5px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  margin-left: 0;
+  padding: 2px 7px 2px 6px;
+  white-space: nowrap;
+}
+
+.dark .current-service-rsz-pill {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.32);
+  color: #fcd34d;
+}
+
+.current-service-rsz-pill svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.current-service-rsz-incident-button {
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  margin-top: 3px;
+  padding: 1px 0;
+  text-align: left;
+  width: fit-content;
 }
 
 .current-service-reassurance {
