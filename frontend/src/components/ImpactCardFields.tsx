@@ -192,7 +192,7 @@ export function ImpactRouteHeader({
   return (
     <div className="impact-route">
       {bounds ? (
-        <div className="impact-route__bounds">
+        <div className="impact-route__bounds impact-route__bounds--segment">
           <span>{bounds.from}</span>
           {showTwoWay ? <LongArrowLeftRight /> : <LongArrowRight />}
           <span>{bounds.to}</span>
@@ -366,9 +366,7 @@ export function ImpactCardMapButton({
   variant = "labeled",
   className = "",
 }: ImpactCardMapButtonProps) {
-  // Label: "View" when inactive, "Back" when active (detoggle state)
-  // Legacy action contracts: View on Map / Unfocus
-  const labelText = actionLabel ?? (isActive ? "Back" : "View");
+  const labelText = actionLabel ?? (isActive ? "Back" : "Map");
   const isBack = labelText.toLowerCase().includes("back") || labelText.toLowerCase().includes("unfocus");
   const ariaText = isBack ? `Back: ${title} (unfocus)` : `View ${title} on map`;
   const tooltipText = isBack ? "Back (Unfocus)" : "View on Map";
@@ -382,6 +380,7 @@ export function ImpactCardMapButton({
       }}
       className={`impact-card-map-btn ${variant === "icon-only" ? "impact-card-map-btn--icon-only" : "impact-card-map-btn--labeled"} ${isActive ? "is-active" : ""} ${className}`.trim()}
       aria-label={ariaText}
+      aria-pressed={isActive}
       title={tooltipText}
       data-variant={variant}
     >
@@ -392,6 +391,72 @@ export function ImpactCardMapButton({
         </span>
       ) : null}
     </button>
+  );
+}
+
+export function ImpactCardShell({
+  lineId,
+  lineNumber,
+  lineBadgeSize,
+  title,
+  description,
+  showNarrative = true,
+  location,
+  direction,
+  isMapActive,
+  onMapAction,
+  onFocusMap,
+  mapActionVariant,
+  badges,
+  overlaps,
+}: {
+  lineId: string;
+  lineNumber: string;
+  lineBadgeSize?: number;
+  title: string;
+  description?: string | null;
+  showNarrative?: boolean;
+  location: string;
+  direction?: string | null;
+  isMapActive: boolean;
+  onMapAction: () => void;
+  onFocusMap?: () => void;
+  mapActionVariant?: "icon-only" | "labeled";
+  badges?: ReactNode;
+  overlaps?: ReactNode;
+}) {
+  const hasSecondaryDescription = Boolean(description && description !== title);
+
+  return (
+    <>
+      <div className="impact-card-utility-row">
+        <LineBadge lineId={lineId} lineNumber={lineNumber} size={lineBadgeSize} />
+        <ImpactCardMapButton
+          onClick={onMapAction}
+          isActive={isMapActive}
+          onFocusMap={onFocusMap}
+          title={title}
+          variant={mapActionVariant}
+        />
+      </div>
+
+      <ImpactRouteHeader location={location} direction={direction} />
+
+      {badges ? <div className="impact-card-badges">{badges}</div> : null}
+
+      {showNarrative ? (
+        <div className="impact-card-narrative">
+          <strong className="impact-card-title">{title}</strong>
+          {hasSecondaryDescription ? (
+            <p className="impact-card-description">{description}</p>
+          ) : null}
+        </div>
+      ) : (
+        <span className="sr-only">{title}</span>
+      )}
+
+      {overlaps}
+    </>
   );
 }
 

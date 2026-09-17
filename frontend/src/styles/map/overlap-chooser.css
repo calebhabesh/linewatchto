@@ -690,14 +690,34 @@
 }
 
 .impact-overlap-refs {
+  background: rgba(100, 116, 139, 0.06);
   border: none;
+  border-radius: 6px;
   box-sizing: border-box;
-  margin-left: 0;
-  margin-right: 0;
-  margin-inline: 0;
+  display: grid;
+  gap: 7px;
+  margin: 18px 0 0;
   max-width: 100%;
   outline: none;
+  padding: 8px;
   width: 100%;
+}
+
+.impact-overlap-refs__label {
+  color: var(--quiet);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.035em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.impact-overlap-ref-list {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
 }
 
 .overlap-impact-ref {
@@ -707,17 +727,25 @@
   border-radius: 4px;
   color: rgb(51, 65, 85);
   display: inline-flex;
-  font-weight: 700;
-  gap: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 4px;
+  line-height: 1.1;
   max-width: 220px;
-  padding: 4px 6px;
+  padding: 3px 5px;
   text-align: left;
+}
+
+.overlap-impact-location {
+  font-size: 9px;
+  font-weight: 500;
 }
 
 .overlap-impact-ref:hover,
 .overlap-impact-ref:focus-visible {
   background: rgba(248, 250, 252, 0.96);
-  outline: none;
+  outline: 2px solid var(--color-logo-blue);
+  outline-offset: 1px;
 }
 
 .dark .overlap-impact-ref,

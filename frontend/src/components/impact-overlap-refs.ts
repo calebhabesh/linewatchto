@@ -43,6 +43,21 @@ function labelForActiveAlert(alert: ActiveAlert): string {
   return "Active Alert";
 }
 
+function overlapPriority(kind: ImpactKind): number {
+  switch (kind) {
+    case "suspension":
+      return 0;
+    case "delay":
+      return 1;
+    case "reduced-speed-zone":
+      return 2;
+    case "planned-closure":
+      return 3;
+    default:
+      return 4;
+  }
+}
+
 function segmentsOverlap(a: string[], b: string[]): boolean {
   if (a.length === 0 || b.length === 0) return false;
   const aIds = new Set(a);
@@ -232,5 +247,8 @@ export function getOverlappingImpactRefs(
     );
   }
 
-  return refs;
+  return refs
+    .map((ref, index) => ({ ref, index }))
+    .sort((a, b) => overlapPriority(a.ref.kind) - overlapPriority(b.ref.kind) || a.index - b.index)
+    .map(({ ref }) => ref);
 }

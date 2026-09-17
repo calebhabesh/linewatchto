@@ -7,7 +7,7 @@ import type { AccountCommutePathPreview } from "../app/account-data";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardMapButton } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -151,48 +151,30 @@ export function DelaysPanel({
                   isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
-                <div className="impact-card-header impact-card-heading w-full min-w-0">
-                  <div className="impact-card-header__row flex items-start justify-between gap-3 w-full min-w-0">
-                    <div className="impact-card-header__identity min-w-0">
-                      <div className="impact-card-header__line flex items-center gap-2 min-w-0">
-                        <LineBadge lineId={delay.lineId} lineNumber={delay.lineNumber} />
-                        {showImpactTypeIndicator ? <ImpactTypeIcon kind="delay" size={17} className="line-impact-card-type-icon shrink-0" /> : null}
-                      </div>
-                      <div className="impact-card-header__copy min-w-0">
-                        <strong className="impact-card-title block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
-                          {delay.title}
-                        </strong>
-                        {delay.description && delay.description !== delay.title ? (
-                          <p className="impact-card-description text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-normal break-words">
-                            {delay.description}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="impact-card-actions">
-                    <span aria-hidden="true" />
-                    <div className="impact-card-header__action flex flex-col items-end gap-1.5 shrink-0">
-                      {/* Card action contract: View on Map / Unfocus */}
-                      <ImpactCardMapButton
-                        onClick={() => handleDelayClick(delay.id)}
-                        isActive={isActive}
-                        onFocusMap={onFocusMap}
-                        title={delay.title}
-                        actionLabel={isActive ? "Back" : "View"}
-                        variant={mapActionVariant}
-                        className="impact-card-map-btn"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <ImpactRouteHeader location={delay.location} direction={delay.displayDirection} />
-
-                <OverlappingImpactRefs
-                  overlaps={overlappingImpacts}
-                  onSelectImpact={onSelectImpact}
-                  label="Overlap:"
+                <ImpactCardShell
+                  lineId={delay.lineId}
+                  lineNumber={delay.lineNumber}
+                  title={delay.title}
+                  description={delay.description}
+                  location={delay.location}
+                  direction={delay.displayDirection}
+                  isMapActive={isActive}
+                  onMapAction={() => handleDelayClick(delay.id)}
+                  onFocusMap={onFocusMap}
+                  mapActionVariant={mapActionVariant}
+                  badges={showImpactTypeIndicator ? (
+                    <span className="impact-card-type-badge delay">
+                      <ImpactTypeIcon kind="delay" size={13} />
+                      Delay
+                    </span>
+                  ) : undefined}
+                  overlaps={(
+                    <OverlappingImpactRefs
+                      overlaps={overlappingImpacts}
+                      onSelectImpact={onSelectImpact}
+                      label="Overlapping impacts"
+                    />
+                  )}
                 />
 
                 <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 w-full min-w-0">

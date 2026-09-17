@@ -7,7 +7,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardMapButton } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -192,60 +192,59 @@ export function PlannedClosuresPanel({
                   isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
-                <div className="impact-card-header impact-card-heading w-full min-w-0">
-                  <div className="impact-card-header__row flex items-start gap-2 w-full min-w-0">
-                    <div className="impact-card-header__identity min-w-0">
-                      <div className="impact-card-header__line flex items-center gap-2 min-w-0">
-                        <LineBadge lineId={closure.lineId} lineNumber={closure.lineNumber} />
-                        {showImpactTypeIndicator ? <ImpactTypeIcon kind="planned-closure" size={17} className="line-impact-card-type-icon shrink-0" /> : null}
-                      </div>
-                      <div className="impact-card-header__copy min-w-0">
-                        <strong className="impact-card-title block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
-                          {closure.title}
-                        </strong>
-                        {closure.description && closure.description !== closure.title ? (
-                          <p className="impact-card-description text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-normal break-words">
-                            {closure.description}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="impact-card-actions impact-card-closure-actions">
-                    <div className="impact-card-header__badges impact-card-heading__badges flex items-center gap-1.5 flex-wrap">
-                      {closure.nightly && (
-                        <span className="flex items-center gap-1 text-[10px] bg-slate-500/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-500/20 dark:border-white/15 px-2 py-0.5 rounded font-semibold uppercase">
-                          Nightly
+                <ImpactCardShell
+                  lineId={closure.lineId}
+                  lineNumber={closure.lineNumber}
+                  title={closure.title}
+                  description={closure.description}
+                  location={closure.location}
+                  direction={closure.displayDirection}
+                  isMapActive={isActive}
+                  onMapAction={() => handleClosureClick(closure.id)}
+                  onFocusMap={onFocusMap}
+                  mapActionVariant={mapActionVariant}
+                  badges={(
+                    <>
+                      {activeAlert ? (
+                        <button
+                          type="button"
+                          className="planned-closure-status-button"
+                          onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
+                          aria-label="View active alert"
+                        >
+                          <ImpactTypeIcon kind="suspension" size={13} />
+                          <span>Active Now</span>
+                          <ArrowRight size={13} aria-hidden="true" />
+                        </button>
+                      ) : (
+                        <span className={`planned-closure-status-inactive ${closure.activeNow ? "is-inactive" : "is-upcoming"}`}>
+                          {closure.activeNow ? "Currently Inactive" : "Upcoming"}
                         </span>
                       )}
-                      {closure.shuttle && (
-                        <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-semibold uppercase">
-                          <Bus size={10} />
+                      {showImpactTypeIndicator ? (
+                        <span className="impact-card-type-badge planned-closure">
+                          <ImpactTypeIcon kind="planned-closure" size={13} />
+                          Planned closure
+                        </span>
+                      ) : null}
+                      {closure.nightly ? (
+                        <span className="impact-card-service-badge nightly">Nightly</span>
+                      ) : null}
+                      {closure.shuttle ? (
+                        <span className="impact-card-service-badge shuttle">
+                          <Bus size={11} />
                           Shuttle
                         </span>
-                      )}
-                    </div>
-                    <div className="impact-card-header__action flex flex-col items-end gap-1.5 shrink-0">
-                      {/* Card action contract: View on Map / Unfocus */}
-                      <ImpactCardMapButton
-                        onClick={() => handleClosureClick(closure.id)}
-                        isActive={isActive}
-                        onFocusMap={onFocusMap}
-                        title={closure.title}
-                        actionLabel={isActive ? "Back" : "View"}
-                        variant={mapActionVariant}
-                        className="impact-card-map-btn"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <ImpactRouteHeader location={closure.location} direction={closure.displayDirection} />
-
-                <OverlappingImpactRefs
-                  overlaps={overlappingImpacts}
-                  onSelectImpact={onSelectImpact}
-                  label="Overlap:"
+                      ) : null}
+                    </>
+                  )}
+                  overlaps={(
+                    <OverlappingImpactRefs
+                      overlaps={overlappingImpacts}
+                      onSelectImpact={onSelectImpact}
+                      label="Overlapping impacts"
+                    />
+                  )}
                 />
 
                 <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 w-full min-w-0">
@@ -280,27 +279,6 @@ export function PlannedClosuresPanel({
                       {
                         label: "Closure window",
                         value: hasScheduleDetails ? null : closure.window,
-                      },
-                    ]}
-                    trailingRows={[
-                      {
-                        label: "Status",
-                        value: activeAlert ? (
-                          <button
-                            type="button"
-                            className="planned-closure-status-button"
-                            onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
-                            aria-label="View active alert"
-                          >
-                            <ImpactTypeIcon kind="suspension" size={13} />
-                            <span>Active Now</span>
-                            <ArrowRight size={13} aria-hidden="true" />
-                          </button>
-                        ) : (
-                          <span className="planned-closure-status-inactive">
-                            Currently Inactive
-                          </span>
-                        ),
                       },
                     ]}
                   />

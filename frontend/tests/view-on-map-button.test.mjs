@@ -17,11 +17,12 @@ const globalCss = readAppStylesheet();
 describe("44px View on Map button", () => {
   it("uses impact-card-map-btn with accessible name across all impact panels", () => {
     for (const source of [activeAlertsSource, delaysSource, rszSource, closuresSource]) {
-      assert.match(source, /impact-card-map-btn/);
-      assert.match(source, /ImpactCardMapButton/);
+      assert.match(source, /ImpactCardShell/);
       assert.match(source, /onFocusMap/);
       assert.doesNotMatch(source, /Show on Map/);
     }
+    assert.match(impactCardFieldsSource, /ImpactCardMapButton/);
+    assert.match(impactCardFieldsSource, /impact-card-map-btn/);
   });
 
   it("does not include View on Map button in the station detail header", () => {
@@ -58,9 +59,11 @@ describe("44px View on Map button", () => {
     assert.match(globalCss, /\.dark \.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#1d4ed8/s);
   });
 
-  it("renders 'View' when inactive and 'Back' when active with detoggle support", () => {
+  it("renders 'Map' when inactive and 'Back' when active with stable toggle dimensions", () => {
     assert.match(impactCardFieldsSource, /Back/);
-    assert.match(impactCardFieldsSource, /View/);
+    assert.match(impactCardFieldsSource, /Map/);
+    assert.match(impactCardFieldsSource, /aria-pressed/);
+    assert.match(globalCss, /\.impact-card-map-btn--labeled\s*\{[^}]*min-width:\s*78px;[^}]*width:\s*78px/s);
     assert.match(globalCss, /\.impact-card-map-btn__label/);
   });
 });

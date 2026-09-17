@@ -25,9 +25,9 @@ export function OverlappingImpactRefs({
   if (overlaps.length === 0) return null;
 
   return (
-    <div className="impact-overlap-refs text-[11px] mt-2 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40 px-2 py-1 rounded-md w-full flex gap-1 items-start">
-      <span className="font-bold text-amber-600 dark:text-amber-400 mr-1 shrink-0 mt-[5px]">{label}</span>
-      <div className="impact-overlap-ref-list flex flex-wrap items-center gap-1">
+    <div className="impact-overlap-refs">
+      <span className="impact-overlap-refs__label">{label}</span>
+      <div className="impact-overlap-ref-list">
         {overlaps.map((overlap) => (
           <button
             key={overlap.key}
@@ -37,6 +37,7 @@ export function OverlappingImpactRefs({
               onSelectImpact(overlap.selection);
             }}
             className={`overlap-impact-ref ${overlap.kind}`}
+            aria-label={`View ${overlap.label} at ${formatCompactLocation(overlap.location)}`}
           >
             <ImpactTypeIcon kind={overlap.kind} size={12} className="mt-0.5 shrink-0" />
             <span className="flex min-w-0 flex-col leading-tight">

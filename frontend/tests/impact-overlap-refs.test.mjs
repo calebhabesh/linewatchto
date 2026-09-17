@@ -151,4 +151,38 @@ describe("overlapping impact refs", () => {
     assert.ok(!childRefs.some((ref) => ref.selection.id === "closure-parent"));
     assert.ok(!parentRefs.some((ref) => ref.selection.id === "active-child"));
   });
+
+  it("orders overlaps by immediate rider impact while preserving source order within a type", () => {
+    const refs = getOverlappingImpactRefs(
+      {
+        kind: "delay",
+        id: "unrelated-current-impact",
+        segmentIds: ["jane-runnymede"],
+      },
+      {
+        ...overlapData,
+        activeAlerts: [{
+          ...overlapData.activeAlerts[0],
+          id: "active-suspension",
+          severity: "suspension",
+          affectedSegmentIds: ["jane-runnymede"],
+        }],
+        plannedClosures: [{
+          id: "upcoming-closure",
+          lineId: "line-2",
+          lineNumber: "2",
+          title: "Upcoming closure",
+          window: "Next weekend",
+          location: "Jane to Runnymede",
+          previewSegmentIds: ["jane-runnymede"],
+          source: "Test",
+        }],
+      },
+    );
+
+    assert.deepEqual(
+      refs.map((ref) => ref.kind),
+      ["suspension", "delay", "reduced-speed-zone", "planned-closure"],
+    );
+  });
 });

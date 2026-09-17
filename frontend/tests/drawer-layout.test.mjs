@@ -217,31 +217,31 @@ describe("floating menu layout", () => {
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {
-    assert.match(activeAlertsSource, /min-w-0/);
-    assert.match(activeAlertsSource, /whitespace-normal/);
-    assert.match(activeAlertsSource, /break-words/);
-    assert.match(reducedSpeedZonesSource, /min-w-0/);
-    assert.match(reducedSpeedZonesSource, /whitespace-normal/);
-    assert.match(reducedSpeedZonesSource, /break-words/);
-    assert.match(plannedClosuresSource, /min-w-0/);
-    assert.match(plannedClosuresSource, /whitespace-normal/);
-    assert.match(plannedClosuresSource, /break-words/);
+    for (const panelSource of [activeAlertsSource, reducedSpeedZonesSource, plannedClosuresSource]) {
+      assert.match(panelSource, /min-w-0/);
+      assert.match(panelSource, /ImpactCardShell/);
+    }
+    assert.match(impactCardFieldsSource, /impact-card-narrative/);
+    assert.match(globalCss, /\.impact-card-title\s*\{[^}]*overflow-wrap:\s*break-word;[^}]*white-space:\s*normal/s);
+    assert.match(globalCss, /\.impact-card-description\s*\{[^}]*overflow-wrap:\s*break-word;[^}]*white-space:\s*normal/s);
     assert.doesNotMatch(globalCss, /\.alert-card\s*\{[^}]*display:\s*grid/s);
   });
 
   it("keeps equal route spacing across alert submenu cards", () => {
     for (const panelSource of [activeAlertsSource, delaysPanelSource, reducedSpeedZonesSource, plannedClosuresSource]) {
-      assert.match(panelSource, /impact-card-heading/);
-      assert.match(panelSource, /<ImpactRouteHeader/);
+      assert.match(panelSource, /<ImpactCardShell/);
     }
 
-    assert.match(activeAlertsSource, /impact-card-heading__badges/);
-    assert.match(plannedClosuresSource, /impact-card-heading__badges/);
-    assert.match(globalCss, /\.impact-card-heading__badges\s*\{[^}]*position:\s*absolute;[^}]*right:\s*0;[^}]*top:\s*0/s);
-    assert.match(globalCss, /\.alert-card\s*>\s*\.impact-route,\s*\.closure-card\s*>\s*\.impact-route\s*\{[^}]*margin-block:\s*24px/s);
+    assert.match(impactCardFieldsSource, /<ImpactCardMapButton[\s\S]*?<ImpactRouteHeader/s);
+    assert.match(globalCss, /\.impact-card-utility-row\s*\{[^}]*justify-content:\s*space-between/s);
+    assert.match(globalCss, /\.alert-card\s*>\s*\.impact-route,\s*\.closure-card\s*>\s*\.impact-route\s*\{[^}]*margin:\s*24px 0 0/s);
     assert.match(globalCss, /\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.08rem;[^}]*gap:\s*11px;/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[^}]*\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.55rem;[^}]*gap:\s*17px;/s);
     assert.match(globalCss, /\.impact-route__arrow\s*\{[^}]*height:\s*20px;[^}]*width:\s*40px;/s);
+    assert.match(globalCss, /\.impact-route__bounds--segment\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto minmax\(0, 1fr\)/s);
+    assert.match(globalCss, /\.impact-route__bounds--segment > span:first-child\s*\{[^}]*justify-self:\s*end/s);
+    assert.match(globalCss, /\.impact-route__bounds--segment > span:last-child\s*\{[^}]*justify-self:\s*start/s);
+    assert.doesNotMatch(globalCss, /\.impact-route__bounds--segment \.impact-route__arrow\s*\{[^}]*transform:\s*rotate/s);
   });
 
   it("links TTC active closure children back to their canonical planned closure", () => {
@@ -256,15 +256,14 @@ describe("floating menu layout", () => {
     assert.match(interactiveMapSource, /details\?\.categoryLabel \?\? "Active Alert"/);
     assert.match(plannedClosuresSource, /alert\.relatedPlannedClosureId === closure\.id/);
     assert.match(plannedClosuresSource, /closure\.activeNow && alert\.id === closure\.id/);
-    assert.match(plannedClosuresSource, /label: "Status"/);
-    assert.match(plannedClosuresSource, /trailingRows=\{\[/);
+    assert.doesNotMatch(plannedClosuresSource, /label: "Status"/);
     assert.match(plannedClosuresSource, /kind: "suspension", id: activeAlert\.id/);
     assert.match(plannedClosuresSource, /<span>Active Now<\/span>/);
     assert.match(plannedClosuresSource, /Currently Inactive/);
+    assert.match(plannedClosuresSource, /Upcoming/);
     assert.match(globalCss, /\.planned-closure-status-button/);
     assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(220, 38, 38, 0\.08\);[^}]*border:\s*1px solid rgba\(220, 38, 38, 0\.18\);[^}]*color:\s*#dc2626/s);
     assert.match(globalCss, /\.dark \.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(239, 68, 68, 0\.16\);[^}]*color:\s*#f87171/s);
-    assert.match(globalCss, /\.planned-closure-metadata \.is-status-row dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:/s);
     assert.match(globalCss, /\.planned-closure-status-inactive/);
   });
 
@@ -294,7 +293,7 @@ describe("floating menu layout", () => {
     assert.match(impactCardFieldsSource, /\.\.\.renderedLeadingRows,[\s\S]*?causeValue \? \["Cause"/s);
     assert.match(impactCardFieldsSource, /index < renderedLeadingRows\.length \? "is-emphasized"/);
     assert.match(plannedClosuresSource, /className="no-border planned-closure-metadata"/);
-    assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:\s*0 0 4px rgba\(129, 201, 255, 0\.35\)/s);
+    assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:/s);
     assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dd\s*\{[^}]*font-weight:\s*850/s);
     assert.match(globalCss, /data-active-view="closures"[^}]*\.panel-heading span\.whitespace-nowrap\s*\{[^}]*max-width:\s*none\s*!important;[^}]*overflow:\s*visible\s*!important/s);
     assert.match(impactCardFieldsSource, /isWindowField \? " is-window-row" : ""/);
@@ -305,7 +304,7 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.closure-window-value\s*\{[^}]*display:\s*inline-flex;[^}]*white-space:\s*nowrap/s);
     assert.match(globalCss, /\.closure-window-date\s*\{[^}]*white-space:\s*nowrap/s);
     assert.match(globalCss, /\.closure-window-time\s*\{[^}]*font-variant-numeric:\s*tabular-nums;[^}]*white-space:\s*nowrap/s);
-    assert.match(globalCss, /\.impact-card-closure-actions\s*\{[^}]*align-items:\s*flex-start;[^}]*margin-top:\s*8px/s);
+    assert.match(globalCss, /\.impact-card-badges\s*\{[^}]*justify-content:\s*center;[^}]*margin:\s*12px auto 0/s);
   });
 
   it("keeps floating panels single-column even at desktop viewport widths", () => {
@@ -393,12 +392,8 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
     assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);
     assert.doesNotMatch(plannedClosuresSource, /Preview on Map|Hide Map Preview/);
-    assert.match(activeAlertsSource, /View on Map/);
-    assert.match(activeAlertsSource, /Unfocus/);
-    assert.match(reducedSpeedZonesSource, /View on Map/);
-    assert.match(reducedSpeedZonesSource, /Unfocus/);
-    assert.match(plannedClosuresSource, /View on Map/);
-    assert.match(plannedClosuresSource, /Unfocus/);
+    assert.match(impactCardFieldsSource, /isActive \? "Back" : "Map"/);
+    assert.match(impactCardFieldsSource, /aria-pressed=\{isActive\}/);
     assert.match(shellSource, /MobileImpactInspector/);
     assert.match(shellSource, /mobileImpactInspectorOpen/);
     assert.match(shellSource, /mobileStationInspectorOpen/);
@@ -427,11 +422,11 @@ describe("floating menu layout", () => {
   it("renders shared clickable overlapping impact refs on every alert card type", () => {
     assert.match(activeAlertsSource, /getOverlappingImpactRefs/);
     assert.match(activeAlertsSource, /OverlappingImpactRefs/);
-    assert.match(activeAlertsSource, /Overlap:/);
+    assert.match(activeAlertsSource, /Overlapping impacts/);
     assert.doesNotMatch(activeAlertsSource, /Also overlapping:/);
     assert.match(delaysPanelSource, /getOverlappingImpactRefs/);
     assert.match(delaysPanelSource, /OverlappingImpactRefs/);
-    assert.match(delaysPanelSource, /Overlap:/);
+    assert.match(delaysPanelSource, /Overlapping impacts/);
     assert.doesNotMatch(delaysPanelSource, /Also overlapping:/);
     assert.match(reducedSpeedZonesSource, /getOverlappingImpactRefs/);
     assert.match(reducedSpeedZonesSource, /OverlappingImpactRefs/);

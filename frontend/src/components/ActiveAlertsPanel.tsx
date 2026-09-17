@@ -7,7 +7,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardMapButton } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -187,55 +187,40 @@ export function ActiveAlertsPanel({
                   isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
-                <div className="impact-card-header impact-card-heading w-full min-w-0">
-                  <div className="impact-card-header__row flex items-start justify-between gap-3 w-full min-w-0">
-                    <div className="impact-card-header__identity min-w-0">
-                      <div className="impact-card-header__line flex items-center gap-2 min-w-0">
-                        <LineBadge lineId={alert.lineId} lineNumber={alert.lineNumber} />
-                        {showImpactTypeIndicator ? <ImpactTypeIcon kind={impactKindForAlert(alert)} size={17} className="line-impact-card-type-icon shrink-0" /> : null}
-                      </div>
-                      <div className="impact-card-header__copy min-w-0">
-                        <strong className="impact-card-title block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
-                          {alert.title}
-                        </strong>
-                        {alert.description && alert.description !== alert.title ? (
-                          <p className="impact-card-description text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-normal break-words">
-                            {alert.description}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="impact-card-actions">
-                    <div className="impact-card-header__badges impact-card-heading__badges">
-                      {alert.shuttle && (
-                        <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold uppercase">
-                          <Bus size={10} />
+                <ImpactCardShell
+                  lineId={alert.lineId}
+                  lineNumber={alert.lineNumber}
+                  title={alert.title}
+                  description={alert.description}
+                  location={alert.location}
+                  direction={alert.displayDirection}
+                  isMapActive={isActive}
+                  onMapAction={() => handleAlertClick(alert)}
+                  onFocusMap={onFocusMap}
+                  mapActionVariant={mapActionVariant}
+                  badges={showImpactTypeIndicator || alert.shuttle ? (
+                    <>
+                      {showImpactTypeIndicator ? (
+                        <span className={`impact-card-type-badge ${impactKindForAlert(alert)}`}>
+                          <ImpactTypeIcon kind={impactKindForAlert(alert)} size={13} />
+                          {impactKindForAlert(alert) === "delay" ? "Delay" : "Active alert"}
+                        </span>
+                      ) : null}
+                      {alert.shuttle ? (
+                        <span className="impact-card-service-badge shuttle">
+                          <Bus size={11} />
                           Shuttle
                         </span>
-                      )}
-                    </div>
-                    <div className="impact-card-header__action flex flex-col items-end gap-1.5 shrink-0">
-                      {/* Card action contract: View on Map / Unfocus */}
-                      <ImpactCardMapButton
-                        onClick={() => handleAlertClick(alert)}
-                        isActive={isActive}
-                        onFocusMap={onFocusMap}
-                        title={alert.title}
-                        actionLabel={isActive ? "Back" : "View"}
-                        variant={mapActionVariant}
-                        className="impact-card-map-btn"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <ImpactRouteHeader location={alert.location} direction={alert.displayDirection} />
-
-                <OverlappingImpactRefs
-                  overlaps={overlappingImpacts}
-                  onSelectImpact={onSelectImpact}
-                  label="Overlap:"
+                      ) : null}
+                    </>
+                  ) : undefined}
+                  overlaps={(
+                    <OverlappingImpactRefs
+                      overlaps={overlappingImpacts}
+                      onSelectImpact={onSelectImpact}
+                      label="Overlapping impacts"
+                    />
+                  )}
                 />
                 
                 <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 w-full min-w-0">

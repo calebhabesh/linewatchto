@@ -774,7 +774,7 @@
 
   .alert-card > .impact-route,
   .closure-card > .impact-route {
-    margin-block: 14px;
+    margin: 14px 0 0;
   }
 
   .impact-route__bounds {

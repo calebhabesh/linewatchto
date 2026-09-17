@@ -8,7 +8,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardMapButton } from "./ImpactCardFields";
+import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -186,37 +186,31 @@ export function ReducedSpeedZonesPanel({
                   isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
-                <div className="impact-card-header impact-card-heading w-full min-w-0 pt-0.5">
-                  <div className="impact-card-header__row flex items-start justify-between gap-3 w-full min-w-0">
-                    <div className="impact-card-header__line flex items-center gap-2 min-w-0">
-                      <LineBadge lineId={zone.lineId} lineNumber={zone.lineNumber} size={34} />
-                      {showImpactTypeIndicator ? <ImpactTypeIcon kind="reduced-speed-zone" size={17} className="line-impact-card-type-icon shrink-0" /> : null}
-                    </div>
-                    <div className="impact-card-header__action flex flex-col items-end gap-1.5 shrink-0">
-                      {/* Card action contract: View on Map / Unfocus */}
-                      <ImpactCardMapButton
-                        onClick={() => handleReducedSpeedZoneClick(zone.id)}
-                        isActive={isActive}
-                        onFocusMap={onFocusMap}
-                        title={zone.title}
-                        actionLabel={isActive ? "Back" : "View"}
-                        variant={mapActionVariant}
-                        className="impact-card-map-btn"
-                      />
-                    </div>
-                  </div>
-                  <span className="sr-only min-w-0 whitespace-normal break-words">{zone.title}</span>
-                </div>
-
-                <ImpactRouteHeader 
-                  location={zone.location} 
+                <ImpactCardShell
+                  lineId={zone.lineId}
+                  lineNumber={zone.lineNumber}
+                  lineBadgeSize={34}
+                  title={zone.title}
+                  showNarrative={false}
+                  location={zone.location}
                   direction={zone.displayDirection}
-                />
-
-                <OverlappingImpactRefs
-                  overlaps={overlappingImpacts}
-                  onSelectImpact={onSelectImpact}
-                  label="Overlap:"
+                  isMapActive={isActive}
+                  onMapAction={() => handleReducedSpeedZoneClick(zone.id)}
+                  onFocusMap={onFocusMap}
+                  mapActionVariant={mapActionVariant}
+                  badges={showImpactTypeIndicator ? (
+                    <span className="impact-card-type-badge reduced-speed-zone">
+                      <ImpactTypeIcon kind="reduced-speed-zone" size={13} />
+                      Reduced speed zone
+                    </span>
+                  ) : undefined}
+                  overlaps={(
+                    <OverlappingImpactRefs
+                      overlaps={overlappingImpacts}
+                      onSelectImpact={onSelectImpact}
+                      label="Overlapping impacts"
+                    />
+                  )}
                 />
 
                 <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 w-full min-w-0">

@@ -102,7 +102,7 @@ describe("mobile Show on Map inspector", () => {
     assert.match(globalCss, /\.mobile-impact-inspector-window\s*\{[^}]*text-transform:\s*capitalize/s);
     assert.match(overlapRefsSource, /className="impact-overlap-refs/);
     assert.match(overlapRefsSource, /className="impact-overlap-ref-list/);
-    assert.match(globalCss, /\n  \.impact-overlap-refs\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*max-content minmax\(0, 1fr\);[^}]*margin-left:\s*0;[^}]*margin-right:\s*0;[^}]*margin-inline:\s*0;[^}]*max-width:\s*100%;[^}]*width:\s*100%/s);
+    assert.match(globalCss, /\n  \.impact-overlap-refs\s*\{[^}]*display:\s*grid;[^}]*gap:\s*6px;[^}]*margin-left:\s*0;[^}]*margin-right:\s*0;[^}]*margin-inline:\s*0;[^}]*max-width:\s*100%;[^}]*width:\s*100%/s);
     assert.match(globalCss, /\n  \.impact-overlap-ref-list\s*\{[^}]*flex:\s*1 1 0;[^}]*min-width:\s*0/s);
     assert.match(globalCss, /\n  \.overlap-impact-ref\s*\{[^}]*font-size:\s*10px;[^}]*gap:\s*3px;[^}]*padding:\s*3px 4px/s);
     assert.doesNotMatch(globalCss, /\.impact-overlap-ref-list\s*\{[^}]*display:\s*contents/s);
@@ -122,7 +122,7 @@ describe("mobile Show on Map inspector", () => {
   });
 
   it("gives extended directional timing fields the full mobile metadata width", () => {
-    assert.match(globalCss, /\.alert-card,\s*\.mobile-impact-inspector\s*\{[^}]*container:\s*impact-details \/ inline-size/s);
+    assert.match(globalCss, /\.alert-card,\s*\.closure-card,\s*\.mobile-impact-inspector\s*\{[^}]*container:\s*impact-details \/ inline-size/s);
     assert.match(globalCss, /@container impact-details \(max-width: 34rem\)[\s\S]*\.impact-metadata-grid > \.has-directional-timing\s*\{[^}]*grid-column:\s*1 \/ -1/s);
   });
 
@@ -202,6 +202,14 @@ describe("mobile Show on Map inspector", () => {
     assert.match(globalCss, /\.mobile-impact-inspector-scroll\s*\{[^}]*animation:\s*mobile-impact-inspector-content-in/s);
     assert.match(globalCss, /@keyframes mobile-impact-inspector-content-in/);
     assert.match(globalCss, /\.mobile-impact-inspector-metadata\s*\{[^}]*animation:\s*mobile-impact-inspector-meta-enter/s);
+    assert.match(
+      globalCss,
+      /\.mobile-impact-inspector \.impact-metadata-grid dt\s*\{[^}]*font-size:\s*12px;[^}]*font-weight:\s*800;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.mobile-impact-inspector \.impact-metadata-grid dd\s*\{[^}]*font-size:\s*14px;[^}]*font-weight:\s*600;/s,
+    );
     assert.match(globalCss, /@keyframes mobile-impact-inspector-meta-enter/);
     assert.match(inspectorSource, /key=\{selectedDetailKey\}/);
     assert.match(globalCss, /\.motion-paused \.mobile-impact-inspector/);

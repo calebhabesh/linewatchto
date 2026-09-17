@@ -102,9 +102,9 @@
   gap: 6px;
   height: 44px;
   min-height: 44px;
-  min-width: 44px;
+  min-width: 78px;
   padding: 0 12px;
-  width: auto;
+  width: 78px;
 }
 
 .impact-card-map-btn__label {
@@ -245,14 +245,7 @@
   width: 100%;
 }
 
-.impact-card-header {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  width: 100%;
-}
-
-.impact-card-header__row {
+.impact-card-utility-row {
   align-items: flex-start;
   display: flex;
   gap: 12px;
@@ -261,50 +254,91 @@
   width: 100%;
 }
 
-.impact-card-header__line {
+.impact-card-badges {
   align-items: center;
   display: flex;
-  flex: 0 0 auto;
-  gap: 8px;
-  min-width: 0;
-}
-
-.impact-card-header__identity {
-  align-items: flex-start;
-  display: flex;
-  flex: 1 1 auto;
-  gap: 10px;
-}
-
-.impact-card-header__copy {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding-top: 4px;
-}
-
-.impact-card-header__action {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
+  flex-wrap: wrap;
   gap: 6px;
+  justify-content: center;
+  margin: 12px auto 0;
+  max-width: 100%;
 }
 
-.impact-card-header__badges {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
+.impact-card-type-badge,
+.impact-card-service-badge {
+  align-items: center;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 6px;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 750;
   gap: 4px;
+  line-height: 1;
+  min-height: 24px;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.impact-card-type-badge.planned-closure,
+.impact-card-service-badge.shuttle {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.24);
+  color: #2563eb;
+}
+
+.impact-card-type-badge.delay {
+  background: rgba(254, 236, 65, 0.1);
+  border-color: rgba(202, 172, 0, 0.28);
+  color: #806f00;
+}
+
+.impact-card-type-badge.reduced-speed-zone {
+  background: var(--impact-rsz-soft);
+  border-color: var(--impact-rsz-border);
+  color: #9a6400;
+}
+
+.impact-card-type-badge.suspension {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: #dc2626;
+}
+
+.impact-card-service-badge.nightly {
+  background: rgba(100, 116, 139, 0.08);
+  color: var(--muted);
+}
+
+.dark .impact-card-type-badge.planned-closure,
+.dark .impact-card-service-badge.shuttle {
+  color: #60a5fa;
+}
+
+.dark .impact-card-type-badge.delay {
+  color: #fdec41;
+}
+
+.dark .impact-card-type-badge.reduced-speed-zone {
+  color: #f4b942;
+}
+
+.dark .impact-card-type-badge.suspension {
+  color: #f87171;
+}
+
+.impact-card-narrative {
+  margin-top: 18px;
+  min-width: 0;
+  width: 100%;
 }
 
 .impact-card-title {
   color: var(--text);
   display: block;
   font-size: 0.92rem;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.35;
-  margin-top: 0;
+  margin: 0;
   min-width: 0;
   overflow-wrap: break-word;
   white-space: normal;
@@ -322,48 +356,6 @@
   word-break: normal;
 }
 
-.impact-card-heading {
-  min-width: 0;
-  position: relative;
-  width: 100%;
-}
-
-.impact-card-heading__badges {
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.impact-card-header__badges {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  gap: 4px;
-  position: static;
-}
-
-.impact-card-actions,
-.impact-card-closure-actions {
-  align-items: flex-start;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 8px;
-  min-width: 0;
-  width: 100%;
-}
-
-.closure-card .impact-card-header__badges {
-  align-items: center;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 6px;
-  position: static;
-}
-
 .impact-route {
   align-items: center;
   display: grid;
@@ -375,7 +367,7 @@
 
 .alert-card > .impact-route,
 .closure-card > .impact-route {
-  margin-block: 24px;
+  margin: 24px 0 0;
 }
 
 .impact-route__bounds {
@@ -388,6 +380,28 @@
   gap: 11px;
   justify-content: center;
   line-height: 1.25;
+}
+
+.impact-route__bounds--segment {
+  column-gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  width: 100%;
+}
+
+.impact-route__bounds--segment > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.impact-route__bounds--segment > span:first-child {
+  justify-self: end;
+  text-align: right;
+}
+
+.impact-route__bounds--segment > span:last-child {
+  justify-self: start;
+  text-align: left;
 }
 
 .impact-route__arrow {
@@ -420,6 +434,7 @@
 }
 
 .alert-card,
+.closure-card,
 .mobile-impact-inspector {
   container: impact-details / inline-size;
 }
@@ -507,16 +522,18 @@
   }
 }
 
-/* Expanded cards: full width beneath divider, two equal columns, 12px labels and 14px values */
+/* Detailed impact fields: two equal columns with consistent label/value type. */
 .alert-card .impact-metadata-grid,
-.closure-card .impact-metadata-grid {
+.closure-card .impact-metadata-grid,
+.mobile-impact-inspector .impact-metadata-grid {
   gap: 10px 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
 }
 
 .alert-card .impact-metadata-grid dt,
-.closure-card .impact-metadata-grid dt {
+.closure-card .impact-metadata-grid dt,
+.mobile-impact-inspector .impact-metadata-grid dt {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -524,7 +541,8 @@
 }
 
 .alert-card .impact-metadata-grid dd,
-.closure-card .impact-metadata-grid dd {
+.closure-card .impact-metadata-grid dd,
+.mobile-impact-inspector .impact-metadata-grid dd {
   font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
@@ -612,12 +630,6 @@
 }
 
 .planned-closure-metadata .is-emphasized dt {
-  color: var(--color-logo-blue);
-  letter-spacing: 0.035em;
-  text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
-}
-
-.planned-closure-metadata .is-status-row dt {
   color: var(--color-logo-blue);
   letter-spacing: 0.035em;
   text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
@@ -1839,6 +1851,18 @@
 .compact-impact-list-item--organized .compact-impact-list-item__fact:has(> .rsz-zone-direction-breakdown),
 .compact-impact-list-item--organized .compact-impact-list-item__fact:has(> .rsz-resolution-breakdown) {
   align-items: flex-start;
+}
+
+/* Keep the resolution label on the first value row. The value group owns any
+   necessary wrapping so one entry can use the space beside the label. */
+.compact-impact-list-item--organized .compact-impact-list-item__fact:has(> .rsz-resolution-breakdown) {
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.compact-impact-list-item--organized .compact-impact-list-item__fact > .rsz-resolution-breakdown {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .compact-impact-list-item--organized > .impact-card-line-badge {

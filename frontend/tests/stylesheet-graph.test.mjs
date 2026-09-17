@@ -854,7 +854,8 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.alert-card/);
     assert.match(content, /\.closure-card/);
     assert.match(content, /\.preview-button/);
-    assert.match(content, /\.impact-card-heading/);
+    assert.match(content, /\.impact-card-utility-row/);
+    assert.match(content, /\.impact-card-badges/);
     assert.match(content, /\.impact-route/);
     assert.match(content, /\.impact-route__bounds/);
     assert.match(content, /\.impact-metadata-grid/);

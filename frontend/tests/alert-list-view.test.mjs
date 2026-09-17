@@ -72,6 +72,14 @@ describe("alert card and list views", () => {
     assert.match(panelSources[3], /title="Planned Closure"/);
     assert.match(panelSources[3], /closure.shuttle && "Shuttle"/);
     assert.match(globalCss, /\.planned-closure-metadata > \.is-window-row\s*\{[^}]*grid-column: 1 \/ -1;/s);
+    assert.match(
+      globalCss,
+      /\.compact-impact-list-item--organized \.compact-impact-list-item__fact:has\(> \.rsz-resolution-breakdown\)\s*\{[^}]*flex-wrap:\s*nowrap;[^}]*width:\s*100%;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.compact-impact-list-item--organized \.compact-impact-list-item__fact > \.rsz-resolution-breakdown\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-width:\s*0;/s,
+    );
   });
 
   it("hides repeated type labels consistently in dedicated submenus", () => {

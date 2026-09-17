@@ -1798,18 +1798,13 @@
 
   .impact-overlap-refs {
     display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
     align-items: start;
-    column-gap: 4px;
+    gap: 6px;
     margin-left: 0;
     margin-right: 0;
     margin-inline: 0;
     max-width: 100%;
     width: 100%;
-  }
-
-  .impact-overlap-refs > span {
-    margin-right: 0;
   }
 
   .impact-overlap-ref-list {
