@@ -17,8 +17,8 @@ describe("official TTC performance panel source", () => {
     assert.match(source, /During Active Subway Service Only/);
     assert.match(source, /During Scheduled Train Service Only/);
     assert.match(source, /Observed Service Time/);
-    assert.match(source, /Time With Any Alert on This Line/);
-    assert.match(source, /Time With Any Alert on This Corridor/);
+    assert.match(source, /Time with any alert on this line/);
+    assert.match(source, /Time with any alert on this corridor/);
     assert.match(source, /Incident-Hours/);
     assert.match(source, /Median Completed Incident/);
     assert.match(source, /formatReliabilityRange/);

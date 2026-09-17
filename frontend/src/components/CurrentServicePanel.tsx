@@ -16,6 +16,7 @@ import { DESKTOP_SERVICE_SHEET_STORAGE_KEY, parseDesktopServiceSheetPosition } f
 import { LineBadge } from "./ImpactCardFields";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
+import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
 
 
 type Props = {
@@ -531,7 +532,18 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         </h3>
         <ServiceList>
           {surfaceRows.slice(0, visibleNoticeCount).map((notice) => <button type="button" className="current-service-notice" key={notice.id} onClick={() => onNotice(notice)}>
-            <span className="current-service-routes">{(notice.routeIds.length ? notice.routeIds : [data.networkId === "ttc" ? "TTC" : "GO"]).map((route) => <span className="current-service-route" key={route}>{route}</span>)}</span>
+            <span className="current-service-routes">
+              {(notice.routeIds.length ? notice.routeIds : [data.networkId === "ttc" ? "TTC" : "GO"]).map((route) => (
+                <span
+                  className="current-service-route"
+                  key={route}
+                  style={data.networkId === "regional" ? goNoticeRouteBadgeStyle(route) : undefined}
+                  aria-label={data.networkId === "regional" ? goNoticeRouteLabel(route) : undefined}
+                >
+                  {route}
+                </span>
+              ))}
+            </span>
             <span className="current-service-notice-copy">
               <strong data-category={notice.category}>
                 <SurfaceCategoryIcon category={notice.category} size={12} className="shrink-0" />

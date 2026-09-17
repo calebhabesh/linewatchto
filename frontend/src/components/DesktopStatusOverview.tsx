@@ -20,6 +20,7 @@ import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { GoodServiceCheckIcon } from "./CurrentServicePanel";
+import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
 import type { NetworkId } from "../app/regional-data";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -60,6 +61,7 @@ type Props = {
     nextCloseLabel: string | null;
     nextResumeLabel: string | null;
   };
+  notice?: React.ReactNode;
   onOpenCategory: (view: StatusCategory, lineId?: string) => void;
   onSelectImpact?: (selection: ImpactSelection) => void;
   onSelectSurfaceNotice?: (notice: SurfaceNoticeDetail) => void;
@@ -81,6 +83,7 @@ export function DesktopStatusOverview({
   surfaceNoticeCount = 0,
   tripChangeCount = 0,
   surfaceNotices = null,
+  notice,
   onOpenCategory,
   onSelectImpact,
   onSelectSurfaceNotice,
@@ -204,6 +207,11 @@ export function DesktopStatusOverview({
             Current alerts, delays & closures starting within 24h
           </span>
         </div>
+        {notice ? (
+          <div className="desktop-status-notice-wrapper">
+            {notice}
+          </div>
+        ) : null}
         <div className="desktop-status-section-header">
           <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-status-section-title">
@@ -437,7 +445,12 @@ export function DesktopStatusOverview({
               <span className="current-service-routes">
                 {(notice.routeIds.length ? notice.routeIds : [regional ? "GO" : "TTC"]).map(
                   (route) => (
-                    <span className="current-service-route" key={route}>
+                    <span
+                      className="current-service-route"
+                      key={route}
+                      style={regional ? goNoticeRouteBadgeStyle(route) : undefined}
+                      aria-label={regional ? goNoticeRouteLabel(route) : undefined}
+                    >
                       {route}
                     </span>
                   ),

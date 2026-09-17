@@ -45,6 +45,20 @@ export const DESKTOP_SIDEBAR_MIN_WIDTH = 320;
 export const DESKTOP_DOCK_BUDGET =
   DESKTOP_RAIL_WIDTH + DESKTOP_SIDEBAR_TARGET_WIDTH + DESKTOP_MAP_MIN_WIDTH;
 
+/** Compact overview/settings pages need less space than searchable collections. */
+export function desktopSidebarWidthForView(activeView: string, selectedStationId?: string | null): number {
+  if (selectedStationId) return DESKTOP_SIDEBAR_TARGET_WIDTH;
+  switch (activeView) {
+    case "status":
+    case "map":
+    case "more":
+    case "menu":
+      return 380;
+    default:
+      return DESKTOP_SIDEBAR_TARGET_WIDTH;
+  }
+}
+
 export type DesktopLayoutMode = "docked" | "overlay" | "mobile";
 
 export type DesktopLayoutMetrics = {
@@ -56,21 +70,26 @@ export type DesktopLayoutMetrics = {
 };
 
 /**
- * Computes responsive desktop layout metrics for a given window width and mobile flag:
+ * Computes responsive layout using the destination width (380px compact, 560px detailed):
  * 1. Mobile or width < 768px: mode = "mobile", sidebarWidth = 0.
- * 2. Docked when W >= R (80px) + S (560px) + 480px (1120px): sidebarWidth = 560; map receives remaining layout width.
- * 3. Overlay otherwise beside rail: sidebarWidth = min(560, W - R - 160px), leaving >= 160px exposed map.
+ * 2. Dock when rail + destination width + 480px of map fit.
+ * 3. Otherwise cap the destination width to leave >= 160px of exposed map.
  */
 export function computeDesktopLayoutMetrics({
   windowWidth,
   isMobile,
+  activeView,
+  selectedStationId,
 }: {
   windowWidth: number;
   isMobile: boolean;
-  profile?: unknown;
+  activeView?: string;
+  selectedStationId?: string | null;
 }): DesktopLayoutMetrics {
-  const dockBudget = DESKTOP_DOCK_BUDGET;
-  const targetWidth = DESKTOP_SIDEBAR_TARGET_WIDTH;
+  const targetWidth = activeView === undefined
+    ? DESKTOP_SIDEBAR_TARGET_WIDTH
+    : desktopSidebarWidthForView(activeView, selectedStationId);
+  const dockBudget = DESKTOP_RAIL_WIDTH + targetWidth + DESKTOP_MAP_MIN_WIDTH;
 
   if (isMobile || windowWidth < 768) {
     return {
@@ -83,7 +102,7 @@ export function computeDesktopLayoutMetrics({
   }
 
   if (windowWidth >= dockBudget) {
-    // Docked mode: sidebar width is fixed at 560px; map receives remaining layout width
+    // Docked mode: sidebar width follows the destination; map receives remaining layout width
     return {
       mode: "docked",
       sidebarWidth: targetWidth,
@@ -134,7 +153,7 @@ export function readDesktopOverlayInsets(viewport: HTMLElement | null): { left: 
   return { left: 0 };
 }
 
-export type DesktopRailDestination = "status" | "stations" | "commutes" | "alert-history" | "more" | "source-status";
+export type DesktopRailDestination = "status" | "stations" | "commutes" | "alert-history" | "more" | "source-status" | "analytics";
 
 export function desktopRailDestinationForView(view: string): DesktopRailDestination {
   switch (view) {
@@ -157,10 +176,11 @@ export function desktopRailDestinationForView(view: string): DesktopRailDestinat
       return "alert-history";
     case "source-status":
       return "source-status";
+    case "analytics":
+      return "analytics";
     case "more":
     case "menu":
     case "notifications":
-    case "analytics":
     case "feedback":
     case "privacy-acknowledgements":
     case "release-notes":

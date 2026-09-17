@@ -14,7 +14,7 @@ describe("desktop sidebar refinement - Checkpoint E: Wordmark and Brand Icon", (
 
     // CSS defines desktop-sidebar-wordmark with wordmark font family and prominent sizing
     assert.match(globalCss, /\.desktop-sidebar-wordmark\s*\{[^}]*font-family:\s*"Chillax",\s*var\(--font-wordmark\)/);
-    assert.match(globalCss, /\.desktop-sidebar-wordmark\s*\{[^}]*font-size:\s*1\.45rem/);
+    assert.match(globalCss, /\.desktop-sidebar-wordmark\s*\{[^}]*font-size:\s*1\.7rem/);
     // Ensure no dark:brightness-200 filter is applied to the SVG
     assert.doesNotMatch(shellSource, /src="\/assets\/linewatch\/logo\.svg"[\s\S]*?dark:brightness-200/);
   });

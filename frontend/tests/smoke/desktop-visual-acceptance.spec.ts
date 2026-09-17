@@ -186,7 +186,7 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await page.screenshot({ path: join(SCREENSHOT_DIR, "saved-commutes-dark-1440x900.png") });
   });
 
-  test("9. More Panel - Dark (uniform 560px)", async ({ page, request, isMobile }) => {
+  test("9. More Panel - Dark (compact 380px)", async ({ page, request, isMobile }) => {
     test.skip(isMobile);
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
@@ -194,7 +194,7 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await page.locator('.desktop-rail-item[data-dest="more"]').click();
     const sidebar = page.locator(".desktop-sidebar-container");
     const box = await sidebar.boundingBox();
-    expect(box?.width).toBe(560);
+    expect(box?.width).toBe(380);
     await expect(page.locator(".desktop-more-panel")).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "more-panel-dark-1440x900.png") });

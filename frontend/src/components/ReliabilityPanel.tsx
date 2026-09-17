@@ -260,15 +260,12 @@ function AlertTypeBreakdownChart({
   return (
     <div className="reliability-row min-w-0 max-w-full w-full p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col gap-2.5 mt-1 overflow-hidden">
       {/* Header */}
-      <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
-        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 min-w-0 shrink-0">
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 min-w-0">
           <PieChart className="w-3.5 h-3.5 text-purple-500 shrink-0" />
           <span>Share of Incident-Hours</span>
         </h4>
-        <span className="hidden sm:inline text-slate-400 dark:text-slate-600 font-normal text-xs" aria-hidden="true">
-          ·
-        </span>
-        <p className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider pl-5 sm:pl-0">
+        <p className="text-[10.5px] text-slate-500 dark:text-slate-400 leading-tight pl-5">
           Overlapping alerts counted separately
         </p>
       </div>
@@ -402,26 +399,26 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
   };
 
   return (
-    <section className="analytics-panel min-w-0 max-w-full w-full border border-black/10 dark:border-white/10 rounded-lg shadow-xl" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
+    <section className="panel analytics-panel min-w-0 max-w-full w-full border border-transparent rounded-2xl" aria-label="Reliability Analytics" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
       <PanelHeader
         title="Reliability Analytics"
+        titleCompact
         icon={<BarChart3 className="w-5 h-5 text-purple-500 shrink-0" aria-hidden="true" />}
         onBack={onBack}
         onClose={onClose}
       />
-      <div className="reliability-list min-w-0 max-w-full w-full p-3 flex flex-col gap-2 overflow-x-hidden">
-        <p className="text-center text-[11px] text-slate-500 dark:text-slate-400 break-words">
-          {formatReliabilityTitleCase(reliability.coverageLabel)} · {formatReliabilityTitleCase(`${reliability.confidence} confidence`)}
-        </p>
+      <div className="reliability-list min-w-0 max-w-full w-full px-4 pt-1 pb-4 flex flex-col gap-2 overflow-x-hidden">
         <div className="flex flex-col gap-2 min-w-0">
           <div className="min-w-0 flex flex-col gap-1.5">
-            <h3 className="text-[15px] font-black text-slate-900 dark:text-white break-words">
-              Observed Disruptions · Rolling 30 Day Basis
-            </h3>
-            <ul className="grid grid-cols-1 gap-1 text-[11px] text-slate-500 dark:text-slate-400 list-none p-0 m-0">
-              <li className="break-words leading-tight">
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <h3 className="text-[15px] font-black leading-snug text-slate-900 dark:text-white break-words">
+                Observed Disruptions · Rolling 30 Day Basis
+              </h3>
+              <p className="text-[11px] leading-tight text-slate-500 dark:text-slate-400 break-words">
                 Confidence reflects how complete the records are, using the lower of polling and schedule-date coverage: low below 75%, medium from 75% to below 95%, and high at 95% or above. Gaps can leave disruptions uncounted.
-              </li>
+              </p>
+            </div>
+            <ul className="grid grid-cols-1 gap-1 text-[11px] text-slate-500 dark:text-slate-400 list-none p-0 m-0">
               <li className="flex items-start gap-1.5 min-w-0">
                 <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
                 <span className="min-w-0 break-words leading-tight">
@@ -434,6 +431,13 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                 <span className="min-w-0 break-words leading-tight">
                   <strong className="font-semibold text-slate-700 dark:text-slate-200">Service Window:</strong>{" "}
                   {formatReliabilityTitleCase(reliability.serviceWindowBasis)} · {(reliability.scheduleCoveragePercentage ?? 0).toFixed(1)}% {networkId === "regional" ? "Minimum Date Coverage" : "Date Coverage"}
+                </span>
+              </li>
+              <li className="flex items-start gap-1.5 min-w-0">
+                <span className="text-slate-400 dark:text-slate-500 shrink-0 select-none">•</span>
+                <span className="min-w-0 break-words leading-tight">
+                  <strong className="font-semibold text-slate-700 dark:text-slate-200">Coverage & Confidence:</strong>{" "}
+                  {formatReliabilityTitleCase(reliability.coverageLabel).replace(/\s*·\s*/g, ", ")}, {formatReliabilityTitleCase(`${reliability.confidence} confidence`)}
                 </span>
               </li>
             </ul>
@@ -474,11 +478,11 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
                 </div>
 
                 {/* Tier 1: Service Window & Wall-Clock Impact */}
-                <div className="rounded-md border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] p-2.5 flex flex-col gap-2 min-w-0">
+                <div className="rounded-md bg-black/[0.02] dark:bg-white/[0.02] p-2.5 flex flex-col gap-2 min-w-0">
                   <div className="flex items-start justify-between gap-2 min-w-0">
                     <div className="flex flex-col min-w-0">
                       <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
-                        {networkId === "regional" ? "Time With Any Alert on This Corridor" : "Time With Any Alert on This Line"}
+                        {networkId === "regional" ? "Time with any alert on this corridor" : "Time with any alert on this line"}
                       </span>
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight mt-0.5">
                         Unique wall-clock disruption during scheduled service

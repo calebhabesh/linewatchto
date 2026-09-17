@@ -52,12 +52,17 @@ describe("Desktop Sidebar Polish — Checkpoint 2 (Steps 3, 4, 5)", () => {
       );
     });
 
-    it("renders desktop notice in expanded sidebar below search row and on collapsed map", () => {
-      // Expanded sidebar notice
+    it("renders desktop notice in status overview under rail kicker and on collapsed map", () => {
+      // Status overview notice
+      assert.match(
+        overviewSource,
+        /desktop-status-notice-wrapper/,
+        "DesktopStatusOverview must render notice in desktop-status-notice-wrapper",
+      );
       assert.match(
         shellSource,
-        /!desktopSidebarCollapsed && desktopNotice \?\s*\(\s*<div className="desktop-sidebar-notice-wrapper">/,
-        "Expanded sidebar header must render desktop notice in desktop-sidebar-notice-wrapper",
+        /<DesktopStatusOverview[\s\S]*?notice=\{/,
+        "LineWatchShell must pass notice prop to DesktopStatusOverview",
       );
 
       // Collapsed map notice

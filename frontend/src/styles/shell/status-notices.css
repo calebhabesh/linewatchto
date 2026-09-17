@@ -618,6 +618,13 @@
   width: 100%;
 }
 
+.desktop-status-notice-wrapper {
+  box-sizing: border-box;
+  margin-top: 4px;
+  margin-bottom: 2px;
+  width: 100%;
+}
+
 .desktop-collapsed-map-notice-anchor {
   position: absolute;
   top: 20px;

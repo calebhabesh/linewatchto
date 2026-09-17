@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, Navigation, Search, X } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, BarChart3, History, MapPin, Menu, Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, Navigation, Search, X } from "lucide-react";
+import { desktopRailDestinationForView } from "../app/desktop-sidebar-state";
 import { useDashboardData } from "../app/DataContext";
 import {
   IMPACT_SEARCH_CATEGORIES,
@@ -52,6 +53,22 @@ import { TransitLineBadge } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 
+const RETURN_MENU_ICONS = {
+  status: AlertTriangle,
+  stations: MapPin,
+  commutes: Navigation,
+  "alert-history": History,
+  more: Menu,
+  "source-status": Activity,
+  analytics: BarChart3,
+};
+
+function SearchReturnIcon({ destination }: { destination: string }) {
+  const menu = desktopRailDestinationForView(destination);
+  const Icon = RETURN_MENU_ICONS[menu] ?? AlertTriangle;
+  return <Icon size={16} aria-hidden="true" className={`station-search-return-icon station-search-return-icon--${menu}`} />;
+}
+
 const BROWSE_IMPACT_CATEGORIES = (
   ["suspension", "delay", "planned-closure", "reduced-speed-zone"] satisfies ImpactKind[]
 ).map((kind) => IMPACT_SEARCH_CATEGORIES.find((category) => category.kind === kind)!);
@@ -66,6 +83,8 @@ type Props = {
   onSelectImpact: (selection: NonNullable<ImpactSelection>) => void;
   onOpenImpactCategory: (kind: ImpactKind) => void;
   onClose: () => void;
+  desktopReturnLabel?: string;
+  desktopReturnDestination?: string;
   onDismiss?: () => void;
   onClosedFocusTarget?: () => void;
   /** Controlled search query — owned by the header input bar */
@@ -387,6 +406,8 @@ export function StationSearchPanel({
   onSelectImpact,
   onOpenImpactCategory,
   onClose,
+  desktopReturnLabel = "Back to previous page",
+  desktopReturnDestination = "status",
   onDismiss,
   onClosedFocusTarget,
   query,
@@ -409,7 +430,7 @@ export function StationSearchPanel({
   onExpandedLineIdChange,
 }: Props) {
   const dashboardData = useDashboardData();
-  const searchPlaceholder = "Search Stations and Alerts...";
+  const searchPlaceholder = "Search all stations and alerts...";
   const stationImpactKinds = useMemo(
     () => stationImpactKindsByStation(dashboardData),
     [dashboardData],
@@ -794,6 +815,15 @@ export function StationSearchPanel({
         </div>
       )}
 
+      {!isMobile && (
+        <button type="button" className="station-search-return" onClick={onDismiss ?? onClose}>
+          <ArrowLeft size={17} aria-hidden="true" className="station-search-back-arrow" />
+          <span className="station-search-back-label">
+            <SearchReturnIcon destination={desktopReturnDestination} />
+            {desktopReturnLabel}
+          </span>
+        </button>
+      )}
       <div className="station-search-content">
         <div className="station-search-amenity-toolbar" role="toolbar" aria-label="Filter stations by amenities">
           <div className="station-search-amenity-header">
@@ -1312,6 +1342,7 @@ export function StationSearchPanel({
                       className="station-search-mobile-back"
                       onClick={() => setExpandedLineId(null)}
                     >
+                      <ArrowLeft size={17} aria-hidden="true" className="station-search-back-arrow" />
                       Back to Lines
                     </button>
                   ) : null}

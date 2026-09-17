@@ -58,7 +58,8 @@ import {
 import { PwaInstallNudge } from "./PwaInstallNudge";
 import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
 import { TransitLineBadge } from "./TransitLineBadge";
-import { LogsDropdown, SourceDiagnosticsBody } from "./LogsDropdown";
+import { PanelHeader } from "./PanelHeader";
+import { LogsDropdown, SourceDiagnosticsBody, SourceStatusRefreshButton } from "./LogsDropdown";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
@@ -100,7 +101,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Accessibility, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck, Clock3 } from "lucide-react";
+import { Accessibility, Activity, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck, Clock3 } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -588,6 +589,16 @@ export function LineWatchShell({
   const browserNavigationSessionRef = useRef("");
   const browserNavigationDepthRef = useRef(0);
   const suppressedPopstateCountRef = useRef(0);
+  interface SearchReturnContext {
+    activeView: ActiveView;
+    selectedStationId: string | null;
+    selectedNetwork: NetworkId;
+    commutesActiveTab?: "create" | "saved";
+    focusedElement?: HTMLElement | null;
+  }
+  const searchReturnContextRef = useRef<SearchReturnContext | null>(null);
+  const [searchReturnDestination, setSearchReturnDestination] = useState("status");
+  const [searchReturnLabel, setSearchReturnLabel] = useState("Back to Status");
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
   const commutePathPreviewRef = useRef<AccountCommutePathPreview | null>(null);
   const stationDrilldownOriginRef = useRef<string | null>(null);
@@ -1010,6 +1021,9 @@ export function LineWatchShell({
     }
     pushBrowserNavigationEntry();
     viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
+    if (nextView !== "search") {
+      searchReturnContextRef.current = null;
+    }
     activeViewRef.current = nextView;
     setNavDirection("forward");
     setActiveView(nextView);
@@ -1043,6 +1057,9 @@ export function LineWatchShell({
     }
     viewHistoryRef.current = [];
     stationDrilldownOriginRef.current = null;
+    if (nextView !== "search") {
+      searchReturnContextRef.current = null;
+    }
     activeViewRef.current = nextView;
     setNavDirection("root");
     setActiveView(nextView);
@@ -1192,8 +1209,8 @@ export function LineWatchShell({
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
 
   const desktopMetrics = useMemo(() => {
-    return computeDesktopLayoutMetrics({ windowWidth, isMobile });
-  }, [windowWidth, isMobile]);
+    return computeDesktopLayoutMetrics({ windowWidth, isMobile, activeView, selectedStationId });
+  }, [windowWidth, isMobile, activeView, selectedStationId]);
   const [searchExpandedLineId, setSearchExpandedLineId] = useState<string | null>(null);
   const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
     if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
@@ -1297,7 +1314,9 @@ export function LineWatchShell({
       activeView === "line-impacts" ||
       activeView === "accessibility-outages" ||
       activeView === "surface-notices" ||
-      activeView === "announcements";
+      activeView === "announcements" ||
+      activeView === "source-status" ||
+      activeView === "analytics";
     const desktopFallback: ActiveView = isStatusView ? "status" : "more";
     const mobileFallback: ActiveView = isStatusView
       ? "status"
@@ -2597,24 +2616,41 @@ export function LineWatchShell({
   const searchSessionActiveRef = useRef<boolean>(false);
   const suppressSearchReopenRef = useRef<boolean>(false);
 
-  interface SearchReturnContext {
-    activeView: ActiveView;
-    selectedStationId: string | null;
-    selectedNetwork: NetworkId;
-    commutesActiveTab?: "create" | "saved";
-    focusedElement?: HTMLElement | null;
-  }
-  const searchReturnContextRef = useRef<SearchReturnContext | null>(null);
-
   const captureSearchReturnContext = useCallback(() => {
+    if (activeView === "search") return;
     if (!searchReturnContextRef.current) {
-      searchReturnContextRef.current = {
-        activeView,
-        selectedStationId,
-        selectedNetwork,
-        commutesActiveTab: activeView === "commutes" ? commutesActiveTab : undefined,
-        focusedElement: (typeof document !== "undefined" ? (document.activeElement as HTMLElement) : null),
-      };
+      const labels: Record<string, string> = {
+        status: "Status",
+        map: "Status",
+      more: "More",
+      "my-stations": "My Stations",
+      commutes: "My Commutes",
+      "source-status": "Source Status",
+      alerts: "Active Alerts",
+      delays: "Delays",
+      closures: "Planned Closures",
+      "reduced-speed-zones": "Reduced Speed Zones",
+      "alert-history": "Alert History",
+      "line-impacts": "Line Impacts",
+      "accessibility-outages": "Accessibility",
+      "surface-notices": "Service Notices",
+      announcements: "Announcements",
+      analytics: "Analytics",
+      notifications: "Notifications",
+      "release-notes": "Release Notes",
+      "privacy-acknowledgements": "Privacy",
+      feedback: "Feedback",
+    };
+    const dest = selectedStationId ? "my-stations" : activeView;
+    setSearchReturnDestination(dest);
+    setSearchReturnLabel(selectedStationId ? "Back to station details" : `Back to ${labels[activeView] ?? "previous page"}`);
+    searchReturnContextRef.current = {
+      activeView,
+      selectedStationId,
+      selectedNetwork,
+      commutesActiveTab: activeView === "commutes" ? commutesActiveTab : undefined,
+      focusedElement: (typeof document !== "undefined" ? (document.activeElement as HTMLElement) : null),
+    };
     }
   }, [activeView, commutesActiveTab, selectedNetwork, selectedStationId]);
   const headerSearchBarRef = useRef<HTMLDivElement>(null);
@@ -3964,12 +4000,14 @@ export function LineWatchShell({
       case "source-status":
         return (
           <div className="panel desktop-source-status-panel" aria-label={selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}>
-            <div className="desktop-more-section-header mb-3">
-              <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
-              <h2 className="desktop-more-section-title text-[18px]">
-                {selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}
-              </h2>
-            </div>
+            <PanelHeader
+              title={selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}
+              titleCompact
+              icon={<Activity className={`w-5 h-5 shrink-0 ${selectedNetwork === "regional" ? "text-emerald-500" : "text-red-500 dark:text-red-400"}`} aria-hidden="true" />}
+              onBack={handleSubmenuBack}
+              onClose={handleClosePanel}
+              actions={<SourceStatusRefreshButton network={selectedNetwork} />}
+            />
             <div className="desktop-source-status-content">
               <SourceDiagnosticsBody network={selectedNetwork} />
             </div>
@@ -4001,6 +4039,7 @@ export function LineWatchShell({
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
+    searchReturnContextRef.current = null;
     switch (dest) {
       case "status":
         navigateRoot("status");
@@ -4026,8 +4065,220 @@ export function LineWatchShell({
         navigateRoot("source-status");
         announceDesktop("Source Status");
         return;
+      case "analytics":
+        navigateRoot("analytics");
+        announceDesktop("Reliability Analytics");
+        return;
     }
   }, [desktopSidebarCollapsed, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop]);
+
+  type DesktopNotice =
+    | {
+        kind: "connection";
+        message: string;
+        snapshot?: boolean;
+        showSpinner?: boolean;
+      }
+    | {
+        kind: "closing-soon" | "closed";
+        title: string;
+        details?: string;
+        action?: () => void;
+      };
+
+  const desktopNotice: DesktopNotice | null = useMemo(() => {
+    if (showClosedScreen) {
+      return null;
+    }
+
+    // Priority 1: Connection notice
+    if (displayData.snapshot) {
+      return {
+        kind: "connection",
+        message: snapshotNotice(displayData.snapshot, snapshotClock),
+        snapshot: true,
+        showSpinner: !connectionOffline,
+      };
+    }
+    if (dashboardRequestState === "reconnecting") {
+      return {
+        kind: "connection",
+        message: "Connection issue — Showing cached snapshot",
+        showSpinner: true,
+      };
+    }
+    if (displayData.availability === "degraded") {
+      return {
+        kind: "connection",
+        message: "Source refresh issue — Showing last successful update",
+        showSpinner: false,
+      };
+    }
+    if (displayData.availability === "unavailable") {
+      return {
+        kind: "connection",
+        message: "Service unavailable — Showing fallback data",
+        showSpinner: false,
+      };
+    }
+
+    // Priority 2: Operating notice
+    if (selectedNetwork === "ttc") {
+      if (subwayOperatingState.status === "closed") {
+        return {
+          kind: "closed",
+          title: "Subway Closed",
+          details: `Resumes ${(subwayOperatingState.nextResumeLabel ?? "")
+            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
+            .replace(/\.$/, "")}.`,
+          action: handleOpenClosedScreen,
+        };
+      }
+    }
+    if (
+      selectedNetwork === "ttc" && subwayOperatingState.closingSoon &&
+      subwayOperatingState.minutesUntilClose !== null &&
+      subwayOperatingState.nextCloseLabel
+    ) {
+      const durationText = formatResumeDuration(subwayOperatingState.minutesUntilClose);
+      const timeText = subwayOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+      return {
+        kind: "closing-soon",
+        title: "Subway Closing Soon",
+        details: `Closes in ${durationText} · ${timeText}`,
+      };
+    }
+    if (selectedNetwork === "regional") {
+      if (regionalRailOperatingState.status === "closed") {
+        return {
+          kind: "closed",
+          title: "GO & UP Rail Closed",
+          details: `Trains return ${(regionalRailOperatingState.nextResumeLabel ?? "")
+            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
+            .replace(/\.$/, "")}.`,
+          action: handleOpenClosedScreen,
+        };
+      }
+    }
+    if (
+      selectedNetwork === "regional" && regionalRailOperatingState.closingSoon &&
+      regionalRailOperatingState.minutesUntilClose !== null &&
+      regionalRailOperatingState.nextCloseLabel
+    ) {
+      const durationText = formatResumeDuration(regionalRailOperatingState.minutesUntilClose);
+      const timeText = regionalRailOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+      const formattedTime = timeText.startsWith("at ") ? timeText : `at ${timeText}`;
+      return {
+        kind: "closing-soon",
+        title: "GO & UP Closing Soon",
+        details: `Broad close ${formattedTime} (${durationText})`,
+      };
+    }
+
+    return null;
+  }, [
+    showClosedScreen,
+    displayData.snapshot,
+    displayData.availability,
+    snapshotClock,
+    connectionOffline,
+    dashboardRequestState,
+    selectedNetwork,
+    subwayOperatingState.status,
+    subwayOperatingState.closingSoon,
+    subwayOperatingState.minutesUntilClose,
+    subwayOperatingState.nextCloseLabel,
+    subwayOperatingState.nextResumeLabel,
+    regionalRailOperatingState.status,
+    regionalRailOperatingState.closingSoon,
+    regionalRailOperatingState.minutesUntilClose,
+    regionalRailOperatingState.nextCloseLabel,
+    regionalRailOperatingState.nextResumeLabel,
+    handleOpenClosedScreen,
+  ]);
+
+  const renderDesktopNoticeBanner = (notice: DesktopNotice) => {
+    if (notice.kind === "connection") {
+      return (
+        <div
+          className="mobile-service-sheet-notice-row mobile-service-sheet-notice-row--connection"
+          data-snapshot={notice.snapshot ? "true" : undefined}
+          role="status"
+          aria-live="polite"
+          onClick={(e) => e.stopPropagation()}
+          aria-label={notice.message}
+        >
+          <AlertTriangle size={13} className="dashboard-availability-notice-icon shrink-0" aria-hidden="true" />
+          <span className="mobile-service-sheet-notice-message">{notice.message}</span>
+          {notice.showSpinner !== false && (
+            <Loader2 size={12} className="dashboard-availability-notice-spinner shrink-0" aria-hidden="true" />
+          )}
+        </div>
+      );
+    }
+
+    if (notice.action) {
+      return (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${notice.kind}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            notice.action?.();
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <span className="mobile-service-sheet-notice-left">
+            <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
+              {notice.kind === "closing-soon" ? (
+                <Clock3 size={13} strokeWidth={2.5} />
+              ) : (
+                <Moon size={13} strokeWidth={1} fill="currentColor" />
+              )}
+            </span>
+            <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
+          </span>
+          {notice.details && (
+            <span className="mobile-service-sheet-notice-right">
+              <span className="mobile-service-sheet-notice-details">{notice.details}</span>
+              <ChevronRight size={12} strokeWidth={2.5} className="mobile-service-sheet-notice-chevron" aria-hidden="true" />
+            </span>
+          )}
+          <button
+            type="button"
+            className="mobile-service-sheet-notice-action"
+            onClick={(e) => {
+              e.stopPropagation();
+              notice.action?.();
+            }}
+          >
+            Closed Screen
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${notice.kind}`}
+      >
+        <span className="mobile-service-sheet-notice-left">
+          <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
+            <Clock3 size={13} strokeWidth={2.5} />
+          </span>
+          <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
+        </span>
+        {notice.details && (
+          <span className="mobile-service-sheet-notice-right">
+            <span className="mobile-service-sheet-notice-details">{notice.details}</span>
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const renderDesktopSidebarContent = () => {
     const renderDesktopActivePanel = () => {
@@ -4094,6 +4345,8 @@ export function LineWatchShell({
             onSelectImpact={handleSearchSelectImpact}
             onOpenImpactCategory={handleSearchOpenImpactCategory}
             onClose={handleCloseSearch}
+            desktopReturnLabel={searchReturnLabel}
+            desktopReturnDestination={searchReturnDestination}
             onDismiss={handleCloseSearch}
             query={stationSearchQuery}
             onQueryChange={setStationSearchQuery}
@@ -4147,6 +4400,7 @@ export function LineWatchShell({
             tripChangeCount={regionalTripChangeCount ?? 0}
             surfaceNotices={!displayData.snapshot && currentServiceNotices?.networkId === selectedNetwork ? currentServiceNotices.data : null}
             operatingState={selectedNetwork === "ttc" ? subwayOperatingState : regionalRailOperatingState}
+            notice={!desktopSidebarCollapsed && desktopNotice ? renderDesktopNoticeBanner(desktopNotice) : null}
             onOpenCategory={(view, lineId) => {
               if (view === "line-impacts" && lineId) {
                 openLineImpacts(lineId);
@@ -4179,12 +4433,14 @@ export function LineWatchShell({
       if (activeView === "source-status") {
         return (
           <div className="panel desktop-source-status-panel" aria-label={selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}>
-            <div className="desktop-more-section-header mb-3">
-              <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
-              <h2 className="desktop-more-section-title text-[18px]">
-                {selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}
-              </h2>
-            </div>
+            <PanelHeader
+              title={selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}
+              titleCompact
+              icon={<Activity className={`w-5 h-5 shrink-0 ${selectedNetwork === "regional" ? "text-emerald-500" : "text-red-500 dark:text-red-400"}`} aria-hidden="true" />}
+              onBack={handleSubmenuBack}
+              onClose={handleClosePanel}
+              actions={<SourceStatusRefreshButton network={selectedNetwork} />}
+            />
             <div className="desktop-source-status-content">
               <SourceDiagnosticsBody network={selectedNetwork} />
             </div>
@@ -4431,214 +4687,6 @@ export function LineWatchShell({
     return null;
   }, [dashboardRequestState, displayData.availability, displayData.snapshot, snapshotClock, connectionOffline]);
 
-  type DesktopNotice =
-    | {
-        kind: "connection";
-        message: string;
-        snapshot?: boolean;
-        showSpinner?: boolean;
-      }
-    | {
-        kind: "closing-soon" | "closed";
-        title: string;
-        details?: string;
-        action?: () => void;
-      };
-
-  const desktopNotice: DesktopNotice | null = useMemo(() => {
-    if (showClosedScreen) {
-      return null;
-    }
-
-    // Priority 1: Connection notice
-    if (displayData.snapshot) {
-      return {
-        kind: "connection",
-        message: snapshotNotice(displayData.snapshot, snapshotClock),
-        snapshot: true,
-        showSpinner: !connectionOffline,
-      };
-    }
-    if (dashboardRequestState === "reconnecting") {
-      return {
-        kind: "connection",
-        message: "Connection issue — Showing cached snapshot",
-        showSpinner: true,
-      };
-    }
-    if (displayData.availability === "degraded") {
-      return {
-        kind: "connection",
-        message: "Source refresh issue — Showing last successful update",
-        showSpinner: false,
-      };
-    }
-    if (displayData.availability === "unavailable") {
-      return {
-        kind: "connection",
-        message: "Service unavailable — Showing fallback data",
-        showSpinner: false,
-      };
-    }
-
-    // Priority 2: Operating notice
-    if (selectedNetwork === "ttc") {
-      if (subwayOperatingState.status === "closed") {
-        return {
-          kind: "closed",
-          title: "Subway Closed",
-          details: `Resumes ${(subwayOperatingState.nextResumeLabel ?? "")
-            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-            .replace(/\.$/, "")}.`,
-          action: handleOpenClosedScreen,
-        };
-      }
-    }
-    if (
-      selectedNetwork === "ttc" && subwayOperatingState.closingSoon &&
-      subwayOperatingState.minutesUntilClose !== null &&
-      subwayOperatingState.nextCloseLabel
-    ) {
-      const durationText = formatResumeDuration(subwayOperatingState.minutesUntilClose);
-      const timeText = subwayOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
-      return {
-        kind: "closing-soon",
-        title: "Subway Closing Soon",
-        details: `Closes in ${durationText} · ${timeText}`,
-      };
-    }
-    if (selectedNetwork === "regional") {
-      if (regionalRailOperatingState.status === "closed") {
-        return {
-          kind: "closed",
-          title: "GO & UP Rail Closed",
-          details: `Trains return ${(regionalRailOperatingState.nextResumeLabel ?? "")
-            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-            .replace(/\.$/, "")}.`,
-          action: handleOpenClosedScreen,
-        };
-      }
-    }
-    if (
-      selectedNetwork === "regional" && regionalRailOperatingState.closingSoon &&
-      regionalRailOperatingState.minutesUntilClose !== null &&
-      regionalRailOperatingState.nextCloseLabel
-    ) {
-      const durationText = formatResumeDuration(regionalRailOperatingState.minutesUntilClose);
-      const timeText = regionalRailOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
-      const formattedTime = timeText.startsWith("at ") ? timeText : `at ${timeText}`;
-      return {
-        kind: "closing-soon",
-        title: "GO & UP Closing Soon",
-        details: `Broad close ${formattedTime} (${durationText})`,
-      };
-    }
-
-    return null;
-  }, [
-    showClosedScreen,
-    displayData.snapshot,
-    displayData.availability,
-    snapshotClock,
-    connectionOffline,
-    dashboardRequestState,
-    selectedNetwork,
-    subwayOperatingState.status,
-    subwayOperatingState.closingSoon,
-    subwayOperatingState.minutesUntilClose,
-    subwayOperatingState.nextCloseLabel,
-    subwayOperatingState.nextResumeLabel,
-    regionalRailOperatingState.status,
-    regionalRailOperatingState.closingSoon,
-    regionalRailOperatingState.minutesUntilClose,
-    regionalRailOperatingState.nextCloseLabel,
-    regionalRailOperatingState.nextResumeLabel,
-    handleOpenClosedScreen,
-  ]);
-
-  const renderDesktopNoticeBanner = (notice: DesktopNotice) => {
-    if (notice.kind === "connection") {
-      return (
-        <div
-          className="mobile-service-sheet-notice-row mobile-service-sheet-notice-row--connection"
-          data-snapshot={notice.snapshot ? "true" : undefined}
-          role="status"
-          aria-live="polite"
-          onClick={(e) => e.stopPropagation()}
-          aria-label={notice.message}
-        >
-          <AlertTriangle size={13} className="dashboard-availability-notice-icon shrink-0" aria-hidden="true" />
-          <span className="mobile-service-sheet-notice-message">{notice.message}</span>
-          {notice.showSpinner !== false && (
-            <Loader2 size={12} className="dashboard-availability-notice-spinner shrink-0" aria-hidden="true" />
-          )}
-        </div>
-      );
-    }
-
-    if (notice.action) {
-      return (
-        <div
-          role="status"
-          aria-live="polite"
-          className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${notice.kind}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            notice.action?.();
-          }}
-          style={{ cursor: "pointer" }}
-        >
-          <span className="mobile-service-sheet-notice-left">
-            <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
-              {notice.kind === "closing-soon" ? (
-                <Clock3 size={13} strokeWidth={2.5} />
-              ) : (
-                <Moon size={13} strokeWidth={1} fill="currentColor" />
-              )}
-            </span>
-            <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
-          </span>
-          {notice.details && (
-            <span className="mobile-service-sheet-notice-right">
-              <span className="mobile-service-sheet-notice-details">{notice.details}</span>
-              <ChevronRight size={12} strokeWidth={2.5} className="mobile-service-sheet-notice-chevron" aria-hidden="true" />
-            </span>
-          )}
-          <button
-            type="button"
-            className="mobile-service-sheet-notice-action"
-            onClick={(e) => {
-              e.stopPropagation();
-              notice.action?.();
-            }}
-          >
-            Closed Screen
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        role="status"
-        aria-live="polite"
-        className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${notice.kind}`}
-      >
-        <span className="mobile-service-sheet-notice-left">
-          <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
-            <Clock3 size={13} strokeWidth={2.5} />
-          </span>
-          <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
-        </span>
-        {notice.details && (
-          <span className="mobile-service-sheet-notice-right">
-            <span className="mobile-service-sheet-notice-details">{notice.details}</span>
-          </span>
-        )}
-      </div>
-    );
-  };
-
   const mobileMapPerformanceMode = mobilePerformanceMode || rotatedMapMode;
 
   const handleMapReady = useCallback(() => {
@@ -4689,7 +4737,7 @@ export function LineWatchShell({
               type="search"
               aria-label="Station Search"
               aria-controls="station-search-panel"
-              placeholder="Search stations & alerts..."
+              placeholder="Search all stations and alerts..."
               value={stationSearchQuery}
               onFocus={handleOpenSearch}
               onChange={(event) => setStationSearchQuery(event.target.value)}
@@ -4859,7 +4907,7 @@ export function LineWatchShell({
               onKeyDown={(e) => {
                 stationKeyDownHandlerRef.current?.(e);
               }}
-              placeholder="Search Stations and Alerts..."
+              placeholder="Search all stations and alerts..."
               aria-label="Station Search"
               aria-controls="station-search-panel"
               className="header-search-input min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-semibold text-slate-700 dark:text-white placeholder:font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:placeholder:text-transparent caret-blue-500"
@@ -5771,6 +5819,14 @@ export function LineWatchShell({
             toggleButtonRef={desktopRailToggleRef}
             selectedNetwork={selectedNetwork}
             onNetworkChange={handleNetworkChange}
+            authenticated={accountState.authenticated}
+            onRequestSignIn={() => {
+              if (accountState.authenticated) {
+                handleSelectRailDestination("more");
+              } else {
+                openAccountDialog("auth-choice");
+              }
+            }}
           />
           <aside
             id="desktop-sidebar-container"
@@ -5788,8 +5844,8 @@ export function LineWatchShell({
           >
             <header className="desktop-sidebar-header">
               <div className="desktop-sidebar-header-top">
-                <div className="flex items-end gap-2.5 select-none">
-                  <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={28} height={28} className="shrink-0 drop-shadow-sm" />
+                <div className="desktop-sidebar-brand-group">
+                  <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={28} height={28} className="desktop-sidebar-logo shrink-0 drop-shadow-sm" />
                   <strong className="linewatch-wordmark desktop-sidebar-wordmark text-slate-800 dark:text-white">LineWatchTO</strong>
                 </div>
                 {clock && (
@@ -5809,6 +5865,12 @@ export function LineWatchShell({
                 <div
                   className="desktop-sidebar-search-input"
                   data-active={activeView === "search" ? "true" : undefined}
+                  onClick={(e) => {
+                    if (activeView !== "search") handleOpenSearch();
+                    if (e.target !== desktopSearchInputRef.current) {
+                      desktopSearchInputRef.current?.focus();
+                    }
+                  }}
                 >
                   <Search
                     size={20}
@@ -5823,27 +5885,26 @@ export function LineWatchShell({
                     ref={desktopSearchInputRef}
                     type="search"
                     value={stationSearchQuery}
+                    onClick={() => {
+                      if (activeView !== "search") handleOpenSearch();
+                    }}
                     onChange={(e) => {
                       setStationSearchQuery(e.target.value);
                       if (activeView !== "search") {
-                        captureSearchReturnContext();
-                        setSelectedStationId(null);
-                        setActiveView("search");
+                        handleOpenSearch();
                       }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                         if (activeView !== "search") {
                           e.preventDefault();
-                          captureSearchReturnContext();
-                          setSelectedStationId(null);
-                          setActiveView("search");
+                          handleOpenSearch();
                           return;
                         }
                       }
                       stationKeyDownHandlerRef.current?.(e);
                     }}
-                    placeholder="Search Stations and Alerts..."
+                    placeholder="Search all stations and alerts..."
                     aria-label="Station Search"
                     aria-controls="station-search-panel"
                     className="desktop-sidebar-search-field"
@@ -5863,11 +5924,6 @@ export function LineWatchShell({
                   ) : null}
                 </div>
               </div>
-              {!desktopSidebarCollapsed && desktopNotice ? (
-                <div className="desktop-sidebar-notice-wrapper">
-                  {renderDesktopNoticeBanner(desktopNotice)}
-                </div>
-              ) : null}
             </header>
             <div className="desktop-sidebar-content">
               {renderDesktopSidebarContent()}

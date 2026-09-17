@@ -1730,17 +1730,17 @@
   width: 34px;
   min-height: 34px;
   padding: 0;
-  border: 1px solid #64748b30;
+  border: none;
   border-radius: 7px;
   background: #e2e5e9;
   color: #475569;
   cursor: pointer;
 }
 .filter-reset-button:hover { background: #cbd0d7; color: #1e293b; }
-.dark .filter-reset-button { background: #252a32; color: #cbd5e1; border-color: #ffffff12; }
+.dark .filter-reset-button { background: #252a32; color: #cbd5e1; }
 .dark .filter-reset-button:hover { background: #343b46; color: #f1f5f9; }
 .filter-reset-button:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
-.high-contrast .filter-reset-button { border-color: currentColor; }
+.high-contrast .filter-reset-button { border: 1px solid currentColor; }
 .filter-result-count {
   display: block;
   margin: 0;

@@ -7,10 +7,10 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const globalCss = readAppStylesheet();
 
 describe("desktop sidebar refinement - Checkpoint G: Slate / VisionOS Search Bar", () => {
-  it("uses the placeholder 'Search Stations and Alerts...' in the desktop sidebar search bar", () => {
+  it("uses the placeholder 'Search all stations and alerts...' in the desktop sidebar search bar", () => {
     assert.match(
       shellSource,
-      /className="desktop-sidebar-search-input"[\s\S]*?placeholder="Search Stations and Alerts\.\.\."/
+      /className="desktop-sidebar-search-input"[\s\S]*?placeholder="Search all stations and alerts\.\.\."/
     );
   });
 

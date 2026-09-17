@@ -15,7 +15,7 @@ describe("desktop sidebar refinement - Checkpoint F: Stacked Header Clock", () =
     );
 
     // Bottom alignment: icon, wordmark, and clock stack align on the bottom edge
-    assert.match(shellSource, /className="flex items-end gap-2\.5 select-none"/);
+    assert.match(shellSource, /desktop-sidebar-brand-group/);
     assert.match(globalCss, /\.desktop-sidebar-header-top\s*\{[^}]*align-items:\s*flex-end/);
     assert.match(globalCss, /\.desktop-sidebar-clock\s*\{[^}]*align-items:\s*flex-end/);
     assert.match(globalCss, /\.desktop-sidebar-clock\s*\{[^}]*justify-content:\s*flex-end/);

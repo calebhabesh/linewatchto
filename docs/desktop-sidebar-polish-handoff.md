@@ -13,6 +13,10 @@ Additional approved scope: enlarge the desktop TTC legend, slightly enlarge and 
 
 Read [frontend guidance](../frontend/AGENTS.md) before implementation. For notice state and commute draft work, consult the affected sections of [domain invariants](domain-invariants.md). Before browser checks, read [testing](testing.md). If changing source claims beyond this presentation work becomes necessary, first read [source launch gates](source-licensing-launch-gates.md).
 
+## Width revision after implementation review
+
+The user superseded the uniform-width requirement: Status, More, and Source Status use 380px; search, station details, collections, and substantive forms use 560px. Station detail overrides the underlying destination width. Keep shared 16px gutters and aligned cards/controls. Dock budgets follow destination width (940px compact, 1120px detailed); overlay sizing still reserves 160px of visible map. Resize on navigation, not live data/count changes. This revision takes precedence over uniform-width references below.
+
 ## Approved interaction contract
 
 | Area | Required behavior |
@@ -21,7 +25,7 @@ Read [frontend guidance](../frontend/AGENTS.md) before implementation. For notic
 | Alignment | Global search, view toolbar/filter console, and content cards share 16px inner gutters and the same available width. Scrollbar allocation must not offset the card edges from the controls. |
 | Responsive layout | Retain the 768px desktop breakpoint and existing overlay model. Dock at 1120px and above (80 rail + 560 sidebar + 480 map). Below that, sidebar width is `min(560, viewportWidth - 80 - 160)`, retaining 160px exposed map. |
 | Scrolling | App header, global search, and the applicable shared notice remain outside the view scroller. Each view has one main vertical scroller. Its compact title/Back row stays visible; large search/filter/sort consoles scroll with content. |
-| Global search | Present on every expanded desktop menu/submenu, including station/impact detail and commute editing. Remove the Search rail entry. Focus alone does not navigate; typing or Enter opens search. Enter on an empty input opens the lines browser. |
+| Global search | Present on every expanded desktop menu/submenu, including station/impact detail and commute editing. Remove the Search rail entry. Keyboard focus alone does not navigate; clicking/tapping the input, typing, or Enter opens search. Enter on an empty input opens the lines browser. |
 | Search return | Back restores the originating view, selected detail, local filters, scroll, and focus. Preserve unfinished commute drafts in memory during search; search does not save, submit, or discard them. |
 | Escape | Close a suggestion popup first if open; otherwise return from search. Preserve existing modal/editor Escape handling outside search. |
 | Local search | Keep useful collection filters with explicit scope, e.g. “Filter saved stations.” Local filtering does not change the global search query. |
@@ -81,7 +85,7 @@ Completion: switching any desktop destination leaves width unchanged; toolbar/ca
 
 ### 2. Make global search a reversible navigation step
 
-- `LineWatchShell.tsx` currently limits global search to top-level views and navigates on input focus. Separate focus, query editing, and navigation activation.
+- `LineWatchShell.tsx` currently limits global search to top-level views and navigates on input focus. Separate keyboard focus from explicit click, query editing, and navigation activation. Clicking opens empty-query browsing and filters; provide a labeled return button to the originating page.
 - Keep one global input in the shared shell. Preserve suggestion keyboard behavior, accessible names, and IME composition. Capture the return context once when entering search; subsequent keystrokes must not overwrite it with the search view itself.
 - Retain draft state above any subtree that search unmounts, or keep the editor mounted through an appropriate existing mechanism. Inspect the actual ownership before selecting the smaller change. Do not persist private draft data in public caches or introduce new durable storage.
 - Keep return context valid across network changes and sign-out: reuse existing network/account transition rules, never restore a station/detail into the wrong network or an account editor after sign-out. Clear invalid transient context rather than bypassing those rules.

@@ -105,4 +105,10 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(statusSheetSource, /regional \? \(\s*<Megaphone size=\{16\} className="text-emerald-600 dark:text-emerald-400 shrink-0" \/>\s*\) : \(\s*<Bus size=\{16\} className="text-emerald-600 dark:text-emerald-400 shrink-0" \/>\s*\)/);
     assert.match(panelSource, /regional \? \(\s*<Megaphone className="w-4 h-4 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" \/>\s*\) : \(\s*<Bus className="w-4 h-4 sm:w-6 sm:h-6 shrink-0 text-emerald-600 dark:text-emerald-400" \/>\s*\)/);
   });
+
+  it("styles the filter reset button as a flat button with no border outline", () => {
+    assert.match(stylesSource, /\.filter-reset-button\s*\{[^}]*border:\s*none;/s);
+    assert.doesNotMatch(stylesSource, /\.dark\s+\.filter-reset-button\s*\{[^}]*border-color:/s);
+  });
 });
+

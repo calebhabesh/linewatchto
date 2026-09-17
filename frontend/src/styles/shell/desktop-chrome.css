@@ -1716,8 +1716,10 @@
 .desktop-rail-items {
   align-items: center;
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
+  min-height: 0;
   width: 100%;
 }
 
@@ -1833,7 +1835,7 @@
   align-items: center;
   display: flex;
   justify-content: center;
-  margin-top: 6px;
+  margin: 0;
   width: 100%;
 }
 
@@ -1952,6 +1954,93 @@
     0 1px 1.5px rgba(0, 0, 0, 0.4);
 }
 
+.desktop-rail-label--multiline {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.desktop-rail-bottom-group {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  width: 100%;
+}
+
+.desktop-rail-divider {
+  background: rgba(0, 0, 0, 0.12);
+  border: none;
+  border-radius: 1px;
+  flex-shrink: 0;
+  height: 1px;
+  margin: 6px auto;
+  width: 36px;
+}
+
+.dark .desktop-rail-divider {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.high-contrast .desktop-rail-divider {
+  background: currentColor;
+}
+
+.desktop-rail-account-item .desktop-rail-icon-slot {
+  color: #475569;
+  transition: color 140ms ease, filter 140ms ease, transform 140ms ease;
+}
+
+.desktop-rail-account-item:hover .desktop-rail-icon-slot svg,
+.desktop-rail-account-item:focus-visible .desktop-rail-icon-slot svg {
+  transform: scale(1.06);
+}
+
+.dark .desktop-rail-account-item .desktop-rail-icon-slot {
+  color: #ffffff;
+}
+
+.dark .desktop-rail-account-item .desktop-rail-icon-slot svg {
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.4));
+  transition: filter 140ms ease, transform 140ms ease;
+}
+
+.dark .desktop-rail-account-item:hover .desktop-rail-icon-slot svg,
+.dark .desktop-rail-account-item:focus-visible .desktop-rail-icon-slot svg {
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.65));
+  transform: scale(1.06);
+}
+
+.desktop-rail-account-item[data-authenticated="true"] .desktop-rail-icon-slot {
+  color: #059669;
+}
+
+.desktop-rail-account-item[data-authenticated="true"] .desktop-rail-icon-slot svg {
+  filter: drop-shadow(0 0 3px rgba(5, 150, 105, 0.35));
+}
+
+.dark .desktop-rail-account-item[data-authenticated="true"] .desktop-rail-icon-slot {
+  color: #34d399;
+}
+
+.dark .desktop-rail-account-item[data-authenticated="true"] .desktop-rail-icon-slot svg {
+  filter: drop-shadow(0 0 3.5px rgba(52, 211, 153, 0.5));
+}
+
+.dark .desktop-rail-account-item[data-authenticated="true"]:hover .desktop-rail-icon-slot svg,
+.dark .desktop-rail-account-item[data-authenticated="true"]:focus-visible .desktop-rail-icon-slot svg {
+  filter: drop-shadow(0 0 5.5px rgba(52, 211, 153, 0.7));
+  transform: scale(1.06);
+}
+
+.high-contrast .desktop-rail-account-item[data-authenticated="true"] .desktop-rail-icon-slot {
+  color: #10b981;
+}
+
 /* --------------------------------------------------------------------------
    Desktop Content Sidebar
    -------------------------------------------------------------------------- */
@@ -2023,12 +2112,28 @@
   width: 100%;
 }
 
+.desktop-sidebar-brand-group {
+  align-items: flex-end;
+  display: flex;
+  gap: 7px;
+  user-select: none;
+}
+
+.desktop-sidebar-logo {
+  display: block;
+  flex-shrink: 0;
+  height: 28px;
+  width: 28px;
+}
+
 .desktop-sidebar-wordmark {
+  display: block;
   font-family: "Chillax", var(--font-wordmark), Arial, Helvetica, sans-serif;
-  font-size: 1.45rem;
+  font-size: 1.7rem;
   font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1;
+  transform: translateY(4px);
 }
 
 .desktop-sidebar-clock {
@@ -2426,7 +2531,8 @@
   width: 100%;
 }
 
-.desktop-status-section-header {
+.desktop-status-section-header,
+.desktop-more-section-header {
   align-items: center;
   display: flex;
   gap: 8px;
@@ -2438,6 +2544,7 @@
   background: var(--logo-blue, var(--color-logo-blue, #81c9ff));
   border-radius: 9999px;
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.65);
+  display: inline-block;
   flex-shrink: 0;
   height: 16px;
   width: 4px;
@@ -3540,7 +3647,9 @@
 .desktop-sidebar-container .station-detail-panel,
 .desktop-sidebar-container .station-search-panel,
 .desktop-sidebar-container .embedded-impact-panel,
-.desktop-sidebar-container .commute-panel {
+.desktop-sidebar-container .commute-panel,
+.desktop-sidebar-container .analytics-panel,
+.desktop-sidebar-container .desktop-source-status-panel {
   animation: none;
   background: transparent;
   border: none;
@@ -3566,13 +3675,29 @@
 .desktop-sidebar-content:has(.station-detail-panel),
 .desktop-sidebar-content:has(.station-search-panel),
 .desktop-sidebar-content:has(.embedded-impact-panel),
-.desktop-sidebar-content:has(.commute-panel) {
+.desktop-sidebar-content:has(.commute-panel),
+.desktop-sidebar-content:has(.analytics-panel),
+.desktop-sidebar-content:has(.desktop-source-status-panel) {
   overflow-y: hidden;
 }
 
 .desktop-sidebar-container .station-search-panel {
   display: flex;
   flex-direction: column;
+}
+
+.desktop-sidebar-container .analytics-panel .panel-header {
+  padding-bottom: 6px;
+}
+
+.desktop-sidebar-container .reliability-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 16px;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 4px;
 }
 
 /* Remove redundant close button from embedded desktop panels */
@@ -3655,9 +3780,46 @@
 }
 
 .desktop-source-status-panel {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
-  padding: 8px 16px 16px 16px;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
   width: 100%;
+}
+
+.desktop-source-status-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.desktop-source-status-content > div {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.desktop-source-status-content .source-diagnostics-subheader {
+  display: none;
+}
+
+.desktop-source-status-content .logs-dropdown-scroll {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
 }
 

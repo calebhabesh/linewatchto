@@ -1367,7 +1367,9 @@
   }
 }
 
+.station-search-return,
 .station-search-mobile-back {
+  position: relative;
   align-items: center;
   background: rgba(255, 255, 255, 0.95);
   border: none;
@@ -1389,12 +1391,89 @@
   width: 100%;
 }
 
+.dark .station-search-return,
 .dark .station-search-mobile-back {
   background: #161a23;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.3);
   border: none;
+}
+
+.station-search-back-arrow {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.station-search-back-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.station-search-return,
+.station-search-mobile-back { padding-inline: 38px; }
+.station-search-return:hover,
+.station-search-mobile-back:hover { filter: brightness(1.08); }
+.station-search-return:focus-visible,
+.station-search-mobile-back:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+.station-search-return-icon { color: #0284c7; }
+.dark .station-search-return-icon { color: #38bdf8; }
+.station-search-return-icon--status { color: #d97706; }
+.dark .station-search-return-icon--status { color: #f59e0b; }
+.station-search-return-icon--commutes { color: #059669; }
+.dark .station-search-return-icon--commutes { color: #34d399; }
+.station-search-return-icon--stations { color: #0284c7; }
+.dark .station-search-return-icon--stations { color: #38bdf8; }
+.station-search-return-icon--alert-history { color: #7c3aed; }
+.dark .station-search-return-icon--alert-history { color: #a78bfa; }
+.station-search-return-icon--source-status { color: #0284c7; }
+.dark .station-search-return-icon--source-status { color: #38bdf8; }
+.station-search-return-icon--more { color: currentColor; }
+
+@media (min-width: 768px) {
+  .station-search-return {
+    display: flex;
+    align-self: stretch;
+    flex-shrink: 0;
+    width: auto;
+    margin: 12px 16px 10.5px 16px;
+  }
+
+  .station-search-content { padding-top: 0; }
+  .station-search-amenity-toolbar { padding-top: 0; }
+
+  .station-search-panel[data-expanded="true"] .station-search-browse-container {
+    padding-inline: 0;
+  }
+
+  .station-search-panel[data-expanded="true"] .station-search-stations-column {
+    /* Put the scrollbar in the outer gutter, not inside the card width. */
+    scrollbar-gutter: stable;
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+    padding-left: 16px;
+    padding-right: 10px;
+  }
+
+  .station-search-panel[data-expanded="true"] .station-search-stations-column::-webkit-scrollbar { width: 6px; }
+
+  .station-search-stations-list { padding-right: 0; }
+
+  .station-search-mobile-back,
+  .station-search-stations-column-header { margin-right: 0; }
+
+  .station-search-mobile-back {
+    flex-shrink: 0;
+    margin-block: 12px;
+  }
+
+  .station-search-mobile-back + .station-search-stations-column-header {
+    margin-top: 0;
+  }
 }
 
 @media (max-width: 767px) {
