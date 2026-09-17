@@ -27,12 +27,12 @@ describe("desktop sidebar refinement - Checkpoint D: Map Chrome & Data Relocatio
     assert.match(shellSource, /onClick=\{handleToggleEstimatedTrains\}/);
     assert.match(shellSource, /estimatedTrainDisplayPending/);
 
-    // Operating banner for closing/closed states under status summary
-    assert.match(overviewSource, /desktop-status-operating-banner--closing/);
-    assert.match(overviewSource, /desktop-status-operating-banner--closed/);
+    // Operating banner retired from status overview in favor of shell desktopNotice
+    assert.match(shellSource, /desktopNotice/);
 
-    // Diagnostics body embedded in DesktopMorePanel
-    assert.match(moreSource, /<SourceDiagnosticsBody network=\{currentNetwork\}/);
+    // Diagnostics body relocated from More panel to standalone source-status view in shell
+    assert.doesNotMatch(moreSource, /<SourceDiagnosticsBody/);
+    assert.match(shellSource, /<SourceDiagnosticsBody network=\{selectedNetwork\}/);
     assert.match(logsDropdownSource, /export function SourceDiagnosticsBody/);
   });
 
@@ -46,12 +46,9 @@ describe("desktop sidebar refinement - Checkpoint D: Map Chrome & Data Relocatio
     // Center capsule removed from shell
     assert.doesNotMatch(shellSource, /<div className="desktop-status-capsule desktop-top-chrome"/);
 
-    // Conditional notices anchor retained for closing soon, closed peek, and stale/offline/estimated
-    assert.match(shellSource, /className="desktop-conditional-notices-anchor/);
-    assert.match(shellSource, /SubwayClosingSoonChip/);
-    assert.match(shellSource, /GoUpClosingSoonChip/);
-    assert.match(shellSource, /subway-closed-peek-chip/);
-    assert.match(shellSource, /desktop-map-conditional-pill--stale/);
+    // Consolidated desktop notice replaces old individual chips
+    assert.match(shellSource, /desktop-collapsed-map-notice-anchor/);
+    assert.match(shellSource, /desktopNotice/);
   });
 
   it("removes desktop top-right chrome while keeping theme toggle on map and mobile controls intact", () => {

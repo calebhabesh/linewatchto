@@ -81,7 +81,6 @@ export function DesktopStatusOverview({
   surfaceNoticeCount = 0,
   tripChangeCount = 0,
   surfaceNotices = null,
-  operatingState,
   onOpenCategory,
   onSelectImpact,
   onSelectSurfaceNotice,
@@ -194,27 +193,6 @@ export function DesktopStatusOverview({
           </div>
         )}
       </div>
-
-      {/* Operating status banner if closing soon or closed */}
-      {operatingState?.closingSoon && operatingState.minutesUntilClose !== null && operatingState.nextCloseLabel && (
-        <div className="desktop-status-operating-banner desktop-status-operating-banner--closing" role="status">
-          <Clock size={16} className="text-amber-500 shrink-0" aria-hidden="true" />
-          <div className="desktop-status-operating-text">
-            <strong>Closing Soon ({operatingState.minutesUntilClose}m)</strong>
-            <span>Service ends at {operatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "")}.</span>
-          </div>
-        </div>
-      )}
-
-      {operatingState?.status === "closed" && (
-        <div className="desktop-status-operating-banner desktop-status-operating-banner--closed" role="status">
-          <Clock size={16} className="text-purple-400 shrink-0" aria-hidden="true" />
-          <div className="desktop-status-operating-text">
-            <strong>{regional ? "GO & UP Rail Closed" : "Subway Closed"}</strong>
-            <span>Resumes {operatingState.nextResumeLabel ?? "in the morning"}.</span>
-          </div>
-        </div>
-      )}
 
       {/* Rail Incidents Overview (imminent within 24h) */}
       <section

@@ -2,6 +2,7 @@
 
 import { useRef, type RefObject } from "react";
 import {
+  Activity,
   AlertTriangle,
   History,
   MapPin,
@@ -9,13 +10,13 @@ import {
   Navigation,
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
 } from "lucide-react";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
 import { NetworkSelector } from "./NetworkSelector";
 import type { NetworkId } from "../app/regional-data";
+import type { DesktopRailDestination } from "../app/desktop-sidebar-state";
 
-export type DesktopRailDestination = "status" | "search" | "stations" | "commutes" | "alert-history" | "more";
+export type { DesktopRailDestination };
 
 export type DesktopNavRailProps = {
   activeDestination: DesktopRailDestination;
@@ -38,12 +39,14 @@ type RailItemDef = {
 
 const RAIL_ITEMS: readonly RailItemDef[] = [
   { key: "status", label: "Status", Icon: AlertTriangle },
-  { key: "search", label: "Search", Icon: Search },
   { key: "stations", label: "My Stations", Icon: MapPin },
   { key: "commutes", label: "My Commutes", Icon: Navigation },
   { key: "alert-history", label: "Alert History", Icon: History },
   { key: "more", label: "More", Icon: Menu },
 ];
+
+const TOTAL_RAIL_SLOTS = RAIL_ITEMS.length + 1; // includes source-status item
+const SOURCE_STATUS_INDEX = RAIL_ITEMS.length;
 
 export function DesktopNavRail({
   activeDestination,
@@ -54,10 +57,12 @@ export function DesktopNavRail({
   commuteAffectedCount = 0,
   savedStationsAffectedCount = 0,
   toggleButtonRef,
-  selectedNetwork,
+  selectedNetwork = "ttc",
   onNetworkChange,
 }: DesktopNavRailProps) {
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const sourceStatusLabel =
+    selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status";
 
   const handleToggleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown") {
@@ -69,7 +74,7 @@ export function DesktopNavRail({
   const handleItemKeyDown = (index: number, event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      const nextIndex = (index + 1) % RAIL_ITEMS.length;
+      const nextIndex = (index + 1) % TOTAL_RAIL_SLOTS;
       itemRefs.current[nextIndex]?.focus();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -77,7 +82,7 @@ export function DesktopNavRail({
         if (toggleButtonRef?.current) {
           toggleButtonRef.current.focus();
         } else {
-          itemRefs.current[RAIL_ITEMS.length - 1]?.focus();
+          itemRefs.current[TOTAL_RAIL_SLOTS - 1]?.focus();
         }
       } else {
         itemRefs.current[index - 1]?.focus();
@@ -87,7 +92,7 @@ export function DesktopNavRail({
       itemRefs.current[0]?.focus();
     } else if (event.key === "End") {
       event.preventDefault();
-      itemRefs.current[RAIL_ITEMS.length - 1]?.focus();
+      itemRefs.current[TOTAL_RAIL_SLOTS - 1]?.focus();
     }
   };
 
@@ -165,15 +170,37 @@ export function DesktopNavRail({
         })}
       </nav>
 
-      {selectedNetwork && onNetworkChange ? (
-        <div className="desktop-rail-network-slot">
-          <NetworkSelector
-            network={selectedNetwork}
-            onChange={onNetworkChange}
-            compactVertical
-          />
-        </div>
-      ) : null}
+      <div className="desktop-rail-bottom-cluster">
+        {selectedNetwork && onNetworkChange ? (
+          <div className="desktop-rail-network-slot">
+            <NetworkSelector
+              network={selectedNetwork}
+              onChange={onNetworkChange}
+              compactVertical
+            />
+          </div>
+        ) : null}
+
+        <button
+          ref={(element) => {
+            itemRefs.current[SOURCE_STATUS_INDEX] = element;
+          }}
+          type="button"
+          className="desktop-rail-item desktop-rail-source-item"
+          data-active={activeDestination === "source-status" ? "true" : "false"}
+          data-dest="source-status"
+          aria-current={activeDestination === "source-status" ? "page" : undefined}
+          aria-label={sourceStatusLabel}
+          title={sourceStatusLabel}
+          onClick={() => onSelectDestination("source-status")}
+          onKeyDown={(e) => handleItemKeyDown(SOURCE_STATUS_INDEX, e)}
+        >
+          <span className="desktop-rail-icon-slot">
+            <Activity size={21} aria-hidden="true" />
+          </span>
+          <span className="desktop-rail-label">Sources</span>
+        </button>
+      </div>
     </aside>
   );
 }

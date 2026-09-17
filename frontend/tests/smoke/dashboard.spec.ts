@@ -331,11 +331,13 @@ test("introduces first-time riders before showing the unofficial-project notice"
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 });
 
-test("shows a subway closing soon countdown before overnight closure", async ({ page, request }) => {
+test("shows a subway closing soon countdown before overnight closure", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/?previewTime=2026-06-04T00:45:00-04:00");
 
-  const closingSoon = page.getByRole("status").filter({ hasText: "Subway Closing Soon" });
+  const closingSoon = isMobile
+    ? page.locator(".mobile-service-sheet-notice-row--closing-soon")
+    : page.getByRole("status").filter({ hasText: "Subway Closing Soon" });
   await expect(closingSoon).toBeVisible();
   await expect(closingSoon).toContainText("Closes in 1 hr 15 min");
   await expect(closingSoon).toContainText(/at 2:00 am/i);
@@ -399,25 +401,25 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   if (isMobile) {
     await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
+    await expect(page.locator(".mobile-service-sheet-notice-row--closed .mobile-service-sheet-notice-title")).toHaveText(/Subway Closed/i);
+    await expect(page.locator(".mobile-service-sheet-notice-row--closed .mobile-service-sheet-notice-details")).toHaveText(/Resumes today at 6:00 AM/i);
   } else {
-    await expect(page.getByRole("button", { name: "Toggle menu" })).toBeVisible();
-  }
-  await expect(page.locator(".subway-closed-peek-title")).toHaveText(/Subway Closed/i);
-  await expect(page.locator(".subway-closed-peek-subtitle")).toHaveText(/Resumes Today at 6:00 AM/i);
+    await expect(page.getByRole("navigation", { name: "Desktop primary navigation" })).toBeVisible();
+    await expect(page.locator(".mobile-service-sheet-notice-row--closed .mobile-service-sheet-notice-title")).toHaveText(/Subway Closed/i);
+    await expect(page.locator(".mobile-service-sheet-notice-row--closed .mobile-service-sheet-notice-details")).toHaveText(/Resumes today at 6:00 am/i);
 
-  if (!isMobile) {
-    const searchBox = await page.locator(".header-search-bar").boundingBox();
-    const closedNoticeBox = await page.locator(".subway-closed-peek-chip").boundingBox();
+    const searchBox = await page.locator(".desktop-sidebar-search-field").boundingBox();
+    const closedNoticeBox = await page.locator(".mobile-service-sheet-notice-row--closed").boundingBox();
     expect(searchBox).not.toBeNull();
     expect(closedNoticeBox).not.toBeNull();
-    expect(closedNoticeBox!.x).toBeGreaterThanOrEqual(searchBox!.x + searchBox!.width);
+    expect(closedNoticeBox!.y).toBeGreaterThanOrEqual(searchBox!.y + searchBox!.height);
 
     const networkSelector = page.getByRole("group", { name: "Select transit network" });
     await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
-    await expect(page.locator(".subway-closed-peek-chip")).toHaveCount(0);
+    await expect(page.getByText("Subway Closed")).toHaveCount(0);
     await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
-    await expect(page.locator(".subway-closed-peek-chip")).toBeVisible();
+    await expect(page.locator(".mobile-service-sheet-notice-row--closed")).toBeVisible();
   }
 
   await page.getByRole("button", { name: "Stub Station station details" }).press("Enter");
@@ -434,7 +436,11 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await surfaceSection.getByText("Surface Connections").click();
   await expect(surfaceSection.getByText("Arrivals Not Available")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Closed Screen" }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "Close station details" }).click();
+  }
+
+  await (isMobile ? page.locator(".mobile-service-sheet-notice-row--closed") : page.getByRole("button", { name: "Closed Screen" })).click();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
 });
 

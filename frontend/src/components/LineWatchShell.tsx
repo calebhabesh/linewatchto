@@ -53,13 +53,12 @@ import { DesktopMorePanel } from "./DesktopMorePanel";
 import {
   computeDesktopLayoutMetrics,
   desktopRailDestinationForView,
-  resolveDesktopDestinationProfile,
   type DesktopRailDestination,
 } from "../app/desktop-sidebar-state";
 import { PwaInstallNudge } from "./PwaInstallNudge";
 import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
 import { TransitLineBadge } from "./TransitLineBadge";
-import { LogsDropdown } from "./LogsDropdown";
+import { LogsDropdown, SourceDiagnosticsBody } from "./LogsDropdown";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
@@ -101,16 +100,14 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Accessibility, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck } from "lucide-react";
+import { Accessibility, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck, Clock3 } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
-import { GoUpClosingSoonChip } from "./GoUpClosingSoonChip";
 import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
 import { OpeningDisclaimer } from "./OpeningDisclaimer";
 import { formatResumeDuration } from "../app/subway-hours";
-import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import {
   MOBILE_SHEET_DEFAULT_RATIO,
@@ -180,7 +177,7 @@ import {
 import { popViewHistory, pushViewHistory, resolveInAppBackAction } from "../app/view-navigation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
+type ActiveView = "map" | "menu" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes" | "source-status";
 type ImpactCategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "verify-email" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
@@ -1143,10 +1140,6 @@ export function LineWatchShell({
   const [guideOpen, setGuideOpen] = useState(false);
   const [disclaimerVisible, setDisclaimerVisible] = useState(true);
 
-  const selectedNetworkIsClosed = selectedNetwork === "ttc"
-    ? subwayOperatingState.status === "closed"
-    : regionalRailOperatingState.status === "closed";
-
   const showTtcClosedScreen = selectedNetwork === "ttc" && subwayOperatingState.status === "closed"
     && !closedScreenAcknowledged
     && !disclaimerVisible;
@@ -1198,29 +1191,10 @@ export function LineWatchShell({
   const stationSummaries = stationCatalogs[selectedNetwork];
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
 
-  const desktopProfile = useMemo(() => {
-    return resolveDesktopDestinationProfile({
-      activeView,
-      selectedStationId,
-      commutesTab: activeView === "commutes" ? commutesActiveTab : null,
-    });
-  }, [activeView, selectedStationId, commutesActiveTab]);
-
   const desktopMetrics = useMemo(() => {
-    return computeDesktopLayoutMetrics({ windowWidth, isMobile, profile: desktopProfile });
-  }, [windowWidth, isMobile, desktopProfile]);
-
-  const isTopLevelDesktopView = useMemo(() => {
-    return (
-      !selectedStationId &&
-      (activeView === "status" ||
-        activeView === "map" ||
-        activeView === "search" ||
-        activeView === "more" ||
-        activeView === "my-stations" ||
-        (activeView === "commutes" && commutesActiveTab !== "create"))
-    );
-  }, [selectedStationId, activeView, commutesActiveTab]);
+    return computeDesktopLayoutMetrics({ windowWidth, isMobile });
+  }, [windowWidth, isMobile]);
+  const [searchExpandedLineId, setSearchExpandedLineId] = useState<string | null>(null);
   const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
     if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
     return readStoredSheetHeightRatio(window.localStorage);
@@ -2622,6 +2596,27 @@ export function LineWatchShell({
   const searchOriginRef = useRef<ActiveView>("status");
   const searchSessionActiveRef = useRef<boolean>(false);
   const suppressSearchReopenRef = useRef<boolean>(false);
+
+  interface SearchReturnContext {
+    activeView: ActiveView;
+    selectedStationId: string | null;
+    selectedNetwork: NetworkId;
+    commutesActiveTab?: "create" | "saved";
+    focusedElement?: HTMLElement | null;
+  }
+  const searchReturnContextRef = useRef<SearchReturnContext | null>(null);
+
+  const captureSearchReturnContext = useCallback(() => {
+    if (!searchReturnContextRef.current) {
+      searchReturnContextRef.current = {
+        activeView,
+        selectedStationId,
+        selectedNetwork,
+        commutesActiveTab: activeView === "commutes" ? commutesActiveTab : undefined,
+        focusedElement: (typeof document !== "undefined" ? (document.activeElement as HTMLElement) : null),
+      };
+    }
+  }, [activeView, commutesActiveTab, selectedNetwork, selectedStationId]);
   const headerSearchBarRef = useRef<HTMLDivElement>(null);
   const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
@@ -3025,14 +3020,46 @@ export function LineWatchShell({
     desktopSearchInputRef.current?.blur();
     suppressSearchReopenRef.current = true;
     searchSessionActiveRef.current = false;
-    const destination = !isMobile ? (searchOriginRef.current || "status") : "map";
+
+    const returnCtx = searchReturnContextRef.current;
+    searchReturnContextRef.current = null;
+
+    const destination = !isMobile ? (returnCtx?.activeView || searchOriginRef.current || "status") : "map";
+    let stationToRestore = (returnCtx && returnCtx.selectedNetwork === selectedNetwork)
+      ? returnCtx.selectedStationId
+      : null;
+
+    if (destination === "commutes" && returnCtx?.commutesActiveTab) {
+      setCommutesActiveTab(returnCtx.commutesActiveTab);
+    }
+    if (destination === "commutes" && !accountState.authenticated && accountState.source !== "unavailable") {
+      setCommutesActiveTab("saved");
+    }
+    if (stationToRestore) {
+      const currentCatalog = stationCatalogs[selectedNetwork] || [];
+      if (!currentCatalog.some((s) => s.id === stationToRestore)) {
+        stationToRestore = null;
+      }
+    }
+
+    const finishClose = () => {
+      setIsClosingSearch(false);
+      setSearchExpandedLineId(null);
+      if (stationToRestore) {
+        setSelectedStationId(stationToRestore);
+      }
+      navigateRoot(destination);
+      if (returnCtx?.focusedElement && typeof document !== "undefined" && document.contains(returnCtx.focusedElement)) {
+        returnCtx.focusedElement.focus();
+      }
+    };
+
     if (reducedMotion) {
       if (searchClosingTimeoutRef.current) {
         window.clearTimeout(searchClosingTimeoutRef.current);
         searchClosingTimeoutRef.current = null;
       }
-      setIsClosingSearch(false);
-      navigateRoot(destination);
+      finishClose();
       return;
     }
     setIsClosingSearch(true);
@@ -3040,11 +3067,10 @@ export function LineWatchShell({
       window.clearTimeout(searchClosingTimeoutRef.current);
     }
     searchClosingTimeoutRef.current = window.setTimeout(() => {
-      setIsClosingSearch(false);
-      navigateRoot(destination);
+      finishClose();
       searchClosingTimeoutRef.current = null;
     }, isMobile ? 220 : 200);
-  }, [isClosingSearch, isMobile, navigateRoot, reducedMotion]);
+  }, [accountState.authenticated, accountState.source, isClosingSearch, isMobile, navigateRoot, reducedMotion, selectedNetwork, stationCatalogs]);
 
   // Desktop keyboard shortcuts (Escape key navigation)
   useEffect(() => {
@@ -3060,6 +3086,7 @@ export function LineWatchShell({
 
       // If search query is active or search input is focused / activeView === 'search'
       if (activeView === "search" || document.activeElement === desktopSearchInputRef.current) {
+        if (event.defaultPrevented) return;
         event.preventDefault();
         desktopSearchInputRef.current?.blur();
         suppressSearchReopenRef.current = true;
@@ -3118,23 +3145,23 @@ export function LineWatchShell({
   ]);
 
   const handleOpenSearch = useCallback(() => {
-    setSelection(null);
-    setSelectedStationId(null);
-    setCommutePathPreview(null);
     if (!isMobile) {
+      captureSearchReturnContext();
       if (desktopSidebarCollapsed) {
         setDesktopSidebarCollapsed(false);
       }
-      if (activeView !== "search" && !searchSessionActiveRef.current) {
-        searchOriginRef.current = activeView;
-        searchSessionActiveRef.current = true;
-      }
+      setSelectedStationId(null);
+      setCommutePathPreview(null);
+      setSelection(null);
       window.setTimeout(() => desktopSearchInputRef.current?.focus({ preventScroll: true }), 0);
     } else {
+      setSelection(null);
+      setSelectedStationId(null);
+      setCommutePathPreview(null);
       window.setTimeout(() => stationSearchInputRef.current?.focus({ preventScroll: true }), 0);
     }
     navigateRoot("search");
-  }, [activeView, desktopSidebarCollapsed, isMobile, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection]);
+  }, [captureSearchReturnContext, desktopSidebarCollapsed, isMobile, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection]);
 
   // Dismiss search when clicking outside the header bar and the search panel
   useEffect(() => {
@@ -3934,6 +3961,20 @@ export function LineWatchShell({
             network={selectedNetwork}
           />
         );
+      case "source-status":
+        return (
+          <div className="panel desktop-source-status-panel" aria-label={selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}>
+            <div className="desktop-more-section-header mb-3">
+              <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
+              <h2 className="desktop-more-section-title text-[18px]">
+                {selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}
+              </h2>
+            </div>
+            <div className="desktop-source-status-content">
+              <SourceDiagnosticsBody network={selectedNetwork} />
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -3965,14 +4006,6 @@ export function LineWatchShell({
         navigateRoot("status");
         announceDesktop("System status overview");
         return;
-      case "search":
-        if (activeView !== "search" && !searchSessionActiveRef.current) {
-          searchOriginRef.current = activeView;
-          searchSessionActiveRef.current = true;
-        }
-        handleOpenSearch();
-        announceDesktop("Search stations, lines, and alerts");
-        return;
       case "stations":
         navigateRoot("my-stations");
         announceDesktop("My Stations");
@@ -3989,8 +4022,12 @@ export function LineWatchShell({
         navigateRoot("more");
         announceDesktop("More options and settings");
         return;
+      case "source-status":
+        navigateRoot("source-status");
+        announceDesktop("Source Status");
+        return;
     }
-  }, [activeView, desktopSidebarCollapsed, handleOpenSearch, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop]);
+  }, [desktopSidebarCollapsed, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop]);
 
   const renderDesktopSidebarContent = () => {
     const renderDesktopActivePanel = () => {
@@ -4060,6 +4097,8 @@ export function LineWatchShell({
             onDismiss={handleCloseSearch}
             query={stationSearchQuery}
             onQueryChange={setStationSearchQuery}
+            expandedLineId={searchExpandedLineId}
+            onExpandedLineIdChange={setSearchExpandedLineId}
             inputRef={desktopSearchInputRef}
             keyDownHandlerRef={stationKeyDownHandlerRef}
             isMobile={false}
@@ -4134,6 +4173,22 @@ export function LineWatchShell({
             }}
             onSelectSurfaceNotice={handleSearchOpenSurfaceNotice}
           />
+        );
+      }
+
+      if (activeView === "source-status") {
+        return (
+          <div className="panel desktop-source-status-panel" aria-label={selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}>
+            <div className="desktop-more-section-header mb-3">
+              <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
+              <h2 className="desktop-more-section-title text-[18px]">
+                {selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status"}
+              </h2>
+            </div>
+            <div className="desktop-source-status-content">
+              <SourceDiagnosticsBody network={selectedNetwork} />
+            </div>
+          </div>
         );
       }
 
@@ -4375,6 +4430,214 @@ export function LineWatchShell({
     }
     return null;
   }, [dashboardRequestState, displayData.availability, displayData.snapshot, snapshotClock, connectionOffline]);
+
+  type DesktopNotice =
+    | {
+        kind: "connection";
+        message: string;
+        snapshot?: boolean;
+        showSpinner?: boolean;
+      }
+    | {
+        kind: "closing-soon" | "closed";
+        title: string;
+        details?: string;
+        action?: () => void;
+      };
+
+  const desktopNotice: DesktopNotice | null = useMemo(() => {
+    if (showClosedScreen) {
+      return null;
+    }
+
+    // Priority 1: Connection notice
+    if (displayData.snapshot) {
+      return {
+        kind: "connection",
+        message: snapshotNotice(displayData.snapshot, snapshotClock),
+        snapshot: true,
+        showSpinner: !connectionOffline,
+      };
+    }
+    if (dashboardRequestState === "reconnecting") {
+      return {
+        kind: "connection",
+        message: "Connection issue — Showing cached snapshot",
+        showSpinner: true,
+      };
+    }
+    if (displayData.availability === "degraded") {
+      return {
+        kind: "connection",
+        message: "Source refresh issue — Showing last successful update",
+        showSpinner: false,
+      };
+    }
+    if (displayData.availability === "unavailable") {
+      return {
+        kind: "connection",
+        message: "Service unavailable — Showing fallback data",
+        showSpinner: false,
+      };
+    }
+
+    // Priority 2: Operating notice
+    if (selectedNetwork === "ttc") {
+      if (subwayOperatingState.status === "closed") {
+        return {
+          kind: "closed",
+          title: "Subway Closed",
+          details: `Resumes ${(subwayOperatingState.nextResumeLabel ?? "")
+            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
+            .replace(/\.$/, "")}.`,
+          action: handleOpenClosedScreen,
+        };
+      }
+    }
+    if (
+      selectedNetwork === "ttc" && subwayOperatingState.closingSoon &&
+      subwayOperatingState.minutesUntilClose !== null &&
+      subwayOperatingState.nextCloseLabel
+    ) {
+      const durationText = formatResumeDuration(subwayOperatingState.minutesUntilClose);
+      const timeText = subwayOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+      return {
+        kind: "closing-soon",
+        title: "Subway Closing Soon",
+        details: `Closes in ${durationText} · ${timeText}`,
+      };
+    }
+    if (selectedNetwork === "regional") {
+      if (regionalRailOperatingState.status === "closed") {
+        return {
+          kind: "closed",
+          title: "GO & UP Rail Closed",
+          details: `Trains return ${(regionalRailOperatingState.nextResumeLabel ?? "")
+            .replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
+            .replace(/\.$/, "")}.`,
+          action: handleOpenClosedScreen,
+        };
+      }
+    }
+    if (
+      selectedNetwork === "regional" && regionalRailOperatingState.closingSoon &&
+      regionalRailOperatingState.minutesUntilClose !== null &&
+      regionalRailOperatingState.nextCloseLabel
+    ) {
+      const durationText = formatResumeDuration(regionalRailOperatingState.minutesUntilClose);
+      const timeText = regionalRailOperatingState.nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+      const formattedTime = timeText.startsWith("at ") ? timeText : `at ${timeText}`;
+      return {
+        kind: "closing-soon",
+        title: "GO & UP Closing Soon",
+        details: `Broad close ${formattedTime} (${durationText})`,
+      };
+    }
+
+    return null;
+  }, [
+    showClosedScreen,
+    displayData.snapshot,
+    displayData.availability,
+    snapshotClock,
+    connectionOffline,
+    dashboardRequestState,
+    selectedNetwork,
+    subwayOperatingState.status,
+    subwayOperatingState.closingSoon,
+    subwayOperatingState.minutesUntilClose,
+    subwayOperatingState.nextCloseLabel,
+    subwayOperatingState.nextResumeLabel,
+    regionalRailOperatingState.status,
+    regionalRailOperatingState.closingSoon,
+    regionalRailOperatingState.minutesUntilClose,
+    regionalRailOperatingState.nextCloseLabel,
+    regionalRailOperatingState.nextResumeLabel,
+    handleOpenClosedScreen,
+  ]);
+
+  const renderDesktopNoticeBanner = (notice: DesktopNotice) => {
+    if (notice.kind === "connection") {
+      return (
+        <div
+          className="mobile-service-sheet-notice-row mobile-service-sheet-notice-row--connection"
+          data-snapshot={notice.snapshot ? "true" : undefined}
+          role="status"
+          aria-live="polite"
+          onClick={(e) => e.stopPropagation()}
+          aria-label={notice.message}
+        >
+          <AlertTriangle size={13} className="dashboard-availability-notice-icon shrink-0" aria-hidden="true" />
+          <span className="mobile-service-sheet-notice-message">{notice.message}</span>
+          {notice.showSpinner !== false && (
+            <Loader2 size={12} className="dashboard-availability-notice-spinner shrink-0" aria-hidden="true" />
+          )}
+        </div>
+      );
+    }
+
+    if (notice.action) {
+      return (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${notice.kind}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            notice.action?.();
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <span className="mobile-service-sheet-notice-left">
+            <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
+              {notice.kind === "closing-soon" ? (
+                <Clock3 size={13} strokeWidth={2.5} />
+              ) : (
+                <Moon size={13} strokeWidth={1} fill="currentColor" />
+              )}
+            </span>
+            <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
+          </span>
+          {notice.details && (
+            <span className="mobile-service-sheet-notice-right">
+              <span className="mobile-service-sheet-notice-details">{notice.details}</span>
+              <ChevronRight size={12} strokeWidth={2.5} className="mobile-service-sheet-notice-chevron" aria-hidden="true" />
+            </span>
+          )}
+          <button
+            type="button"
+            className="mobile-service-sheet-notice-action"
+            onClick={(e) => {
+              e.stopPropagation();
+              notice.action?.();
+            }}
+          >
+            Closed Screen
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${notice.kind}`}
+      >
+        <span className="mobile-service-sheet-notice-left">
+          <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
+            <Clock3 size={13} strokeWidth={2.5} />
+          </span>
+          <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
+        </span>
+        {notice.details && (
+          <span className="mobile-service-sheet-notice-right">
+            <span className="mobile-service-sheet-notice-details">{notice.details}</span>
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const mobileMapPerformanceMode = mobilePerformanceMode || rotatedMapMode;
 
@@ -5371,68 +5634,12 @@ export function LineWatchShell({
         </div>
         )}
 
-        {/* Desktop Conditional Notices (Top Center) */}
-        {!isMobile && (
-          <div className="desktop-conditional-notices-anchor desktop-status-capsule-anchor hidden sm:flex absolute top-5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto items-center gap-2">
-            {selectedNetwork === "ttc" && subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel && !isMobile ? (
-              <SubwayClosingSoonChip
-                minutesUntilClose={subwayOperatingState.minutesUntilClose}
-                nextCloseLabel={subwayOperatingState.nextCloseLabel}
-              />
-            ) : null}
-
-            {selectedNetwork === "regional" && regionalRailOperatingState.closingSoon && regionalRailOperatingState.minutesUntilClose !== null && regionalRailOperatingState.nextCloseLabel && !isMobile ? (
-              <GoUpClosingSoonChip
-                minutesUntilClose={regionalRailOperatingState.minutesUntilClose}
-                nextCloseLabel={regionalRailOperatingState.nextCloseLabel}
-              />
-            ) : null}
-
-            {selectedNetworkIsClosed && closedMapPeek ? (
-              <div
-                className={`${
-                  selectedNetwork === "regional" ? "go-up-closed-peek-chip" : "subway-closed-peek-chip"
-                } ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
-                role="status"
-                aria-live="polite"
-              >
-                <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={1} fill="currentColor" aria-hidden="true" />
-                <div className="subway-closed-peek-text">
-                  <strong className="subway-closed-peek-title">
-                    {selectedNetwork === "ttc" ? "Subway Closed" : "GO & UP Rail Closed"}
-                  </strong>
-                  <span className="subway-closed-peek-subtitle">
-                    {selectedNetwork === "ttc" ? "Resumes" : "Trains return"}{" "}
-                    {(selectedNetwork === "ttc"
-                      ? subwayOperatingState.nextResumeLabel
-                      : regionalRailOperatingState.nextResumeLabel)
-                      ?.replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
-                      .replace(/\.$/, "")}.
-                  </span>
-                </div>
-                <button type="button" onClick={handleOpenClosedScreen}>
-                  Closed Screen
-                </button>
-              </div>
-            ) : null}
-
-            {/* Compact conditional map indication when collapsed or non-status view */}
-            {(desktopSidebarCollapsed || activeView !== "status") && !selectedNetworkIsClosed && !(selectedNetwork === "ttc" ? subwayOperatingState.closingSoon : regionalRailOperatingState.closingSoon) && (
-              isConnectionIssue || !isLive ? (
-                <div className="desktop-map-conditional-pill desktop-map-conditional-pill--stale" role="status">
-                  <AlertTriangle size={13} className="shrink-0 text-amber-500" aria-hidden="true" />
-                  <span>
-                    {displayData.snapshot
-                      ? (displayData.snapshot.savedAt ? "Cached Snapshot" : "Status Unknown")
-                      : dashboardRequestState === "reconnecting"
-                      ? "Reconnecting"
-                      : "Data Stale"}
-                  </span>
-                </div>
-              ) : null
-            )}
+        {/* Desktop Collapsed Map Notice (Top Center) */}
+        {!isMobile && desktopSidebarCollapsed && desktopNotice ? (
+          <div className="desktop-collapsed-map-notice-anchor">
+            {renderDesktopNoticeBanner(desktopNotice)}
           </div>
-        )}
+        ) : null}
 
         <div className="map-utility-cluster ml-auto pointer-events-auto flex items-center gap-2" data-map-chooser-keepout>
           {isMobile && <LogsDropdown network={selectedNetwork} />}
@@ -5567,7 +5774,7 @@ export function LineWatchShell({
           />
           <aside
             id="desktop-sidebar-container"
-            className={`desktop-sidebar-container desktop-sidebar-container--${desktopProfile} ${
+            className={`desktop-sidebar-container ${
               desktopMetrics.mode === "docked"
                 ? "desktop-sidebar-container--docked"
                 : "desktop-sidebar-container--overlay"
@@ -5576,7 +5783,6 @@ export function LineWatchShell({
               width: `${desktopMetrics.sidebarWidth}px`,
               maxWidth: `${desktopMetrics.sidebarWidth}px`,
             }}
-            data-profile={desktopProfile}
             aria-hidden={desktopSidebarCollapsed ? "true" : undefined}
             aria-label="Sidebar navigation and details"
           >
@@ -5599,70 +5805,69 @@ export function LineWatchShell({
                   </div>
                 )}
               </div>
-              {isTopLevelDesktopView && (
-                <div className="desktop-sidebar-search-row">
-                  <div
-                    className="desktop-sidebar-search-input"
-                    data-active={activeView === "search" ? "true" : undefined}
-                  >
-                    <Search
-                      size={20}
-                      className={`shrink-0 transition-colors duration-200 ${
-                        activeView === "search"
-                          ? "text-blue-500 dark:text-blue-400"
-                          : "text-slate-400 dark:text-slate-400"
-                      }`}
-                      aria-hidden="true"
-                    />
-                    <input
-                      ref={desktopSearchInputRef}
-                      type="search"
-                      value={stationSearchQuery}
-                      onChange={(e) => {
-                        setStationSearchQuery(e.target.value);
+              <div className="desktop-sidebar-search-row">
+                <div
+                  className="desktop-sidebar-search-input"
+                  data-active={activeView === "search" ? "true" : undefined}
+                >
+                  <Search
+                    size={20}
+                    className={`shrink-0 transition-colors duration-200 ${
+                      activeView === "search"
+                        ? "text-blue-500 dark:text-blue-400"
+                        : "text-slate-400 dark:text-slate-400"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <input
+                    ref={desktopSearchInputRef}
+                    type="search"
+                    value={stationSearchQuery}
+                    onChange={(e) => {
+                      setStationSearchQuery(e.target.value);
+                      if (activeView !== "search") {
+                        captureSearchReturnContext();
+                        setSelectedStationId(null);
+                        setActiveView("search");
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                         if (activeView !== "search") {
-                          if (!searchSessionActiveRef.current) {
-                            searchOriginRef.current = activeView;
-                            searchSessionActiveRef.current = true;
-                          }
+                          e.preventDefault();
+                          captureSearchReturnContext();
+                          setSelectedStationId(null);
                           setActiveView("search");
-                        }
-                      }}
-                      onFocus={() => {
-                        if (suppressSearchReopenRef.current) {
-                          suppressSearchReopenRef.current = false;
                           return;
                         }
-                        if (activeView !== "search") {
-                          if (!searchSessionActiveRef.current) {
-                            searchOriginRef.current = activeView;
-                            searchSessionActiveRef.current = true;
-                          }
-                          setActiveView("search");
-                        }
+                      }
+                      stationKeyDownHandlerRef.current?.(e);
+                    }}
+                    placeholder="Search Stations and Alerts..."
+                    aria-label="Station Search"
+                    aria-controls="station-search-panel"
+                    className="desktop-sidebar-search-field"
+                  />
+                  {stationSearchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStationSearchQuery("");
+                        desktopSearchInputRef.current?.focus();
                       }}
-                      onKeyDown={(e) => stationKeyDownHandlerRef.current?.(e)}
-                      placeholder="Search Stations and Alerts..."
-                      aria-label="Station Search"
-                      aria-controls="station-search-panel"
-                      className="desktop-sidebar-search-field"
-                    />
-                    {stationSearchQuery ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStationSearchQuery("");
-                          desktopSearchInputRef.current?.focus();
-                        }}
-                        className="desktop-sidebar-search-clear"
-                        aria-label="Clear search"
-                      >
-                        <X size={14} aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </div>
+                      className="desktop-sidebar-search-clear"
+                      aria-label="Clear search"
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  ) : null}
                 </div>
-              )}
+              </div>
+              {!desktopSidebarCollapsed && desktopNotice ? (
+                <div className="desktop-sidebar-notice-wrapper">
+                  {renderDesktopNoticeBanner(desktopNotice)}
+                </div>
+              ) : null}
             </header>
             <div className="desktop-sidebar-content">
               {renderDesktopSidebarContent()}
@@ -6042,7 +6247,7 @@ export function LineWatchShell({
         </div>
       )}
 
-      {showMobileStatusPeek ? (
+      {isMobile && showMobileStatusPeek ? (
         <MobileStatusPeek
           fresh={isLive}
           isConnectionIssue={isConnectionIssue}
@@ -6549,7 +6754,7 @@ export function LineWatchShell({
           </section>
         </div>
       ) : null}
-      {(!showClosedScreen || displayData.snapshot) && dashboardAvailabilityNotice ? (
+      {isMobile && (!showClosedScreen || displayData.snapshot) && dashboardAvailabilityNotice ? (
         <div
           className={`dashboard-availability-notice ${isMobile && (!displayData.snapshot || showMobileStatusPeek && !showClosedScreen) ? "dashboard-availability-notice--mobile-hidden" : ""}`}
           data-state={dashboardRequestState === "reconnecting" ? "reconnecting" : displayData.availability}

@@ -1978,18 +1978,6 @@
   border-right: 1px solid currentColor;
 }
 
-.desktop-sidebar-container--compact {
-  --desktop-sidebar-profile-width: 380px;
-}
-
-.desktop-sidebar-container--medium {
-  --desktop-sidebar-profile-width: 560px;
-}
-
-.desktop-sidebar-container--wide {
-  --desktop-sidebar-profile-width: 680px;
-}
-
 .desktop-sidebar-container--docked {
   flex-shrink: 0;
 }
@@ -2498,8 +2486,8 @@
 
 .desktop-status-info-btn {
   align-items: center;
-  background: var(--card-bg, rgba(0, 0, 0, 0.025));
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: transparent;
+  border: none;
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
@@ -2516,8 +2504,8 @@
 }
 
 .dark .desktop-status-info-btn {
-  background: rgba(255, 255, 255, 0.035);
-  border-color: rgba(255, 255, 255, 0.05);
+  background: transparent;
+  border: none;
 }
 
 .dark .desktop-status-info-btn:hover {
@@ -3183,7 +3171,7 @@
 }
 
 .desktop-more-card {
-  background: var(--surface-subtle, rgba(0, 0, 0, 0.025));
+  background: transparent;
   border: none;
   border-radius: 8px;
   display: flex;
@@ -3192,7 +3180,7 @@
 }
 
 .dark .desktop-more-card {
-  background: rgba(255, 255, 255, 0.035);
+  background: transparent;
 }
 
 .high-contrast .desktop-more-card {
@@ -3551,7 +3539,8 @@
 .desktop-sidebar-container .panel:not(.network-selector),
 .desktop-sidebar-container .station-detail-panel,
 .desktop-sidebar-container .station-search-panel,
-.desktop-sidebar-container .embedded-impact-panel {
+.desktop-sidebar-container .embedded-impact-panel,
+.desktop-sidebar-container .commute-panel {
   animation: none;
   background: transparent;
   border: none;
@@ -3576,7 +3565,8 @@
 .desktop-sidebar-content:has(.panel),
 .desktop-sidebar-content:has(.station-detail-panel),
 .desktop-sidebar-content:has(.station-search-panel),
-.desktop-sidebar-content:has(.embedded-impact-panel) {
+.desktop-sidebar-content:has(.embedded-impact-panel),
+.desktop-sidebar-content:has(.commute-panel) {
   overflow-y: hidden;
 }
 
@@ -3663,3 +3653,11 @@
 .high-contrast .desktop-sidebar-container .impact-card-map-btn {
   border: 1px solid currentColor;
 }
+
+.desktop-source-status-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 16px 16px;
+  width: 100%;
+}
+

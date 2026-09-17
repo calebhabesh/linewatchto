@@ -87,6 +87,8 @@ type Props = {
   onOpenDestination: (view: GlobalDestinationView) => void;
   onOpenSavedCommute: (commuteId: string) => void;
   onOpenSurfaceNotice: (notice: SurfaceNoticeDetail) => void;
+  expandedLineId?: string | null;
+  onExpandedLineIdChange?: (lineId: string | null) => void;
 };
 
 function ImpactSearchButton({
@@ -403,6 +405,8 @@ export function StationSearchPanel({
   onOpenDestination,
   onOpenSavedCommute,
   onOpenSurfaceNotice,
+  expandedLineId: propExpandedLineId,
+  onExpandedLineIdChange,
 }: Props) {
   const dashboardData = useDashboardData();
   const searchPlaceholder = "Search Stations and Alerts...";
@@ -410,7 +414,16 @@ export function StationSearchPanel({
     () => stationImpactKindsByStation(dashboardData),
     [dashboardData],
   );
-  const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
+  const [internalExpandedLineId, setInternalExpandedLineId] = useState<string | null>(null);
+  const expandedLineId = propExpandedLineId !== undefined ? propExpandedLineId : internalExpandedLineId;
+  const setExpandedLineId = (valOrFn: string | null | ((prev: string | null) => string | null)) => {
+    const next = typeof valOrFn === "function" ? valOrFn(expandedLineId) : valOrFn;
+    if (onExpandedLineIdChange) {
+      onExpandedLineIdChange(next);
+    } else {
+      setInternalExpandedLineId(next);
+    }
+  };
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [amenityFilters, setAmenityFilters] = useState<StationAmenityFilter>({});
 
@@ -487,6 +500,7 @@ export function StationSearchPanel({
   const lineTriggerRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const stationButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const mobileInputRef = useRef<HTMLInputElement>(null);
+  const lastExpandedLineIdRef = useRef<string | null>(null);
 
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
@@ -536,9 +550,24 @@ export function StationSearchPanel({
   }, [expandedLineId]);
 
   useEffect(() => {
+    if (expandedLineId) {
+      lastExpandedLineIdRef.current = expandedLineId;
+    } else if (lastExpandedLineIdRef.current) {
+      const prevLineId = lastExpandedLineIdRef.current;
+      lastExpandedLineIdRef.current = null;
+      const index = lineGroups.findIndex((group) => group.line.id === prevLineId);
+      if (index >= 0) {
+        lineTriggerRefs.current[index]?.focus();
+      }
+    }
+  }, [expandedLineId, lineGroups]);
+
+  useEffect(() => {
     if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setExpandedLineId(null);
+      if (propExpandedLineId === undefined) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setExpandedLineId(null);
+      }
       setIsInputFocused(false);
       return;
     }
@@ -552,12 +581,14 @@ export function StationSearchPanel({
     return () => window.clearTimeout(focusTimer);
     // inputRef is a stable ref object – excluding from deps is intentional
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isMobile]);
+  }, [open, isMobile, propExpandedLineId]);
 
   function chooseStation(stationId: string, networkId: NetworkId) {
     onSelectStation(stationId, networkId);
-    onClose();
-    onClosedFocusTarget?.();
+    if (isMobile) {
+      onClose();
+      onClosedFocusTarget?.();
+    }
   }
 
   function chooseImpact(nextSelection: NonNullable<ImpactSelection>) {
@@ -1194,7 +1225,7 @@ export function StationSearchPanel({
           </div>
         ) : (
           <div className="station-search-browse-container" aria-label="Browse stations by line">
-            <div className="station-search-lines-column">
+            <div className="station-search-lines-column" aria-hidden={isExpanded ? "true" : undefined}>
               <div className="global-search-browse-alerts" aria-label="Browse alert categories">
                 <span>Browse alerts</span>
                 <div>

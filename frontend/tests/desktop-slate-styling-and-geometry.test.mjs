@@ -83,11 +83,10 @@ describe("desktop slate styling and card geometry cleanup (Step 2)", () => {
     });
   });
 
-  describe("top-level view search bar visibility", () => {
-    it("conditionally renders search row on top-level desktop views and hides above subordinate headers", () => {
-      assert.match(shellSource, /isTopLevelDesktopView/);
-      assert.match(shellSource, /\{isTopLevelDesktopView && \(/);
+  describe("global search bar visibility", () => {
+    it("renders search row in expanded desktop sidebar header across all destinations", () => {
       assert.match(shellSource, /className="desktop-sidebar-search-row"/);
+      assert.match(shellSource, /desktop-sidebar-search-input/);
     });
   });
 });

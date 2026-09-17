@@ -10,6 +10,8 @@ flows, not repeat every data-shape or styling assertion from the fast suite.
 | --- | --- | --- |
 | Fast | `npm --prefix frontend run test:fast` | Fixture contracts, pure logic, adapters, source guardrails, and CSS architecture checks. |
 | Smoke | `npm --prefix frontend run test:smoke` | A small Chromium desktop/mobile release gate: dashboard boot, map-to-detail flow, cross-network search, and source-honest fallback. |
+| Desktop shell | `npm --prefix frontend run test:shell:desktop` | Focused sidebar sizing, docking/overlay, station detail, collapse/restore, and cross-network layout checks. |
+| Mobile shell | `npm --prefix frontend run test:shell:mobile` | Focused pull-up sheet gestures, keyboard operation, saved state, motion, and notice layout checks. |
 | E2E regression | `npm --prefix frontend run test:e2e` | Chromium desktop/mobile interaction and layout coverage; stops after five failures to avoid wasting a feedback cycle. |
 | Visual | `npm --prefix frontend run test:visual` | Deliberate screenshot baselines only. |
 | Browser compatibility | `npm --prefix frontend run test:browser-compat` | One focused SVG/map geometry contract in Chrome, Firefox, and WebKit. |
@@ -22,6 +24,25 @@ When a complete failure inventory is specifically needed, run
 `npm --prefix frontend run test:e2e:full`. A healthy `test:e2e` run still
 executes the entire catalog; its cap matters only when the suite is already
 broken.
+
+For sidebar or mobile sheet iteration, select the corresponding shell command
+instead of starting the full regression catalog. These commands use existing
+specs and stop after three failures. They still start a production app by
+default; use the build-reuse procedure below only when the build matches the
+code being tested.
+
+The E2E command selects an explicit file catalog; it does not currently include
+`desktop-profiles-and-collapse.spec.ts` or `mobile-service-sheet.spec.ts`.
+Run the shell commands explicitly when validating these behaviors. CI currently
+runs smoke, browser compatibility, and mobile map fit, not these shell suites or
+the full E2E catalog.
+
+Known migration work: the desktop centering cases in
+`vertical-centering-and-switch.spec.ts` still expect retired floating status
+controls. Replace their layout expectations with sidebar/map workspace behavior
+before treating those cases as a reliable regression gate. Do not restore the
+retired UI to satisfy them or delete their map-centering coverage without a
+replacement.
 
 The smoke suite should stay small. Add a scenario only when its failure means
 the deployed dashboard is broadly unusable and the behavior is not already

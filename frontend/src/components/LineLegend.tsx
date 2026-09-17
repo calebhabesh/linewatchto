@@ -29,7 +29,7 @@ function LegendImpactCountBadge({ count, isRegional = false }: { count: number; 
       >
         <MapBadgeVectorLabel
           label={String(count)}
-          targetHeight={17.5}
+          targetHeight={isRegional ? 17.5 : 15}
           maxWidth={viewBoxWidth - 14}
         />
       </svg>
@@ -189,7 +189,7 @@ export function LineLegend({
     const renderIconsContainer = () => {
       if (!isRegional) {
         return (
-          <div className="w-22 h-[36px] flex items-center gap-1.5 shrink-0 justify-end">
+          <div className="w-22 h-[40px] flex items-center gap-1.5 shrink-0 justify-end">
             {buttons}
           </div>
         );
@@ -325,7 +325,7 @@ export function LineLegend({
         >
           <span
             className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap leading-none ${
-              isRegional ? "text-[19px]" : "text-[18px]"
+              isRegional ? "text-[20px]" : "text-[20px]"
             }`}
           >
             {line.name}
@@ -376,7 +376,7 @@ export function LineLegend({
           />
         </svg>
       </div>
-      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[19px] leading-none">
+      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[20px] leading-none">
         Limited Service
       </span>
     </div>
@@ -394,7 +394,7 @@ export function LineLegend({
         }}
         aria-hidden="true"
       />
-      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[19px] leading-none">
+      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[20px] leading-none">
         Regular Service
       </span>
     </div>

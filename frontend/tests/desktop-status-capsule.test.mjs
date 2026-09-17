@@ -26,9 +26,9 @@ describe("desktop status and map chrome relocation", () => {
   });
 
   it("places impact chips in the bottom-left corner of the viewport", () => {
-    const searchBarIndex = shellSource.indexOf("stationSearchInputRef");
+    const searchBarIndex = shellSource.indexOf("desktopSearchInputRef");
     const containerIndex = shellSource.indexOf('desktop-status-chip-row-container');
-    const noticesAnchorIndex = shellSource.indexOf("desktop-conditional-notices-anchor");
+    const noticesAnchorIndex = shellSource.indexOf("desktop-collapsed-map-notice-anchor");
 
     assert.notEqual(searchBarIndex, -1);
     assert.notEqual(containerIndex, -1);
@@ -76,14 +76,14 @@ describe("desktop status and map chrome relocation", () => {
     assert.ok(closuresChipIdx < tripChangesChipIdx, "planned closures chip must precede trip changes chip");
   });
 
-  it("relocates estimated-train controls to map utility cluster, clock to sidebar header, and diagnostics to more panel", () => {
+  it("relocates estimated-train controls to map utility cluster, clock to sidebar header, and diagnostics to dedicated sidebar destination", () => {
     assert.doesNotMatch(overviewSource, /desktop-status-map-data-section/);
     assert.match(shellSource, /desktop-train-toggle-btn/);
     assert.match(shellSource, /handleToggleEstimatedTrains/);
-    assert.match(moreSource, /SourceDiagnosticsBody/);
+    assert.doesNotMatch(moreSource, /SourceDiagnosticsBody/);
+    assert.match(shellSource, /SourceDiagnosticsBody/);
     assert.match(shellSource, /desktop-sidebar-clock/);
     assert.match(globalCss, /\.desktop-sidebar-clock/);
-    assert.match(globalCss, /\.desktop-map-conditional-pill/);
   });
 
   it("moves desktop map controls upward into top area for both networks", () => {

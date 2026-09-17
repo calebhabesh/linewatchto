@@ -495,8 +495,8 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /handlePeekClosedMap/);
     assert.match(shellSource, /SubwayClosedScreen/);
     assert.match(shellSource, /subway-closed-map-backdrop/);
-    assert.match(shellSource, /subway-closed-peek-chip/);
-    assert.match(shellSource, /Closed Screen/);
+    assert.match(shellSource, /desktopNotice/);
+    assert.match(shellSource, /handleOpenClosedScreen/);
     assert.match(globalCss, /\.subway-closed-screen/);
     assert.match(globalCss, /\.subway-closed-map-backdrop/);
     assert.match(globalCss, /filter:\s*blur\(9px\) saturate\(0\.72\) brightness\(0\.42\)/);

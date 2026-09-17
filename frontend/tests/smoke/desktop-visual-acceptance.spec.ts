@@ -116,33 +116,35 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await page.screenshot({ path: join(SCREENSHOT_DIR, "status-overview-regional-dark-1440x900.png") });
   });
 
-  test("4. Rich Impact Cards - Planned Closures (wide profile 680px)", async ({ page, request, isMobile }) => {
+  test("4. Rich Impact Cards - Planned Closures (uniform 560px)", async ({ page, request, isMobile }) => {
     test.skip(isMobile);
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
 
-    await page.locator(".desktop-status-cat-btn--closures").click();
+    await page.getByRole("button", { name: /Planned Closures/i }).click();
     const sidebar = page.locator(".desktop-sidebar-container");
-    await expect(sidebar).toHaveAttribute("data-profile", "wide");
+    const box = await sidebar.boundingBox();
+    expect(box?.width).toBe(560);
     await expect(page.getByRole("heading", { name: "Planned Closures" })).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "rich-impact-cards-closures-1440x900.png") });
   });
 
-  test("5. Rich Impact Cards - Speed Zones (wide profile 680px)", async ({ page, request, isMobile }) => {
+  test("5. Rich Impact Cards - Speed Zones (uniform 560px)", async ({ page, request, isMobile }) => {
     test.skip(isMobile);
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
 
-    await page.locator(".desktop-status-cat-btn--rsz").click();
+    await page.getByRole("button", { name: /^\d+\s*Reduced Speed Zones/i }).click();
     const sidebar = page.locator(".desktop-sidebar-container");
-    await expect(sidebar).toHaveAttribute("data-profile", "wide");
+    const box = await sidebar.boundingBox();
+    expect(box?.width).toBe(560);
     await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "rich-impact-cards-rsz-1440x900.png") });
   });
 
-  test("6. Station Detail - Dark (medium profile 560px)", async ({ page, request, isMobile }) => {
+  test("6. Station Detail - Dark (uniform 560px)", async ({ page, request, isMobile }) => {
     test.skip(isMobile);
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
@@ -152,20 +154,22 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await station.dispatchEvent("click");
 
     const sidebar = page.locator(".desktop-sidebar-container");
-    await expect(sidebar).toHaveAttribute("data-profile", "medium");
+    const box = await sidebar.boundingBox();
+    expect(box?.width).toBe(560);
     await expect(page.locator(".station-detail-panel")).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "station-detail-dark-1440x900.png") });
   });
 
-  test("7. Search View - Dark (compact profile 380px)", async ({ page, request, isMobile }) => {
+  test("7. Search View - Dark (uniform 560px via global search)", async ({ page, request, isMobile }) => {
     test.skip(isMobile);
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
 
-    await page.locator('.desktop-rail-item[data-dest="search"]').click();
+    await page.locator(".desktop-sidebar-search-field").press("Enter");
     const sidebar = page.locator(".desktop-sidebar-container");
-    await expect(sidebar).toHaveAttribute("data-profile", "compact");
+    const box = await sidebar.boundingBox();
+    expect(box?.width).toBe(560);
     await expect(page.locator(".station-search-panel")).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "search-view-dark-1440x900.png") });
@@ -176,21 +180,21 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
 
-    await page.locator('.desktop-rail-item[data-dest="saved"]').click();
-    await page.getByRole("tab", { name: /My Commutes/i }).click();
+    await page.locator('.desktop-rail-item[data-dest="commutes"]').click();
     await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "saved-commutes-dark-1440x900.png") });
   });
 
-  test("9. More Panel - Dark (compact profile 380px)", async ({ page, request, isMobile }) => {
+  test("9. More Panel - Dark (uniform 560px)", async ({ page, request, isMobile }) => {
     test.skip(isMobile);
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1440, height: 900 } });
 
     await page.locator('.desktop-rail-item[data-dest="more"]').click();
     const sidebar = page.locator(".desktop-sidebar-container");
-    await expect(sidebar).toHaveAttribute("data-profile", "compact");
+    const box = await sidebar.boundingBox();
+    expect(box?.width).toBe(560);
     await expect(page.locator(".desktop-more-panel")).toBeVisible();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(SCREENSHOT_DIR, "more-panel-dark-1440x900.png") });
@@ -201,7 +205,7 @@ test.describe("Desktop Visual Acceptance (Step 3)", () => {
     await setStubMode(request, "seeded");
     await prepareDesktopPage(page, { theme: "dark", viewport: { width: 1024, height: 768 } });
 
-    await page.locator(".desktop-status-cat-btn--closures").click();
+    await page.getByRole("button", { name: /Planned Closures/i }).click();
     const sidebar = page.locator(".desktop-sidebar-container");
     await expect(sidebar).toHaveClass(/desktop-sidebar-container--overlay/);
     await page.waitForTimeout(300);

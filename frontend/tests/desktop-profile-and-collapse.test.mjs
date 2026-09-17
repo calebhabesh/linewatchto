@@ -4,7 +4,6 @@ import {
   readDesktopSidebarCollapsed,
   saveDesktopSidebarCollapsed,
   computeDesktopLayoutMetrics,
-  resolveDesktopDestinationProfile,
   readDesktopOverlayInsets,
 } from "../src/app/desktop-sidebar-state.ts";
 
@@ -17,60 +16,23 @@ const memoryStorage = () => {
   };
 };
 
-describe("desktop profile navigation and back-state restoration", () => {
-  it("restores originating profile width when navigating back from details or forms", () => {
-    // 1. Initial status view -> compact (380px)
-    let currentView = "status";
-    let selectedStationId = null;
-    assert.equal(
-      resolveDesktopDestinationProfile({ activeView: currentView, selectedStationId }),
-      "compact",
-    );
-    assert.equal(
-      computeDesktopLayoutMetrics({ windowWidth: 1440, isMobile: false, profile: "compact" }).sidebarWidth,
-      380,
-    );
+describe("desktop sidebar uniform target width and responsive metrics", () => {
+  it("targets 560px uniform width across all destinations when docked", () => {
+    const metrics = computeDesktopLayoutMetrics({ windowWidth: 1440, isMobile: false });
+    assert.equal(metrics.mode, "docked");
+    assert.equal(metrics.sidebarWidth, 560);
+    assert.equal(metrics.dockBudget, 1120);
+    assert.equal(metrics.railWidth, 80);
+  });
 
-    // 2. Drill down into station detail -> medium (560px)
-    selectedStationId = "bloor-yonge";
-    const detailProfile = resolveDesktopDestinationProfile({ activeView: currentView, selectedStationId });
-    assert.equal(detailProfile, "medium");
-    assert.equal(
-      computeDesktopLayoutMetrics({ windowWidth: 1440, isMobile: false, profile: detailProfile }).sidebarWidth,
-      560,
-    );
+  it("calculates overlay width below dock budget preserving 160px map exposure", () => {
+    const m1000 = computeDesktopLayoutMetrics({ windowWidth: 1000, isMobile: false });
+    assert.equal(m1000.mode, "overlay");
+    assert.equal(m1000.sidebarWidth, 560);
 
-    // 3. Back from station detail -> restores compact (380px)
-    selectedStationId = null;
-    const restoredProfile = resolveDesktopDestinationProfile({ activeView: currentView, selectedStationId });
-    assert.equal(restoredProfile, "compact");
-    assert.equal(
-      computeDesktopLayoutMetrics({ windowWidth: 1440, isMobile: false, profile: restoredProfile }).sidebarWidth,
-      380,
-    );
-
-    // 4. Navigate into closures -> wide (680px)
-    currentView = "closures";
-    const closuresProfile = resolveDesktopDestinationProfile({ activeView: currentView, selectedStationId });
-    assert.equal(closuresProfile, "wide");
-    assert.equal(
-      computeDesktopLayoutMetrics({ windowWidth: 1440, isMobile: false, profile: closuresProfile }).sidebarWidth,
-      680,
-    );
-
-    // 5. Drill into station from closure -> medium (560px)
-    selectedStationId = "spadina";
-    assert.equal(
-      resolveDesktopDestinationProfile({ activeView: currentView, selectedStationId }),
-      "medium",
-    );
-
-    // 6. Back from station -> restores wide (680px) for closures
-    selectedStationId = null;
-    assert.equal(
-      resolveDesktopDestinationProfile({ activeView: currentView, selectedStationId }),
-      "wide",
-    );
+    const m768 = computeDesktopLayoutMetrics({ windowWidth: 768, isMobile: false });
+    assert.equal(m768.mode, "overlay");
+    assert.equal(m768.sidebarWidth, 528);
   });
 });
 

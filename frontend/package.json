@@ -17,6 +17,8 @@
     "test:fixtures": "npm run test:fast",
     "test:browser-compat": "playwright test browser-compat.spec.ts --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit",
     "test:smoke": "playwright test smoke.spec.ts --project=desktop-chrome --project=mobile-chromium",
+    "test:shell:desktop": "playwright test desktop-profiles-and-collapse.spec.ts --project=desktop-chrome --max-failures=3",
+    "test:shell:mobile": "playwright test mobile-service-sheet.spec.ts --project=mobile-chromium --max-failures=3",
     "test:map-fit": "playwright test mobile-map-fit.spec.ts --project=mobile-chromium --project=mobile-webkit",
     "test:e2e": "playwright test dashboard.spec.ts compact-mobile.spec.ts mobile-map-fit.spec.ts overlapping-count-badges.spec.ts transit-guides.spec.ts vertical-centering-and-switch.spec.ts --project=desktop-chrome --project=mobile-chromium --project=mobile-webkit --max-failures=5",
     "test:e2e:full": "playwright test dashboard.spec.ts compact-mobile.spec.ts mobile-map-fit.spec.ts overlapping-count-badges.spec.ts transit-guides.spec.ts vertical-centering-and-switch.spec.ts --project=desktop-chrome --project=mobile-chromium --project=mobile-webkit",

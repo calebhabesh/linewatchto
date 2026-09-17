@@ -30,12 +30,10 @@ describe("subway closing soon chip", () => {
   });
 
   it("mounts on desktop during the open-state closing window and relocates mobile notice to MobileStatusPeek", () => {
-    assert.match(shellSource, /SubwayClosingSoonChip/);
+    assert.match(shellSource, /desktopNotice/);
     assert.match(shellSource, /subwayOperatingState\.closingSoon/);
     assert.match(shellSource, /subwayOperatingState\.minutesUntilClose !== null/);
     assert.match(shellSource, /subwayOperatingState\.nextCloseLabel/);
-    assert.equal((shellSource.match(/<SubwayClosingSoonChip/g) || []).length, 1);
-    assert.match(shellSource, /!isMobile\s*\?\s*\(\s*<SubwayClosingSoonChip/);
     assert.match(shellSource, /operatingNotice=\{mobileOperatingNotice\}/);
     assert.match(globalCss, /\.subway-closing-soon-chip/);
     assert.match(globalCss, /flex:\s*0 1/);

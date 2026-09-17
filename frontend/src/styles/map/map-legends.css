@@ -31,6 +31,8 @@
 }
 
 .desktop-map-legend--regional {
+  right: 14px;
+  bottom: 28px;
   backface-visibility: hidden;
 }
 
@@ -73,6 +75,13 @@
   font-family: var(--font-subway), ui-sans-serif, system-ui, sans-serif;
   font-weight: 900;
   line-height: 1;
+  height: 40px;
+  width: 40px;
+  flex: 0 0 40px;
+}
+
+.desktop-legend-route-badge--ttc .desktop-legend-route-number {
+  font-size: 22px;
 }
 
 .desktop-legend-route-badge .desktop-legend-route-number {
@@ -96,6 +105,9 @@
   border: var(--desktop-legend-outline-width) solid transparent;
   border-radius: 6px;
   overflow: hidden;
+  height: 38px;
+  width: 38px;
+  flex: 0 0 38px;
 }
 
 .desktop-legend-route-badge--regional > span {
@@ -161,16 +173,16 @@
    ------------------------------------------------------------ */
 .legend-impact-count {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -6px;
+  right: -6px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
+  width: 21px;
+  height: 21px;
+  min-width: 21px;
+  min-height: 21px;
   border-radius: 999px;
   background: #ef4444;
   box-shadow: 0 0 0 2px rgb(255, 255, 255);
@@ -181,8 +193,8 @@
 }
 
 .legend-impact-count[data-digit-count="multiple"] {
-  min-width: 30px;
-  width: 30px;
+  min-width: 26px;
+  width: 26px;
 }
 
 .legend-impact-count-svg {

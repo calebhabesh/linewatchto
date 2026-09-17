@@ -284,7 +284,7 @@ describe("network-scoped regional dashboard", () => {
 
     assert.doesNotMatch(networkChangeBody, /setClosedMapPeek\(false\)/);
     assert.match(shellSource, /closedScreenAcknowledged/);
-    assert.match(shellSource, /subway-closed-peek-chip/);
+    assert.match(shellSource, /desktopNotice/);
     assert.match(shellSource, /operatingNotice=\{mobileOperatingNotice\}/);
     assert.doesNotMatch(
       shellSource,
