@@ -250,7 +250,7 @@ export function DesktopStatusOverview({
                   />
                 </button>
                 <div className="desktop-status-rail-impacts">
-                  <div className="desktop-status-rail-impacts-main">
+                  <div className="desktop-status-rail-impacts-main" data-has-impacts="true">
                     {item.rows.map((row) => {
                       const timingLabel = row.timing
                         ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ")
@@ -262,6 +262,7 @@ export function DesktopStatusOverview({
                           key={`${row.kind}:${row.id}`}
                           type="button"
                           className="desktop-status-incident-row"
+                          data-impact-kind={row.iconKind || row.kind}
                           onClick={() => {
                             if (onSelectImpact) {
                               onSelectImpact({ kind: row.kind, id: row.id });
@@ -312,7 +313,7 @@ export function DesktopStatusOverview({
                         <button
                           type="button"
                           className="desktop-status-badge-incident-button"
-                          onClick={() => onOpenCategory("alerts", item.line.id)}
+                          onClick={() => onOpenCategory("reduced-speed-zones", item.line.id)}
                           title={`View ${item.line.name} Reduced Speed Zones`}
                           aria-label={`${item.line.name}: ${item.rszCount > 1 ? `${item.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
                         >
@@ -460,7 +461,7 @@ export function DesktopStatusOverview({
                   ),
                 )}
               </span>
-              <span className="current-service-notice-copy">
+              <span className="current-service-notice-copy" data-category={notice.category}>
                 <strong data-category={notice.category}>
                   <SurfaceCategoryIcon category={notice.category} size={13} className="shrink-0" />
                   {noticeLabels[notice.category] || "Notice"}

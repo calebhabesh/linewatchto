@@ -6229,6 +6229,7 @@ export function LineWatchShell({
               onNotice={handleSearchOpenSurfaceNotice}
               onImpact={handleSearchSelectImpact}
               onStatus={() => navigateForward("status")}
+              onCategory={(view, lineId) => openImpactCategory(view, lineId)}
               onNotices={openServiceNotices}
             />}
           <div className="desktop-status-chip-row desktop-header-impact-chips" aria-label="Open impact categories">
@@ -6401,6 +6402,7 @@ export function LineWatchShell({
               onNotice={handleSearchOpenSurfaceNotice}
               onImpact={handleSearchSelectImpact}
               onStatus={() => navigateForward("status")}
+              onCategory={(view, lineId) => openImpactCategory(view, lineId)}
               onNotices={openServiceNotices}
             />}
         </MobileStatusPeek>

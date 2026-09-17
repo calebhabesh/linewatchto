@@ -40,6 +40,37 @@ test("Current Service appears in desktop sidebar with live pill, categories, rai
   await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).toHaveClass(/highlight-active-card/);
 });
 
+test("desktop Current Service badges open their matching impact panels", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.route("**/api/dashboard?network=ttc", async (route) => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    payload.plannedClosures = payload.plannedClosures.map((closure: Record<string, unknown>) =>
+      closure.id === "stub-upcoming-closure-line-1"
+        ? {
+            ...closure,
+            nextWindowStart: "2026-08-20T03:00:00Z",
+            nextWindowEnd: "2026-08-20T06:00:00Z",
+          }
+        : closure,
+    );
+    await route.fulfill({ response, json: payload });
+  });
+  await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+
+  const sidebar = page.locator("#desktop-sidebar-container");
+  const plannedClosureBadge = sidebar.locator(".desktop-status-badge-incident-button").filter({ hasText: "Planned Closure" });
+  await expect(plannedClosureBadge).toBeVisible();
+  await plannedClosureBadge.click();
+  await expect(page.getByRole("heading", { name: "Planned Closures", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  const reducedSpeedZoneBadge = sidebar.locator(".desktop-status-badge-incident-button").filter({ hasText: "Reduced Speed Zone" });
+  await expect(reducedSpeedZoneBadge).toBeVisible();
+  await reducedSpeedZoneBadge.click();
+  await expect(page.getByRole("heading", { name: "Reduced Speed Zones", exact: true })).toBeVisible();
+});
+
 test("unavailable data cannot read as clear service", async ({ page, request }) => {
   await setStubMode(request, "unavailable");
   await page.goto("/");

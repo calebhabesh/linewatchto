@@ -26,6 +26,7 @@ type Props = {
   onNotice: (notice: SurfaceNoticeDetail) => void;
   onImpact: (selection: NonNullable<ImpactSelection>) => void;
   onStatus: () => void;
+  onCategory: (view: "closures" | "reduced-speed-zones", lineId?: string) => void;
   onNotices: () => void;
 };
 
@@ -109,7 +110,7 @@ function desktopContentHeight(panel: HTMLElement): number {
   return Math.max(COLLAPSED_LIST_HEIGHT, Math.min(height, window.innerHeight - 200));
 }
 
-export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatus, onNotices, overlapSelectors = "" }: Props) {
+export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatus, onCategory, onNotices, overlapSelectors = "" }: Props) {
   const [now, setNow] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -371,7 +372,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                 <LineBadge lineId={item.line.id} lineNumber={item.rows[0].lineNumber} size={28} />
               </div>
               <div className="current-service-line-copy">
-                <div className="current-service-line-copy-main">
+                <div className="current-service-line-copy-main" data-has-impacts="true">
                   {item.rows.map((row) => {
                     const timingLabel = row.timing
                       ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ") ? "Starts " : "") + row.timing
@@ -380,6 +381,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                       <button
                         type="button"
                         className="current-service-impact current-service-impact--compact"
+                        data-impact-kind={row.iconKind || row.kind}
                         key={`${row.kind}:${row.id}`}
                         onClick={() => onImpact({ kind: row.kind, id: row.id })}
                       >
@@ -402,7 +404,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                       <button
                         type="button"
                         className="current-service-badge-incident-button"
-                        onClick={onStatus}
+                        onClick={() => onCategory("closures", item.line.id)}
                         title={`View ${item.line.name} Planned Closures`}
                         aria-label={`${item.line.name}: ${getPlannedClosureCountBadgeLabel(item.closureCount)}`}
                       >
@@ -416,7 +418,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                       <button
                         type="button"
                         className="current-service-badge-incident-button"
-                        onClick={onStatus}
+                        onClick={() => onCategory("reduced-speed-zones", item.line.id)}
                         title={`View ${item.line.name} Reduced Speed Zones`}
                         aria-label={`${item.line.name}: ${item.rszCount > 1 ? `${item.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
                       >
@@ -473,7 +475,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                       <button
                         type="button"
                         className="current-service-badge-incident-button"
-                        onClick={onStatus}
+                        onClick={() => onCategory("closures", line.id)}
                         title={`View ${line.name} Planned Closures`}
                         aria-label={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
                       >
@@ -487,7 +489,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                       <button
                         type="button"
                         className="current-service-badge-incident-button"
-                        onClick={onStatus}
+                        onClick={() => onCategory("reduced-speed-zones", line.id)}
                         title={`View ${line.name} Reduced Speed Zones`}
                         aria-label={`${line.name}: ${presentation.rszCount && presentation.rszCount > 1 ? `${presentation.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
                       >
@@ -544,7 +546,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                 </span>
               ))}
             </span>
-            <span className="current-service-notice-copy">
+            <span className="current-service-notice-copy" data-category={notice.category}>
               <strong data-category={notice.category}>
                 <SurfaceCategoryIcon category={notice.category} size={12} className="shrink-0" />
                 {noticeLabels[notice.category] || "Notice"}

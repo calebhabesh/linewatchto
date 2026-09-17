@@ -3044,6 +3044,10 @@
   pointer-events: none;
 }
 
+.desktop-status-rail-impacts-main[data-has-impacts="true"]::before {
+  display: none;
+}
+
 .dark .desktop-status-rail-impacts-main::before {
   background: var(--border-strong, rgba(255, 255, 255, 0.16));
 }
@@ -3059,9 +3063,53 @@
   gap: 2px;
   margin: 0 -8px;
   padding: 3px 8px;
+  position: relative;
   text-align: left;
   transition: background-color 120ms ease;
   width: calc(100% + 16px);
+}
+
+.desktop-status-incident-row[data-impact-kind]::before {
+  background: var(--border-strong, rgba(15, 23, 42, 0.16));
+  border-radius: 9999px;
+  bottom: 2px;
+  content: "";
+  left: -6px;
+  pointer-events: none;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.desktop-status-incident-row[data-impact-kind="suspension"]::before,
+.desktop-status-incident-row[data-impact-kind="closure"]::before {
+  background: #dc2626;
+}
+
+.desktop-status-incident-row[data-impact-kind="delay"]::before {
+  background: #d97706;
+}
+
+.desktop-status-incident-row[data-impact-kind="planned-closure"]::before {
+  background: #2563eb;
+}
+
+.dark .desktop-status-incident-row[data-impact-kind="suspension"]::before,
+.dark .desktop-status-incident-row[data-impact-kind="closure"]::before {
+  background: #f87171;
+}
+
+.dark .desktop-status-incident-row[data-impact-kind="delay"]::before {
+  background: #fbbf24;
+}
+
+.dark .desktop-status-incident-row[data-impact-kind="planned-closure"]::before {
+  background: #60a5fa;
+}
+
+.high-contrast .desktop-status-incident-row[data-impact-kind]::before,
+.linewatch-shell.high-contrast .desktop-status-incident-row[data-impact-kind]::before {
+  background: currentColor;
 }
 
 .desktop-status-incident-row:hover {
