@@ -8,18 +8,27 @@ const globalCss = readAppStylesheet();
 
 describe("desktop slate styling and card geometry cleanup (Step 2)", () => {
   describe("dark slate surface hierarchy and tone separation", () => {
-    it("styles nav rail with dark slate background and subtle tone border", () => {
+    it("styles nav rail with deep slate background and seamless edge", () => {
       assert.match(globalCss, /\.desktop-nav-rail\s*\{[^}]*background:\s*#f8fafc/);
-      assert.match(globalCss, /\.dark \.desktop-nav-rail\s*\{[^}]*background:\s*#090d14/);
-      assert.match(globalCss, /\.dark \.desktop-nav-rail\s*\{[^}]*border-right-color:\s*rgba\(255,\s*255,\s*255,\s*0\.05\)/);
+      assert.match(globalCss, /\.dark \.desktop-nav-rail\s*\{[^}]*background:\s*#06090e/);
+      assert.match(globalCss, /\.dark \.desktop-nav-rail\s*\{[^}]*border-right:\s*none/);
+      assert.match(globalCss, /\.dark \.desktop-nav-rail\s*\{[^}]*box-shadow:\s*1px 0 2px/);
       assert.match(globalCss, /\.high-contrast \.desktop-nav-rail\s*\{[^}]*border-right:\s*1px solid currentColor/);
     });
 
     it("styles sidebar container and header with dark slate palette without harsh borders and without search divider", () => {
       assert.match(globalCss, /\.dark \.desktop-sidebar-container\s*\{[^}]*background:\s*#0c1017/);
-      assert.match(globalCss, /\.dark \.desktop-sidebar-container\s*\{[^}]*border-right-color:\s*rgba\(255,\s*255,\s*255,\s*0\.05\)/);
+      assert.match(globalCss, /\.dark \.desktop-sidebar-container\s*\{[^}]*border-right:\s*none/);
       assert.match(globalCss, /\.desktop-sidebar-header\s*\{[^}]*border-bottom:\s*none/);
       assert.match(globalCss, /\.high-contrast \.desktop-sidebar-container\s*\{[^}]*border-right:\s*1px solid currentColor/);
+    });
+
+    it("styles collapsed nav rail and expanded sidebar with seamless sharp right edge and tight micro-shadow", () => {
+      assert.match(globalCss, /\.desktop-nav-rail\[data-collapsed="true"\]\s*\{[^}]*border-right:\s*none/);
+      assert.match(globalCss, /\.dark \.desktop-nav-rail\[data-collapsed="true"\]\s*\{[^}]*border-right:\s*none/);
+      assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*border-right:\s*none/);
+      assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*box-shadow:\s*1px 0 2px/);
+      assert.match(globalCss, /\.dark \.desktop-sidebar-container\s*\{[^}]*box-shadow:\s*1px 0 2px/);
     });
 
     it("resets embedded panels and strips nested outlines and redundant close controls", () => {

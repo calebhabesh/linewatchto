@@ -49,4 +49,12 @@ describe("desktop navigation destinations", () => {
     assert.match(railSource, />\s*Data\s*<\/span>/);
     assert.match(railSource, /BarChart3/);
   });
+
+  it("styles rail items with blue hover preview pill and active selection bar highlight", () => {
+    const desktopChromeCss = readFileSync(new URL("../src/styles/shell/desktop-chrome.css", import.meta.url), "utf8");
+    assert.match(desktopChromeCss, /\.desktop-rail-item::before\s*\{[^}]*width:\s*3\.5px/s);
+    assert.match(desktopChromeCss, /\.desktop-rail-item:hover:not\(\[data-active="true"\]\)::before\s*\{[^}]*scaleY\(0\.38\)/s);
+    assert.match(desktopChromeCss, /\.desktop-rail-item\[data-active="true"\]::before\s*\{[^}]*scaleY\(1\)/s);
+    assert.match(desktopChromeCss, /\.desktop-rail-item\[data-active="true"\]::after\s*\{[^}]*opacity:\s*1/s);
+  });
 });
