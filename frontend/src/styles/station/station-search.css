@@ -346,7 +346,7 @@
 
 .global-search-group + .global-search-group {
   border-top: 1px solid rgba(15, 23, 42, 0.1);
-  padding-top: 10px;
+  padding-top: 12px;
 }
 
 .dark .global-search-group + .global-search-group {
@@ -701,7 +701,7 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 2px 4px 18px;
+  padding: 12px 4px 16px;
 }
 
 .global-search-browse-alerts::after {
@@ -819,6 +819,7 @@
   border: 1px solid rgba(239, 68, 68, 0.24);
   border-radius: 6px;
   background: rgba(239, 68, 68, 0.08);
+  margin-top: 5px;
   margin-bottom: 8px;
   padding: 6px 8px 6px 11px;
   color: rgb(127, 29, 29);
@@ -1444,7 +1445,7 @@
 
   .station-search-amenity-toolbar {
     margin-bottom: 0;
-    padding-bottom: 8px;
+    padding-bottom: 12px;
   }
 
   .station-search-panel[data-expanded="true"] .station-search-amenity-chips {
@@ -1461,7 +1462,7 @@
     flex: 1 1 auto;
     max-height: none;
     min-height: 0;
-    padding-top: 6px;
+    padding-top: 0;
     padding-right: 6px;
   }
 
