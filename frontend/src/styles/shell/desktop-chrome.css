@@ -1650,7 +1650,9 @@
 .desktop-nav-rail {
   align-items: center;
   background: #f8fafc;
+  border-bottom-right-radius: 0;
   border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-top-right-radius: 0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -1658,9 +1660,17 @@
   height: 100%;
   padding: 12px 0 16px;
   position: relative;
+  transition: border-radius 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease;
   user-select: none;
   width: var(--desktop-rail-width, 80px);
   z-index: 50;
+}
+
+.desktop-nav-rail[data-collapsed="true"] {
+  border-bottom-right-radius: 16px;
+  border-right: none;
+  border-top-right-radius: 16px;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.06);
 }
 
 .dark .desktop-nav-rail {
@@ -1668,8 +1678,69 @@
   border-right-color: rgba(255, 255, 255, 0.05);
 }
 
+.dark .desktop-nav-rail[data-collapsed="true"] {
+  border-right: none;
+  box-shadow: 5px 0 24px rgba(0, 0, 0, 0.4);
+}
+
 .high-contrast .desktop-nav-rail {
   border-right: 1px solid currentColor;
+}
+
+.high-contrast .desktop-nav-rail[data-collapsed="true"] {
+  border-right: 1px solid currentColor;
+  box-shadow: none;
+}
+
+.linewatch-transit-accent-strip.desktop-sidebar-accent-strip {
+  background: linear-gradient(to right, #fed105 20%, #0a7c3f 20% 40%, #7c277d 40% 60%, #e8721b 60% 80%, #8a999a 80%) border-box;
+  border: 0;
+  border-top: 5px solid transparent;
+  border-right: 1.8px solid transparent;
+  border-top-left-radius: 0;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 1.8px;
+  display: block;
+  height: 16px;
+  left: var(--desktop-rail-width, 80px);
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transition: left 180ms cubic-bezier(0.16, 1, 0.3, 1), width 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  width: var(--desktop-sidebar-width, 560px);
+  will-change: left, width;
+  z-index: 60;
+}
+
+.linewatch-transit-accent-strip.desktop-sidebar-accent-strip[data-collapsed="true"] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 1.8px;
+  left: 0;
+  width: var(--desktop-rail-width, 80px);
+}
+
+.linewatch-transit-accent-strip.desktop-sidebar-accent-strip[data-network="regional"],
+.linewatch-shell[data-network="regional"] .linewatch-transit-accent-strip.desktop-sidebar-accent-strip {
+  background: linear-gradient(
+    to right,
+    #155ba0 0% 12.5%,
+    #138336 12.5% 25%,
+    #ee2722 25% 37.5%,
+    #8b0a31 37.5% 50%,
+    #f47216 50% 62.5%,
+    #27adea 62.5% 75%,
+    #774111 75% 87.5%,
+    #4084cd 87.5% 100%
+  ) border-box;
+}
+
+.linewatch-transit-accent-strip.desktop-sidebar-accent-strip > span {
+  display: none;
 }
 
 .desktop-rail-header {
@@ -2047,7 +2118,9 @@
 
 .desktop-sidebar-container {
   background: #ffffff;
+  border-bottom-right-radius: 16px;
   border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-top-right-radius: 16px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -2552,12 +2625,20 @@
 
 .desktop-status-section-title,
 .desktop-more-section-title {
+  align-items: center;
   color: var(--text, #0f172a);
+  display: flex;
+  flex-direction: row;
   font-size: 15.5px;
   font-weight: 700;
+  gap: 6px;
   letter-spacing: 0.01em;
   margin: 0;
   text-transform: none;
+}
+
+.desktop-status-section-title svg {
+  flex-shrink: 0;
 }
 
 .dark .desktop-status-section-title,
@@ -3698,6 +3779,60 @@
   padding-left: 16px;
   padding-right: 16px;
   padding-top: 4px;
+}
+
+.desktop-sidebar-container .station-detail-panel {
+  box-sizing: border-box;
+  padding: 0;
+  width: 100%;
+}
+
+.desktop-sidebar-container .station-detail-header {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  padding: 12px 16px 0 16px;
+  width: 100%;
+}
+
+.desktop-sidebar-container .station-detail-body-wrapper,
+.desktop-sidebar-container .station-detail-content-swap {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.desktop-sidebar-container .station-detail-panel [data-station-header-line-details] {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  width: 100%;
+}
+
+.desktop-sidebar-container .station-detail-panel [data-station-submenu-nav] {
+  box-sizing: border-box;
+  padding-left: 16px;
+  padding-right: 16px;
+  width: 100%;
+}
+
+.desktop-sidebar-container .station-detail-scroll {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  margin-left: 0;
+  margin-right: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 16px;
+  padding-left: 16px;
+  padding-right: calc(16px - 8px);
+  scrollbar-gutter: stable;
+  width: 100%;
+}
+
+.desktop-sidebar-container .station-detail-scroll > * {
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 /* Remove redundant close button from embedded desktop panels */

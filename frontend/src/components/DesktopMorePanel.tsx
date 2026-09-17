@@ -8,6 +8,7 @@ import {
   History,
   LogIn,
   LogOut,
+  MapPinCheck,
   Megaphone,
   Moon,
   Pause,
@@ -240,25 +241,33 @@ export function DesktopMorePanel({
           <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-more-section-title">Default Map</h3>
         </div>
+        <p className="desktop-more-section-caption">
+          <MapPinCheck size={14} aria-hidden="true" />
+          <span>Loaded on launch</span>
+        </p>
         <div className="desktop-more-card">
-          <div className="desktop-more-network-pills" role="radiogroup" aria-label="Default map network">
+          <div
+            className="default-map-mode-options desktop-more-default-map-options"
+            role="radiogroup"
+            aria-label="Default map network"
+            data-network={defaultNetwork}
+          >
+            <span className="default-map-mode-glider" aria-hidden="true" />
             <button
               type="button"
-              role="radio"
-              aria-checked={defaultNetwork === "ttc"}
-              className={`desktop-more-network-pill ${defaultNetwork === "ttc" ? "active" : ""}`}
+              className={`default-map-mode-btn default-map-mode-btn-ttc ${defaultNetwork === "ttc" ? "is-selected" : ""}`}
+              aria-pressed={defaultNetwork === "ttc"}
               onClick={() => onDefaultNetworkChange("ttc")}
             >
-              TTC Subway & LRT
+              TTC
             </button>
             <button
               type="button"
-              role="radio"
-              aria-checked={defaultNetwork === "regional"}
-              className={`desktop-more-network-pill ${defaultNetwork === "regional" ? "active" : ""}`}
+              className={`default-map-mode-btn default-map-mode-btn-regional ${defaultNetwork === "regional" ? "is-selected" : ""}`}
+              aria-pressed={defaultNetwork === "regional"}
               onClick={() => onDefaultNetworkChange("regional")}
             >
-              GO & UP Rail
+              GO &amp; UP
             </button>
           </div>
         </div>

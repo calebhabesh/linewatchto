@@ -33,6 +33,7 @@
 /* Unified scrollbar styling for desktop scroll containers */
 @media (min-width: 768px) {
   #linewatch-main-menu-scroll,
+  .desktop-sidebar-content,
   .floating-panel-shell > div,
   .line-impact-panel-stack,
   .alert-stack,
@@ -73,6 +74,7 @@
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar,
+  .desktop-sidebar-content::-webkit-scrollbar,
   .floating-panel-shell > div::-webkit-scrollbar,
   .line-impact-panel-stack::-webkit-scrollbar,
   .alert-stack::-webkit-scrollbar,
@@ -87,6 +89,7 @@
   .station-search-stations-column::-webkit-scrollbar,
   .station-search-results::-webkit-scrollbar,
   .station-search-lines-column::-webkit-scrollbar,
+  .station-detail-scroll::-webkit-scrollbar,
   .surface-notices-scroll::-webkit-scrollbar,
   .release-notes-content::-webkit-scrollbar,
   .privacy-acknowledgements-scroll::-webkit-scrollbar,
@@ -111,13 +114,8 @@
     height: 8px;
   }
 
-  .station-detail-scroll::-webkit-scrollbar {
-    display: block;
-    width: 6px;
-    height: 6px;
-  }
-
   #linewatch-main-menu-scroll::-webkit-scrollbar-track,
+  .desktop-sidebar-content::-webkit-scrollbar-track,
   .floating-panel-shell > div::-webkit-scrollbar-track,
   .line-impact-panel-stack::-webkit-scrollbar-track,
   .alert-stack::-webkit-scrollbar-track,
@@ -156,6 +154,7 @@
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-content::-webkit-scrollbar-thumb,
   .floating-panel-shell > div::-webkit-scrollbar-thumb,
   .line-impact-panel-stack::-webkit-scrollbar-thumb,
   .alert-stack::-webkit-scrollbar-thumb,
@@ -196,6 +195,7 @@
   }
 
   #linewatch-main-menu-scroll::-webkit-scrollbar-thumb:hover,
+  .desktop-sidebar-content::-webkit-scrollbar-thumb:hover,
   .floating-panel-shell > div::-webkit-scrollbar-thumb:hover,
   .line-impact-panel-stack::-webkit-scrollbar-thumb:hover,
   .alert-stack::-webkit-scrollbar-thumb:hover,
@@ -266,6 +266,7 @@
 
   /* High contrast support */
   .linewatch-shell.high-contrast #linewatch-main-menu-scroll,
+  .linewatch-shell.high-contrast .desktop-sidebar-content,
   .linewatch-shell.high-contrast .floating-panel-shell > div,
   .linewatch-shell.high-contrast .station-search-stations-column,
   .linewatch-shell.high-contrast .station-search-results,
@@ -280,6 +281,7 @@
   }
 
   .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
+  .linewatch-shell.high-contrast .desktop-sidebar-content::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .floating-panel-shell > div::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .station-search-stations-column::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .station-search-results::-webkit-scrollbar-thumb,

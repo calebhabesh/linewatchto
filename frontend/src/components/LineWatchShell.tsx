@@ -5808,6 +5808,36 @@ export function LineWatchShell({
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
       {!isMobile ? (
         <div className="linewatch-desktop-layout">
+          <div
+            className={`linewatch-transit-accent-strip desktop-sidebar-accent-strip${selectedNetwork === "regional" ? " linewatch-transit-accent-strip--regional" : ""}`}
+            data-network={selectedNetwork}
+            data-collapsed={desktopSidebarCollapsed ? "true" : "false"}
+            style={{
+              "--desktop-sidebar-width": `${desktopMetrics.sidebarWidth}px`,
+            } as React.CSSProperties}
+            aria-hidden="true"
+          >
+            {selectedNetwork === "regional" ? (
+              <>
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </>
+            ) : (
+              <>
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </>
+            )}
+          </div>
           <DesktopNavRail
             activeDestination={desktopRailDestinationForView(activeView)}
             collapsed={desktopSidebarCollapsed}

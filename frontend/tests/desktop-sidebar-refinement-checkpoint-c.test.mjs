@@ -37,9 +37,9 @@ describe("desktop visual treatment (Checkpoint C)", () => {
   });
 
   describe("Status composition & Alerts & Notices", () => {
-    it("names the second section Alerts & Notices", () => {
-      assert.match(statusOverviewSource, /<h3 className="desktop-status-section-title">Alerts & Notices<\/h3>/);
-      assert.match(statusOverviewSource, /aria-label="Alerts and notices"/);
+    it("names the categories section All Alerts & Notices with an icon", () => {
+      assert.match(statusOverviewSource, /<h3 className="desktop-status-section-title">[\s\S]*?<BadgeAlert[\s\S]*?All Alerts &amp; Notices/);
+      assert.match(statusOverviewSource, /aria-label="All alerts and notices"/);
     });
 
     it("styles 2x2 grid category capsules with shared tinted count badge styles", () => {
@@ -59,6 +59,8 @@ describe("desktop visual treatment (Checkpoint C)", () => {
       assert.match(statusOverviewSource, /desktop-status-rail-section/);
       assert.match(statusOverviewSource, /desktop-status-line-badge-btn/);
       assert.match(statusOverviewSource, /desktop-status-remaining-list/);
+      assert.match(statusOverviewSource, /<TrainFront size=\{16\}/);
+      assert.match(statusOverviewSource, /<BusFront size=\{16\}/);
     });
   });
 

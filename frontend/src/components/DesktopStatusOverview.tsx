@@ -5,7 +5,9 @@ import Image from "next/image";
 import {
   AlertTriangle,
   ArrowRight,
+  BadgeAlert,
   Bus,
+  BusFront,
   ChevronRight,
   Clock,
   Construction,
@@ -215,7 +217,8 @@ export function DesktopStatusOverview({
         <div className="desktop-status-section-header">
           <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-status-section-title">
-            {regional ? "GO & UP Rail" : "Subway & Light Rail"}
+            <TrainFront size={16} aria-hidden="true" className="shrink-0" />
+            <span>{regional ? "GO & UP Rail" : "Subway & Light Rail"}</span>
           </h3>
           <span
             className="current-service-active-count"
@@ -411,7 +414,8 @@ export function DesktopStatusOverview({
         <div className="desktop-status-section-header">
           <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-status-section-title">
-            {regional ? "Service Notices" : "Streetcar / Bus Alerts"}
+            <BusFront size={16} aria-hidden="true" className="shrink-0" />
+            <span>{regional ? "Service Notices" : "Streetcar / Bus Alerts"}</span>
           </h3>
           {surfaceNotices?.fresh && now > 0 && (
             <span
@@ -491,10 +495,13 @@ export function DesktopStatusOverview({
       </section>
 
       {/* ALERTS & NOTICES Categories */}
-      <section className="desktop-status-categories-section" aria-label="Alerts and notices">
+      <section className="desktop-status-categories-section" aria-label="All alerts and notices">
         <div className="desktop-status-section-header">
           <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
-          <h3 className="desktop-status-section-title">Alerts & Notices</h3>
+          <h3 className="desktop-status-section-title">
+            <BadgeAlert size={16} aria-hidden="true" className="shrink-0" />
+            <span>All Alerts &amp; Notices</span>
+          </h3>
         </div>
         <div className="desktop-status-categories-grid">
           <button

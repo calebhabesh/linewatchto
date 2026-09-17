@@ -1456,12 +1456,11 @@
     scrollbar-width: auto;
     scrollbar-color: auto;
     padding-left: 16px;
-    padding-right: 10px;
+    padding-right: calc(16px - 8px);
   }
 
-  .station-search-panel[data-expanded="true"] .station-search-stations-column::-webkit-scrollbar { width: 6px; }
-
-  .station-search-stations-list { padding-right: 0; }
+  .station-search-stations-list,
+  .station-search-results-list { padding-right: 0; }
 
   .station-search-mobile-back,
   .station-search-stations-column-header { margin-right: 0; }

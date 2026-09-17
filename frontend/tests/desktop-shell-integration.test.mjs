@@ -68,4 +68,15 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
     assert.match(globalCss, /\.desktop-sidebar-container--collapsed\s*\{/);
     assert.match(globalCss, /\.desktop-map-workspace\s*\{[^}]*flex:\s*1 1 0;[^}]*position:\s*relative;/s);
   });
+
+  it("renders an animated transit accent strip transitioning between collapsed and expanded portions with curved edges", () => {
+    assert.match(shellSource, /className=\{`linewatch-transit-accent-strip desktop-sidebar-accent-strip/);
+    assert.match(globalCss, /\.linewatch-transit-accent-strip\.desktop-sidebar-accent-strip\s*\{[^}]*border-top:\s*5px solid transparent/s);
+    assert.match(globalCss, /\.linewatch-transit-accent-strip\.desktop-sidebar-accent-strip\s*\{[^}]*border-right:\s*1\.8px solid transparent/s);
+    assert.match(globalCss, /\.linewatch-transit-accent-strip\.desktop-sidebar-accent-strip\s*\{[^}]*border-top-right-radius:\s*16px/s);
+    assert.match(globalCss, /\.linewatch-transit-accent-strip\.desktop-sidebar-accent-strip\s*\{[^}]*border-bottom-right-radius:\s*1\.8px/s);
+    assert.match(globalCss, /\.desktop-nav-rail\s*\{[^}]*border-top-right-radius:\s*0;/s);
+    assert.match(globalCss, /\.desktop-nav-rail\[data-collapsed="true"\]\s*\{[^}]*border-top-right-radius:\s*16px;/s);
+    assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*border-top-right-radius:\s*16px;/s);
+  });
 });
