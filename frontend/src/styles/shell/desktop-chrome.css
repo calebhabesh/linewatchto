@@ -2776,13 +2776,6 @@
   width: 100%;
 }
 
-@supports selector(::-webkit-scrollbar) {
-  .desktop-status-overview,
-  .desktop-more-panel {
-    padding-right: calc(16px - 4px);
-  }
-}
-
 .desktop-status-network-switcher {
   display: flex;
   margin-bottom: 4px;
@@ -4539,16 +4532,11 @@
   .desktop-sidebar-container .feedback-content,
   .desktop-sidebar-container .logs-dropdown-scroll,
   .desktop-sidebar-container .reliability-list {
+    /* Keep the reserved thin scrollbar outside the 16px content inset so
+       every list/card edge lines up with the global search field above it. */
+    padding-right: 6px;
     scrollbar-gutter: stable;
-    padding-right: calc(16px - 4px);
   }
-}
-
-.desktop-sidebar-container .line-impact-panel-stack,
-.desktop-sidebar-container .alert-stack,
-.desktop-sidebar-container .closure-stack {
-  padding-right: 16px;
-  scrollbar-gutter: auto;
 }
 
 .desktop-sidebar-container .panel-header {

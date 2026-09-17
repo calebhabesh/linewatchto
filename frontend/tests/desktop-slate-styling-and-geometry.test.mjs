@@ -56,6 +56,15 @@ describe("desktop slate styling and card geometry cleanup (Step 2)", () => {
       assert.match(globalCss, /\.desktop-more-account-card\s*\{[^}]*border-radius:\s*8px/);
     });
 
+    it("keeps Status and More entries on the search field width guides", () => {
+      assert.match(globalCss, /\.desktop-status-overview\s*\{[^}]*padding:\s*12px 16px 16px 16px/);
+      assert.match(globalCss, /\.desktop-more-panel\s*\{[^}]*padding:\s*8px 16px 16px 16px/);
+      assert.doesNotMatch(
+        globalCss,
+        /\.desktop-status-overview,\s*\.desktop-more-panel\s*\{[^}]*padding-right:/s,
+      );
+    });
+
     it("preserves high-contrast borders for accessibility across interactive surfaces", () => {
       assert.match(globalCss, /\.high-contrast \.desktop-status-category-capsule[\s\S]*?border:\s*1px solid currentColor/);
       assert.match(globalCss, /\.high-contrast \.desktop-status-line-badge-btn[\s\S]*?border:\s*1px solid currentColor/);
@@ -120,6 +129,10 @@ describe("desktop slate styling and card geometry cleanup (Step 2)", () => {
         /\.desktop-sidebar-container \.line-impact-panel-stack::\-webkit-scrollbar-button,[^}]*display:\s*none\s*!important;/s,
       );
       assert.match(
+        globalCss,
+        /\.desktop-sidebar-container \.station-detail-scroll,[^}]*padding-right:\s*6px;[^}]*scrollbar-gutter:\s*stable;/s,
+      );
+      assert.doesNotMatch(
         globalCss,
         /\.desktop-sidebar-container \.line-impact-panel-stack,[^}]*scrollbar-gutter:\s*auto;/s,
       );
