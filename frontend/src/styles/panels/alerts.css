@@ -13,123 +13,137 @@
  */
 
 /* ==========================================================================
-   Circle "View on Map" Buttons (Desktop & Mobile)
-   Inspired by Mobile Status Peek "Center" Button design
+   44px "View on Map" Buttons (Desktop & Mobile)
+   Icon-only with Lucide MapPinned, slate/visionOS surface, and comparison variant
    ========================================================================== */
 
 .impact-card-map-btn {
   align-items: center;
-  background: rgba(37, 99, 235, 0.08);
-  background-image: none;
+  background: rgba(241, 245, 249, 0.85);
   border: none !important;
-  outline: none;
-  border-radius: 9999px;
-  box-shadow: none;
-  color: #2563eb;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 3px rgba(15, 23, 42, 0.08);
+  color: #334155;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 88px;
-  gap: 4px;
-  height: 88px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  height: 44px;
   justify-content: center;
-  min-width: 88px;
-  padding: 0 6px;
-  transition: background-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
-  width: 88px;
+  min-height: 44px;
+  min-width: 44px;
+  outline: none;
+  padding: 0 12px;
+  position: relative;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  width: auto;
+}
+
+.impact-card-map-btn--icon-only {
+  padding: 0;
+  width: 44px;
 }
 
 .dark .impact-card-map-btn {
-  background: rgba(56, 189, 248, 0.09);
-  color: #38bdf8;
+  background: rgba(30, 41, 59, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.28);
+  color: #e2e8f0;
 }
 
 .impact-card-map-btn:hover {
-  background: rgba(37, 99, 235, 0.14);
+  background: rgba(226, 232, 240, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), 0 2px 5px rgba(15, 23, 42, 0.12);
 }
 
 .dark .impact-card-map-btn:hover {
-  background: rgba(56, 189, 248, 0.16);
+  background: rgba(51, 65, 85, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 3px 8px rgba(0, 0, 0, 0.35);
 }
 
 .impact-card-map-btn:active {
-  transform: scale(0.93);
-  background: rgba(37, 99, 235, 0.2);
+  transform: scale(0.95);
 }
 
-.dark .impact-card-map-btn:active {
-  background: rgba(56, 189, 248, 0.22);
+.impact-card-map-btn:focus-visible {
+  outline: 2px solid var(--color-logo-blue, #81c9ff);
+  outline-offset: 2px;
 }
 
+.impact-card-map-btn .map-pinned-icon,
 .impact-card-map-btn svg {
   flex-shrink: 0;
-  transition: transform 0.2s ease, filter 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
-.impact-card-map-btn span {
-  font-size: 10.5px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  text-align: center;
-  line-height: 1.15;
-  color: #ffffff !important;
-  max-width: 70px;
-  word-break: break-word;
+/* Lucide MapPinned: red pin, blue folded-map base */
+.impact-card-map-btn svg path:first-of-type,
+.impact-card-map-btn svg circle {
+  stroke: #ef4444;
 }
 
-@media (max-width: 767px) {
-  .impact-card-map-btn {
-    flex: 0 0 72px;
-    height: 72px !important;
-    min-width: 72px;
-    width: 72px !important;
-    gap: 3px;
-    padding: 0 4px;
-  }
-
-  .impact-card-map-btn svg {
-    height: 24px;
-    width: 24px;
-  }
-
-  .impact-card-map-btn span {
-    font-size: 9px;
-    letter-spacing: 0.04em;
-    line-height: 1.1;
-    max-width: 56px;
-  }
+.dark .impact-card-map-btn svg path:first-of-type,
+.dark .impact-card-map-btn svg circle {
+  stroke: #f87171;
 }
 
-/* JumpToLocationIcon dual-tone styling: White corners, blue center pin */
+.impact-card-map-btn svg path:last-of-type {
+  stroke: #2563eb;
+}
+
+.dark .impact-card-map-btn svg path:last-of-type {
+  stroke: #60a5fa;
+}
+
+/* Comparison variant: icon + "Map" in the same position */
+.impact-card-map-btn--labeled {
+  flex: 0 0 auto;
+  flex-direction: row;
+  gap: 6px;
+  height: 44px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  width: auto;
+}
+
+.impact-card-map-btn__label {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dark .impact-card-map-btn__label {
+  color: #f1f5f9;
+}
+
+/* JumpToLocationIcon dual-tone styling for other consumers */
 .jump-to-location-icon .jump-to-corners path,
-.impact-card-map-btn .jump-to-corners path,
 .compact-impact-list-item__map-action .jump-to-corners path {
   stroke: #ffffff !important;
 }
 
 .jump-to-location-icon .jump-to-pin,
-.impact-card-map-btn .jump-to-pin,
 .compact-impact-list-item__map-action .jump-to-pin {
   color: #2563eb;
   filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.5));
 }
 
 .jump-to-location-icon .jump-to-pin path,
-.impact-card-map-btn .jump-to-pin path,
 .compact-impact-list-item__map-action .jump-to-pin path {
   stroke: currentColor;
   fill: none;
 }
 
 .jump-to-location-icon .jump-to-pin circle,
-.impact-card-map-btn .jump-to-pin circle,
 .compact-impact-list-item__map-action .jump-to-pin circle {
   fill: currentColor;
   stroke: none;
 }
 
-.linewatch-shell:not(.dark) .impact-card-map-btn .jump-to-pin,
 .linewatch-shell:not(.dark) .compact-impact-list-item__map-action .jump-to-pin {
   color: #2563eb;
   filter: none;
@@ -137,19 +151,14 @@
 
 /* Active / Focused on map */
 .impact-card-map-btn.is-active {
-  background: #2563eb !important;
-  color: #ffffff;
+  background: #2563eb;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.20);
+  color: #ffffff;
 }
 
 .dark .impact-card-map-btn.is-active {
-  background: #1d4ed8 !important;
+  background: #1d4ed8;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-
-.impact-card-map-btn.is-active .jump-to-pin {
-  color: #ffffff;
-  filter: none !important;
 }
 
 .impact-card-map-btn.is-active:hover {
@@ -158,39 +167,47 @@
 
 .dark .impact-card-map-btn.is-active:hover {
   background: #2563eb;
-  border: none;
 }
 
+.impact-card-map-btn.is-active svg path:first-of-type,
+.impact-card-map-btn.is-active svg circle {
+  stroke: #ffffff;
+}
+
+.impact-card-map-btn.is-active svg path:last-of-type {
+  stroke: #bfdbfe;
+}
+
+.impact-card-map-btn.is-active .impact-card-map-btn__label {
+  color: #ffffff;
+}
 
 /* High contrast mode support */
 .high-contrast .impact-card-map-btn {
   background: #000000;
-  border: 1px solid #ffffff !important;
-  color: #ffffff;
+  border: 1px solid #ffffff;
   box-shadow: none;
+  color: #ffffff;
 }
 
-.high-contrast .impact-card-map-btn .jump-to-corners path,
-.high-contrast .impact-card-map-btn .jump-to-pin {
-  color: #ffffff;
-  stroke: #ffffff;
-  filter: none;
+.high-contrast .impact-card-map-btn svg path,
+.high-contrast .impact-card-map-btn svg circle {
+  stroke: currentColor;
 }
 
 .high-contrast .impact-card-map-btn.is-active {
-  background: #ffffff !important;
-  border: 1px solid #ffffff !important;
-  color: #000000;
+  background: #ffffff;
+  border: 1px solid #ffffff;
   box-shadow: none;
+  color: #000000;
 }
 
-.high-contrast .impact-card-map-btn.is-active .jump-to-corners path,
-.high-contrast .impact-card-map-btn.is-active .jump-to-pin {
-  color: #000000;
+.high-contrast .impact-card-map-btn.is-active svg path,
+.high-contrast .impact-card-map-btn.is-active svg circle {
   stroke: #000000;
 }
 
-.high-contrast .impact-card-map-btn.is-active span {
+.high-contrast .impact-card-map-btn.is-active .impact-card-map-btn__label {
   color: #000000;
 }
 
@@ -228,18 +245,123 @@
   width: 100%;
 }
 
-.impact-card-heading {
-  position: relative;
+.impact-card-header {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
 }
 
-.impact-card-heading.has-status-badges > :first-child {
-  padding-right: 5rem;
+.impact-card-header__row {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+}
+
+.impact-card-header__line {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.impact-card-header__identity {
+  align-items: flex-start;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 10px;
+}
+
+.impact-card-header__copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.impact-card-header__action {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.impact-card-header__badges {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.impact-card-title {
+  color: var(--text);
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-top: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+  width: 100%;
+  word-break: break-word;
+}
+
+.impact-card-description {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 3px 0 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+  word-break: normal;
+}
+
+.impact-card-heading {
+  min-width: 0;
+  position: relative;
+  width: 100%;
 }
 
 .impact-card-heading__badges {
   position: absolute;
   right: 0;
   top: 0;
+}
+
+.impact-card-header__badges {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 4px;
+  position: static;
+}
+
+.impact-card-actions,
+.impact-card-closure-actions {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+.closure-card .impact-card-header__badges {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  position: static;
 }
 
 .impact-route {
@@ -385,12 +507,60 @@
   }
 }
 
-.impact-metadata-grid dd {
-  color: var(--text);
-  font-size: 0.78rem;
-  font-weight: 700;
-  margin: 2px 0 0;
+/* Expanded cards: full width beneath divider, two equal columns, 12px labels and 14px values */
+.alert-card .impact-metadata-grid,
+.closure-card .impact-metadata-grid {
+  gap: 10px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+}
+
+.alert-card .impact-metadata-grid dt,
+.closure-card .impact-metadata-grid dt {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+}
+
+.alert-card .impact-metadata-grid dd,
+.closure-card .impact-metadata-grid dd {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 2px;
   overflow-wrap: break-word;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Spanning rules for long narrative fields */
+.impact-metadata-grid > .is-span-columns,
+.impact-metadata-grid > .is-narrative-row {
+  grid-column: 1 / -1;
+}
+
+/* Maintain a clean 2-column grid across expanded cards (even for multi-zone RSZ and planned closures) */
+@media (min-width: 768px) {
+  .alert-card .impact-metadata-grid > div,
+  .closure-card .impact-metadata-grid > div {
+    grid-column: auto;
+  }
+
+  .alert-card .impact-metadata-grid > .is-span-columns,
+  .closure-card .impact-metadata-grid > .is-span-columns {
+    grid-column: 1 / -1;
+  }
+}
+
+.desktop-sidebar-container .alert-card .impact-metadata-grid > div,
+.desktop-sidebar-container .closure-card .impact-metadata-grid > div {
+  grid-column: auto;
+}
+
+.desktop-sidebar-container .alert-card .impact-metadata-grid > .is-span-columns,
+.desktop-sidebar-container .closure-card .impact-metadata-grid > .is-span-columns {
+  grid-column: 1 / -1;
 }
 
 /* Shared operational-time treatment keeps timestamps legible across impact cards. */
@@ -467,7 +637,7 @@
   grid-column: 1 / -1;
 }
 
-.planned-closure-metadata .is-window-row {
+.planned-closure-metadata > .is-window-row {
   grid-column: 1 / -1;
 }
 
@@ -476,7 +646,7 @@
   column-gap: 0.28em;
   display: inline-flex;
   flex-direction: row;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   white-space: nowrap;
 }
 
@@ -485,6 +655,7 @@
   font-weight: 850;
   line-height: 1.25;
   white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 .closure-window-time {
@@ -493,6 +664,7 @@
   font-weight: 750;
   line-height: 1.25;
   white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 @media (max-width: 639px) {
@@ -562,7 +734,7 @@
 .impact-list-toolbar {
   display: grid;
   flex-shrink: 0;
-  grid-template-columns: minmax(120px, 1fr) auto;
+  grid-template-columns: 1fr;
   min-height: 54px;
   align-items: center;
   gap: 7px;
@@ -982,6 +1154,7 @@
 
 .alert-stack.is-list-view,
 .closure-stack.is-list-view {
+  align-content: start;
   gap: 6px;
 }
 
@@ -1220,9 +1393,6 @@
     flex: 0 0 100%;
   }
 
-  .compact-impact-list-item .rsz-timing-breakdown {
-    flex-direction: column;
-  }
 }
 
 .compact-impact-list-item__map-action {
@@ -1579,6 +1749,13 @@
   gap: 5px;
 }
 
+.compact-impact-list-item--organized.rsz-card-border .compact-impact-list-item__facts {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+}
+
 .compact-impact-list-item--organized .compact-impact-list-item__heading strong {
   font-size: 14px;
 }
@@ -1589,9 +1766,10 @@
 
 .compact-impact-list-item--organized .rsz-zone-direction-breakdown {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
 }
 
 .compact-impact-list-item--organized .compact-impact-list-item__fact {
@@ -1640,11 +1818,6 @@
 .planned-closure-metadata .closure-window-value {
   flex-wrap: wrap;
   white-space: normal;
-}
-
-.planned-closure-metadata .closure-window-time {
-  white-space: normal;
-  overflow-wrap: anywhere;
 }
 
 .dark .compact-impact-list-item__detail {

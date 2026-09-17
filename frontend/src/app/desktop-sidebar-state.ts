@@ -153,15 +153,34 @@ export function readDesktopOverlayInsets(viewport: HTMLElement | null): { left: 
   return { left: 0 };
 }
 
-export type DesktopRailDestination = "status" | "stations" | "commutes" | "alert-history" | "more" | "source-status" | "analytics";
+export type DesktopRailDestination =
+  | "status"
+  | "alerts"
+  | "delays"
+  | "reduced-speed-zones"
+  | "closures"
+  | "trip-changes"
+  | "stations"
+  | "commutes"
+  | "alert-history"
+  | "more"
+  | "source-status"
+  | "analytics";
 
 export function desktopRailDestinationForView(view: string): DesktopRailDestination {
   switch (view) {
     case "status":
+      return "status";
     case "alerts":
+      return "alerts";
     case "delays":
+      return "delays";
     case "reduced-speed-zones":
+      return "reduced-speed-zones";
     case "closures":
+      return "closures";
+    case "trip-changes":
+      return "trip-changes";
     case "line-impacts":
     case "accessibility-outages":
     case "surface-notices":

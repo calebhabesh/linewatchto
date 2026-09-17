@@ -4045,6 +4045,28 @@ export function LineWatchShell({
         navigateRoot("status");
         announceDesktop("System status overview");
         return;
+      case "alerts":
+      case "delays":
+      case "reduced-speed-zones":
+      case "closures":
+        setImpactListLaunch((current) => ({ lineId: null, requestId: current.requestId + 1 }));
+        navigateRoot(dest);
+        announceDesktop(
+          dest === "alerts"
+            ? "Active Alerts"
+            : dest === "delays"
+              ? "Delays"
+              : dest === "reduced-speed-zones"
+                ? "Reduced Speed Zones"
+                : "Planned Closures",
+        );
+        return;
+      case "trip-changes":
+        setSurfaceNoticeInitialQuery("");
+        setSurfaceNoticeInitialContent("trip-changes");
+        navigateRoot("surface-notices");
+        announceDesktop("Trip Changes");
+        return;
       case "stations":
         navigateRoot("my-stations");
         announceDesktop("My Stations");
@@ -5839,11 +5861,22 @@ export function LineWatchShell({
             )}
           </div>
           <DesktopNavRail
-            activeDestination={desktopRailDestinationForView(activeView)}
+            activeDestination={
+              activeView === "surface-notices"
+                && selectedNetwork === "regional"
+                && surfaceNoticeInitialContent === "trip-changes"
+                ? "trip-changes"
+                : desktopRailDestinationForView(activeView)
+            }
             collapsed={desktopSidebarCollapsed}
             onToggleCollapse={handleToggleDesktopSidebar}
             onSelectDestination={handleSelectRailDestination}
             statusAlertCount={totalAlertCount}
+            activeAlertCount={activeAlerts.length}
+            delayCount={delays.length}
+            reducedSpeedZoneCount={reducedSpeedZoneCount}
+            plannedClosureCount={plannedClosures.length}
+            tripChangeCount={regionalTripChangeCount ?? 0}
             commuteAffectedCount={commuteAffectedCount}
             savedStationsAffectedCount={savedStationsAffectedCount}
             toggleButtonRef={desktopRailToggleRef}

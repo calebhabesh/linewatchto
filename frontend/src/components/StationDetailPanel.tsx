@@ -734,14 +734,14 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             )}
 
             {station && connections.length > 0 && (
-              <div data-station-section="connected-network">
+              <div data-station-section="connected-network" className="w-full">
                 <StationConnectionBadges connections={connections} />
               </div>
             )}
 
             {station && hasAnyAmenities && (
               <div
-                className="flex flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                className="flex w-full flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
               >
                 <div className="station-subsection-header flex items-center gap-2.5">
@@ -892,7 +892,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       )}
 
       {station && (
-        <div className="flex flex-col gap-3">
+        <div className="flex w-full flex-col gap-3">
           {source === "fallback" && (
             <div className="rounded-lg border border-blue-500/25 bg-blue-500/10 p-3 text-xs font-semibold text-blue-700 dark:text-blue-300">
               Backend unavailable. Showing local fallback station data.
@@ -918,7 +918,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 includeEmptyDirections: hasLiveArrivals,
               }), pinnedLineIds);
             const arrivalDisclaimer = formatArrivalDisclaimer(station.arrivals, station.disclaimer);
-            const arrivalSectionClassName = "rounded-lg border border-black/10 bg-slate-50 p-3 transition-colors dark:border-white/10 dark:bg-white/5";
+            const arrivalSectionClassName = "w-full rounded-lg border border-black/10 bg-slate-50 p-3 transition-colors dark:border-white/10 dark:bg-white/5";
 
             return (
               <section
@@ -1189,7 +1189,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
               {stationNotices.length > 0 && (
                 <details
                   ref={noticesDetailsRef}
-                  className="station-notices-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                  className="station-notices-details w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                   data-station-section="notices"
                   aria-label="TTC station notices"
                 >
@@ -1272,7 +1272,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	          <details
 	            data-station-section="station-impacts"
 	            open={distinctImpacts.length > 0}
-	            className="station-impacts-details group rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+	            className="station-impacts-details group w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
 	          >
 	            <summary className="station-impacts-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white">
 	              <div className="station-subsection-header flex min-w-0 items-center gap-2.5">
@@ -1357,7 +1357,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	            </div>
 	          </details>
 
-	          <details ref={accessibilityDetailsRef} data-station-section="accessibility" className="station-accessibility-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+	          <details ref={accessibilityDetailsRef} data-station-section="accessibility" className="station-accessibility-details w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
             <summary
               onClick={handleSummaryClick}
               className="station-accessibility-summary flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-black text-slate-900 dark:text-white"

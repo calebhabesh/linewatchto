@@ -17,7 +17,7 @@ export function ReducedSpeedZoneResolutionBreakdown({ zone }: { zone: ReducedSpe
             lineId={zone.lineId}
           />
           <span>{resolution}</span>{" "}
-          <strong style={{ color: "#B8A66F" }}>({count})</strong>
+          {count > 1 ? <strong style={{ color: "#B8A66F" }}>({count})</strong> : null}
         </span>
       ))}
     </span>

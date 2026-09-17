@@ -24,6 +24,13 @@ describe("alert card and list views", () => {
     assert.match(toolbarSource, /aria-pressed=\{viewMode === "list"\}/);
   });
 
+  it("keeps compact list rows at their content height", () => {
+    assert.match(
+      globalCss,
+      /\.alert-stack\.is-list-view,\s*\.closure-stack\.is-list-view\s*\{[^}]*align-content:\s*start;/s,
+    );
+  });
+
   it("defaults to cards and stores one per-device preference for all alert types", () => {
     assert.match(preferenceSource, /linewatch-impact-list-view-v1/);
     assert.match(preferenceSource, /useSyncExternalStore/);

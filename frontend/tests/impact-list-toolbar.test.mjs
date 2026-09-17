@@ -7,6 +7,13 @@ const toolbarSource = readFileSync(new URL("../src/components/ImpactListToolbar.
 const globalCss = readAppStylesheet();
 
 describe("impact list toolbar", () => {
+  it("gives alert submenu search its own row on desktop", () => {
+    assert.match(
+      globalCss,
+      /\.impact-list-toolbar\s*\{[^}]*grid-template-columns:\s*1fr;/s,
+    );
+  });
+
   it("labels transit line filters with a numbered route badge and line name", () => {
     assert.match(toolbarSource, /import \{ TransitLineBadge \} from "\.\/TransitLineBadge"/);
     assert.match(toolbarSource, /Yonge-University/);

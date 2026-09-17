@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { MapPinned } from "lucide-react";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { ImpactTimestamp } from "./ImpactTimestamp";
@@ -207,9 +208,26 @@ export function ImpactRouteHeader({
 }
 
 export function renderClosureScheduleValue(value: ReactNode, isWindowField: boolean): ReactNode {
-  if (!isWindowField || typeof value !== "string" || !value.includes("·")) {
+  if (!isWindowField || typeof value !== "string") {
     return value;
   }
+
+  const rangeMatch = value.match(/^(.*?)\s+([\u2013\u2014-])\s+(.*?)$/);
+  if (rangeMatch) {
+    const [, rangeStart, separator, rangeEnd] = rangeMatch;
+
+    return (
+      <span className="closure-window-value">
+        <span className="closure-window-date">{rangeStart} {separator}</span>
+        <span className="closure-window-time">{rangeEnd}</span>
+      </span>
+    );
+  }
+
+  if (!value.includes("·")) {
+    return value;
+  }
+
   const dotIndex = value.indexOf("·");
   const datePart = value.slice(0, dotIndex).trim();
   const timePart = value.slice(dotIndex + 1).trim();
@@ -287,25 +305,93 @@ export function MetadataGrid({
     <dl className={`impact-metadata-grid ${className}`.trim()}>
       {rows.map(([label, value, labelSuffix], index) => {
         const isWindowField = label.toLowerCase().includes("window");
+        const isClosureSchedule =
+          isWindowField ||
+          label.toLowerCase().includes("closure date") ||
+          label.toLowerCase().includes("closure hour") ||
+          label.toLowerCase().includes("schedule");
+        const isNarrativeOrLong =
+          !isClosureSchedule &&
+          !isWindowField &&
+          label !== "Started" &&
+          label !== "Updated" &&
+          label !== "Zone Count" &&
+          label !== "Est. Resolution" &&
+          typeof value === "string" &&
+          (
+            (label.toLowerCase() === "cause" && value.length > 50) ||
+            (label.toLowerCase() === "reason" && value.length > 50) ||
+            (label.toLowerCase().includes("description") && value.length > 40) ||
+            (label.toLowerCase().includes("notes") && value.length > 40)
+          );
+
         return (
           <div
             key={label}
-            className={index < renderedLeadingRows.length ? "is-emphasized" + (isWindowField ? " is-window-row" : "")
-              : label === "Planned Closure"
-                ? "is-planned-closure-row"
-                : label === "Status"
-                  ? "is-status-row"
-                  : (label === "Started" && startedValue) || (label === "Updated" && updatedValue)
-                    ? "has-directional-timing"
-                  : undefined
-            }
+            className={[
+              index < renderedLeadingRows.length ? "is-emphasized" + (isWindowField ? " is-window-row" : "") : "",
+              isClosureSchedule && !isWindowField ? "is-closure-schedule-row" : "",
+              label === "Planned Closure" ? "is-planned-closure-row" : "",
+              label === "Status" ? "is-status-row" : "",
+              (label === "Started" && startedValue) || (label === "Updated" && updatedValue)
+                ? "has-directional-timing"
+                : "",
+              isNarrativeOrLong ? "is-span-columns is-narrative-row" : "",
+            ].filter(Boolean).join(" ") || undefined}
           >
             <dt>{label}{labelSuffix}</dt>
-            <dd>{renderClosureScheduleValue(value, isWindowField)}</dd>
+            <dd>{renderClosureScheduleValue(value, isWindowField || isClosureSchedule)}</dd>
           </div>
         );
       })}
     </dl>
+  );
+}
+
+export interface ImpactCardMapButtonProps {
+  onClick: (e?: React.MouseEvent) => void;
+  isActive: boolean;
+  onFocusMap?: () => void;
+  title: string;
+  actionLabel?: string;
+  variant?: "icon-only" | "labeled";
+  className?: string;
+}
+
+export function ImpactCardMapButton({
+  onClick,
+  isActive,
+  title,
+  actionLabel,
+  variant = "labeled",
+  className = "",
+}: ImpactCardMapButtonProps) {
+  // Label: "View" when inactive, "Back" when active (detoggle state)
+  // Legacy action contracts: View on Map / Unfocus
+  const labelText = actionLabel ?? (isActive ? "Back" : "View");
+  const isBack = labelText.toLowerCase().includes("back") || labelText.toLowerCase().includes("unfocus");
+  const ariaText = isBack ? `Back: ${title} (unfocus)` : `View ${title} on map`;
+  const tooltipText = isBack ? "Back (Unfocus)" : "View on Map";
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(e);
+      }}
+      className={`impact-card-map-btn ${variant === "icon-only" ? "impact-card-map-btn--icon-only" : "impact-card-map-btn--labeled"} ${isActive ? "is-active" : ""} ${className}`.trim()}
+      aria-label={ariaText}
+      title={tooltipText}
+      data-variant={variant}
+    >
+      <MapPinned size={18} className="map-pinned-icon shrink-0" aria-hidden="true" />
+      {variant !== "icon-only" ? (
+        <span className="impact-card-map-btn__label">
+          {labelText}
+        </span>
+      ) : null}
+    </button>
   );
 }
 

@@ -5,16 +5,20 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
+  Construction,
   History,
   MapPin,
   Menu,
   Navigation,
   PanelLeftClose,
   PanelLeftOpen,
+  TrainFront,
   UserRound,
 } from "lucide-react";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
 import { NetworkSelector } from "./NetworkSelector";
+import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import type { NetworkId } from "../app/regional-data";
 import type { DesktopRailDestination } from "../app/desktop-sidebar-state";
 
@@ -26,6 +30,11 @@ export type DesktopNavRailProps = {
   onToggleCollapse: () => void;
   onSelectDestination: (destination: DesktopRailDestination) => void;
   statusAlertCount?: number;
+  activeAlertCount?: number;
+  delayCount?: number;
+  reducedSpeedZoneCount?: number;
+  plannedClosureCount?: number;
+  tripChangeCount?: number;
   commuteAffectedCount?: number;
   savedStationsAffectedCount?: number;
   toggleButtonRef?: RefObject<HTMLButtonElement | null>;
@@ -50,9 +59,10 @@ const RAIL_ITEMS: readonly RailItemDef[] = [
   { key: "more", label: "More", Icon: Menu },
 ];
 
-const ANALYTICS_INDEX = RAIL_ITEMS.length;
-const SOURCE_STATUS_INDEX = RAIL_ITEMS.length + 1;
-const TOTAL_RAIL_SLOTS = RAIL_ITEMS.length + 2; // includes analytics and source-status items
+const ALERT_SHORTCUT_COUNT = 4;
+const ANALYTICS_INDEX = RAIL_ITEMS.length + ALERT_SHORTCUT_COUNT;
+const SOURCE_STATUS_INDEX = ANALYTICS_INDEX + 1;
+const TOTAL_RAIL_SLOTS = RAIL_ITEMS.length + ALERT_SHORTCUT_COUNT + 2;
 
 export function DesktopNavRail({
   activeDestination,
@@ -60,6 +70,11 @@ export function DesktopNavRail({
   onToggleCollapse,
   onSelectDestination,
   statusAlertCount = 0,
+  activeAlertCount = 0,
+  delayCount = 0,
+  reducedSpeedZoneCount = 0,
+  plannedClosureCount = 0,
+  tripChangeCount = 0,
   commuteAffectedCount = 0,
   savedStationsAffectedCount = 0,
   toggleButtonRef,
@@ -71,6 +86,19 @@ export function DesktopNavRail({
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const sourceStatusLabel =
     selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status";
+  const alertShortcuts = selectedNetwork === "regional"
+    ? [
+        { key: "alerts", label: "Active Alerts", lines: ["Active", "Alerts"], count: activeAlertCount, countLabel: activeAlertCount === 1 ? "active alert" : "active alerts", icon: <AlertTriangle size={21} aria-hidden="true" /> },
+        { key: "delays", label: "Delays", lines: ["Delays"], count: delayCount, countLabel: delayCount === 1 ? "delay" : "delays", icon: <DelayIcon size={21} /> },
+        { key: "trip-changes", label: "Trip Changes", lines: ["Trip", "Changes"], count: tripChangeCount, countLabel: tripChangeCount === 1 ? "trip change" : "trip changes", icon: <TrainFront size={21} aria-hidden="true" /> },
+        { key: "closures", label: "Planned Closures", lines: ["Planned", "Closures"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned closure" : "planned closures", icon: <PlannedClosureIcon size={21} /> },
+      ] as const
+    : [
+        { key: "alerts", label: "Active Alerts", lines: ["Active", "Alerts"], count: activeAlertCount, countLabel: activeAlertCount === 1 ? "active alert" : "active alerts", icon: <AlertTriangle size={21} aria-hidden="true" /> },
+        { key: "delays", label: "Delays", lines: ["Delays"], count: delayCount, countLabel: delayCount === 1 ? "delay" : "delays", icon: <DelayIcon size={21} /> },
+        { key: "reduced-speed-zones", label: "Reduced Speed Zones", lines: ["Reduced", "Speed", "Zones"], count: reducedSpeedZoneCount, countLabel: reducedSpeedZoneCount === 1 ? "reduced speed zone" : "reduced speed zones", icon: <Construction size={21} aria-hidden="true" /> },
+        { key: "closures", label: "Planned Closures", lines: ["Planned", "Closures"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned closure" : "planned closures", icon: <PlannedClosureIcon size={21} /> },
+      ] as const;
 
   const handleToggleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown") {
@@ -214,6 +242,44 @@ export function DesktopNavRail({
         ) : null}
 
         <div className="desktop-rail-bottom-group">
+          <div className="desktop-rail-alert-shortcuts" role="group" aria-label="Service impact categories">
+            {alertShortcuts.map((shortcut, shortcutIndex) => {
+              const itemIndex = RAIL_ITEMS.length + shortcutIndex;
+              const isSelected = activeDestination === shortcut.key;
+              return (
+                <button
+                  key={shortcut.key}
+                  ref={(element) => {
+                    itemRefs.current[itemIndex] = element;
+                  }}
+                  type="button"
+                  className="desktop-rail-item desktop-rail-alert-shortcut"
+                  data-active={isSelected ? "true" : "false"}
+                  data-alert-kind={shortcut.key}
+                  data-dest={shortcut.key}
+                  aria-current={isSelected ? "page" : undefined}
+                  aria-label={shortcut.count > 0 ? `${shortcut.label}, ${shortcut.count} ${shortcut.countLabel}` : shortcut.label}
+                  title={shortcut.label}
+                  onClick={() => onSelectDestination(shortcut.key)}
+                  onKeyDown={(event) => handleItemKeyDown(itemIndex, event)}
+                >
+                  <span className="desktop-rail-icon-slot">
+                    {shortcut.icon}
+                    {shortcut.count > 0 ? (
+                      <OverlappingCountBadge
+                        className="desktop-rail-badge desktop-rail-alert-badge"
+                        count={shortcut.count}
+                      />
+                    ) : null}
+                  </span>
+                  <span className="desktop-rail-label desktop-rail-label--multiline">
+                    {shortcut.lines.map((line) => <span key={line}>{line}</span>)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="desktop-rail-divider" role="separator" aria-orientation="horizontal" />
 
           <button

@@ -756,14 +756,14 @@ export function RegionalStationDetailPanel({
             )}
 
             {connections.length > 0 && (
-              <div data-station-section="connected-network">
+              <div data-station-section="connected-network" className="w-full">
                 <StationConnectionBadges connections={connections} />
               </div>
             )}
 
             {hasAnyAmenities && (
               <div
-                className="flex flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                className="flex w-full flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="services-and-amenities"
               >
                 <div className="station-subsection-header flex items-center gap-2.5">
@@ -883,9 +883,9 @@ export function RegionalStationDetailPanel({
               </div>
             )}
 
-            <div className="flex flex-col gap-3">
+            <div className="flex w-full flex-col gap-3">
               <section
-                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                className="w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="arrivals"
               >
                 <h3 className="station-subsection-header flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
@@ -1263,7 +1263,7 @@ export function RegionalStationDetailPanel({
               <SurfaceConnectionsSection networkId="regional" stationId={station.id} />
 
               <details
-                className="station-impacts-details group rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                className="station-impacts-details group w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="station-impacts"
                 aria-label="Station service impacts"
                 open={impacts.length > 0}
@@ -1336,7 +1336,7 @@ export function RegionalStationDetailPanel({
 
               {station.lineIds.some((lineId) => lineId !== "regional-up") ? (
                 <details
-                  className="station-trip-changes-details station-impacts-details group rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                  className="station-trip-changes-details station-impacts-details group w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                   data-station-section="trip-changes"
                   aria-label="Upcoming GO train changes"
                   open={tripChanges.changes.length > 0}
@@ -1382,7 +1382,7 @@ export function RegionalStationDetailPanel({
 
               <details
                 ref={noticesDetailsRef}
-                className="station-notices-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                className="station-notices-details group w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="notices"
                 aria-label="Regional station notices"
               >
@@ -1505,7 +1505,7 @@ export function RegionalStationDetailPanel({
 
               <details
                 ref={accessibilityDetailsRef}
-                className="station-accessibility-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                className="station-accessibility-details group w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="accessibility"
                 aria-label="Regional accessibility outages"
               >

@@ -79,11 +79,13 @@
    ========================================================================== */
 
 .station-connections-card {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 6px;
   color: #1e293b;
+  width: 100%;
 }
 
 .station-connections-title {

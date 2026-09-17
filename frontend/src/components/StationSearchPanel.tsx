@@ -55,6 +55,11 @@ import { StationOutageBadge } from "./StationOutageBadge";
 
 const RETURN_MENU_ICONS = {
   status: AlertTriangle,
+  alerts: AlertTriangle,
+  delays: AlertTriangle,
+  "reduced-speed-zones": AlertTriangle,
+  closures: AlertTriangle,
+  "trip-changes": AlertTriangle,
   stations: MapPin,
   commutes: Navigation,
   "alert-history": History,

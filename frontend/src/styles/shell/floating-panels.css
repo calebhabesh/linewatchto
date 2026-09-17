@@ -330,8 +330,7 @@
   .floating-panel-shell .feedback-content,
   .floating-panel-shell .logs-dropdown-scroll {
     padding-left: var(--mobile-sheet-gutter, 16px);
-    padding-right: calc(var(--mobile-sheet-gutter, 16px) - 8px);
-    scrollbar-gutter: stable;
+    padding-right: var(--mobile-sheet-gutter, 16px);
   }
 
   .floating-panel-shell .my-stations-list {

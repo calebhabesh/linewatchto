@@ -29,7 +29,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     expect(delaysBox1440?.width).toBe(560);
 
     // In docked mode, clicking "View on map" leaves detail open beside the map
-    const viewOnMapBtn = page.getByRole("button", { name: /View on map/i }).first();
+    const viewOnMapBtn = page.getByRole("button", { name: /^View .* on map$/i }).first();
     await viewOnMapBtn.click();
     await expect(sidebar).not.toHaveClass(/desktop-sidebar-container--collapsed/);
     await expect(sidebar).toBeVisible();
@@ -63,7 +63,8 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await toggleBtn.click();
     await expect(sidebar).not.toHaveClass(/desktop-sidebar-container--collapsed/);
     await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
-    await expect(page.locator('[data-impact-card-id="stub-delay-st-george-curve"]')).toHaveClass(/is-active/);
+    await expect(page.locator(".alert-card.is-active")).toHaveCount(1);
+    await expect(page.getByRole("button", { name: /^Back:/i })).toBeVisible();
   });
 
   test("preserves destination-based width for station detail and restores on close", async ({ page, request, isMobile }) => {
@@ -141,10 +142,14 @@ test("compact views fit docking boundaries and preserve mobile layout", async ({
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   const sidebar = page.locator("#desktop-sidebar-container");
-  for (const dest of ["more", "source-status", "status"]) {
+  for (const dest of ["more", "status"]) {
     await page.locator(`[data-dest="${dest}"]`).click();
     await expect(sidebar).toHaveCSS("width", "380px");
   }
+  await page.locator('[data-dest="source-status"]').click();
+  await expect(sidebar).toHaveCSS("width", "560px");
+  await page.locator('[data-dest="status"]').click();
+  await expect(sidebar).toHaveCSS("width", "380px");
   for (const width of [939, 940, 767, 768, 360]) {
     await page.setViewportSize({ width, height: 900 });
     if (width >= 768) {
@@ -155,4 +160,50 @@ test("compact views fit docking boundaries and preserve mobile layout", async ({
     }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
+});
+
+test("desktop rail exposes network-specific impact shortcuts above the data divider", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "Desktop navigation rail applies only to desktop");
+  await installDismissedTransientUi(page);
+  await setStubMode(request, "seeded");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+
+  const shortcuts = page.locator(".desktop-rail-alert-shortcuts .desktop-rail-alert-shortcut");
+  await expect(shortcuts).toHaveCount(4);
+  await expect.poll(() => shortcuts.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-alert-kind")))).toEqual([
+    "alerts",
+    "delays",
+    "reduced-speed-zones",
+    "closures",
+  ]);
+  await expect(page.locator('[data-dest="alerts"]')).toContainText("ActiveAlerts");
+  await expect(page.locator('[data-dest="reduced-speed-zones"]')).toContainText("ReducedSpeedZones");
+
+  const shortcutBottom = await page.locator(".desktop-rail-alert-shortcuts").evaluate((element) => element.getBoundingClientRect().bottom);
+  const dividerTop = await page.locator(".desktop-rail-divider").evaluate((element) => element.getBoundingClientRect().top);
+  expect(shortcutBottom).toBeLessThanOrEqual(dividerTop);
+
+  await page.locator('[data-dest="delays"]').click();
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+  await expect(page.locator('[data-dest="delays"]')).toHaveAttribute("data-active", "true");
+
+  await page.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+  await expect.poll(() => shortcuts.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-alert-kind")))).toEqual([
+    "alerts",
+    "delays",
+    "trip-changes",
+    "closures",
+  ]);
+
+  await page.setViewportSize({ width: 1024, height: 600 });
+  const railItems = page.locator(".desktop-rail-items");
+  await expect.poll(() => railItems.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  await page.locator('[data-dest="trip-changes"]').click();
+  await expect(page.locator('[data-dest="trip-changes"]')).toHaveAttribute("data-active", "true");
+  await expect(
+    page.getByRole("group", { name: "GO / UP notice content" })
+      .getByRole("button", { name: "Trip Changes", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });

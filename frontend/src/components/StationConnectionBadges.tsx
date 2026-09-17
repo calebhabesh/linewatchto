@@ -35,7 +35,7 @@ export function StationConnectionBadges({ connections }: { connections: readonly
 
   return (
     <section
-      className="station-connections-card flex flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+      className="station-connections-card flex w-full flex-col gap-3 rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
       aria-labelledby="station-connections-title"
     >
       <h3 id="station-connections-title" className="station-connections-title flex items-center gap-2.5">

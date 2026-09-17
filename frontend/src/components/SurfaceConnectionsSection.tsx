@@ -592,7 +592,7 @@ export function SurfaceConnectionsSection({ networkId, stationId, className, var
 
   return (
     <details
-      className={`surface-connections-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5${className ? ` ${className}` : ""}`}
+      className={`surface-connections-details w-full rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5${className ? ` ${className}` : ""}`}
       data-station-section="surface-connections"
     >
       <summary className="surface-connections-summary block cursor-pointer list-none">

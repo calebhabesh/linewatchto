@@ -7,19 +7,21 @@ import { readFileSync } from "node:fs";
 const railSource = readFileSync(new URL("../src/components/DesktopNavRail.tsx", import.meta.url), "utf8");
 
 describe("desktop navigation destinations", () => {
-  const RAIL_DESTINATIONS = ["status", "stations", "commutes", "alert-history", "more", "analytics", "source-status"];
+  const RAIL_DESTINATIONS = ["status", "stations", "commutes", "alert-history", "more", "alerts", "delays", "reduced-speed-zones", "closures", "trip-changes", "analytics", "source-status"];
 
   it("defines the agreed desktop rail destinations in order", () => {
-    assert.deepEqual(RAIL_DESTINATIONS, ["status", "stations", "commutes", "alert-history", "more", "analytics", "source-status"]);
+    assert.deepEqual(RAIL_DESTINATIONS, ["status", "stations", "commutes", "alert-history", "more", "alerts", "delays", "reduced-speed-zones", "closures", "trip-changes", "analytics", "source-status"]);
   });
 
   it("maps views to top-level desktop destinations", () => {
     const destinationForView = desktopRailDestinationForView;
 
     assert.equal(destinationForView("status"), "status");
-    assert.equal(destinationForView("alerts"), "status");
-    assert.equal(destinationForView("delays"), "status");
-    assert.equal(destinationForView("reduced-speed-zones"), "status");
+    assert.equal(destinationForView("alerts"), "alerts");
+    assert.equal(destinationForView("delays"), "delays");
+    assert.equal(destinationForView("reduced-speed-zones"), "reduced-speed-zones");
+    assert.equal(destinationForView("closures"), "closures");
+    assert.equal(destinationForView("trip-changes"), "trip-changes");
     assert.equal(destinationForView("search"), "status");
     assert.equal(destinationForView("commutes"), "commutes");
     assert.equal(destinationForView("my-stations"), "stations");
@@ -50,11 +52,22 @@ describe("desktop navigation destinations", () => {
     assert.match(railSource, /BarChart3/);
   });
 
+  it("places network-specific alert shortcuts immediately above the bottom divider", () => {
+    assert.match(railSource, /selectedNetwork === "regional"[\s\S]*?key: "trip-changes"[\s\S]*?key: "closures"/);
+    assert.match(railSource, /key: "reduced-speed-zones"[\s\S]*?key: "closures"/);
+    assert.match(railSource, /className="desktop-rail-alert-shortcuts"[\s\S]*?className="desktop-rail-divider"/);
+    assert.match(railSource, /lines: \["Active", "Alerts"\]/);
+    assert.match(railSource, /lines: \["Reduced", "Speed", "Zones"\]/);
+    assert.match(railSource, /shortcut\.count > 0/);
+  });
+
   it("styles rail items with blue hover preview pill and active selection bar highlight", () => {
     const desktopChromeCss = readFileSync(new URL("../src/styles/shell/desktop-chrome.css", import.meta.url), "utf8");
     assert.match(desktopChromeCss, /\.desktop-rail-item::before\s*\{[^}]*width:\s*3\.5px/s);
     assert.match(desktopChromeCss, /\.desktop-rail-item:hover:not\(\[data-active="true"\]\)::before\s*\{[^}]*scaleY\(0\.38\)/s);
     assert.match(desktopChromeCss, /\.desktop-rail-item\[data-active="true"\]::before\s*\{[^}]*scaleY\(1\)/s);
     assert.match(desktopChromeCss, /\.desktop-rail-item\[data-active="true"\]::after\s*\{[^}]*opacity:\s*1/s);
+    assert.match(desktopChromeCss, /\.desktop-rail-items\s*\{[^}]*overflow-y:\s*auto;/s);
+    assert.match(desktopChromeCss, /\.desktop-rail-alert-shortcut\[data-alert-kind="closures"\] \.desktop-rail-alert-badge\s*\{[^}]*background:\s*#2563eb;/s);
   });
 });

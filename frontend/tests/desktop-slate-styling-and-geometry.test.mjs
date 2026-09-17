@@ -78,17 +78,59 @@ describe("desktop slate styling and card geometry cleanup (Step 2)", () => {
     });
   });
 
-  describe("compact map button and embedded scrollbar adapters", () => {
-    it("styles compact labeled View on map buttons inside desktop sidebar container", () => {
-      assert.match(globalCss, /\.desktop-sidebar-container \.impact-card-map-btn\s*\{[^}]*height:\s*32px/);
-      assert.match(globalCss, /\.desktop-sidebar-container \.impact-card-map-btn\s*\{[^}]*border-radius:\s*6px/);
-      assert.match(globalCss, /\.desktop-sidebar-container \.impact-card-map-btn\s*\{[^}]*flex-direction:\s*row/);
-      assert.match(globalCss, /\.desktop-sidebar-container \.impact-card-map-btn svg\s*\{[^}]*height:\s*16px/);
+  describe("reconciled map button and embedded scrollbar adapters", () => {
+    it("reconciles impact card map buttons inside desktop sidebar container", () => {
+      assert.match(globalCss, /\.desktop-sidebar-container \.impact-card-map-btn\s*\{[^}]*align-self:\s*flex-start/);
+      assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*height:\s*44px/);
+      assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*min-width:\s*44px/);
     });
 
     it("ensures a single scrollbar by hiding outer scroll on desktop-sidebar-content when hosting panels", () => {
       assert.match(globalCss, /\.desktop-sidebar-content:has\(\.panel\)/);
       assert.match(globalCss, /overflow-y:\s*hidden/);
+    });
+
+    it("allows every desktop sidebar destination wrapper to scroll vertically", () => {
+      assert.match(
+        globalCss,
+        /\.desktop-view-content-wrapper\s*\{[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;/s,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-view-content-wrapper,[^}]*scrollbar-width:\s*thin;/s,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-view-content-wrapper::\-webkit-scrollbar\s*\{[^}]*width:\s*4px;/s,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-view-content-wrapper::\-webkit-scrollbar-thumb\s*\{[^}]*border:\s*0;/s,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-view-content-wrapper::\-webkit-scrollbar-button\s*\{[^}]*display:\s*none\s*!important;[^}]*height:\s*0;[^}]*width:\s*0;/s,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-sidebar-container \.line-impact-panel-stack::\-webkit-scrollbar,[^}]*width:\s*4px;/s,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-sidebar-container \.line-impact-panel-stack::\-webkit-scrollbar-button,[^}]*display:\s*none\s*!important;/s,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-sidebar-container \.line-impact-panel-stack,[^}]*scrollbar-gutter:\s*auto;/s,
+      );
+      assert.doesNotMatch(
+        globalCss,
+        /\.desktop-sidebar-content[^\{]*\{[^}]*scrollbar-gutter:\s*stable;/s,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-sidebar-container \*::\-webkit-scrollbar-button,[^}]*appearance:\s*none\s*!important;[^}]*block-size:\s*0\s*!important;[^}]*display:\s*none\s*!important;/s,
+      );
     });
   });
 

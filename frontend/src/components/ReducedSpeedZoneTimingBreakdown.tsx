@@ -23,7 +23,7 @@ export function ReducedSpeedZoneTimingBreakdown({
           <span className="sr-only">{direction}: </span>
           <ReducedSpeedZoneDirectionTextArrow direction={direction} lineId={zone.lineId} />
           <ImpactTimestamp timestamp={timestamp} />
-          <strong className="rsz-timing-count">({count})</strong>
+          {count > 1 ? <strong className="rsz-timing-count">({count})</strong> : null}
         </span>
       ))}
     </span>

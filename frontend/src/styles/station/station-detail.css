@@ -542,7 +542,22 @@
   }
 
   .desktop-sidebar-container .station-detail-scroll {
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
     padding-bottom: 16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    width: 100%;
+  }
+
+  @supports selector(::-webkit-scrollbar) {
+    .desktop-sidebar-container .station-detail-scroll {
+      scrollbar-gutter: stable;
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+      padding-right: calc(16px - 8px);
+    }
   }
 }
 

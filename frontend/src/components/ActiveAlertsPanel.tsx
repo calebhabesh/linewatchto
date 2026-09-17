@@ -7,7 +7,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, RelatedPlannedClosureButton, CommutePathPreviewCardBanner } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardMapButton } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -29,6 +29,7 @@ interface Props {
   showImpactTypeIndicator?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
+  mapActionVariant?: "icon-only" | "labeled";
 }
 
 function impactKindForAlert(alert: ActiveAlert): ImpactKind {
@@ -53,6 +54,7 @@ export function ActiveAlertsPanel({
   showImpactTypeIndicator = false,
   commutePathPreview,
   onClearCommutePathPreview,
+  mapActionVariant,
 }: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, reducedSpeedZones, delays, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
@@ -72,10 +74,6 @@ export function ActiveAlertsPanel({
     const alertImpactKind = impactKindForAlert(alert);
     const isActive = selection?.id === alert.id && selection?.kind === alertImpactKind;
     const isActivating = !isActive;
-    if (!isActivating && onFocusMap) {
-      onFocusMap();
-      return;
-    }
     
     onSelectImpact(
       isActivating ? { kind: alertImpactKind, id: alert.id } : null
@@ -189,29 +187,50 @@ export function ActiveAlertsPanel({
                   isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
-                <div className="impact-card-heading has-status-badges flex items-start justify-between gap-3 w-full min-w-0">
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <LineBadge lineId={alert.lineId} lineNumber={alert.lineNumber} />
-                    {showImpactTypeIndicator ? <ImpactTypeIcon kind={impactKindForAlert(alert)} size={17} className="line-impact-card-type-icon shrink-0" /> : null}
-                    <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
-                      {alert.title}
-                    </strong>
-                  </div>
-                  {alert.shuttle && (
-                    <div className="impact-card-heading__badges flex flex-col items-end shrink-0 mt-0.5">
-                      <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold uppercase">
-                        <Bus size={10} />
-                        Shuttle
-                      </span>
+                <div className="impact-card-header impact-card-heading w-full min-w-0">
+                  <div className="impact-card-header__row flex items-start justify-between gap-3 w-full min-w-0">
+                    <div className="impact-card-header__identity min-w-0">
+                      <div className="impact-card-header__line flex items-center gap-2 min-w-0">
+                        <LineBadge lineId={alert.lineId} lineNumber={alert.lineNumber} />
+                        {showImpactTypeIndicator ? <ImpactTypeIcon kind={impactKindForAlert(alert)} size={17} className="line-impact-card-type-icon shrink-0" /> : null}
+                      </div>
+                      <div className="impact-card-header__copy min-w-0">
+                        <strong className="impact-card-title block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
+                          {alert.title}
+                        </strong>
+                        {alert.description && alert.description !== alert.title ? (
+                          <p className="impact-card-description text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-normal break-words">
+                            {alert.description}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                  )}
+                  </div>
+                  <div className="impact-card-actions">
+                    <div className="impact-card-header__badges impact-card-heading__badges">
+                      {alert.shuttle && (
+                        <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold uppercase">
+                          <Bus size={10} />
+                          Shuttle
+                        </span>
+                      )}
+                    </div>
+                    <div className="impact-card-header__action flex flex-col items-end gap-1.5 shrink-0">
+                      {/* Card action contract: View on Map / Unfocus */}
+                      <ImpactCardMapButton
+                        onClick={() => handleAlertClick(alert)}
+                        isActive={isActive}
+                        onFocusMap={onFocusMap}
+                        title={alert.title}
+                        actionLabel={isActive ? "Back" : "View"}
+                        variant={mapActionVariant}
+                        className="impact-card-map-btn"
+                      />
+                    </div>
+                  </div>
                 </div>
                 
                 <ImpactRouteHeader location={alert.location} direction={alert.displayDirection} />
-                
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed whitespace-normal break-words">
-                  {alert.description}
-                </p>
 
                 <OverlappingImpactRefs
                   overlaps={overlappingImpacts}
@@ -219,39 +238,25 @@ export function ActiveAlertsPanel({
                   label="Overlap:"
                 />
                 
-                <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
-                  <div className="flex-1 min-w-0">
-                    <MetadataGrid 
-                      className="no-border"
-                      cause={alert.cause}
-                      resolution={alert.resolution}
-                      reason={alert.reason} 
-                      targetRemoval={alert.targetRemoval} 
-                      startedAt={alert.startedAt}
-                      updatedAt={alert.updatedAt}
-                      updatedAgo={alert.updatedAgo} 
-                      extraRows={alert.relatedPlannedClosureId ? [{
-                        label: "Planned Closure",
-                        value: (
-                          <RelatedPlannedClosureButton
-                            onClick={() => onSelectImpact({ kind: "planned-closure", id: alert.relatedPlannedClosureId! })}
-                          />
-                        ),
-                      }] : undefined}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAlertClick(alert)}
-                    className={`impact-card-map-btn shrink-0 ${isActive ? "is-active" : ""}`}
-                    aria-label={`${isActive && !onFocusMap ? "Unfocus" : "View on map"}: ${alert.title}`}
-                    title={isActive && !onFocusMap ? "Unfocus" : "View on Map"}
-                  >
-                    <JumpToLocationIcon className="w-8 h-8" />
-                    <span>
-                      {isActive && !onFocusMap ? "Unfocus" : "View on Map"}
-                    </span>
-                  </button>
+                <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 w-full min-w-0">
+                  <MetadataGrid
+                    className="no-border"
+                    cause={alert.cause}
+                    resolution={alert.resolution}
+                    reason={alert.reason}
+                    targetRemoval={alert.targetRemoval}
+                    startedAt={alert.startedAt}
+                    updatedAt={alert.updatedAt}
+                    updatedAgo={alert.updatedAgo}
+                    extraRows={alert.relatedPlannedClosureId ? [{
+                      label: "Planned Closure",
+                      value: (
+                        <RelatedPlannedClosureButton
+                          onClick={() => onSelectImpact({ kind: "planned-closure", id: alert.relatedPlannedClosureId! })}
+                        />
+                      ),
+                    }] : undefined}
+                  />
                 </div>
                 
                 {isActive && commutePathPreview ? (

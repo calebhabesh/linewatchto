@@ -7,7 +7,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, CommutePathPreviewCardBanner } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardMapButton } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -30,6 +30,7 @@ interface Props {
   showImpactTypeIndicator?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
+  mapActionVariant?: "icon-only" | "labeled";
 }
 
 function formatClosureScheduleValue(value: string) {
@@ -64,6 +65,7 @@ export function PlannedClosuresPanel({
   showImpactTypeIndicator = false,
   commutePathPreview,
   onClearCommutePathPreview,
+  mapActionVariant,
 }: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
@@ -81,10 +83,6 @@ export function PlannedClosuresPanel({
 
   const handleClosureClick = (closureId: string) => {
     const isActivating = !(selection?.kind === "planned-closure" && selection.id === closureId);
-    if (!isActivating && onFocusMap) {
-      onFocusMap();
-      return;
-    }
     onSelectImpact(
       isActivating ? { kind: "planned-closure", id: closureId } : null,
     );
@@ -194,36 +192,55 @@ export function PlannedClosuresPanel({
                   isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
-                <div className="impact-card-heading has-status-badges flex items-start justify-between gap-3 w-full min-w-0">
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <LineBadge lineId={closure.lineId} lineNumber={closure.lineNumber} />
-                    {showImpactTypeIndicator ? <ImpactTypeIcon kind="planned-closure" size={17} className="line-impact-card-type-icon shrink-0" /> : null}
-                    <div className="flex flex-col items-start min-w-0">
-                    <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
-                        {closure.title}
-                      </strong>
+                <div className="impact-card-header impact-card-heading w-full min-w-0">
+                  <div className="impact-card-header__row flex items-start gap-2 w-full min-w-0">
+                    <div className="impact-card-header__identity min-w-0">
+                      <div className="impact-card-header__line flex items-center gap-2 min-w-0">
+                        <LineBadge lineId={closure.lineId} lineNumber={closure.lineNumber} />
+                        {showImpactTypeIndicator ? <ImpactTypeIcon kind="planned-closure" size={17} className="line-impact-card-type-icon shrink-0" /> : null}
+                      </div>
+                      <div className="impact-card-header__copy min-w-0">
+                        <strong className="impact-card-title block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
+                          {closure.title}
+                        </strong>
+                        {closure.description && closure.description !== closure.title ? (
+                          <p className="impact-card-description text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-normal break-words">
+                            {closure.description}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                  <div className="impact-card-heading__badges flex flex-col items-end gap-1 shrink-0 mt-0.5">
-                    {closure.nightly && (
-                      <span className="flex items-center gap-1 text-[10px] bg-slate-500/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-500/20 dark:border-white/15 px-1.5 py-0.5 rounded font-semibold uppercase">
-                        Nightly
-                      </span>
-                    )}
-                    {closure.shuttle && (
-                      <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-semibold uppercase">
-                        <Bus size={10} />
-                        Shuttle
-                      </span>
-                    )}
+                  <div className="impact-card-actions impact-card-closure-actions">
+                    <div className="impact-card-header__badges impact-card-heading__badges flex items-center gap-1.5 flex-wrap">
+                      {closure.nightly && (
+                        <span className="flex items-center gap-1 text-[10px] bg-slate-500/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-500/20 dark:border-white/15 px-2 py-0.5 rounded font-semibold uppercase">
+                          Nightly
+                        </span>
+                      )}
+                      {closure.shuttle && (
+                        <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-semibold uppercase">
+                          <Bus size={10} />
+                          Shuttle
+                        </span>
+                      )}
+                    </div>
+                    <div className="impact-card-header__action flex flex-col items-end gap-1.5 shrink-0">
+                      {/* Card action contract: View on Map / Unfocus */}
+                      <ImpactCardMapButton
+                        onClick={() => handleClosureClick(closure.id)}
+                        isActive={isActive}
+                        onFocusMap={onFocusMap}
+                        title={closure.title}
+                        actionLabel={isActive ? "Back" : "View"}
+                        variant={mapActionVariant}
+                        className="impact-card-map-btn"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <ImpactRouteHeader location={closure.location} direction={closure.displayDirection} />
-                
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed whitespace-normal break-words">
-                  {closure.description}
-                </p>
 
                 <OverlappingImpactRefs
                   overlaps={overlappingImpacts}
@@ -231,76 +248,62 @@ export function PlannedClosuresPanel({
                   label="Overlap:"
                 />
 
-                <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
-                  <div className="flex-1 min-w-0">
-                    <MetadataGrid 
-                      className="no-border planned-closure-metadata"
-                      cause={closure.cause}
-                      resolution={closure.resolution}
-                      reason={closure.reason} 
-                      targetRemoval={closure.targetRemoval} 
-                      startedAt={closure.startedAt}
-                      updatedAt={closure.updatedAt}
-                      updatedAgo={closure.updatedAgo}
-                      leadingRows={[
-                        {
-                          label: "Closure dates",
-                          value: closure.windowDates
-                            ? formatClosureScheduleValue(closure.windowDates)
-                            : null,
-                        },
-                        {
-                          label: "Closure hours",
-                          value: closure.windowHours
-                            ? formatClosureScheduleValue(closure.windowHours)
-                            : null,
-                        },
-                        {
-                          label: specificWindowHeading,
-                          value: specificWindowLabel
-                            ? formatClosureScheduleValue(specificWindowLabel)
-                            : null,
-                        },
-                        {
-                          label: "Closure window",
-                          value: hasScheduleDetails ? null : closure.window,
-                        },
-                      ]}
-                      trailingRows={[
-                        {
-                          label: "Status",
-                          value: activeAlert ? (
-                            <button
-                              type="button"
-                              className="planned-closure-status-button"
-                              onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
-                              aria-label="View active alert"
-                            >
-                              <ImpactTypeIcon kind="suspension" size={13} />
-                              <span>Active Now</span>
-                              <ArrowRight size={13} aria-hidden="true" />
-                            </button>
-                          ) : (
-                            <span className="planned-closure-status-inactive">
-                              Currently Inactive
-                            </span>
-                          ),
-                        },
-                      ]}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleClosureClick(closure.id)}
-                    className={`impact-card-map-btn shrink-0 ${isActive ? "is-active" : ""}`}
-                    aria-label={`${isActive && !onFocusMap ? "Unfocus" : "View on map"}: ${closure.title}`}
-                    title={isActive && !onFocusMap ? "Unfocus" : "View on Map"}
-                  >
-                    <JumpToLocationIcon className="w-8 h-8" />
-                    <span>
-                      {isActive && !onFocusMap ? "Unfocus" : "View on Map"}
-                    </span>
-                  </button>
+                <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 w-full min-w-0">
+                  <MetadataGrid
+                    className="no-border planned-closure-metadata"
+                    cause={closure.cause}
+                    resolution={closure.resolution}
+                    reason={closure.reason}
+                    targetRemoval={closure.targetRemoval}
+                    startedAt={closure.startedAt}
+                    updatedAt={closure.updatedAt}
+                    updatedAgo={closure.updatedAgo}
+                    leadingRows={[
+                      {
+                        label: "Closure dates",
+                        value: closure.windowDates
+                          ? formatClosureScheduleValue(closure.windowDates)
+                          : null,
+                      },
+                      {
+                        label: "Closure hours",
+                        value: closure.windowHours
+                          ? formatClosureScheduleValue(closure.windowHours)
+                          : null,
+                      },
+                      {
+                        label: specificWindowHeading,
+                        value: specificWindowLabel
+                          ? formatClosureScheduleValue(specificWindowLabel)
+                          : null,
+                      },
+                      {
+                        label: "Closure window",
+                        value: hasScheduleDetails ? null : closure.window,
+                      },
+                    ]}
+                    trailingRows={[
+                      {
+                        label: "Status",
+                        value: activeAlert ? (
+                          <button
+                            type="button"
+                            className="planned-closure-status-button"
+                            onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
+                            aria-label="View active alert"
+                          >
+                            <ImpactTypeIcon kind="suspension" size={13} />
+                            <span>Active Now</span>
+                            <ArrowRight size={13} aria-hidden="true" />
+                          </button>
+                        ) : (
+                          <span className="planned-closure-status-inactive">
+                            Currently Inactive
+                          </span>
+                        ),
+                      },
+                    ]}
+                  />
                 </div>
 
                 {isActive && commutePathPreview ? (

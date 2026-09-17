@@ -126,6 +126,11 @@ describe("desktop layout budget and responsive modes", () => {
 
   it("maps rail destinations correctly including source-status and search", () => {
     assert.equal(desktopRailDestinationForView("status"), "status");
+    assert.equal(desktopRailDestinationForView("alerts"), "alerts");
+    assert.equal(desktopRailDestinationForView("delays"), "delays");
+    assert.equal(desktopRailDestinationForView("reduced-speed-zones"), "reduced-speed-zones");
+    assert.equal(desktopRailDestinationForView("closures"), "closures");
+    assert.equal(desktopRailDestinationForView("trip-changes"), "trip-changes");
     assert.equal(desktopRailDestinationForView("search"), "status");
     assert.equal(desktopRailDestinationForView("my-stations"), "stations");
     assert.equal(desktopRailDestinationForView("commutes"), "commutes");

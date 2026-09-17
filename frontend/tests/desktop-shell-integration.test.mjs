@@ -12,12 +12,23 @@ const globalCss = readAppStylesheet();
 describe("desktop shell layout & geometry integration (Session 1)", () => {
   it("renders DesktopNavRail and desktop sidebar container when not mobile", () => {
     assert.match(shellSource, /!isMobile \? \(\s*<div className="linewatch-desktop-layout">/);
-    assert.match(shellSource, /<DesktopNavRail[\s\S]*?activeDestination=\{desktopRailDestinationForView\(activeView\)\}/);
+    assert.match(shellSource, /<DesktopNavRail[\s\S]*?activeDestination=\{[\s\S]*?desktopRailDestinationForView\(activeView\)[\s\S]*?\}/);
     assert.match(shellSource, /id="desktop-sidebar-container"/);
     assert.match(shellSource, /desktop-sidebar-container--docked/);
     assert.match(shellSource, /desktop-sidebar-container--overlay/);
     assert.match(shellSource, /desktop-sidebar-container--collapsed/);
     assert.match(shellSource, /className="desktop-map-workspace"/);
+  });
+
+  it("wires category counts and direct destinations into the desktop rail", () => {
+    assert.match(shellSource, /activeAlertCount=\{activeAlerts\.length\}/);
+    assert.match(shellSource, /delayCount=\{delays\.length\}/);
+    assert.match(shellSource, /reducedSpeedZoneCount=\{reducedSpeedZoneCount\}/);
+    assert.match(shellSource, /plannedClosureCount=\{plannedClosures\.length\}/);
+    assert.match(shellSource, /tripChangeCount=\{regionalTripChangeCount \?\? 0\}/);
+    assert.match(shellSource, /case "alerts":[\s\S]*?case "closures":[\s\S]*?navigateRoot\(dest\)/);
+    assert.match(shellSource, /case "trip-changes":[\s\S]*?setSurfaceNoticeInitialContent\("trip-changes"\)[\s\S]*?navigateRoot\("surface-notices"\)/);
+    assert.match(shellSource, /activeView === "surface-notices"[\s\S]*?surfaceNoticeInitialContent === "trip-changes"[\s\S]*?\? "trip-changes"/);
   });
 
   it("keeps map interactive on desktop beside open sidebar", () => {

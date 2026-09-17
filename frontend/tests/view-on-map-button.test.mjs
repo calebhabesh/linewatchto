@@ -11,14 +11,15 @@ const stationHeaderSource = readFileSync(new URL("../src/components/StationDetai
 const stationPanelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 const regionalStationPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCardFields.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
-describe("circular View on Map button", () => {
-  it("uses circular impact-card-map-btn with 'View on Map' text across all impact panels", () => {
+describe("44px View on Map button", () => {
+  it("uses impact-card-map-btn with accessible name across all impact panels", () => {
     for (const source of [activeAlertsSource, delaysSource, rszSource, closuresSource]) {
       assert.match(source, /impact-card-map-btn/);
-      assert.match(source, /View on Map/);
-      assert.match(source, /Unfocus/);
+      assert.match(source, /ImpactCardMapButton/);
+      assert.match(source, /onFocusMap/);
       assert.doesNotMatch(source, /Show on Map/);
     }
   });
@@ -36,29 +37,30 @@ describe("circular View on Map button", () => {
     assert.doesNotMatch(shellSource, /handleViewStationOnMap/);
   });
 
-  it("styles impact card buttons as borderless circles with white text and dual-tone icon", () => {
-    // Impact card circular button - borderless circle
-    assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*border-radius:\s*9999px/s);
+  it("styles impact card buttons as 44px slate/visionOS surface with Lucide MapPinned dual-tone icon", () => {
+    // 44px height button with slate/visionOS surface and no decorative white outline
+    assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*height:\s*44px/s);
+    assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*min-width:\s*44px/s);
     assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*border:\s*none\s*!important/s);
-    assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*width:\s*88px/s);
-    assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*height:\s*88px/s);
-    assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*background:\s*rgba\(37,\s*99,\s*235/s);
-    assert.match(globalCss, /\.dark \.impact-card-map-btn\s*\{[^}]*background:\s*rgba\(56,\s*189,\s*248/s);
-    assert.match(globalCss, /\.impact-card-map-btn span\s*\{[^}]*color:\s*#ffffff\s*!important/s);
+    assert.match(globalCss, /\.impact-card-map-btn\s*\{[^}]*border-radius:\s*8px/s);
+    assert.match(globalCss, /\.impact-card-map-btn:focus-visible\s*\{[^}]*outline:/s);
 
-    // JumpToLocationIcon dual-tone icon: 4 corner L pieces in white, center pin in blue (#2563eb matching mobile status peek center button infill)
+    // Lucide MapPinned dual-tone icon: red pin, blue folded-map base
+    assert.match(globalCss, /\.impact-card-map-btn svg path:first-of-type[\s\S]*?stroke:\s*#ef4444/);
+    assert.match(globalCss, /\.impact-card-map-btn svg path:last-of-type[\s\S]*?stroke:\s*#2563eb/);
+
+    // JumpToLocationIcon dual-tone icon preserved for other consumers
     assert.match(globalCss, /\.jump-to-corners path[\s\S]*?stroke:\s*#ffffff\s*!important/);
     assert.match(globalCss, /\.jump-to-pin[\s\S]*?color:\s*#2563eb/);
 
-    // Unfocus / is-active state: calm subdued royal blue with no neon glow aura
-    assert.match(globalCss, /\.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#2563eb\s*!important;/s);
-    assert.match(globalCss, /\.dark \.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#1d4ed8\s*!important;/s);
-    assert.match(globalCss, /\.impact-card-map-btn\.is-active \.jump-to-pin\s*\{[^}]*filter:\s*none\s*!important;/s);
-    assert.doesNotMatch(globalCss, /\.impact-card-map-btn\.is-active\s*\{[^}]*rgba\(56,\s*189,\s*248,\s*0\.45\)/s);
+    // Unfocus / is-active state
+    assert.match(globalCss, /\.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#2563eb/s);
+    assert.match(globalCss, /\.dark \.impact-card-map-btn\.is-active\s*\{[^}]*background:\s*#1d4ed8/s);
   });
 
-  it("scales down the button slightly on mobile screens", () => {
-    assert.match(globalCss, /@media\s*\(max-width:\s*767px\)\s*\{[^}]*\.impact-card-map-btn\s*\{[^}]*width:\s*72px\s*!important/s);
-    assert.match(globalCss, /@media\s*\(max-width:\s*767px\)\s*\{[^}]*\.impact-card-map-btn\s*\{[^}]*height:\s*72px\s*!important/s);
+  it("renders 'View' when inactive and 'Back' when active with detoggle support", () => {
+    assert.match(impactCardFieldsSource, /Back/);
+    assert.match(impactCardFieldsSource, /View/);
+    assert.match(globalCss, /\.impact-card-map-btn__label/);
   });
 });

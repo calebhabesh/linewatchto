@@ -8,7 +8,7 @@ import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, CommutePathPreviewCardBanner } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardMapButton } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -42,6 +42,7 @@ interface Props {
   showImpactTypeIndicator?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
+  mapActionVariant?: "icon-only" | "labeled";
 }
 
 export function ReducedSpeedZonesPanel({
@@ -57,6 +58,7 @@ export function ReducedSpeedZonesPanel({
   showImpactTypeIndicator = false,
   commutePathPreview,
   onClearCommutePathPreview,
+  mapActionVariant,
 }: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
@@ -75,10 +77,6 @@ export function ReducedSpeedZonesPanel({
 
   const handleReducedSpeedZoneClick = (alertId: string) => {
     const isActivating = !(selection?.kind === "reduced-speed-zone" && selection.id === alertId);
-    if (!isActivating && onFocusMap) {
-      onFocusMap();
-      return;
-    }
     onSelectImpact(
       isActivating ? { kind: "reduced-speed-zone", id: alertId } : null,
     );
@@ -158,7 +156,7 @@ export function ReducedSpeedZonesPanel({
                   locationFirst
                   facts={[
                     { label: "Speed", value: formatSpeed(zone.reducedSpeed) || "Not Reported" },
-                    { label: "Directions", value: <DirectionalZoneCount zone={zone} /> },
+                    { column: 2, label: "Directions", value: <DirectionalZoneCount zone={zone} /> },
                     { label: "Updated", value: showUpdatedBreakdown
                       ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
                       : <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} /> },
@@ -188,12 +186,26 @@ export function ReducedSpeedZonesPanel({
                   isActive ? "!bg-blue-50 dark:!bg-blue-950 is-active" : ""
                 }`}
               >
-                <div className="impact-card-heading flex items-start justify-between gap-3 w-full min-w-0 pt-1.5 pl-1">
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <LineBadge lineId={zone.lineId} lineNumber={zone.lineNumber} size={34} />
-                    {showImpactTypeIndicator ? <ImpactTypeIcon kind="reduced-speed-zone" size={17} className="line-impact-card-type-icon shrink-0" /> : null}
-                    <span className="sr-only min-w-0 whitespace-normal break-words">{zone.title}</span>
+                <div className="impact-card-header impact-card-heading w-full min-w-0 pt-0.5">
+                  <div className="impact-card-header__row flex items-start justify-between gap-3 w-full min-w-0">
+                    <div className="impact-card-header__line flex items-center gap-2 min-w-0">
+                      <LineBadge lineId={zone.lineId} lineNumber={zone.lineNumber} size={34} />
+                      {showImpactTypeIndicator ? <ImpactTypeIcon kind="reduced-speed-zone" size={17} className="line-impact-card-type-icon shrink-0" /> : null}
+                    </div>
+                    <div className="impact-card-header__action flex flex-col items-end gap-1.5 shrink-0">
+                      {/* Card action contract: View on Map / Unfocus */}
+                      <ImpactCardMapButton
+                        onClick={() => handleReducedSpeedZoneClick(zone.id)}
+                        isActive={isActive}
+                        onFocusMap={onFocusMap}
+                        title={zone.title}
+                        actionLabel={isActive ? "Back" : "View"}
+                        variant={mapActionVariant}
+                        className="impact-card-map-btn"
+                      />
+                    </div>
                   </div>
+                  <span className="sr-only min-w-0 whitespace-normal break-words">{zone.title}</span>
                 </div>
 
                 <ImpactRouteHeader 
@@ -207,59 +219,45 @@ export function ReducedSpeedZonesPanel({
                   label="Overlap:"
                 />
 
-                <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
-                  <div className="flex-1 min-w-0">
-                    <MetadataGrid 
-                      className="no-border"
-                      cause={zone.cause}
-                      resolution={isGroupedZone ? null : zone.resolution}
-                      reason={zone.reason} 
-                      targetRemoval={isGroupedZone ? null : zone.targetRemoval}
-                      startedAt={zone.startedAt}
-                      updatedAt={zone.updatedAt}
-                      updatedAgo={zone.updatedAgo} 
-                      startedValue={showStartedBreakdown
-                        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="startedAt" />
-                        : undefined}
-                      updatedValue={showUpdatedBreakdown
-                        ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
-                        : undefined}
-                      extraRows={[
-                        { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
-                        {
-                          label: "Zone Count",
-                          labelSuffix: (
-                            <>
-                              <span className="rsz-zone-count-label-separator"> - </span>
-                              <span className="rsz-zone-count-label-total">{zonesAtLocation}</span>
-                            </>
-                          ),
-                          value: zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null,
-                        },
-                        ...(isGroupedZone ? [{
-                          label: "Est. Resolution",
-                          value: showResolutionBreakdown
-                            ? <ReducedSpeedZoneResolutionBreakdown zone={zone} />
-                            : reducedSpeedZoneResolutionText(zone),
-                        }] : [{ label: "Typical Speed", value: formatSpeed(zone.averageSpeed) }]),
-                      ]}
-                      trailingRows={isGroupedZone
-                        ? [{ label: "Typical Speed", value: formatSpeed(zone.averageSpeed) }]
-                        : undefined}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleReducedSpeedZoneClick(zone.id)}
-                    className={`impact-card-map-btn shrink-0 ${isActive ? "is-active" : ""}`}
-                    aria-label={`${isActive && !onFocusMap ? "Unfocus" : "View on map"}: ${zone.title}`}
-                    title={isActive && !onFocusMap ? "Unfocus" : "View on Map"}
-                  >
-                    <JumpToLocationIcon className="w-8 h-8" />
-                    <span>
-                      {isActive && !onFocusMap ? "Unfocus" : "View on Map"}
-                    </span>
-                  </button>
+                <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 w-full min-w-0">
+                  <MetadataGrid
+                    className="no-border"
+                    cause={zone.cause}
+                    resolution={isGroupedZone ? null : zone.resolution}
+                    reason={zone.reason}
+                    targetRemoval={isGroupedZone ? null : zone.targetRemoval}
+                    startedAt={zone.startedAt}
+                    updatedAt={zone.updatedAt}
+                    updatedAgo={zone.updatedAgo}
+                    startedValue={showStartedBreakdown
+                      ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="startedAt" />
+                      : undefined}
+                    updatedValue={showUpdatedBreakdown
+                      ? <ReducedSpeedZoneTimingBreakdown zone={zone} field="updatedAt" />
+                      : undefined}
+                    extraRows={[
+                      { label: "Reduced Speed", value: formatSpeed(zone.reducedSpeed) },
+                      {
+                        label: "Zone Count",
+                        labelSuffix: (
+                          <>
+                            <span className="rsz-zone-count-label-separator"> - </span>
+                            <span className="rsz-zone-count-label-total">{zonesAtLocation}</span>
+                          </>
+                        ),
+                        value: zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null,
+                      },
+                      ...(isGroupedZone ? [{
+                        label: "Est. Resolution",
+                        value: showResolutionBreakdown
+                          ? <ReducedSpeedZoneResolutionBreakdown zone={zone} />
+                          : reducedSpeedZoneResolutionText(zone),
+                      }] : [{ label: "Typical Speed", value: formatSpeed(zone.averageSpeed) }]),
+                    ]}
+                    trailingRows={isGroupedZone
+                      ? [{ label: "Typical Speed", value: formatSpeed(zone.averageSpeed) }]
+                      : undefined}
+                  />
                 </div>
 
                 {isActive && commutePathPreview ? (
