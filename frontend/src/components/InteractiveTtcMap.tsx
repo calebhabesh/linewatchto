@@ -37,6 +37,8 @@ import { lineWatchBuildLabel } from "../app/app-build";
 import { readStoredSheetHeightRatio } from "../hooks/useMobileDraggableSheet";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
+import { NetworkSelector } from "./NetworkSelector";
+import type { NetworkId } from "../app/regional-data";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -442,6 +444,7 @@ function InteractiveTtcMapComponent({
   deferInitialEntrance = false,
   isMapActive = true,
   onReady,
+  onNetworkChange,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -470,6 +473,7 @@ function InteractiveTtcMapComponent({
   deferInitialEntrance?: boolean;
   isMapActive?: boolean;
   onReady?: () => void;
+  onNetworkChange?: (network: NetworkId) => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
   const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(() => (
@@ -2138,6 +2142,13 @@ function InteractiveTtcMapComponent({
             <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
           </button>
         </div>
+
+        {onNetworkChange && (
+          <div className="desktop-map-control-network-group hidden md:flex items-center">
+            <div className="map-control-divider" aria-hidden="true" />
+            <NetworkSelector network="ttc" onChange={onNetworkChange} />
+          </div>
+        )}
       </div>
 
       {/* Map Viewport */}

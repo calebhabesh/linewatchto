@@ -178,10 +178,18 @@ const SITE_GUIDE_SEEN_STORAGE_KEY = "linewatch-site-guide-seen-v1";
 export interface SiteGuideDropdownProps {
   onOpenChange?: (open: boolean) => void;
   variant?: "default" | "chip";
+  open?: boolean;
+  hideTrigger?: boolean;
 }
 
-export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGuideDropdownProps) {
+export function SiteGuideDropdown({
+  onOpenChange,
+  variant = "default",
+  open,
+  hideTrigger = false,
+}: SiteGuideDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const displayedOpen = open ?? isOpen;
   const [isClosing, setIsClosing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   /** True once the user has ever opened the guide (persisted in localStorage). */
@@ -200,32 +208,32 @@ export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGui
   const closeTimerRef = useRef<number | null>(null);
 
   const closeGuide = useCallback(() => {
-    if (!isOpen || isClosing) return;
+    if (!displayedOpen || isClosing) return;
     setIsClosing(true);
     const container = dropdownRef.current ?? triggerRef.current;
     const reducedMotion = Boolean(container?.closest(".motion-paused"))
       || (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     closeTimerRef.current = window.setTimeout(() => {
-      setIsOpen(false);
+      if (open === undefined) setIsOpen(false);
       setIsClosing(false);
       closeTimerRef.current = null;
       onOpenChange?.(false);
       triggerRef.current?.focus();
     }, reducedMotion ? 0 : 220);
-  }, [isClosing, isOpen, onOpenChange]);
+  }, [displayedOpen, isClosing, onOpenChange, open]);
 
   useEffect(() => () => {
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
   }, []);
 
   useEffect(() => {
-    if (isOpen && !isClosing) {
+    if (displayedOpen && !isClosing) {
       const timer = setTimeout(() => {
         panelRef.current?.focus();
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [isClosing, isOpen]);
+  }, [displayedOpen, isClosing]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
@@ -261,7 +269,7 @@ export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGui
   }, [closeGuide]);
 
   const handleToggle = () => {
-    if (isOpen) {
+    if (displayedOpen) {
       closeGuide();
       return;
     }
@@ -271,7 +279,7 @@ export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGui
       try { window.localStorage.setItem(SITE_GUIDE_SEEN_STORAGE_KEY, "true"); } catch { /* noop */ }
     }
     setIsClosing(false);
-    setIsOpen(true);
+    if (open === undefined) setIsOpen(true);
     onOpenChange?.(true);
   };
 
@@ -284,7 +292,7 @@ export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGui
 
   const panelContent = (
     <>
-      {(isOpen && (isMobile || variant === "chip")) ? (
+      {(displayedOpen && (isMobile || variant === "chip")) ? (
         <div
           className={`site-guide-backdrop fixed inset-0 z-[67] transition-opacity duration-200 ${isClosing ? "opacity-0 pointer-events-none" : "opacity-100"}`}
           onClick={closeGuide}
@@ -292,7 +300,7 @@ export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGui
         />
       ) : null}
 
-      {isOpen ? (
+      {displayedOpen ? (
         <section
           ref={panelRef}
           tabIndex={-1}
@@ -532,16 +540,16 @@ export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGui
   if (variant === "chip") {
     return (
       <>
-        <button
+        {!hideTrigger ? <button
           ref={triggerRef}
           type="button"
           className="site-guide-trigger mobile-app-chip-guide"
           suppressHydrationWarning
           aria-controls={panelId}
-          aria-expanded={isOpen && !isClosing}
+          aria-expanded={displayedOpen && !isClosing}
           aria-label="Open site guide"
           title="Open site guide"
-          data-menu-attention={(!guideSeen && (!isOpen || isClosing)) ? "true" : "false"}
+          data-menu-attention={(!guideSeen && (!displayedOpen || isClosing)) ? "true" : "false"}
           onClick={handleToggle}
         >
           <Image
@@ -553,23 +561,23 @@ export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGui
             className="site-guide-trigger-icon"
             priority
           />
-        </button>
-        {isOpen && portalTarget ? createPortal(panelContent, portalTarget) : null}
+        </button> : null}
+        {displayedOpen && portalTarget ? createPortal(panelContent, portalTarget) : null}
       </>
     );
   }
 
   return (
     <div className="site-guide-dropdown relative pointer-events-auto" ref={dropdownRef}>
-      <button
+      {!hideTrigger ? <button
         ref={triggerRef}
         type="button"
         className="site-guide-trigger panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
         suppressHydrationWarning
         aria-controls={panelId}
-        aria-expanded={isOpen && !isClosing}
+        aria-expanded={displayedOpen && !isClosing}
         aria-label="Open site guide"
-        data-menu-attention={(!guideSeen && (!isOpen || isClosing)) ? "true" : "false"}
+        data-menu-attention={(!guideSeen && (!displayedOpen || isClosing)) ? "true" : "false"}
         onClick={handleToggle}
       >
         <Image
@@ -581,7 +589,7 @@ export function SiteGuideDropdown({ onOpenChange, variant = "default" }: SiteGui
           className="site-guide-trigger-icon"
           priority
         />
-      </button>
+      </button> : null}
 
       {panelContent}
     </div>

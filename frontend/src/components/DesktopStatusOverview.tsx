@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import {
   AlertTriangle,
   ArrowRight,
@@ -16,13 +15,30 @@ import {
   TrainFront,
 } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
+import { AccessibilityMenuIcon } from "./AccessibilityMenuIcon";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
-import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { GoodServiceCheckIcon } from "./CurrentServicePanel";
+import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
+import { ElectricBorder } from "./ui/ElectricBorder";
+import { NetworkSelector } from "./NetworkSelector";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
+
+function getAlertElectricColor(kind: string): string {
+  switch (kind) {
+    case "suspension":
+    case "closure":
+      return "#ef4444";
+    case "delay":
+      return "#f59e0b";
+    case "planned-closure":
+      return "#3b82f6";
+    default:
+      return "#ef4444";
+  }
+}
 import type { NetworkId } from "../app/regional-data";
 import type { ImpactSelection } from "../app/linewatch-data";
 import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -67,6 +83,7 @@ type Props = {
   onOpenCategory: (view: StatusCategory, lineId?: string) => void;
   onSelectImpact?: (selection: ImpactSelection) => void;
   onSelectSurfaceNotice?: (notice: SurfaceNoticeDetail) => void;
+  onNetworkChange?: (network: NetworkId) => void;
 };
 
 const noticeLabels: Record<string, string> = {
@@ -89,6 +106,7 @@ export function DesktopStatusOverview({
   onOpenCategory,
   onSelectImpact,
   onSelectSurfaceNotice,
+  onNetworkChange,
 }: Props) {
   const dashboardData = useDashboardData();
   const {
@@ -166,6 +184,16 @@ export function DesktopStatusOverview({
 
   return (
     <div className="desktop-status-overview" aria-label="Current Service status overview">
+      {onNetworkChange && (
+        <div className="desktop-status-network-switcher">
+          <NetworkSelector
+            network={networkId}
+            onChange={onNetworkChange}
+            stretched
+          />
+        </div>
+      )}
+
       {/* Header Row: Current Service + Live pill */}
       <div className="desktop-status-header-row">
         <h2 className="desktop-status-title">Current Service</h2>
@@ -257,39 +285,48 @@ export function DesktopStatusOverview({
                             ? "Starts "
                             : "") + row.timing
                         : null;
+                      const alertKind = row.iconKind || row.kind;
+                      const electricColor = getAlertElectricColor(alertKind);
                       return (
-                        <button
+                        <ElectricBorder
                           key={`${row.kind}:${row.id}`}
-                          type="button"
-                          className="desktop-status-incident-row"
-                          data-impact-kind={row.iconKind || row.kind}
-                          onClick={() => {
-                            if (onSelectImpact) {
-                              onSelectImpact({ kind: row.kind, id: row.id });
-                            } else {
-                              onOpenCategory("alerts", row.lineId);
-                            }
-                          }}
+                          color={electricColor}
+                          borderRadius={8}
+                          speed={0.2}
+                          chaos={0.01}
                         >
-                          <div className="desktop-status-incident-header">
-                            <strong
-                              className="desktop-status-incident-title"
-                              data-kind={row.iconKind || row.kind}
-                            >
-                              <ImpactTypeIcon kind={row.iconKind || row.kind} size={16} />
-                              <span>{getCanonicalAlertTitle(row)}</span>
-                            </strong>
-                          </div>
-                          <div className="desktop-status-incident-location">
-                            {row.condition} · {row.location}
-                          </div>
-                          {row.direction && (
-                            <div className="desktop-status-incident-direction">{row.direction}</div>
-                          )}
-                          {timingLabel && (
-                            <div className="desktop-status-incident-timing">{timingLabel}</div>
-                          )}
-                        </button>
+                          <button
+                            type="button"
+                            className="desktop-status-incident-row"
+                            data-impact-kind={alertKind}
+                            onClick={() => {
+                              if (onSelectImpact) {
+                                onSelectImpact({ kind: row.kind, id: row.id });
+                              } else {
+                                onOpenCategory("alerts", row.lineId);
+                              }
+                            }}
+                          >
+                            <div className="desktop-status-incident-header">
+                              <strong
+                                className="desktop-status-incident-title"
+                                data-kind={alertKind}
+                              >
+                                <ImpactTypeIcon kind={alertKind} size={16} />
+                                <span>{getCanonicalAlertTitle(row)}</span>
+                              </strong>
+                            </div>
+                            <div className="desktop-status-incident-location">
+                              {row.condition} · {row.location}
+                            </div>
+                            {row.direction && (
+                              <div className="desktop-status-incident-direction">{row.direction}</div>
+                            )}
+                            {timingLabel && (
+                              <div className="desktop-status-incident-timing">{timingLabel}</div>
+                            )}
+                          </button>
+                        </ElectricBorder>
                       );
                     })}
                   </div>
@@ -504,6 +541,7 @@ export function DesktopStatusOverview({
             <span>All Alerts &amp; Notices</span>
           </h3>
         </div>
+
         <div className="desktop-status-categories-grid">
           <button
             type="button"
@@ -637,18 +675,12 @@ export function DesktopStatusOverview({
             onClick={() => onOpenCategory("accessibility-outages")}
           >
             <div className="desktop-status-info-main">
-              <Image
-                src="/assets/linewatch/accessibility-alert.svg"
-                alt=""
-                width={16}
-                height={16}
-                className="w-4 h-4 shrink-0"
-              />
-              <span className="desktop-status-info-label">Accessibility</span>
+              <AccessibilityMenuIcon size={18} />
+              <span className="desktop-status-info-label">Accessibility Outages</span>
             </div>
             <div className="desktop-status-info-end">
               <span
-                className="desktop-status-info-badge"
+                className="desktop-status-info-badge desktop-status-info-badge--accessibility"
                 data-count={accessibilityOutageCount > 0 ? "positive" : "zero"}
               >
                 {accessibilityOutageCount}
@@ -664,9 +696,9 @@ export function DesktopStatusOverview({
           >
             <div className="desktop-status-info-main">
               {regional ? (
-                <Megaphone size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <Megaphone size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               ) : (
-                <Bus size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <Bus size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               )}
               <span className="desktop-status-info-label">
                 {regional ? "Service Notices" : "Surface Notices"}
@@ -674,7 +706,7 @@ export function DesktopStatusOverview({
             </div>
             <div className="desktop-status-info-end">
               <span
-                className="desktop-status-info-badge"
+                className="desktop-status-info-badge desktop-status-info-badge--surface"
                 data-count={surfaceNoticeCount > 0 ? "positive" : "zero"}
               >
                 {surfaceNoticeCount}
@@ -690,8 +722,8 @@ export function DesktopStatusOverview({
               onClick={() => onOpenCategory("announcements")}
             >
               <div className="desktop-status-info-main">
-                <Megaphone size={16} className="text-sky-600 dark:text-sky-400 shrink-0" />
-                <span className="desktop-status-info-label">Announcements</span>
+                <Megaphone size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+                <span className="desktop-status-info-label">TTC Announcements</span>
               </div>
               <div className="desktop-status-info-end">
                 <ChevronRight size={16} className="desktop-status-info-chevron" aria-hidden="true" />

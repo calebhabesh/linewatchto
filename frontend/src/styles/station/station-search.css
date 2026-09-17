@@ -1453,10 +1453,8 @@
   .station-search-panel[data-expanded="true"] .station-search-stations-column {
     /* Put the scrollbar in the outer gutter, not inside the card width. */
     scrollbar-gutter: stable;
-    scrollbar-width: auto;
-    scrollbar-color: auto;
     padding-left: 16px;
-    padding-right: calc(16px - 8px);
+    padding-right: calc(16px - 4px);
   }
 
   .station-search-stations-list,

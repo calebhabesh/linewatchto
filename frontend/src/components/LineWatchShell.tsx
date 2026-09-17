@@ -4071,6 +4071,20 @@ export function LineWatchShell({
         navigateRoot("my-stations");
         announceDesktop("My Stations");
         return;
+      case "accessibility-outages":
+        navigateRoot("accessibility-outages");
+        announceDesktop("Accessibility Outages");
+        return;
+      case "surface-notices":
+        setSurfaceNoticeInitialQuery("");
+        setSurfaceNoticeInitialContent("notices");
+        navigateRoot("surface-notices");
+        announceDesktop(selectedNetwork === "regional" ? "Service Notices" : "Surface Notices");
+        return;
+      case "announcements":
+        navigateRoot("announcements");
+        announceDesktop("TTC Announcements");
+        return;
       case "commutes":
         navigateRoot("commutes");
         announceDesktop("My Commutes");
@@ -4092,7 +4106,7 @@ export function LineWatchShell({
         announceDesktop("Reliability Analytics");
         return;
     }
-  }, [desktopSidebarCollapsed, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop]);
+  }, [desktopSidebarCollapsed, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop, selectedNetwork]);
 
   type DesktopNotice =
     | {
@@ -4448,6 +4462,7 @@ export function LineWatchShell({
               handleMapSelectImpact(impactSelection);
             }}
             onSelectSurfaceNotice={handleSearchOpenSurfaceNotice}
+            onNetworkChange={handleNetworkChange}
           />
         );
       }
@@ -4491,6 +4506,7 @@ export function LineWatchShell({
             onToggleReducedMotion={handleToggleReducedMotion}
             onToggleDotBackground={handleToggleDotBackground}
             onDefaultNetworkChange={handleDefaultNetworkChange}
+            onOpenNotifications={() => navigateForward("notifications")}
             onOpenAnalytics={() => navigateForward("analytics")}
             onOpenAlertHistory={() => navigateForward("alert-history")}
             onOpenAnnouncements={() => navigateForward("announcements")}
@@ -4501,6 +4517,7 @@ export function LineWatchShell({
             onOpenReleaseNotes={() => navigateForward("release-notes")}
             onOpenGuide={() => setGuideOpen(true)}
             onShareApp={handleShareLineWatchApp}
+            supportUrl={supportUrl}
           />
         );
       }
@@ -4749,6 +4766,15 @@ export function LineWatchShell({
         </h1>
         {/* Background */}
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
+
+        {!isMobile ? (
+          <SiteGuideDropdown
+            open={guideOpen}
+            hideTrigger
+            variant="chip"
+            onOpenChange={setGuideOpen}
+          />
+        ) : null}
 
       {isMobile && !showClosedScreen && !rotatedMapMode && (
         <div className="mobile-app-topbar" data-map-chooser-keepout data-searching={activeView === "search" || isClosingSearch} data-closing-search={isClosingSearch ? "true" : undefined}>
@@ -5879,6 +5905,11 @@ export function LineWatchShell({
             tripChangeCount={regionalTripChangeCount ?? 0}
             commuteAffectedCount={commuteAffectedCount}
             savedStationsAffectedCount={savedStationsAffectedCount}
+            accessibilityOutageCount={
+              accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
+            }
+            surfaceNoticeCount={surfaceNoticeCount ?? 0}
+            announcementCount={announcementCount ?? 0}
             toggleButtonRef={desktopRailToggleRef}
             selectedNetwork={selectedNetwork}
             onNetworkChange={handleNetworkChange}
@@ -6033,6 +6064,7 @@ export function LineWatchShell({
                 viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
                 estimatedTrainsEnabled={estimatedTrainMarkersVisible}
                 estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
+                onNetworkChange={handleNetworkChange}
               />
             </main>
           </div>

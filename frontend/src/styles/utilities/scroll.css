@@ -253,15 +253,53 @@
     width: 0;
   }
 
+  .desktop-sidebar-content::-webkit-scrollbar,
   .desktop-sidebar-container .line-impact-panel-stack::-webkit-scrollbar,
   .desktop-sidebar-container .alert-stack::-webkit-scrollbar,
-  .desktop-sidebar-container .closure-stack::-webkit-scrollbar {
+  .desktop-sidebar-container .closure-stack::-webkit-scrollbar,
+  .desktop-sidebar-container .commute-grid::-webkit-scrollbar,
+  .desktop-sidebar-container .saved-commute-list-scroll::-webkit-scrollbar,
+  .desktop-sidebar-container .accessibility-outages-scroll::-webkit-scrollbar,
+  .desktop-sidebar-container .surface-notices-scroll::-webkit-scrollbar,
+  .desktop-sidebar-container .station-detail-scroll::-webkit-scrollbar,
+  .desktop-sidebar-container .station-search-stations-column::-webkit-scrollbar,
+  .desktop-sidebar-container .station-search-results::-webkit-scrollbar,
+  .desktop-sidebar-container .station-search-lines-column::-webkit-scrollbar,
+  .desktop-sidebar-container .notification-settings-scroll::-webkit-scrollbar,
+  .desktop-sidebar-container .my-stations-list::-webkit-scrollbar,
+  .desktop-sidebar-container .alert-history-scroll::-webkit-scrollbar,
+  .desktop-sidebar-container .feedback-content::-webkit-scrollbar,
+  .desktop-sidebar-container .logs-dropdown-scroll::-webkit-scrollbar,
+  .desktop-sidebar-container .reliability-list::-webkit-scrollbar,
+  .desktop-sidebar-container .desktop-source-status-content::-webkit-scrollbar,
+  .desktop-sidebar-container .release-notes-content::-webkit-scrollbar,
+  .desktop-sidebar-container .privacy-acknowledgements-scroll::-webkit-scrollbar,
+  .desktop-sidebar-container .site-guide-body::-webkit-scrollbar {
     width: 4px;
   }
 
+  .desktop-sidebar-content::-webkit-scrollbar-thumb,
   .desktop-sidebar-container .line-impact-panel-stack::-webkit-scrollbar-thumb,
   .desktop-sidebar-container .alert-stack::-webkit-scrollbar-thumb,
-  .desktop-sidebar-container .closure-stack::-webkit-scrollbar-thumb {
+  .desktop-sidebar-container .closure-stack::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .commute-grid::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .saved-commute-list-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .accessibility-outages-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .surface-notices-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .station-detail-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .station-search-stations-column::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .station-search-results::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .station-search-lines-column::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .notification-settings-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .my-stations-list::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .alert-history-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .feedback-content::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .logs-dropdown-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .reliability-list::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .desktop-source-status-content::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .release-notes-content::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
+  .desktop-sidebar-container .site-guide-body::-webkit-scrollbar-thumb {
     border: 0;
   }
 

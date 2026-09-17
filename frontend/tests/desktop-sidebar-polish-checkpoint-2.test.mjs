@@ -119,9 +119,9 @@ describe("Desktop Sidebar Polish — Checkpoint 2 (Steps 3, 4, 5)", () => {
       assert.match(globalCss, /\.dark \.desktop-more-card\s*\{[^}]*background:\s*transparent;/s);
       assert.match(globalCss, /\.high-contrast \.desktop-more-card\s*\{[^}]*border:\s*1px solid currentColor;/s);
 
-      // Status informational buttons are flat
-      assert.match(globalCss, /\.desktop-status-info-btn\s*\{[^}]*background:\s*transparent;[^}]*border:\s*none;/s);
-      assert.match(globalCss, /\.dark \.desktop-status-info-btn\s*\{[^}]*background:\s*transparent;[^}]*border:\s*none;/s);
+      // Status informational buttons are borderless cards
+      assert.match(globalCss, /\.desktop-status-info-btn\s*\{[^}]*border:\s*none;/s);
+      assert.match(globalCss, /\.dark \.desktop-status-info-btn\s*\{[^}]*border:\s*none;/s);
     });
   });
 

@@ -316,11 +316,11 @@ test("sub-badges and surface routes use flex alignment without letter wrapping",
   assert.match(currentServiceStyles, /\.current-service-planned-pill\s*\{[^}]*white-space:\s*nowrap;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*padding-left:\s*0;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
-  assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-wrap:\s*wrap;/s);
+  assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*flex-wrap:\s*nowrap;/s);
   assert.match(currentServiceStyles, /\.current-service-sub-badges\s*\{[^}]*margin-top:\s*5px;/s);
 
   assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-direction:\s*row;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-wrap:\s*wrap;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*flex-wrap:\s*nowrap;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-sub-badges\s*\{[^}]*margin-top:\s*5px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-kicker-header\s*\{[^}]*margin-top:\s*-6px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-kicker-header\s*\{[^}]*margin-bottom:\s*-2px;/s);
@@ -350,8 +350,19 @@ test("sub-badges and surface routes use flex alignment without letter wrapping",
   assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*24px\);/s);
   assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-routes\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*24px\);/s);
 
-  // Surface notice descriptions are left-aligned
+  // Surface notice descriptions are left-aligned with colored vertical indicator div (no colored container)
+  assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-copy\s*\{[^}]*padding-left:\s*14px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-copy\s*\{[^}]*position:\s*relative;/s);
+  assert.doesNotMatch(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-copy\s*\{[^}]*border-radius:/s);
+  assert.doesNotMatch(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-copy::before\s*\{[^}]*display:\s*none;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-text\s*\{[^}]*text-align:\s*left;/s);
   assert.match(currentServiceStyles, /\.current-service-notice\s*\{[^}]*text-align:\s*left;/s);
+
+  // ElectricBorder is reserved for subway/light rail and not used on surface alerts
+  const desktopStatusSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
+  assert.match(desktopStatusSource, /<ElectricBorder[\s\S]*?<button[^>]*className="desktop-status-incident-row"/);
+  const surfaceSection = desktopStatusSource.slice(desktopStatusSource.indexOf('className="desktop-status-surface-list"'));
+  assert.doesNotMatch(surfaceSection, /<ElectricBorder/);
 });
+
 

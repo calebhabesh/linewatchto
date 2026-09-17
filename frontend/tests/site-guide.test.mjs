@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const desktopMoreSource = readFileSync(new URL("../src/components/DesktopMorePanel.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const guideComponentUrl = new URL("../src/components/SiteGuideDropdown.tsx", import.meta.url);
 const logsComponentUrl = new URL("../src/components/LogsDropdown.tsx", import.meta.url);
@@ -29,6 +31,16 @@ const infoOverlayAssetNames = [
 ];
 
 describe("site guide dropdown", () => {
+  it("lets the desktop More action open the site guide dialog", () => {
+    const guideSource = readFileSync(guideComponentUrl, "utf8");
+
+    assert.match(desktopMoreSource, /onClick=\{onOpenGuide\}[\s\S]*?<span>Site Guide<\/span>/);
+    assert.match(shellSource, /onOpenGuide=\{\(\) => setGuideOpen\(true\)\}/);
+    assert.match(shellSource, /<SiteGuideDropdown[\s\S]*?open=\{guideOpen\}[\s\S]*?hideTrigger/);
+    assert.match(guideSource, /open\?: boolean/);
+    assert.match(guideSource, /hideTrigger\?: boolean/);
+  });
+
   it("animates utility popovers through both open and close lifecycles", () => {
     const guideSource = readFileSync(guideComponentUrl, "utf8");
     const logsSource = readFileSync(logsComponentUrl, "utf8");

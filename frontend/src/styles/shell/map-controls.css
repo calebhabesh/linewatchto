@@ -248,3 +248,51 @@
     border: 1px solid #ffffff !important;
   }
 }
+
+/* ============================================================
+   Desktop Map Control Network Switcher
+   ============================================================ */
+.desktop-map-control-network-group {
+  display: flex;
+  align-items: center;
+  gap: 21px;
+}
+
+.desktop-map-control-network-group .map-control-divider {
+  margin-left: -2px;
+  margin-right: 0;
+}
+
+.map-control-rail .network-selector {
+  --network-option-width: 104px;
+  height: 38px;
+  padding: 3px;
+  border-radius: 11px;
+  margin: 0 7px 0 0;
+}
+
+.map-control-rail .network-selector-btn {
+  height: 32px;
+  min-width: 104px;
+  padding: 0 12px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  border-radius: 8px;
+}
+
+.map-control-rail .network-selector-glider {
+  border-radius: 8px;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+}
+
+.map-control-rail .network-indicator-dot {
+  left: 12px;
+}
+
+.map-control-rail .network-accent-ridges {
+  right: 10px;
+}
+
+

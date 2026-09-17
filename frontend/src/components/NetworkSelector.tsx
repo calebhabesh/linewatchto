@@ -9,10 +9,14 @@ export function NetworkSelector({
   network,
   onChange,
   compactVertical = false,
+  stretched = false,
+  className = "",
 }: {
   network: NetworkId;
   onChange: (network: NetworkId) => void;
   compactVertical?: boolean;
+  stretched?: boolean;
+  className?: string;
 }) {
   const [pendingNetwork, setPendingNetwork] = useState<NetworkId | null>(null);
   const [lastPropNetwork, setLastPropNetwork] = useState<NetworkId>(network);
@@ -77,7 +81,7 @@ export function NetworkSelector({
 
   return (
     <div
-      className={`network-selector panel${compactVertical ? " network-selector--compact-vertical" : ""}`}
+      className={`network-selector panel${compactVertical ? " network-selector--compact-vertical" : ""}${stretched ? " network-selector--stretched" : ""}${className ? ` ${className}` : ""}`}
       role="group"
       aria-label="Select transit network"
       aria-busy={isTransitioning}
@@ -92,8 +96,9 @@ export function NetworkSelector({
         onClick={() => requestNetworkChange("ttc")}
         className="network-selector-btn network-btn-ttc"
       >
-        <span className="network-accent-ridges" aria-hidden="true"><span /><span /></span>
+        <span className="network-indicator-dot network-dot-ttc" aria-hidden="true" />
         <span className="network-btn-text">TTC</span>
+        <span className="network-accent-ridges" aria-hidden="true"><span /><span /></span>
       </button>
       <button
         type="button"
@@ -102,8 +107,9 @@ export function NetworkSelector({
         onClick={() => requestNetworkChange("regional")}
         className="network-selector-btn network-btn-regional"
       >
-        <span className="network-accent-ridges" aria-hidden="true"><span /><span /></span>
+        <span className="network-indicator-dot network-dot-regional" aria-hidden="true" />
         <span className="network-btn-text">GO/UP</span>
+        <span className="network-accent-ridges" aria-hidden="true"><span /><span /></span>
       </button>
     </div>
   );

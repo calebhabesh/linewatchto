@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
 import { Activity, AlertTriangle, ArrowLeft, BarChart3, History, MapPin, Menu, Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, Navigation, Search, X } from "lucide-react";
-import { desktopRailDestinationForView } from "../app/desktop-sidebar-state";
+import { desktopRailDestinationForView, type DesktopRailDestination } from "../app/desktop-sidebar-state";
 import { useDashboardData } from "../app/DataContext";
 import {
   IMPACT_SEARCH_CATEGORIES,
@@ -53,13 +53,16 @@ import { TransitLineBadge } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 
-const RETURN_MENU_ICONS = {
+const RETURN_MENU_ICONS: Record<DesktopRailDestination, typeof AlertTriangle> = {
   status: AlertTriangle,
   alerts: AlertTriangle,
   delays: AlertTriangle,
   "reduced-speed-zones": AlertTriangle,
   closures: AlertTriangle,
   "trip-changes": AlertTriangle,
+  "accessibility-outages": AlertTriangle,
+  "surface-notices": Bus,
+  announcements: Megaphone,
   stations: MapPin,
   commutes: Navigation,
   "alert-history": History,

@@ -5,9 +5,11 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
+  BusFront,
   Construction,
   History,
   MapPin,
+  Megaphone,
   Menu,
   Navigation,
   PanelLeftClose,
@@ -16,7 +18,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
-import { NetworkSelector } from "./NetworkSelector";
+import { AccessibilityMenuIcon } from "./AccessibilityMenuIcon";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import type { NetworkId } from "../app/regional-data";
@@ -37,6 +39,9 @@ export type DesktopNavRailProps = {
   tripChangeCount?: number;
   commuteAffectedCount?: number;
   savedStationsAffectedCount?: number;
+  accessibilityOutageCount?: number;
+  surfaceNoticeCount?: number;
+  announcementCount?: number;
   toggleButtonRef?: RefObject<HTMLButtonElement | null>;
   selectedNetwork?: NetworkId;
   onNetworkChange?: (network: NetworkId) => void;
@@ -59,11 +64,6 @@ const RAIL_ITEMS: readonly RailItemDef[] = [
   { key: "more", label: "More", Icon: Menu },
 ];
 
-const ALERT_SHORTCUT_COUNT = 4;
-const ANALYTICS_INDEX = RAIL_ITEMS.length + ALERT_SHORTCUT_COUNT;
-const SOURCE_STATUS_INDEX = ANALYTICS_INDEX + 1;
-const TOTAL_RAIL_SLOTS = RAIL_ITEMS.length + ALERT_SHORTCUT_COUNT + 2;
-
 export function DesktopNavRail({
   activeDestination,
   collapsed,
@@ -77,15 +77,49 @@ export function DesktopNavRail({
   tripChangeCount = 0,
   commuteAffectedCount = 0,
   savedStationsAffectedCount = 0,
+  accessibilityOutageCount = 0,
+  surfaceNoticeCount = 0,
+  announcementCount = 0,
   toggleButtonRef,
   selectedNetwork = "ttc",
-  onNetworkChange,
   authenticated = false,
   onRequestSignIn,
 }: DesktopNavRailProps) {
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const sourceStatusLabel =
     selectedNetwork === "regional" ? "GO / UP Source Status" : "TTC Source Status";
+
+  const noticeShortcuts = [
+    {
+      key: "accessibility-outages" as const,
+      label: "Accessibility Outages",
+      lines: ["Accessibility", "Outages"] as const,
+      count: accessibilityOutageCount,
+      countLabel: accessibilityOutageCount === 1 ? "accessibility outage" : "accessibility outages",
+      icon: <AccessibilityMenuIcon size={21} />,
+    },
+    {
+      key: "surface-notices" as const,
+      label: selectedNetwork === "regional" ? "Service Notices" : "Surface Notices",
+      lines: selectedNetwork === "regional" ? (["Service", "Notices"] as const) : (["Surface", "Notices"] as const),
+      count: surfaceNoticeCount,
+      countLabel: surfaceNoticeCount === 1 ? "notice" : "notices",
+      icon: selectedNetwork === "regional" ? <Megaphone size={21} aria-hidden="true" /> : <BusFront size={21} aria-hidden="true" />,
+    },
+    ...(selectedNetwork === "ttc"
+      ? [
+          {
+            key: "announcements" as const,
+            label: "TTC Related",
+            lines: ["TTC", "Related"] as const,
+            count: announcementCount,
+            countLabel: announcementCount === 1 ? "announcement" : "announcements",
+            icon: <Megaphone size={21} aria-hidden="true" />,
+          },
+        ]
+      : []),
+  ];
+
   const alertShortcuts = selectedNetwork === "regional"
     ? [
         { key: "alerts", label: "Active Alerts", lines: ["Active", "Alerts"], count: activeAlertCount, countLabel: activeAlertCount === 1 ? "active alert" : "active alerts", icon: <AlertTriangle size={21} aria-hidden="true" /> },
@@ -100,6 +134,10 @@ export function DesktopNavRail({
         { key: "closures", label: "Planned Closures", lines: ["Planned", "Closures"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned closure" : "planned closures", icon: <PlannedClosureIcon size={21} /> },
       ] as const;
 
+  const totalSlots = RAIL_ITEMS.length + noticeShortcuts.length + alertShortcuts.length + 2;
+  const analyticsIndex = RAIL_ITEMS.length + noticeShortcuts.length + alertShortcuts.length;
+  const sourceStatusIndex = analyticsIndex + 1;
+
   const handleToggleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -110,7 +148,7 @@ export function DesktopNavRail({
   const handleItemKeyDown = (index: number, event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      const nextIndex = (index + 1) % TOTAL_RAIL_SLOTS;
+      const nextIndex = (index + 1) % totalSlots;
       itemRefs.current[nextIndex]?.focus();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -118,7 +156,7 @@ export function DesktopNavRail({
         if (toggleButtonRef?.current) {
           toggleButtonRef.current.focus();
         } else {
-          itemRefs.current[TOTAL_RAIL_SLOTS - 1]?.focus();
+          itemRefs.current[totalSlots - 1]?.focus();
         }
       } else {
         itemRefs.current[index - 1]?.focus();
@@ -128,7 +166,7 @@ export function DesktopNavRail({
       itemRefs.current[0]?.focus();
     } else if (event.key === "End") {
       event.preventDefault();
-      itemRefs.current[TOTAL_RAIL_SLOTS - 1]?.focus();
+      itemRefs.current[totalSlots - 1]?.focus();
     }
   };
 
@@ -231,20 +269,51 @@ export function DesktopNavRail({
             </button>
           );
         })}
-        {selectedNetwork && onNetworkChange ? (
-          <div className="desktop-rail-network-slot">
-            <NetworkSelector
-              network={selectedNetwork}
-              onChange={onNetworkChange}
-              compactVertical
-            />
-          </div>
-        ) : null}
 
         <div className="desktop-rail-bottom-group">
+          <div className="desktop-rail-notice-shortcuts" role="group" aria-label="System notices and accessibility">
+            {noticeShortcuts.map((shortcut, sIndex) => {
+              const itemIndex = RAIL_ITEMS.length + sIndex;
+              const isSelected = activeDestination === shortcut.key;
+              return (
+                <button
+                  key={shortcut.key}
+                  ref={(element) => {
+                    itemRefs.current[itemIndex] = element;
+                  }}
+                  type="button"
+                  className="desktop-rail-item desktop-rail-notice-shortcut"
+                  data-active={isSelected ? "true" : "false"}
+                  data-dest={shortcut.key}
+                  data-count={shortcut.count}
+                  aria-current={isSelected ? "page" : undefined}
+                  aria-label={shortcut.count > 0 ? `${shortcut.label}, ${shortcut.count} ${shortcut.countLabel}` : shortcut.label}
+                  title={shortcut.label}
+                  onClick={() => onSelectDestination(shortcut.key)}
+                  onKeyDown={(event) => handleItemKeyDown(itemIndex, event)}
+                >
+                  <span className="desktop-rail-icon-slot">
+                    {shortcut.icon}
+                    {shortcut.count > 0 ? (
+                      <OverlappingCountBadge
+                        className={`desktop-rail-badge${shortcut.key === "accessibility-outages" ? " desktop-rail-notice-badge" : ""}`}
+                        count={shortcut.count}
+                      />
+                    ) : null}
+                  </span>
+                  <span className="desktop-rail-label desktop-rail-label--multiline">
+                    {shortcut.lines.map((line) => <span key={line}>{line}</span>)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="desktop-rail-divider" role="separator" aria-orientation="horizontal" />
+
           <div className="desktop-rail-alert-shortcuts" role="group" aria-label="Service impact categories">
             {alertShortcuts.map((shortcut, shortcutIndex) => {
-              const itemIndex = RAIL_ITEMS.length + shortcutIndex;
+              const itemIndex = RAIL_ITEMS.length + noticeShortcuts.length + shortcutIndex;
               const isSelected = activeDestination === shortcut.key;
               return (
                 <button
@@ -257,6 +326,7 @@ export function DesktopNavRail({
                   data-active={isSelected ? "true" : "false"}
                   data-alert-kind={shortcut.key}
                   data-dest={shortcut.key}
+                  data-count={shortcut.count}
                   aria-current={isSelected ? "page" : undefined}
                   aria-label={shortcut.count > 0 ? `${shortcut.label}, ${shortcut.count} ${shortcut.countLabel}` : shortcut.label}
                   title={shortcut.label}
@@ -284,7 +354,7 @@ export function DesktopNavRail({
 
           <button
             ref={(element) => {
-              itemRefs.current[ANALYTICS_INDEX] = element;
+              itemRefs.current[analyticsIndex] = element;
             }}
             type="button"
             className="desktop-rail-item desktop-rail-analytics-item"
@@ -294,7 +364,7 @@ export function DesktopNavRail({
             aria-label="Reliability Analytics"
             title="Reliability Analytics"
             onClick={() => onSelectDestination("analytics")}
-            onKeyDown={(e) => handleItemKeyDown(ANALYTICS_INDEX, e)}
+            onKeyDown={(e) => handleItemKeyDown(analyticsIndex, e)}
           >
             <span className="desktop-rail-icon-slot">
               <BarChart3 size={21} aria-hidden="true" />
@@ -304,7 +374,7 @@ export function DesktopNavRail({
 
           <button
             ref={(element) => {
-              itemRefs.current[SOURCE_STATUS_INDEX] = element;
+              itemRefs.current[sourceStatusIndex] = element;
             }}
             type="button"
             className="desktop-rail-item desktop-rail-source-item"
@@ -314,7 +384,7 @@ export function DesktopNavRail({
             aria-label={sourceStatusLabel}
             title={sourceStatusLabel}
             onClick={() => onSelectDestination("source-status")}
-            onKeyDown={(e) => handleItemKeyDown(SOURCE_STATUS_INDEX, e)}
+            onKeyDown={(e) => handleItemKeyDown(sourceStatusIndex, e)}
           >
             <span className="desktop-rail-icon-slot">
               <Activity size={21} aria-hidden="true" />

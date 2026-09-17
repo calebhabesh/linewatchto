@@ -5,6 +5,7 @@ import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+const desktopMoreSource = readFileSync(new URL("../src/components/DesktopMorePanel.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const notificationPanelSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
 const diagnosticsPanelSource = readFileSync(new URL("../src/components/PushDeliveryDiagnosticsPanel.tsx", import.meta.url), "utf8");
@@ -26,6 +27,9 @@ describe("notification settings navigation", () => {
     assert.match(moreSheetSource, />\s*Sign In\s*</);
     assert.doesNotMatch(moreSheetSource, /currentNetwork === "ttc" \? <button[^>]*onClick=\{onOpenNotifications\}/);
     assert.match(shellSource, /role="menuitem"[\s\S]*?navigateForward\("notifications"\)[\s\S]*?<Bell[^>]*> Notifications/s);
+    assert.match(desktopMoreSource, /onClick=\{onOpenNotifications\}/);
+    assert.match(desktopMoreSource, /<Bell[\s\S]*?<span>Notifications<\/span>/);
+    assert.match(shellSource, /<DesktopMorePanel[\s\S]*?onOpenNotifications=\{\(\) => navigateForward\("notifications"\)\}/);
 
     assert.match(savedCommutesSource, /onOpenNotificationSettings/);
     assert.match(savedCommutesSource, /Notifications:/);

@@ -6,6 +6,8 @@ import { clearMapViewport } from "../app/map-viewport-preference";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
+import { NetworkSelector } from "./NetworkSelector";
+import type { NetworkId } from "../app/regional-data";
 import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDirection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
@@ -2917,6 +2919,7 @@ function InteractiveRegionalMapComponent({
   commutePathPreview = null,
   onClearCommutePathPreview,
   isMapActive = true,
+  onNetworkChange,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -2942,6 +2945,7 @@ function InteractiveRegionalMapComponent({
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
   isMapActive?: boolean;
+  onNetworkChange?: (network: NetworkId) => void;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   const regionalMapRef = useRef<HTMLElement>(null);
@@ -5202,6 +5206,13 @@ function InteractiveRegionalMapComponent({
             <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
           </button>
         </div>
+
+        {onNetworkChange && (
+          <div className="desktop-map-control-network-group hidden md:flex items-center">
+            <div className="map-control-divider" aria-hidden="true" />
+            <NetworkSelector network="regional" onChange={onNetworkChange} />
+          </div>
+        )}
       </div>
     </section>
   );

@@ -160,6 +160,9 @@ export type DesktopRailDestination =
   | "reduced-speed-zones"
   | "closures"
   | "trip-changes"
+  | "accessibility-outages"
+  | "surface-notices"
+  | "announcements"
   | "stations"
   | "commutes"
   | "alert-history"
@@ -181,10 +184,13 @@ export function desktopRailDestinationForView(view: string): DesktopRailDestinat
       return "closures";
     case "trip-changes":
       return "trip-changes";
-    case "line-impacts":
     case "accessibility-outages":
+      return "accessibility-outages";
     case "surface-notices":
+      return "surface-notices";
     case "announcements":
+      return "announcements";
+    case "line-impacts":
       return "status";
     case "my-stations":
     case "saved":

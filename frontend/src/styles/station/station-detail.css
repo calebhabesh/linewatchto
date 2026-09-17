@@ -554,9 +554,7 @@
   @supports selector(::-webkit-scrollbar) {
     .desktop-sidebar-container .station-detail-scroll {
       scrollbar-gutter: stable;
-      scrollbar-width: auto;
-      scrollbar-color: auto;
-      padding-right: calc(16px - 8px);
+      padding-right: calc(16px - 4px);
     }
   }
 }

@@ -2,6 +2,10 @@
 
 import {
   BarChart3,
+  Bell,
+  BookOpen,
+  Bus,
+  ChevronRight,
   Contrast,
   FileText,
   HeartHandshake,
@@ -15,12 +19,10 @@ import {
   Share2,
   ShieldCheck,
   Sparkles,
-  Sun,
   UserPlus,
   UserRound,
-  BookOpen,
 } from "lucide-react";
-import Image from "next/image";
+import { AccessibilityMenuIcon } from "./AccessibilityMenuIcon";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { NetworkId } from "../app/regional-data";
@@ -44,6 +46,7 @@ type Props = {
   onToggleReducedMotion: () => void;
   onToggleDotBackground: () => void;
   onDefaultNetworkChange: (network: NetworkId) => void;
+  onOpenNotifications: () => void;
   onOpenAnalytics: () => void;
   onOpenAlertHistory: () => void;
   onOpenAnnouncements?: () => void;
@@ -54,6 +57,7 @@ type Props = {
   onOpenReleaseNotes: () => void;
   onOpenGuide: () => void;
   onShareApp: () => void;
+  supportUrl: string;
 };
 
 export function DesktopMorePanel({
@@ -75,6 +79,7 @@ export function DesktopMorePanel({
   onToggleReducedMotion,
   onToggleDotBackground,
   onDefaultNetworkChange,
+  onOpenNotifications,
   onOpenAnalytics,
   onOpenAlertHistory,
   onOpenAnnouncements,
@@ -85,6 +90,7 @@ export function DesktopMorePanel({
   onOpenReleaseNotes,
   onOpenGuide,
   onShareApp,
+  supportUrl,
 }: Props) {
   return (
     <div className="desktop-more-panel" aria-label="Settings and more options">
@@ -94,10 +100,10 @@ export function DesktopMorePanel({
           <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-more-section-title">Account</h3>
         </div>
-        <div className="desktop-more-card desktop-more-account-card">
+        <div className="desktop-more-account-card">
           <div className="desktop-more-account-info">
             <div className="desktop-more-account-avatar">
-              <UserRound size={20} aria-hidden="true" />
+              <UserRound size={20} className="text-slate-500 dark:text-slate-400" aria-hidden="true" />
             </div>
             <div className="desktop-more-account-details">
               {accountState.authenticated && accountState.user ? (
@@ -118,46 +124,59 @@ export function DesktopMorePanel({
             </div>
           </div>
 
-          <div className="desktop-more-account-actions">
+          <div className="desktop-more-card desktop-more-account-actions">
             {accountState.authenticated ? (
               <button
                 type="button"
-                className="desktop-more-btn desktop-more-btn--danger"
+                className="desktop-more-nav-item"
                 onClick={onSignOut}
                 disabled={accountBusy}
               >
-                <LogOut size={16} aria-hidden="true" />
-                <span>Sign Out</span>
+                <div className="desktop-more-nav-item-main">
+                  <LogOut size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+                  <span>Sign Out</span>
+                </div>
+                <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
               </button>
             ) : (
-              <div className="desktop-more-auth-row">
+              <>
                 <button
                   type="button"
-                  className="desktop-more-btn desktop-more-btn--primary"
+                  className="desktop-more-nav-item"
                   onClick={onRequestSignIn}
                   disabled={accountBusy}
                 >
-                  <LogIn size={16} aria-hidden="true" />
-                  <span>Sign In</span>
+                  <div className="desktop-more-nav-item-main">
+                    <LogIn size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+                    <span>Sign In</span>
+                  </div>
+                  <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
-                  className="desktop-more-btn"
+                  className="desktop-more-nav-item"
                   onClick={onRequestCreateAccount}
                   disabled={accountBusy}
                 >
-                  <UserPlus size={16} aria-hidden="true" />
-                  <span>Register</span>
+                  <div className="desktop-more-nav-item-main">
+                    <UserPlus size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+                    <span>Register</span>
+                  </div>
+                  <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
-                  className="desktop-more-btn desktop-more-btn--ghost"
+                  className="desktop-more-nav-item"
                   onClick={onDemoAccount}
                   disabled={accountBusy}
                 >
-                  <span>Demo</span>
+                  <div className="desktop-more-nav-item-main">
+                    <UserRound size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+                    <span>Demo Account</span>
+                  </div>
+                  <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
                 </button>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -172,22 +191,28 @@ export function DesktopMorePanel({
         <div className="desktop-more-card">
           <div className="desktop-more-setting-row">
             <div className="desktop-more-setting-label">
-              {isDark ? <Moon size={18} aria-hidden="true" /> : <Sun size={18} aria-hidden="true" />}
-              <span>Theme</span>
+              <Moon size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Dark Mode</span>
             </div>
             <button
               type="button"
-              className="desktop-more-toggle-btn"
+              className="desktop-more-theme-switch"
+              role="switch"
+              aria-checked={isDark}
+              aria-label="Toggle dark mode"
               onClick={onToggleTheme}
-              aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
             >
-              <span>{isDark ? "Dark" : "Light"}</span>
+              <span className="desktop-more-theme-switch-thumb">
+                {isDark ? (
+                  <Moon size={11} className="desktop-more-theme-thumb-icon text-purple-500 fill-purple-500" />
+                ) : null}
+              </span>
             </button>
           </div>
 
           <div className="desktop-more-setting-row">
             <div className="desktop-more-setting-label">
-              <Contrast size={18} aria-hidden="true" />
+              <Contrast size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               <span>High Contrast</span>
             </div>
             <button
@@ -203,7 +228,7 @@ export function DesktopMorePanel({
 
           <div className="desktop-more-setting-row">
             <div className="desktop-more-setting-label">
-              <Pause size={18} aria-hidden="true" />
+              <Pause size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               <span>Reduced Motion</span>
             </div>
             <button
@@ -219,7 +244,7 @@ export function DesktopMorePanel({
 
           <div className="desktop-more-setting-row">
             <div className="desktop-more-setting-label">
-              <Sparkles size={18} aria-hidden="true" />
+              <Sparkles size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               <span>Dot Background</span>
             </div>
             <button
@@ -236,13 +261,13 @@ export function DesktopMorePanel({
       </section>
 
       {/* Default Network */}
-      <section className="desktop-more-section" aria-label="Default Network">
+      <section className="desktop-more-section desktop-more-section--default-map" aria-label="Default Network">
         <div className="desktop-more-section-header">
           <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
           <h3 className="desktop-more-section-title">Default Map</h3>
         </div>
         <p className="desktop-more-section-caption">
-          <MapPinCheck size={14} aria-hidden="true" />
+          <MapPinCheck size={13} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
           <span>Loaded on launch</span>
         </p>
         <div className="desktop-more-card">
@@ -273,6 +298,23 @@ export function DesktopMorePanel({
         </div>
       </section>
 
+      {/* Notifications */}
+      <section className="desktop-more-section" aria-label="Notifications">
+        <div className="desktop-more-section-header">
+          <span className="desktop-status-section-bar bg-logo-blue" aria-hidden="true" />
+          <h3 className="desktop-more-section-title">Notifications</h3>
+        </div>
+        <div className="desktop-more-card desktop-more-links-card">
+          <button type="button" className="desktop-more-nav-item" onClick={onOpenNotifications}>
+            <div className="desktop-more-nav-item-main">
+              <Bell size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Notifications</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
+          </button>
+        </div>
+      </section>
+
       {/* Navigation & Tools */}
       <section className="desktop-more-section" aria-label="Tools and Guides">
         <div className="desktop-more-section-header">
@@ -281,36 +323,52 @@ export function DesktopMorePanel({
         </div>
         <div className="desktop-more-card desktop-more-links-card">
           <button type="button" className="desktop-more-nav-item" onClick={onOpenAnalytics}>
-            <BarChart3 size={18} className="text-purple-500" aria-hidden="true" />
-            <span>Reliability Analytics</span>
+            <div className="desktop-more-nav-item-main">
+              <BarChart3 size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Reliability Analytics</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
           <button type="button" className="desktop-more-nav-item" onClick={onOpenAlertHistory}>
-            <History size={18} className="text-emerald-500" aria-hidden="true" />
-            <span>Alert History</span>
+            <div className="desktop-more-nav-item-main">
+              <History size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Alert History</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
           <button type="button" className="desktop-more-nav-item" onClick={onOpenAccessibilityOutages}>
-            <Image
-              src="/assets/linewatch/accessibility-alert.svg"
-              alt=""
-              width={18}
-              height={18}
-              className="w-[18px] h-[18px] shrink-0"
-            />
-            <span>Accessibility Outages</span>
+            <div className="desktop-more-nav-item-main">
+              <AccessibilityMenuIcon size={18} />
+              <span>Accessibility Outages</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
           <button type="button" className="desktop-more-nav-item" onClick={onOpenSurfaceNotices}>
-            <FileText size={18} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-            <span>{currentNetwork === "regional" ? "GO / UP Notices" : "Service Notices"}</span>
+            <div className="desktop-more-nav-item-main">
+              {currentNetwork === "regional" ? (
+                <Megaphone size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              ) : (
+                <Bus size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              )}
+              <span>{currentNetwork === "regional" ? "Service Notices" : "Surface Notices"}</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
           {currentNetwork === "ttc" && onOpenAnnouncements && (
             <button type="button" className="desktop-more-nav-item" onClick={onOpenAnnouncements}>
-              <Megaphone size={18} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
-              <span>TTC Announcements</span>
+              <div className="desktop-more-nav-item-main">
+                <Megaphone size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+                <span>TTC Announcements</span>
+              </div>
+              <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
             </button>
           )}
           <button type="button" className="desktop-more-nav-item" onClick={onOpenGuide}>
-            <BookOpen size={18} className="text-blue-500" aria-hidden="true" />
-            <span>Site Guide</span>
+            <div className="desktop-more-nav-item-main">
+              <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Site Guide</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
         </div>
       </section>
@@ -323,20 +381,53 @@ export function DesktopMorePanel({
         </div>
         <div className="desktop-more-card desktop-more-links-card">
           <button type="button" className="desktop-more-nav-item" onClick={onOpenFeedback}>
-            <HeartHandshake size={18} className="text-rose-500" aria-hidden="true" />
-            <span>Feedback & Support</span>
+            <div className="desktop-more-nav-item-main">
+              <HeartHandshake size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Leave Feedback</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
+          {supportUrl ? (
+            <a
+              href={supportUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="desktop-more-nav-item"
+            >
+              <div className="desktop-more-nav-item-main">
+                <HeartHandshake size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+                <span>Support</span>
+              </div>
+              <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
+            </a>
+          ) : null}
           <button type="button" className="desktop-more-nav-item" onClick={onOpenPrivacyAcknowledgements}>
-            <ShieldCheck size={18} className="text-teal-500" aria-hidden="true" />
-            <span>Privacy & Acknowledgements</span>
+            <div className="desktop-more-nav-item-main">
+              <ShieldCheck size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Privacy & Acknowledgements</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
           <button type="button" className="desktop-more-nav-item" onClick={onOpenReleaseNotes}>
-            <FileText size={18} className="text-amber-500" aria-hidden="true" />
-            <span>Release Notes</span>
+            <div className="desktop-more-nav-item-main">
+              <FileText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Release Notes</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
+          <a href="/explore" className="desktop-more-nav-item">
+            <div className="desktop-more-nav-item-main">
+              <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>Transit Guides</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
+          </a>
           <button type="button" className="desktop-more-nav-item" onClick={onShareApp}>
-            <Share2 size={18} className="text-indigo-500" aria-hidden="true" />
-            <span>{shareStatusLabel ?? "Share LineWatchTO"}</span>
+            <div className="desktop-more-nav-item-main">
+              <Share2 size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <span>{shareStatusLabel ?? "Share LineWatchTO"}</span>
+            </div>
+            <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>
         </div>
       </section>

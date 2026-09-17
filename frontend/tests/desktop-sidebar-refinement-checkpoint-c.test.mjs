@@ -65,11 +65,11 @@ describe("desktop visual treatment (Checkpoint C)", () => {
   });
 
   describe("desktop more panel scaling", () => {
-    it("scales nav items and setting rows to 44-48px minimum height with 14px labels", () => {
-      assert.match(desktopChromeCss, /\.desktop-more-nav-item\s*\{[^}]*min-height:\s*44px/);
-      assert.match(desktopChromeCss, /\.desktop-more-nav-item\s*\{[^}]*font-size:\s*14px/);
-      assert.match(desktopChromeCss, /\.desktop-more-setting-row\s*\{[^}]*min-height:\s*46px/);
-      assert.match(desktopChromeCss, /\.desktop-more-setting-title\s*\{[^}]*font-size:\s*14px/);
+    it("scales nav items and setting rows to 48px minimum height with 15px labels", () => {
+      assert.match(desktopChromeCss, /\.desktop-more-nav-item\s*\{[^}]*min-height:\s*48px/);
+      assert.match(desktopChromeCss, /\.desktop-more-nav-item\s*\{[^}]*font-size:\s*15px/);
+      assert.match(desktopChromeCss, /\.desktop-more-setting-row\s*\{[^}]*min-height:\s*48px/);
+      assert.match(desktopChromeCss, /\.desktop-more-setting-title\s*\{[^}]*font-size:\s*15px/);
     });
   });
 });

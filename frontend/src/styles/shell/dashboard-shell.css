@@ -170,6 +170,7 @@
 .closure-stack,
 .reliability-list,
 .health-grid {
+  align-content: start;
   display: grid;
   gap: 10px;
   padding: 12px;
