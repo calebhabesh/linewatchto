@@ -28,6 +28,7 @@ export type SurfaceNoticeDetail = {
   source: string;
   stops?: SurfaceNoticeStopDetail[];
   scheduleAnnouncement?: boolean;
+  alertClass?: "service-alert" | "service-advisory" | null;
 };
 
 export type SurfaceNoticeStopDetail = {

@@ -42,6 +42,10 @@ describe("alert card and list views", () => {
     assert.match(compactRowSource, /CompactImpactLocation/);
     assert.match(compactRowSource, /data-impact-card-id=\{impactId\}/);
     assert.match(compactRowSource, /Show .* on map/);
+    assert.match(compactRowSource, /Back to .* details/);
+    assert.match(compactRowSource, /aria-pressed=\{active\}/);
+    assert.match(compactRowSource, /active \? "Back" : "Map"/);
+    assert.match(compactRowSource, /active \? \([\s\S]*?<ArrowLeft[\s\S]*?: \([\s\S]*?<JumpToLocationIcon/);
     assert.match(compactRowSource, /label: "Direction"/);
     assert.match(compactRowSource, /CompactImpactTimeValue/);
     assert.match(panelSources[2], /label: "Reduced Speed"/);
@@ -57,6 +61,11 @@ describe("alert card and list views", () => {
     assert.match(globalCss, /\.compact-impact-list-item\.delay-card-border\s*\{[^}]*border-left-color:\s*#FEEC41;/s);
     assert.match(globalCss, /\.compact-impact-list-item\.planned-closure-card-border\s*\{[^}]*border-left-color:\s*#3b82f6;/s);
     assert.match(globalCss, /\.compact-impact-location__station/);
+    assert.match(globalCss, /\.compact-impact-list-item__map-action\s*\{[^}]*width:\s*68px;[^}]*min-width:\s*68px;/s);
+    assert.match(globalCss, /\.dark \.compact-impact-list-item__map-action-label\s*\{[^}]*color:\s*#ffffff;/s);
+    assert.match(globalCss, /\.compact-impact-list-item\.is-active \.compact-impact-list-item__map-action\s*\{[^}]*background:\s*#2563eb;[^}]*color:\s*#ffffff;/s);
+    assert.match(globalCss, /@media \(max-width:\s*400px\), \(orientation:\s*landscape\) and \(max-height:\s*520px\)[\s\S]*?\.compact-impact-list-item__map-action\s*\{[^}]*min-width:\s*30px;[^}]*width:\s*30px;/s);
+    assert.match(globalCss, /@media \(max-width:\s*400px\), \(orientation:\s*landscape\) and \(max-height:\s*520px\)[\s\S]*?\.compact-impact-list-item__map-action-label\s*\{[^}]*display:\s*none;/s);
     assert.doesNotMatch(globalCss, /\.compact-impact-list-item\s*\{[^}]*border-left-width:\s*4px;/s);
   });
 

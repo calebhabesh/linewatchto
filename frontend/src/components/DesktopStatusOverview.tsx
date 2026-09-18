@@ -179,7 +179,7 @@ export function DesktopStatusOverview({
 
   const surfaceRows =
     surfaceNotices?.fresh && now > 0
-      ? currentSurfaceNotices(surfaceNotices.notices, now)
+      ? currentSurfaceNotices(surfaceNotices.notices, now, !regional)
       : [];
   const displayedNotices = surfaceRows.slice(0, 3);
   const remainingNoticeCount = surfaceRows.length - displayedNotices.length;
@@ -714,7 +714,7 @@ export function DesktopStatusOverview({
                 <Bus size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               )}
               <span className="desktop-status-info-label">
-                {regional ? "Service Notices" : "Surface Notices"}
+                {regional ? "Service Notices" : "Streetcar & Bus"}
               </span>
             </div>
             <div className="desktop-status-info-end">

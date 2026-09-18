@@ -12,6 +12,7 @@ import onboardingMobileImpactDetails from "../../public/assets/linewatch/onboard
 import onboardingMobileMyCommutesV3 from "../../public/assets/linewatch/onboarding/mobile-my-commutes-v3.png";
 import onboardingMobileMyStationsV3 from "../../public/assets/linewatch/onboarding/mobile-my-stations-v3.png";
 import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import Stepper, { Step } from "./Stepper";
 
 export const WELCOME_SEEN_STORAGE_KEY = "linewatch-welcome-seen-v1";
 export const DISCLAIMER_ACK_STORAGE_KEY = "linewatch-unofficial-notice-ack-v1";
@@ -437,18 +438,25 @@ export function OpeningDisclaimer({
               <div className="station-arrival-line-divider opening-welcome-divider" aria-hidden="true" />
 
               <div className="opening-welcome-carousel opening-welcome-carousel--desktop" aria-label="LineWatchTO introduction">
-                <div
-                  className={`opening-welcome-carousel-viewport ${desktopSwipe.isDragging ? "opening-welcome-carousel-viewport--dragging" : ""}`}
-                  id="opening-welcome-desktop-viewport"
-                  {...desktopSwipe.bind}
+                <Stepper
+                  currentStep={desktopSlide + 1}
+                  onStepChange={(step) => setDesktopSlide(step - 1)}
+                  onFinalStepCompleted={finishWelcome}
+                  contentClassName={`opening-welcome-carousel-viewport ${desktopSwipe.isDragging ? "opening-welcome-carousel-viewport--dragging" : ""}`}
+                  contentId="opening-welcome-desktop-viewport"
+                  contentProps={desktopSwipe.bind}
+                  renderFooter={() => (
+                    <SlideControls
+                      activeSlide={desktopSlide}
+                      count={DESKTOP_SLIDE_COUNT}
+                      onBack={() => setDesktopSlide((current) => Math.max(0, current - 1))}
+                      onFinish={finishWelcome}
+                      onNext={() => setDesktopSlide((current) => Math.min(DESKTOP_SLIDE_COUNT - 1, current + 1))}
+                      onSelect={setDesktopSlide}
+                    />
+                  )}
                 >
-                  <div
-                    className="opening-welcome-slide-wrapper"
-                    style={{
-                      transform: `translateX(calc(-${desktopSlide * 100}% + ${desktopSwipe.dragOffset}px))`,
-                      transition: desktopSwipe.isDragging ? "none" : "transform 380ms cubic-bezier(0.16, 1, 0.3, 1)",
-                    }}
-                  >
+                  <Step>
                     <div
                       className={`opening-welcome-slide-item ${desktopSlide === 0 ? "opening-welcome-slide-item--active" : ""}`}
                       aria-hidden={desktopSlide !== 0}
@@ -465,7 +473,9 @@ export function OpeningDisclaimer({
                         <MapOverlayLegend />
                       </article>
                     </div>
+                  </Step>
 
+                  <Step>
                     <div
                       className={`opening-welcome-slide-item ${desktopSlide === 1 ? "opening-welcome-slide-item--active" : ""}`}
                       aria-hidden={desktopSlide !== 1}
@@ -481,7 +491,9 @@ export function OpeningDisclaimer({
                         </div>
                       </article>
                     </div>
+                  </Step>
 
+                  <Step>
                     <div
                       className={`opening-welcome-slide-item ${desktopSlide === 2 ? "opening-welcome-slide-item--active" : ""}`}
                       aria-hidden={desktopSlide !== 2}
@@ -511,31 +523,30 @@ export function OpeningDisclaimer({
                         </div>
                       </article>
                     </div>
-                  </div>
-                </div>
-                <SlideControls
-                  activeSlide={desktopSlide}
-                  count={DESKTOP_SLIDE_COUNT}
-                  onBack={() => setDesktopSlide((current) => Math.max(0, current - 1))}
-                  onFinish={finishWelcome}
-                  onNext={() => setDesktopSlide((current) => Math.min(DESKTOP_SLIDE_COUNT - 1, current + 1))}
-                  onSelect={setDesktopSlide}
-                />
+                  </Step>
+                </Stepper>
               </div>
 
               <div className="opening-welcome-carousel opening-welcome-carousel--mobile" aria-label="LineWatchTO introduction">
-                <div
-                  className={`opening-welcome-carousel-viewport ${mobileSwipe.isDragging ? "opening-welcome-carousel-viewport--dragging" : ""}`}
-                  id="opening-welcome-mobile-viewport"
-                  {...mobileSwipe.bind}
+                <Stepper
+                  currentStep={mobileSlide + 1}
+                  onStepChange={(step) => setMobileSlide(step - 1)}
+                  onFinalStepCompleted={finishWelcome}
+                  contentClassName={`opening-welcome-carousel-viewport ${mobileSwipe.isDragging ? "opening-welcome-carousel-viewport--dragging" : ""}`}
+                  contentId="opening-welcome-mobile-viewport"
+                  contentProps={mobileSwipe.bind}
+                  renderFooter={() => (
+                    <SlideControls
+                      activeSlide={mobileSlide}
+                      count={MOBILE_SLIDE_COUNT}
+                      onBack={() => setMobileSlide((current) => Math.max(0, current - 1))}
+                      onFinish={finishWelcome}
+                      onNext={() => setMobileSlide((current) => Math.min(MOBILE_SLIDE_COUNT - 1, current + 1))}
+                      onSelect={setMobileSlide}
+                    />
+                  )}
                 >
-                  <div
-                    className="opening-welcome-slide-wrapper"
-                    style={{
-                      transform: `translateX(calc(-${mobileSlide * 100}% + ${mobileSwipe.dragOffset}px))`,
-                      transition: mobileSwipe.isDragging ? "none" : "transform 380ms cubic-bezier(0.16, 1, 0.3, 1)",
-                    }}
-                  >
+                  <Step>
                     <div
                       className={`opening-welcome-slide-item ${mobileSlide === 0 ? "opening-welcome-slide-item--active" : ""}`}
                       aria-hidden={mobileSlide !== 0}
@@ -552,7 +563,9 @@ export function OpeningDisclaimer({
                         <MapOverlayLegend />
                       </article>
                     </div>
+                  </Step>
 
+                  <Step>
                     <div
                       className={`opening-welcome-slide-item ${mobileSlide === 1 ? "opening-welcome-slide-item--active" : ""}`}
                       aria-hidden={mobileSlide !== 1}
@@ -568,7 +581,9 @@ export function OpeningDisclaimer({
                         </div>
                       </article>
                     </div>
+                  </Step>
 
+                  <Step>
                     <div
                       className={`opening-welcome-slide-item ${mobileSlide === 2 ? "opening-welcome-slide-item--active" : ""}`}
                       aria-hidden={mobileSlide !== 2}
@@ -587,7 +602,9 @@ export function OpeningDisclaimer({
                         </div>
                       </article>
                     </div>
+                  </Step>
 
+                  <Step>
                     <div
                       className={`opening-welcome-slide-item ${mobileSlide === 3 ? "opening-welcome-slide-item--active" : ""}`}
                       aria-hidden={mobileSlide !== 3}
@@ -603,16 +620,8 @@ export function OpeningDisclaimer({
                         </div>
                       </article>
                     </div>
-                  </div>
-                </div>
-                <SlideControls
-                  activeSlide={mobileSlide}
-                  count={MOBILE_SLIDE_COUNT}
-                  onBack={() => setMobileSlide((current) => Math.max(0, current - 1))}
-                  onFinish={finishWelcome}
-                  onNext={() => setMobileSlide((current) => Math.min(MOBILE_SLIDE_COUNT - 1, current + 1))}
-                  onSelect={setMobileSlide}
-                />
+                  </Step>
+                </Stepper>
               </div>
 
               <p className="opening-welcome-account-copy">

@@ -178,6 +178,10 @@
   stroke: #bfdbfe;
 }
 
+.impact-card-map-btn.is-active .impact-card-back-icon path {
+  stroke: #ffffff;
+}
+
 .impact-card-map-btn.is-active .impact-card-map-btn__label {
   color: #ffffff;
 }
@@ -1411,7 +1415,9 @@
   display: inline-flex;
   grid-column: 3;
   grid-row: 1;
-  width: 32px;
+  gap: 4px;
+  width: 68px;
+  min-width: 68px;
   height: 32px;
   align-items: center;
   justify-content: center;
@@ -1423,9 +1429,50 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+.compact-impact-list-item__map-action-icon {
+  flex: 0 0 auto;
+  height: 18px;
+  width: 18px;
+}
+
+.compact-impact-list-item__map-action-label {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .dark .compact-impact-list-item__map-action {
   background: rgba(56, 189, 248, 0.09);
   color: #38bdf8;
+}
+
+.dark .compact-impact-list-item__map-action-label {
+  color: #ffffff;
+}
+
+.compact-impact-list-item.is-active .compact-impact-list-item__map-action {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.compact-impact-list-item.is-active .compact-impact-list-item__map-action-label {
+  color: #ffffff;
+}
+
+.dark .compact-impact-list-item.is-active .compact-impact-list-item__map-action {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.compact-impact-list-item.is-active .compact-impact-list-item__map-action .jump-to-pin {
+  color: #ffffff;
+  filter: none;
+}
+
+.high-contrast .compact-impact-list-item__map-action {
+  border: 1px solid currentColor;
 }
 
 @media (max-width: 420px) {

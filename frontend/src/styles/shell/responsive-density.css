@@ -822,7 +822,12 @@
 
   .compact-impact-list-item__map-action {
     height: 30px;
+    min-width: 30px;
     width: 30px;
+  }
+
+  .compact-impact-list-item__map-action-label {
+    display: none;
   }
 
   .commute-card {

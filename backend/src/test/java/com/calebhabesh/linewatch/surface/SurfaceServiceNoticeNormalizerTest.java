@@ -32,6 +32,18 @@ class SurfaceServiceNoticeNormalizerTest {
         );
     }
 
+    private TtcAlertRecord withAlertType(TtcAlertRecord record, String alertType) {
+        return new TtcAlertRecord(
+            record.id(), alertType, record.lastUpdated(), record.activePeriod(), record.activePeriodGroup(),
+            record.route(), record.routeBranch(), record.routeType(), record.stopStart(), record.stopEnd(),
+            record.stopIDList(), record.title(), record.description(), record.headerText(), record.url(),
+            record.effect(), record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(), record.reducedSpeed(),
+            record.averageSpeed(), record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.elevatorCode(), record.escalatorCode(), record.childAlerts(), record.customHeaderText()
+        );
+    }
+
     @Test
     void bypassFixtureWithRoute509AndStop13366NormalizesToBypass() {
         TtcAlertRecord record = createRecord(
@@ -44,9 +56,23 @@ class SurfaceServiceNoticeNormalizerTest {
         assertThat(noticeOpt).isPresent();
         SurfaceServiceNotice notice = noticeOpt.get();
         assertThat(notice.category()).isEqualTo("bypass");
+        assertThat(notice.alertClass()).isEqualTo(SurfaceServiceNotice.SERVICE_ALERT);
         assertThat(notice.routeIds()).containsExactly("509");
         assertThat(notice.stops()).hasSize(1);
         assertThat(notice.stops().get(0).stopId()).isEqualTo("13366");
+    }
+
+    @Test
+    void plannedSurfaceRecordIsClassifiedAsServiceAdvisory() {
+        TtcAlertRecord record = withAlertType(createRecord(
+            "planned-88", "88", "Bus", "Temporary route change", "", "", null,
+            "MODIFIED_SERVICE", "Modified service", List.of(), null, null
+        ), "Planned");
+
+        assertThat(normalizer.normalize(fetched(record)))
+            .get()
+            .extracting(SurfaceServiceNotice::alertClass)
+            .isEqualTo(SurfaceServiceNotice.SERVICE_ADVISORY);
     }
 
     @Test
@@ -88,6 +114,7 @@ class SurfaceServiceNoticeNormalizerTest {
 
         assertThat(noticeOpt).isPresent();
         assertThat(noticeOpt.get().routeIds()).containsExactly("51A");
+        assertThat(noticeOpt.get().alertClass()).isEqualTo(SurfaceServiceNotice.SERVICE_ALERT);
     }
 
     @Test

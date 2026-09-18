@@ -125,14 +125,7 @@
 }
 
 .network-indicator-dot {
-  position: absolute;
-  left: 14px;
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
-  transition: opacity 140ms ease-out, background-color 140ms ease-out, box-shadow 140ms ease-out;
-  opacity: 0.6;
-  flex-shrink: 0;
+  display: none;
 }
 
 .network-btn-text {
@@ -142,22 +135,6 @@
   justify-content: center;
   text-align: center;
   line-height: 1;
-}
-
-.network-dot-ttc {
-  background: #ef4444;
-  box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
-}
-
-.network-dot-regional {
-  background: #10b981;
-  box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);
-}
-
-.network-selector-btn[aria-pressed="true"] .network-indicator-dot {
-  background: #ffffff;
-  opacity: 1;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
 }
 
 /* Transparent rib faces preserve the switch surface; edge lighting supplies relief. */

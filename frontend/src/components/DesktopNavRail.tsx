@@ -101,8 +101,8 @@ export function DesktopNavRail({
     },
     {
       key: "surface-notices" as const,
-      label: selectedNetwork === "regional" ? "Service Notices" : "Surface Notices",
-      lines: selectedNetwork === "regional" ? (["Service", "Notices"] as const) : (["Surface", "Notices"] as const),
+      label: selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus",
+      lines: selectedNetwork === "regional" ? (["Service", "Notices"] as const) : (["Streetcar", "& Bus"] as const),
       count: surfaceNoticeCount,
       countLabel: surfaceNoticeCount === 1 ? "notice" : "notices",
       icon: selectedNetwork === "regional" ? <Megaphone size={21} aria-hidden="true" /> : <BusFront size={21} aria-hidden="true" />,

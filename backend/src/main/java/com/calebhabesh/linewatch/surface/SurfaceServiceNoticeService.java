@@ -162,19 +162,23 @@ public class SurfaceServiceNoticeService {
     }
 
     private int compareNotices(SurfaceServiceNotice a, SurfaceServiceNotice b) {
-        // 1. Category rank
+        // 1. Live and GTFS-RT service alerts precede planned advisories.
+        int alertClassComp = Integer.compare(getAlertClassRank(a), getAlertClassRank(b));
+        if (alertClassComp != 0) return alertClassComp;
+
+        // 2. Category rank
         int rankA = getCategoryRank(a.category());
         int rankB = getCategoryRank(b.category());
         int categoryComp = Integer.compare(rankA, rankB);
         if (categoryComp != 0) return categoryComp;
 
-        // 2. Route numeric order
+        // 3. Route numeric order
         int routeA = getLowestRouteNumber(a);
         int routeB = getLowestRouteNumber(b);
         int routeComp = Integer.compare(routeA, routeB);
         if (routeComp != 0) return routeComp;
 
-        // 3. Source updated desc
+        // 4. Source updated desc
         OffsetDateTime timeA = a.sourceUpdatedAt();
         OffsetDateTime timeB = b.sourceUpdatedAt();
         if (timeA == null && timeB == null) return a.id().compareTo(b.id());
@@ -183,11 +187,15 @@ public class SurfaceServiceNoticeService {
         return timeB.compareTo(timeA);
     }
 
+    private int getAlertClassRank(SurfaceServiceNotice notice) {
+        return SurfaceServiceNotice.SERVICE_ALERT.equals(notice.alertClass()) ? 0 : 1;
+    }
+
     private int getCategoryRank(String category) {
         if (category == null) return 6;
         return switch (category.toLowerCase()) {
-            case "bypass" -> 1;
-            case "no-service" -> 2;
+            case "no-service" -> 1;
+            case "bypass" -> 2;
             case "detour" -> 3;
             case "service-change" -> 4;
             case "notice" -> 5;
@@ -263,7 +271,8 @@ public class SurfaceServiceNoticeService {
             notice.sourceUpdatedAt(),
             notice.url(),
             "TTC Live Alerts + GTFS-RT",
-            false
+            false,
+            notice.alertClass()
         );
     }
 
@@ -322,7 +331,8 @@ public class SurfaceServiceNoticeService {
             notice.active(),
             notice.rawPayload(),
             preciseRouteIds,
-            notice.stops()
+            notice.stops(),
+            notice.alertClass()
         );
     }
 
@@ -401,8 +411,15 @@ public class SurfaceServiceNoticeService {
             namedNotice.active() || numericNotice.active(),
             firstNonBlank(namedNotice.rawPayload(), numericNotice.rawPayload(), "{}"),
             namedNotice.routeIds() != null && !namedNotice.routeIds().isEmpty() ? namedNotice.routeIds() : numericNotice.routeIds(),
-            pairedStops
+            pairedStops,
+            isServiceAlert(namedNotice) || isServiceAlert(numericNotice)
+                ? SurfaceServiceNotice.SERVICE_ALERT
+                : SurfaceServiceNotice.SERVICE_ADVISORY
         );
+    }
+
+    private boolean isServiceAlert(SurfaceServiceNotice notice) {
+        return SurfaceServiceNotice.SERVICE_ALERT.equals(notice.alertClass());
     }
 
     private boolean stopShapesAreCompatible(SurfaceServiceNotice numericNotice, SurfaceServiceNotice namedNotice) {

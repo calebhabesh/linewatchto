@@ -325,6 +325,20 @@ it("prioritizes explicit no-service schedule notices, then newest updates", () =
   assert.ok(compareSurfaceNotices(recent, { ...recent, id: "old", updatedAt: "invalid" }) < 0);
 });
 
+it("prioritizes TTC service alerts by impact and route only for the default importance sort", () => {
+  const advisory = { ...baseNotice, id: "advisory", routeIds: ["1"], category: "no-service",
+    alertClass: "service-advisory", updatedAt: "2026-06-15T10:00:00Z" };
+  const route100Alert = { ...baseNotice, id: "route-100-alert", routeIds: ["100"], category: "detour",
+    alertClass: "service-alert", updatedAt: "2026-06-12T10:00:00Z" };
+  const route50Alert = { ...route100Alert, id: "route-50-alert", routeIds: ["50"] };
+
+  assert.ok(compareSurfaceNotices(route100Alert, advisory, "importance", null, true) < 0);
+  assert.ok(compareSurfaceNotices(route50Alert, route100Alert, "importance", null, true) < 0);
+  assert.ok(compareSurfaceNotices(advisory, route100Alert, "recent", null, true) < 0);
+  assert.ok(compareSurfaceNotices(advisory, route100Alert, "route", null, true) < 0);
+  assert.ok(compareSurfaceNotices(advisory, route100Alert, "importance", null, false) < 0);
+});
+
 describe("surface notice route search relevance", () => {
   it("hasExactRouteMatch matches normalized route IDs accurately", () => {
     const single = { ...baseNotice, routeIds: ["8"] };

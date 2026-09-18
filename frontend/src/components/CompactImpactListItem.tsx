@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
 import { CompactImpactLocation, JumpToLocationIcon, LineBadge } from "./ImpactCardFields";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 
@@ -69,7 +70,9 @@ export function CompactImpactListItem({
       data-impact-card-id={details ? undefined : impactId}
       className={`compact-impact-list-item ${routeFirst ? "compact-impact-list-item--organized" : ""} ${toneClassName}${active ? " is-active" : ""}`}
       onClick={onShowOnMap}
-      aria-label={`Show ${title} on map: ${location}`}
+      aria-label={active ? `Back to ${title} details: ${location}` : `Show ${title} on map: ${location}`}
+      aria-pressed={active}
+      title={active ? "Back to details" : "View on map"}
     >
       <LineBadge lineId={lineId} lineNumber={lineNumber} />
       <span className="compact-impact-list-item__body">
@@ -82,7 +85,14 @@ export function CompactImpactListItem({
         </span> : null}
       </span>
       <span className="compact-impact-list-item__map-action" aria-hidden="true">
-        <JumpToLocationIcon className="w-5 h-5" />
+        {active ? (
+          <ArrowLeft className="compact-impact-list-item__map-action-icon" size={16} />
+        ) : (
+          <JumpToLocationIcon className="compact-impact-list-item__map-action-icon" />
+        )}
+        <span className="compact-impact-list-item__map-action-label">
+          {active ? "Back" : "Map"}
+        </span>
       </span>
       {renderedFacts.length > 0 ? (
         <span className="compact-impact-list-item__detail">

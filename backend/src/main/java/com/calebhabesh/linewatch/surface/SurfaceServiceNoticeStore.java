@@ -24,12 +24,12 @@ public class SurfaceServiceNoticeStore {
                 id, source_id, category, route_type, title, description, header_text, url,
                 effect, effect_description, direction, cause, cause_description,
                 active_period_start, active_period_end, source_updated_at, active,
-                raw_payload, created_at, updated_at
+                raw_payload, alert_class, created_at, updated_at
             ) values (
                 :id, :sourceId, :category, :routeType, :title, :description, :headerText, :url,
                 :effect, :effectDescription, :direction, :cause, :causeDescription,
                 :activePeriodStart, :activePeriodEnd, :sourceUpdatedAt, :active,
-                :rawPayload, :now, :now
+                :rawPayload, :alertClass, :now, :now
             )
             on conflict (source_id) do update set
                 category = excluded.category,
@@ -48,6 +48,7 @@ public class SurfaceServiceNoticeStore {
                 source_updated_at = excluded.source_updated_at,
                 active = excluded.active,
                 raw_payload = excluded.raw_payload,
+                alert_class = excluded.alert_class,
                 updated_at = excluded.updated_at
             """, new MapSqlParameterSource()
                 .addValue("id", notice.id())
@@ -68,6 +69,7 @@ public class SurfaceServiceNoticeStore {
                 .addValue("sourceUpdatedAt", notice.sourceUpdatedAt())
                 .addValue("active", notice.active())
                 .addValue("rawPayload", notice.rawPayload())
+                .addValue("alertClass", notice.alertClass())
                 .addValue("now", now)
         );
 

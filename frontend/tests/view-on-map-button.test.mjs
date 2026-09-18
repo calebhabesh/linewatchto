@@ -62,8 +62,10 @@ describe("44px View on Map button", () => {
   it("renders 'Map' when inactive and 'Back' when active with stable toggle dimensions", () => {
     assert.match(impactCardFieldsSource, /Back/);
     assert.match(impactCardFieldsSource, /Map/);
+    assert.match(impactCardFieldsSource, /isBack \? \([\s\S]*?<ArrowLeft[\s\S]*?: \([\s\S]*?<MapPinned/);
     assert.match(impactCardFieldsSource, /aria-pressed/);
     assert.match(globalCss, /\.impact-card-map-btn--labeled\s*\{[^}]*min-width:\s*78px;[^}]*width:\s*78px/s);
+    assert.match(globalCss, /\.impact-card-map-btn\.is-active \.impact-card-back-icon path\s*\{[^}]*stroke:\s*#ffffff;/s);
     assert.match(globalCss, /\.impact-card-map-btn__label/);
   });
 });

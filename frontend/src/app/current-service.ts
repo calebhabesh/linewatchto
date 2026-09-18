@@ -1,5 +1,6 @@
 import type { ActiveAlert, DelayAlert, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
 import { countReducedSpeedZones } from "./reduced-speed-zone-count.ts";
+import { compareSurfaceNotices } from "./surface-notice-groups.ts";
 
 export type CurrentServiceData = {
   snapshot?: { savedAt: number | null };
@@ -113,13 +114,19 @@ export function currentServiceSummary(data: CurrentServiceData, now = 0) {
   return { fresh, rows: data.snapshot ? rows.map((row) => ({ ...row, condition: `Last reported: ${row.condition}`, timing: undefined })) : rows, unaffected: fresh ? data.lineStatuses.filter((line) => !affected.has(line.id)) : [], upcoming };
 }
 
-export function currentSurfaceNotices(notices: import("./surface-notice-data.ts").SurfaceNoticeDetail[], now: number) {
+export function currentSurfaceNotices(
+  notices: import("./surface-notice-data.ts").SurfaceNoticeDetail[],
+  now: number,
+  preferTtcServiceAlerts = false,
+) {
   return notices.filter((notice) => {
     const start = notice.startAt ? Date.parse(notice.startAt) : null;
     const end = notice.endAt ? Date.parse(notice.endAt) : null;
     return (start === null || Number.isFinite(start) && start <= now)
       && (end === null || Number.isFinite(end) && end > now);
-  }).sort((a, b) => (a.routeIds[0] || "").localeCompare(b.routeIds[0] || "", undefined, { numeric: true }) || a.id.localeCompare(b.id));
+  }).sort((a, b) => preferTtcServiceAlerts
+    ? compareSurfaceNotices(a, b, "importance", undefined, true)
+    : (a.routeIds[0] || "").localeCompare(b.routeIds[0] || "", undefined, { numeric: true }) || a.id.localeCompare(b.id));
 }
 
 export function getCanonicalAlertTitle(row: CurrentServiceRow): string {

@@ -278,8 +278,8 @@ export function SurfaceNoticesPanel({
         key: `${group.key}:${notice.id}`,
         notices: [notice],
       })))
-    : routeGroups).map((group) => ({ ...group, notices: [...group.notices].sort((a, b) => compareSurfaceNotices(a, b, externalSort === "location" ? "location" : externalSort ? "recent" : sortOrder, externalQuery ?? debouncedQuery)) }))
-    .sort((a, b) => compareSurfaceNotices(a.notices[0], b.notices[0], externalSort === "location" ? "location" : externalSort ? "recent" : sortOrder, externalQuery ?? debouncedQuery));
+    : routeGroups).map((group) => ({ ...group, notices: [...group.notices].sort((a, b) => compareSurfaceNotices(a, b, externalSort === "location" ? "location" : externalSort ? "recent" : sortOrder, externalQuery ?? debouncedQuery, !regional)) }))
+    .sort((a, b) => compareSurfaceNotices(a.notices[0], b.notices[0], externalSort === "location" ? "location" : externalSort ? "recent" : sortOrder, externalQuery ?? debouncedQuery, !regional));
 
   const renderCompactField = (
     label: string,

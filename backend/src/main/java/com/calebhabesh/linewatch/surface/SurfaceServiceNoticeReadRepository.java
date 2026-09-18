@@ -20,7 +20,8 @@ public class SurfaceServiceNoticeReadRepository {
         String noticeSql = """
             select id, source_id, category, route_type, title, description, header_text, url,
                    effect, effect_description, direction, cause, cause_description,
-                   active_period_start, active_period_end, source_updated_at, active, raw_payload
+                   active_period_start, active_period_end, source_updated_at, active, raw_payload,
+                   alert_class
             from surface_service_notices
             where active = true
             """;
@@ -43,7 +44,8 @@ public class SurfaceServiceNoticeReadRepository {
             rs.getObject("active_period_end", OffsetDateTime.class),
             rs.getObject("source_updated_at", OffsetDateTime.class),
             rs.getBoolean("active"),
-            rs.getString("raw_payload")
+            rs.getString("raw_payload"),
+            rs.getString("alert_class")
         ));
 
         if (noticeRows.isEmpty()) {
@@ -102,7 +104,8 @@ public class SurfaceServiceNoticeReadRepository {
                 r.active(),
                 r.rawPayload(),
                 routesMap.getOrDefault(r.id(), List.of()),
-                stopsMap.getOrDefault(r.id(), List.of())
+                stopsMap.getOrDefault(r.id(), List.of()),
+                r.alertClass()
             ));
         }
 
@@ -127,6 +130,7 @@ public class SurfaceServiceNoticeReadRepository {
         OffsetDateTime activePeriodEnd,
         OffsetDateTime sourceUpdatedAt,
         boolean active,
-        String rawPayload
+        String rawPayload,
+        String alertClass
     ) {}
 }

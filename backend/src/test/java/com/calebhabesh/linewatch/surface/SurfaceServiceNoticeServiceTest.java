@@ -55,6 +55,35 @@ class SurfaceServiceNoticeServiceTest {
     }
 
     @Test
+    void defaultOrderPutsServiceAlertsBeforeAdvisoriesThenUsesImpactAndRoute() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        SurfaceServiceNotice advisory = classifiedNotice(
+            "advisory", "1", "no-service", SurfaceServiceNotice.SERVICE_ADVISORY, now.plusMinutes(3));
+        SurfaceServiceNotice route100Alert = classifiedNotice(
+            "route-100", "100", "detour", SurfaceServiceNotice.SERVICE_ALERT, now.plusMinutes(2));
+        SurfaceServiceNotice route50Alert = classifiedNotice(
+            "route-50", "50", "detour", SurfaceServiceNotice.SERVICE_ALERT, now.plusMinutes(1));
+        SurfaceServiceNotice noServiceAlert = classifiedNotice(
+            "no-service", "999", "no-service", SurfaceServiceNotice.SERVICE_ALERT, now);
+        when(repository.findActiveNotices()).thenReturn(List.of(advisory, route100Alert, route50Alert, noServiceAlert));
+
+        assertThat(getService().getSurfaceNotices(null, null, null).notices())
+            .extracting(NoticeDetail::id)
+            .containsExactly("no-service", "route-50", "route-100", "advisory");
+    }
+
+    private SurfaceServiceNotice classifiedNotice(
+        String id, String route, String category, String alertClass, OffsetDateTime updatedAt
+    ) {
+        return new SurfaceServiceNotice(
+            id, id, category, "Bus", id, "", "", null,
+            null, null, null, null, null, updatedAt.minusHours(1), null, updatedAt, true, "{}",
+            List.of(route), List.of(), alertClass
+        );
+    }
+
+    @Test
     void query509ReturnsOnlyRoute509NoticeInMixedFixture() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         OffsetDateTime now = OffsetDateTime.now(clock);
@@ -132,7 +161,8 @@ class SurfaceServiceNoticeServiceTest {
             "BYPASS", "Bypass", "Westbound", null, "FIFA World Cup route adjustments.",
             activeStart, null, namedUpdated, true, "{}",
             List.of("509"),
-            List.of(new SurfaceServiceNotice.StopDetail("Manitoba Dr at Strachan Ave West Side", "Manitoba Dr at Strachan Ave West Side"))
+            List.of(new SurfaceServiceNotice.StopDetail("Manitoba Dr at Strachan Ave West Side", "Manitoba Dr at Strachan Ave West Side")),
+            SurfaceServiceNotice.SERVICE_ADVISORY
         );
 
         when(repository.findActiveNotices()).thenReturn(List.of(numericStopNotice, namedStopNotice));
@@ -146,6 +176,7 @@ class SurfaceServiceNoticeServiceTest {
         assertThat(detail.stopIds()).containsExactly("1063");
         assertThat(detail.cause()).isEqualTo("FIFA World Cup route adjustments.");
         assertThat(detail.updatedAt()).isEqualTo(numericUpdated);
+        assertThat(detail.alertClass()).isEqualTo(SurfaceServiceNotice.SERVICE_ALERT);
         assertThat(response.categories().stream().filter(c -> c.category().equals("bypass")).findFirst().get().count()).isEqualTo(1);
     }
 

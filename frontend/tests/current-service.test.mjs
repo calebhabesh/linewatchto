@@ -85,6 +85,25 @@ test("surface preview omits future and expired notices and uses stable numeric r
   ], now).map((row) => row.id), ["b", "a"]);
 });
 
+test("TTC surface preview fills three slots with service alerts before advisories", () => {
+  const now = Date.parse("2026-09-09T16:00:00Z");
+  const notice = (id, route, category, alertClass, updatedAt = "2026-09-09T15:00:00Z") => ({
+    id, routeIds: [route], category, alertClass, updatedAt,
+  });
+  const rows = currentSurfaceNotices([
+    notice("advisory-no-service", "1", "no-service", "service-advisory"),
+    notice("alert-detour", "50", "detour", "service-alert"),
+    notice("alert-no-service", "100", "no-service", "service-alert"),
+    notice("advisory-bypass", "2", "bypass", "service-advisory"),
+  ], now, true);
+
+  assert.deepEqual(rows.slice(0, 3).map((row) => row.id), [
+    "alert-no-service",
+    "alert-detour",
+    "advisory-no-service",
+  ]);
+});
+
 test("published closure windows enter within 24 hours, transition, expire, and yield to active children", () => {
   const now = Date.parse("2026-09-09T16:00:00Z");
   const closure = impact("parent", "2", { nextWindowStart: "2026-09-10T16:00:00Z", nextWindowEnd: "2026-09-10T18:00:00Z" });
@@ -379,4 +398,3 @@ test("sub-badges and surface routes use flex alignment without letter wrapping",
   const surfaceSection = desktopStatusSource.slice(desktopStatusSource.indexOf('className="desktop-status-surface-list"'));
   assert.doesNotMatch(surfaceSection, /<ElectricBorder/);
 });
-

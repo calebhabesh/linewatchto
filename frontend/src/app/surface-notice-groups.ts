@@ -616,6 +616,7 @@ export function compareSurfaceNotices(
   b: SurfaceNoticeDetail,
   sort: "importance" | "recent" | "route" | "location" | "start" = "importance",
   query?: string | null,
+  preferTtcServiceAlerts = false,
 ): number {
   if (sort === "route" || sort === "location") {
     const key = (notice: SurfaceNoticeDetail) => sort === "route" ? [...notice.routeIds].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))[0] ?? "\uffff" : notice.location || notice.stops?.[0]?.stopName || "\uffff";
@@ -638,6 +639,9 @@ export function compareSurfaceNotices(
   const priorities: Record<string, number> = {
     "no-service": 0, schedule: 1, bypass: 2, detour: 2, "service-change": 3, notice: 4,
   };
+  const alertClassPriority = sort === "importance" && preferTtcServiceAlerts
+    ? (a.alertClass === "service-alert" ? 0 : 1) - (b.alertClass === "service-alert" ? 0 : 1)
+    : 0;
   const priority = sort === "importance"
     ? (priorities[surfaceNoticeEmphasis(a)] ?? 4) - (priorities[surfaceNoticeEmphasis(b)] ?? 4)
     : 0;
@@ -645,6 +649,9 @@ export function compareSurfaceNotices(
     const parsed = Date.parse(value);
     return Number.isFinite(parsed) ? parsed : 0;
   };
-  return priority || timestamp(b.updatedAt) - timestamp(a.updatedAt) || a.id.localeCompare(b.id);
+  const route = sort === "importance" && preferTtcServiceAlerts
+    ? ([...a.routeIds].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))[0] ?? "\uffff")
+      .localeCompare([...b.routeIds].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))[0] ?? "\uffff", undefined, { numeric: true })
+    : 0;
+  return alertClassPriority || priority || route || timestamp(b.updatedAt) - timestamp(a.updatedAt) || a.id.localeCompare(b.id);
 }
-

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { MapPinned } from "lucide-react";
+import { ArrowLeft, MapPinned } from "lucide-react";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { ImpactTimestamp } from "./ImpactTimestamp";
@@ -384,7 +384,11 @@ export function ImpactCardMapButton({
       title={tooltipText}
       data-variant={variant}
     >
-      <MapPinned size={18} className="map-pinned-icon shrink-0" aria-hidden="true" />
+      {isBack ? (
+        <ArrowLeft size={18} className="impact-card-back-icon shrink-0" aria-hidden="true" />
+      ) : (
+        <MapPinned size={18} className="map-pinned-icon shrink-0" aria-hidden="true" />
+      )}
       {variant !== "icon-only" ? (
         <span className="impact-card-map-btn__label">
           {labelText}

@@ -1432,6 +1432,10 @@
     position: relative;
     padding-left: 0;
   }
+  .mobile-service-sheet .current-service-line-copy-main[data-has-impacts="true"] {
+    align-items: stretch;
+    flex-direction: column;
+  }
   .mobile-service-sheet .current-service-reassurance {
     display: flex;
     align-items: center;

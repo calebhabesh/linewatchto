@@ -349,7 +349,7 @@ export function DesktopMorePanel({
               ) : (
                 <Bus size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               )}
-              <span>{currentNetwork === "regional" ? "Service Notices" : "Surface Notices"}</span>
+              <span>{currentNetwork === "regional" ? "Service Notices" : "Streetcar & Bus"}</span>
             </div>
             <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />
           </button>

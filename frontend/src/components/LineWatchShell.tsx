@@ -4141,7 +4141,7 @@ export function LineWatchShell({
         setSurfaceNoticeInitialQuery("");
         setSurfaceNoticeInitialContent("notices");
         navigateRoot("surface-notices");
-        announceDesktop(selectedNetwork === "regional" ? "Service Notices" : "Surface Notices");
+        announceDesktop(selectedNetwork === "regional" ? "Service Notices" : "Streetcar & Bus");
         return;
       case "announcements":
         navigateRoot("announcements");

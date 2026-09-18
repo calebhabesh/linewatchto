@@ -1,6 +1,34 @@
 import { expect, test } from "@playwright/test";
 import { installDismissedTransientUi } from "./test-support";
 
+test("multiple rail incidents stack without overlapping", async ({ page, isMobile, request }) => {
+  test.skip(!isMobile);
+  await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });
+  await installDismissedTransientUi(page);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => {
+    localStorage.setItem("linewatch-mobile-service-sheet-snap-v1", "expanded");
+  });
+  await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+
+  const incidentGroup = page.locator(".current-service-line-copy-main[data-has-impacts='true']")
+    .filter({ has: page.locator(".current-service-impact--compact") })
+    .filter({ hasText: "Planned Closure" })
+    .first();
+  const incidents = incidentGroup.locator(":scope > .current-service-impact--compact");
+  await expect.poll(() => incidents.count()).toBeGreaterThanOrEqual(2);
+
+  const boxes = await incidents.evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect();
+    return { top: box.top, bottom: box.bottom, left: box.left, right: box.right };
+  }));
+  for (let index = 1; index < boxes.length; index += 1) {
+    expect(boxes[index].top).toBeGreaterThanOrEqual(boxes[index - 1].bottom);
+    expect(boxes[index].left).toBeCloseTo(boxes[0].left, 0);
+    expect(boxes[index].right).toBeCloseTo(boxes[0].right, 0);
+  }
+});
+
 test("service sheet expands by tap, keyboard and drag without moving the map", async ({ page, isMobile, request }) => {
   test.skip(!isMobile);
   await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });

@@ -135,8 +135,15 @@ public class SurfaceServiceNoticeNormalizer {
             true,
             fetched.rawPayload(),
             routeIds,
-            stops
+            stops,
+            isServiceAlert(record.alertType())
+                ? SurfaceServiceNotice.SERVICE_ALERT
+                : SurfaceServiceNotice.SERVICE_ADVISORY
         ));
+    }
+
+    private boolean isServiceAlert(String alertType) {
+        return "Live".equalsIgnoreCase(alertType) || "GTFS-RT".equalsIgnoreCase(alertType);
     }
 
     private OffsetDateTime sourceTimeToInstant(TtcAlertRecord record, OffsetDateTime value) {

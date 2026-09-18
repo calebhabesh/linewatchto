@@ -308,7 +308,9 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
       closureCount: (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length,
     }));
   const activeCount = summary.rows.length;
-  const surfaceRows = notices?.fresh && now > 0 ? currentSurfaceNotices(notices.notices, now) : [];
+  const surfaceRows = notices?.fresh && now > 0
+    ? currentSurfaceNotices(notices.notices, now, data.networkId === "ttc")
+    : [];
   const visibleNoticeCount = Math.min(surfaceRows.length, 3);
 
   return <section

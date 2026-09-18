@@ -115,7 +115,7 @@ public class RegionalSurfaceServiceNoticeService {
                 stops.stream().map(StopDetail::stopName).filter(value -> !value.isBlank()).distinct().reduce((a, b) -> a + " to " + b).orElse(""),
                 stops.stream().map(StopDetail::stopId).filter(value -> !value.isBlank()).toList(), stops,
                 null, firstNonBlank(text(message, "SubCategory"), text(message, "Category")),
-                null, null, updatedAt, null, SOURCE, schedule
+                null, null, updatedAt, null, SOURCE, schedule, null
             );
         } catch (Exception ignored) {
             return null;
@@ -152,7 +152,7 @@ public class RegionalSurfaceServiceNoticeService {
             EnglishClockTextFormatter.toTwelveHourClock(title),
             EnglishClockTextFormatter.toTwelveHourClock(description),
             "", List.of(), List.of(), null, cause,
-            startsAt, endsAt, record.lastSeenAt(), null, SOURCE, schedule
+            startsAt, endsAt, record.lastSeenAt(), null, SOURCE, schedule, null
         );
     }
 
