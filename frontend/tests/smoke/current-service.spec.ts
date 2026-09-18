@@ -51,9 +51,33 @@ test("desktop Current Service badges open their matching impact panels", async (
             ...closure,
             nextWindowStart: "2026-08-20T03:00:00Z",
             nextWindowEnd: "2026-08-20T06:00:00Z",
-          }
+        }
         : closure,
     );
+    payload.reducedSpeedZones = [
+      ...payload.reducedSpeedZones,
+      ...[1, 2, 3].map((index) => ({
+        ...payload.reducedSpeedZones[0],
+        id: `stub-line-2-rsz-${index}`,
+        lineId: "line-2",
+        lineNumber: "2",
+        sourceAlertIds: [`stub-line-2-rsz-source-${index}`],
+      })),
+    ];
+    payload.status.lines = [
+      ...payload.status.lines,
+      {
+        id: "line-2",
+        number: "2",
+        name: "Stub API Bloor-Danforth",
+        route: "Stub Station - Stub Terminal",
+        color: "#00923F",
+        status: "normal",
+        statusLabel: "Normal Service",
+        summary: "Stub API normal service for browser verification.",
+        updatedAgo: "Seeded demo",
+      },
+    ];
     await route.fulfill({ response, json: payload });
   });
   await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
@@ -65,9 +89,16 @@ test("desktop Current Service badges open their matching impact panels", async (
   await expect(page.getByRole("heading", { name: "Planned Closures", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Back", exact: true }).click();
-  const reducedSpeedZoneBadge = sidebar.locator(".desktop-status-badge-incident-button").filter({ hasText: "Reduced Speed Zone" });
+  const reducedSpeedZoneBadge = sidebar.locator(".desktop-status-badge-incident-button").filter({ hasText: "Reduced Speed Zone" }).first();
   await expect(reducedSpeedZoneBadge).toBeVisible();
   await reducedSpeedZoneBadge.click();
+  await expect(page.getByRole("heading", { name: "Reduced Speed Zones", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  const lineTwoGroup = sidebar.locator(".desktop-status-remaining-group").filter({ hasText: "3 Reduced Speed Zones" });
+  const lineTwoReducedSpeedZoneBadge = lineTwoGroup.getByRole("button", { name: /Reduced Speed Zones/i });
+  await expect(lineTwoReducedSpeedZoneBadge).toBeVisible();
+  await lineTwoReducedSpeedZoneBadge.click();
   await expect(page.getByRole("heading", { name: "Reduced Speed Zones", exact: true })).toBeVisible();
 });
 

@@ -1214,10 +1214,14 @@
 
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (orientation: landscape) and (max-height: 520px) {
   .desktop-top-chrome,
   .desktop-map-legend,
-  .desktop-status-chip-row-container {
+  .desktop-status-chip-row-container,
+  .desktop-nav-rail,
+  .desktop-sidebar-container,
+  .desktop-sidebar-accent-strip,
+  .desktop-collapsed-map-notice-anchor {
     display: none !important;
   }
 

@@ -2651,7 +2651,7 @@
   position: relative;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (orientation: landscape) and (max-height: 520px) {
   .linewatch-desktop-layout {
     display: block;
     position: absolute;
@@ -2665,6 +2665,13 @@
     inset: 0;
     width: 100%;
     height: 100%;
+  }
+
+  .desktop-nav-rail,
+  .desktop-sidebar-container,
+  .desktop-sidebar-accent-strip,
+  .desktop-collapsed-map-notice-anchor {
+    display: none;
   }
 }
 
@@ -3650,6 +3657,10 @@
   width: 100%;
 }
 
+.desktop-status-remaining-group {
+  width: 100%;
+}
+
 .desktop-status-remaining-row {
   align-items: flex-start;
   background: transparent;
@@ -3663,6 +3674,11 @@
   text-align: left;
   transition: background-color 120ms ease;
   width: calc(100% + 16px);
+}
+
+.desktop-status-remaining-sub-badges {
+  margin-left: 38px;
+  width: calc(100% - 38px);
 }
 
 .desktop-status-remaining-row:hover {

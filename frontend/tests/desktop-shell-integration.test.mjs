@@ -91,4 +91,15 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
     assert.match(globalCss, /\.desktop-nav-rail\[data-collapsed="true"\]\s*\{[^}]*border-top-right-radius:\s*16px;/s);
     assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*border-top-right-radius:\s*16px;/s);
   });
+
+  it("hides desktop rail, sidebar, accent strip, and notices under mobile viewports to prevent layout leakage", () => {
+    assert.match(
+      globalCss,
+      /@media\s*\([^)]*max-width:\s*767px[^)]*\)[^{]*\{[\s\S]*?\.desktop-nav-rail[\s\S]*?\.desktop-sidebar-container[\s\S]*?display:\s*none/s,
+    );
+    assert.match(
+      globalCss,
+      /@media\s*\([^)]*max-width:\s*767px[^)]*\)[^{]*\{[\s\S]*?\.desktop-sidebar-accent-strip[\s\S]*?display:\s*none/s,
+    );
+  });
 });

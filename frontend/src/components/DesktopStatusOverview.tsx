@@ -378,57 +378,68 @@ export function DesktopStatusOverview({
         {remainingLines.length > 0 && (
           <div className="desktop-status-remaining-list">
             {remainingLines.map(({ line, presentation, closureCount }) => (
-              <button
-                key={line.id}
-                type="button"
-                className="desktop-status-remaining-row"
-                onClick={() => onOpenCategory("line-impacts", line.id)}
-                aria-label={`View ${line.name} line impacts: ${presentation.label}`}
-                title={`View ${line.name} menu: ${presentation.label}`}
-              >
-                <div className="desktop-status-line-badge-btn" aria-hidden="true">
-                  <TransitLineBadge
-                    lineId={line.id}
-                    lineNumber={line.number}
-                    lineName={line.name}
-                    size={28}
-                  />
-                </div>
-                <div className="desktop-status-remaining-copy">
-                  <div className="desktop-status-remaining-main">
-                    {presentation.isNormal ? (
-                      <span className="desktop-status-remaining-status desktop-status-remaining-status--normal">
-                        <GoodServiceCheckIcon size={16} />
-                        <strong>{presentation.label}</strong>
-                      </span>
-                    ) : presentation.state === "closed" ? (
-                      <span className="desktop-status-remaining-status desktop-status-remaining-status--closed">
-                        <Info size={16} aria-hidden="true" />
-                        <strong>{presentation.label}</strong>
-                      </span>
-                    ) : (
-                      <span className="desktop-status-remaining-status desktop-status-remaining-status--info">
-                        <Info size={16} aria-hidden="true" />
-                        <span>{presentation.label}</span>
-                      </span>
-                    )}
+              <div className="desktop-status-remaining-group" key={line.id}>
+                <button
+                  type="button"
+                  className="desktop-status-remaining-row"
+                  onClick={() => onOpenCategory("line-impacts", line.id)}
+                  aria-label={`View ${line.name} line impacts: ${presentation.label}`}
+                  title={`View ${line.name} menu: ${presentation.label}`}
+                >
+                  <div className="desktop-status-line-badge-btn" aria-hidden="true">
+                    <TransitLineBadge
+                      lineId={line.id}
+                      lineNumber={line.number}
+                      lineName={line.name}
+                      size={28}
+                    />
                   </div>
-                  {(closureCount > 0 || presentation.hasRsz) && (
-                    <div className="desktop-status-sub-badges">
-                      {closureCount > 0 && (
-                        <span
-                          className="desktop-status-planned-pill"
-                          title={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
-                        >
+                  <div className="desktop-status-remaining-copy">
+                    <div className="desktop-status-remaining-main">
+                      {presentation.isNormal ? (
+                        <span className="desktop-status-remaining-status desktop-status-remaining-status--normal">
+                          <GoodServiceCheckIcon size={16} />
+                          <strong>{presentation.label}</strong>
+                        </span>
+                      ) : presentation.state === "closed" ? (
+                        <span className="desktop-status-remaining-status desktop-status-remaining-status--closed">
+                          <Info size={16} aria-hidden="true" />
+                          <strong>{presentation.label}</strong>
+                        </span>
+                      ) : (
+                        <span className="desktop-status-remaining-status desktop-status-remaining-status--info">
+                          <Info size={16} aria-hidden="true" />
+                          <span>{presentation.label}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+                {(closureCount > 0 || presentation.hasRsz) && (
+                  <div className="desktop-status-sub-badges desktop-status-remaining-sub-badges">
+                    {closureCount > 0 && (
+                      <button
+                        type="button"
+                        className="desktop-status-badge-incident-button"
+                        onClick={() => onOpenCategory("closures", line.id)}
+                        title={`View ${line.name} Planned Closures`}
+                        aria-label={`${line.name}: ${getPlannedClosureCountBadgeLabel(closureCount)}`}
+                      >
+                        <span className="desktop-status-planned-pill">
                           <ImpactTypeIcon kind="planned-closure" size={11} />
                           <span>{getPlannedClosureCountBadgeLabel(closureCount)}</span>
                         </span>
-                      )}
-                      {presentation.hasRsz && (
-                        <span
-                          className="desktop-status-rsz-pill"
-                          title={`${presentation.rszCount ?? 1} Reduced Speed Zone${(presentation.rszCount ?? 1) === 1 ? "" : "s"}`}
-                        >
+                      </button>
+                    )}
+                    {presentation.hasRsz && (
+                      <button
+                        type="button"
+                        className="desktop-status-badge-incident-button"
+                        onClick={() => onOpenCategory("reduced-speed-zones", line.id)}
+                        title={`View ${line.name} Reduced Speed Zones`}
+                        aria-label={`${line.name}: ${presentation.rszCount && presentation.rszCount > 1 ? `${presentation.rszCount} Reduced Speed Zones` : "Reduced Speed Zones"}`}
+                      >
+                        <span className="desktop-status-rsz-pill">
                           <ImpactTypeIcon kind="reduced-speed-zone" size={11} />
                           <span>
                             {presentation.rszCount && presentation.rszCount > 1
@@ -436,11 +447,11 @@ export function DesktopStatusOverview({
                               : "Reduced Speed Zones"}
                           </span>
                         </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </button>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}

@@ -107,7 +107,11 @@
   .linewatch-shell.mobile-map-rotated .floating-panel-shell,
   .linewatch-shell.mobile-map-rotated .mobile-legend-pill,
   .linewatch-shell.mobile-map-rotated .desktop-map-legend,
-  .linewatch-shell.mobile-map-rotated .desktop-status-chip-row-container {
+  .linewatch-shell.mobile-map-rotated .desktop-status-chip-row-container,
+  .linewatch-shell.mobile-map-rotated .desktop-nav-rail,
+  .linewatch-shell.mobile-map-rotated .desktop-sidebar-container,
+  .linewatch-shell.mobile-map-rotated .desktop-sidebar-accent-strip,
+  .linewatch-shell.mobile-map-rotated .desktop-collapsed-map-notice-anchor {
     display: none !important;
   }
 
