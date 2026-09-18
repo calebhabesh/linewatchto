@@ -437,7 +437,7 @@ describe("account UI source", () => {
 
   it("supports emailed reset links through a reset-password route", () => {
     assert.match(dashboardDataSource, /loadDashboardInitialData/);
-    assert.match(homePageSource, /loadDashboardInitialData/);
+    assert.match(homePageSource, /fallbackDashboardData/);
     assert.match(resetPasswordPageSource, /searchParams/);
     assert.match(resetPasswordPageSource, /initialPasswordResetToken/);
     assert.match(resetPasswordPageSource, /decodeResetTokenParam/);

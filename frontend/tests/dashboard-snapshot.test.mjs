@@ -35,6 +35,14 @@ test('offline view retains notices but cannot claim live or normal service or de
  assert.deepEqual(empty.activeAlerts,[]); assert.ok(empty.networkSegments.every(s=>s.overlay==='clear' && s.impacts.length===0));
  assert.match(snapshotNotice(view.snapshot,121000),/Saved 2 min ago/);
  assert.match(snapshotNotice(empty.snapshot,121000),/No saved dashboard/);
+ const refreshingWithSnapshot=snapshotDashboard(data,1000,'refreshing');
+ assert.match(snapshotNotice(refreshingWithSnapshot.snapshot,121000),/Refreshing — Last reported 2 min ago/);
+ assert.ok(refreshingWithSnapshot.lineStatuses.every(l=>l.summary.startsWith('Last reported:')));
+ assert.equal(refreshingWithSnapshot.ingestionHealth[0].state, 'info');
+ const refreshingWithoutSnapshot=snapshotDashboard(data,null,'refreshing');
+ assert.match(snapshotNotice(refreshingWithoutSnapshot.snapshot,121000),/Refreshing — Checking current service status/);
+ assert.ok(refreshingWithoutSnapshot.lineStatuses.every(l=>l.summary === 'Checking current service status...'));
+ assert.equal(refreshingWithoutSnapshot.ingestionHealth[0].state, 'info');
 });
 test('persistence excludes incidental and personal fields', () => {
  const s=storage(); saveDashboardSnapshot(s,{...data,account:{email:'private'},arrivals:[{}]},1000);

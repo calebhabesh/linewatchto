@@ -303,7 +303,7 @@ export type ReliabilitySnapshot = {
 export type IngestionHealthItem = {
   label: string;
   value: string;
-  state: "ok" | "warning" | "error";
+  state: "ok" | "warning" | "error" | "info";
 };
 
 export const generatedAt = {

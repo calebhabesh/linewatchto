@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { LineWatchDevBootstrap } from "../components/LineWatchDevBootstrap";
 import { JsonLd } from "../components/JsonLd";
-import { loadDashboardInitialData } from "./dashboard-data";
+import { fallbackDashboardData } from "./dashboard-data";
+import { regionalDashboardData } from "./regional-data";
 import { buildLineWatchWebsiteStructuredData, lineWatchSeoTitle } from "./seo";
 import {
   initialVisualPreferencesFromCookie,
@@ -16,11 +17,13 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const initialData = await loadDashboardInitialData();
   const cookieStore = await cookies();
   const initialVisualPreferences = initialVisualPreferencesFromCookie(
     cookieStore.get(VISUAL_PREFERENCES_COOKIE_NAME)?.value,
   );
+  const initialData = initialVisualPreferences.defaultNetwork === "regional"
+    ? regionalDashboardData
+    : fallbackDashboardData();
 
   return (
     <>

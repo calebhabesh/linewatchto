@@ -392,14 +392,13 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(shellSource, /animateInitialEntrance=\{!initialMapReady && !mobileMapPerformanceMode\}/);
   });
 
-  it("uses a paint-only mobile entrance reveal without animating map-stage opacity", () => {
+  it("uses a paint-only mobile entrance reveal without animating map-stage opacity or entrance fade", () => {
     assert.match(shellSource, /selectedNetwork === "ttc" && \(!initialMapReady \|\| mobileMapPerformanceMode\)/);
     assert.match(shellSource, /initialMapReady \? " ttc-map-entrance-reveal--ready" : ""/);
     assert.match(globalCss, /@media \(max-width: 767px\), \(pointer: coarse\)\s*\{[\s\S]*?\.ttc-map-entrance-reveal:not\(\.ttc-map-entrance-reveal--ready\)[\s\S]*?background-color:/s);
-    assert.match(globalCss, /\.ttc-map-entrance-reveal--ready\s*\{[^}]*animation:\s*ttc-map-mobile-entrance-reveal 280ms/s);
-    assert.match(globalCss, /@keyframes ttc-map-mobile-entrance-reveal\s*\{[\s\S]*?from\s*\{[^}]*background-color:[^}]*\}[\s\S]*?to\s*\{[^}]*background-color:\s*transparent/s);
+    assert.match(globalCss, /\.ttc-map-entrance-reveal--ready\s*\{[^}]*background-color:\s*transparent/s);
+    assert.doesNotMatch(globalCss, /ttc-map-mobile-entrance-reveal/);
     assert.doesNotMatch(globalCss, /\.ttc-map-stage[^}]*opacity/s);
-    assert.match(globalCss, /\.motion-paused \.ttc-map-entrance-reveal--ready\s*\{[^}]*animation:\s*none/s);
   });
 
   it("refits an untouched TTC map after resize but preserves manual camera changes", () => {

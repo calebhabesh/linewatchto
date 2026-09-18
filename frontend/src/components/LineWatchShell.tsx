@@ -1,42 +1,42 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import type { CSSProperties, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
-import { preloadRegionalMapMarkup } from "./InteractiveRegionalMap";
-import { preloadTtcMapMarkup } from "./InteractiveTtcMap";
+import { preloadRegionalMapMarkup, preloadTtcMapMarkup } from "../app/map-preload";
 import { preloadRasterMapSource, rasterMapSource } from "./RasterMapPlane";
 import { startMapSurfaceTransition } from "../app/map-surface-transition";
 import { NetworkMap } from "./NetworkMap";
 import { NetworkSelector } from "./NetworkSelector";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
-import { RegionalStationDetailPanel } from "./RegionalStationDetailPanel";
+const RegionalStationDetailPanel = dynamic(() => import("./RegionalStationDetailPanel").then((mod) => mod.RegionalStationDetailPanel), { ssr: false });
 import { DelayIcon } from "./DelayIcon";
-import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
-import { DelaysPanel } from "./DelaysPanel";
-import { ReducedSpeedZonesPanel } from "./ReducedSpeedZonesPanel";
-import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
-import { LineImpactsPanel } from "./LineImpactsPanel";
+const ActiveAlertsPanel = dynamic(() => import("./ActiveAlertsPanel").then((mod) => mod.ActiveAlertsPanel), { ssr: false });
+const DelaysPanel = dynamic(() => import("./DelaysPanel").then((mod) => mod.DelaysPanel), { ssr: false });
+const ReducedSpeedZonesPanel = dynamic(() => import("./ReducedSpeedZonesPanel").then((mod) => mod.ReducedSpeedZonesPanel), { ssr: false });
+const PlannedClosuresPanel = dynamic(() => import("./PlannedClosuresPanel").then((mod) => mod.PlannedClosuresPanel), { ssr: false });
+const LineImpactsPanel = dynamic(() => import("./LineImpactsPanel").then((mod) => mod.LineImpactsPanel), { ssr: false });
+const SavedCommutesPanel = dynamic(() => import("./SavedCommutesPanel").then((mod) => mod.SavedCommutesPanel), { ssr: false });
 import {
-  SavedCommutesPanel,
   persistedExpandedImpactDisclosures,
   persistedCommuteDraftStore,
   clearPersistedCommuteDraft,
-  type AccountNetworkFilter,
   type SavedCommuteDraft,
-} from "./SavedCommutesPanel";
-import { MyStationsPanel } from "./MyStationsPanel";
-import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
-import { ReliabilityPanel } from "./ReliabilityPanel";
-import { AlertHistoryPanel } from "./AlertHistoryPanel";
-import { FeedbackPanel } from "./FeedbackPanel";
-import { PrivacyAcknowledgementsPanel } from "./PrivacyAcknowledgementsPanel";
+} from "../app/commute-draft-state";
+import type { AccountNetworkFilter } from "./SavedCommutesPanel";
+const MyStationsPanel = dynamic(() => import("./MyStationsPanel").then((mod) => mod.MyStationsPanel), { ssr: false });
+const NotificationSettingsPanel = dynamic(() => import("./NotificationSettingsPanel").then((mod) => mod.NotificationSettingsPanel), { ssr: false });
+const ReliabilityPanel = dynamic(() => import("./ReliabilityPanel").then((mod) => mod.ReliabilityPanel), { ssr: false });
+const AlertHistoryPanel = dynamic(() => import("./AlertHistoryPanel").then((mod) => mod.AlertHistoryPanel), { ssr: false });
+const FeedbackPanel = dynamic(() => import("./FeedbackPanel").then((mod) => mod.FeedbackPanel), { ssr: false });
+const PrivacyAcknowledgementsPanel = dynamic(() => import("./PrivacyAcknowledgementsPanel").then((mod) => mod.PrivacyAcknowledgementsPanel), { ssr: false });
 import { ReleaseNotesNotice } from "./ReleaseNotesNotice";
-import { ReleaseNotesPanel } from "./ReleaseNotesPanel";
+const ReleaseNotesPanel = dynamic(() => import("./ReleaseNotesPanel").then((mod) => mod.ReleaseNotesPanel), { ssr: false });
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { OverlappingCountBadge } from "./OverlappingCountBadge";
@@ -66,7 +66,7 @@ import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import { dashboardDataFromApi } from "../app/dashboard-adapter";
-import { getDashboardRefresh, retryDashboardRefresh } from "../app/dashboard-client";
+import { getDashboardRefresh, retryDashboardRefresh, getReliabilitySnapshot } from "../app/dashboard-client";
 import { canSaveDashboard, DASHBOARD_VERIFICATION_MS, SNAPSHOT_RETENTION_MS, readDashboardSnapshot, saveDashboardSnapshot, snapshotDashboard, snapshotNotice } from "../app/dashboard-snapshot";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
@@ -75,12 +75,13 @@ import {
   type AccessibilityOutageResponse,
   getAccessibilityOutages,
 } from "../app/accessibility-outage-data";
-import { AccessibilityOutagesPanel, type AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
+import type { AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
+const AccessibilityOutagesPanel = dynamic(() => import("./AccessibilityOutagesPanel").then((mod) => mod.AccessibilityOutagesPanel), { ssr: false });
 import { getSurfaceNotices, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
-import { SurfaceNoticesPanel } from "./SurfaceNoticesPanel";
+const SurfaceNoticesPanel = dynamic(() => import("./SurfaceNoticesPanel").then((mod) => mod.SurfaceNoticesPanel), { ssr: false });
 import { getRegionalTripChanges } from "../app/regional-trip-changes";
 import { getTtcAnnouncements } from "../app/announcement-data";
-import { TtcAnnouncementsPanel } from "./TtcAnnouncementsPanel";
+const TtcAnnouncementsPanel = dynamic(() => import("./TtcAnnouncementsPanel").then((mod) => mod.TtcAnnouncementsPanel), { ssr: false });
 import {
   fallbackStationSummaries,
   getStationDetail,
@@ -90,7 +91,7 @@ import {
   type StationDetail,
   type StationSummary,
 } from "../app/station-data";
-import { StationDetailPanel } from "./StationDetailPanel";
+const StationDetailPanel = dynamic(() => import("./StationDetailPanel").then((mod) => mod.StationDetailPanel), { ssr: false });
 import {
   EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
   EMPTY_REGIONAL_TRAIN_SNAPSHOT,
@@ -335,6 +336,14 @@ export function LineWatchShell({
     ttc: "ready",
     regional: "ready",
   });
+  const [sessionVerified, setSessionVerified] = useState<Record<NetworkId, boolean>>({
+    ttc: false,
+    regional: false,
+  });
+  const sessionVerifiedRef = useRef(sessionVerified);
+  useEffect(() => {
+    sessionVerifiedRef.current = sessionVerified;
+  }, [sessionVerified]);
   const dashboardRefreshInFlightRef = useRef<Record<NetworkId, boolean>>({ ttc: false, regional: false });
   const regionalScenarioActiveRef = useRef(false);
   const [connectionOffline, setConnectionOffline] = useState(offlineShell);
@@ -346,6 +355,7 @@ export function LineWatchShell({
   const lastVerified = storedVerifiedAt !== null && snapshotClock - storedVerifiedAt <= SNAPSHOT_RETENTION_MS ? storedVerifiedAt : null;
   const snapshotReason = connectionOffline ? "offline"
     : dashboardRequestStates[selectedNetwork] === "reconnecting" ? "reconnecting"
+    : !sessionVerified[selectedNetwork] ? "refreshing"
     : storedVerifiedAt !== null && snapshotClock - storedVerifiedAt >= DASHBOARD_VERIFICATION_MS ? "stale"
     : offlineShell && lastVerified === null ? "reconnecting" : null;
   const displayData = useMemo(() => snapshotReason
@@ -404,7 +414,7 @@ export function LineWatchShell({
     }
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const restored: Record<NetworkId, number | null> = { ...verifiedAtRef.current };
     for (const network of ["ttc", "regional"] as const) {
       let saved = null;
@@ -413,14 +423,12 @@ export function LineWatchShell({
         const now = Date.now();
         try { saveDashboardSnapshot(window.localStorage, initialData, now); } catch { /* Storage denied. */ }
         restored.ttc = now;
-        // Restore browser storage only after hydration; the server cannot read it.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setTtcData(initialData);
-      } else if (saved && restored[network] === null && !(network === "regional" && regionalScenarioActiveRef.current)) {
+      } else if (saved && !(network === "regional" && regionalScenarioActiveRef.current)) {
         restored[network] = saved.savedAt;
         if (network === "ttc") setTtcData(saved.data);
         else setRegionalData(saved.data);
-        setDashboardRequestStates((current) => ({ ...current, [network]: "reconnecting" }));
       }
     }
     verifiedAtRef.current = restored;
@@ -435,9 +443,10 @@ export function LineWatchShell({
     ) return;
 
     dashboardRefreshInFlightRef.current[networkId] = true;
+    const isInitial = !sessionVerifiedRef.current[networkId];
     try {
       const { payload, reliability } = await retryDashboardRefresh(
-        () => getDashboardRefresh(networkId),
+        () => isInitial ? getDashboardRefresh(networkId, true) : getDashboardRefresh(networkId),
         () => setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" })),
       );
       // An in-flight response can finish after connectivity was lost. It must
@@ -452,13 +461,27 @@ export function LineWatchShell({
         verifiedAtRef.current = { ...verifiedAtRef.current, [networkId]: now };
         setVerifiedAt(verifiedAtRef.current);
         setSnapshotClock(now);
+        setSessionVerified((current) => ({ ...current, [networkId]: true }));
         if (networkId === "regional") setRegionalData(next);
         else setTtcData(next);
         setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
+
+        if (isInitial) {
+          void getReliabilitySnapshot(networkId).then((deferredReliability) => {
+            if (!deferredReliability) return;
+            const update = (current: DashboardData): DashboardData => ({
+              ...current,
+              reliability: deferredReliability,
+            });
+            if (networkId === "regional") setRegionalData(update);
+            else setTtcData(update);
+          });
+        }
       } else if (verifiedAtRef.current[networkId] !== null) {
         // A valid unavailable response must not overwrite the last real observation.
         setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
       } else {
+        setSessionVerified((current) => ({ ...current, [networkId]: true }));
         if (networkId === "regional") setRegionalData(next);
         else setTtcData(next);
         setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
@@ -529,7 +552,9 @@ export function LineWatchShell({
         ? "Live service data is unavailable — Showing the fallback dashboard."
         : null;
   const isLive = displayData.generatedAt.live && displayData.availability !== "unavailable" && displayData.availability !== "fixture";
-  const isConnectionIssue = Boolean(displayData.snapshot) || dashboardRequestState === "reconnecting" || displayData.availability === "degraded";
+  const isConnectionIssue = snapshotReason !== "refreshing" && (
+    Boolean(displayData.snapshot) || dashboardRequestState === "reconnecting" || displayData.availability === "degraded"
+  );
   const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
   const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);
   const [reducedMotion, setReducedMotion] = useState(initialVisualPreferences.reducedMotion);
@@ -713,7 +738,7 @@ export function LineWatchShell({
     setPwaEngagementSignal((current) => current + 1);
   }, [isMobile]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window === "undefined") return;
 
     const stored = readVisualPreferencesFromStorage(window.localStorage);
@@ -2855,25 +2880,36 @@ export function LineWatchShell({
       setSurfaceNoticeCount(null);
       setRegionalTripChangeCount(null);
       setAnnouncementCount(null);
+      const timer = window.setTimeout(() => {
+        if (!cancelled) {
+          fetchAccessibilityOutages();
+          fetchSurfaceNoticesCount();
+          fetchRegionalTripChangeCount();
+        }
+      }, 300);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }
+
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      getStationSummaries().then((result) => {
+        if (!cancelled) {
+          setTtcStationSummaries(result.data.stations);
+        }
+      });
+
       fetchAccessibilityOutages();
       fetchSurfaceNoticesCount();
       fetchRegionalTripChangeCount();
-      return () => { cancelled = true; };
-    }
-
-    getStationSummaries().then((result) => {
-      if (!cancelled) {
-        setTtcStationSummaries(result.data.stations);
-      }
-    });
-
-    fetchAccessibilityOutages();
-    fetchSurfaceNoticesCount();
-    fetchRegionalTripChangeCount();
-    fetchAnnouncementCount();
+      fetchAnnouncementCount();
+    }, 300);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [selectedNetwork, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchRegionalTripChangeCount, fetchAnnouncementCount]);
 
@@ -4735,11 +4771,18 @@ export function LineWatchShell({
   ]);
 
   const mobileConnectionNotice: MobileConnectionNotice | null = useMemo(() => {
-    if (displayData.snapshot) return { snapshot: true, hasSavedSnapshot: displayData.snapshot.savedAt !== null, message: snapshotNotice(displayData.snapshot, snapshotClock), showSpinner: !connectionOffline };
+    if (displayData.snapshot) return {
+      snapshot: true,
+      hasSavedSnapshot: displayData.snapshot.savedAt !== null,
+      message: snapshotNotice(displayData.snapshot, snapshotClock),
+      showSpinner: !connectionOffline,
+      reason: displayData.snapshot.reason,
+    };
     if (dashboardRequestState === "reconnecting") {
       return {
         message: "Connection issue — Showing cached snapshot",
         showSpinner: true,
+        reason: "reconnecting",
       };
     }
     if (displayData.availability === "degraded") {
@@ -6946,7 +6989,11 @@ export function LineWatchShell({
           role="status"
           aria-live="polite"
         >
-          <AlertTriangle className="dashboard-availability-notice-icon" aria-hidden="true" />
+          {displayData.snapshot?.reason === "refreshing" ? (
+            <Loader2 className="dashboard-availability-notice-spinner animate-spin" size={13} aria-hidden="true" />
+          ) : (
+            <AlertTriangle className="dashboard-availability-notice-icon" aria-hidden="true" />
+          )}
           <span>
             {dashboardAvailabilityNotice}
             {dashboardRequestState === "reconnecting" && (

@@ -19,7 +19,7 @@ import {
 import type { NetworkId } from "./regional-data";
 
 export interface DashboardData {
-  snapshot?: { savedAt: number | null; reason: "offline" | "reconnecting" | "stale" };
+  snapshot?: { savedAt: number | null; reason: "offline" | "reconnecting" | "stale" | "refreshing" };
   networkId: NetworkId;
   dataSource: "backend" | "fallback";
   availability: "available" | "degraded" | "unavailable" | "fixture";

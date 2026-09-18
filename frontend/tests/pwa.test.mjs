@@ -683,7 +683,7 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(explicitUpdate.skipWaitingCalls, 1);
   });
 
-  it("fetches Next static chunks from the network before cached copies", async () => {
+  it("uses cached Next static chunks before fetching from the network", async () => {
     const cachedResponse = {
       ok: true,
       source: "cache",
@@ -700,7 +700,7 @@ describe("LineWatch PWA configuration", () => {
       { cachedResponse, networkResponse },
     );
 
-    assert.equal(response.source, "network");
+    assert.equal(response.source, "cache");
   });
 
   it("fetches stable public assets from the network before cached copies", async () => {

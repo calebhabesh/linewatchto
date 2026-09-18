@@ -27,7 +27,7 @@ export function preloadRasterMapSource(source: string): Promise<void> {
   if (existing) return existing;
 
   const image = new Image();
-  image.decoding = "sync";
+  image.decoding = "async";
   image.src = source;
   const decode = image.decode().then(() => {
     decodedRasterSources.add(source);

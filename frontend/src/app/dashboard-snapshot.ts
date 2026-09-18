@@ -56,13 +56,18 @@ export function readDashboardSnapshot(storage: StorageLike, network: NetworkId, 
 export function snapshotDashboard(data: DashboardData, savedAt: number | null,
   reason: NonNullable<DashboardData["snapshot"]>["reason"]): DashboardData {
   const hasSnapshot = savedAt !== null;
+  const isRefreshing = reason === "refreshing";
   return {
     ...data,
     snapshot: { savedAt, reason },
     generatedAt: { ...data.generatedAt, live: false },
     lineStatuses: data.lineStatuses.map((line) => ({ ...line, status: "ready",
       statusLabel: "Current status unknown",
-      summary: hasSnapshot ? `Last reported: ${line.statusLabel}. Service may have changed.` : "Connect to check service status.",
+      summary: hasSnapshot
+        ? `Last reported: ${line.statusLabel}. Service may have changed.`
+        : isRefreshing
+        ? "Checking current service status..."
+        : "Connect to check service status.",
     })),
     // Demo incidents must never masquerade as an offline observation.
     activeAlerts: hasSnapshot ? data.activeAlerts : [],
@@ -74,15 +79,23 @@ export function snapshotDashboard(data: DashboardData, savedAt: number | null,
       ...segment, overlay: "clear", impacts: [], sourceAlertIds: [], reducedSpeedZoneIds: [], alertId: undefined,
     })),
     commuteImpacts: [],
-    ingestionHealth: [{ label: "Connection", value: "Current service cannot be verified", state: "error" }],
+    ingestionHealth: isRefreshing
+      ? [{ label: "Connection", value: "Checking current service status...", state: "info" }]
+      : [{ label: "Connection", value: "Current service cannot be verified", state: "error" }],
   };
 }
 
 export function snapshotNotice(snapshot: NonNullable<DashboardData["snapshot"]>, now: number): string {
-  const prefix = snapshot.reason === "offline" ? "Offline" : snapshot.reason === "stale" ? "Updates unavailable" : "Reconnecting";
-  if (snapshot.savedAt === null) return `${prefix} — No saved dashboard for this network. Current status unknown.`;
+  const prefix = snapshot.reason === "offline" ? "Offline" : snapshot.reason === "stale" ? "Updates unavailable" : snapshot.reason === "refreshing" ? "Refreshing" : "Reconnecting";
+  if (snapshot.savedAt === null) {
+    if (snapshot.reason === "refreshing") return "Refreshing — Checking current service status...";
+    return `${prefix} — No saved dashboard for this network. Current status unknown.`;
+  }
   const age = Math.max(0, Math.floor((now - snapshot.savedAt) / 60_000));
   const downloaded = new Date(snapshot.savedAt).toLocaleString("en-US", { timeZone: "America/Toronto", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })
     .replace(/AM|PM/, period => period === "AM" ? "A.M." : "P.M.");
+  if (snapshot.reason === "refreshing") {
+    return `Refreshing — Last reported ${age < 1 ? "less than a minute" : `${age} min`} ago (${downloaded}, ET). Checking for updates...`;
+  }
   return `${prefix} — Saved ${age < 1 ? "less than a minute" : `${age} min`} ago (${downloaded}, ET). Service may have changed.`;
 }

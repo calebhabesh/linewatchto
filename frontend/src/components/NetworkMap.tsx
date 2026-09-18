@@ -1,8 +1,13 @@
 import type { ComponentProps } from "react";
+import dynamic from "next/dynamic";
 import type { NetworkId } from "../app/regional-data";
-import { InteractiveRegionalMap } from "./InteractiveRegionalMap";
 import { InteractiveTtcMap } from "./InteractiveTtcMap";
 import { NetworkMapLegend, type NetworkMapLegendProps } from "./NetworkMapLegends";
+
+const InteractiveRegionalMap = dynamic(
+  () => import("./InteractiveRegionalMap").then((mod) => mod.InteractiveRegionalMap),
+  { ssr: false },
+);
 
 type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
 type NetworkMapProps = TtcMapProps & {

@@ -2,7 +2,7 @@ const CACHE_PREFIX = "linewatch-pwa";
 const CACHE_VERSION = "v4";
 const CACHE_BUILD = (new URL(self.location.href).searchParams.get("build") || "local").replace(/[^a-zA-Z0-9._-]/g, "").slice(0, 100);
 const APP_SHELL_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-${CACHE_BUILD}-shell`;
-const STATIC_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-${CACHE_BUILD}-static`;
+const STATIC_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
 const OFFLINE_DASHBOARD_URL = "/offline";
 const NOTIFICATION_BADGE_URL = "/assets/linewatch/pwa/notification-badge-96.png";
@@ -104,12 +104,24 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.mode === "navigate") {
+    const isPublicDashboard = (url.pathname === "/" || url.pathname === OFFLINE_DASHBOARD_URL)
+      && ![...url.searchParams.keys()].some((key) => /token|code|password|email/i.test(key));
+
+    if (isPublicDashboard) {
+      event.respondWith((async () => {
+        const cached = await caches.match(OFFLINE_DASHBOARD_URL);
+        if (cached) return cached;
+        return networkFirstNavigation(request);
+      })());
+      return;
+    }
+
     event.respondWith(networkFirstNavigation(request));
     return;
   }
 
   if (isNextStaticAsset(url)) {
-    event.respondWith(networkFirstStatic(request));
+    event.respondWith(cacheFirstNextStatic(request));
     return;
   }
 
@@ -243,6 +255,12 @@ async function cacheFirstMapAsset(request) {
   // Match the complete URL: a new release must never reuse an older map.
   const cachedResponse = await caches.match(request);
   return cachedResponse || networkFirstStatic(request);
+}
+
+async function cacheFirstNextStatic(request) {
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) return cachedResponse;
+  return networkFirstStatic(request);
 }
 
 async function networkFirstStatic(request) {

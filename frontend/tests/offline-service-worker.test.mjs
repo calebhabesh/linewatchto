@@ -44,7 +44,7 @@ test('release builds install into separate cache namespaces', () => {
  const before=worker(async()=>new Response(''),new Map(),'release-a');
  const after=worker(async()=>new Response(''),new Map(),'release-b');
  assert.notEqual(before.APP_SHELL_CACHE,after.APP_SHELL_CACHE);
- assert.notEqual(before.STATIC_CACHE,after.STATIC_CACHE);
+ assert.equal(before.STATIC_CACHE,after.STATIC_CACHE);
 });
 test('HTTP failures on static assets can use the installed icon fallback',async()=>{
  const w=worker(async()=>new Response('',{status:503}),new Map([['/assets/linewatch/line-4-legend.svg',new Response('icon')]]));

@@ -13,6 +13,15 @@ let mapLabelFontLoadPromise: Promise<boolean> | null = null;
 
 export function loadMapLabelFont(): Promise<boolean> {
   if (mapLabelFontLoaded) return Promise.resolve(true);
+  if (typeof document !== "undefined" && document.fonts?.check) {
+    const isAlreadyLoaded = MAP_LABEL_FONT_SPECS.every((spec) =>
+      document.fonts.check(spec, MAP_LABEL_FONT_SAMPLE),
+    );
+    if (isAlreadyLoaded) {
+      mapLabelFontLoaded = true;
+      return Promise.resolve(true);
+    }
+  }
   if (mapLabelFontLoadPromise) return mapLabelFontLoadPromise;
   if (typeof document === "undefined" || !document.fonts) return Promise.resolve(false);
 
@@ -39,7 +48,19 @@ export function loadMapLabelFont(): Promise<boolean> {
  * because those stale bounds can expose pixels from an adjacent map label.
  */
 export function useMapLabelFontReady() {
-  const [ready, setReady] = useState(mapLabelFontLoaded);
+  const [ready, setReady] = useState(() => {
+    if (mapLabelFontLoaded) return true;
+    if (typeof document !== "undefined" && document.fonts?.check) {
+      const isAlreadyLoaded = MAP_LABEL_FONT_SPECS.every((spec) =>
+        document.fonts.check(spec, MAP_LABEL_FONT_SAMPLE),
+      );
+      if (isAlreadyLoaded) {
+        mapLabelFontLoaded = true;
+        return true;
+      }
+    }
+    return false;
+  });
 
   useEffect(() => {
     let cancelled = false;

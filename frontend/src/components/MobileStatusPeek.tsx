@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, Construction, Locate, ArrowRight, TrainFront, Plus, Minus, Clock, ChevronRight, Clock3, Moon, Loader2 } from "lucide-react";
 import { reserveSheetMotionBudget } from "./sheet-motion-budget";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
@@ -40,7 +40,19 @@ export type MobileConnectionNotice = {
   title?: string;
   details?: string;
   showSpinner?: boolean;
+  reason?: "offline" | "reconnecting" | "stale" | "refreshing";
 };
+
+function readStoredMobileSnap(): "overview" | "halfway" | "expanded" {
+  if (typeof window === "undefined") return "overview";
+  try {
+    const saved = window.localStorage.getItem("linewatch-mobile-service-sheet-snap-v1");
+    if (saved === "halfway" || saved === "expanded") return saved;
+  } catch {
+    /* Keep overview if device storage is unavailable. */
+  }
+  return "overview";
+}
 
 type Props = {
   children?: ReactNode;
@@ -88,7 +100,7 @@ export function MobileStatusPeek({
   onZoomOut,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [snap, setSnap] = useState<"overview" | "halfway" | "expanded">("overview");
+  const [snap, setSnap] = useState<"overview" | "halfway" | "expanded">(readStoredMobileSnap);
   const [positionRestored, setPositionRestored] = useState(false);
   const [animatePosition, setAnimatePosition] = useState(false);
   const [entering, setEntering] = useState(isReturningToMap);
@@ -99,16 +111,9 @@ export function MobileStatusPeek({
     return () => window.clearTimeout(timer);
   }, [entering]);
 
-  useEffect(() => {
-    // Keep the server-rendered sheet hidden until its device preference is restored.
-    const restore = requestAnimationFrame(() => {
-      try {
-        const saved = window.localStorage.getItem("linewatch-mobile-service-sheet-snap-v1");
-        if (saved === "halfway" || saved === "expanded") setSnap(saved);
-      } catch { /* Keep Overview if device storage is unavailable. */ }
-      setPositionRestored(true);
-    });
-    return () => cancelAnimationFrame(restore);
+  useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPositionRestored(true);
   }, []);
   const expanded = snap === "expanded";
   const selectSnap = (next: typeof snap) => {
@@ -455,18 +460,24 @@ export function MobileStatusPeek({
             (connectionNotice.title && connectionNotice.details
               ? `${connectionNotice.title} — ${connectionNotice.details}`
               : connectionNotice.title ?? connectionNotice.details ?? "");
+          const isRefreshing = connectionNotice.reason === "refreshing";
           return (
             <div
               className="mobile-service-sheet-notice-row mobile-service-sheet-notice-row--connection"
               data-snapshot={connectionNotice.snapshot ? "true" : undefined}
+              data-refreshing={isRefreshing ? "true" : undefined}
               role="status"
               aria-live="polite"
               onClick={(e) => e.stopPropagation()}
               aria-label={messageText}
             >
-              <AlertTriangle size={13} className="dashboard-availability-notice-icon" aria-hidden="true" />
+              {isRefreshing ? (
+                <Loader2 size={13} className="dashboard-availability-notice-spinner animate-spin" aria-hidden="true" />
+              ) : (
+                <AlertTriangle size={13} className="dashboard-availability-notice-icon" aria-hidden="true" />
+              )}
               <span className="mobile-service-sheet-notice-message">{messageText}</span>
-              {connectionNotice.showSpinner !== false && (
+              {!isRefreshing && connectionNotice.showSpinner !== false && (
                 <Loader2 size={12} className="dashboard-availability-notice-spinner" aria-hidden="true" />
               )}
             </div>

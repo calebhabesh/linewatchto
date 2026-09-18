@@ -19,15 +19,20 @@ const waitFor = (milliseconds: number) => new Promise<void>((resolve) => {
 
 export async function getDashboardRefresh(
   networkId: NetworkId,
-  fetcher: Fetcher = fetch,
+  fetcherOrDefer: Fetcher | boolean = fetch,
+  deferReliability = false,
 ): Promise<DashboardRefreshResult> {
-  const reliabilityRequest = fetcher(apiUrl(`/api/reliability/lines?network=${networkId}`), {
-    cache: "no-store",
-    signal: AbortSignal.timeout(5_000),
-  }).then(async (response) => response.ok
-    ? await response.json() as ReliabilitySnapshot
-    : null
-  ).catch(() => null);
+  const fetcher = typeof fetcherOrDefer === "function" ? fetcherOrDefer : fetch;
+  const shouldDefer = typeof fetcherOrDefer === "boolean" ? fetcherOrDefer : deferReliability;
+  const reliabilityRequest = shouldDefer
+    ? null
+    : fetcher(apiUrl(`/api/reliability/lines?network=${networkId}`), {
+        cache: "no-store",
+        signal: AbortSignal.timeout(5_000),
+      }).then(async (response) => response.ok
+        ? await response.json() as ReliabilitySnapshot
+        : null
+      ).catch(() => null);
 
   const response = await fetcher(apiUrl(`/api/dashboard?network=${networkId}`), {
     cache: "no-store",
@@ -44,8 +49,24 @@ export async function getDashboardRefresh(
 
   return {
     payload,
-    reliability: await reliabilityRequest,
+    reliability: reliabilityRequest ? await reliabilityRequest : null,
   };
+}
+
+export async function getReliabilitySnapshot(
+  networkId: NetworkId,
+  fetcher: Fetcher = fetch,
+): Promise<ReliabilitySnapshot | null> {
+  try {
+    const response = await fetcher(apiUrl(`/api/reliability/lines?network=${networkId}`), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) return null;
+    return await response.json() as ReliabilitySnapshot;
+  } catch {
+    return null;
+  }
 }
 
 export async function retryDashboardRefresh<T>(
