@@ -48,7 +48,7 @@ const APP_SHELL_URLS = [
   "/assets/linewatch/outages/elevator.svg",
   "/assets/linewatch/outages/escalator.svg",
   ...["ttc", "regional"].flatMap((network) =>
-    ["background", "foreground", "labels"].flatMap((plane) =>
+    ["background", "foreground", "labels", ...(network === "ttc" ? ["badges"] : [])].flatMap((plane) =>
       ["dark", "light", "high-contrast"].map((theme) =>
         `/assets/linewatch/raster-maps/${network}-${plane}-${theme}-mobile.png`))),
 ];
@@ -283,7 +283,7 @@ async function networkFirstStatic(request) {
       const map = await caches.match(url.pathname);
       if (map) return map;
     }
-    if (/^\/assets\/linewatch\/raster-maps\/(ttc|regional)-(background|foreground|labels)-(dark|light|high-contrast)-(mobile|balanced|desktop)\.png$/.test(url.pathname)) {
+    if (/^\/assets\/linewatch\/raster-maps\/(ttc|regional)-(background|foreground|labels|badges)-(dark|light|high-contrast)-(mobile|balanced|desktop)\.png$/.test(url.pathname)) {
       // A compact complete map set is installed for both networks and themes.
       // Prefer a cached exact-resolution release asset whenever available.
       const map = await caches.match(url.pathname.replace(/-(balanced|desktop)\.png$/, "-mobile.png"));

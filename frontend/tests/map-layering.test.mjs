@@ -1088,9 +1088,11 @@ describe("asset-backed map layering", () => {
 
     const overlayIndex = interactiveMapSource.indexOf('aria-label="Disruption overlays"');
     const trainIndex = interactiveMapSource.indexOf('aria-label="Estimated train markers"');
-    const stationLayerIndex = interactiveMapSource.indexOf("{/* Top Layer: custom-map station labels, dots, badges, and connections */}");
+    const authoredLineBadgeIndex = interactiveMapSource.indexOf("svgParts?.badges");
+    const stationLayerIndex = interactiveMapSource.indexOf("{/* Top Layer: custom-map station labels, dots, and connections */}");
     const badgeIndex = interactiveMapSource.indexOf('aria-label="Overlapping alert badges"');
 
+    assert.ok(authoredLineBadgeIndex > -1 && authoredLineBadgeIndex < overlayIndex);
     assert.ok(overlayIndex > -1);
     assert.ok(stationLayerIndex > overlayIndex);
     assert.ok(trainIndex > stationLayerIndex);

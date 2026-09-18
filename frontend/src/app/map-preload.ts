@@ -3,6 +3,7 @@ import { lineWatchBuildLabel } from "./app-build";
 export type TtcMapMarkupParts = {
   part1: string;
   part2: string;
+  badges: string;
 };
 
 export function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
@@ -61,8 +62,10 @@ export function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
     part2: serializeLayers("ttc-map-foreground-root", [
       "ttc-station-labels-layer",
       "ttc-stations-layer",
-      "ttc-line-badges-layer",
       "ttc-connection-labels-layer",
+    ]),
+    badges: serializeLayers("ttc-map-line-badges-root", [
+      "ttc-line-badges-layer",
     ]),
   };
 }

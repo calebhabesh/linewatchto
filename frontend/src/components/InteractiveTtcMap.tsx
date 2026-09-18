@@ -116,6 +116,7 @@ import {
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
 import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
+import { systemLineBadgeOpacity } from "../app/map-line-badges";
 
 const SVG_TO_RENDERED_MAP_SCALE = 4500 / 8250;
 const DESKTOP_MAP_HORIZONTAL_INSET_RATIO = 0.025;
@@ -426,7 +427,8 @@ function InteractiveTtcMapComponent({
   }, [rasterVariantKey]);
   const rasterMapReady = readyRasterPlanes.has(`${rasterVariantKey}:background`)
     && readyRasterPlanes.has(`${rasterVariantKey}:foreground`)
-    && readyRasterPlanes.has(`${rasterVariantKey}:labels`);
+    && readyRasterPlanes.has(`${rasterVariantKey}:labels`)
+    && readyRasterPlanes.has(`${rasterVariantKey}:badges`);
   const readyNotifiedRef = useRef(false);
   const entranceWasDeferredRef = useRef(false);
   const initialCameraPositionedRef = useRef(false);
@@ -619,6 +621,7 @@ function InteractiveTtcMapComponent({
     defaultFrame: defaultMapFrame,
     animateInitialEntrance,
   });
+  const lineBadgeOpacity = systemLineBadgeOpacity(relativeScale);
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
   const automaticResizeRefitBlockedRef = useRef(false);
@@ -2173,6 +2176,15 @@ function InteractiveTtcMapComponent({
               onReady={() => markRasterPlaneReady("background")}
             />
 
+            <RasterMapPlane
+              network="ttc"
+              plane="badges"
+              theme={rasterTheme}
+              density={rasterDensity}
+              style={{ opacity: lineBadgeOpacity }}
+              onReady={() => markRasterPlaneReady("badges")}
+            />
+
             {/* The live SVG now owns only dynamic visuals. Authored artwork is
                 retained invisibly as the geometry source used by overlays. */}
             <div className="w-[4500px] h-[2181.8px] max-w-none ttc-svg-container pointer-events-none absolute top-0 left-0">
@@ -2184,6 +2196,14 @@ function InteractiveTtcMapComponent({
               >
                 {/* Bottom Layer: Base tracks */}
                 <g className="ttc-authored-svg-source" dangerouslySetInnerHTML={{ __html: svgParts?.part1 ?? "" }} />
+
+                <g
+                  aria-hidden="true"
+                  className="ttc-authored-svg-source ttc-authored-line-badges"
+                  pointerEvents="none"
+                  style={{ opacity: lineBadgeOpacity }}
+                  dangerouslySetInnerHTML={{ __html: svgParts?.badges ?? "" }}
+                />
 
                 {/* Middle Layer: Highlighted overlays injected underneath stations */}
                 <defs>
@@ -2308,7 +2328,7 @@ function InteractiveTtcMapComponent({
                   ))}
                 </g>
 
-                {/* Top Layer: custom-map station labels, dots, badges, and connections */}
+                {/* Top Layer: custom-map station labels, dots, and connections */}
                 <g className="ttc-authored-svg-source" dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
               </svg>
             </div>
@@ -2322,7 +2342,7 @@ function InteractiveTtcMapComponent({
             />
 
             {/* Station names use their own static texture so the hover cutout
-                cannot cloak tracks, station dots, badges, or connection art
+                cannot cloak tracks, station dots, or connection art
                 that happens to sit inside the label's padded bounds. */}
             <RasterMapPlane
               network="ttc"

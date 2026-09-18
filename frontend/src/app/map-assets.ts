@@ -5,11 +5,10 @@ export type RasterMapDensity = "mobile" | "balanced" | "desktop";
 
 export function rasterMapSource(
   network: "ttc" | "regional",
-  plane: "background" | "foreground" | "labels",
+  plane: "background" | "foreground" | "labels" | "badges",
   theme: RasterMapTheme,
   density: RasterMapDensity,
 ) {
   const asset = `/assets/linewatch/raster-maps/${network}-${plane}-${theme}-${density}.png`;
   return `${asset}?v=${encodeURIComponent(lineWatchBuildLabel)}`;
 }
-

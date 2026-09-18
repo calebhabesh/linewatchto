@@ -22,6 +22,7 @@ export type MapImpact = {
   kind: MapImpactKind;
   cardId: string;
   travelDirection: TravelDirection;
+  directionCertainty?: "explicit" | "unspecified";
   sourceAlertIds: string[];
 };
 

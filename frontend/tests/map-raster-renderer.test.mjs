@@ -24,7 +24,7 @@ describe("stable raster map renderer", () => {
     };
 
     for (const network of ["ttc", "regional"]) {
-      const planes = ["background", "foreground", "labels"];
+      const planes = ["background", "foreground", "labels", ...(network === "ttc" ? ["badges"] : [])];
       for (const plane of planes) {
         for (const theme of ["light", "dark", "high-contrast"]) {
           for (const density of ["mobile", "balanced", "desktop"]) {

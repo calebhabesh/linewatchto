@@ -140,6 +140,7 @@
 }
 
 .raster-map-plane--background { z-index: 0; }
+.raster-map-plane--badges { z-index: 0; }
 .raster-map-dynamic-plane { z-index: 1; }
 .raster-map-plane--foreground { z-index: 2; }
 .raster-map-plane--labels { z-index: 2; }
@@ -562,4 +563,3 @@
     right: 8px;
   }
 }
-

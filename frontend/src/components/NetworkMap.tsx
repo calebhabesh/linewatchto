@@ -56,6 +56,8 @@ export function NetworkMap({
           onNetworkChange={props.onNetworkChange}
           mapView={props.mapView}
           onMapViewChange={props.onMapViewChange}
+          estimatedTrainsEnabled={props.estimatedTrainsEnabled}
+          estimatedTrainMarkers={props.estimatedTrainMarkers}
         />
         <NetworkMapLegend
           mode={network}

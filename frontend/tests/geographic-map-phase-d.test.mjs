@@ -334,7 +334,7 @@ test("Boundary 2: Live disruption & alert projection", async (t) => {
     assert.equal(badge.properties.targetType, "segment");
     assert.equal(badge.properties.targetId, "segment-br-aurora-newmarket");
     assert.equal(badge.properties.count, 2);
-    assert.equal(badge.properties.label, "2");
+    assert.equal(badge.properties.label, "D");
   });
 });
 

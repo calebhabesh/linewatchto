@@ -27,6 +27,7 @@ const maps = [
     foregroundCss: `
       #ttc-tracks-layer,
       #non-linear-guides-layer,
+      #ttc-line-badges-layer,
       #ttc-station-labels-layer text { opacity: 0 !important; }
       .fil3:has(+ .fil0),
       .fil3:has(+ .fil2),
@@ -46,6 +47,18 @@ const maps = [
         stroke: #000000 !important;
         stroke-width: 2px !important;
       }
+    `,
+    badgesCss: `
+      #ttc-tracks-layer,
+      #non-linear-guides-layer,
+      #ttc-station-labels-layer,
+      #ttc-stations-layer,
+      #ttc-connection-labels-layer { opacity: 0 !important; }
+      .fil3:has(+ .fil0),
+      .fil3:has(+ .fil2),
+      .fil3:has(+ .fil4),
+      .fil3:has(+ .fil5),
+      .fil3:has(+ .fil8) { display: none !important; }
     `,
     darkCss: `
       #ttc-station-labels-layer text,
@@ -143,10 +156,15 @@ async function main() {
     await mkdir(outputDirectory, { recursive: true });
     for (const map of maps) {
       const source = await readFile(map.source, "utf8");
-      const planes = map.labelsCss ? ["background", "foreground", "labels"] : ["background", "foreground"];
+      const planes = [
+        "background",
+        "foreground",
+        ...(map.labelsCss ? ["labels"] : []),
+        ...(map.badgesCss ? ["badges"] : []),
+      ];
       for (const plane of planes) {
         for (const theme of themes) {
-          const themeCss = theme === "light"
+          const themeCss = plane === "badges" || theme === "light"
             ? ""
             : `${map.darkCss}${theme === "high-contrast" ? map.highContrastCss ?? "" : ""}`;
           const renderedSize = plane === "labels" && map.labelsRenderedSize
@@ -165,7 +183,9 @@ async function main() {
               ? map.backgroundCss
               : plane === "labels"
                 ? map.labelsCss
-                : map.foregroundCss;
+                : plane === "badges"
+                  ? map.badgesCss
+                  : map.foregroundCss;
             const stagedSvg = join(temporaryDirectory, `${map.id}-${plane}-${theme}-${density}.svg`);
             await writeFile(stagedSvg, withRasterStyle(themedSource, `${planeCss}${themeCss}`, renderedSize));
             const filename = `${map.id}-${plane}-${theme}-${density}.png`;

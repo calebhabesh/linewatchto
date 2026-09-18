@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "../app/map-assets";
 export { rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "../app/map-assets";
 
 type RasterMapPlaneProps = {
   network: "ttc" | "regional";
-  plane: "background" | "foreground" | "labels";
+  plane: "background" | "foreground" | "labels" | "badges";
   theme: RasterMapTheme;
   density: RasterMapDensity;
   className?: string;
+  style?: CSSProperties;
   cutoutElementHref?: string | null;
   cutoutMarkup?: string | null;
   svgViewBox?: string;
@@ -60,6 +61,7 @@ export function RasterMapPlane({
   theme,
   density,
   className = "",
+  style,
   cutoutElementHref = null,
   cutoutMarkup = null,
   svgViewBox,
@@ -93,6 +95,7 @@ export function RasterMapPlane({
       <svg
         aria-hidden="true"
         className={`raster-map-plane raster-map-plane--${plane} ${className}`.trim()}
+        style={style}
         viewBox={svgViewBox}
         preserveAspectRatio="xMidYMid meet"
       >
@@ -148,6 +151,7 @@ export function RasterMapPlane({
       aria-hidden="true"
       alt=""
       className={`raster-map-plane raster-map-plane--${plane} ${className}`.trim()}
+      style={style}
       decoding="sync"
       draggable={false}
       onLoad={onReady}
