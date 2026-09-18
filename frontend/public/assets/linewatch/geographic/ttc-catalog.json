@@ -1,0 +1,7410 @@
+{
+  "type": "FeatureCollection",
+  "network": "ttc",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "link-line-1-bloor-yonge-rosedale",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.385956,
+            43.670994
+          ],
+          [
+            -79.386757,
+            43.673106
+          ],
+          [
+            -79.386936,
+            43.673475
+          ],
+          [
+            -79.387225,
+            43.67386
+          ],
+          [
+            -79.387585,
+            43.674438
+          ],
+          [
+            -79.388082,
+            43.675541
+          ],
+          [
+            -79.388786,
+            43.676746
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-bloor-yonge-rosedale",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "bloor-yonge",
+        "stationBId": "rosedale",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-cedarvale-st-clair-west",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.436089,
+            43.699146
+          ],
+          [
+            -79.435935,
+            43.698227
+          ],
+          [
+            -79.435305,
+            43.697106
+          ],
+          [
+            -79.434523,
+            43.696112
+          ],
+          [
+            -79.433794,
+            43.695349
+          ],
+          [
+            -79.433014,
+            43.69461
+          ],
+          [
+            -79.431341,
+            43.693234
+          ],
+          [
+            -79.429714,
+            43.69232
+          ],
+          [
+            -79.427657,
+            43.691421
+          ],
+          [
+            -79.426332,
+            43.691107
+          ],
+          [
+            -79.424655,
+            43.690776
+          ],
+          [
+            -79.42314,
+            43.690541
+          ],
+          [
+            -79.421707,
+            43.690247
+          ],
+          [
+            -79.420408,
+            43.689855
+          ],
+          [
+            -79.419407,
+            43.689465
+          ],
+          [
+            -79.418488,
+            43.688839
+          ],
+          [
+            -79.41792,
+            43.688193
+          ],
+          [
+            -79.417433,
+            43.687529
+          ],
+          [
+            -79.416892,
+            43.686707
+          ],
+          [
+            -79.416458,
+            43.685925
+          ],
+          [
+            -79.415856,
+            43.684497
+          ],
+          [
+            -79.415894,
+            43.684048
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-cedarvale-st-clair-west",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "cedarvale",
+        "stationBId": "st-clair-west",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-college-wellesley",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.383102,
+            43.660789
+          ],
+          [
+            -79.383455,
+            43.661674
+          ],
+          [
+            -79.383481,
+            43.661949
+          ],
+          [
+            -79.383285,
+            43.662727
+          ],
+          [
+            -79.383229,
+            43.66312
+          ],
+          [
+            -79.383359,
+            43.66405
+          ],
+          [
+            -79.383604,
+            43.664837
+          ],
+          [
+            -79.383385,
+            43.665348
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-college-wellesley",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "college",
+        "stationBId": "wellesley",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-davisville-eglinton",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.396988,
+            43.697746
+          ],
+          [
+            -79.397601,
+            43.698237
+          ],
+          [
+            -79.398129,
+            43.70066
+          ],
+          [
+            -79.398462,
+            43.702408
+          ],
+          [
+            -79.398615,
+            43.703799
+          ],
+          [
+            -79.398534,
+            43.704669
+          ],
+          [
+            -79.398392,
+            43.70525
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-davisville-eglinton",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "davisville",
+        "stationBId": "eglinton",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-downsview-park-sheppard-west",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.479698,
+            43.753349
+          ],
+          [
+            -79.47747,
+            43.753805
+          ],
+          [
+            -79.473965,
+            43.754588
+          ],
+          [
+            -79.472488,
+            43.75482
+          ],
+          [
+            -79.47106,
+            43.754888
+          ],
+          [
+            -79.469989,
+            43.75484
+          ],
+          [
+            -79.466536,
+            43.754341
+          ],
+          [
+            -79.465672,
+            43.75413
+          ],
+          [
+            -79.464987,
+            43.753842
+          ],
+          [
+            -79.464463,
+            43.753517
+          ],
+          [
+            -79.464155,
+            43.75327
+          ],
+          [
+            -79.46396,
+            43.753063
+          ],
+          [
+            -79.463648,
+            43.752657
+          ],
+          [
+            -79.463131,
+            43.751592
+          ],
+          [
+            -79.462593,
+            43.750046
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-downsview-park-sheppard-west",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "downsview-park",
+        "stationBId": "sheppard-west",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-dupont-spadina",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.40712,
+            43.674301
+          ],
+          [
+            -79.40467,
+            43.66813
+          ],
+          [
+            -79.404546,
+            43.667942
+          ],
+          [
+            -79.404373,
+            43.667765
+          ],
+          [
+            -79.404138,
+            43.667618
+          ],
+          [
+            -79.403786,
+            43.667149
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-dupont-spadina",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "dupont",
+        "stationBId": "spadina",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-eglinton-lawrence",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.398392,
+            43.70525
+          ],
+          [
+            -79.398689,
+            43.706462
+          ],
+          [
+            -79.398614,
+            43.706927
+          ],
+          [
+            -79.399487,
+            43.710856
+          ],
+          [
+            -79.400306,
+            43.714892
+          ],
+          [
+            -79.40134,
+            43.719495
+          ],
+          [
+            -79.401386,
+            43.719928
+          ],
+          [
+            -79.401792,
+            43.721913
+          ],
+          [
+            -79.402041,
+            43.723404
+          ],
+          [
+            -79.402266,
+            43.724271
+          ],
+          [
+            -79.402393,
+            43.725046
+          ],
+          [
+            -79.402687,
+            43.725948
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-eglinton-lawrence",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "eglinton",
+        "stationBId": "lawrence",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-finch-west-downsview-park",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.490807,
+            43.76535
+          ],
+          [
+            -79.491053,
+            43.763502
+          ],
+          [
+            -79.490082,
+            43.759828
+          ],
+          [
+            -79.48939,
+            43.756974
+          ],
+          [
+            -79.489029,
+            43.756272
+          ],
+          [
+            -79.488343,
+            43.7554
+          ],
+          [
+            -79.487807,
+            43.754905
+          ],
+          [
+            -79.487446,
+            43.754629
+          ],
+          [
+            -79.486749,
+            43.754199
+          ],
+          [
+            -79.486193,
+            43.753911
+          ],
+          [
+            -79.485661,
+            43.753679
+          ],
+          [
+            -79.484602,
+            43.753343
+          ],
+          [
+            -79.483819,
+            43.753172
+          ],
+          [
+            -79.483369,
+            43.753111
+          ],
+          [
+            -79.482428,
+            43.753043
+          ],
+          [
+            -79.481819,
+            43.753034
+          ],
+          [
+            -79.480667,
+            43.753136
+          ],
+          [
+            -79.479698,
+            43.753349
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-finch-west-downsview-park",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "finch-west",
+        "stationBId": "downsview-park",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-glencairn-cedarvale",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.440796,
+            43.708584
+          ],
+          [
+            -79.438693,
+            43.70535
+          ],
+          [
+            -79.438452,
+            43.704626
+          ],
+          [
+            -79.436089,
+            43.699146
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-glencairn-cedarvale",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "glencairn",
+        "stationBId": "cedarvale",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-highway-407-pioneer-village",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.523232,
+            43.78344
+          ],
+          [
+            -79.522679,
+            43.782612
+          ],
+          [
+            -79.522341,
+            43.781966
+          ],
+          [
+            -79.52184,
+            43.781286
+          ],
+          [
+            -79.521589,
+            43.781016
+          ],
+          [
+            -79.521134,
+            43.780626
+          ],
+          [
+            -79.52088,
+            43.780451
+          ],
+          [
+            -79.520504,
+            43.780225
+          ],
+          [
+            -79.519727,
+            43.779834
+          ],
+          [
+            -79.518724,
+            43.779487
+          ],
+          [
+            -79.517947,
+            43.779284
+          ],
+          [
+            -79.514617,
+            43.778311
+          ],
+          [
+            -79.51262,
+            43.77776
+          ],
+          [
+            -79.509743,
+            43.777027
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-highway-407-pioneer-village",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "highway-407",
+        "stationBId": "pioneer-village",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-king-queen",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.378113,
+            43.649059
+          ],
+          [
+            -79.378938,
+            43.651002
+          ],
+          [
+            -79.379616,
+            43.652737
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-king-queen",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "king",
+        "stationBId": "queen",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-lawrence-west-glencairn",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.444191,
+            43.716347
+          ],
+          [
+            -79.444181,
+            43.715471
+          ],
+          [
+            -79.442801,
+            43.711981
+          ],
+          [
+            -79.442062,
+            43.710522
+          ],
+          [
+            -79.440796,
+            43.708584
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-lawrence-west-glencairn",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "lawrence-west",
+        "stationBId": "glencairn",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-lawrence-york-mills",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.402687,
+            43.725948
+          ],
+          [
+            -79.40396,
+            43.731079
+          ],
+          [
+            -79.404202,
+            43.73192
+          ],
+          [
+            -79.404419,
+            43.732944
+          ],
+          [
+            -79.404729,
+            43.734114
+          ],
+          [
+            -79.405338,
+            43.736923
+          ],
+          [
+            -79.405362,
+            43.737434
+          ],
+          [
+            -79.405205,
+            43.737923
+          ],
+          [
+            -79.405266,
+            43.738684
+          ],
+          [
+            -79.405841,
+            43.741836
+          ],
+          [
+            -79.406487,
+            43.744846
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-lawrence-york-mills",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "lawrence",
+        "stationBId": "york-mills",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-museum-queens-park",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.393471,
+            43.666622
+          ],
+          [
+            -79.393137,
+            43.665883
+          ],
+          [
+            -79.391825,
+            43.664202
+          ],
+          [
+            -79.391496,
+            43.663586
+          ],
+          [
+            -79.39127,
+            43.662952
+          ],
+          [
+            -79.391136,
+            43.662365
+          ],
+          [
+            -79.391073,
+            43.660996
+          ],
+          [
+            -79.390984,
+            43.660533
+          ],
+          [
+            -79.390694,
+            43.659836
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-museum-queens-park",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "museum",
+        "stationBId": "queens-park",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-north-york-centre-finch",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.412758,
+            43.767868
+          ],
+          [
+            -79.413512,
+            43.770936
+          ],
+          [
+            -79.415773,
+            43.779716
+          ],
+          [
+            -79.415291,
+            43.780846
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-north-york-centre-finch",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "north-york-centre",
+        "stationBId": "finch",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-osgoode-st-andrew",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.386955,
+            43.651123
+          ],
+          [
+            -79.386332,
+            43.649734
+          ],
+          [
+            -79.385002,
+            43.647606
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-osgoode-st-andrew",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "osgoode",
+        "stationBId": "st-andrew",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-pioneer-village-york-university",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.509743,
+            43.777027
+          ],
+          [
+            -79.507036,
+            43.776191
+          ],
+          [
+            -79.502336,
+            43.774882
+          ],
+          [
+            -79.499886,
+            43.774097
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-pioneer-village-york-university",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "pioneer-village",
+        "stationBId": "york-university",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-queen-tmu",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.379616,
+            43.652737
+          ],
+          [
+            -79.381226,
+            43.656517
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-queen-tmu",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "queen",
+        "stationBId": "tmu",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-queens-park-st-patrick",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.390694,
+            43.659836
+          ],
+          [
+            -79.38852,
+            43.654747
+          ],
+          [
+            -79.388222,
+            43.654617
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-queens-park-st-patrick",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "queens-park",
+        "stationBId": "st-patrick",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-rosedale-summerhill",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.388786,
+            43.676746
+          ],
+          [
+            -79.391174,
+            43.682632
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-rosedale-summerhill",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "rosedale",
+        "stationBId": "summerhill",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-sheppard-west-wilson",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.462593,
+            43.750046
+          ],
+          [
+            -79.462332,
+            43.749484
+          ],
+          [
+            -79.46215,
+            43.748962
+          ],
+          [
+            -79.461932,
+            43.748173
+          ],
+          [
+            -79.461507,
+            43.746958
+          ],
+          [
+            -79.46113,
+            43.745599
+          ],
+          [
+            -79.460784,
+            43.744731
+          ],
+          [
+            -79.460324,
+            43.744017
+          ],
+          [
+            -79.459819,
+            43.74346
+          ],
+          [
+            -79.459265,
+            43.743028
+          ],
+          [
+            -79.458646,
+            43.742627
+          ],
+          [
+            -79.457327,
+            43.741634
+          ],
+          [
+            -79.455708,
+            43.740542
+          ],
+          [
+            -79.45458,
+            43.739694
+          ],
+          [
+            -79.453384,
+            43.738858
+          ],
+          [
+            -79.452624,
+            43.738466
+          ],
+          [
+            -79.452108,
+            43.738028
+          ],
+          [
+            -79.451674,
+            43.737582
+          ],
+          [
+            -79.451349,
+            43.737116
+          ],
+          [
+            -79.451052,
+            43.736545
+          ],
+          [
+            -79.45079,
+            43.734547
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-sheppard-west-wilson",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "sheppard-west",
+        "stationBId": "wilson",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-sheppard-yonge-north-york-centre",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.41169,
+            43.761646
+          ],
+          [
+            -79.411354,
+            43.762295
+          ],
+          [
+            -79.412758,
+            43.767868
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-sheppard-yonge-north-york-centre",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "sheppard-yonge",
+        "stationBId": "north-york-centre",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-spadina-st-george",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.403786,
+            43.667149
+          ],
+          [
+            -79.403367,
+            43.667502
+          ],
+          [
+            -79.401977,
+            43.667716
+          ],
+          [
+            -79.398839,
+            43.668374
+          ],
+          [
+            -79.398087,
+            43.668846
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-spadina-st-george",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "spadina",
+        "stationBId": "st-george",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-st-andrew-union",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.385002,
+            43.647606
+          ],
+          [
+            -79.384531,
+            43.646835
+          ],
+          [
+            -79.38403,
+            43.646238
+          ],
+          [
+            -79.383463,
+            43.645763
+          ],
+          [
+            -79.382984,
+            43.645519
+          ],
+          [
+            -79.382502,
+            43.645403
+          ],
+          [
+            -79.382259,
+            43.645377
+          ],
+          [
+            -79.381999,
+            43.64539
+          ],
+          [
+            -79.381761,
+            43.645416
+          ],
+          [
+            -79.380214,
+            43.645749
+          ],
+          [
+            -79.379723,
+            43.645523
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-st-andrew-union",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "st-andrew",
+        "stationBId": "union",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-st-clair-davisville",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.392586,
+            43.687748
+          ],
+          [
+            -79.394618,
+            43.69054
+          ],
+          [
+            -79.39508,
+            43.690809
+          ],
+          [
+            -79.395375,
+            43.691147
+          ],
+          [
+            -79.395536,
+            43.691536
+          ],
+          [
+            -79.396827,
+            43.696363
+          ],
+          [
+            -79.397072,
+            43.696934
+          ],
+          [
+            -79.396988,
+            43.697746
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-st-clair-davisville",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "st-clair",
+        "stationBId": "davisville",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-st-clair-west-dupont",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.415894,
+            43.684048
+          ],
+          [
+            -79.415451,
+            43.683521
+          ],
+          [
+            -79.415275,
+            43.683216
+          ],
+          [
+            -79.415147,
+            43.683076
+          ],
+          [
+            -79.414933,
+            43.682926
+          ],
+          [
+            -79.414784,
+            43.682872
+          ],
+          [
+            -79.414335,
+            43.682806
+          ],
+          [
+            -79.413804,
+            43.68279
+          ],
+          [
+            -79.412489,
+            43.682832
+          ],
+          [
+            -79.411933,
+            43.682821
+          ],
+          [
+            -79.411426,
+            43.682713
+          ],
+          [
+            -79.411041,
+            43.68257
+          ],
+          [
+            -79.410683,
+            43.682353
+          ],
+          [
+            -79.410416,
+            43.682122
+          ],
+          [
+            -79.41013,
+            43.681709
+          ],
+          [
+            -79.409623,
+            43.680516
+          ],
+          [
+            -79.408955,
+            43.678871
+          ],
+          [
+            -79.408956,
+            43.678791
+          ],
+          [
+            -79.407691,
+            43.675815
+          ],
+          [
+            -79.40712,
+            43.674301
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-st-clair-west-dupont",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "st-clair-west",
+        "stationBId": "dupont",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-st-george-museum",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.398087,
+            43.668846
+          ],
+          [
+            -79.397042,
+            43.668717
+          ],
+          [
+            -79.395885,
+            43.668865
+          ],
+          [
+            -79.395549,
+            43.668875
+          ],
+          [
+            -79.395219,
+            43.668829
+          ],
+          [
+            -79.394906,
+            43.668743
+          ],
+          [
+            -79.394655,
+            43.668618
+          ],
+          [
+            -79.394449,
+            43.668437
+          ],
+          [
+            -79.394175,
+            43.668053
+          ],
+          [
+            -79.393912,
+            43.667585
+          ],
+          [
+            -79.393471,
+            43.666622
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-st-george-museum",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "st-george",
+        "stationBId": "museum",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-st-patrick-osgoode",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.388222,
+            43.654617
+          ],
+          [
+            -79.388136,
+            43.653909
+          ],
+          [
+            -79.386955,
+            43.651123
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-st-patrick-osgoode",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "st-patrick",
+        "stationBId": "osgoode",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-summerhill-st-clair",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.391174,
+            43.682632
+          ],
+          [
+            -79.392586,
+            43.687748
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-summerhill-st-clair",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "summerhill",
+        "stationBId": "st-clair",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-tmu-college",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.381226,
+            43.656517
+          ],
+          [
+            -79.381569,
+            43.65736
+          ],
+          [
+            -79.383102,
+            43.660789
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-tmu-college",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "tmu",
+        "stationBId": "college",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-union-king",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.379723,
+            43.645523
+          ],
+          [
+            -79.37942,
+            43.645943
+          ],
+          [
+            -79.378653,
+            43.646249
+          ],
+          [
+            -79.378244,
+            43.646489
+          ],
+          [
+            -79.377934,
+            43.64679
+          ],
+          [
+            -79.377805,
+            43.646993
+          ],
+          [
+            -79.377723,
+            43.647197
+          ],
+          [
+            -79.37769,
+            43.64743
+          ],
+          [
+            -79.377713,
+            43.647867
+          ],
+          [
+            -79.377858,
+            43.648443
+          ],
+          [
+            -79.378113,
+            43.649059
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-union-king",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "union",
+        "stationBId": "king",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-vaughan-metropolitan-centre-highway-407",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.527489,
+            43.794239
+          ],
+          [
+            -79.526474,
+            43.790618
+          ],
+          [
+            -79.525843,
+            43.788906
+          ],
+          [
+            -79.525172,
+            43.787391
+          ],
+          [
+            -79.524576,
+            43.786238
+          ],
+          [
+            -79.523232,
+            43.78344
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-vaughan-metropolitan-centre-highway-407",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "vaughan-metropolitan-centre",
+        "stationBId": "highway-407",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-wellesley-bloor-yonge",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.383385,
+            43.665348
+          ],
+          [
+            -79.385552,
+            43.669917
+          ],
+          [
+            -79.385956,
+            43.670994
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-wellesley-bloor-yonge",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "wellesley",
+        "stationBId": "bloor-yonge",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-wilson-yorkdale",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.45079,
+            43.734547
+          ],
+          [
+            -79.450165,
+            43.734133
+          ],
+          [
+            -79.449544,
+            43.732297
+          ],
+          [
+            -79.449197,
+            43.731424
+          ],
+          [
+            -79.449102,
+            43.73103
+          ],
+          [
+            -79.448399,
+            43.726794
+          ],
+          [
+            -79.448097,
+            43.725614
+          ],
+          [
+            -79.447693,
+            43.724594
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-wilson-yorkdale",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "wilson",
+        "stationBId": "yorkdale",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-york-mills-sheppard-yonge",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.406487,
+            43.744846
+          ],
+          [
+            -79.407099,
+            43.746893
+          ],
+          [
+            -79.407253,
+            43.747223
+          ],
+          [
+            -79.407577,
+            43.747607
+          ],
+          [
+            -79.407808,
+            43.747774
+          ],
+          [
+            -79.407957,
+            43.747973
+          ],
+          [
+            -79.408619,
+            43.750249
+          ],
+          [
+            -79.40873,
+            43.751161
+          ],
+          [
+            -79.408714,
+            43.751815
+          ],
+          [
+            -79.408754,
+            43.752328
+          ],
+          [
+            -79.409086,
+            43.75378
+          ],
+          [
+            -79.409193,
+            43.754502
+          ],
+          [
+            -79.409284,
+            43.754858
+          ],
+          [
+            -79.409657,
+            43.7558
+          ],
+          [
+            -79.409892,
+            43.756601
+          ],
+          [
+            -79.410537,
+            43.758996
+          ],
+          [
+            -79.411,
+            43.760912
+          ],
+          [
+            -79.41169,
+            43.761646
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-york-mills-sheppard-yonge",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "york-mills",
+        "stationBId": "sheppard-yonge",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-york-university-finch-west",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.499886,
+            43.774097
+          ],
+          [
+            -79.498639,
+            43.773854
+          ],
+          [
+            -79.498027,
+            43.773686
+          ],
+          [
+            -79.497375,
+            43.773485
+          ],
+          [
+            -79.496402,
+            43.773123
+          ],
+          [
+            -79.495381,
+            43.772605
+          ],
+          [
+            -79.494889,
+            43.772281
+          ],
+          [
+            -79.494345,
+            43.771852
+          ],
+          [
+            -79.493748,
+            43.771308
+          ],
+          [
+            -79.493409,
+            43.770902
+          ],
+          [
+            -79.492949,
+            43.770212
+          ],
+          [
+            -79.492554,
+            43.769301
+          ],
+          [
+            -79.491736,
+            43.766034
+          ],
+          [
+            -79.490807,
+            43.76535
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-york-university-finch-west",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "york-university",
+        "stationBId": "finch-west",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-1-yorkdale-lawrence-west",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.447693,
+            43.724594
+          ],
+          [
+            -79.446636,
+            43.722
+          ],
+          [
+            -79.444714,
+            43.716788
+          ],
+          [
+            -79.444191,
+            43.716347
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-1-yorkdale-lawrence-west",
+        "lineId": "line-1",
+        "network": "ttc",
+        "stationAId": "yorkdale",
+        "stationBId": "lawrence-west",
+        "direction": "forward",
+        "gtfsShapeId": "1125043"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-bathurst-spadina",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.411186,
+            43.666447
+          ],
+          [
+            -79.409854,
+            43.666064
+          ],
+          [
+            -79.404909,
+            43.667083
+          ],
+          [
+            -79.403786,
+            43.667149
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-bathurst-spadina",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "bathurst",
+        "stationBId": "spadina",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-bay-bloor-yonge",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.389793,
+            43.670238
+          ],
+          [
+            -79.389168,
+            43.670384
+          ],
+          [
+            -79.388381,
+            43.670716
+          ],
+          [
+            -79.387713,
+            43.670919
+          ],
+          [
+            -79.3871,
+            43.670992
+          ],
+          [
+            -79.385956,
+            43.670994
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-bay-bloor-yonge",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "bay",
+        "stationBId": "bloor-yonge",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-bloor-yonge-sherbourne",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.385956,
+            43.670994
+          ],
+          [
+            -79.384866,
+            43.671066
+          ],
+          [
+            -79.384116,
+            43.67104
+          ],
+          [
+            -79.383178,
+            43.671115
+          ],
+          [
+            -79.38252,
+            43.671195
+          ],
+          [
+            -79.3815,
+            43.67141
+          ],
+          [
+            -79.378988,
+            43.671865
+          ],
+          [
+            -79.377822,
+            43.672028
+          ],
+          [
+            -79.37616,
+            43.672104
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-bloor-yonge-sherbourne",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "bloor-yonge",
+        "stationBId": "sherbourne",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-broadview-chester",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.358391,
+            43.676949
+          ],
+          [
+            -79.358185,
+            43.677178
+          ],
+          [
+            -79.358036,
+            43.677226
+          ],
+          [
+            -79.353738,
+            43.678054
+          ],
+          [
+            -79.352493,
+            43.678238
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-broadview-chester",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "broadview",
+        "stationBId": "chester",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-castle-frank-broadview",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.368988,
+            43.673748
+          ],
+          [
+            -79.368301,
+            43.674096
+          ],
+          [
+            -79.366935,
+            43.674615
+          ],
+          [
+            -79.360647,
+            43.675848
+          ],
+          [
+            -79.360395,
+            43.675921
+          ],
+          [
+            -79.359985,
+            43.676114
+          ],
+          [
+            -79.358876,
+            43.676775
+          ],
+          [
+            -79.358391,
+            43.676949
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-castle-frank-broadview",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "castle-frank",
+        "stationBId": "broadview",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-chester-pape",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.352493,
+            43.678238
+          ],
+          [
+            -79.35123,
+            43.678544
+          ],
+          [
+            -79.346598,
+            43.67945
+          ],
+          [
+            -79.344788,
+            43.680149
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-chester-pape",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "chester",
+        "stationBId": "pape",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-christie-bathurst",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.418411,
+            43.664063
+          ],
+          [
+            -79.416533,
+            43.664455
+          ],
+          [
+            -79.415116,
+            43.664846
+          ],
+          [
+            -79.414168,
+            43.665156
+          ],
+          [
+            -79.411486,
+            43.665716
+          ],
+          [
+            -79.411186,
+            43.666447
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-christie-bathurst",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "christie",
+        "stationBId": "bathurst",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-coxwell-woodbine",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.322784,
+            43.684147
+          ],
+          [
+            -79.321671,
+            43.684614
+          ],
+          [
+            -79.321374,
+            43.684696
+          ],
+          [
+            -79.315754,
+            43.685901
+          ],
+          [
+            -79.314277,
+            43.686279
+          ],
+          [
+            -79.313205,
+            43.686496
+          ],
+          [
+            -79.312683,
+            43.686546
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-coxwell-woodbine",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "coxwell",
+        "stationBId": "woodbine",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-donlands-greenwoood",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.337784,
+            43.681049
+          ],
+          [
+            -79.335848,
+            43.681594
+          ],
+          [
+            -79.33183,
+            43.682457
+          ],
+          [
+            -79.330284,
+            43.682648
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-donlands-greenwoood",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "donlands",
+        "stationBId": "greenwoood",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-dufferin-ossington",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.435478,
+            43.660198
+          ],
+          [
+            -79.432818,
+            43.660727
+          ],
+          [
+            -79.431515,
+            43.661029
+          ],
+          [
+            -79.430144,
+            43.661366
+          ],
+          [
+            -79.428768,
+            43.661791
+          ],
+          [
+            -79.428073,
+            43.661972
+          ],
+          [
+            -79.426388,
+            43.662321
+          ],
+          [
+            -79.426292,
+            43.662449
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-dufferin-ossington",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "dufferin",
+        "stationBId": "ossington",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-dundas-west-lansdowne",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.453392,
+            43.656849
+          ],
+          [
+            -79.453016,
+            43.656998
+          ],
+          [
+            -79.450152,
+            43.657745
+          ],
+          [
+            -79.444757,
+            43.659049
+          ],
+          [
+            -79.444172,
+            43.65915
+          ],
+          [
+            -79.442467,
+            43.659245
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-dundas-west-lansdowne",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "dundas-west",
+        "stationBId": "lansdowne",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-greenwoood-coxwell",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.330284,
+            43.682648
+          ],
+          [
+            -79.329813,
+            43.682896
+          ],
+          [
+            -79.327653,
+            43.683337
+          ],
+          [
+            -79.32412,
+            43.684115
+          ],
+          [
+            -79.322784,
+            43.684147
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-greenwoood-coxwell",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "greenwoood",
+        "stationBId": "coxwell",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-high-park-keele",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.466751,
+            43.653999
+          ],
+          [
+            -79.465718,
+            43.654155
+          ],
+          [
+            -79.460467,
+            43.655323
+          ],
+          [
+            -79.459892,
+            43.655247
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-high-park-keele",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "high-park",
+        "stationBId": "keele",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-islington-royal-york",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.524193,
+            43.645149
+          ],
+          [
+            -79.522825,
+            43.645741
+          ],
+          [
+            -79.520555,
+            43.646202
+          ],
+          [
+            -79.517328,
+            43.646734
+          ],
+          [
+            -79.514874,
+            43.647296
+          ],
+          [
+            -79.514537,
+            43.647346
+          ],
+          [
+            -79.511843,
+            43.647959
+          ],
+          [
+            -79.511291,
+            43.648113
+          ],
+          [
+            -79.510994,
+            43.64835
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-islington-royal-york",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "islington",
+        "stationBId": "royal-york",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-jane-runnymede",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.483894,
+            43.650146
+          ],
+          [
+            -79.483042,
+            43.650123
+          ],
+          [
+            -79.482518,
+            43.650257
+          ],
+          [
+            -79.481556,
+            43.650644
+          ],
+          [
+            -79.480902,
+            43.650815
+          ],
+          [
+            -79.476218,
+            43.651846
+          ],
+          [
+            -79.47599,
+            43.652046
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-jane-runnymede",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "jane",
+        "stationBId": "runnymede",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-keele-dundas-west",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.459892,
+            43.655247
+          ],
+          [
+            -79.459235,
+            43.655609
+          ],
+          [
+            -79.45747,
+            43.655972
+          ],
+          [
+            -79.454227,
+            43.656714
+          ],
+          [
+            -79.453392,
+            43.656849
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-keele-dundas-west",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "keele",
+        "stationBId": "dundas-west",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-kipling-islington",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.535995,
+            43.63715
+          ],
+          [
+            -79.533858,
+            43.639132
+          ],
+          [
+            -79.531674,
+            43.64136
+          ],
+          [
+            -79.529518,
+            43.643644
+          ],
+          [
+            -79.529119,
+            43.643969
+          ],
+          [
+            -79.528322,
+            43.644431
+          ],
+          [
+            -79.527736,
+            43.644646
+          ],
+          [
+            -79.52468,
+            43.645305
+          ],
+          [
+            -79.524193,
+            43.645149
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-kipling-islington",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "kipling",
+        "stationBId": "islington",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-lansdowne-dufferin",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.442467,
+            43.659245
+          ],
+          [
+            -79.440663,
+            43.659387
+          ],
+          [
+            -79.439503,
+            43.659409
+          ],
+          [
+            -79.438801,
+            43.659515
+          ],
+          [
+            -79.436733,
+            43.659919
+          ],
+          [
+            -79.435478,
+            43.660198
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-lansdowne-dufferin",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "lansdowne",
+        "stationBId": "dufferin",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-main-street-victoria-park",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.301582,
+            43.68895
+          ],
+          [
+            -79.300844,
+            43.689289
+          ],
+          [
+            -79.299543,
+            43.689715
+          ],
+          [
+            -79.295269,
+            43.692212
+          ],
+          [
+            -79.292439,
+            43.693442
+          ],
+          [
+            -79.289736,
+            43.694505
+          ],
+          [
+            -79.288986,
+            43.694447
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-main-street-victoria-park",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "main-street",
+        "stationBId": "victoria-park",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-old-mill-jane",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.495094,
+            43.650146
+          ],
+          [
+            -79.494989,
+            43.649934
+          ],
+          [
+            -79.494102,
+            43.649639
+          ],
+          [
+            -79.490968,
+            43.64847
+          ],
+          [
+            -79.490041,
+            43.64838
+          ],
+          [
+            -79.488507,
+            43.648342
+          ],
+          [
+            -79.487763,
+            43.648389
+          ],
+          [
+            -79.487444,
+            43.648444
+          ],
+          [
+            -79.48655,
+            43.648694
+          ],
+          [
+            -79.486267,
+            43.648838
+          ],
+          [
+            -79.485977,
+            43.649065
+          ],
+          [
+            -79.485372,
+            43.649441
+          ],
+          [
+            -79.483894,
+            43.650146
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-old-mill-jane",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "old-mill",
+        "stationBId": "jane",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-ossington-christie",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.426292,
+            43.662449
+          ],
+          [
+            -79.425188,
+            43.662571
+          ],
+          [
+            -79.418411,
+            43.664063
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-ossington-christie",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "ossington",
+        "stationBId": "christie",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-pape-donlands",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.344788,
+            43.680149
+          ],
+          [
+            -79.343565,
+            43.680053
+          ],
+          [
+            -79.338299,
+            43.681063
+          ],
+          [
+            -79.337784,
+            43.681049
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-pape-donlands",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "pape",
+        "stationBId": "donlands",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-royal-york-old-mill",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.510994,
+            43.64835
+          ],
+          [
+            -79.508699,
+            43.648571
+          ],
+          [
+            -79.508035,
+            43.648701
+          ],
+          [
+            -79.507392,
+            43.648898
+          ],
+          [
+            -79.505758,
+            43.649317
+          ],
+          [
+            -79.500071,
+            43.650602
+          ],
+          [
+            -79.499518,
+            43.650689
+          ],
+          [
+            -79.499106,
+            43.650697
+          ],
+          [
+            -79.497866,
+            43.650645
+          ],
+          [
+            -79.497487,
+            43.650586
+          ],
+          [
+            -79.495876,
+            43.650213
+          ],
+          [
+            -79.495094,
+            43.650146
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-royal-york-old-mill",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "royal-york",
+        "stationBId": "old-mill",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-runnymede-high-park",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.47599,
+            43.652046
+          ],
+          [
+            -79.475602,
+            43.651979
+          ],
+          [
+            -79.47045,
+            43.653144
+          ],
+          [
+            -79.467322,
+            43.653817
+          ],
+          [
+            -79.466751,
+            43.653999
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-runnymede-high-park",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "runnymede",
+        "stationBId": "high-park",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-sherbourne-castle-frank",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.37616,
+            43.672104
+          ],
+          [
+            -79.373995,
+            43.672253
+          ],
+          [
+            -79.372865,
+            43.672497
+          ],
+          [
+            -79.371759,
+            43.672809
+          ],
+          [
+            -79.370011,
+            43.673445
+          ],
+          [
+            -79.368988,
+            43.673748
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-sherbourne-castle-frank",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "sherbourne",
+        "stationBId": "castle-frank",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-spadina-st-george",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.403786,
+            43.667149
+          ],
+          [
+            -79.403097,
+            43.667463
+          ],
+          [
+            -79.398839,
+            43.668374
+          ],
+          [
+            -79.398087,
+            43.668846
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-spadina-st-george",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "spadina",
+        "stationBId": "st-george",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-st-george-bay",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.398087,
+            43.668846
+          ],
+          [
+            -79.396265,
+            43.668893
+          ],
+          [
+            -79.394531,
+            43.669279
+          ],
+          [
+            -79.391004,
+            43.669969
+          ],
+          [
+            -79.389793,
+            43.670238
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-st-george-bay",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "st-george",
+        "stationBId": "bay",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-victoria-park-warden",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.288986,
+            43.694447
+          ],
+          [
+            -79.287952,
+            43.695175
+          ],
+          [
+            -79.284483,
+            43.696501
+          ],
+          [
+            -79.283724,
+            43.696854
+          ],
+          [
+            -79.283414,
+            43.697029
+          ],
+          [
+            -79.282889,
+            43.697386
+          ],
+          [
+            -79.282386,
+            43.697829
+          ],
+          [
+            -79.281819,
+            43.698473
+          ],
+          [
+            -79.281499,
+            43.698986
+          ],
+          [
+            -79.28127,
+            43.699487
+          ],
+          [
+            -79.281094,
+            43.700097
+          ],
+          [
+            -79.279832,
+            43.707825
+          ],
+          [
+            -79.279298,
+            43.710635
+          ],
+          [
+            -79.279587,
+            43.711647
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-victoria-park-warden",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "victoria-park",
+        "stationBId": "warden",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-warden-kennedy",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.279587,
+            43.711647
+          ],
+          [
+            -79.278958,
+            43.712531
+          ],
+          [
+            -79.278492,
+            43.714636
+          ],
+          [
+            -79.277667,
+            43.716861
+          ],
+          [
+            -79.275247,
+            43.722186
+          ],
+          [
+            -79.274738,
+            43.723213
+          ],
+          [
+            -79.274438,
+            43.723659
+          ],
+          [
+            -79.269923,
+            43.72866
+          ],
+          [
+            -79.268405,
+            43.730221
+          ],
+          [
+            -79.26782,
+            43.730867
+          ],
+          [
+            -79.267142,
+            43.731367
+          ],
+          [
+            -79.266021,
+            43.73175
+          ],
+          [
+            -79.263885,
+            43.732246
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-warden-kennedy",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "warden",
+        "stationBId": "kennedy",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-2-woodbine-main-street",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.312683,
+            43.686546
+          ],
+          [
+            -79.312163,
+            43.686698
+          ],
+          [
+            -79.309069,
+            43.687329
+          ],
+          [
+            -79.302617,
+            43.688809
+          ],
+          [
+            -79.301582,
+            43.68895
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-2-woodbine-main-street",
+        "lineId": "line-2",
+        "network": "ttc",
+        "stationAId": "woodbine",
+        "stationBId": "main-street",
+        "direction": "forward",
+        "gtfsShapeId": "1125472"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-4-bayview-bessarion",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.386703,
+            43.766872
+          ],
+          [
+            -79.383338,
+            43.767749
+          ],
+          [
+            -79.377691,
+            43.768967
+          ],
+          [
+            -79.376312,
+            43.769199
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-4-bayview-bessarion",
+        "lineId": "line-4",
+        "network": "ttc",
+        "stationAId": "bayview",
+        "stationBId": "bessarion",
+        "direction": "forward",
+        "gtfsShapeId": "1125745"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-4-bessarion-leslie",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.376312,
+            43.769199
+          ],
+          [
+            -79.37551,
+            43.769421
+          ],
+          [
+            -79.372951,
+            43.769966
+          ],
+          [
+            -79.368455,
+            43.770977
+          ],
+          [
+            -79.36779,
+            43.770847
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-4-bessarion-leslie",
+        "lineId": "line-4",
+        "network": "ttc",
+        "stationAId": "bessarion",
+        "stationBId": "leslie",
+        "direction": "forward",
+        "gtfsShapeId": "1125745"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-4-leslie-don-mills",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.36779,
+            43.770847
+          ],
+          [
+            -79.36704,
+            43.771135
+          ],
+          [
+            -79.364437,
+            43.771386
+          ],
+          [
+            -79.362449,
+            43.7718
+          ],
+          [
+            -79.360885,
+            43.772048
+          ],
+          [
+            -79.358865,
+            43.77252
+          ],
+          [
+            -79.348641,
+            43.774744
+          ],
+          [
+            -79.346588,
+            43.775547
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-4-leslie-don-mills",
+        "lineId": "line-4",
+        "network": "ttc",
+        "stationAId": "leslie",
+        "stationBId": "don-mills",
+        "direction": "forward",
+        "gtfsShapeId": "1125745"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-4-sheppard-yonge-bayview",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.41169,
+            43.761646
+          ],
+          [
+            -79.409808,
+            43.76175
+          ],
+          [
+            -79.389106,
+            43.766319
+          ],
+          [
+            -79.386703,
+            43.766872
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-4-sheppard-yonge-bayview",
+        "lineId": "line-4",
+        "network": "ttc",
+        "stationAId": "sheppard-yonge",
+        "stationBId": "bayview",
+        "direction": "forward",
+        "gtfsShapeId": "1125745"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-aga-khan-park-and-museum-wynford",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.332397,
+            43.722553
+          ],
+          [
+            -79.326645,
+            43.724072
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-aga-khan-park-and-museum-wynford",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "aga-khan-park-and-museum",
+        "stationBId": "wynford",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-avenue-eglinton",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.408844,
+            43.704742
+          ],
+          [
+            -79.407405,
+            43.704836
+          ],
+          [
+            -79.400282,
+            43.706351
+          ],
+          [
+            -79.398392,
+            43.70525
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-avenue-eglinton",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "avenue",
+        "stationBId": "eglinton",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-birchmount-ionview",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.277191,
+            43.730167
+          ],
+          [
+            -79.275958,
+            43.730372
+          ],
+          [
+            -79.272825,
+            43.731086
+          ],
+          [
+            -79.271988,
+            43.731373
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-birchmount-ionview",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "birchmount",
+        "stationBId": "ionview",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-caledonia-fairbank",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.465767,
+            43.692307
+          ],
+          [
+            -79.465379,
+            43.69194
+          ],
+          [
+            -79.46462,
+            43.692155
+          ],
+          [
+            -79.464222,
+            43.692303
+          ],
+          [
+            -79.46343,
+            43.692708
+          ],
+          [
+            -79.463053,
+            43.692842
+          ],
+          [
+            -79.451572,
+            43.695418
+          ],
+          [
+            -79.451201,
+            43.695476
+          ],
+          [
+            -79.449921,
+            43.69558
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-caledonia-fairbank",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "caledonia",
+        "stationBId": "fairbank",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-cedarvale-forest-hill",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.436089,
+            43.699146
+          ],
+          [
+            -79.435727,
+            43.698834
+          ],
+          [
+            -79.426686,
+            43.700758
+          ],
+          [
+            -79.425774,
+            43.700775
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-cedarvale-forest-hill",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "cedarvale",
+        "stationBId": "forest-hill",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-chaplin-avenue",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.417473,
+            43.702927
+          ],
+          [
+            -79.417093,
+            43.702782
+          ],
+          [
+            -79.409621,
+            43.70436
+          ],
+          [
+            -79.408844,
+            43.704742
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-chaplin-avenue",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "chaplin",
+        "stationBId": "avenue",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-don-valley-aga-khan-park-and-museum",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.337929,
+            43.721645
+          ],
+          [
+            -79.336669,
+            43.721178
+          ],
+          [
+            -79.333449,
+            43.722158
+          ],
+          [
+            -79.332397,
+            43.722553
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-don-valley-aga-khan-park-and-museum",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "don-valley",
+        "stationBId": "aga-khan-park-and-museum",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-eglinton-mount-pleasant",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.398392,
+            43.70525
+          ],
+          [
+            -79.397474,
+            43.706921
+          ],
+          [
+            -79.3915,
+            43.708134
+          ],
+          [
+            -79.390381,
+            43.708473
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-eglinton-mount-pleasant",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "eglinton",
+        "stationBId": "mount-pleasant",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-fairbank-oakwood",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.449921,
+            43.69558
+          ],
+          [
+            -79.449336,
+            43.695897
+          ],
+          [
+            -79.447332,
+            43.696358
+          ],
+          [
+            -79.444375,
+            43.696968
+          ],
+          [
+            -79.442909,
+            43.697453
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-fairbank-oakwood",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "fairbank",
+        "stationBId": "oakwood",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-forest-hill-chaplin",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.425774,
+            43.700775
+          ],
+          [
+            -79.42314,
+            43.701508
+          ],
+          [
+            -79.418104,
+            43.702571
+          ],
+          [
+            -79.417473,
+            43.702927
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-forest-hill-chaplin",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "forest-hill",
+        "stationBId": "chaplin",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-golden-mile-birchmount",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.287666,
+            43.727882
+          ],
+          [
+            -79.286153,
+            43.728177
+          ],
+          [
+            -79.279226,
+            43.729694
+          ],
+          [
+            -79.277191,
+            43.730167
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-golden-mile-birchmount",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "golden-mile",
+        "stationBId": "birchmount",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-hakimi-lebovic-golden-mile",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.291664,
+            43.726974
+          ],
+          [
+            -79.289939,
+            43.727338
+          ],
+          [
+            -79.287666,
+            43.727882
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-hakimi-lebovic-golden-mile",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "hakimi-lebovic",
+        "stationBId": "golden-mile",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-ionview-kennedy",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.271988,
+            43.731373
+          ],
+          [
+            -79.27121,
+            43.731434
+          ],
+          [
+            -79.267931,
+            43.732201
+          ],
+          [
+            -79.26606,
+            43.732674
+          ],
+          [
+            -79.263885,
+            43.732246
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-ionview-kennedy",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "ionview",
+        "stationBId": "kennedy",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-keelesdale-caledonia",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.474747,
+            43.690781
+          ],
+          [
+            -79.473911,
+            43.690421
+          ],
+          [
+            -79.470401,
+            43.691225
+          ],
+          [
+            -79.468783,
+            43.691555
+          ],
+          [
+            -79.467864,
+            43.691712
+          ],
+          [
+            -79.466649,
+            43.691789
+          ],
+          [
+            -79.465767,
+            43.692307
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-keelesdale-caledonia",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "keelesdale",
+        "stationBId": "caledonia",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-laird-sunnybrook-park",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.364891,
+            43.713413
+          ],
+          [
+            -79.362317,
+            43.714089
+          ],
+          [
+            -79.359824,
+            43.714603
+          ],
+          [
+            -79.357939,
+            43.715051
+          ],
+          [
+            -79.354955,
+            43.715624
+          ],
+          [
+            -79.354172,
+            43.715807
+          ],
+          [
+            -79.351791,
+            43.716475
+          ],
+          [
+            -79.349979,
+            43.717098
+          ],
+          [
+            -79.349075,
+            43.717335
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-laird-sunnybrook-park",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "laird",
+        "stationBId": "sunnybrook-park",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-leaside-laird",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.376732,
+            43.710941
+          ],
+          [
+            -79.3739,
+            43.711732
+          ],
+          [
+            -79.373575,
+            43.7118
+          ],
+          [
+            -79.367228,
+            43.713078
+          ],
+          [
+            -79.364891,
+            43.713413
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-leaside-laird",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "leaside",
+        "stationBId": "laird",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-mount-dennis-keelesdale",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.48716,
+            43.688465
+          ],
+          [
+            -79.486594,
+            43.687548
+          ],
+          [
+            -79.483726,
+            43.688175
+          ],
+          [
+            -79.481038,
+            43.688811
+          ],
+          [
+            -79.476099,
+            43.689918
+          ],
+          [
+            -79.474747,
+            43.690781
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-mount-dennis-keelesdale",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "mount-dennis",
+        "stationBId": "keelesdale",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-mount-pleasant-leaside",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.390381,
+            43.708473
+          ],
+          [
+            -79.388879,
+            43.708653
+          ],
+          [
+            -79.382248,
+            43.71002
+          ],
+          [
+            -79.378347,
+            43.710772
+          ],
+          [
+            -79.377158,
+            43.711036
+          ],
+          [
+            -79.376732,
+            43.710941
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-mount-pleasant-leaside",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "mount-pleasant",
+        "stationBId": "leaside",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-o_connor-pharmacy",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.302086,
+            43.724808
+          ],
+          [
+            -79.301406,
+            43.724819
+          ],
+          [
+            -79.300354,
+            43.725003
+          ],
+          [
+            -79.298115,
+            43.725507
+          ],
+          [
+            -79.296951,
+            43.725819
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-o_connor-pharmacy",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "o_connor",
+        "stationBId": "pharmacy",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-oakwood-cedarvale",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.442909,
+            43.697453
+          ],
+          [
+            -79.440255,
+            43.697845
+          ],
+          [
+            -79.436307,
+            43.698714
+          ],
+          [
+            -79.436089,
+            43.699146
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-oakwood-cedarvale",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "oakwood",
+        "stationBId": "cedarvale",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-pharmacy-hakimi-lebovic",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.296951,
+            43.725819
+          ],
+          [
+            -79.294318,
+            43.726355
+          ],
+          [
+            -79.291664,
+            43.726974
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-pharmacy-hakimi-lebovic",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "pharmacy",
+        "stationBId": "hakimi-lebovic",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-sloane-o_connor",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.312653,
+            43.725925
+          ],
+          [
+            -79.311231,
+            43.725664
+          ],
+          [
+            -79.306749,
+            43.725027
+          ],
+          [
+            -79.305418,
+            43.724808
+          ],
+          [
+            -79.304302,
+            43.724703
+          ],
+          [
+            -79.303144,
+            43.724683
+          ],
+          [
+            -79.302645,
+            43.724723
+          ],
+          [
+            -79.302295,
+            43.724713
+          ],
+          [
+            -79.302086,
+            43.724808
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-sloane-o_connor",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "sloane",
+        "stationBId": "o_connor",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-sunnybrook-park-don-valley",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.349075,
+            43.717335
+          ],
+          [
+            -79.345037,
+            43.718562
+          ],
+          [
+            -79.343001,
+            43.719219
+          ],
+          [
+            -79.341307,
+            43.719716
+          ],
+          [
+            -79.339642,
+            43.720276
+          ],
+          [
+            -79.338873,
+            43.7205
+          ],
+          [
+            -79.337929,
+            43.721645
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-sunnybrook-park-don-valley",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "sunnybrook-park",
+        "stationBId": "don-valley",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-5-wynford-sloane",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.326645,
+            43.724072
+          ],
+          [
+            -79.326195,
+            43.724166
+          ],
+          [
+            -79.322654,
+            43.725111
+          ],
+          [
+            -79.319513,
+            43.725911
+          ],
+          [
+            -79.318098,
+            43.726179
+          ],
+          [
+            -79.317627,
+            43.726228
+          ],
+          [
+            -79.316298,
+            43.726289
+          ],
+          [
+            -79.315554,
+            43.726261
+          ],
+          [
+            -79.314614,
+            43.726178
+          ],
+          [
+            -79.313692,
+            43.726037
+          ],
+          [
+            -79.312653,
+            43.725925
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-5-wynford-sloane",
+        "lineId": "line-5",
+        "network": "ttc",
+        "stationAId": "wynford",
+        "stationBId": "sloane",
+        "direction": "forward",
+        "gtfsShapeId": "1125772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-albion-stevenson",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.58934,
+            43.741295
+          ],
+          [
+            -79.588583,
+            43.742383
+          ],
+          [
+            -79.588283,
+            43.742669
+          ],
+          [
+            -79.587906,
+            43.742902
+          ],
+          [
+            -79.587036,
+            43.743263
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-albion-stevenson",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "albion",
+        "stationBId": "stevenson",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-driftwood-tobermory",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.51339,
+            43.758083
+          ],
+          [
+            -79.508874,
+            43.759067
+          ],
+          [
+            -79.508034,
+            43.759342
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-driftwood-tobermory",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "driftwood",
+        "stationBId": "tobermory",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-duncanwoods-milvan-rumike",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.557648,
+            43.748909
+          ],
+          [
+            -79.552345,
+            43.750027
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-duncanwoods-milvan-rumike",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "duncanwoods",
+        "stationBId": "milvan-rumike",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-emery-signet-arrow",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.542244,
+            43.752182
+          ],
+          [
+            -79.541728,
+            43.752162
+          ],
+          [
+            -79.540601,
+            43.752357
+          ],
+          [
+            -79.537028,
+            43.75312
+          ],
+          [
+            -79.536224,
+            43.753338
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-emery-signet-arrow",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "emery",
+        "stationBId": "signet-arrow",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-humber-college-westmore",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.60141,
+            43.72963
+          ],
+          [
+            -79.601602,
+            43.730472
+          ],
+          [
+            -79.6032,
+            43.734134
+          ],
+          [
+            -79.600624,
+            43.734779
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-humber-college-westmore",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "humber-college",
+        "stationBId": "westmore",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-jane-and-finch-driftwood",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.5177,
+            43.757278
+          ],
+          [
+            -79.516959,
+            43.75731
+          ],
+          [
+            -79.516445,
+            43.757386
+          ],
+          [
+            -79.515606,
+            43.757555
+          ],
+          [
+            -79.51339,
+            43.758083
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-jane-and-finch-driftwood",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "jane-and-finch",
+        "stationBId": "driftwood",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-martin-grove-albion",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.592323,
+            43.736759
+          ],
+          [
+            -79.590942,
+            43.736974
+          ],
+          [
+            -79.590522,
+            43.737121
+          ],
+          [
+            -79.590237,
+            43.73732
+          ],
+          [
+            -79.590123,
+            43.737449
+          ],
+          [
+            -79.590028,
+            43.737738
+          ],
+          [
+            -79.589867,
+            43.739086
+          ],
+          [
+            -79.589703,
+            43.740001
+          ],
+          [
+            -79.58934,
+            43.741295
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-martin-grove-albion",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "martin-grove",
+        "stationBId": "albion",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-milvan-rumike-emery",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.552345,
+            43.750027
+          ],
+          [
+            -79.549075,
+            43.750648
+          ],
+          [
+            -79.545566,
+            43.751396
+          ],
+          [
+            -79.544564,
+            43.751648
+          ],
+          [
+            -79.543043,
+            43.751947
+          ],
+          [
+            -79.542244,
+            43.752182
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-milvan-rumike-emery",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "milvan-rumike",
+        "stationBId": "emery",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-mount-olive-rowntree-mills",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.582024,
+            43.74342
+          ],
+          [
+            -79.57959,
+            43.743627
+          ],
+          [
+            -79.578401,
+            43.743885
+          ],
+          [
+            -79.570882,
+            43.745713
+          ],
+          [
+            -79.568748,
+            43.746349
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-mount-olive-rowntree-mills",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "mount-olive",
+        "stationBId": "rowntree-mills",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-norfinch-oakdale-jane-and-finch",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.524216,
+            43.755978
+          ],
+          [
+            -79.518967,
+            43.75713
+          ],
+          [
+            -79.518078,
+            43.757209
+          ],
+          [
+            -79.5177,
+            43.757278
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-norfinch-oakdale-jane-and-finch",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "norfinch-oakdale",
+        "stationBId": "jane-and-finch",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-pearldale-duncanwoods",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.562416,
+            43.747868
+          ],
+          [
+            -79.558784,
+            43.748557
+          ],
+          [
+            -79.557648,
+            43.748909
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-pearldale-duncanwoods",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "pearldale",
+        "stationBId": "duncanwoods",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-rowntree-mills-pearldale",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.568748,
+            43.746349
+          ],
+          [
+            -79.56828,
+            43.74632
+          ],
+          [
+            -79.567711,
+            43.74643
+          ],
+          [
+            -79.562416,
+            43.747868
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-rowntree-mills-pearldale",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "rowntree-mills",
+        "stationBId": "pearldale",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-sentinel-finch-west",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.500031,
+            43.761028
+          ],
+          [
+            -79.494297,
+            43.762335
+          ],
+          [
+            -79.493918,
+            43.762473
+          ],
+          [
+            -79.492817,
+            43.763014
+          ],
+          [
+            -79.49246,
+            43.763158
+          ],
+          [
+            -79.49189,
+            43.763322
+          ],
+          [
+            -79.490807,
+            43.76535
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-sentinel-finch-west",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "sentinel",
+        "stationBId": "finch-west",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-signet-arrow-norfinch-oakdale",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.536224,
+            43.753338
+          ],
+          [
+            -79.535571,
+            43.753413
+          ],
+          [
+            -79.526906,
+            43.755312
+          ],
+          [
+            -79.524216,
+            43.755978
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-signet-arrow-norfinch-oakdale",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "signet-arrow",
+        "stationBId": "norfinch-oakdale",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-stevenson-mount-olive",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.587036,
+            43.743263
+          ],
+          [
+            -79.585805,
+            43.743431
+          ],
+          [
+            -79.58531,
+            43.743457
+          ],
+          [
+            -79.58482,
+            43.743426
+          ],
+          [
+            -79.583604,
+            43.743232
+          ],
+          [
+            -79.582861,
+            43.743199
+          ],
+          [
+            -79.582116,
+            43.743263
+          ],
+          [
+            -79.582024,
+            43.74342
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-stevenson-mount-olive",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "stevenson",
+        "stationBId": "mount-olive",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-tobermory-sentinel",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.508034,
+            43.759342
+          ],
+          [
+            -79.505287,
+            43.759873
+          ],
+          [
+            -79.500031,
+            43.761028
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-tobermory-sentinel",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "tobermory",
+        "stationBId": "sentinel",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-line-6-westmore-martin-grove",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -79.600624,
+            43.734779
+          ],
+          [
+            -79.599163,
+            43.73505
+          ],
+          [
+            -79.594956,
+            43.736017
+          ],
+          [
+            -79.592323,
+            43.736759
+          ]
+        ]
+      },
+      "properties": {
+        "featureType": "link",
+        "segmentId": "line-6-westmore-martin-grove",
+        "lineId": "line-6",
+        "network": "ttc",
+        "stationAId": "westmore",
+        "stationBId": "martin-grove",
+        "direction": "forward",
+        "gtfsShapeId": "1125794"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-aga-khan-park-and-museum",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.332397,
+          43.722553
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "aga-khan-park-and-museum",
+        "name": "Aga Khan Park & Museum",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16781"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-albion",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.58934,
+          43.741295
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "albion",
+        "name": "Albion",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16814"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-avenue",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.408844,
+          43.704742
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "avenue",
+        "name": "Avenue",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16776"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-bathurst",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.411186,
+          43.666447
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "bathurst",
+        "name": "Bathurst",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43286"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-bay",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.389793,
+          43.670238
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "bay",
+        "name": "Bay",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "14579"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-bayview",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.386703,
+          43.766872
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "bayview",
+        "name": "Bayview",
+        "network": "ttc",
+        "lineIds": [
+          "line-4"
+        ],
+        "gtfsStopId": "14577"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-bessarion",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.376312,
+          43.769199
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "bessarion",
+        "name": "Bessarion",
+        "network": "ttc",
+        "lineIds": [
+          "line-4"
+        ],
+        "gtfsStopId": "14578"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-birchmount",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.277191,
+          43.730167
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "birchmount",
+        "name": "Birchmount",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16788"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-bloor-yonge",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.385956,
+          43.670994
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "bloor-yonge",
+        "name": "Bloor-Yonge",
+        "network": "ttc",
+        "lineIds": [
+          "line-1",
+          "line-2"
+        ],
+        "gtfsStopId": "14572"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-broadview",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.358391,
+          43.676949
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "broadview",
+        "name": "Broadview",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43288"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-caledonia",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.465767,
+          43.692307
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "caledonia",
+        "name": "Caledonia",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16764"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-castle-frank",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.368988,
+          43.673748
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "castle-frank",
+        "name": "Castle Frank",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43287"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-cedarvale",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.436089,
+          43.699146
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "cedarvale",
+        "name": "Cedarvale",
+        "network": "ttc",
+        "lineIds": [
+          "line-1",
+          "line-5"
+        ],
+        "gtfsStopId": "43298"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-chaplin",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.417473,
+          43.702927
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "chaplin",
+        "name": "Chaplin",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16775"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-chester",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.352493,
+          43.678238
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "chester",
+        "name": "Chester",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "14573"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-christie",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.418411,
+          43.664063
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "christie",
+        "name": "Christie",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "14595"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-college",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.383102,
+          43.660789
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "college",
+        "name": "College",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14589"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-coxwell",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.322784,
+          43.684147
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "coxwell",
+        "name": "Coxwell",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43291"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-davisville",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.396988,
+          43.697746
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "davisville",
+        "name": "Davisville",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43273"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-don-mills",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.346588,
+          43.775547
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "don-mills",
+        "name": "Don Mills",
+        "network": "ttc",
+        "lineIds": [
+          "line-4"
+        ],
+        "gtfsStopId": "13682"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-don-valley",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.337929,
+          43.721645
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "don-valley",
+        "name": "Don Valley",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16763"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-donlands",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.337784,
+          43.681049
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "donlands",
+        "name": "Donlands",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43290"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-downsview-park",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.479698,
+          43.753349
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "downsview-park",
+        "name": "Downsview Park",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "15204"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-driftwood",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.51339,
+          43.758083
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "driftwood",
+        "name": "Driftwood",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16825"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-dufferin",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.435478,
+          43.660198
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "dufferin",
+        "name": "Dufferin",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "14594"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-duncanwoods",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.557648,
+          43.748909
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "duncanwoods",
+        "name": "Duncanwoods",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16819"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-dundas-west",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.453392,
+          43.656849
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "dundas-west",
+        "name": "Dundas West",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "3529"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-dupont",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.40712,
+          43.674301
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "dupont",
+        "name": "Dupont",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14581"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-eglinton",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.398392,
+          43.70525
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "eglinton",
+        "name": "Eglinton",
+        "network": "ttc",
+        "lineIds": [
+          "line-1",
+          "line-5"
+        ],
+        "gtfsStopId": "43274"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-emery",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.542244,
+          43.752182
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "emery",
+        "name": "Emery",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16821"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-fairbank",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.449921,
+          43.69558
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "fairbank",
+        "name": "Fairbank",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-finch",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.415291,
+          43.780846
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "finch",
+        "name": "Finch",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43277"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-finch-west",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.490807,
+          43.76535
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "finch-west",
+        "name": "Finch West",
+        "network": "ttc",
+        "lineIds": [
+          "line-1",
+          "line-6"
+        ],
+        "gtfsStopId": "15205"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-forest-hill",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.425774,
+          43.700775
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "forest-hill",
+        "name": "Forest Hill",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16774"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-glencairn",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.440796,
+          43.708584
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "glencairn",
+        "name": "Glencairn",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14593"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-golden-mile",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.287666,
+          43.727882
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "golden-mile",
+        "name": "Golden Mile",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16787"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-greenwoood",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.330284,
+          43.682648
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "greenwoood",
+        "name": "Greenwood",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "3667"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-hakimi-lebovic",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.291664,
+          43.726974
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "hakimi-lebovic",
+        "name": "Hakimi Lebovic",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16786"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-high-park",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.466751,
+          43.653999
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "high-park",
+        "name": "High Park",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43283"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-highway-407",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.523232,
+          43.78344
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "highway-407",
+        "name": "Highway 407",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "15208"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-humber-college",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.60141,
+          43.72963
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "humber-college",
+        "name": "Humber College",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16811"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-ionview",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.271988,
+          43.731373
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "ionview",
+        "name": "Ionview",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16789"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-islington",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.524193,
+          43.645149
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "islington",
+        "name": "Islington",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43278"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-jane",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.483894,
+          43.650146
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "jane",
+        "name": "Jane",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43281"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-jane-and-finch",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.5177,
+          43.757278
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "jane-and-finch",
+        "name": "Jane And Finch",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16824"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-keele",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.459892,
+          43.655247
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "keele",
+        "name": "Keele",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43284"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-keelesdale",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.474747,
+          43.690781
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "keelesdale",
+        "name": "Keelesdale",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16762"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-kennedy",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.263885,
+          43.732246
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "kennedy",
+        "name": "Kennedy",
+        "network": "ttc",
+        "lineIds": [
+          "line-2",
+          "line-5"
+        ],
+        "gtfsStopId": "43295"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-king",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.378113,
+          43.649059
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "king",
+        "name": "King",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14586"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-kipling",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.535995,
+          43.63715
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "kipling",
+        "name": "Kipling",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "7906"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-laird",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.364891,
+          43.713413
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "laird",
+        "name": "Laird",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16779"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-lansdowne",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.442467,
+          43.659245
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "lansdowne",
+        "name": "Lansdowne",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "14575"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-lawrence",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.402687,
+          43.725948
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "lawrence",
+        "name": "Lawrence",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43275"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-lawrence-west",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.444191,
+          43.716347
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "lawrence-west",
+        "name": "Lawrence West",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43266"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-leaside",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.376732,
+          43.710941
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "leaside",
+        "name": "Leaside",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16778"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-leslie",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.36779,
+          43.770847
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "leslie",
+        "name": "Leslie",
+        "network": "ttc",
+        "lineIds": [
+          "line-4"
+        ],
+        "gtfsStopId": "13689"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-main-street",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.301582,
+          43.68895
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "main-street",
+        "name": "Main Street",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43292"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-martin-grove",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.592323,
+          43.736759
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "martin-grove",
+        "name": "Martin Grove",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16813"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-milvan-rumike",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.552345,
+          43.750027
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "milvan-rumike",
+        "name": "Milvan Rumike",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16820"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-mount-dennis",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.48716,
+          43.688465
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "mount-dennis",
+        "name": "Mount Dennis",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16761"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-mount-olive",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.582024,
+          43.74342
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "mount-olive",
+        "name": "Mount Olive",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16816"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-mount-pleasant",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.390381,
+          43.708473
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "mount-pleasant",
+        "name": "Mount Pleasant",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16777"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-museum",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.393471,
+          43.666622
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "museum",
+        "name": "Museum",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14582"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-norfinch-oakdale",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.524216,
+          43.755978
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "norfinch-oakdale",
+        "name": "Norfinch Oakdale",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16823"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-north-york-centre",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.412758,
+          43.767868
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "north-york-centre",
+        "name": "North York Centre",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14591"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-o_connor",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.302086,
+          43.724808
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "o_connor",
+        "name": "O'Connor",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16784"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-oakwood",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.442909,
+          43.697453
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "oakwood",
+        "name": "Oakwood",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16773"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-old-mill",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.495094,
+          43.650146
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "old-mill",
+        "name": "Old Mill",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43280"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-osgoode",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.386955,
+          43.651123
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "osgoode",
+        "name": "Osgoode",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14584"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-ossington",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.426292,
+          43.662449
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "ossington",
+        "name": "Ossington",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43285"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-pape",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.344788,
+          43.680149
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "pape",
+        "name": "Pape",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43289"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-pearldale",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.562416,
+          43.747868
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "pearldale",
+        "name": "Pearldale",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16818"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-pharmacy",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.296951,
+          43.725819
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "pharmacy",
+        "name": "Pharmacy",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16785"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-pioneer-village",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.509743,
+          43.777027
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "pioneer-village",
+        "name": "Pioneer Village",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "15207"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-queen",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.379616,
+          43.652737
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "queen",
+        "name": "Queen",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14587"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-queens-park",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.390694,
+          43.659836
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "queens-park",
+        "name": "Queen's Park",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14583"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-rosedale",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.388786,
+          43.676746
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "rosedale",
+        "name": "Rosedale",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43271"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-rowntree-mills",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.568748,
+          43.746349
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "rowntree-mills",
+        "name": "Rowntree Mills",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16817"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-royal-york",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.510994,
+          43.64835
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "royal-york",
+        "name": "Royal York",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43279"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-runnymede",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.47599,
+          43.652046
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "runnymede",
+        "name": "Runnymede",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43282"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-sentinel",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.500031,
+          43.761028
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "sentinel",
+        "name": "Sentinel",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16827"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-sheppard-west",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.462593,
+          43.750046
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "sheppard-west",
+        "name": "Sheppard West",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "11860"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-sheppard-yonge",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.41169,
+          43.761646
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "sheppard-yonge",
+        "name": "Sheppard-Yonge",
+        "network": "ttc",
+        "lineIds": [
+          "line-1",
+          "line-4"
+        ],
+        "gtfsStopId": "7129"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-sherbourne",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.37616,
+          43.672104
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "sherbourne",
+        "name": "Sherbourne",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "14574"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-signet-arrow",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.536224,
+          43.753338
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "signet-arrow",
+        "name": "Signet Arrow",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16822"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-sloane",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.312653,
+          43.725925
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "sloane",
+        "name": "Sloane",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16783"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-spadina",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.403786,
+          43.667149
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "spadina",
+        "name": "Spadina",
+        "network": "ttc",
+        "lineIds": [
+          "line-1",
+          "line-2"
+        ],
+        "gtfsStopId": "43268"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-st-andrew",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.385002,
+          43.647606
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "st-andrew",
+        "name": "St Andrew",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14585"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-st-clair",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.392586,
+          43.687748
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "st-clair",
+        "name": "St Clair",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43272"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-st-clair-west",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.415894,
+          43.684048
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "st-clair-west",
+        "name": "St Clair West",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43267"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-st-george",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.398087,
+          43.668846
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "st-george",
+        "name": "St George",
+        "network": "ttc",
+        "lineIds": [
+          "line-1",
+          "line-2"
+        ],
+        "gtfsStopId": "43269"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-st-patrick",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.388222,
+          43.654617
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "st-patrick",
+        "name": "St Patrick",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14571"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-stevenson",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.587036,
+          43.743263
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "stevenson",
+        "name": "Stevenson",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16815"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-summerhill",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.391174,
+          43.682632
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "summerhill",
+        "name": "Summerhill",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14590"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-sunnybrook-park",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.349075,
+          43.717335
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "sunnybrook-park",
+        "name": "Sunnybrook Park",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16780"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-tmu",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.381226,
+          43.656517
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "tmu",
+        "name": "TMU",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14588"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-tobermory",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.508034,
+          43.759342
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "tobermory",
+        "name": "Tobermory",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16826"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-union",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.379723,
+          43.645523
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "union",
+        "name": "Union",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "15772"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-vaughan-metropolitan-centre",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.527489,
+          43.794239
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "vaughan-metropolitan-centre",
+        "name": "Vaughan Metropolitan Centre",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "15209"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-victoria-park",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.288986,
+          43.694447
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "victoria-park",
+        "name": "Victoria Park",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43293"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-warden",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.279587,
+          43.711647
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "warden",
+        "name": "Warden",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "43294"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-wellesley",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.383385,
+          43.665348
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "wellesley",
+        "name": "Wellesley",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43270"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-westmore",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.600624,
+          43.734779
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "westmore",
+        "name": "Westmore",
+        "network": "ttc",
+        "lineIds": [
+          "line-6"
+        ],
+        "gtfsStopId": "16812"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-wilson",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.45079,
+          43.734547
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "wilson",
+        "name": "Wilson",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43265"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-woodbine",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.312683,
+          43.686546
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "woodbine",
+        "name": "Woodbine",
+        "network": "ttc",
+        "lineIds": [
+          "line-2"
+        ],
+        "gtfsStopId": "3194"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-wynford",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.326645,
+          43.724072
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "wynford",
+        "name": "Wynford",
+        "network": "ttc",
+        "lineIds": [
+          "line-5"
+        ],
+        "gtfsStopId": "16782"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-york-mills",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.406487,
+          43.744846
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "york-mills",
+        "name": "York Mills",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "43276"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-york-university",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.499886,
+          43.774097
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "york-university",
+        "name": "York University",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "15206"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "station-ttc-yorkdale",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.447693,
+          43.724594
+        ]
+      },
+      "properties": {
+        "featureType": "station",
+        "stationId": "yorkdale",
+        "name": "Yorkdale",
+        "network": "ttc",
+        "lineIds": [
+          "line-1"
+        ],
+        "gtfsStopId": "14580"
+      }
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "stationCount": 109,
+    "linkCount": 112,
+    "missingStations": [],
+    "missingLinks": []
+  }
+}

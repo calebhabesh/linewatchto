@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "contentVersion": "92c9655be620ff3f6cab1bb665a67656ca9446835ee5a6cc5cfab206bc8e8b4c",
+  "generatedAt": "2026-09-18T11:45:06-04:00",
+  "networks": {
+    "ttc": {
+      "assetUrl": "/assets/linewatch/geographic/ttc-catalog.json",
+      "contentHash": "982e526cd95c595c39bff691529f4c95152c3e60db1009d2e3543bb8e849b5c0",
+      "feedVersion": "S1000538",
+      "feedStartDate": "2026-09-06",
+      "feedEndDate": "2026-10-31",
+      "sourceName": "Merged GTFS - TTC Routes and Schedules",
+      "publisher": "Toronto Transit Commission (TTC)",
+      "license": "Open Government Licence – Toronto",
+      "attribution": "Contains information licensed under the Open Government Licence – Toronto.",
+      "stationCount": 109,
+      "linkCount": 112,
+      "coverageStatus": "complete"
+    },
+    "regional": {
+      "assetUrl": "/assets/linewatch/geographic/regional-catalog.json",
+      "contentHash": "e6816a1e93dca33820b90536840749e1857124d315f18f270884f65d2473203a",
+      "sources": {
+        "go": {
+          "feedVersion": "20260917132342",
+          "feedStartDate": "2026-09-17",
+          "feedEndDate": "2026-11-27",
+          "sourceName": "GO Transit GTFS Schedule",
+          "publisher": "Metrolinx",
+          "license": "Metrolinx Open Data Terms and Conditions",
+          "attribution": "Contains Metrolinx Open Data."
+        },
+        "up": {
+          "feedVersion": "20260903104434",
+          "feedStartDate": "2026-09-03",
+          "feedEndDate": "2027-03-02",
+          "sourceName": "UP Express GTFS Schedule",
+          "publisher": "Metrolinx",
+          "license": "Metrolinx Open Data Terms and Conditions",
+          "attribution": "Contains Metrolinx Open Data."
+        }
+      },
+      "stationCount": 72,
+      "linkCount": 74,
+      "coverageStatus": "complete"
+    }
+  }
+}

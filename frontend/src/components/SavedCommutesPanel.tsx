@@ -46,6 +46,7 @@ import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
 import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
+import SquishSwitch from "./SquishSwitch";
 import {
   type SavedCommuteDraft,
   persistedCommuteDraftStore,
@@ -940,17 +941,14 @@ function SavedCommuteNotificationRuleEditor({
             <em>Get alerts for impacts along this commute.</em>
           </span>
         </div>
-        <label className="saved-commute-return-toggle saved-commute-notification-master">
-          <div className="saved-commute-switch">
-            <input
-              type="checkbox"
-              checked={rule.enabled}
-              aria-label="Route notifications"
-              onChange={(event) => updateRule({ enabled: event.target.checked })}
-            />
-            <span className="saved-commute-slider"></span>
-          </div>
-        </label>
+        <div className="saved-commute-return-toggle saved-commute-notification-master">
+          <SquishSwitch
+            checked={rule.enabled}
+            ariaLabel="Route notifications"
+            trackOnColor="#10b981"
+            onChange={(enabled) => updateRule({ enabled })}
+          />
+        </div>
       </div>
 
       <details className="saved-commute-notification-help">
@@ -2167,17 +2165,15 @@ export function SavedCommutesPanel({
                     onOpenChange={(open) => setActivePicker(open ? "destination" : null)}
                   />
                 </div>
-                <label className="saved-commute-return-toggle">
-                  <div className="saved-commute-switch">
-                    <input
-                      type="checkbox"
-                      checked={watchReturnTrip}
-                      onChange={(event) => setWatchReturnTrip(event.target.checked)}
-                    />
-                    <span className="saved-commute-slider"></span>
-                  </div>
-                  <span>Track Return Route</span>
-                </label>
+                <div className="saved-commute-return-toggle">
+                  <SquishSwitch
+                    checked={watchReturnTrip}
+                    ariaLabel="Track return route"
+                    label="Track Return Route"
+                    trackOnColor="#10b981"
+                    onChange={setWatchReturnTrip}
+                  />
+                </div>
                 {!editingCommuteId ? <button
                     type="button"
                     className="saved-commute-customize-toggle"

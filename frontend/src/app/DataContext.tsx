@@ -52,3 +52,7 @@ export function useDashboardData() {
   if (!ctx) throw new Error("useDashboardData must be used within a DataProvider");
   return ctx;
 }
+
+export function useOptionalDashboardData(): DashboardData | null {
+  return useContext(DataContext);
+}

@@ -31,3 +31,51 @@ export function clearMapViewport(network: string) {
   try { window.localStorage.removeItem(mapViewportKey(network)); } catch { /* Optional preference. */ }
   try { window.sessionStorage.removeItem(mapViewportKey(network)); } catch { /* Optional preference. */ }
 }
+
+export type GeographicCamera = { lng: number; lat: number; zoom: number };
+
+export const geographicMapViewportKey = (network: string) => `linewatch-geographic-map-viewport-v1:${network}`;
+
+export function saveGeographicMapViewport(storage: StorageLike, network: string, camera: GeographicCamera) {
+  if (
+    ![camera.lng, camera.lat, camera.zoom].every(Number.isFinite)
+    || camera.lng < -82.0 || camera.lng > -77.0
+    || camera.lat < 42.0 || camera.lat > 46.0
+    || camera.zoom < 5 || camera.zoom > 20
+  ) return;
+  try {
+    storage.setItem(geographicMapViewportKey(network), JSON.stringify({
+      version: 1,
+      lng: Math.round(camera.lng * 100000) / 100000,
+      lat: Math.round(camera.lat * 100000) / 100000,
+      zoom: Math.round(camera.zoom * 100) / 100,
+    }));
+  } catch { /* Storage may be unavailable or full. */ }
+}
+
+export function readGeographicMapViewport(storage: StorageLike, network: string): GeographicCamera | null {
+  try {
+    const raw = storage.getItem(geographicMapViewportKey(network));
+    if (!raw) return null;
+    const value = JSON.parse(raw);
+    if (
+      !value || value.version !== 1
+      || ![value.lng, value.lat, value.zoom].every(Number.isFinite)
+      || value.lng < -82.0 || value.lng > -77.0
+      || value.lat < 42.0 || value.lat > 46.0
+      || value.zoom < 5 || value.zoom > 20
+    ) return null;
+    return { lng: value.lng, lat: value.lat, zoom: value.zoom };
+  } catch { return null; }
+}
+
+export function clearGeographicMapViewport(storageOrNetwork: StorageLike | string, maybeNetwork?: string) {
+  if (typeof storageOrNetwork === "string") {
+    const network = storageOrNetwork;
+    try { window.localStorage.removeItem(geographicMapViewportKey(network)); } catch { /* Optional preference. */ }
+    try { window.sessionStorage.removeItem(geographicMapViewportKey(network)); } catch { /* Optional preference. */ }
+  } else if (maybeNetwork) {
+    try { storageOrNetwork.removeItem(geographicMapViewportKey(maybeNetwork)); } catch { /* Optional preference. */ }
+  }
+}
+

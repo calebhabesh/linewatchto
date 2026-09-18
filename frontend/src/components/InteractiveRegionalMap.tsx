@@ -7,7 +7,9 @@ import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import { NetworkSelector } from "./NetworkSelector";
+import { MapViewSelector } from "./MapViewSelector";
 import type { NetworkId } from "../app/regional-data";
+import type { MapViewPreference } from "../app/visual-preferences";
 import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDirection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
@@ -2921,6 +2923,8 @@ function InteractiveRegionalMapComponent({
   onClearCommutePathPreview,
   isMapActive = true,
   onNetworkChange,
+  mapView,
+  onMapViewChange,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -2947,6 +2951,8 @@ function InteractiveRegionalMapComponent({
   onClearCommutePathPreview?: () => void;
   isMapActive?: boolean;
   onNetworkChange?: (network: NetworkId) => void;
+  mapView?: MapViewPreference;
+  onMapViewChange?: (view: MapViewPreference) => void;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   const regionalMapRef = useRef<HTMLElement>(null);
@@ -5204,6 +5210,13 @@ function InteractiveRegionalMapComponent({
           <div className="desktop-map-control-network-group hidden md:flex items-center">
             <div className="map-control-divider" aria-hidden="true" />
             <NetworkSelector network="regional" onChange={onNetworkChange} ariaLabel="Map network switcher" />
+          </div>
+        )}
+
+        {onMapViewChange && (
+          <div className="desktop-map-control-view-group hidden md:flex items-center">
+            <div className="map-control-divider" aria-hidden="true" />
+            <MapViewSelector view={mapView ?? "diagram"} onChange={onMapViewChange} />
           </div>
         )}
       </div>

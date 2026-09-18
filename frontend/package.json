@@ -11,6 +11,7 @@
     "screenshots:onboarding:check": "playwright test verify.spec.ts --config playwright.onboarding.config.ts",
     "screenshots:onboarding": "node scripts/generate-onboarding-screenshots.mjs",
     "generate:map-rasters": "node scripts/generate-map-rasters.mjs",
+    "generate:geographic-catalog": "node ../scripts/generate-geographic-catalog.mjs",
     "metrics:css": "node scripts/measure-css.mjs",
     "preview:closing-soon": "node scripts/preview-closing-soon.mjs",
     "test:fast": "node --test --test-reporter=dot tests/*.test.mjs",
@@ -31,6 +32,7 @@
   "dependencies": {
     "gsap": "^3.13.0",
     "lucide-react": "^1.17.0",
+    "maplibre-gl": "^5.24.0",
     "motion": "^12.43.0",
     "next": "16.2.6",
     "react": "19.2.4",

@@ -18,6 +18,7 @@ import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
+import SquishSwitch from "./SquishSwitch";
 
 type Props = {
   accountState: AccountState;
@@ -41,18 +42,15 @@ function NotificationSwitch({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="saved-commute-return-toggle notification-settings-toggle shrink-0">
-      <div className="saved-commute-switch">
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.checked)}
-          aria-label={label}
-        />
-        <span className="saved-commute-slider"></span>
-      </div>
-    </label>
+    <div className="saved-commute-return-toggle notification-settings-toggle shrink-0">
+      <SquishSwitch
+        checked={checked}
+        disabled={disabled}
+        ariaLabel={label}
+        trackOnColor="#10b981"
+        onChange={onChange}
+      />
+    </div>
   );
 }
 

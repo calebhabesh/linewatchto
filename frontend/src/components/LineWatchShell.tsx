@@ -14,6 +14,7 @@ import { startMapSurfaceTransition } from "../app/map-surface-transition";
 import { NetworkMap } from "./NetworkMap";
 import { NetworkSelector } from "./NetworkSelector";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
+import SquishSwitch from "./SquishSwitch";
 const RegionalStationDetailPanel = dynamic(() => import("./RegionalStationDetailPanel").then((mod) => mod.RegionalStationDetailPanel), { ssr: false });
 import { DelayIcon } from "./DelayIcon";
 const ActiveAlertsPanel = dynamic(() => import("./ActiveAlertsPanel").then((mod) => mod.ActiveAlertsPanel), { ssr: false });
@@ -168,7 +169,9 @@ import {
   resolveReducedMotionPreference,
   writeVisualPreferencesToStorage,
   type InitialVisualPreferences,
+  type MapViewPreference,
 } from "../app/visual-preferences";
+import { MapViewSelector } from "./MapViewSelector";
 import {
   regionalDashboardData,
   regionalDashboardDataFromApi,
@@ -560,6 +563,7 @@ export function LineWatchShell({
   const [reducedMotion, setReducedMotion] = useState(initialVisualPreferences.reducedMotion);
   const [reducedMotionOverride, setReducedMotionOverride] = useState(initialVisualPreferences.reducedMotionOverride);
   const [dotBackgroundEnabled, setDotBackgroundEnabled] = useState(initialVisualPreferences.dotBackgroundEnabled);
+  const [mapViewPreference, setMapViewPreference] = useState<MapViewPreference>(initialVisualPreferences.mapView ?? "diagram");
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
@@ -751,6 +755,7 @@ export function LineWatchShell({
     setHighContrast(stored.highContrast ?? initialVisualPreferences.highContrast);
     setEstimatedTrainsEnabled(stored.estimatedTrainsEnabled ?? initialVisualPreferences.estimatedTrainsEnabled);
     setDotBackgroundEnabled(stored.dotBackgroundEnabled ?? initialVisualPreferences.dotBackgroundEnabled);
+    setMapViewPreference(stored.mapView ?? initialVisualPreferences.mapView ?? "diagram");
     const preferredNetwork = stored.defaultNetwork ?? initialVisualPreferences.defaultNetwork;
     setDefaultNetworkPreference(preferredNetwork);
     setSelectedNetwork(preferredNetwork);
@@ -767,6 +772,7 @@ export function LineWatchShell({
     initialVisualPreferences.dotBackgroundEnabled,
     initialVisualPreferences.defaultNetwork,
     initialVisualPreferences.highContrast,
+    initialVisualPreferences.mapView,
     initialVisualPreferences.reducedMotion,
     initialVisualPreferences.reducedMotionOverride,
     initialVisualPreferences.theme,
@@ -782,11 +788,12 @@ export function LineWatchShell({
       estimatedTrainsEnabled,
       dotBackgroundEnabled,
       defaultNetwork: defaultNetworkPreference,
+      mapView: mapViewPreference,
     };
 
     writeVisualPreferencesToStorage(window.localStorage, preferences);
     document.cookie = buildVisualPreferencesCookie(preferences, window.location.protocol);
-  }, [defaultNetworkPreference, dotBackgroundEnabled, estimatedTrainsEnabled, highContrast, isDark, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
+  }, [defaultNetworkPreference, dotBackgroundEnabled, estimatedTrainsEnabled, highContrast, isDark, mapViewPreference, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -5641,46 +5648,37 @@ export function LineWatchShell({
                    <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
                      <Contrast size={18} className="text-slate-500 dark:text-slate-400" /> High Contrast Mode
                    </span>
-                   <button
+                   <SquishSwitch
                       ref={registerMenuAction(actionIndex++)}
                       role="menuitemcheckbox"
-                      aria-checked={highContrast}
-                      aria-label="Toggle high contrast mode"
-                      onClick={handleToggleHighContrast}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                   >
-                     <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-0'}`} />
-                   </button>
+                      checked={highContrast}
+                      ariaLabel="Toggle high contrast mode"
+                      onChange={handleToggleHighContrast}
+                   />
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
                      <Pause size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Motion
                    </span>
-                   <button
+                   <SquishSwitch
                       ref={registerMenuAction(actionIndex++)}
                       role="menuitemcheckbox"
-                      aria-checked={reducedMotion}
-                      aria-label="Toggle reduced motion"
-                      onClick={handleToggleReducedMotion}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                   >
-                     <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
-                   </button>
+                      checked={reducedMotion}
+                      ariaLabel="Toggle reduced motion"
+                      onChange={handleToggleReducedMotion}
+                   />
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="main-menu-display-label text-slate-700 dark:text-slate-200 flex items-center gap-3">
                      <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {BACKGROUND_PREFERENCE_LABEL}
                    </span>
-                   <button
+                   <SquishSwitch
                       ref={registerMenuAction(actionIndex++)}
                       role="menuitemcheckbox"
-                      aria-checked={dotBackgroundEnabled}
-                      aria-label={`Toggle ${BACKGROUND_PREFERENCE_LABEL.toLowerCase()}`}
-                      onClick={handleToggleDotBackground}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                   >
-                     <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${dotBackgroundEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                   </button>
+                      checked={dotBackgroundEnabled}
+                      ariaLabel={`Toggle ${BACKGROUND_PREFERENCE_LABEL.toLowerCase()}`}
+                      onChange={handleToggleDotBackground}
+                   />
                  </div>
                </div>
 
@@ -5876,16 +5874,18 @@ export function LineWatchShell({
               <Moon size={24} className="text-purple-500 fill-purple-500" />
             )}
           </button>
-          <button
-            onClick={handleOpenRotatedMap}
-            className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
-            aria-label="Rotate map"
-          >
-            <PhoneRotateLandscapeIcon size={24} />
-            <span className="text-[10px] font-black leading-[1.1] text-left uppercase tracking-wider text-slate-800 dark:text-white">
-              Rotate<br />Map
-            </span>
-          </button>
+          {mapViewPreference !== "geographic" && (
+            <button
+              onClick={handleOpenRotatedMap}
+              className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
+              aria-label="Rotate map"
+            >
+              <PhoneRotateLandscapeIcon size={24} />
+              <span className="text-[10px] font-black leading-[1.1] text-left uppercase tracking-wider text-slate-800 dark:text-white">
+                Rotate<br />Map
+              </span>
+            </button>
+          )}
           {isMobile && (
             <div className="site-guide-network-stack">
               <SiteGuideDropdown onOpenChange={setGuideOpen} />
@@ -6139,6 +6139,8 @@ export function LineWatchShell({
                 estimatedTrainsEnabled={estimatedTrainMarkersVisible}
                 estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
                 onNetworkChange={handleNetworkChange}
+                mapView={mapViewPreference}
+                onMapViewChange={setMapViewPreference}
               />
             </main>
           </div>
@@ -6184,6 +6186,8 @@ export function LineWatchShell({
             viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
             estimatedTrainsEnabled={estimatedTrainMarkersVisible}
             estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
+            mapView={mapViewPreference}
+            onMapViewChange={setMapViewPreference}
           />
 
           {selectedNetwork === "ttc" && (!initialMapReady || mobileMapPerformanceMode) ? (
@@ -6224,16 +6228,19 @@ export function LineWatchShell({
         <button
           type="button"
           onClick={handleToggleEstimatedTrains}
-          disabled={!trainNetworkOpen}
+          disabled={!trainNetworkOpen || mapViewPreference === "geographic"}
           className={`mobile-train-toggle md:hidden ${
             selectedNetwork === "regional" ? "mobile-train-toggle--regional" : ""
           } ${estimatedTrainsEnabled ? "active" : ""} ${
             estimatedTrainDisplayPending ? "mobile-train-toggle--loading" : ""
-          }`}
+          } ${mapViewPreference === "geographic" ? "opacity-40 cursor-not-allowed" : ""}`}
           data-map-chooser-keepout
           aria-pressed={estimatedTrainsEnabled}
           aria-busy={estimatedTrainDisplayPending}
-          aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
+          aria-label={mapViewPreference === "geographic"
+            ? "Estimated train markers are only available in Diagram view"
+            : `Toggle estimated train markers (${estimatedTrainStatusLabel})`}
+          title={mapViewPreference === "geographic" ? "Estimated train markers are only available in Diagram view" : undefined}
         >
           <Train size={16} />
           <span>
@@ -6469,8 +6476,9 @@ export function LineWatchShell({
       )}
 
       {isMobile && showMobileStatusPeek && (
-        <div className="mobile-map-network-switch mobile-network-selector-slot" data-map-chooser-keepout>
+        <div className="mobile-map-network-switch mobile-network-selector-slot flex flex-col gap-2" data-map-chooser-keepout>
           <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} compactVertical />
+          <MapViewSelector view={mapViewPreference} onChange={setMapViewPreference} compactVertical />
         </div>
       )}
 

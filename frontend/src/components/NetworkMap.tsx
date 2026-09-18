@@ -9,6 +9,11 @@ const InteractiveRegionalMap = dynamic(
   { ssr: false },
 );
 
+const GeographicNetworkMap = dynamic(
+  () => import("./GeographicNetworkMap").then((mod) => mod.GeographicNetworkMap),
+  { ssr: false },
+);
+
 type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
 type NetworkMapProps = TtcMapProps & {
   network: NetworkId;
@@ -26,6 +31,40 @@ export function NetworkMap({
 }: NetworkMapProps) {
   const regionalSelected = network === "regional";
   const isMapActive = props.isMapActive ?? (props.mapChromeVisible);
+  const isGeographic = props.mapView === "geographic";
+
+  if (isGeographic) {
+    return (
+      <>
+        <GeographicNetworkMap
+          network={network}
+          isDark={props.isDark}
+          highContrast={Boolean(props.highContrast)}
+          selectedStationId={props.selectedStationId}
+          onSelectStationId={props.onSelectStationId}
+          selection={props.selection}
+          onSelectImpact={props.onSelectImpact}
+          commutePathPreview={props.commutePathPreview}
+          onClearCommutePathPreview={props.onClearCommutePathPreview}
+          recenterSignal={props.recenterSignal}
+          zoomInSignal={props.zoomInSignal}
+          zoomOutSignal={props.zoomOutSignal}
+          reducedMotion={props.reducedMotion}
+          onReady={onMapReady}
+          onSwitchToDiagram={() => props.onMapViewChange?.("diagram")}
+          isMapActive={isMapActive}
+          onNetworkChange={props.onNetworkChange}
+          mapView={props.mapView}
+          onMapViewChange={props.onMapViewChange}
+        />
+        <NetworkMapLegend
+          mode={network}
+          closingSoon={mobileAnnouncementVisible}
+          {...legendProps}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -56,6 +95,8 @@ export function NetworkMap({
           commutePathPreview={props.commutePathPreview}
           onClearCommutePathPreview={props.onClearCommutePathPreview}
           onNetworkChange={props.onNetworkChange}
+          mapView={props.mapView}
+          onMapViewChange={props.onMapViewChange}
         />
       ) : (
         <InteractiveTtcMap

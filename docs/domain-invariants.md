@@ -14,7 +14,7 @@ and test evidence. Background inventory: [feature reference](feature-reference.m
 
 ## Alerts, maps, and notices
 
-- Ordinary delays and explicit Reduced Speed Zones are distinct. Map placements use reviewed topology and authored SVG geometry, not inferred physical tracking.
+- Ordinary delays and explicit Reduced Speed Zones are distinct. Schematic Diagram placements use reviewed topology and authored SVG geometry; Geographic map placements project the same logical topology and active impacts onto published GTFS track geometry and station coordinates, not inferred physical tracking. Estimated train markers are conservative schematic placements in Diagram mode and are omitted from Geographic map mode.
 - Preserve direction-aware segment matching and single-station rings. Station-only regional impacts must not become corridor-wide overlays.
 - TTC nightly closures remain canonical planned events and project current impacts only during effective parent/child windows. Exact parent-period IDs link standalone active children; show one current map impact with access to the related planned closure.
 - Accessibility outages, surface notices, and reviewed station-page notices do not drive service status, segment overlays, commute matching, reliability incidents, or push. Station-page notices are station-detail-only. My Stations does not send push.

@@ -27,6 +27,7 @@ import { AccessibilityMenuIcon } from "./AccessibilityMenuIcon";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { NetworkId } from "../app/regional-data";
+import SquishSwitch from "./SquishSwitch";
 
 type Props = {
   accountState: AccountState;
@@ -195,20 +196,12 @@ export function DesktopMorePanel({
               <Moon size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               <span>Dark Mode</span>
             </div>
-            <button
-              type="button"
-              className="desktop-more-theme-switch"
-              role="switch"
-              aria-checked={isDark}
-              aria-label="Toggle dark mode"
-              onClick={onToggleTheme}
-            >
-              <span className="desktop-more-theme-switch-thumb">
-                {isDark ? (
-                  <Moon size={11} className="desktop-more-theme-thumb-icon text-purple-500 fill-purple-500" />
-                ) : null}
-              </span>
-            </button>
+            <SquishSwitch
+              checked={isDark}
+              ariaLabel="Toggle dark mode"
+              trackOnColor="#9333ea"
+              onChange={onToggleTheme}
+            />
           </div>
 
           <div className="desktop-more-setting-row">
@@ -216,15 +209,11 @@ export function DesktopMorePanel({
               <Contrast size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               <span>High Contrast</span>
             </div>
-            <button
-              type="button"
-              className="desktop-more-switch"
-              role="switch"
-              aria-checked={highContrast}
-              onClick={onToggleHighContrast}
-            >
-              <span className="desktop-more-switch-knob" />
-            </button>
+            <SquishSwitch
+              checked={highContrast}
+              ariaLabel="Toggle high contrast mode"
+              onChange={onToggleHighContrast}
+            />
           </div>
 
           <div className="desktop-more-setting-row">
@@ -232,15 +221,11 @@ export function DesktopMorePanel({
               <Pause size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               <span>Reduced Motion</span>
             </div>
-            <button
-              type="button"
-              className="desktop-more-switch"
-              role="switch"
-              aria-checked={reducedMotion}
-              onClick={onToggleReducedMotion}
-            >
-              <span className="desktop-more-switch-knob" />
-            </button>
+            <SquishSwitch
+              checked={reducedMotion}
+              ariaLabel="Toggle reduced motion"
+              onChange={onToggleReducedMotion}
+            />
           </div>
 
           <div className="desktop-more-setting-row">
@@ -248,15 +233,11 @@ export function DesktopMorePanel({
               <Sparkles size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               <span>Dot Background</span>
             </div>
-            <button
-              type="button"
-              className="desktop-more-switch"
-              role="switch"
-              aria-checked={dotBackgroundEnabled}
-              onClick={onToggleDotBackground}
-            >
-              <span className="desktop-more-switch-knob" />
-            </button>
+            <SquishSwitch
+              checked={dotBackgroundEnabled}
+              ariaLabel="Toggle dot background"
+              onChange={onToggleDotBackground}
+            />
           </div>
         </div>
       </section>

@@ -14,6 +14,7 @@ import { LogsDropdown } from "./LogsDropdown";
 import { PushDeliveryDiagnosticsPanel } from "./PushDeliveryDiagnosticsPanel";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
 import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
+import SquishSwitch from "./SquishSwitch";
 import {
   getPwaInstallHeading,
   getPwaInstallInstructionText,
@@ -419,27 +420,21 @@ export function MobileMoreSheet({
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Display</h3>
           </div>
-          <button type="button" className="mobile-more-row" aria-pressed={highContrast} onClick={onToggleHighContrast}>
+          <div className="mobile-more-row mobile-more-toggle-row">
             <Contrast size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            High Contrast Mode
-            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
-              <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-0'}`} />
-            </div>
-          </button>
-          <button type="button" className="mobile-more-row" aria-pressed={reducedMotion} onClick={onToggleReducedMotion}>
+            <label htmlFor="mobile-high-contrast-switch">High Contrast Mode</label>
+            <SquishSwitch id="mobile-high-contrast-switch" checked={highContrast} ariaLabel="Toggle high contrast mode" className="ml-auto shrink-0" onChange={onToggleHighContrast} />
+          </div>
+          <div className="mobile-more-row mobile-more-toggle-row">
             <Pause size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            Reduced Motion
-            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
-              <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
-            </div>
-          </button>
-          <button type="button" className="mobile-more-row" aria-pressed={dotBackgroundEnabled} onClick={onToggleDotBackground}>
+            <label htmlFor="mobile-reduced-motion-switch">Reduced Motion</label>
+            <SquishSwitch id="mobile-reduced-motion-switch" checked={reducedMotion} ariaLabel="Toggle reduced motion" className="ml-auto shrink-0" onChange={onToggleReducedMotion} />
+          </div>
+          <div className="mobile-more-row mobile-more-toggle-row">
             <Sparkles size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            {BACKGROUND_PREFERENCE_LABEL}
-            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`} >
-              <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${dotBackgroundEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-            </div>
-          </button>
+            <label htmlFor="mobile-background-switch">{BACKGROUND_PREFERENCE_LABEL}</label>
+            <SquishSwitch id="mobile-background-switch" checked={dotBackgroundEnabled} ariaLabel={`Toggle ${BACKGROUND_PREFERENCE_LABEL.toLowerCase()}`} className="ml-auto shrink-0" onChange={onToggleDotBackground} />
+          </div>
           {/* Note: Live Train Markers toggle has been moved to the map front page on mobile (under the legend). */}
         </div>
 

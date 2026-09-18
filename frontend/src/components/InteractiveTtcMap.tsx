@@ -37,7 +37,9 @@ import { readStoredSheetHeightRatio } from "../hooks/useMobileDraggableSheet";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { NetworkSelector } from "./NetworkSelector";
+import { MapViewSelector } from "./MapViewSelector";
 import type { NetworkId } from "../app/regional-data";
+import type { MapViewPreference } from "../app/visual-preferences";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -354,6 +356,8 @@ function InteractiveTtcMapComponent({
   isMapActive = true,
   onReady,
   onNetworkChange,
+  mapView,
+  onMapViewChange,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -383,6 +387,8 @@ function InteractiveTtcMapComponent({
   isMapActive?: boolean;
   onReady?: () => void;
   onNetworkChange?: (network: NetworkId) => void;
+  mapView?: MapViewPreference;
+  onMapViewChange?: (view: MapViewPreference) => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
   const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(() => (
@@ -2056,6 +2062,13 @@ function InteractiveTtcMapComponent({
           <div className="desktop-map-control-network-group hidden md:flex items-center">
             <div className="map-control-divider" aria-hidden="true" />
             <NetworkSelector network="ttc" onChange={onNetworkChange} ariaLabel="Map network switcher" />
+          </div>
+        )}
+
+        {onMapViewChange && (
+          <div className="desktop-map-control-view-group hidden md:flex items-center">
+            <div className="map-control-divider" aria-hidden="true" />
+            <MapViewSelector view={mapView ?? "diagram"} onChange={onMapViewChange} />
           </div>
         )}
       </div>

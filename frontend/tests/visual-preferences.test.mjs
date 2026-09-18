@@ -40,6 +40,7 @@ describe("visual preference persistence", () => {
       estimatedTrainsEnabled: true,
       dotBackgroundEnabled: false,
       defaultNetwork: "regional",
+      mapView: "geographic",
     });
 
     assert.deepEqual(readVisualPreferencesFromStorage(storage), {
@@ -49,6 +50,7 @@ describe("visual preference persistence", () => {
       estimatedTrainsEnabled: true,
       dotBackgroundEnabled: false,
       defaultNetwork: "regional",
+      mapView: "geographic",
     });
   });
 
@@ -60,6 +62,7 @@ describe("visual preference persistence", () => {
       "linewatch-estimated-trains-enabled-v1": "false",
       "linewatch-dot-background-enabled-v1": "invalid",
       "linewatch-default-network-v1": "bus",
+      "linewatch-map-view-v1": "globe",
     });
 
     assert.deepEqual(readVisualPreferencesFromStorage(storage), {
@@ -69,6 +72,7 @@ describe("visual preference persistence", () => {
       estimatedTrainsEnabled: false,
       dotBackgroundEnabled: null,
       defaultNetwork: null,
+      mapView: null,
     });
   });
 
@@ -88,6 +92,7 @@ describe("visual preference persistence", () => {
         estimatedTrainsEnabled: true,
         dotBackgroundEnabled: false,
         defaultNetwork: "regional",
+        mapView: "diagram",
       },
       "https:",
     );
@@ -106,6 +111,7 @@ describe("visual preference persistence", () => {
       estimatedTrainsEnabled: true,
       dotBackgroundEnabled: false,
       defaultNetwork: "regional",
+      mapView: "diagram",
     });
   });
 

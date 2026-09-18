@@ -1,0 +1,5268 @@
+{
+  "schemaVersion": "1.0.0",
+  "auditDate": "2026-09-18T11:45:06-04:00",
+  "status": "complete",
+  "phase": "A",
+  "summary": {
+    "ttcRoutesCount": 5,
+    "ttcStationsCount": 109,
+    "ttcLinksCount": 112,
+    "ttcMissingStations": 0,
+    "ttcMissingLinks": 0,
+    "regionalRoutesCount": 8,
+    "regionalStationsCount": 72,
+    "regionalLinksCount": 74,
+    "regionalMissingStations": 0,
+    "regionalMissingLinks": 0,
+    "totalStationsCount": 181,
+    "totalLinksCount": 186,
+    "totalGapsCount": 0
+  },
+  "sources": {
+    "ttc": {
+      "name": "Merged GTFS - TTC Routes and Schedules",
+      "publisher": "Toronto Transit Commission (TTC)",
+      "package_url": "https://ckan0.cf.opendata.inter.prod-toronto.ca/en/dataset/merged-gtfs-ttc-routes-and-schedules",
+      "ckan_api_url": "https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/package_show?id=merged-gtfs-ttc-routes-and-schedules",
+      "download_url": "https://ckan0.cf.opendata.inter.prod-toronto.ca/dataset/b811ead4-6eaf-4adb-8408-d389fb5a069c/resource/c920e221-7a1c-488b-8c5b-6d8cd4e85eaf/download/completegtfs.zip",
+      "retrieved_at": "2026-09-18T11:47:03-04:00",
+      "last_modified": "2026-09-04T20:20:43 GMT",
+      "archive_size_bytes": 84241404,
+      "sha256": "e70efd86a1991b302d97d82554180efc482484bb79440f07a09e95031e310e3c",
+      "feed_version": "S1000538",
+      "feed_start_date": "2026-09-06",
+      "feed_end_date": "2026-10-31",
+      "license_name": "Open Government Licence \u2013 Toronto",
+      "license_url": "https://open.toronto.ca/open-data-license/",
+      "required_attribution": "Contains information licensed under the Open Government Licence \u2013 Toronto."
+    },
+    "go": {
+      "name": "GO Transit GTFS Schedule",
+      "publisher": "Metrolinx",
+      "developer_portal_url": "https://www.gotransit.com/en/partner-with-us/software-developers",
+      "open_data_portal_url": "https://www.metrolinx.com/en/about-us/open-data",
+      "download_url": "https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/GO-GTFS.zip",
+      "retrieved_at": "2026-09-18T11:47:03-04:00",
+      "last_modified": "2026-09-17T19:28:26 GMT",
+      "archive_size_bytes": 22206353,
+      "sha256": "e2c80eeed718af9e58315c4198b1bd7e338a00171c658197f04d116421f14fc6",
+      "feed_version": "20260917132342",
+      "feed_start_date": "2026-09-17",
+      "feed_end_date": "2026-11-27",
+      "license_name": "Metrolinx Open Data Terms and Conditions",
+      "license_url": "https://www.metrolinx.com/en/about-us/open-data",
+      "required_attribution": "Contains Metrolinx Open Data."
+    },
+    "up": {
+      "name": "UP Express GTFS Schedule",
+      "publisher": "Metrolinx",
+      "developer_portal_url": "https://www.gotransit.com/en/partner-with-us/software-developers",
+      "open_data_portal_url": "https://www.metrolinx.com/en/about-us/open-data",
+      "download_url": "https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/UP-GTFS.zip",
+      "retrieved_at": "2026-09-18T11:47:03-04:00",
+      "last_modified": "2026-09-10T19:54:14 GMT",
+      "archive_size_bytes": 898079,
+      "sha256": "a8f2147147143a0068a93cf7c7ec73d050d9a3f95004967535ef7eed0a256320",
+      "feed_version": "20260903104434",
+      "feed_start_date": "2026-09-03",
+      "feed_end_date": "2027-03-02",
+      "license_name": "Metrolinx Open Data Terms and Conditions",
+      "license_url": "https://www.metrolinx.com/en/about-us/open-data",
+      "required_attribution": "Contains Metrolinx Open Data."
+    }
+  },
+  "networks": {
+    "ttc": {
+      "routes": [
+        {
+          "lineId": "line-1",
+          "name": "Yonge-University",
+          "gtfsRouteId": "1",
+          "type": "subway",
+          "stationsCount": 38,
+          "linksCount": 37,
+          "status": "published"
+        },
+        {
+          "lineId": "line-2",
+          "name": "Bloor-Danforth",
+          "gtfsRouteId": "2",
+          "type": "subway",
+          "stationsCount": 31,
+          "linksCount": 30,
+          "status": "published"
+        },
+        {
+          "lineId": "line-4",
+          "name": "Sheppard",
+          "gtfsRouteId": "4",
+          "type": "subway",
+          "stationsCount": 5,
+          "linksCount": 4,
+          "status": "published"
+        },
+        {
+          "lineId": "line-5",
+          "name": "Eglinton Crosstown",
+          "gtfsRouteId": "5",
+          "type": "lrt",
+          "stationsCount": 25,
+          "linksCount": 24,
+          "status": "published"
+        },
+        {
+          "lineId": "line-6",
+          "name": "Finch West",
+          "gtfsRouteId": "6",
+          "type": "lrt",
+          "stationsCount": 18,
+          "linksCount": 17,
+          "status": "published"
+        }
+      ],
+      "stations": [
+        {
+          "id": "station-ttc-vaughan-metropolitan-centre",
+          "stationId": "vaughan-metropolitan-centre",
+          "name": "Vaughan Metropolitan Centre",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.527489,
+            43.794239
+          ],
+          "gtfsStopId": "15209",
+          "gtfsStopName": "Vaughan Metropolitan Centre",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-spadina",
+          "stationId": "spadina",
+          "name": "Spadina",
+          "network": "ttc",
+          "lineIds": [
+            "line-1",
+            "line-2"
+          ],
+          "coordinates": [
+            -79.403786,
+            43.667149
+          ],
+          "gtfsStopId": "43268",
+          "gtfsStopName": "Spadina",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-st-george",
+          "stationId": "st-george",
+          "name": "St George",
+          "network": "ttc",
+          "lineIds": [
+            "line-1",
+            "line-2"
+          ],
+          "coordinates": [
+            -79.398087,
+            43.668846
+          ],
+          "gtfsStopId": "43269",
+          "gtfsStopName": "St George",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-union",
+          "stationId": "union",
+          "name": "Union",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.379723,
+            43.645523
+          ],
+          "gtfsStopId": "15772",
+          "gtfsStopName": "Union",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-king",
+          "stationId": "king",
+          "name": "King",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.378113,
+            43.649059
+          ],
+          "gtfsStopId": "14586",
+          "gtfsStopName": "King",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-bloor-yonge",
+          "stationId": "bloor-yonge",
+          "name": "Bloor-Yonge",
+          "network": "ttc",
+          "lineIds": [
+            "line-1",
+            "line-2"
+          ],
+          "coordinates": [
+            -79.385956,
+            43.670994
+          ],
+          "gtfsStopId": "14572",
+          "gtfsStopName": "Bloor-Yonge",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-eglinton",
+          "stationId": "eglinton",
+          "name": "Eglinton",
+          "network": "ttc",
+          "lineIds": [
+            "line-1",
+            "line-5"
+          ],
+          "coordinates": [
+            -79.398392,
+            43.70525
+          ],
+          "gtfsStopId": "43274",
+          "gtfsStopName": "Eglinton",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-york-mills",
+          "stationId": "york-mills",
+          "name": "York Mills",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.406487,
+            43.744846
+          ],
+          "gtfsStopId": "43276",
+          "gtfsStopName": "York Mills",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-sheppard-yonge",
+          "stationId": "sheppard-yonge",
+          "name": "Sheppard-Yonge",
+          "network": "ttc",
+          "lineIds": [
+            "line-1",
+            "line-4"
+          ],
+          "coordinates": [
+            -79.41169,
+            43.761646
+          ],
+          "gtfsStopId": "7129",
+          "gtfsStopName": "Sheppard-Yonge",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-north-york-centre",
+          "stationId": "north-york-centre",
+          "name": "North York Centre",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.412758,
+            43.767868
+          ],
+          "gtfsStopId": "14591",
+          "gtfsStopName": "North York Centre",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-finch",
+          "stationId": "finch",
+          "name": "Finch",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.415291,
+            43.780846
+          ],
+          "gtfsStopId": "43277",
+          "gtfsStopName": "Finch",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-kipling",
+          "stationId": "kipling",
+          "name": "Kipling",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.535995,
+            43.63715
+          ],
+          "gtfsStopId": "7906",
+          "gtfsStopName": "Kipling",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-sherbourne",
+          "stationId": "sherbourne",
+          "name": "Sherbourne",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.37616,
+            43.672104
+          ],
+          "gtfsStopId": "14574",
+          "gtfsStopName": "Sherbourne",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-castle-frank",
+          "stationId": "castle-frank",
+          "name": "Castle Frank",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.368988,
+            43.673748
+          ],
+          "gtfsStopId": "43287",
+          "gtfsStopName": "Castle Frank",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-kennedy",
+          "stationId": "kennedy",
+          "name": "Kennedy",
+          "network": "ttc",
+          "lineIds": [
+            "line-2",
+            "line-5"
+          ],
+          "coordinates": [
+            -79.263885,
+            43.732246
+          ],
+          "gtfsStopId": "43295",
+          "gtfsStopName": "Kennedy",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-don-mills",
+          "stationId": "don-mills",
+          "name": "Don Mills",
+          "network": "ttc",
+          "lineIds": [
+            "line-4"
+          ],
+          "coordinates": [
+            -79.346588,
+            43.775547
+          ],
+          "gtfsStopId": "13682",
+          "gtfsStopName": "Don Mills",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-mount-dennis",
+          "stationId": "mount-dennis",
+          "name": "Mount Dennis",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.48716,
+            43.688465
+          ],
+          "gtfsStopId": "16761",
+          "gtfsStopName": "Mount Dennis",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-humber-college",
+          "stationId": "humber-college",
+          "name": "Humber College",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.60141,
+            43.72963
+          ],
+          "gtfsStopId": "16811",
+          "gtfsStopName": "Humber College",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-finch-west",
+          "stationId": "finch-west",
+          "name": "Finch West",
+          "network": "ttc",
+          "lineIds": [
+            "line-1",
+            "line-6"
+          ],
+          "coordinates": [
+            -79.490807,
+            43.76535
+          ],
+          "gtfsStopId": "15205",
+          "gtfsStopName": "Finch West",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-museum",
+          "stationId": "museum",
+          "name": "Museum",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.393471,
+            43.666622
+          ],
+          "gtfsStopId": "14582",
+          "gtfsStopName": "Museum",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-old-mill",
+          "stationId": "old-mill",
+          "name": "Old Mill",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.495094,
+            43.650146
+          ],
+          "gtfsStopId": "43280",
+          "gtfsStopName": "Old Mill",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-islington",
+          "stationId": "islington",
+          "name": "Islington",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.524193,
+            43.645149
+          ],
+          "gtfsStopId": "43278",
+          "gtfsStopName": "Islington",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-royal-york",
+          "stationId": "royal-york",
+          "name": "Royal York",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.510994,
+            43.64835
+          ],
+          "gtfsStopId": "43279",
+          "gtfsStopName": "Royal York",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-jane",
+          "stationId": "jane",
+          "name": "Jane",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.483894,
+            43.650146
+          ],
+          "gtfsStopId": "43281",
+          "gtfsStopName": "Jane",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-runnymede",
+          "stationId": "runnymede",
+          "name": "Runnymede",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.47599,
+            43.652046
+          ],
+          "gtfsStopId": "43282",
+          "gtfsStopName": "Runnymede",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-high-park",
+          "stationId": "high-park",
+          "name": "High Park",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.466751,
+            43.653999
+          ],
+          "gtfsStopId": "43283",
+          "gtfsStopName": "High Park",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-keele",
+          "stationId": "keele",
+          "name": "Keele",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.459892,
+            43.655247
+          ],
+          "gtfsStopId": "43284",
+          "gtfsStopName": "Keele",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-dundas-west",
+          "stationId": "dundas-west",
+          "name": "Dundas West",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.453392,
+            43.656849
+          ],
+          "gtfsStopId": "3529",
+          "gtfsStopName": "Dundas West",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-lansdowne",
+          "stationId": "lansdowne",
+          "name": "Lansdowne",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.442467,
+            43.659245
+          ],
+          "gtfsStopId": "14575",
+          "gtfsStopName": "Lansdowne",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-dufferin",
+          "stationId": "dufferin",
+          "name": "Dufferin",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.435478,
+            43.660198
+          ],
+          "gtfsStopId": "14594",
+          "gtfsStopName": "Dufferin",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-ossington",
+          "stationId": "ossington",
+          "name": "Ossington",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.426292,
+            43.662449
+          ],
+          "gtfsStopId": "43285",
+          "gtfsStopName": "Ossington",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-christie",
+          "stationId": "christie",
+          "name": "Christie",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.418411,
+            43.664063
+          ],
+          "gtfsStopId": "14595",
+          "gtfsStopName": "Christie",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-bathurst",
+          "stationId": "bathurst",
+          "name": "Bathurst",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.411186,
+            43.666447
+          ],
+          "gtfsStopId": "43286",
+          "gtfsStopName": "Bathurst",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-college",
+          "stationId": "college",
+          "name": "College",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.383102,
+            43.660789
+          ],
+          "gtfsStopId": "14589",
+          "gtfsStopName": "College",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-bay",
+          "stationId": "bay",
+          "name": "Bay",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.389793,
+            43.670238
+          ],
+          "gtfsStopId": "14579",
+          "gtfsStopName": "Bay",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-broadview",
+          "stationId": "broadview",
+          "name": "Broadview",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.358391,
+            43.676949
+          ],
+          "gtfsStopId": "43288",
+          "gtfsStopName": "Broadview",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-chester",
+          "stationId": "chester",
+          "name": "Chester",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.352493,
+            43.678238
+          ],
+          "gtfsStopId": "14573",
+          "gtfsStopName": "Chester",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-pape",
+          "stationId": "pape",
+          "name": "Pape",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.344788,
+            43.680149
+          ],
+          "gtfsStopId": "43289",
+          "gtfsStopName": "Pape",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-donlands",
+          "stationId": "donlands",
+          "name": "Donlands",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.337784,
+            43.681049
+          ],
+          "gtfsStopId": "43290",
+          "gtfsStopName": "Donlands",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-greenwoood",
+          "stationId": "greenwoood",
+          "name": "Greenwood",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.330284,
+            43.682648
+          ],
+          "gtfsStopId": "3667",
+          "gtfsStopName": "Greenwood",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-coxwell",
+          "stationId": "coxwell",
+          "name": "Coxwell",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.322784,
+            43.684147
+          ],
+          "gtfsStopId": "43291",
+          "gtfsStopName": "Coxwell",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-woodbine",
+          "stationId": "woodbine",
+          "name": "Woodbine",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.312683,
+            43.686546
+          ],
+          "gtfsStopId": "3194",
+          "gtfsStopName": "Woodbine",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-main-street",
+          "stationId": "main-street",
+          "name": "Main Street",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.301582,
+            43.68895
+          ],
+          "gtfsStopId": "43292",
+          "gtfsStopName": "Main Street",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-victoria-park",
+          "stationId": "victoria-park",
+          "name": "Victoria Park",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.288986,
+            43.694447
+          ],
+          "gtfsStopId": "43293",
+          "gtfsStopName": "Victoria Park",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-warden",
+          "stationId": "warden",
+          "name": "Warden",
+          "network": "ttc",
+          "lineIds": [
+            "line-2"
+          ],
+          "coordinates": [
+            -79.279587,
+            43.711647
+          ],
+          "gtfsStopId": "43294",
+          "gtfsStopName": "Warden",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-queens-park",
+          "stationId": "queens-park",
+          "name": "Queen's Park",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.390694,
+            43.659836
+          ],
+          "gtfsStopId": "14583",
+          "gtfsStopName": "Queen's Park",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-st-patrick",
+          "stationId": "st-patrick",
+          "name": "St Patrick",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.388222,
+            43.654617
+          ],
+          "gtfsStopId": "14571",
+          "gtfsStopName": "St Patrick",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-osgoode",
+          "stationId": "osgoode",
+          "name": "Osgoode",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.386955,
+            43.651123
+          ],
+          "gtfsStopId": "14584",
+          "gtfsStopName": "Osgoode",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-st-andrew",
+          "stationId": "st-andrew",
+          "name": "St Andrew",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.385002,
+            43.647606
+          ],
+          "gtfsStopId": "14585",
+          "gtfsStopName": "St Andrew",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-queen",
+          "stationId": "queen",
+          "name": "Queen",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.379616,
+            43.652737
+          ],
+          "gtfsStopId": "14587",
+          "gtfsStopName": "Queen",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-tmu",
+          "stationId": "tmu",
+          "name": "TMU",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.381226,
+            43.656517
+          ],
+          "gtfsStopId": "14588",
+          "gtfsStopName": "TMU",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-wellesley",
+          "stationId": "wellesley",
+          "name": "Wellesley",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.383385,
+            43.665348
+          ],
+          "gtfsStopId": "43270",
+          "gtfsStopName": "Wellesley",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-rosedale",
+          "stationId": "rosedale",
+          "name": "Rosedale",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.388786,
+            43.676746
+          ],
+          "gtfsStopId": "43271",
+          "gtfsStopName": "Rosedale",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-summerhill",
+          "stationId": "summerhill",
+          "name": "Summerhill",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.391174,
+            43.682632
+          ],
+          "gtfsStopId": "14590",
+          "gtfsStopName": "Summerhill",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-st-clair",
+          "stationId": "st-clair",
+          "name": "St Clair",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.392586,
+            43.687748
+          ],
+          "gtfsStopId": "43272",
+          "gtfsStopName": "St Clair",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-davisville",
+          "stationId": "davisville",
+          "name": "Davisville",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.396988,
+            43.697746
+          ],
+          "gtfsStopId": "43273",
+          "gtfsStopName": "Davisville",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-mount-pleasant",
+          "stationId": "mount-pleasant",
+          "name": "Mount Pleasant",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.390381,
+            43.708473
+          ],
+          "gtfsStopId": "16777",
+          "gtfsStopName": "Mount Pleasant",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-lawrence",
+          "stationId": "lawrence",
+          "name": "Lawrence",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.402687,
+            43.725948
+          ],
+          "gtfsStopId": "43275",
+          "gtfsStopName": "Lawrence",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-bayview",
+          "stationId": "bayview",
+          "name": "Bayview",
+          "network": "ttc",
+          "lineIds": [
+            "line-4"
+          ],
+          "coordinates": [
+            -79.386703,
+            43.766872
+          ],
+          "gtfsStopId": "14577",
+          "gtfsStopName": "Bayview",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-bessarion",
+          "stationId": "bessarion",
+          "name": "Bessarion",
+          "network": "ttc",
+          "lineIds": [
+            "line-4"
+          ],
+          "coordinates": [
+            -79.376312,
+            43.769199
+          ],
+          "gtfsStopId": "14578",
+          "gtfsStopName": "Bessarion",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-leslie",
+          "stationId": "leslie",
+          "name": "Leslie",
+          "network": "ttc",
+          "lineIds": [
+            "line-4"
+          ],
+          "coordinates": [
+            -79.36779,
+            43.770847
+          ],
+          "gtfsStopId": "13689",
+          "gtfsStopName": "Leslie",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-leaside",
+          "stationId": "leaside",
+          "name": "Leaside",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.376732,
+            43.710941
+          ],
+          "gtfsStopId": "16778",
+          "gtfsStopName": "Leaside",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-laird",
+          "stationId": "laird",
+          "name": "Laird",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.364891,
+            43.713413
+          ],
+          "gtfsStopId": "16779",
+          "gtfsStopName": "Laird",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-sunnybrook-park",
+          "stationId": "sunnybrook-park",
+          "name": "Sunnybrook Park",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.349075,
+            43.717335
+          ],
+          "gtfsStopId": "16780",
+          "gtfsStopName": "Sunnybrook Park",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-don-valley",
+          "stationId": "don-valley",
+          "name": "Don Valley",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.337929,
+            43.721645
+          ],
+          "gtfsStopId": "16763",
+          "gtfsStopName": "Don Valley",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-wynford",
+          "stationId": "wynford",
+          "name": "Wynford",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.326645,
+            43.724072
+          ],
+          "gtfsStopId": "16782",
+          "gtfsStopName": "Wynford",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-sloane",
+          "stationId": "sloane",
+          "name": "Sloane",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.312653,
+            43.725925
+          ],
+          "gtfsStopId": "16783",
+          "gtfsStopName": "Sloane",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-pharmacy",
+          "stationId": "pharmacy",
+          "name": "Pharmacy",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.296951,
+            43.725819
+          ],
+          "gtfsStopId": "16785",
+          "gtfsStopName": "Pharmacy",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-hakimi-lebovic",
+          "stationId": "hakimi-lebovic",
+          "name": "Hakimi Lebovic",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.291664,
+            43.726974
+          ],
+          "gtfsStopId": "16786",
+          "gtfsStopName": "Hakimi Lebovic",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-golden-mile",
+          "stationId": "golden-mile",
+          "name": "Golden Mile",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.287666,
+            43.727882
+          ],
+          "gtfsStopId": "16787",
+          "gtfsStopName": "Golden Mile",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-birchmount",
+          "stationId": "birchmount",
+          "name": "Birchmount",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.277191,
+            43.730167
+          ],
+          "gtfsStopId": "16788",
+          "gtfsStopName": "Birchmount",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-ionview",
+          "stationId": "ionview",
+          "name": "Ionview",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.271988,
+            43.731373
+          ],
+          "gtfsStopId": "16789",
+          "gtfsStopName": "Ionview",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-dupont",
+          "stationId": "dupont",
+          "name": "Dupont",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.40712,
+            43.674301
+          ],
+          "gtfsStopId": "14581",
+          "gtfsStopName": "Dupont",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-st-clair-west",
+          "stationId": "st-clair-west",
+          "name": "St Clair West",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.415894,
+            43.684048
+          ],
+          "gtfsStopId": "43267",
+          "gtfsStopName": "St Clair West",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-avenue",
+          "stationId": "avenue",
+          "name": "Avenue",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.408844,
+            43.704742
+          ],
+          "gtfsStopId": "16776",
+          "gtfsStopName": "Avenue",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-chaplin",
+          "stationId": "chaplin",
+          "name": "Chaplin",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.417473,
+            43.702927
+          ],
+          "gtfsStopId": "16775",
+          "gtfsStopName": "Chaplin",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-forest-hill",
+          "stationId": "forest-hill",
+          "name": "Forest Hill",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.425774,
+            43.700775
+          ],
+          "gtfsStopId": "16774",
+          "gtfsStopName": "Forest Hill",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-oakwood",
+          "stationId": "oakwood",
+          "name": "Oakwood",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.442909,
+            43.697453
+          ],
+          "gtfsStopId": "16773",
+          "gtfsStopName": "Oakwood",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-fairbank",
+          "stationId": "fairbank",
+          "name": "Fairbank",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.449921,
+            43.69558
+          ],
+          "gtfsStopId": "16772",
+          "gtfsStopName": "Fairbank",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-caledonia",
+          "stationId": "caledonia",
+          "name": "Caledonia",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.465767,
+            43.692307
+          ],
+          "gtfsStopId": "16764",
+          "gtfsStopName": "Caledonia",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-keelesdale",
+          "stationId": "keelesdale",
+          "name": "Keelesdale",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.474747,
+            43.690781
+          ],
+          "gtfsStopId": "16762",
+          "gtfsStopName": "Keelesdale",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-glencairn",
+          "stationId": "glencairn",
+          "name": "Glencairn",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.440796,
+            43.708584
+          ],
+          "gtfsStopId": "14593",
+          "gtfsStopName": "Glencairn",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-lawrence-west",
+          "stationId": "lawrence-west",
+          "name": "Lawrence West",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.444191,
+            43.716347
+          ],
+          "gtfsStopId": "43266",
+          "gtfsStopName": "Lawrence West",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-yorkdale",
+          "stationId": "yorkdale",
+          "name": "Yorkdale",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.447693,
+            43.724594
+          ],
+          "gtfsStopId": "14580",
+          "gtfsStopName": "Yorkdale",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-wilson",
+          "stationId": "wilson",
+          "name": "Wilson",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.45079,
+            43.734547
+          ],
+          "gtfsStopId": "43265",
+          "gtfsStopName": "Wilson",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-sheppard-west",
+          "stationId": "sheppard-west",
+          "name": "Sheppard West",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.462593,
+            43.750046
+          ],
+          "gtfsStopId": "11860",
+          "gtfsStopName": "Sheppard West",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-sentinel",
+          "stationId": "sentinel",
+          "name": "Sentinel",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.500031,
+            43.761028
+          ],
+          "gtfsStopId": "16827",
+          "gtfsStopName": "Sentinel",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-york-university",
+          "stationId": "york-university",
+          "name": "York University",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.499886,
+            43.774097
+          ],
+          "gtfsStopId": "15206",
+          "gtfsStopName": "York University",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-pioneer-village",
+          "stationId": "pioneer-village",
+          "name": "Pioneer Village",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.509743,
+            43.777027
+          ],
+          "gtfsStopId": "15207",
+          "gtfsStopName": "Pioneer Village",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-highway-407",
+          "stationId": "highway-407",
+          "name": "Highway 407",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.523232,
+            43.78344
+          ],
+          "gtfsStopId": "15208",
+          "gtfsStopName": "Highway 407",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-tobermory",
+          "stationId": "tobermory",
+          "name": "Tobermory",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.508034,
+            43.759342
+          ],
+          "gtfsStopId": "16826",
+          "gtfsStopName": "Tobermory",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-driftwood",
+          "stationId": "driftwood",
+          "name": "Driftwood",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.51339,
+            43.758083
+          ],
+          "gtfsStopId": "16825",
+          "gtfsStopName": "Driftwood",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-jane-and-finch",
+          "stationId": "jane-and-finch",
+          "name": "Jane And Finch",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.5177,
+            43.757278
+          ],
+          "gtfsStopId": "16824",
+          "gtfsStopName": "Jane and Finch",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-norfinch-oakdale",
+          "stationId": "norfinch-oakdale",
+          "name": "Norfinch Oakdale",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.524216,
+            43.755978
+          ],
+          "gtfsStopId": "16823",
+          "gtfsStopName": "Norfinch Oakdale",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-signet-arrow",
+          "stationId": "signet-arrow",
+          "name": "Signet Arrow",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.536224,
+            43.753338
+          ],
+          "gtfsStopId": "16822",
+          "gtfsStopName": "Signet Arrow",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-emery",
+          "stationId": "emery",
+          "name": "Emery",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.542244,
+            43.752182
+          ],
+          "gtfsStopId": "16821",
+          "gtfsStopName": "Emery",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-milvan-rumike",
+          "stationId": "milvan-rumike",
+          "name": "Milvan Rumike",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.552345,
+            43.750027
+          ],
+          "gtfsStopId": "16820",
+          "gtfsStopName": "Milvan Rumike",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-duncanwoods",
+          "stationId": "duncanwoods",
+          "name": "Duncanwoods",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.557648,
+            43.748909
+          ],
+          "gtfsStopId": "16819",
+          "gtfsStopName": "Duncanwoods",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-pearldale",
+          "stationId": "pearldale",
+          "name": "Pearldale",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.562416,
+            43.747868
+          ],
+          "gtfsStopId": "16818",
+          "gtfsStopName": "Pearldale",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-rowntree-mills",
+          "stationId": "rowntree-mills",
+          "name": "Rowntree Mills",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.568748,
+            43.746349
+          ],
+          "gtfsStopId": "16817",
+          "gtfsStopName": "Rowntree Mills",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-mount-olive",
+          "stationId": "mount-olive",
+          "name": "Mount Olive",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.582024,
+            43.74342
+          ],
+          "gtfsStopId": "16816",
+          "gtfsStopName": "Mount Olive",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-stevenson",
+          "stationId": "stevenson",
+          "name": "Stevenson",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.587036,
+            43.743263
+          ],
+          "gtfsStopId": "16815",
+          "gtfsStopName": "Stevenson",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-albion",
+          "stationId": "albion",
+          "name": "Albion",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.58934,
+            43.741295
+          ],
+          "gtfsStopId": "16814",
+          "gtfsStopName": "Albion",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-martin-grove",
+          "stationId": "martin-grove",
+          "name": "Martin Grove",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.592323,
+            43.736759
+          ],
+          "gtfsStopId": "16813",
+          "gtfsStopName": "Martin Grove",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-westmore",
+          "stationId": "westmore",
+          "name": "Westmore",
+          "network": "ttc",
+          "lineIds": [
+            "line-6"
+          ],
+          "coordinates": [
+            -79.600624,
+            43.734779
+          ],
+          "gtfsStopId": "16812",
+          "gtfsStopName": "Westmore",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-downsview-park",
+          "stationId": "downsview-park",
+          "name": "Downsview Park",
+          "network": "ttc",
+          "lineIds": [
+            "line-1"
+          ],
+          "coordinates": [
+            -79.479698,
+            43.753349
+          ],
+          "gtfsStopId": "15204",
+          "gtfsStopName": "Downsview Park",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-cedarvale",
+          "stationId": "cedarvale",
+          "name": "Cedarvale",
+          "network": "ttc",
+          "lineIds": [
+            "line-1",
+            "line-5"
+          ],
+          "coordinates": [
+            -79.436089,
+            43.699146
+          ],
+          "gtfsStopId": "43298",
+          "gtfsStopName": "Cedarvale",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-aga-khan-park-and-museum",
+          "stationId": "aga-khan-park-and-museum",
+          "name": "Aga Khan Park & Museum",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.332397,
+            43.722553
+          ],
+          "gtfsStopId": "16781",
+          "gtfsStopName": "Aga Khan Park & Museum",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        },
+        {
+          "id": "station-ttc-o_connor",
+          "stationId": "o_connor",
+          "name": "O'Connor",
+          "network": "ttc",
+          "lineIds": [
+            "line-5"
+          ],
+          "coordinates": [
+            -79.302086,
+            43.724808
+          ],
+          "gtfsStopId": "16784",
+          "gtfsStopName": "O'Connor",
+          "gtfsLocationType": "1",
+          "provenance": "TTC GTFS stops.txt parent station"
+        }
+      ],
+      "links": [
+        {
+          "id": "link-line-1-vaughan-metropolitan-centre-highway-407",
+          "segmentId": "line-1-vaughan-metropolitan-centre-highway-407",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "vaughan-metropolitan-centre",
+          "stationBId": "highway-407",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-highway-407-pioneer-village",
+          "segmentId": "line-1-highway-407-pioneer-village",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "highway-407",
+          "stationBId": "pioneer-village",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-pioneer-village-york-university",
+          "segmentId": "line-1-pioneer-village-york-university",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "pioneer-village",
+          "stationBId": "york-university",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-york-university-finch-west",
+          "segmentId": "line-1-york-university-finch-west",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "york-university",
+          "stationBId": "finch-west",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-finch-west-downsview-park",
+          "segmentId": "line-1-finch-west-downsview-park",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "finch-west",
+          "stationBId": "downsview-park",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-downsview-park-sheppard-west",
+          "segmentId": "line-1-downsview-park-sheppard-west",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "downsview-park",
+          "stationBId": "sheppard-west",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-sheppard-west-wilson",
+          "segmentId": "line-1-sheppard-west-wilson",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "sheppard-west",
+          "stationBId": "wilson",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-wilson-yorkdale",
+          "segmentId": "line-1-wilson-yorkdale",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "wilson",
+          "stationBId": "yorkdale",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-yorkdale-lawrence-west",
+          "segmentId": "line-1-yorkdale-lawrence-west",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "yorkdale",
+          "stationBId": "lawrence-west",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-lawrence-west-glencairn",
+          "segmentId": "line-1-lawrence-west-glencairn",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "lawrence-west",
+          "stationBId": "glencairn",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-glencairn-cedarvale",
+          "segmentId": "line-1-glencairn-cedarvale",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "glencairn",
+          "stationBId": "cedarvale",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-cedarvale-st-clair-west",
+          "segmentId": "line-1-cedarvale-st-clair-west",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "cedarvale",
+          "stationBId": "st-clair-west",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-st-clair-west-dupont",
+          "segmentId": "line-1-st-clair-west-dupont",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "st-clair-west",
+          "stationBId": "dupont",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-dupont-spadina",
+          "segmentId": "line-1-dupont-spadina",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "dupont",
+          "stationBId": "spadina",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-spadina-st-george",
+          "segmentId": "line-1-spadina-st-george",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "spadina",
+          "stationBId": "st-george",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-st-george-museum",
+          "segmentId": "line-1-st-george-museum",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "st-george",
+          "stationBId": "museum",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-museum-queens-park",
+          "segmentId": "line-1-museum-queens-park",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "museum",
+          "stationBId": "queens-park",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-queens-park-st-patrick",
+          "segmentId": "line-1-queens-park-st-patrick",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "queens-park",
+          "stationBId": "st-patrick",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-st-patrick-osgoode",
+          "segmentId": "line-1-st-patrick-osgoode",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "st-patrick",
+          "stationBId": "osgoode",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-osgoode-st-andrew",
+          "segmentId": "line-1-osgoode-st-andrew",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "osgoode",
+          "stationBId": "st-andrew",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-st-andrew-union",
+          "segmentId": "line-1-st-andrew-union",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "st-andrew",
+          "stationBId": "union",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-union-king",
+          "segmentId": "line-1-union-king",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "union",
+          "stationBId": "king",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-king-queen",
+          "segmentId": "line-1-king-queen",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "king",
+          "stationBId": "queen",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-queen-tmu",
+          "segmentId": "line-1-queen-tmu",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "queen",
+          "stationBId": "tmu",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-tmu-college",
+          "segmentId": "line-1-tmu-college",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "tmu",
+          "stationBId": "college",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-college-wellesley",
+          "segmentId": "line-1-college-wellesley",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "college",
+          "stationBId": "wellesley",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-wellesley-bloor-yonge",
+          "segmentId": "line-1-wellesley-bloor-yonge",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "wellesley",
+          "stationBId": "bloor-yonge",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-bloor-yonge-rosedale",
+          "segmentId": "line-1-bloor-yonge-rosedale",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "bloor-yonge",
+          "stationBId": "rosedale",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-rosedale-summerhill",
+          "segmentId": "line-1-rosedale-summerhill",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "rosedale",
+          "stationBId": "summerhill",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-summerhill-st-clair",
+          "segmentId": "line-1-summerhill-st-clair",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "summerhill",
+          "stationBId": "st-clair",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-st-clair-davisville",
+          "segmentId": "line-1-st-clair-davisville",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "st-clair",
+          "stationBId": "davisville",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-davisville-eglinton",
+          "segmentId": "line-1-davisville-eglinton",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "davisville",
+          "stationBId": "eglinton",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-eglinton-lawrence",
+          "segmentId": "line-1-eglinton-lawrence",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "eglinton",
+          "stationBId": "lawrence",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-lawrence-york-mills",
+          "segmentId": "line-1-lawrence-york-mills",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "lawrence",
+          "stationBId": "york-mills",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-york-mills-sheppard-yonge",
+          "segmentId": "line-1-york-mills-sheppard-yonge",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "york-mills",
+          "stationBId": "sheppard-yonge",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-sheppard-yonge-north-york-centre",
+          "segmentId": "line-1-sheppard-yonge-north-york-centre",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "sheppard-yonge",
+          "stationBId": "north-york-centre",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-1-north-york-centre-finch",
+          "segmentId": "line-1-north-york-centre-finch",
+          "lineId": "line-1",
+          "network": "ttc",
+          "stationAId": "north-york-centre",
+          "stationBId": "finch",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-kipling-islington",
+          "segmentId": "line-2-kipling-islington",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "kipling",
+          "stationBId": "islington",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-islington-royal-york",
+          "segmentId": "line-2-islington-royal-york",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "islington",
+          "stationBId": "royal-york",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-royal-york-old-mill",
+          "segmentId": "line-2-royal-york-old-mill",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "royal-york",
+          "stationBId": "old-mill",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-old-mill-jane",
+          "segmentId": "line-2-old-mill-jane",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "old-mill",
+          "stationBId": "jane",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-jane-runnymede",
+          "segmentId": "line-2-jane-runnymede",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "jane",
+          "stationBId": "runnymede",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-runnymede-high-park",
+          "segmentId": "line-2-runnymede-high-park",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "runnymede",
+          "stationBId": "high-park",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-high-park-keele",
+          "segmentId": "line-2-high-park-keele",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "high-park",
+          "stationBId": "keele",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-keele-dundas-west",
+          "segmentId": "line-2-keele-dundas-west",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "keele",
+          "stationBId": "dundas-west",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-dundas-west-lansdowne",
+          "segmentId": "line-2-dundas-west-lansdowne",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "dundas-west",
+          "stationBId": "lansdowne",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-lansdowne-dufferin",
+          "segmentId": "line-2-lansdowne-dufferin",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "lansdowne",
+          "stationBId": "dufferin",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-dufferin-ossington",
+          "segmentId": "line-2-dufferin-ossington",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "dufferin",
+          "stationBId": "ossington",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-ossington-christie",
+          "segmentId": "line-2-ossington-christie",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "ossington",
+          "stationBId": "christie",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-christie-bathurst",
+          "segmentId": "line-2-christie-bathurst",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "christie",
+          "stationBId": "bathurst",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-bathurst-spadina",
+          "segmentId": "line-2-bathurst-spadina",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "bathurst",
+          "stationBId": "spadina",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-spadina-st-george",
+          "segmentId": "line-2-spadina-st-george",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "spadina",
+          "stationBId": "st-george",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-st-george-bay",
+          "segmentId": "line-2-st-george-bay",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "st-george",
+          "stationBId": "bay",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-bay-bloor-yonge",
+          "segmentId": "line-2-bay-bloor-yonge",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "bay",
+          "stationBId": "bloor-yonge",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-bloor-yonge-sherbourne",
+          "segmentId": "line-2-bloor-yonge-sherbourne",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "bloor-yonge",
+          "stationBId": "sherbourne",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-sherbourne-castle-frank",
+          "segmentId": "line-2-sherbourne-castle-frank",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "sherbourne",
+          "stationBId": "castle-frank",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-castle-frank-broadview",
+          "segmentId": "line-2-castle-frank-broadview",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "castle-frank",
+          "stationBId": "broadview",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-broadview-chester",
+          "segmentId": "line-2-broadview-chester",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "broadview",
+          "stationBId": "chester",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-chester-pape",
+          "segmentId": "line-2-chester-pape",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "chester",
+          "stationBId": "pape",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-pape-donlands",
+          "segmentId": "line-2-pape-donlands",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "pape",
+          "stationBId": "donlands",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-donlands-greenwoood",
+          "segmentId": "line-2-donlands-greenwoood",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "donlands",
+          "stationBId": "greenwoood",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-greenwoood-coxwell",
+          "segmentId": "line-2-greenwoood-coxwell",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "greenwoood",
+          "stationBId": "coxwell",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-coxwell-woodbine",
+          "segmentId": "line-2-coxwell-woodbine",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "coxwell",
+          "stationBId": "woodbine",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-woodbine-main-street",
+          "segmentId": "line-2-woodbine-main-street",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "woodbine",
+          "stationBId": "main-street",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-main-street-victoria-park",
+          "segmentId": "line-2-main-street-victoria-park",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "main-street",
+          "stationBId": "victoria-park",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-victoria-park-warden",
+          "segmentId": "line-2-victoria-park-warden",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "victoria-park",
+          "stationBId": "warden",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-2-warden-kennedy",
+          "segmentId": "line-2-warden-kennedy",
+          "lineId": "line-2",
+          "network": "ttc",
+          "stationAId": "warden",
+          "stationBId": "kennedy",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-4-sheppard-yonge-bayview",
+          "segmentId": "line-4-sheppard-yonge-bayview",
+          "lineId": "line-4",
+          "network": "ttc",
+          "stationAId": "sheppard-yonge",
+          "stationBId": "bayview",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-4-bayview-bessarion",
+          "segmentId": "line-4-bayview-bessarion",
+          "lineId": "line-4",
+          "network": "ttc",
+          "stationAId": "bayview",
+          "stationBId": "bessarion",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-4-bessarion-leslie",
+          "segmentId": "line-4-bessarion-leslie",
+          "lineId": "line-4",
+          "network": "ttc",
+          "stationAId": "bessarion",
+          "stationBId": "leslie",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-4-leslie-don-mills",
+          "segmentId": "line-4-leslie-don-mills",
+          "lineId": "line-4",
+          "network": "ttc",
+          "stationAId": "leslie",
+          "stationBId": "don-mills",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-mount-dennis-keelesdale",
+          "segmentId": "line-5-mount-dennis-keelesdale",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "mount-dennis",
+          "stationBId": "keelesdale",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-keelesdale-caledonia",
+          "segmentId": "line-5-keelesdale-caledonia",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "keelesdale",
+          "stationBId": "caledonia",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-caledonia-fairbank",
+          "segmentId": "line-5-caledonia-fairbank",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "caledonia",
+          "stationBId": "fairbank",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-fairbank-oakwood",
+          "segmentId": "line-5-fairbank-oakwood",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "fairbank",
+          "stationBId": "oakwood",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-oakwood-cedarvale",
+          "segmentId": "line-5-oakwood-cedarvale",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "oakwood",
+          "stationBId": "cedarvale",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-cedarvale-forest-hill",
+          "segmentId": "line-5-cedarvale-forest-hill",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "cedarvale",
+          "stationBId": "forest-hill",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-forest-hill-chaplin",
+          "segmentId": "line-5-forest-hill-chaplin",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "forest-hill",
+          "stationBId": "chaplin",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-chaplin-avenue",
+          "segmentId": "line-5-chaplin-avenue",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "chaplin",
+          "stationBId": "avenue",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-avenue-eglinton",
+          "segmentId": "line-5-avenue-eglinton",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "avenue",
+          "stationBId": "eglinton",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-eglinton-mount-pleasant",
+          "segmentId": "line-5-eglinton-mount-pleasant",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "eglinton",
+          "stationBId": "mount-pleasant",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-mount-pleasant-leaside",
+          "segmentId": "line-5-mount-pleasant-leaside",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "mount-pleasant",
+          "stationBId": "leaside",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-leaside-laird",
+          "segmentId": "line-5-leaside-laird",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "leaside",
+          "stationBId": "laird",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-laird-sunnybrook-park",
+          "segmentId": "line-5-laird-sunnybrook-park",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "laird",
+          "stationBId": "sunnybrook-park",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-sunnybrook-park-don-valley",
+          "segmentId": "line-5-sunnybrook-park-don-valley",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "sunnybrook-park",
+          "stationBId": "don-valley",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-don-valley-aga-khan-park-and-museum",
+          "segmentId": "line-5-don-valley-aga-khan-park-and-museum",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "don-valley",
+          "stationBId": "aga-khan-park-and-museum",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-aga-khan-park-and-museum-wynford",
+          "segmentId": "line-5-aga-khan-park-and-museum-wynford",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "aga-khan-park-and-museum",
+          "stationBId": "wynford",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-wynford-sloane",
+          "segmentId": "line-5-wynford-sloane",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "wynford",
+          "stationBId": "sloane",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-sloane-o_connor",
+          "segmentId": "line-5-sloane-o_connor",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "sloane",
+          "stationBId": "o_connor",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-o_connor-pharmacy",
+          "segmentId": "line-5-o_connor-pharmacy",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "o_connor",
+          "stationBId": "pharmacy",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-pharmacy-hakimi-lebovic",
+          "segmentId": "line-5-pharmacy-hakimi-lebovic",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "pharmacy",
+          "stationBId": "hakimi-lebovic",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-hakimi-lebovic-golden-mile",
+          "segmentId": "line-5-hakimi-lebovic-golden-mile",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "hakimi-lebovic",
+          "stationBId": "golden-mile",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-golden-mile-birchmount",
+          "segmentId": "line-5-golden-mile-birchmount",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "golden-mile",
+          "stationBId": "birchmount",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-birchmount-ionview",
+          "segmentId": "line-5-birchmount-ionview",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "birchmount",
+          "stationBId": "ionview",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-5-ionview-kennedy",
+          "segmentId": "line-5-ionview-kennedy",
+          "lineId": "line-5",
+          "network": "ttc",
+          "stationAId": "ionview",
+          "stationBId": "kennedy",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-humber-college-westmore",
+          "segmentId": "line-6-humber-college-westmore",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "humber-college",
+          "stationBId": "westmore",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-westmore-martin-grove",
+          "segmentId": "line-6-westmore-martin-grove",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "westmore",
+          "stationBId": "martin-grove",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-martin-grove-albion",
+          "segmentId": "line-6-martin-grove-albion",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "martin-grove",
+          "stationBId": "albion",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-albion-stevenson",
+          "segmentId": "line-6-albion-stevenson",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "albion",
+          "stationBId": "stevenson",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-stevenson-mount-olive",
+          "segmentId": "line-6-stevenson-mount-olive",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "stevenson",
+          "stationBId": "mount-olive",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-mount-olive-rowntree-mills",
+          "segmentId": "line-6-mount-olive-rowntree-mills",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "mount-olive",
+          "stationBId": "rowntree-mills",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-rowntree-mills-pearldale",
+          "segmentId": "line-6-rowntree-mills-pearldale",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "rowntree-mills",
+          "stationBId": "pearldale",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-pearldale-duncanwoods",
+          "segmentId": "line-6-pearldale-duncanwoods",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "pearldale",
+          "stationBId": "duncanwoods",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-duncanwoods-milvan-rumike",
+          "segmentId": "line-6-duncanwoods-milvan-rumike",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "duncanwoods",
+          "stationBId": "milvan-rumike",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-milvan-rumike-emery",
+          "segmentId": "line-6-milvan-rumike-emery",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "milvan-rumike",
+          "stationBId": "emery",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-emery-signet-arrow",
+          "segmentId": "line-6-emery-signet-arrow",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "emery",
+          "stationBId": "signet-arrow",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-signet-arrow-norfinch-oakdale",
+          "segmentId": "line-6-signet-arrow-norfinch-oakdale",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "signet-arrow",
+          "stationBId": "norfinch-oakdale",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-norfinch-oakdale-jane-and-finch",
+          "segmentId": "line-6-norfinch-oakdale-jane-and-finch",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "norfinch-oakdale",
+          "stationBId": "jane-and-finch",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-jane-and-finch-driftwood",
+          "segmentId": "line-6-jane-and-finch-driftwood",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "jane-and-finch",
+          "stationBId": "driftwood",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-driftwood-tobermory",
+          "segmentId": "line-6-driftwood-tobermory",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "driftwood",
+          "stationBId": "tobermory",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-tobermory-sentinel",
+          "segmentId": "line-6-tobermory-sentinel",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "tobermory",
+          "stationBId": "sentinel",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        },
+        {
+          "id": "link-line-6-sentinel-finch-west",
+          "segmentId": "line-6-sentinel-finch-west",
+          "lineId": "line-6",
+          "network": "ttc",
+          "stationAId": "sentinel",
+          "stationBId": "finch-west",
+          "coverageStatus": "verified",
+          "source": "ttc"
+        }
+      ],
+      "coverageGaps": []
+    },
+    "regional": {
+      "routes": [
+        {
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "name": "Barrie",
+          "gtfsRouteId": "09261126-BR",
+          "type": "rail",
+          "stationsCount": 11,
+          "linksCount": 10,
+          "status": "published"
+        },
+        {
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "name": "Kitchener",
+          "gtfsRouteId": "09261126-GT",
+          "type": "rail",
+          "stationsCount": 14,
+          "linksCount": 13,
+          "status": "published"
+        },
+        {
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "name": "Lakeshore East",
+          "gtfsRouteId": "09261126-LE",
+          "type": "rail",
+          "stationsCount": 10,
+          "linksCount": 9,
+          "status": "published"
+        },
+        {
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "name": "Lakeshore West",
+          "gtfsRouteId": "09261126-LW",
+          "type": "rail",
+          "stationsCount": 16,
+          "linksCount": 15,
+          "status": "published"
+        },
+        {
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "name": "Milton",
+          "gtfsRouteId": "09261126-MI",
+          "type": "rail",
+          "stationsCount": 9,
+          "linksCount": 8,
+          "status": "published"
+        },
+        {
+          "lineId": "regional-rh",
+          "routeCode": "RH",
+          "name": "Richmond Hill",
+          "gtfsRouteId": "09261126-RH",
+          "type": "rail",
+          "stationsCount": 7,
+          "linksCount": 6,
+          "status": "published"
+        },
+        {
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "name": "Stouffville",
+          "gtfsRouteId": "09261126-ST",
+          "type": "rail",
+          "stationsCount": 10,
+          "linksCount": 9,
+          "status": "published"
+        },
+        {
+          "lineId": "regional-up",
+          "routeCode": "UP",
+          "name": "Union Pearson Express",
+          "gtfsRouteId": "UP",
+          "type": "rail",
+          "stationsCount": 5,
+          "linksCount": 4,
+          "status": "published"
+        }
+      ],
+      "stations": [
+        {
+          "id": "station-regional-union",
+          "stationId": "union",
+          "name": "Union",
+          "network": "regional",
+          "lineIds": [
+            "regional-br",
+            "regional-ki",
+            "regional-le",
+            "regional-lw",
+            "regional-mi",
+            "regional-rh",
+            "regional-st",
+            "regional-up"
+          ],
+          "coordinates": [
+            -79.3806,
+            43.645195
+          ],
+          "gtfsStopId": "UN",
+          "gtfsStopName": "Union Station GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-downsview-park",
+          "stationId": "downsview-park",
+          "name": "Downsview Park",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.47835,
+            43.7536333
+          ],
+          "gtfsStopId": "DW",
+          "gtfsStopName": "Downsview Park GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-rutherford",
+          "stationId": "rutherford",
+          "name": "Rutherford",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.498819,
+            43.838487
+          ],
+          "gtfsStopId": "RU",
+          "gtfsStopName": "Rutherford GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-maple",
+          "stationId": "maple",
+          "name": "Maple",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.506984,
+            43.859481
+          ],
+          "gtfsStopId": "MP",
+          "gtfsStopName": "Maple GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-king-city",
+          "stationId": "king-city",
+          "name": "King City",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.526886,
+            43.920037
+          ],
+          "gtfsStopId": "KC",
+          "gtfsStopName": "King City GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-aurora",
+          "stationId": "aurora",
+          "name": "Aurora",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.459725,
+            44.000758
+          ],
+          "gtfsStopId": "AU",
+          "gtfsStopName": "Aurora GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-newmarket",
+          "stationId": "newmarket",
+          "name": "Newmarket",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.459289,
+            44.060426
+          ],
+          "gtfsStopId": "NE",
+          "gtfsStopName": "Newmarket GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-east-gwillimbury",
+          "stationId": "east-gwillimbury",
+          "name": "East Gwillimbury",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.455776,
+            44.077996
+          ],
+          "gtfsStopId": "EA",
+          "gtfsStopName": "East Gwillimbury GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-bradford",
+          "stationId": "bradford",
+          "name": "Bradford",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.555394,
+            44.116513
+          ],
+          "gtfsStopId": "BD",
+          "gtfsStopName": "Bradford GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-barrie-south",
+          "stationId": "barrie-south",
+          "name": "Barrie South",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.627441,
+            44.35112
+          ],
+          "gtfsStopId": "BA",
+          "gtfsStopName": "Barrie South GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-allandale-waterfront",
+          "stationId": "allandale-waterfront",
+          "name": "Allandale Waterfront",
+          "network": "regional",
+          "lineIds": [
+            "regional-br"
+          ],
+          "coordinates": [
+            -79.687858,
+            44.374139
+          ],
+          "gtfsStopId": "AD",
+          "gtfsStopName": "Allandale Waterfront GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-bloor",
+          "stationId": "bloor",
+          "name": "Bloor",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki",
+            "regional-up"
+          ],
+          "coordinates": [
+            -79.450192,
+            43.656928
+          ],
+          "gtfsStopId": "BL",
+          "gtfsStopName": "Bloor GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-mount-dennis",
+          "stationId": "mount-dennis",
+          "name": "Mount Dennis",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki",
+            "regional-up"
+          ],
+          "coordinates": [
+            -79.48703,
+            43.68749
+          ],
+          "gtfsStopId": "MD",
+          "gtfsStopName": "Mount Dennis GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-weston",
+          "stationId": "weston",
+          "name": "Weston",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki",
+            "regional-up"
+          ],
+          "coordinates": [
+            -79.51368,
+            43.70029
+          ],
+          "gtfsStopId": "WE",
+          "gtfsStopName": "Weston GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-etobicoke-north",
+          "stationId": "etobicoke-north",
+          "name": "Etobicoke North",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -79.563506,
+            43.706172
+          ],
+          "gtfsStopId": "ET",
+          "gtfsStopName": "Etobicoke North GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-malton",
+          "stationId": "malton",
+          "name": "Malton",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -79.63823,
+            43.705153
+          ],
+          "gtfsStopId": "MA",
+          "gtfsStopName": "Malton GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-bramalea",
+          "stationId": "bramalea",
+          "name": "Bramalea",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -79.6887512,
+            43.7022591
+          ],
+          "gtfsStopId": "BE",
+          "gtfsStopName": "Bramalea GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-brampton-innovation-district",
+          "stationId": "brampton-innovation-district",
+          "name": "Brampton Innovation District",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -79.7628632,
+            43.6869087
+          ],
+          "gtfsStopId": "BR",
+          "gtfsStopName": "Brampton Innovation District GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-mount-pleasant",
+          "stationId": "mount-pleasant",
+          "name": "Mount Pleasant",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -79.8221817,
+            43.6749763
+          ],
+          "gtfsStopId": "MO",
+          "gtfsStopName": "Mount Pleasant GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-georgetown",
+          "stationId": "georgetown",
+          "name": "Georgetown",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -79.919054,
+            43.655373
+          ],
+          "gtfsStopId": "GE",
+          "gtfsStopName": "Georgetown GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-acton",
+          "stationId": "acton",
+          "name": "Acton",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -80.034111,
+            43.6338043
+          ],
+          "gtfsStopId": "AC",
+          "gtfsStopName": "Acton GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-guelph-central",
+          "stationId": "guelph-central",
+          "name": "Guelph Central",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -80.246917,
+            43.544353
+          ],
+          "gtfsStopId": "GL",
+          "gtfsStopName": "Guelph Central GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-kitchener",
+          "stationId": "kitchener",
+          "name": "Kitchener",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -80.49313,
+            43.455686
+          ],
+          "gtfsStopId": "KI",
+          "gtfsStopName": "Kitchener GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-stratford",
+          "stationId": "stratford",
+          "name": "Stratford",
+          "network": "regional",
+          "lineIds": [
+            "regional-ki"
+          ],
+          "coordinates": [
+            -80.9757413887,
+            43.3643734351
+          ],
+          "gtfsStopId": "SF",
+          "gtfsStopName": "Stratford GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-danforth",
+          "stationId": "danforth",
+          "name": "Danforth",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -79.300358,
+            43.686462
+          ],
+          "gtfsStopId": "DA",
+          "gtfsStopName": "Danforth GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-scarborough",
+          "stationId": "scarborough",
+          "name": "Scarborough",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -79.254722,
+            43.716945
+          ],
+          "gtfsStopId": "SC",
+          "gtfsStopName": "Scarborough GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-eglinton",
+          "stationId": "eglinton",
+          "name": "Eglinton",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -79.23231,
+            43.739621
+          ],
+          "gtfsStopId": "EG",
+          "gtfsStopName": "Eglinton GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-guildwood",
+          "stationId": "guildwood",
+          "name": "Guildwood",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -79.198252,
+            43.755272
+          ],
+          "gtfsStopId": "GU",
+          "gtfsStopName": "Guildwood GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-rouge-hill",
+          "stationId": "rouge-hill",
+          "name": "Rouge Hill",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -79.130646,
+            43.780375
+          ],
+          "gtfsStopId": "RO",
+          "gtfsStopName": "Rouge Hill GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-pickering",
+          "stationId": "pickering",
+          "name": "Pickering",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -79.084594,
+            43.831576
+          ],
+          "gtfsStopId": "PIN",
+          "gtfsStopName": "Pickering GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-ajax",
+          "stationId": "ajax",
+          "name": "Ajax",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -79.041372,
+            43.847766
+          ],
+          "gtfsStopId": "AJ",
+          "gtfsStopName": "Ajax GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-whitby",
+          "stationId": "whitby",
+          "name": "Whitby",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -78.93818,
+            43.86484
+          ],
+          "gtfsStopId": "WH",
+          "gtfsStopName": "Whitby GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-durham-college-oshawa",
+          "stationId": "durham-college-oshawa",
+          "name": "Durham College Oshawa",
+          "network": "regional",
+          "lineIds": [
+            "regional-le"
+          ],
+          "coordinates": [
+            -78.884807,
+            43.871004
+          ],
+          "gtfsStopId": "OS",
+          "gtfsStopName": "Durham College Oshawa GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-exhibition",
+          "stationId": "exhibition",
+          "name": "Exhibition",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.418927,
+            43.635549
+          ],
+          "gtfsStopId": "EX",
+          "gtfsStopName": "Exhibition GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-mimico",
+          "stationId": "mimico",
+          "name": "Mimico",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.497762,
+            43.616411
+          ],
+          "gtfsStopId": "MI",
+          "gtfsStopName": "Mimico GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-long-branch",
+          "stationId": "long-branch",
+          "name": "Long Branch",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.546149,
+            43.591317
+          ],
+          "gtfsStopId": "LO",
+          "gtfsStopName": "Long Branch GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-port-credit",
+          "stationId": "port-credit",
+          "name": "Port Credit",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.586881,
+            43.555999
+          ],
+          "gtfsStopId": "PO",
+          "gtfsStopName": "Port Credit GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-clarkson",
+          "stationId": "clarkson",
+          "name": "Clarkson",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.633206,
+            43.513127
+          ],
+          "gtfsStopId": "CL",
+          "gtfsStopName": "Clarkson GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-oakville",
+          "stationId": "oakville",
+          "name": "Oakville",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.682242,
+            43.455594
+          ],
+          "gtfsStopId": "OA",
+          "gtfsStopName": "Oakville GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-bronte",
+          "stationId": "bronte",
+          "name": "Bronte",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.722294,
+            43.416774
+          ],
+          "gtfsStopId": "BO",
+          "gtfsStopName": "Bronte GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-appleby",
+          "stationId": "appleby",
+          "name": "Appleby",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.760991,
+            43.379429
+          ],
+          "gtfsStopId": "AP",
+          "gtfsStopName": "Appleby GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-burlington",
+          "stationId": "burlington",
+          "name": "Burlington",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.809141,
+            43.341265
+          ],
+          "gtfsStopId": "BU",
+          "gtfsStopName": "Burlington GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-aldershot",
+          "stationId": "aldershot",
+          "name": "Aldershot",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.855659,
+            43.313385
+          ],
+          "gtfsStopId": "AL",
+          "gtfsStopName": "Aldershot GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-west-harbour",
+          "stationId": "west-harbour",
+          "name": "West Harbour",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.866222,
+            43.266775
+          ],
+          "gtfsStopId": "WR",
+          "gtfsStopName": "West Harbour GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-hamilton",
+          "stationId": "hamilton",
+          "name": "Hamilton",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.869192,
+            43.253284
+          ],
+          "gtfsStopId": "HA",
+          "gtfsStopName": "Hamilton GO Centre",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-confederation",
+          "stationId": "confederation",
+          "name": "Confederation",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.760331,
+            43.241874
+          ],
+          "gtfsStopId": "CF",
+          "gtfsStopName": "Confederation GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-st-catharines",
+          "stationId": "st-catharines",
+          "name": "St. Catharines",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.2549057,
+            43.1476135
+          ],
+          "gtfsStopId": "SCTH",
+          "gtfsStopName": "St. Catharines GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-niagara-falls",
+          "stationId": "niagara-falls",
+          "name": "Niagara Falls",
+          "network": "regional",
+          "lineIds": [
+            "regional-lw"
+          ],
+          "coordinates": [
+            -79.063319,
+            43.108882
+          ],
+          "gtfsStopId": "NI",
+          "gtfsStopName": "Niagara Falls GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-kipling",
+          "stationId": "kipling",
+          "name": "Kipling",
+          "network": "regional",
+          "lineIds": [
+            "regional-mi"
+          ],
+          "coordinates": [
+            -79.536287,
+            43.636955
+          ],
+          "gtfsStopId": "KP",
+          "gtfsStopName": "Kipling GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-dixie",
+          "stationId": "dixie",
+          "name": "Dixie",
+          "network": "regional",
+          "lineIds": [
+            "regional-mi"
+          ],
+          "coordinates": [
+            -79.577762,
+            43.608022
+          ],
+          "gtfsStopId": "DI",
+          "gtfsStopName": "Dixie GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-cooksville",
+          "stationId": "cooksville",
+          "name": "Cooksville",
+          "network": "regional",
+          "lineIds": [
+            "regional-mi"
+          ],
+          "coordinates": [
+            -79.623695,
+            43.582973
+          ],
+          "gtfsStopId": "CO",
+          "gtfsStopName": "Cooksville GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-erindale",
+          "stationId": "erindale",
+          "name": "Erindale",
+          "network": "regional",
+          "lineIds": [
+            "regional-mi"
+          ],
+          "coordinates": [
+            -79.668506,
+            43.567235
+          ],
+          "gtfsStopId": "ER",
+          "gtfsStopName": "Erindale GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-streetsville",
+          "stationId": "streetsville",
+          "name": "Streetsville",
+          "network": "regional",
+          "lineIds": [
+            "regional-mi"
+          ],
+          "coordinates": [
+            -79.70882,
+            43.575584
+          ],
+          "gtfsStopId": "SR",
+          "gtfsStopName": "Streetsville GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-meadowvale",
+          "stationId": "meadowvale",
+          "name": "Meadowvale",
+          "network": "regional",
+          "lineIds": [
+            "regional-mi"
+          ],
+          "coordinates": [
+            -79.754328,
+            43.597566
+          ],
+          "gtfsStopId": "ME",
+          "gtfsStopName": "Meadowvale GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-lisgar",
+          "stationId": "lisgar",
+          "name": "Lisgar",
+          "network": "regional",
+          "lineIds": [
+            "regional-mi"
+          ],
+          "coordinates": [
+            -79.788539,
+            43.590791
+          ],
+          "gtfsStopId": "LS",
+          "gtfsStopName": "Lisgar GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-milton",
+          "stationId": "milton",
+          "name": "Milton",
+          "network": "regional",
+          "lineIds": [
+            "regional-mi"
+          ],
+          "coordinates": [
+            -79.867172,
+            43.52364
+          ],
+          "gtfsStopId": "ML",
+          "gtfsStopName": "Milton GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-oriole",
+          "stationId": "oriole",
+          "name": "Oriole",
+          "network": "regional",
+          "lineIds": [
+            "regional-rh"
+          ],
+          "coordinates": [
+            -79.364275,
+            43.765518
+          ],
+          "gtfsStopId": "OR",
+          "gtfsStopName": "Oriole GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-old-cummer",
+          "stationId": "old-cummer",
+          "name": "Old Cummer",
+          "network": "regional",
+          "lineIds": [
+            "regional-rh"
+          ],
+          "coordinates": [
+            -79.371403,
+            43.793703
+          ],
+          "gtfsStopId": "OL",
+          "gtfsStopName": "Old Cummer GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-langstaff",
+          "stationId": "langstaff",
+          "name": "Langstaff",
+          "network": "regional",
+          "lineIds": [
+            "regional-rh"
+          ],
+          "coordinates": [
+            -79.423139,
+            43.838546
+          ],
+          "gtfsStopId": "LA",
+          "gtfsStopName": "Langstaff GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-richmond-hill",
+          "stationId": "richmond-hill",
+          "name": "Richmond Hill",
+          "network": "regional",
+          "lineIds": [
+            "regional-rh"
+          ],
+          "coordinates": [
+            -79.426167,
+            43.874307
+          ],
+          "gtfsStopId": "RI",
+          "gtfsStopName": "Richmond Hill GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-gormley",
+          "stationId": "gormley",
+          "name": "Gormley",
+          "network": "regional",
+          "lineIds": [
+            "regional-rh"
+          ],
+          "coordinates": [
+            -79.399033,
+            43.941617
+          ],
+          "gtfsStopId": "GO",
+          "gtfsStopName": "Gormley GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-bloomington",
+          "stationId": "bloomington",
+          "name": "Bloomington",
+          "network": "regional",
+          "lineIds": [
+            "regional-rh"
+          ],
+          "coordinates": [
+            -79.397258,
+            43.975949
+          ],
+          "gtfsStopId": "BM",
+          "gtfsStopName": "Bloomington GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-kennedy",
+          "stationId": "kennedy",
+          "name": "Kennedy",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.262706,
+            43.733045
+          ],
+          "gtfsStopId": "KE",
+          "gtfsStopName": "Kennedy GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-agincourt",
+          "stationId": "agincourt",
+          "name": "Agincourt",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.284385,
+            43.78611
+          ],
+          "gtfsStopId": "AG",
+          "gtfsStopName": "Agincourt GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-milliken",
+          "stationId": "milliken",
+          "name": "Milliken",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.301785,
+            43.823227
+          ],
+          "gtfsStopId": "MK",
+          "gtfsStopName": "Milliken GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-unionville",
+          "stationId": "unionville",
+          "name": "Unionville",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.314332,
+            43.851689
+          ],
+          "gtfsStopId": "UI",
+          "gtfsStopName": "Unionville GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-centennial",
+          "stationId": "centennial",
+          "name": "Centennial",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.289211,
+            43.873601
+          ],
+          "gtfsStopId": "CE",
+          "gtfsStopName": "Centennial GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-markham",
+          "stationId": "markham",
+          "name": "Markham",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.262469,
+            43.882691
+          ],
+          "gtfsStopId": "MR",
+          "gtfsStopName": "Markham GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-mount-joy",
+          "stationId": "mount-joy",
+          "name": "Mount Joy",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.26313,
+            43.900521
+          ],
+          "gtfsStopId": "MJ",
+          "gtfsStopName": "Mount Joy GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-stouffville",
+          "stationId": "stouffville",
+          "name": "Stouffville",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.249989,
+            43.970924
+          ],
+          "gtfsStopId": "ST",
+          "gtfsStopName": "Stouffville GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-old-elm",
+          "stationId": "old-elm",
+          "name": "Old Elm",
+          "network": "regional",
+          "lineIds": [
+            "regional-st"
+          ],
+          "coordinates": [
+            -79.237098,
+            43.990395
+          ],
+          "gtfsStopId": "LI",
+          "gtfsStopName": "Old Elm GO",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        },
+        {
+          "id": "station-regional-pearson-airport",
+          "stationId": "pearson-airport",
+          "name": "Pearson Airport",
+          "network": "regional",
+          "lineIds": [
+            "regional-up"
+          ],
+          "coordinates": [
+            -79.6132584,
+            43.6821671
+          ],
+          "gtfsStopId": "PA",
+          "gtfsStopName": "Pearson Airport Terminal 1",
+          "gtfsLocationType": "0",
+          "provenance": "Metrolinx GO GTFS stops.txt"
+        }
+      ],
+      "links": [
+        {
+          "id": "link-segment-br-union-downsview-park",
+          "segmentId": "segment-br-union-downsview-park",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "union",
+          "stationBId": "downsview-park",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-downsview-park-rutherford",
+          "segmentId": "segment-br-downsview-park-rutherford",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "downsview-park",
+          "stationBId": "rutherford",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-rutherford-maple",
+          "segmentId": "segment-br-rutherford-maple",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "rutherford",
+          "stationBId": "maple",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-maple-king-city",
+          "segmentId": "segment-br-maple-king-city",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "maple",
+          "stationBId": "king-city",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-king-city-aurora",
+          "segmentId": "segment-br-king-city-aurora",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "king-city",
+          "stationBId": "aurora",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-aurora-newmarket",
+          "segmentId": "segment-br-aurora-newmarket",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "aurora",
+          "stationBId": "newmarket",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-newmarket-east-gwillimbury",
+          "segmentId": "segment-br-newmarket-east-gwillimbury",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "newmarket",
+          "stationBId": "east-gwillimbury",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-east-gwillimbury-bradford",
+          "segmentId": "segment-br-east-gwillimbury-bradford",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "east-gwillimbury",
+          "stationBId": "bradford",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-bradford-barrie-south",
+          "segmentId": "segment-br-bradford-barrie-south",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "bradford",
+          "stationBId": "barrie-south",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-br-barrie-south-allandale-waterfront",
+          "segmentId": "segment-br-barrie-south-allandale-waterfront",
+          "lineId": "regional-br",
+          "routeCode": "BR",
+          "network": "regional",
+          "stationAId": "barrie-south",
+          "stationBId": "allandale-waterfront",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-union-bloor",
+          "segmentId": "segment-ki-union-bloor",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "union",
+          "stationBId": "bloor",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-bloor-mount-dennis",
+          "segmentId": "segment-ki-bloor-mount-dennis",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "bloor",
+          "stationBId": "mount-dennis",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-mount-dennis-weston",
+          "segmentId": "segment-ki-mount-dennis-weston",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "mount-dennis",
+          "stationBId": "weston",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-weston-etobicoke-north",
+          "segmentId": "segment-ki-weston-etobicoke-north",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "weston",
+          "stationBId": "etobicoke-north",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-etobicoke-north-malton",
+          "segmentId": "segment-ki-etobicoke-north-malton",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "etobicoke-north",
+          "stationBId": "malton",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-malton-bramalea",
+          "segmentId": "segment-ki-malton-bramalea",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "malton",
+          "stationBId": "bramalea",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-bramalea-brampton-innovation-district",
+          "segmentId": "segment-ki-bramalea-brampton-innovation-district",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "bramalea",
+          "stationBId": "brampton-innovation-district",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-brampton-innovation-district-mount-pleasant",
+          "segmentId": "segment-ki-brampton-innovation-district-mount-pleasant",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "brampton-innovation-district",
+          "stationBId": "mount-pleasant",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-mount-pleasant-georgetown",
+          "segmentId": "segment-ki-mount-pleasant-georgetown",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "mount-pleasant",
+          "stationBId": "georgetown",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-georgetown-acton",
+          "segmentId": "segment-ki-georgetown-acton",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "georgetown",
+          "stationBId": "acton",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-acton-guelph-central",
+          "segmentId": "segment-ki-acton-guelph-central",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "acton",
+          "stationBId": "guelph-central",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-guelph-central-kitchener",
+          "segmentId": "segment-ki-guelph-central-kitchener",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "guelph-central",
+          "stationBId": "kitchener",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-ki-kitchener-stratford",
+          "segmentId": "segment-ki-kitchener-stratford",
+          "lineId": "regional-ki",
+          "routeCode": "KI",
+          "network": "regional",
+          "stationAId": "kitchener",
+          "stationBId": "stratford",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-union-danforth",
+          "segmentId": "segment-le-union-danforth",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "union",
+          "stationBId": "danforth",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-danforth-scarborough",
+          "segmentId": "segment-le-danforth-scarborough",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "danforth",
+          "stationBId": "scarborough",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-scarborough-eglinton",
+          "segmentId": "segment-le-scarborough-eglinton",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "scarborough",
+          "stationBId": "eglinton",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-eglinton-guildwood",
+          "segmentId": "segment-le-eglinton-guildwood",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "eglinton",
+          "stationBId": "guildwood",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-guildwood-rouge-hill",
+          "segmentId": "segment-le-guildwood-rouge-hill",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "guildwood",
+          "stationBId": "rouge-hill",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-rouge-hill-pickering",
+          "segmentId": "segment-le-rouge-hill-pickering",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "rouge-hill",
+          "stationBId": "pickering",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-pickering-ajax",
+          "segmentId": "segment-le-pickering-ajax",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "pickering",
+          "stationBId": "ajax",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-ajax-whitby",
+          "segmentId": "segment-le-ajax-whitby",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "ajax",
+          "stationBId": "whitby",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-le-whitby-durham-college-oshawa",
+          "segmentId": "segment-le-whitby-durham-college-oshawa",
+          "lineId": "regional-le",
+          "routeCode": "LE",
+          "network": "regional",
+          "stationAId": "whitby",
+          "stationBId": "durham-college-oshawa",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-union-exhibition",
+          "segmentId": "segment-lw-union-exhibition",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "union",
+          "stationBId": "exhibition",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-exhibition-mimico",
+          "segmentId": "segment-lw-exhibition-mimico",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "exhibition",
+          "stationBId": "mimico",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-mimico-long-branch",
+          "segmentId": "segment-lw-mimico-long-branch",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "mimico",
+          "stationBId": "long-branch",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-long-branch-port-credit",
+          "segmentId": "segment-lw-long-branch-port-credit",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "long-branch",
+          "stationBId": "port-credit",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-port-credit-clarkson",
+          "segmentId": "segment-lw-port-credit-clarkson",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "port-credit",
+          "stationBId": "clarkson",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-clarkson-oakville",
+          "segmentId": "segment-lw-clarkson-oakville",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "clarkson",
+          "stationBId": "oakville",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-oakville-bronte",
+          "segmentId": "segment-lw-oakville-bronte",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "oakville",
+          "stationBId": "bronte",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-bronte-appleby",
+          "segmentId": "segment-lw-bronte-appleby",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "bronte",
+          "stationBId": "appleby",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-appleby-burlington",
+          "segmentId": "segment-lw-appleby-burlington",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "appleby",
+          "stationBId": "burlington",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-burlington-aldershot",
+          "segmentId": "segment-lw-burlington-aldershot",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "burlington",
+          "stationBId": "aldershot",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-aldershot-west-harbour",
+          "segmentId": "segment-lw-aldershot-west-harbour",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "aldershot",
+          "stationBId": "west-harbour",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-aldershot-hamilton",
+          "segmentId": "segment-lw-aldershot-hamilton",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "aldershot",
+          "stationBId": "hamilton",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-west-harbour-confederation",
+          "segmentId": "segment-lw-west-harbour-confederation",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "west-harbour",
+          "stationBId": "confederation",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-confederation-st-catharines",
+          "segmentId": "segment-lw-confederation-st-catharines",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "confederation",
+          "stationBId": "st-catharines",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-lw-st-catharines-niagara-falls",
+          "segmentId": "segment-lw-st-catharines-niagara-falls",
+          "lineId": "regional-lw",
+          "routeCode": "LW",
+          "network": "regional",
+          "stationAId": "st-catharines",
+          "stationBId": "niagara-falls",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-mi-union-kipling",
+          "segmentId": "segment-mi-union-kipling",
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "network": "regional",
+          "stationAId": "union",
+          "stationBId": "kipling",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-mi-kipling-dixie",
+          "segmentId": "segment-mi-kipling-dixie",
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "network": "regional",
+          "stationAId": "kipling",
+          "stationBId": "dixie",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-mi-dixie-cooksville",
+          "segmentId": "segment-mi-dixie-cooksville",
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "network": "regional",
+          "stationAId": "dixie",
+          "stationBId": "cooksville",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-mi-cooksville-erindale",
+          "segmentId": "segment-mi-cooksville-erindale",
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "network": "regional",
+          "stationAId": "cooksville",
+          "stationBId": "erindale",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-mi-erindale-streetsville",
+          "segmentId": "segment-mi-erindale-streetsville",
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "network": "regional",
+          "stationAId": "erindale",
+          "stationBId": "streetsville",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-mi-streetsville-meadowvale",
+          "segmentId": "segment-mi-streetsville-meadowvale",
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "network": "regional",
+          "stationAId": "streetsville",
+          "stationBId": "meadowvale",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-mi-meadowvale-lisgar",
+          "segmentId": "segment-mi-meadowvale-lisgar",
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "network": "regional",
+          "stationAId": "meadowvale",
+          "stationBId": "lisgar",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-mi-lisgar-milton",
+          "segmentId": "segment-mi-lisgar-milton",
+          "lineId": "regional-mi",
+          "routeCode": "MI",
+          "network": "regional",
+          "stationAId": "lisgar",
+          "stationBId": "milton",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-rh-union-oriole",
+          "segmentId": "segment-rh-union-oriole",
+          "lineId": "regional-rh",
+          "routeCode": "RH",
+          "network": "regional",
+          "stationAId": "union",
+          "stationBId": "oriole",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-rh-oriole-old-cummer",
+          "segmentId": "segment-rh-oriole-old-cummer",
+          "lineId": "regional-rh",
+          "routeCode": "RH",
+          "network": "regional",
+          "stationAId": "oriole",
+          "stationBId": "old-cummer",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-rh-old-cummer-langstaff",
+          "segmentId": "segment-rh-old-cummer-langstaff",
+          "lineId": "regional-rh",
+          "routeCode": "RH",
+          "network": "regional",
+          "stationAId": "old-cummer",
+          "stationBId": "langstaff",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-rh-langstaff-richmond-hill",
+          "segmentId": "segment-rh-langstaff-richmond-hill",
+          "lineId": "regional-rh",
+          "routeCode": "RH",
+          "network": "regional",
+          "stationAId": "langstaff",
+          "stationBId": "richmond-hill",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-rh-richmond-hill-gormley",
+          "segmentId": "segment-rh-richmond-hill-gormley",
+          "lineId": "regional-rh",
+          "routeCode": "RH",
+          "network": "regional",
+          "stationAId": "richmond-hill",
+          "stationBId": "gormley",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-rh-gormley-bloomington",
+          "segmentId": "segment-rh-gormley-bloomington",
+          "lineId": "regional-rh",
+          "routeCode": "RH",
+          "network": "regional",
+          "stationAId": "gormley",
+          "stationBId": "bloomington",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-union-kennedy",
+          "segmentId": "segment-st-union-kennedy",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "union",
+          "stationBId": "kennedy",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-kennedy-agincourt",
+          "segmentId": "segment-st-kennedy-agincourt",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "kennedy",
+          "stationBId": "agincourt",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-agincourt-milliken",
+          "segmentId": "segment-st-agincourt-milliken",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "agincourt",
+          "stationBId": "milliken",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-milliken-unionville",
+          "segmentId": "segment-st-milliken-unionville",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "milliken",
+          "stationBId": "unionville",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-unionville-centennial",
+          "segmentId": "segment-st-unionville-centennial",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "unionville",
+          "stationBId": "centennial",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-centennial-markham",
+          "segmentId": "segment-st-centennial-markham",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "centennial",
+          "stationBId": "markham",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-markham-mount-joy",
+          "segmentId": "segment-st-markham-mount-joy",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "markham",
+          "stationBId": "mount-joy",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-mount-joy-stouffville",
+          "segmentId": "segment-st-mount-joy-stouffville",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "mount-joy",
+          "stationBId": "stouffville",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-st-stouffville-old-elm",
+          "segmentId": "segment-st-stouffville-old-elm",
+          "lineId": "regional-st",
+          "routeCode": "ST",
+          "network": "regional",
+          "stationAId": "stouffville",
+          "stationBId": "old-elm",
+          "coverageStatus": "verified",
+          "source": "go"
+        },
+        {
+          "id": "link-segment-up-union-bloor",
+          "segmentId": "segment-up-union-bloor",
+          "lineId": "regional-up",
+          "routeCode": "UP",
+          "network": "regional",
+          "stationAId": "union",
+          "stationBId": "bloor",
+          "coverageStatus": "verified",
+          "source": "up"
+        },
+        {
+          "id": "link-segment-up-bloor-mount-dennis",
+          "segmentId": "segment-up-bloor-mount-dennis",
+          "lineId": "regional-up",
+          "routeCode": "UP",
+          "network": "regional",
+          "stationAId": "bloor",
+          "stationBId": "mount-dennis",
+          "coverageStatus": "verified",
+          "source": "up"
+        },
+        {
+          "id": "link-segment-up-mount-dennis-weston",
+          "segmentId": "segment-up-mount-dennis-weston",
+          "lineId": "regional-up",
+          "routeCode": "UP",
+          "network": "regional",
+          "stationAId": "mount-dennis",
+          "stationBId": "weston",
+          "coverageStatus": "verified",
+          "source": "up"
+        },
+        {
+          "id": "link-segment-up-weston-pearson-airport",
+          "segmentId": "segment-up-weston-pearson-airport",
+          "lineId": "regional-up",
+          "routeCode": "UP",
+          "network": "regional",
+          "stationAId": "weston",
+          "stationBId": "pearson-airport",
+          "coverageStatus": "verified",
+          "source": "up"
+        }
+      ],
+      "coverageGaps": []
+    }
+  },
+  "retiredAndFutureScopeNotes": [
+    {
+      "routeId": "line-3",
+      "name": "Scarborough RT",
+      "status": "retired",
+      "note": "Permanently decommissioned August 2023. Parent stops exist in TTC stops.txt (Ellesmere 14592, Scarborough Centre 43297, Lawrence East 43296, Midland 14596, McCowan 14576) but carry 0 active scheduled trips or shapes. Excluded from active dashboard and geographic map."
+    },
+    {
+      "routeId": "line-5",
+      "name": "Eglinton Crosstown",
+      "status": "published_pre_revenue",
+      "note": "Included in TTC GTFS with 25 parent stations, 24 adjacent links, and 5 distinct shapes. 1330 trips scheduled. Verified 100% covered."
+    },
+    {
+      "routeId": "line-6",
+      "name": "Finch West",
+      "status": "published_pre_revenue",
+      "note": "Included in TTC GTFS with 18 parent stations, 17 adjacent links, and 5 distinct shapes. 1118 trips scheduled. Verified 100% covered."
+    }
+  ]
+}

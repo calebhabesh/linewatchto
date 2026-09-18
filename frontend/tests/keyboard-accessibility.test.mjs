@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const stationSearchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
+const squishSwitchSource = readFileSync(new URL("../src/components/SquishSwitch.jsx", import.meta.url), "utf8");
 
 describe("keyboard accessibility source", () => {
   it("manages hamburger menu focus and arrow-key movement", () => {
@@ -23,8 +24,11 @@ describe("keyboard accessibility source", () => {
     assert.match(shellSource, /event\.key === "Home"/);
     assert.match(shellSource, /event\.key === "End"/);
     assert.match(shellSource, /aria-current=\{activeView === "alerts" \? "page" : undefined\}/);
-    assert.match(shellSource, /aria-checked=\{highContrast\}/);
-    assert.match(shellSource, /aria-checked=\{reducedMotion\}/);
+    assert.match(shellSource, /<SquishSwitch[\s\S]*?role="menuitemcheckbox"[\s\S]*?checked=\{highContrast\}/);
+    assert.match(shellSource, /<SquishSwitch[\s\S]*?role="menuitemcheckbox"[\s\S]*?checked=\{reducedMotion\}/);
+    assert.match(squishSwitchSource, /role=\{role\}/);
+    assert.match(squishSwitchSource, /aria-checked=\{on\}/);
+    assert.match(squishSwitchSource, /ref=\{forwardedRef\}/);
   });
 
   it("keeps station search and legend controls explicitly keyboard accessible", () => {

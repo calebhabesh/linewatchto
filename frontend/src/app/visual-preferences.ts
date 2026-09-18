@@ -1,6 +1,7 @@
 import type { NetworkId } from "./regional-data";
 
 export type LineWatchThemePreference = "dark" | "light";
+export type MapViewPreference = "diagram" | "geographic";
 
 export type VisualPreferences = {
   theme: LineWatchThemePreference;
@@ -9,6 +10,7 @@ export type VisualPreferences = {
   estimatedTrainsEnabled: boolean;
   dotBackgroundEnabled: boolean;
   defaultNetwork: NetworkId;
+  mapView: MapViewPreference;
 };
 
 export type InitialVisualPreferences = VisualPreferences & {
@@ -22,6 +24,7 @@ export type StoredVisualPreferences = {
   estimatedTrainsEnabled: boolean | null;
   dotBackgroundEnabled: boolean | null;
   defaultNetwork: NetworkId | null;
+  mapView: MapViewPreference | null;
 };
 
 export type VisualPreferencesToPersist = Omit<VisualPreferences, "reducedMotion"> & {
@@ -40,6 +43,7 @@ export const visualPreferenceStorageKeys = {
   estimatedTrainsEnabled: "linewatch-estimated-trains-enabled-v1",
   dotBackgroundEnabled: "linewatch-dot-background-enabled-v1",
   defaultNetwork: "linewatch-default-network-v1",
+  mapView: "linewatch-map-view-v1",
 } as const;
 
 export const defaultVisualPreferences: InitialVisualPreferences = {
@@ -50,6 +54,7 @@ export const defaultVisualPreferences: InitialVisualPreferences = {
   estimatedTrainsEnabled: false,
   dotBackgroundEnabled: true,
   defaultNetwork: "ttc",
+  mapView: "diagram",
 };
 
 function readStorageValue(storage: PreferenceStorage, key: string) {
@@ -88,6 +93,11 @@ function readStoredNetwork(value: string | null): NetworkId | null {
   return null;
 }
 
+function readStoredMapView(value: string | null): MapViewPreference | null {
+  if (value === "diagram" || value === "geographic") return value;
+  return null;
+}
+
 function normalizeCookieRecord(value: unknown): Partial<VisualPreferencesToPersist> {
   if (!value || typeof value !== "object") {
     return {};
@@ -101,6 +111,7 @@ function normalizeCookieRecord(value: unknown): Partial<VisualPreferencesToPersi
     estimatedTrainsEnabled: typeof record.estimatedTrainsEnabled === "boolean" ? record.estimatedTrainsEnabled : undefined,
     dotBackgroundEnabled: typeof record.dotBackgroundEnabled === "boolean" ? record.dotBackgroundEnabled : undefined,
     defaultNetwork: readStoredNetwork(typeof record.defaultNetwork === "string" ? record.defaultNetwork : null) ?? undefined,
+    mapView: readStoredMapView(typeof record.mapView === "string" ? record.mapView : null) ?? undefined,
   };
 }
 
@@ -112,6 +123,7 @@ export function readVisualPreferencesFromStorage(storage: PreferenceStorage): St
     estimatedTrainsEnabled: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.estimatedTrainsEnabled)),
     dotBackgroundEnabled: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.dotBackgroundEnabled)),
     defaultNetwork: readStoredNetwork(readStorageValue(storage, visualPreferenceStorageKeys.defaultNetwork)),
+    mapView: readStoredMapView(readStorageValue(storage, visualPreferenceStorageKeys.mapView)),
   };
 }
 
@@ -126,6 +138,7 @@ export function writeVisualPreferencesToStorage(storage: PreferenceStorage, pref
   writeStorageValue(storage, visualPreferenceStorageKeys.estimatedTrainsEnabled, preferences.estimatedTrainsEnabled ? "true" : "false");
   writeStorageValue(storage, visualPreferenceStorageKeys.dotBackgroundEnabled, preferences.dotBackgroundEnabled ? "true" : "false");
   writeStorageValue(storage, visualPreferenceStorageKeys.defaultNetwork, preferences.defaultNetwork);
+  writeStorageValue(storage, visualPreferenceStorageKeys.mapView, preferences.mapView);
 }
 
 export function resolveReducedMotionPreference(storedPreference: boolean | null, systemPrefersReducedMotion: boolean) {
@@ -149,6 +162,7 @@ export function initialVisualPreferencesFromCookie(cookieValue: string | undefin
       estimatedTrainsEnabled: normalized.estimatedTrainsEnabled ?? defaultVisualPreferences.estimatedTrainsEnabled,
       dotBackgroundEnabled: normalized.dotBackgroundEnabled ?? defaultVisualPreferences.dotBackgroundEnabled,
       defaultNetwork: normalized.defaultNetwork ?? defaultVisualPreferences.defaultNetwork,
+      mapView: normalized.mapView ?? defaultVisualPreferences.mapView,
     };
   } catch {
     return defaultVisualPreferences;
@@ -162,6 +176,7 @@ export function buildVisualPreferencesCookie(preferences: VisualPreferencesToPer
     estimatedTrainsEnabled: preferences.estimatedTrainsEnabled,
     dotBackgroundEnabled: preferences.dotBackgroundEnabled,
     defaultNetwork: preferences.defaultNetwork,
+    mapView: preferences.mapView,
   };
   if (preferences.reducedMotion !== null) {
     payload.reducedMotion = preferences.reducedMotion;
