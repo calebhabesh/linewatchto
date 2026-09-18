@@ -253,4 +253,17 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /pointerdown/);
     assert.match(guideSource, /site-guide-backdrop/);
   });
+
+  it("renders the blue info button in the desktop map utility cluster beside the theme toggle", () => {
+    const currentShellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    const guideSource = readFileSync(guideComponentUrl, "utf8");
+
+    assert.match(
+      currentShellSource,
+      /className="theme-toggle-btn[\s\S]*?\{!isMobile && \(\s*<SiteGuideDropdown\s+open=\{guideOpen\}\s+onOpenChange=\{setGuideOpen\}\s*\/>\s*\)/,
+    );
+    assert.match(guideSource, /className="site-guide-trigger panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl shadow-lg/);
+    assert.match(guideSource, /title="Open site guide"/);
+    assert.match(guideSource, /data-menu-attention=\{/);
+  });
 });

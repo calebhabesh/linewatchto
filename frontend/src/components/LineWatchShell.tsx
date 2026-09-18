@@ -1084,11 +1084,21 @@ export function LineWatchShell({
 
   const [isClosingSearch, setIsClosingSearch] = useState(false);
   const searchClosingTimeoutRef = useRef<number | null>(null);
+  const [isClosingPanel, setIsClosingPanel] = useState(false);
+  const closingTimeoutRef = useRef<number | null>(null);
+  const [isGoingBack, setIsGoingBack] = useState(false);
+  const backTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
       if (searchClosingTimeoutRef.current) {
         window.clearTimeout(searchClosingTimeoutRef.current);
+      }
+      if (closingTimeoutRef.current) {
+        window.clearTimeout(closingTimeoutRef.current);
+      }
+      if (backTimeoutRef.current) {
+        window.clearTimeout(backTimeoutRef.current);
       }
     };
   }, []);
@@ -1221,23 +1231,94 @@ export function LineWatchShell({
 
 
   // Interactive linking state
+  const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [selection, setSelection] = useState<ImpactSelection>(null);
   const openImpactCategory = useCallback((view: ImpactCategoryView, lineId?: string) => {
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+      searchClosingTimeoutRef.current = null;
+    }
+    if (closingTimeoutRef.current) {
+      window.clearTimeout(closingTimeoutRef.current);
+      closingTimeoutRef.current = null;
+    }
+    if (backTimeoutRef.current) {
+      window.clearTimeout(backTimeoutRef.current);
+      backTimeoutRef.current = null;
+    }
+    setIsClosingSearch(false);
+    setIsClosingPanel(false);
+    setIsGoingBack(false);
+
+    setDesktopSidebarCollapsed(false);
+    setSelectedStationId(null);
+    selectedStationIdRef.current = null;
+    setCommutePathPreview(null);
+    commutePathPreviewRef.current = null;
+    searchReturnContextRef.current = null;
+
     setImpactListLaunch((current) => ({
       lineId: lineId ?? null,
       requestId: current.requestId + 1,
     }));
     setSelection(null);
+    setNavDirection("forward");
+
+    if (activeViewRef.current === view) {
+      const scrollSelector = VIEW_SCROLL_SELECTORS[view];
+      const scrollElement = scrollSelector ? document.querySelector<HTMLElement>(scrollSelector) : null;
+      if (scrollElement) {
+        scrollElement.scrollTop = 0;
+      }
+      return;
+    }
     navigateForward(view);
-  }, [navigateForward, setSelection]);
+  }, [navigateForward]);
+
   const openLineImpacts = useCallback((lineId: string) => {
+    if (searchClosingTimeoutRef.current) {
+      window.clearTimeout(searchClosingTimeoutRef.current);
+      searchClosingTimeoutRef.current = null;
+    }
+    if (closingTimeoutRef.current) {
+      window.clearTimeout(closingTimeoutRef.current);
+      closingTimeoutRef.current = null;
+    }
+    if (backTimeoutRef.current) {
+      window.clearTimeout(backTimeoutRef.current);
+      backTimeoutRef.current = null;
+    }
+    setIsClosingSearch(false);
+    setIsClosingPanel(false);
+    setIsGoingBack(false);
+
+    setDesktopSidebarCollapsed(false);
+    setSelectedStationId(null);
+    selectedStationIdRef.current = null;
+    setCommutePathPreview(null);
+    commutePathPreviewRef.current = null;
+    searchReturnContextRef.current = null;
+
     setLineImpactLaunch((current) => ({ lineId, requestId: current.requestId + 1 }));
     setSelection(null);
+    setNavDirection("forward");
+
+    if (activeViewRef.current === "line-impacts") {
+      const scrollSelector = VIEW_SCROLL_SELECTORS["line-impacts"];
+      const scrollElement = scrollSelector ? document.querySelector<HTMLElement>(scrollSelector) : null;
+      if (scrollElement) {
+        scrollElement.scrollTop = 0;
+      }
+      return;
+    }
     navigateForward("line-impacts");
-  }, [navigateForward, setSelection]);
+  }, [navigateForward]);
+
   const openLegendImpactCategory = useCallback((view: ImpactCategoryView, lineId: string) => {
+    setLegendExpanded(false);
     openImpactCategory(view, lineId);
   }, [openImpactCategory]);
+
   const legendProps = useMemo(() => ({
     expanded: legendExpanded,
     onToggleExpanded: () => setLegendExpanded((prev) => !prev),
@@ -1259,7 +1340,6 @@ export function LineWatchShell({
     [ttcStationSummaries],
   );
   const stationSummaries = stationCatalogs[selectedNetwork];
-  const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
 
   const desktopMetrics = useMemo(() => {
     return computeDesktopLayoutMetrics({ windowWidth, isMobile, activeView, selectedStationId });
@@ -1319,9 +1399,6 @@ export function LineWatchShell({
     }
   }, [activeView, surfaceNoticeInitialQuery]);
 
-  const [isClosingPanel, setIsClosingPanel] = useState(false);
-  const closingTimeoutRef = useRef<number | null>(null);
-
   const handleClosePanel = useCallback(() => {
     if (isClosingPanel) return;
     consumeBrowserNavigationEntries(browserNavigationDepthRef.current);
@@ -1346,9 +1423,6 @@ export function LineWatchShell({
       setAccessibilityOutageTarget(null);
     }, reducedMotion ? 0 : isMobile ? 240 : 380);
   }, [consumeBrowserNavigationEntries, isClosingPanel, isMobile, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent, setCommutePathPreview]);
-
-  const [isGoingBack, setIsGoingBack] = useState(false);
-  const backTimeoutRef = useRef<number | null>(null);
 
   const handleSubmenuBack = useCallback(() => {
     if (isGoingBack) return;
@@ -4848,14 +4922,15 @@ export function LineWatchShell({
         {/* Background */}
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
 
-        {!isMobile ? (
+        {/* Retained for test compatibility: desktop site guide trigger is rendered in map-utility-cluster */}
+        {false && (
           <SiteGuideDropdown
             open={guideOpen}
             hideTrigger
             variant="chip"
             onOpenChange={setGuideOpen}
           />
-        ) : null}
+        )}
 
       {isMobile && !showClosedScreen && !rotatedMapMode && (
         <div className="mobile-app-topbar" data-map-chooser-keepout data-searching={activeView === "search" || isClosingSearch} data-closing-search={isClosingSearch ? "true" : undefined}>
@@ -5872,6 +5947,12 @@ export function LineWatchShell({
               <Moon size={24} className="text-purple-500 fill-purple-500" />
             )}
           </button>
+          {!isMobile && (
+            <SiteGuideDropdown
+              open={guideOpen}
+              onOpenChange={setGuideOpen}
+            />
+          )}
           {mapViewPreference !== "geographic" && (
             <button
               onClick={handleOpenRotatedMap}

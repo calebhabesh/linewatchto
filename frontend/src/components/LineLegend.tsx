@@ -109,6 +109,7 @@ export function LineLegend({
     if (alertCount > 0) {
       buttons.push(
         <button
+          type="button"
           key="alert"
           onClick={(e) => {
             e.stopPropagation();
@@ -129,6 +130,7 @@ export function LineLegend({
     if (delayCount > 0) {
       buttons.push(
         <button
+          type="button"
           key="delay"
           onClick={(e) => {
             e.stopPropagation();
@@ -149,6 +151,7 @@ export function LineLegend({
     if (rszCount > 0) {
       buttons.push(
         <button
+          type="button"
           key="rsz"
           onClick={(e) => {
             e.stopPropagation();
@@ -169,6 +172,7 @@ export function LineLegend({
     if (closureCount > 0) {
       buttons.push(
         <button
+          type="button"
           key="closure"
           onClick={(e) => {
             e.stopPropagation();
@@ -294,8 +298,12 @@ export function LineLegend({
 
         {isRegional ? (
           <span
-            className={`desktop-legend-route-badge desktop-legend-route-badge--regional service-tone-${tone} shrink-0`}
+            className={`desktop-legend-route-badge desktop-legend-route-badge--regional service-tone-${tone} shrink-0 cursor-pointer pointer-events-auto`}
             aria-hidden="true"
+            onClick={(event) => {
+              event.stopPropagation();
+              onLineClick(dataLineId);
+            }}
           >
             <span
               className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] text-[18px] font-extrabold leading-none text-white opacity-95"
@@ -307,9 +315,13 @@ export function LineLegend({
           </span>
         ) : (
           <span
-            className={`desktop-legend-route-badge desktop-legend-route-badge--ttc service-tone-${tone} opacity-95 shrink-0`}
+            className={`desktop-legend-route-badge desktop-legend-route-badge--ttc service-tone-${tone} opacity-95 shrink-0 cursor-pointer pointer-events-auto`}
             style={ttcBadgeStyle}
             aria-hidden="true"
+            onClick={(event) => {
+              event.stopPropagation();
+              onLineClick(dataLineId);
+            }}
           >
             <span className="desktop-legend-route-number">{line.number}</span>
           </span>

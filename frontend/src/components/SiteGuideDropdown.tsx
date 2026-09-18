@@ -577,6 +577,7 @@ export function SiteGuideDropdown({
         aria-controls={panelId}
         aria-expanded={displayedOpen && !isClosing}
         aria-label="Open site guide"
+        title="Open site guide"
         data-menu-attention={(!guideSeen && (!displayedOpen || isClosing)) ? "true" : "false"}
         onClick={handleToggle}
       >
