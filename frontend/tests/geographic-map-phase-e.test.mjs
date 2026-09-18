@@ -228,17 +228,11 @@ test("Phase E: Themes, Basemap Endpoints & High-Contrast Support", async (t) => 
     assert.ok(!OPENFREEMAP_STYLES.dark.includes("?"), "Dark style URL must not have query parameters or tokens");
   });
 
-  await t.test("full attribution discloses required OpenFreeMap, OSM, and transit providers", () => {
+  await t.test("custom attribution discloses required transit providers", () => {
     const ttcAttrib = getGeographicAttribution("ttc");
-    assert.ok(ttcAttrib.includes("OpenFreeMap"), "TTC attribution must mention OpenFreeMap");
-    assert.ok(ttcAttrib.includes("OpenMapTiles"), "TTC attribution must mention OpenMapTiles");
-    assert.ok(ttcAttrib.includes("OpenStreetMap"), "TTC attribution must mention OpenStreetMap");
     assert.ok(ttcAttrib.includes("City of Toronto"), "TTC attribution must disclose City of Toronto");
 
     const regionalAttrib = getGeographicAttribution("regional");
-    assert.ok(regionalAttrib.includes("OpenFreeMap"), "Regional attribution must mention OpenFreeMap");
-    assert.ok(regionalAttrib.includes("OpenMapTiles"), "Regional attribution must mention OpenMapTiles");
-    assert.ok(regionalAttrib.includes("OpenStreetMap"), "Regional attribution must mention OpenStreetMap");
     assert.ok(regionalAttrib.includes("Metrolinx"), "Regional attribution must disclose Metrolinx");
   });
 

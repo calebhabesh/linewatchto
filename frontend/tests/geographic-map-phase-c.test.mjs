@@ -218,10 +218,7 @@ test("Geographic configuration & seam invariants", async (t) => {
     assert.equal(TTC_LINE_COLORS["line-6"], "#969594");
   });
 
-  await t.test("attribution string contains all required attributions", () => {
-    assert.ok(GEOGRAPHIC_ATTRIBUTION.includes("OpenFreeMap"));
-    assert.ok(GEOGRAPHIC_ATTRIBUTION.includes("OpenMapTiles"));
-    assert.ok(GEOGRAPHIC_ATTRIBUTION.includes("OpenStreetMap"));
+  await t.test("attribution string contains transit shapes attribution", () => {
     assert.ok(GEOGRAPHIC_ATTRIBUTION.includes("City of Toronto"));
   });
 });

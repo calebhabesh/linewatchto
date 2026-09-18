@@ -248,7 +248,7 @@ describe("mobile rotated map mode", () => {
   });
 
   it("hides the portrait train toggle while rotated mode is active", () => {
-    assert.match(shellSource, /!showClosedScreen && !rotatedMapMode && \(\s*<button[\s\S]*?className=\{`mobile-train-toggle/);
+    assert.match(shellSource, /!showClosedScreen && !rotatedMapMode && \(\s*<div[\s\S]*?className=\{`mobile-train-toggle[\s\S]*?<SquishSwitch/);
   });
 
   it("passes viewport orientation into the pan zoom hook without rotating map data", () => {

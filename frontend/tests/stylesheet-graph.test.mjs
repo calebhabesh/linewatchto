@@ -375,7 +375,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(desktopChromeContent, /\.desktop-top-chrome/);
     assert.match(desktopChromeContent, /\.desktop-status-capsule-anchor/);
     assert.match(desktopChromeContent, /\.desktop-status-capsule/);
-    assert.match(desktopChromeContent, /\.desktop-status-train-switch/);
     assert.match(desktopChromeContent, /\.desktop-header-impact-chips/);
     assert.match(desktopChromeContent, /\.desktop-status-chip--alerts/);
     assert.match(desktopChromeContent, /\.desktop-status-chip--delays/);
@@ -737,8 +736,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /mini-search-list-slide-in/);
     assert.match(content, /\.station-commute-green-flash/);
     assert.match(content, /station-commute-green-flash-anim/);
-    assert.match(content, /\.saved-commute-switch/);
-    assert.match(content, /\.saved-commute-slider/);
     assert.match(content, /\.saved-commute-return-toggle/);
     assert.match(content, /\.saved-commute-customize-toggle/);
     assert.match(content, /\.saved-commute-notification-summary/);

@@ -16,6 +16,11 @@ test("desktop More restores secondary destinations and opens the site guide", as
   await expect(morePanel.getByRole("button", { name: "Notifications", exact: true })).toBeVisible();
   await expect(morePanel.getByRole("link", { name: "Transit Guides", exact: true })).toHaveAttribute("href", "/explore");
 
+  const highContrastSwitch = morePanel.getByRole("switch", { name: "Toggle high contrast mode" });
+  await expect(highContrastSwitch).toHaveAttribute("aria-checked", "false");
+  await highContrastSwitch.click();
+  await expect(highContrastSwitch).toHaveAttribute("aria-checked", "true");
+
   await morePanel.getByRole("button", { name: "Site Guide", exact: true }).click();
   const guide = page.getByRole("dialog", { name: "LineWatchTO site guide" });
   await expect(guide).toBeVisible();

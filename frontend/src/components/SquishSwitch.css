@@ -87,7 +87,10 @@
 }
 
 .squish-switch__thumb {
+  align-items: center;
   position: absolute;
+  display: flex;
+  justify-content: center;
   top: var(--ss-inset);
   left: 0;
   width: var(--ss-thumb);
@@ -95,6 +98,39 @@
   border-radius: var(--ss-thumb-r);
   background: var(--ss-thumb-color);
   transition: background-color var(--ss-fade) ease;
+}
+
+.squish-switch__thumb > svg {
+  color: var(--squish-switch-thumb-icon, currentColor);
+  flex: 0 0 auto;
+}
+
+.mobile-train-toggle .mobile-train-squish,
+.mobile-train-toggle .mobile-train-squish .squish-switch__track {
+  color: inherit;
+  display: inline-flex;
+  font-size: inherit;
+  letter-spacing: normal;
+  line-height: normal;
+  text-transform: none;
+}
+
+.mobile-train-toggle .mobile-train-squish .squish-switch__thumb {
+  display: flex;
+}
+
+.mobile-train-toggle .mobile-train-squish .squish-switch__thumb > svg {
+  color: #334155;
+  height: 12px;
+  width: 12px;
+}
+
+.mobile-train-toggle .mobile-train-squish .mobile-train-pending-spinner {
+  height: 12px;
+  inset: auto;
+  margin: 0;
+  position: static;
+  width: 12px;
 }
 
 .squish-switch[data-on] .squish-switch__thumb {

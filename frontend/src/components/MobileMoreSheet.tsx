@@ -423,17 +423,17 @@ export function MobileMoreSheet({
           <div className="mobile-more-row mobile-more-toggle-row">
             <Contrast size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <label htmlFor="mobile-high-contrast-switch">High Contrast Mode</label>
-            <SquishSwitch id="mobile-high-contrast-switch" checked={highContrast} ariaLabel="Toggle high contrast mode" className="ml-auto shrink-0" onChange={onToggleHighContrast} />
+            <SquishSwitch id="mobile-high-contrast-switch" checked={highContrast} ariaLabel="High Contrast Mode" className="ml-auto shrink-0" onChange={onToggleHighContrast} />
           </div>
           <div className="mobile-more-row mobile-more-toggle-row">
             <Pause size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <label htmlFor="mobile-reduced-motion-switch">Reduced Motion</label>
-            <SquishSwitch id="mobile-reduced-motion-switch" checked={reducedMotion} ariaLabel="Toggle reduced motion" className="ml-auto shrink-0" onChange={onToggleReducedMotion} />
+            <SquishSwitch id="mobile-reduced-motion-switch" checked={reducedMotion} ariaLabel="Reduced Motion" className="ml-auto shrink-0" onChange={onToggleReducedMotion} />
           </div>
           <div className="mobile-more-row mobile-more-toggle-row">
             <Sparkles size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <label htmlFor="mobile-background-switch">{BACKGROUND_PREFERENCE_LABEL}</label>
-            <SquishSwitch id="mobile-background-switch" checked={dotBackgroundEnabled} ariaLabel={`Toggle ${BACKGROUND_PREFERENCE_LABEL.toLowerCase()}`} className="ml-auto shrink-0" onChange={onToggleDotBackground} />
+            <SquishSwitch id="mobile-background-switch" checked={dotBackgroundEnabled} ariaLabel={BACKGROUND_PREFERENCE_LABEL} className="ml-auto shrink-0" onChange={onToggleDotBackground} />
           </div>
           {/* Note: Live Train Markers toggle has been moved to the map front page on mobile (under the legend). */}
         </div>

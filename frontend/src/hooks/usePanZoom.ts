@@ -976,9 +976,10 @@ export function usePanZoom({
     setUserZoomMotion(true);
     wheelCommitTimeoutRef.current = window.setTimeout(() => {
       wheelCommitTimeoutRef.current = null;
+      restoreIdleMapTransition();
       setUserZoomMotion(false);
     }, 140);
-  }, [setUserZoomMotion]);
+  }, [restoreIdleMapTransition, setUserZoomMotion]);
 
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
@@ -991,7 +992,7 @@ export function usePanZoom({
 
     const current = transformRef.current;
     const newScale = Math.min(current.scale * 1.25, PAN_ZOOM_MAX_RELATIVE_SCALE * fitScale);
-    const scaleRatio = newScale / current.scale;
+    const scaleRatio = current.scale > 0 ? newScale / current.scale : 1;
     const newX = centerX - (centerX - current.x) * scaleRatio;
     const newY = centerY - (centerY - current.y) * scaleRatio;
     scheduleUserZoomMotionEnd();
@@ -1009,7 +1010,7 @@ export function usePanZoom({
 
     const current = transformRef.current;
     const newScale = Math.max(current.scale / 1.25, PAN_ZOOM_MIN_RELATIVE_SCALE * fitScale);
-    const scaleRatio = newScale / current.scale;
+    const scaleRatio = current.scale > 0 ? newScale / current.scale : 1;
     const newX = centerX - (centerX - current.x) * scaleRatio;
     const newY = centerY - (centerY - current.y) * scaleRatio;
     scheduleUserZoomMotionEnd();
@@ -1018,8 +1019,9 @@ export function usePanZoom({
 
   const zoomToScale = useCallback((relativeScale: number) => {
     if (!containerRef.current) return;
-    cancelAnimation();
+    clearProgrammaticAnimation();
     cameraAdjustedByUserRef.current = true;
+    setMapTransition("none");
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const centerX = width / 2;
@@ -1028,12 +1030,20 @@ export function usePanZoom({
 
     const current = transformRef.current;
     const clampedScale = clampPanZoomScale(targetAbsoluteScale, fitScale);
-    const scaleRatio = clampedScale / current.scale;
+    const scaleRatio = current.scale > 0 ? clampedScale / current.scale : 1;
     const newX = centerX - (centerX - current.x) * scaleRatio;
     const newY = centerY - (centerY - current.y) * scaleRatio;
     scheduleUserZoomMotionEnd();
-    commitTransform({ x: newX, y: newY, scale: clampedScale });
-  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize, scheduleUserZoomMotionEnd]);
+    const next = commitTransformRef({ x: newX, y: newY, scale: clampedScale });
+    setTransform(next);
+  }, [
+    clearProgrammaticAnimation,
+    commitTransformRef,
+    fitScale,
+    logicalViewportSize,
+    scheduleUserZoomMotionEnd,
+    setMapTransition,
+  ]);
 
   const zoomToPoint = useCallback((
     mapX: number,

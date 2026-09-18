@@ -18,9 +18,12 @@ export type SquishSwitchProps = {
   hoverScale?: number;
   colorDuration?: number;
   ariaLabel?: string;
+  ariaBusy?: boolean;
   className?: string;
   id?: string;
   role?: AriaRole;
+  thumbContent?: ReactNode;
+  title?: string;
 };
 
 declare const SquishSwitch: ForwardRefExoticComponent<

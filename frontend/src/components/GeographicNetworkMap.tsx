@@ -35,6 +35,8 @@ import {
   getGeographicCenter,
   getGeographicDefaultZoom,
   getGeographicAttribution,
+  GEOGRAPHIC_MIN_ZOOM,
+  GEOGRAPHIC_MAX_ZOOM,
 } from "../app/geographic-config";
 import {
   readGeographicMapViewport,
@@ -131,6 +133,7 @@ export function GeographicNetworkMap({
   const [loadStatus, setLoadStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [currentZoom, setCurrentZoom] = useState<number>(() => getGeographicDefaultZoom(network));
 
   // Internal line filter state when not controlled via props
   const [internalFilteredLineId, setInternalFilteredLineId] = useState<string | null>(null);
@@ -746,12 +749,15 @@ export function GeographicNetworkMap({
           ? ([savedCamera.lng, savedCamera.lat] as [number, number])
           : getGeographicCenter(network);
         const initialZoom = savedCamera ? savedCamera.zoom : getGeographicDefaultZoom(network);
+        setCurrentZoom(initialZoom);
 
         const map = new maplibregl.Map({
           container: containerRef.current,
           style: isDark ? OPENFREEMAP_STYLES.dark : OPENFREEMAP_STYLES.light,
           center: initialCenter,
           zoom: initialZoom,
+          minZoom: GEOGRAPHIC_MIN_ZOOM,
+          maxZoom: GEOGRAPHIC_MAX_ZOOM,
           pitch: 0,
           maxPitch: 0,
           dragRotate: false,
@@ -857,7 +863,14 @@ export function GeographicNetworkMap({
             });
           }
 
-          map.on("moveend", persistCamera);
+          map.on("zoom", () => {
+            setCurrentZoom(map.getZoom());
+          });
+
+          map.on("moveend", () => {
+            setCurrentZoom(map.getZoom());
+            persistCamera();
+          });
 
           setLoadStatus("ready");
           onReady?.();
@@ -1168,6 +1181,25 @@ export function GeographicNetworkMap({
             <ZoomOut size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
             <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
           </button>
+
+          <div className="map-control-slider flex items-center justify-center mx-0.5 sm:mx-1">
+            <input
+              type="range"
+              min={GEOGRAPHIC_MIN_ZOOM}
+              max={GEOGRAPHIC_MAX_ZOOM}
+              step="0.1"
+              value={currentZoom}
+              onChange={(e) => {
+                const targetZoom = parseFloat(e.target.value);
+                setCurrentZoom(targetZoom);
+                mapRef.current?.setZoom(targetZoom);
+              }}
+              className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
+              title="Zoom level"
+              aria-label="Zoom level slider"
+            />
+          </div>
+
           <button
             type="button"
             onClick={() => mapRef.current?.zoomIn({ animate: !reducedMotion })}

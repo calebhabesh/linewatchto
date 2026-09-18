@@ -23,6 +23,8 @@ export const TTC_GEOGRAPHIC_BOUNDS: [[number, number], [number, number]] = [
 
 export const TTC_GEOGRAPHIC_CENTER: [number, number] = [-79.3832, 43.68];
 export const TTC_GEOGRAPHIC_DEFAULT_ZOOM = 11.2;
+export const GEOGRAPHIC_MIN_ZOOM = 7.0;
+export const GEOGRAPHIC_MAX_ZOOM = 17.0;
 export const STATION_FOCUS_ZOOM = 14.2;
 
 export const TTC_LINE_COLORS: Record<string, string> = {
@@ -87,16 +89,10 @@ export const REGIONAL_MAJOR_STATIONS = new Set([
 ]);
 
 export const GEOGRAPHIC_ATTRIBUTION =
-  '<a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> ' +
-  '<a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer">© OpenMapTiles</a> ' +
-  'Data <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a> ' +
-  '| TTC shapes <a href="https://open.toronto.ca/" target="_blank" rel="noopener noreferrer">© City of Toronto</a>';
+  'TTC shapes <a href="https://open.toronto.ca/" target="_blank" rel="noopener noreferrer">© City of Toronto</a>';
 
 export const REGIONAL_GEOGRAPHIC_ATTRIBUTION =
-  '<a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> ' +
-  '<a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer">© OpenMapTiles</a> ' +
-  'Data <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a> ' +
-  '| Regional shapes <a href="https://www.gotransit.com/" target="_blank" rel="noopener noreferrer">© Metrolinx</a>';
+  'Regional shapes <a href="https://www.gotransit.com/" target="_blank" rel="noopener noreferrer">© Metrolinx</a>';
 
 export function getCatalogUrl(network: "ttc" | "regional"): string {
   return network === "regional" ? REGIONAL_CATALOG_URL : TTC_CATALOG_URL;

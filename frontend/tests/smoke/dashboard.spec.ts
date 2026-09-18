@@ -536,7 +536,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(root).not.toHaveAttribute("data-network-transition-direction");
   await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Toggle estimated train markers/ })).toBeVisible();
+  await expect(page.getByRole("switch", { name: /Toggle estimated train markers/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 
   const regionalStage = page.locator(".regional-map-stage");
@@ -1595,7 +1595,7 @@ test("renders regional estimated train markers from the network-scoped endpoint"
   await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
   await expect(page.locator(".regional-estimated-train-marker-layer .estimated-train-marker")).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Toggle estimated train markers/ }).click();
+  await page.getByRole("switch", { name: /Toggle estimated train markers/ }).click();
 
   await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
   const marker = page.locator('[data-marker-key="regional-ki:vehicle:cab-3775"]');
@@ -2753,7 +2753,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await expect(shell).toHaveClass(/mobile-map-rotated/);
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
   await expect(page.locator(".mobile-status-peek")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Toggle estimated train markers/ })).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: /Toggle estimated train markers/ })).toHaveCount(0);
 
   const mainDimensions = await page.locator(".linewatch-shell > main").evaluate((element) => ({
     clientWidth: element.clientWidth,
@@ -5321,7 +5321,7 @@ test("renders and incrementally moves estimated train markers on desktop and mob
   await expect(page.locator(".linewatch-shell")).not.toHaveClass(/motion-paused/);
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Toggle estimated train markers/ }).click();
+  await page.getByRole("switch", { name: /Toggle estimated train markers/ }).click();
 
   const marker = page.locator('[data-train-marker-line-id="line-1"]');
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(1);
@@ -5396,7 +5396,7 @@ test("shows train-marker connection progress until markers return on desktop and
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const toggle = page.getByRole("button", { name: /Toggle estimated train markers/ });
+  const toggle = page.getByRole("switch", { name: /Toggle estimated train markers/ });
   await toggle.click();
   const pendingIndicator = page.locator(isMobile
     ? ".mobile-train-pending-spinner"

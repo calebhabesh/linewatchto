@@ -104,8 +104,6 @@ test("Regional geographic configuration & seam invariants", async (t) => {
     assert.equal(REGIONAL_GEOGRAPHIC_ATTRIBUTION, getGeographicAttribution("regional"));
     const regionalAttr = getGeographicAttribution("regional");
     assert.ok(regionalAttr.includes("Metrolinx"));
-    assert.ok(regionalAttr.includes("OpenFreeMap"));
-    assert.ok(regionalAttr.includes("OpenStreetMap"));
 
     const ttcAttr = getGeographicAttribution("ttc");
     assert.ok(ttcAttr.includes("City of Toronto"));

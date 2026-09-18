@@ -5823,19 +5823,12 @@ export function LineWatchShell({
               <History className="alert-history-shortcut-icon text-emerald-500" size={23} aria-hidden="true" />
             </button>
           )}
-          <button
-            type="button"
-            onClick={handleToggleEstimatedTrains}
-            disabled={!trainNetworkOpen}
+          <div
             className="desktop-train-toggle-btn panel flex items-center gap-3 px-3.5 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-[1.02] active:scale-[0.98] outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] select-none text-left"
-            aria-pressed={estimatedTrainsEnabled}
-            aria-busy={estimatedTrainDisplayPending}
-            aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
-            title={`Estimated Train Markers (${estimatedTrainStatusLabel})`}
           >
             <div className="shrink-0 flex items-center justify-center">
               {estimatedTrainDisplayPending ? (
-                <Loader2 className="animate-spin text-blue-500" size={21} aria-hidden="true" />
+                <Loader2 className="estimated-train-pending-indicator animate-spin text-blue-500" size={21} aria-hidden="true" />
               ) : (
                 <Train
                   size={21}
@@ -5848,21 +5841,26 @@ export function LineWatchShell({
                 />
               )}
             </div>
-            <div className="hidden sm:flex flex-col items-start leading-tight min-w-0 pr-0.5">
+            <label htmlFor="desktop-train-markers-switch" className="hidden sm:flex flex-col items-start leading-tight min-w-0 pr-0.5 cursor-pointer">
               <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
                 Train Markers
               </span>
               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
                 {!trainNetworkOpen ? "Closed" : estimatedTrainStatusLabel ?? (estimatedTrainsEnabled ? "On" : "Off")}
               </span>
-            </div>
-            <div
-              className="desktop-status-train-switch pointer-events-none hidden sm:flex shrink-0"
-              aria-hidden="true"
-            >
-              <span />
-            </div>
-          </button>
+            </label>
+            <SquishSwitch
+              id="desktop-train-markers-switch"
+              checked={estimatedTrainsEnabled}
+              disabled={!trainNetworkOpen}
+              ariaBusy={estimatedTrainDisplayPending}
+              ariaLabel={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
+              className="hidden sm:inline-flex shrink-0"
+              trackOnColor="#10b981"
+              onChange={handleToggleEstimatedTrains}
+              title={`Estimated Train Markers (${estimatedTrainStatusLabel})`}
+            />
+          </div>
           <button
             onClick={handleToggleTheme}
             className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
@@ -6225,36 +6223,32 @@ export function LineWatchShell({
       )}
 
       {!showClosedScreen && !rotatedMapMode && (
-        <button
-          type="button"
-          onClick={handleToggleEstimatedTrains}
-          disabled={!trainNetworkOpen || mapViewPreference === "geographic"}
+        <div
           className={`mobile-train-toggle md:hidden ${
             selectedNetwork === "regional" ? "mobile-train-toggle--regional" : ""
           } ${estimatedTrainsEnabled ? "active" : ""} ${
             estimatedTrainDisplayPending ? "mobile-train-toggle--loading" : ""
           } ${mapViewPreference === "geographic" ? "opacity-40 cursor-not-allowed" : ""}`}
           data-map-chooser-keepout
-          aria-pressed={estimatedTrainsEnabled}
-          aria-busy={estimatedTrainDisplayPending}
-          aria-label={mapViewPreference === "geographic"
-            ? "Estimated train markers are only available in Diagram view"
-            : `Toggle estimated train markers (${estimatedTrainStatusLabel})`}
-          title={mapViewPreference === "geographic" ? "Estimated train markers are only available in Diagram view" : undefined}
         >
-          <Train size={16} />
-          <span>
-            View<br />Trains
-          </span>
-          {estimatedTrainDisplayPending ? (
-            <Loader2
-              className="mobile-train-pending-spinner animate-spin"
-              size={18}
-              role="status"
-              aria-label={estimatedTrainPendingLabel}
-            />
-          ) : null}
-        </button>
+          <SquishSwitch
+            checked={estimatedTrainsEnabled}
+            disabled={!trainNetworkOpen || mapViewPreference === "geographic"}
+            ariaBusy={estimatedTrainDisplayPending}
+            ariaLabel={mapViewPreference === "geographic"
+              ? "Estimated train markers are only available in Diagram view"
+              : `Toggle estimated train markers (${estimatedTrainStatusLabel})`}
+            className="mobile-train-squish"
+            height={24}
+            thumbContent={estimatedTrainDisplayPending
+              ? <Loader2 className="mobile-train-pending-spinner animate-spin" size={12} />
+              : <Train size={12} />}
+            trackOnColor="#10b981"
+            onChange={handleToggleEstimatedTrains}
+            title={mapViewPreference === "geographic" ? "Estimated train markers are only available in Diagram view" : undefined}
+          />
+          {estimatedTrainDisplayPending ? <span className="sr-only" role="status">{estimatedTrainPendingLabel}</span> : null}
+        </div>
       )}
 
       {isMobile && !showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && selectedStationId && (

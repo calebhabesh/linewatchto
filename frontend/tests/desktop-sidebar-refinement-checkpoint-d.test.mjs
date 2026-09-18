@@ -22,9 +22,9 @@ describe("desktop sidebar refinement - Checkpoint D: Map Chrome & Data Relocatio
     assert.match(shellSource, /clock\.time/);
     assert.match(shellSource, /clock\.date/);
 
-    // Estimated trains button in top map utility cluster
+    // Estimated trains Squish Switch in top map utility cluster
     assert.match(shellSource, /desktop-train-toggle-btn/);
-    assert.match(shellSource, /onClick=\{handleToggleEstimatedTrains\}/);
+    assert.match(shellSource, /<SquishSwitch[\s\S]*?id="desktop-train-markers-switch"[\s\S]*?onChange=\{handleToggleEstimatedTrains\}/);
     assert.match(shellSource, /estimatedTrainDisplayPending/);
 
     // Operating banner retired from status overview in favor of shell desktopNotice

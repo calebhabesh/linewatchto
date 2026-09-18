@@ -29,5 +29,14 @@ describe("map controls", () => {
     assert.match(globalCss, /stroke-width:\s*2\.2;/);
     assert.match(globalCss, /drop-shadow\(0 0 6px rgba\(37, 99, 235, 0\.5\)\)/);
   });
+
+  it("styles the map view toggle as a single action button matching control rail buttons", () => {
+    const selectorSource = readFileSync(new URL("../src/components/MapViewSelector.tsx", import.meta.url), "utf8");
+    assert.match(selectorSource, /map-view-toggle-btn/);
+    assert.match(selectorSource, /Map View/);
+    assert.match(selectorSource, /System Map/);
+    assert.match(selectorSource, /Earth/);
+    assert.match(globalCss, /\.map-control-rail \.map-view-toggle-btn/);
+  });
 });
 

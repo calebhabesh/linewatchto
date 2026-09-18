@@ -28,9 +28,12 @@ const SquishSwitch = forwardRef(function SquishSwitch({
   hoverScale = 1.035,
   colorDuration = 320,
   ariaLabel,
+  ariaBusy,
   className = '',
   id,
-  role = 'switch'
+  role = 'switch',
+  thumbContent,
+  title
 }, forwardedRef) {
   const reduce = useReducedMotion();
   const inset = Math.max(3, Math.round(height * 0.11));
@@ -153,9 +156,11 @@ const SquishSwitch = forwardRef(function SquishSwitch({
         type="button"
         role={role}
         aria-checked={on}
+        aria-busy={ariaBusy || undefined}
         aria-disabled={disabled || undefined}
         aria-label={ariaLabel}
         disabled={disabled}
+        title={title}
         className="squish-switch"
         data-on={on ? '' : undefined}
         data-held={dragging ? '' : undefined}
@@ -187,7 +192,9 @@ const SquishSwitch = forwardRef(function SquishSwitch({
         onClick={click}
       >
         <span ref={trackRef} className="squish-switch__track">
-          <motion.span className="squish-switch__thumb" aria-hidden="true" style={{ x, scaleX, scaleY }} />
+          <motion.span className="squish-switch__thumb" aria-hidden="true" style={{ x, scaleX, scaleY }}>
+            {thumbContent}
+          </motion.span>
         </span>
       </button>
       {label ? (

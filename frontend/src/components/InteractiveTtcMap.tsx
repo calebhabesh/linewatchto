@@ -2030,7 +2030,7 @@ function InteractiveTtcMapComponent({
             <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
           </button>
 
-          <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1">
+          <div className="map-control-slider flex items-center justify-center mx-0.5 sm:mx-1">
             <input
               type="range"
               min="0.2"
@@ -2042,9 +2042,6 @@ function InteractiveTtcMapComponent({
               title="Zoom level"
               aria-label="Zoom level slider"
             />
-            <span className="text-[10px] font-mono font-black select-none tracking-wider">
-              {Math.round(relativeScale * 100)}%
-            </span>
           </div>
 
           <button

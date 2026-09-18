@@ -17,8 +17,8 @@
  * .commute-station-stations-scroll-content, .commute-station-line-chevron,
  * @keyframes mini-search-expansion-slide-in, @keyframes mini-search-list-slide-in),
  * station selection green flash beacon (.station-commute-green-flash,
- * @keyframes station-commute-green-flash-anim), form switches and return toggle (.saved-commute-switch,
- * .saved-commute-slider, .saved-commute-return-toggle, .saved-commute-customize-toggle,
+ * @keyframes station-commute-green-flash-anim), return toggle (.saved-commute-return-toggle,
+ * .saved-commute-customize-toggle,
  * .saved-commute-loading-icon, @keyframes saved-commute-spin), notification summary card
  * and rule editor (.saved-commute-notification-summary, .saved-commute-notification-rule,
  * .saved-commute-rule-editor, .saved-commute-rule-summary, .saved-commute-rule-actions),
@@ -1577,71 +1577,9 @@
   color: rgb(226, 232, 240);
 }
 
-/* ==========================================================================
-   Commute Toggle Switches & Sliders
-   ========================================================================== */
-
-/* Hide default HTML checkbox */
-.saved-commute-switch input {
-  height: 0;
-  opacity: 0;
-  width: 0;
-  position: absolute;
-}
-
-/* The switch container */
-.saved-commute-switch {
-  display: inline-block;
-  height: 20px;
-  position: relative;
-  width: 36px;
-}
-
-/* The slider */
-.saved-commute-slider {
-  background-color: rgb(203, 213, 225); /* slate-300 */
-  bottom: 0;
-  cursor: pointer;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  transition: .3s;
-  border-radius: 20px;
-}
-
-.saved-commute-slider:before {
-  background-color: white;
-  bottom: 3px;
-  content: "";
-  height: 14px;
-  left: 3px;
-  position: absolute;
-  transition: .3s;
-  width: 14px;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-
-.saved-commute-switch input:checked + .saved-commute-slider {
-  background-color: rgb(16, 185, 129); /* active green */
-}
-
-.saved-commute-switch input:checked + .saved-commute-slider:before {
-  transform: translateX(16px);
-}
-
 .dark .saved-commute-return-toggle,
 .high-contrast .saved-commute-return-toggle {
   color: rgb(226, 232, 240);
-}
-
-.dark .saved-commute-slider {
-  background-color: rgb(71, 85, 105); /* slate-600 */
-}
-
-.dark .saved-commute-switch input:checked + .saved-commute-slider {
-  background-color: rgb(16, 185, 129);
 }
 
 /* ==========================================================================

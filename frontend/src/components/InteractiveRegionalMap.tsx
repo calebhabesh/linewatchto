@@ -4339,9 +4339,10 @@ function InteractiveRegionalMapComponent({
     wheelCommitTimeoutRef.current = window.setTimeout(() => {
       wheelCommitTimeoutRef.current = null;
       setCamera({ ...cameraRef.current });
+      setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
       setUserZoomMotion(false);
     }, 140);
-  }, [setUserZoomMotion]);
+  }, [setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform]);
 
   const zoomAtCenter = useCallback((factor: number) => {
     const viewport = viewportRef.current;
@@ -4356,7 +4357,7 @@ function InteractiveRegionalMapComponent({
     const centerY = height / 2;
     const current = cameraRef.current;
     const nextScale = clampPanZoomScale(current.scale * factor, fitScale);
-    const ratio = nextScale / current.scale;
+    const ratio = current.scale > 0 ? nextScale / current.scale : 1;
     const nextCamera = snapCameraToDevicePixels({
       x: centerX - (centerX - current.x) * ratio,
       y: centerY - (centerY - current.y) * ratio,
@@ -4364,8 +4365,9 @@ function InteractiveRegionalMapComponent({
     });
     cameraRef.current = nextCamera;
     writeMapTransform(nextCamera);
+    setCamera(nextCamera);
     scheduleCameraCommit();
-  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setCamera, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const lastZoomInSignalRef = useRef(zoomInSignal);
   useEffect(() => {
@@ -4388,13 +4390,13 @@ function InteractiveRegionalMapComponent({
     clearProgrammaticAnimation();
     endCameraMotion();
     setUserZoomMotion(true);
-    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
+    setMapTransition("none");
     const { width, height } = logicalViewportSize();
     const centerX = width / 2;
     const centerY = height / 2;
     const current = cameraRef.current;
     const nextScale = clampPanZoomScale(targetRelativeScale * fitScale, fitScale);
-    const ratio = nextScale / current.scale;
+    const ratio = current.scale > 0 ? nextScale / current.scale : 1;
     const nextCamera = snapCameraToDevicePixels({
       x: centerX - (centerX - current.x) * ratio,
       y: centerY - (centerY - current.y) * ratio,
@@ -4402,8 +4404,9 @@ function InteractiveRegionalMapComponent({
     });
     cameraRef.current = nextCamera;
     writeMapTransform(nextCamera);
+    setCamera(nextCamera);
     scheduleCameraCommit();
-  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, logicalViewportSize, scheduleCameraCommit, setCamera, setMapTransition, setUserZoomMotion, writeMapTransform]);
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     if (isMapWheelScrollRegionTarget(event.target)) return;
@@ -5177,7 +5180,7 @@ function InteractiveRegionalMapComponent({
             <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
           </button>
 
-          <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1">
+          <div className="map-control-slider flex items-center justify-center mx-0.5 sm:mx-1">
             <input
               type="range"
               min={PAN_ZOOM_MIN_RELATIVE_SCALE}
@@ -5189,9 +5192,6 @@ function InteractiveRegionalMapComponent({
               title="Zoom level"
               aria-label="Zoom level slider"
             />
-            <span className="text-[10px] font-mono font-black select-none tracking-wider">
-              {Math.round(relativeScale * 100)}%
-            </span>
           </div>
 
           <button
