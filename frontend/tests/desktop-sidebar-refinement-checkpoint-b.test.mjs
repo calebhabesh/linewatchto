@@ -133,14 +133,12 @@ describe("desktop camera reconciliation (Checkpoint B)", () => {
     assert.ok(Math.abs(mapPointNext.y - mapPointPrev.y) < 1e-9);
   });
 
-  it("hooks observe the desktop sidebar container and reconcile viewport geometry", () => {
-    // TTC Map (usePanZoom)
-    assert.match(hookSource, /\.desktop-sidebar-container/);
-    assert.match(hookSource, /readDesktopOverlayInsets/);
+  it("keeps sidebar geometry out of automatic camera reconciliation", () => {
+    assert.doesNotMatch(hookSource, /\.desktop-sidebar-container/);
+    assert.doesNotMatch(hookSource, /readDesktopOverlayInsets/);
     assert.match(hookSource, /window\.innerWidth >= 768/);
 
-    // Regional Map (InteractiveRegionalMap)
-    assert.match(regionalMapSource, /\.desktop-sidebar-container/);
+    assert.doesNotMatch(regionalMapSource, /observer\.observe\(sidebar\)/);
     assert.match(regionalMapSource, /readDesktopOverlayInsets/);
     assert.match(regionalMapSource, /reconcileRegionalViewport/);
   });

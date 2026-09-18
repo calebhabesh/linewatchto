@@ -22,13 +22,15 @@ const memoryStorage = () => {
   };
 };
 
-describe("desktop sidebar startup behavior and session-only collapse", () => {
-  it("always defaults to expanded (false) on fresh load even when legacy storage says collapsed", () => {
+describe("desktop sidebar startup behavior and durable preference", () => {
+  it("defaults to expanded and restores subsequent preferences", () => {
     assert.equal(readDesktopSidebarCollapsed(null), false);
     const storage = memoryStorage();
-    storage.setItem("linewatch-desktop-sidebar-collapsed", "true");
     assert.equal(readDesktopSidebarCollapsed(storage), false);
-    assert.equal(storage.getItem("linewatch-desktop-sidebar-collapsed"), null);
+    saveDesktopSidebarCollapsed(storage, true);
+    assert.equal(readDesktopSidebarCollapsed(storage), true);
+    saveDesktopSidebarCollapsed(storage, false);
+    assert.equal(readDesktopSidebarCollapsed(storage), false);
   });
 
   it("handles throwing storage gracefully without errors", () => {
@@ -136,6 +138,7 @@ describe("desktop layout budget and responsive modes", () => {
     assert.equal(desktopRailDestinationForView("commutes"), "commutes");
     assert.equal(desktopRailDestinationForView("alert-history"), "alert-history");
     assert.equal(desktopRailDestinationForView("source-status"), "source-status");
+    assert.equal(desktopRailDestinationForView("feedback"), "feedback");
     assert.equal(desktopRailDestinationForView("more"), "more");
   });
 });

@@ -972,7 +972,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /activePointersRef\.current\.size >= 2/);
   });
 
-  it("centers the enlarged default desktop network frame in the workspace beside the sidebar", () => {
+  it("centers the largest fitted default desktop network frame in the stable map workspace", () => {
     assert.match(regionalMapSource, /\.desktop-status-capsule/);
     assert.match(regionalMapSource, /\.desktop-status-chip-row-container/);
     assert.match(regionalMapSource, /setDesktopMapTopInset/);
@@ -985,6 +985,7 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(regionalMapSource, /const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0\.025/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0\.95/);
+    assert.match(regionalMapSource, /const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1/);
     assert.doesNotMatch(regionalMapSource, /REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO/);
   });
 

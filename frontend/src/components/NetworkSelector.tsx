@@ -11,12 +11,14 @@ export function NetworkSelector({
   compactVertical = false,
   stretched = false,
   className = "",
+  ariaLabel = "Select transit network",
 }: {
   network: NetworkId;
   onChange: (network: NetworkId) => void;
   compactVertical?: boolean;
   stretched?: boolean;
   className?: string;
+  ariaLabel?: string;
 }) {
   const [pendingNetwork, setPendingNetwork] = useState<NetworkId | null>(null);
   const [lastPropNetwork, setLastPropNetwork] = useState<NetworkId>(network);
@@ -83,7 +85,7 @@ export function NetworkSelector({
     <div
       className={`network-selector panel${compactVertical ? " network-selector--compact-vertical" : ""}${stretched ? " network-selector--stretched" : ""}${className ? ` ${className}` : ""}`}
       role="group"
-      aria-label="Select transit network"
+      aria-label={ariaLabel}
       aria-busy={isTransitioning}
       data-network={displayedNetwork}
       data-transitioning={isTransitioning ? "true" : undefined}

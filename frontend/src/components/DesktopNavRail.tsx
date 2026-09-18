@@ -11,6 +11,7 @@ import {
   MapPin,
   Megaphone,
   Menu,
+  MessageSquareText,
   Navigation,
   PanelLeftClose,
   PanelLeftOpen,
@@ -134,9 +135,10 @@ export function DesktopNavRail({
         { key: "closures", label: "Planned Closures", lines: ["Planned", "Closures"], count: plannedClosureCount, countLabel: plannedClosureCount === 1 ? "planned closure" : "planned closures", icon: <PlannedClosureIcon size={21} /> },
       ] as const;
 
-  const totalSlots = RAIL_ITEMS.length + noticeShortcuts.length + alertShortcuts.length + 2;
-  const analyticsIndex = RAIL_ITEMS.length + noticeShortcuts.length + alertShortcuts.length;
+  const feedbackIndex = RAIL_ITEMS.length + noticeShortcuts.length + alertShortcuts.length;
+  const analyticsIndex = feedbackIndex + 1;
   const sourceStatusIndex = analyticsIndex + 1;
+  const totalSlots = sourceStatusIndex + 1;
 
   const handleToggleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown") {
@@ -189,11 +191,13 @@ export function DesktopNavRail({
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? (
-            <PanelLeftOpen size={22} aria-hidden="true" />
-          ) : (
-            <PanelLeftClose size={22} aria-hidden="true" />
-          )}
+          <span key={collapsed ? "open" : "close"} className="desktop-rail-toggle-icon">
+            {collapsed ? (
+              <PanelLeftOpen size={22} aria-hidden="true" />
+            ) : (
+              <PanelLeftClose size={22} aria-hidden="true" />
+            )}
+          </span>
         </button>
       </div>
 
@@ -351,6 +355,26 @@ export function DesktopNavRail({
           </div>
 
           <div className="desktop-rail-divider" role="separator" aria-orientation="horizontal" />
+
+          <button
+            ref={(element) => {
+              itemRefs.current[feedbackIndex] = element;
+            }}
+            type="button"
+            className="desktop-rail-item desktop-rail-feedback-item"
+            data-active={activeDestination === "feedback" ? "true" : "false"}
+            data-dest="feedback"
+            aria-current={activeDestination === "feedback" ? "page" : undefined}
+            aria-label="Leave Feedback"
+            title="Leave Feedback"
+            onClick={() => onSelectDestination("feedback")}
+            onKeyDown={(e) => handleItemKeyDown(feedbackIndex, e)}
+          >
+            <span className="desktop-rail-icon-slot">
+              <MessageSquareText size={21} aria-hidden="true" />
+            </span>
+            <span className="desktop-rail-label">Feedback</span>
+          </button>
 
           <button
             ref={(element) => {

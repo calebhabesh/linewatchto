@@ -61,31 +61,33 @@ export function useScrollSelectedImpactCard(
     const wrapper = document.querySelector<HTMLElement>(
       ".desktop-view-content-wrapper, .mobile-view-content-wrapper",
     );
-    const expectedAnimationName = wrapper?.classList.contains("desktop-view-content-wrapper")
-      ? "desktop-content-fade-in"
-      : "mobile-content-fade-in";
-    const wrapperAnimation = wrapper
-      ? window.getComputedStyle(wrapper).animationName
-      : "none";
+    const wrapperAnimationNames = new Set(
+      wrapper
+        ? window.getComputedStyle(wrapper).animationName
+          .split(",")
+          .map((name) => name.trim())
+          .filter((name) => name !== "none")
+        : [],
+    );
     let scrollTimeout: number | undefined;
     let hasScrolled = false;
 
     const handleWrapperAnimationEnd = (event: AnimationEvent) => {
-      if (event.target !== wrapper || event.animationName !== expectedAnimationName || hasScrolled) return;
+      if (event.target !== wrapper || !wrapperAnimationNames.has(event.animationName) || hasScrolled) return;
       hasScrolled = true;
       if (scrollTimeout !== undefined) window.clearTimeout(scrollTimeout);
       wrapper?.removeEventListener("animationend", handleWrapperAnimationEnd);
       scrollToCard();
     };
 
-    if (wrapper && wrapperAnimation.split(",").map((name) => name.trim()).includes(expectedAnimationName)) {
+    if (wrapper && wrapperAnimationNames.size > 0) {
       wrapper.addEventListener("animationend", handleWrapperAnimationEnd);
       scrollTimeout = window.setTimeout(() => {
         if (hasScrolled) return;
         hasScrolled = true;
         wrapper.removeEventListener("animationend", handleWrapperAnimationEnd);
         scrollToCard();
-      }, 480);
+      }, 320);
     } else {
       scrollTimeout = window.setTimeout(scrollToCard, 0);
     }

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { Activity, AlertTriangle, ArrowLeft, BarChart3, History, MapPin, Menu, Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, Navigation, Search, X } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, BarChart3, History, MapPin, Menu, Bookmark, Bus, ChevronRight, LoaderCircle, Megaphone, MessageSquareText, Navigation, Search, X } from "lucide-react";
 import { desktopRailDestinationForView, type DesktopRailDestination } from "../app/desktop-sidebar-state";
 import { useDashboardData } from "../app/DataContext";
 import {
@@ -69,6 +69,7 @@ const RETURN_MENU_ICONS: Record<DesktopRailDestination, typeof AlertTriangle> = 
   more: Menu,
   "source-status": Activity,
   analytics: BarChart3,
+  feedback: MessageSquareText,
 };
 
 function SearchReturnIcon({ destination }: { destination: string }) {

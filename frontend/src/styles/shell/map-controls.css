@@ -39,6 +39,14 @@
     border-radius: 12px;
     box-sizing: border-box;
   }
+
+  .map-control-recenter-container .map-control-button {
+    gap: 4px;
+  }
+
+  .map-control-slider input[type="range"] {
+    transform: translateY(2px);
+  }
 }
 
 .map-control-rail {
@@ -294,5 +302,3 @@
 .map-control-rail .network-accent-ridges {
   right: 10px;
 }
-
-

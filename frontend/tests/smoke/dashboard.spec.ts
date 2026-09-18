@@ -357,29 +357,27 @@ test("reflows desktop chrome after resizing to a half-screen window", async ({ p
   }));
 
   const viewportWidth = page.viewportSize()!.width;
-  const [searchBox, utilityBox, statusBox, mapControlsBox] = await Promise.all([
-    page.locator(".header-search-bar").boundingBox(),
-    page.locator("header .map-utility-cluster").boundingBox(),
-    page.locator(".desktop-status-capsule").boundingBox(),
+  const [railBox, sidebarBox, workspaceBox, mapControlsBox] = await Promise.all([
+    page.locator(".desktop-nav-rail").boundingBox(),
+    page.locator("#desktop-sidebar-container").boundingBox(),
+    page.locator(".desktop-map-workspace").boundingBox(),
     page.locator(".desktop-map-control-rail").boundingBox(),
   ]);
-  for (const box of [searchBox, utilityBox, statusBox, mapControlsBox]) {
+  for (const box of [railBox, sidebarBox, workspaceBox, mapControlsBox]) {
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth + 1);
   }
-  expect(utilityBox!.x).toBeGreaterThanOrEqual(searchBox!.x + searchBox!.width);
-  expect(statusBox!.y).toBeGreaterThanOrEqual(searchBox!.y + searchBox!.height);
-  expect(mapControlsBox!.y).toBeGreaterThanOrEqual(statusBox!.y + statusBox!.height);
+  expect(workspaceBox!.x).toBe(railBox!.x + railBox!.width);
+  expect(sidebarBox!.x).toBe(workspaceBox!.x);
+  expect(mapControlsBox!.x).toBeGreaterThanOrEqual(workspaceBox!.x);
 
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: "Active Alerts" }).click();
-  const floatingPanel = page.locator('.floating-panel-shell[data-floating-panel="alerts"]');
-  await expect(floatingPanel).toBeVisible();
-  const panelBox = await floatingPanel.boundingBox();
+  await page.locator('[data-dest="alerts"]').click();
+  const detailSidebar = page.locator("#desktop-sidebar-container");
+  await expect(detailSidebar.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+  const panelBox = await detailSidebar.boundingBox();
   expect(panelBox).not.toBeNull();
   expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(viewportWidth + 1);
-  await expect(page.locator(".desktop-status-capsule-anchor")).toHaveCSS("opacity", "0");
 });
 
 test("shows subway closed screen overnight and lets riders peek at the map", async ({ page, request, isMobile }) => {
@@ -414,7 +412,8 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
     expect(closedNoticeBox).not.toBeNull();
     expect(closedNoticeBox!.y).toBeGreaterThanOrEqual(searchBox!.y + searchBox!.height);
 
-    const networkSelector = page.getByRole("group", { name: "Select transit network" });
+    const networkSelector = page.locator("#desktop-sidebar-container")
+      .getByRole("group", { name: "Select transit network" });
     await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
     await expect(page.getByText("Subway Closed")).toHaveCount(0);
     await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
@@ -436,9 +435,7 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await surfaceSection.getByText("Surface Connections").click();
   await expect(surfaceSection.getByText("Arrivals Not Available")).toHaveCount(0);
 
-  if (isMobile) {
-    await page.getByRole("button", { name: "Close station details" }).click();
-  }
+  await page.getByRole("button", { name: "Close station details" }).click();
 
   await (isMobile ? page.locator(".mobile-service-sheet-notice-row--closed") : page.getByRole("button", { name: "Closed Screen" })).click();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
@@ -509,7 +506,8 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await setStubMode(request, "seeded");
   await page.goto("/");
 
-  const networkSelector = page.getByRole("group", { name: "Select transit network" });
+  const networkSelector = page.locator("#desktop-sidebar-container")
+    .getByRole("group", { name: "Select transit network" });
   const mapSurface = page.locator(".network-map-transition-surface");
   const root = page.locator("html");
   const mapLegend = mapSurface.locator(".desktop-map-legend");
@@ -521,6 +519,11 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
 
   await expect(root).toHaveAttribute("data-network-transition-direction", "forward");
+  await expect(page.locator("#desktop-sidebar-container")).toHaveCSS("view-transition-name", "desktop-sidebar");
+  await expect(page.locator(".desktop-sidebar-accent-strip")).toHaveCSS("view-transition-name", "desktop-sidebar-accent");
+  await expect.poll(() => root.evaluate((element) => (
+    getComputedStyle(element, "::view-transition-group(desktop-sidebar)").zIndex
+  ))).toBe("2");
   await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(0);
   await expect(mapSurface.locator(".regional-map")).toHaveCount(1);
   await expect(mapSurface.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
@@ -532,8 +535,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(mapLegend.getByText("Barrie Line", { exact: true })).toBeVisible();
   await expect(root).not.toHaveAttribute("data-network-transition-direction");
   await expect(mapSurface).toHaveCSS("view-transition-name", "none");
-  await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Toggle estimated train markers/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 
@@ -565,7 +567,11 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await page.evaluate(() => new Promise<void>((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   }));
-  await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(adjustedCamera);
+  await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe(adjustedCamera);
+  const resizedAdjustedCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
+  const adjustedScale = Number(adjustedCamera.match(/scale\(([^)]+)\)/)?.[1]);
+  const resizedAdjustedScale = Number(resizedAdjustedCamera.match(/scale\(([^)]+)\)/)?.[1]);
+  expect(resizedAdjustedScale).toBeCloseTo(adjustedScale, 6);
 
   const weston = page.locator('.regional-station-hit-target[data-regional-station-id="weston"]');
   await expect(weston).toHaveAttribute("tabindex", "0");
@@ -575,8 +581,9 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(westonPanel.getByRole("button", { name: "Save Weston to My Stations" })).toBeVisible();
   await expect(westonPanel.getByRole("button", { name: "Close station details" })).toBeVisible();
   await expect(westonPanel.locator(".regional-route-pill").first()).toBeVisible();
+  await westonPanel.getByRole("button", { name: "Close station details" }).click();
 
-  await page.getByRole("button", { name: "Fit regional network" }).click({ force: true });
+  await page.getByRole("button", { name: "Center map view" }).click({ force: true });
   const [regionalFadeSamples] = await Promise.all([
     page.evaluate(() => new Promise<number[]>((resolve) => {
       const samples: number[] = [];
@@ -607,6 +614,10 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   expect(regionalFadeSamples.some((opacity) => opacity > 0 && opacity < 1)).toBe(true);
   expect(regionalFadeSamples.at(-1)).toBeLessThanOrEqual(0.01);
   await expect(root).toHaveAttribute("data-network-transition-direction", "back");
+  await expect(page.locator(".desktop-nav-rail")).toHaveCSS("view-transition-name", "desktop-nav-rail");
+  await expect.poll(() => root.evaluate((element) => (
+    getComputedStyle(element, "::view-transition-group(desktop-nav-rail)").zIndex
+  ))).toBe("2");
   await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
   await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
   await expect(mapSurface.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
@@ -634,6 +645,7 @@ test("uses decoded raster artwork while preserving live map geometry in both net
   await expect(page.locator(".ttc-map-entrance-reveal")).toHaveCount(0);
   await expect(ttcStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(ttcStage.locator(".ttc-authored-svg-source").first()).toHaveCSS("visibility", "hidden");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await ttcStage.locator('[data-station-label-id="kipling"]').hover();
   const rasterLabelHover = ttcStage.locator(".raster-station-label-text-hover");
   await expect(rasterLabelHover).toHaveCount(1);
@@ -653,13 +665,16 @@ test("uses decoded raster artwork while preserving live map geometry in both net
     images.map((image) => (image as HTMLImageElement).currentSrc)
   )).toEqual(ttcRasterSources);
 
-  const networkSelector = page.getByRole("group", { name: "Select transit network" });
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  const networkSelector = page.locator("#desktop-sidebar-container")
+    .getByRole("group", { name: "Select transit network" });
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
   const regionalStage = page.locator(".regional-map-stage");
   await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
   await expect(regionalStage.locator(".raster-map-plane")).toHaveCount(3);
   await expect(regionalStage.locator("#regional-lines-layer")).toHaveCSS("visibility", "hidden");
   await expect(regionalStage.locator("#regional-stations-layer")).toHaveCount(1);
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
   const regionalLabelTarget = regionalStage.locator('.regional-station-label-hit-target[data-regional-station-id="kipling"]');
   await regionalLabelTarget.hover();
   const regionalRasterLabelHover = regionalStage.locator(".raster-station-label-text-hover");
@@ -709,6 +724,7 @@ test("waits for the authored map font before measuring station label hover geome
   const tobermoryLabel = ttcStage.locator('[data-station-label-for="tobermory"]');
   await expect.poll(() => tobermoryLabel.evaluate((label: SVGGraphicsElement) => label.getBBox().width))
     .toBeGreaterThan(375);
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await ttcStage.locator('[data-station-label-id="tobermory"]').hover();
   await expect(ttcStage.locator("#ttc-hovered-station-target-mask")).toHaveCount(1);
 });
@@ -752,6 +768,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
   await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
 
   const regionalMap = page.locator(".regional-map");
   const regionalViewport = regionalMap.locator(".regional-map-viewport");
@@ -782,7 +799,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await page.mouse.up();
   await page.mouse.wheel(0, -80);
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
-  await page.getByRole("button", { name: "Fit regional network" }).click();
+  await page.getByRole("button", { name: "Center map view" }).click();
   await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false", { timeout: 2_000 });
 
   await expect(authoredSvg).toHaveAttribute("data-smoke-stable", "regional-base");
@@ -799,6 +816,8 @@ test("regional station names share the TTC raster hover glow and station selecti
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
+  await waitForNetworkTransition(page, "regional");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
 
   const authoredLabel = page.locator('[data-regional-station-label-for="kipling"]');
   const labelTarget = page.locator('[data-regional-station-label-id="kipling"]');
@@ -892,9 +911,8 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
     await page.getByRole("group", { name: "Select transit network" })
       .getByRole("button", { name: "GO/UP", exact: true })
       .click();
-    await expect(page.locator(".desktop-status-chip--trip-changes")).toBeVisible();
-    await page.getByRole("button", { name: /Toggle menu/ }).click();
-    await page.getByRole("menuitem", { name: "Service Notices" }).click();
+    await waitForNetworkTransition(page, "regional");
+    await page.locator('[data-dest="surface-notices"]').click();
   }
 
   await expect(page.getByRole("heading", { name: "GO / UP Notices" })).toBeVisible();
@@ -993,9 +1011,7 @@ test("opens the dedicated regional Trip Changes entry", async ({ page, request, 
       .getByRole("button", { name: "GO/UP", exact: true })
       .click();
     await waitForNetworkTransition(page, "regional");
-    await expect(page.locator(".desktop-status-chip--trip-changes")).toBeVisible();
-    await page.getByRole("button", { name: /Toggle menu/ }).click();
-    await page.getByRole("menuitem", { name: "Trip Changes" }).click();
+    await page.locator('[data-dest="trip-changes"]').click();
   }
   await expect(page.getByRole("group", { name: "GO / UP notice content" })
     .getByRole("button", { name: "Trip Changes", exact: true })).toHaveAttribute("aria-pressed", "true");

@@ -78,6 +78,7 @@ type Props = {
   onRequestSignIn: () => void;
   accessibilityOutages: AccessibilityOutageDetail[];
   accessibilityFresh: boolean;
+  reducedMotion?: boolean;
 };
 
 type RegionalStationImpact = {
@@ -290,6 +291,7 @@ export function RegionalStationDetailPanel({
   onRequestSignIn,
   accessibilityOutages,
   accessibilityFresh,
+  reducedMotion = false,
 }: Props) {
   const { pinnedLineIds, togglePin } = useArrivalLinePins("regional", station.id);
   const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
@@ -627,7 +629,7 @@ export function RegionalStationDetailPanel({
 
   const handleClose = () => {
     setIsClosing(true);
-    const duration = (typeof window !== "undefined" && window.innerWidth < 768) ? 240 : 380;
+    const duration = reducedMotion ? 0 : (typeof window !== "undefined" && window.innerWidth < 768) ? 240 : 180;
     closeTimeoutRef.current = window.setTimeout(() => {
       closeTimeoutRef.current = null;
       onClose();

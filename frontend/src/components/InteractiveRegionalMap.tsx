@@ -116,6 +116,7 @@ const REGIONAL_LARGE_TERMINAL_IDS = new Set([
 // breathing room around Allandale Waterfront text below the top console and
 // Hamilton station above the bottom alert badges.
 const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0.95;
+const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1;
 // Route-wide selections need breathing room beyond a technically exact fit so
 // station labels and the authored corridor shape do not crowd the visible map
 // space beside an open desktop panel. Short selections still use the preferred
@@ -3321,21 +3322,19 @@ function InteractiveRegionalMapComponent({
       };
     }
 
-    const desktopOverlay = readDesktopOverlayInsets(viewport);
     const desktopFrame = computeDesktopMapFrame({
       viewportWidth: width,
       viewportHeight: height,
       bounds: REGIONAL_MAP_CONTENT_BOUNDS,
-      overlayLeft: desktopOverlay.left,
       horizontalInsetRatio: REGIONAL_MAP_HORIZONTAL_INSET_RATIO,
       minHorizontalInset: 32,
-      scaleMultiplier: REGIONAL_MAP_DEFAULT_FRAME_SCALE,
+      scaleMultiplier: REGIONAL_MAP_DESKTOP_FRAME_SCALE,
     });
     return {
       camera: snapCameraToDevicePixels(desktopFrame),
       scale: desktopFrame.scale,
       focus: {
-        x: (desktopOverlay.left + width) / 2,
+        x: width / 2,
         y: height / 2,
       },
     };
@@ -3399,7 +3398,8 @@ function InteractiveRegionalMapComponent({
   }, [reducedMotion, resetNetworkCamera]);
 
   const restoreViewport = useMapViewportPersistence("regional", camera, fitScale, logicalViewportSize,
-    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !selection && !selectedStationId && !commutePathPreview && viewportOrientation === "standard");
+    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !selection && !selectedStationId && !commutePathPreview && viewportOrientation === "standard",
+    () => cameraInitializedRef.current && viewportOrientation === "standard");
   const restoreSavedCamera = useCallback(() => {
     if (selection || selectedStationId || commutePathPreview || viewportOrientation !== "standard") return false;
     const fitted = fittedCamera();
@@ -3937,10 +3937,9 @@ function InteractiveRegionalMapComponent({
     return () => window.cancelAnimationFrame(frame);
   }, [fitNetwork, viewportOrientation]);
 
-  const lastRegionalDimensionsRef = useRef<{ width: number; height: number; overlayLeft: number }>({
+  const lastRegionalDimensionsRef = useRef<{ width: number; height: number }>({
     width: 0,
     height: 0,
-    overlayLeft: 0,
   });
 
   const reconcileRegionalViewport = useCallback(() => {
@@ -3956,19 +3955,16 @@ function InteractiveRegionalMapComponent({
       viewportOrientation,
     );
 
-    const overlay = readDesktopOverlayInsets(viewport);
-    const overlayLeft = overlay.left;
     const prev = lastRegionalDimensionsRef.current;
     const diffW = Math.abs(prev.width - width);
     const diffH = Math.abs(prev.height - height);
-    const diffOverlay = Math.abs(prev.overlayLeft - overlayLeft);
 
-    if (diffW < 1 && diffH < 1 && diffOverlay < 1) return;
+    if (diffW < 1 && diffH < 1) return;
 
     const isUntouched = !cameraAdjustedByUserRef.current;
 
     if (prev.width <= 0 || prev.height <= 0) {
-      lastRegionalDimensionsRef.current = { width, height, overlayLeft };
+      lastRegionalDimensionsRef.current = { width, height };
       if (isUntouched) {
         refitUntouchedNetwork();
       }
@@ -3976,16 +3972,16 @@ function InteractiveRegionalMapComponent({
     }
 
     if (isUntouched) {
-      lastRegionalDimensionsRef.current = { width, height, overlayLeft };
+      lastRegionalDimensionsRef.current = { width, height };
       refitUntouchedNetwork();
       return;
     }
 
     // Explored camera: preserve zoom and center current geographic focus in new usable rectangle
-    const prevCenterX = (prev.overlayLeft + prev.width) / 2;
+    const prevCenterX = prev.width / 2;
     const prevCenterY = prev.height / 2;
     const mapPoint = mapPointFromViewportPoint(cameraRef.current, { x: prevCenterX, y: prevCenterY });
-    const nextCenterX = (overlayLeft + width) / 2;
+    const nextCenterX = width / 2;
     const nextCenterY = height / 2;
     const nextCamera = transformForMapPointAtViewportPoint(
       mapPoint,
@@ -3996,7 +3992,7 @@ function InteractiveRegionalMapComponent({
     cameraRef.current = snapped;
     writeMapTransform(snapped);
     setCamera({ ...snapped });
-    lastRegionalDimensionsRef.current = { width, height, overlayLeft };
+    lastRegionalDimensionsRef.current = { width, height };
   }, [cameraInitializedRef, cameraAdjustedByUserRef, refitUntouchedNetwork, viewportOrientation, writeMapTransform]);
 
   useEffect(() => {
@@ -4013,9 +4009,6 @@ function InteractiveRegionalMapComponent({
     observer.observe(viewport);
     const mapSurface = viewport.closest<HTMLElement>(".network-map-transition-surface");
     if (mapSurface) observer.observe(mapSurface);
-    const shell = viewport.closest<HTMLElement>(".linewatch-shell");
-    const sidebar = shell?.querySelector<HTMLElement>(".desktop-sidebar-container");
-    if (sidebar) observer.observe(sidebar);
     return () => observer.disconnect();
   }, [initializeMapCamera, reconcileRegionalViewport]);
 
@@ -5210,7 +5203,7 @@ function InteractiveRegionalMapComponent({
         {onNetworkChange && (
           <div className="desktop-map-control-network-group hidden md:flex items-center">
             <div className="map-control-divider" aria-hidden="true" />
-            <NetworkSelector network="regional" onChange={onNetworkChange} />
+            <NetworkSelector network="regional" onChange={onNetworkChange} ariaLabel="Map network switcher" />
           </div>
         )}
       </div>

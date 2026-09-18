@@ -25,6 +25,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).click();
     await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
     await expect(sidebar).toHaveClass(/desktop-sidebar-container--docked/);
+    await expect(sidebar).toHaveCSS("width", "560px");
     const delaysBox1440 = await sidebar.boundingBox();
     expect(delaysBox1440?.width).toBe(560);
 
@@ -49,7 +50,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     // Sidebar is now collapsed
     await expect(sidebar).toHaveClass(/desktop-sidebar-container--collapsed/);
 
-    // Durable preference in localStorage was NOT changed to "true"
+    // Automatic collapse is transient and does not replace the visitor's preference.
     const durablePreference = await page.evaluate(() => {
       return window.localStorage.getItem("linewatch-desktop-sidebar-collapsed");
     });
@@ -65,6 +66,9 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
     await expect(page.locator(".alert-card.is-active")).toHaveCount(1);
     await expect(page.getByRole("button", { name: /^Back:/i })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => (
+      window.localStorage.getItem("linewatch-desktop-sidebar-collapsed")
+    ))).toBe("false");
   });
 
   test("preserves destination-based width for station detail and restores on close", async ({ page, request, isMobile }) => {
@@ -94,8 +98,53 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     const closeBtn = page.getByRole("button", { name: "Close station details" });
     await closeBtn.click();
     await expect(page.locator(".station-detail-panel")).not.toBeVisible();
+    await expect(page.locator(".desktop-view-content-wrapper")).toHaveAttribute("data-nav-direction", "back");
+    await expect(sidebar).toHaveCSS("width", "380px");
     const restoredBox = await sidebar.boundingBox();
     expect(restoredBox?.width).toBe(380);
+  });
+
+  test("animates collapse, expansion, destination width, and directional page navigation", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "Desktop sidebar motion applies only to desktop");
+    await setStubMode(request, "seeded");
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
+
+    const sidebar = page.locator("#desktop-sidebar-container");
+    const toggle = page.getByRole("button", { name: "Collapse sidebar" });
+    await toggle.click();
+    expect(await sidebar.evaluate((element) => element.getAnimations().some((animation) =>
+      animation instanceof CSSTransition && animation.transitionProperty === "width"
+    ))).toBe(true);
+    await expect(sidebar).toHaveCSS("width", "0px");
+    await expect(sidebar).toHaveAttribute("inert", "");
+
+    await page.getByRole("button", { name: "Expand sidebar" }).click();
+    expect(await sidebar.evaluate((element) => element.getAnimations().some((animation) =>
+      animation instanceof CSSTransition && animation.transitionProperty === "width"
+    ))).toBe(true);
+    await expect(sidebar).toHaveCSS("width", "380px");
+    await expect(sidebar).not.toHaveAttribute("inert", "");
+
+    await page.locator('[data-dest="more"]').click();
+    await expect(page.locator(".desktop-view-content-wrapper")).toHaveAttribute("data-nav-direction", "root");
+    await page.getByRole("button", { name: "Privacy & Acknowledgements" }).click();
+    const forwardView = page.locator('.desktop-view-content-wrapper[data-nav-direction="forward"]');
+    await expect(forwardView).toBeVisible();
+    await expect(forwardView).toHaveCSS("animation-name", "panel-container-forward");
+
+    await page.getByRole("button", { name: "Back to menu" }).click();
+    const backView = page.locator('.desktop-view-content-wrapper[data-nav-direction="back"]');
+    await expect(backView).toBeVisible();
+    await expect(backView).toHaveCSS("animation-name", "panel-container-back");
+
+    await page.locator('[data-dest="source-status"]').click();
+    expect(await sidebar.evaluate((element) => element.getAnimations().some((animation) =>
+      animation instanceof CSSTransition && animation.transitionProperty === "width"
+    ))).toBe(true);
+    await expect(sidebar).toHaveCSS("width", "560px");
   });
 
   test("preserves destination-based width across TTC and GO/UP networks", async ({ page, request, isMobile }) => {
@@ -111,7 +160,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     expect(ttcBox?.width).toBe(380);
 
     // Switch to GO/UP
-    await page.getByRole("button", { name: "GO/UP", exact: true }).click();
+    await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
     await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
     const goUpBox = await sidebar.boundingBox();
     expect(goUpBox?.width).toBe(380);
@@ -124,14 +173,96 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await expect(page.locator(".regional-station-detail")).toBeVisible();
 
     // Regional station detail remains 560px detail width
+    await expect(sidebar).toHaveCSS("width", "560px");
     const regionalStationBox = await sidebar.boundingBox();
     expect(regionalStationBox?.width).toBe(560);
 
     // Switch back to TTC
-    await page.getByRole("button", { name: "TTC", exact: true }).click();
+    await page.locator('[data-dest="status"]').click();
+    await sidebar.getByRole("button", { name: "TTC", exact: true }).click();
     await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
     const finalTtcBox = await sidebar.boundingBox();
     expect(finalTtcBox?.width).toBe(380);
+  });
+
+  test("keeps each desktop camera stable through sidebar changes and network switches", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "Desktop camera persistence applies only to desktop");
+    await setStubMode(request, "seeded");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+
+    const sidebar = page.locator("#desktop-sidebar-container");
+    const workspace = page.locator(".desktop-map-workspace");
+    const ttcViewport = page.locator("[data-map-pan-zoom-viewport]");
+    const ttcStage = page.locator(".ttc-map-stage");
+    await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(ttcViewport).toHaveAttribute("data-map-camera-moving", "false");
+
+    const workspaceBefore = await workspace.boundingBox();
+    const ttcDefaultCamera = await ttcStage.evaluate((element) => (element as HTMLElement).style.transform);
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await expect.poll(() => ttcStage.evaluate((element) => (
+      (element as HTMLElement).style.transform
+    ))).not.toBe(ttcDefaultCamera);
+    await expect(ttcViewport).toHaveAttribute("data-map-camera-moving", "false");
+    const ttcCamera = await ttcStage.evaluate((element) => (element as HTMLElement).style.transform);
+
+    await page.locator('[data-dest="source-status"]').click();
+    await expect(sidebar).toHaveCSS("width", "560px");
+    expect(await workspace.boundingBox()).toEqual(workspaceBefore);
+    expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcCamera);
+
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+    await expect(sidebar).toHaveClass(/desktop-sidebar-container--collapsed/);
+    expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcCamera);
+    await page.getByRole("button", { name: "Expand sidebar" }).click();
+    await expect(sidebar).not.toHaveClass(/desktop-sidebar-container--collapsed/);
+    expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcCamera);
+
+    await page.locator('[data-dest="status"]').click();
+    await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
+    const regionalMap = page.locator(".regional-map");
+    const regionalStage = page.locator(".regional-map-stage");
+    await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+    const regionalDefaultCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await expect.poll(() => regionalStage.evaluate((element) => (
+      (element as HTMLElement).style.transform
+    ))).not.toBe(regionalDefaultCamera);
+    await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+    const regionalCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
+
+    await sidebar.getByRole("button", { name: "TTC", exact: true }).click();
+    await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(ttcViewport).toHaveAttribute("data-map-camera-moving", "false");
+    expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcCamera);
+
+    await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
+    await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
+    await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+    expect(await regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(regionalCamera);
+  });
+
+  test("restores a visitor's desktop sidebar preference on the next visit", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "Desktop sidebar preference applies only to desktop");
+    await setStubMode(request, "seeded");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+
+    const sidebar = page.locator("#desktop-sidebar-container");
+    await expect(sidebar).not.toHaveClass(/desktop-sidebar-container--collapsed/);
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+    await expect.poll(() => page.evaluate(() => (
+      window.localStorage.getItem("linewatch-desktop-sidebar-collapsed")
+    ))).toBe("true");
+
+    await page.reload();
+    await expect(sidebar).toHaveClass(/desktop-sidebar-container--collapsed/);
+    await page.getByRole("button", { name: "Expand sidebar" }).click();
+    await expect.poll(() => page.evaluate(() => (
+      window.localStorage.getItem("linewatch-desktop-sidebar-collapsed")
+    ))).toBe("false");
   });
 });
 
@@ -181,14 +312,15 @@ test("desktop rail exposes network-specific impact shortcuts above the data divi
   await expect(page.locator('[data-dest="reduced-speed-zones"]')).toContainText("ReducedSpeedZones");
 
   const shortcutBottom = await page.locator(".desktop-rail-alert-shortcuts").evaluate((element) => element.getBoundingClientRect().bottom);
-  const dividerTop = await page.locator(".desktop-rail-divider").evaluate((element) => element.getBoundingClientRect().top);
+  const dividerTop = await page.locator(".desktop-rail-divider").last().evaluate((element) => element.getBoundingClientRect().top);
   expect(shortcutBottom).toBeLessThanOrEqual(dividerTop);
 
   await page.locator('[data-dest="delays"]').click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   await expect(page.locator('[data-dest="delays"]')).toHaveAttribute("data-active", "true");
 
-  await page.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await page.locator('[data-dest="status"]').click();
+  await page.locator("#desktop-sidebar-container").getByRole("button", { name: "GO/UP", exact: true }).click();
   await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
   await expect.poll(() => shortcuts.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-alert-kind")))).toEqual([
     "alerts",

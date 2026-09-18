@@ -14,6 +14,7 @@ import {
   LogOut,
   MapPinCheck,
   Megaphone,
+  MessageSquareText,
   Moon,
   Pause,
   Share2,
@@ -270,31 +271,29 @@ export function DesktopMorePanel({
           <MapPinCheck size={13} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
           <span>Loaded on launch</span>
         </p>
-        <div className="desktop-more-card">
-          <div
-            className="default-map-mode-options desktop-more-default-map-options"
-            role="radiogroup"
-            aria-label="Default map network"
-            data-network={defaultNetwork}
+        <div
+          className="default-map-mode-options desktop-more-default-map-options"
+          role="radiogroup"
+          aria-label="Default map network"
+          data-network={defaultNetwork}
+        >
+          <span className="default-map-mode-glider" aria-hidden="true" />
+          <button
+            type="button"
+            className={`default-map-mode-btn default-map-mode-btn-ttc ${defaultNetwork === "ttc" ? "is-selected" : ""}`}
+            aria-pressed={defaultNetwork === "ttc"}
+            onClick={() => onDefaultNetworkChange("ttc")}
           >
-            <span className="default-map-mode-glider" aria-hidden="true" />
-            <button
-              type="button"
-              className={`default-map-mode-btn default-map-mode-btn-ttc ${defaultNetwork === "ttc" ? "is-selected" : ""}`}
-              aria-pressed={defaultNetwork === "ttc"}
-              onClick={() => onDefaultNetworkChange("ttc")}
-            >
-              TTC
-            </button>
-            <button
-              type="button"
-              className={`default-map-mode-btn default-map-mode-btn-regional ${defaultNetwork === "regional" ? "is-selected" : ""}`}
-              aria-pressed={defaultNetwork === "regional"}
-              onClick={() => onDefaultNetworkChange("regional")}
-            >
-              GO &amp; UP
-            </button>
-          </div>
+            TTC
+          </button>
+          <button
+            type="button"
+            className={`default-map-mode-btn default-map-mode-btn-regional ${defaultNetwork === "regional" ? "is-selected" : ""}`}
+            aria-pressed={defaultNetwork === "regional"}
+            onClick={() => onDefaultNetworkChange("regional")}
+          >
+            GO &amp; UP
+          </button>
         </div>
       </section>
 
@@ -382,7 +381,7 @@ export function DesktopMorePanel({
         <div className="desktop-more-card desktop-more-links-card">
           <button type="button" className="desktop-more-nav-item" onClick={onOpenFeedback}>
             <div className="desktop-more-nav-item-main">
-              <HeartHandshake size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+              <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
               <span>Leave Feedback</span>
             </div>
             <ChevronRight size={16} className="desktop-more-nav-item-chevron" aria-hidden="true" />

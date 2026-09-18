@@ -252,6 +252,21 @@ test("getLineStatusPresentation accurately classifies operational states", () =>
   assert.equal(resSnap.isNormal, false);
 });
 
+test("line status counts underlying TTC slow orders instead of grouped map records", () => {
+  const line1 = line("1", "normal", "Normal Service");
+  const groupedZones = Array.from({ length: 10 }, (_, index) => impact(`rsz-${index}`, "1", {
+    sourceAlertIds: index < 5
+      ? [`rsz-${index}-northbound`, `rsz-${index}-southbound`]
+      : [`rsz-${index}`],
+  }));
+  const input = data({ lineStatuses: [line1], reducedSpeedZones: groupedZones });
+
+  const presentation = getLineStatusPresentation(line1, input, currentServiceSummary(input));
+
+  assert.equal(groupedZones.length, 10);
+  assert.equal(presentation.rszCount, 15);
+});
+
 test("CurrentServicePanel renders individual remaining-line rows with route badges and accurate status text", () => {
   const panelSource = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const stylesSource = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
@@ -364,5 +379,4 @@ test("sub-badges and surface routes use flex alignment without letter wrapping",
   const surfaceSection = desktopStatusSource.slice(desktopStatusSource.indexOf('className="desktop-status-surface-list"'));
   assert.doesNotMatch(surfaceSection, /<ElectricBorder/);
 });
-
 

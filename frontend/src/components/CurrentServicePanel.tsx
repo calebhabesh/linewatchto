@@ -17,6 +17,7 @@ import { LineBadge } from "./ImpactCardFields";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
+import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 
 
 type Props = {
@@ -288,7 +289,9 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
     .map((line) => {
       const rows = summary.rows.filter((row) => row.lineId === line.id);
       const closureCount = (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length;
-      const rszCount = (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id).length;
+      const rszCount = countReducedSpeedZones(
+        (data.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id),
+      );
       return {
         line,
         rows,

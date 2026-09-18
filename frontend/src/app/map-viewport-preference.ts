@@ -29,4 +29,5 @@ export function readMapViewport(storage: StorageLike, network: string, size: Siz
 
 export function clearMapViewport(network: string) {
   try { window.localStorage.removeItem(mapViewportKey(network)); } catch { /* Optional preference. */ }
+  try { window.sessionStorage.removeItem(mapViewportKey(network)); } catch { /* Optional preference. */ }
 }

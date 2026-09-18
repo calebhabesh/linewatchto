@@ -1036,7 +1036,7 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.live-signal-icon/);
     assert.match(content, /@keyframes live-signal-wave-inner/);
     assert.match(content, /\.desktop-view-content-wrapper/);
-    assert.match(content, /@keyframes desktop-content-fade-in/);
+    assert.match(content, /\.desktop-view-content-wrapper\s*\{[^}]*panel-container-root 220ms/s);
     assert.match(content, /\.mobile-view-content-wrapper/);
     assert.match(content, /@keyframes mobile-content-fade-in/);
     assert.match(content, /@keyframes menu-border-pulse/);

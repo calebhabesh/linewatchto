@@ -1,4 +1,5 @@
 import type { ActiveAlert, DelayAlert, ImpactKind, LineStatus, PlannedClosure, ReducedSpeedZone } from "./linewatch-data.ts";
+import { countReducedSpeedZones } from "./reduced-speed-zone-count.ts";
 
 export type CurrentServiceData = {
   snapshot?: { savedAt: number | null };
@@ -255,7 +256,7 @@ export function getLineStatusPresentation(
       label: "Normal Service",
       isNormal: true,
       hasRsz: true,
-      rszCount: rszList.length,
+      rszCount: countReducedSpeedZones(rszList),
     };
   }
 
@@ -266,4 +267,3 @@ export function getLineStatusPresentation(
     hasRsz: false,
   };
 }
-

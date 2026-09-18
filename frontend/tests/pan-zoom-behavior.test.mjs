@@ -109,7 +109,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.ok(paddingLeft >= 12);
   });
 
-  it("centers desktop Regional artwork in the available workspace beside sidebar with balanced opposite gaps", () => {
+  it("centers desktop Regional artwork in the stable workspace with balanced margins", () => {
     const regionalBounds = {
       x: 53.08,
       y: 110.78,
@@ -118,16 +118,13 @@ describe("pan zoom behavior guardrails", () => {
     };
     const desktopWidth = 1920;
     const desktopHeight = 1080;
-    const overlayLeft = 380; // overlay sidebar width
     const frame = computeDesktopMapFrame({
       viewportWidth: desktopWidth,
       viewportHeight: desktopHeight,
       bounds: regionalBounds,
-      overlayLeft,
-      scaleMultiplier: 0.95,
     });
 
-    const workspaceCenterX = (overlayLeft + desktopWidth) / 2;
+    const workspaceCenterX = desktopWidth / 2;
     const workspaceCenterY = desktopHeight / 2;
     const boundsCenterX = regionalBounds.x + regionalBounds.width / 2;
     const boundsCenterY = regionalBounds.y + regionalBounds.height / 2;
@@ -138,7 +135,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.ok(Math.abs(transformedCenterX - workspaceCenterX) < 1e-9);
     assert.ok(Math.abs(transformedCenterY - workspaceCenterY) < 1e-9);
 
-    const leftGap = (frame.x + regionalBounds.x * frame.scale) - overlayLeft;
+    const leftGap = frame.x + regionalBounds.x * frame.scale;
     const rightGap = desktopWidth - (frame.x + (regionalBounds.x + regionalBounds.width) * frame.scale);
     assert.ok(Math.abs(leftGap - rightGap) < 1e-9);
 
@@ -150,7 +147,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(regionalMapSource, /y:\s*110\.78/);
     assert.match(regionalMapSource, /width:\s*4620\.46/);
     assert.match(regionalMapSource, /height:\s*2395\.26/);
-    assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 0\.95/);
+    assert.match(regionalMapSource, /const REGIONAL_MAP_DESKTOP_FRAME_SCALE = 1/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_MOBILE_INSET_RATIO = 0\.025/);
     assert.match(regionalMapSource, /computeDesktopMapFrame/);
   });
@@ -670,7 +667,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /animateTransformTo\(\{[\s\S]*scale: targetAbsoluteScale,[\s\S]*\}, currentFitScale\);/);
   });
 
-  it("satisfies the desktop map frame contract across compact, medium, and wide profiles in docked and overlay modes", () => {
+  it("keeps one desktop default frame while sidebar mode and width change", () => {
     const scaleFactor = 4500 / 8250;
     const ttcBounds = {
       x: 65 * scaleFactor,
@@ -682,12 +679,9 @@ describe("pan zoom behavior guardrails", () => {
     const boundsCenterY = ttcBounds.y + ttcBounds.height / 2;
 
     const testCases = [
-      { name: "1440x900 docked compact (380px)", width: 1440 - 80 - 380, height: 820, overlayLeft: 0 },
-      { name: "1440x900 docked medium (560px)", width: 1440 - 80 - 560, height: 820, overlayLeft: 0 },
-      { name: "1440x900 docked wide (680px)", width: 1440 - 80 - 680, height: 820, overlayLeft: 0 },
-      { name: "1000x700 overlay compact (380px)", width: 1000, height: 700, overlayLeft: 380 },
-      { name: "1000x700 overlay medium (560px)", width: 1000, height: 700, overlayLeft: 560 },
-      { name: "1280x800 collapsed (0px)", width: 1280, height: 800, overlayLeft: 0 },
+      { name: "compact sidebar", width: 1360, height: 900 },
+      { name: "detail sidebar", width: 1360, height: 900 },
+      { name: "collapsed sidebar", width: 1360, height: 900 },
     ];
 
     for (const tc of testCases) {
@@ -695,10 +689,9 @@ describe("pan zoom behavior guardrails", () => {
         viewportWidth: tc.width,
         viewportHeight: tc.height,
         bounds: ttcBounds,
-        overlayLeft: tc.overlayLeft,
       });
 
-      const workspaceCenterX = (tc.overlayLeft + tc.width) / 2;
+      const workspaceCenterX = tc.width / 2;
       const workspaceCenterY = tc.height / 2;
       const transformedCenterX = frame.x + boundsCenterX * frame.scale;
       const transformedCenterY = frame.y + boundsCenterY * frame.scale;
@@ -712,7 +705,7 @@ describe("pan zoom behavior guardrails", () => {
         `${tc.name}: transformed center Y (${transformedCenterY}) should equal workspace center Y (${workspaceCenterY})`,
       );
 
-      const leftGap = (frame.x + ttcBounds.x * frame.scale) - tc.overlayLeft;
+      const leftGap = frame.x + ttcBounds.x * frame.scale;
       const rightGap = tc.width - (frame.x + (ttcBounds.x + ttcBounds.width) * frame.scale);
       assert.ok(
         Math.abs(leftGap - rightGap) < 1e-9,
@@ -728,29 +721,9 @@ describe("pan zoom behavior guardrails", () => {
     }
   });
 
-  it("preserves manual camera focus and zoom when the desktop sidebar opens or resizes", () => {
-    const userCamera = { x: -300, y: -150, scale: 0.65 };
-    const prevViewport = { width: 1440, height: 900 };
-    const nextViewport = { width: 1440 - 380, height: 900 };
-
-    const resized = transformForViewportResize(
-      userCamera,
-      prevViewport,
-      nextViewport,
-      0.2,
-      0.15,
-      0,
-      0,
-      true, // preserveZoom on desktop
-    );
-
-    // Zoom level must remain intact
-    assert.equal(resized.scale, userCamera.scale);
-
-    // Map point at previous center must now be at new center
-    const prevCenterMapPoint = mapPointFromViewportPoint(userCamera, { x: 720, y: 450 });
-    const newCenterMapPoint = mapPointFromViewportPoint(resized, { x: (1440 - 380) / 2, y: 450 });
-    assert.ok(Math.abs(prevCenterMapPoint.x - newCenterMapPoint.x) < 1e-9);
-    assert.ok(Math.abs(prevCenterMapPoint.y - newCenterMapPoint.y) < 1e-9);
+  it("does not observe or measure the desktop sidebar from the base camera hook", () => {
+    assert.doesNotMatch(hookSource, /readDesktopOverlayInsets/);
+    assert.doesNotMatch(hookSource, /observer\.observe\(sidebar\)/);
+    assert.doesNotMatch(hookSource, /diffOverlay/);
   });
 });

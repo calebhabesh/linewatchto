@@ -157,7 +157,9 @@ export function DesktopStatusOverview({
     .map((line) => {
       const rows = summary.rows.filter((r) => r.lineId === line.id);
       const closureCount = (summary.upcoming ?? []).filter((c) => c.lineId === line.id).length;
-      const rszCount = (dashboardData.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id).length;
+      const rszCount = countReducedSpeedZones(
+        (dashboardData.reducedSpeedZones ?? []).filter((rsz) => rsz.lineId === line.id),
+      );
       return {
         line,
         rows,

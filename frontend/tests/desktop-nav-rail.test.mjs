@@ -7,10 +7,10 @@ import { readFileSync } from "node:fs";
 const railSource = readFileSync(new URL("../src/components/DesktopNavRail.tsx", import.meta.url), "utf8");
 
 describe("desktop navigation destinations", () => {
-  const RAIL_DESTINATIONS = ["status", "stations", "commutes", "alert-history", "more", "alerts", "delays", "reduced-speed-zones", "closures", "trip-changes", "analytics", "source-status"];
+  const RAIL_DESTINATIONS = ["status", "stations", "commutes", "alert-history", "more", "alerts", "delays", "reduced-speed-zones", "closures", "trip-changes", "feedback", "analytics", "source-status"];
 
   it("defines the agreed desktop rail destinations in order", () => {
-    assert.deepEqual(RAIL_DESTINATIONS, ["status", "stations", "commutes", "alert-history", "more", "alerts", "delays", "reduced-speed-zones", "closures", "trip-changes", "analytics", "source-status"]);
+    assert.deepEqual(RAIL_DESTINATIONS, ["status", "stations", "commutes", "alert-history", "more", "alerts", "delays", "reduced-speed-zones", "closures", "trip-changes", "feedback", "analytics", "source-status"]);
   });
 
   it("maps views to top-level desktop destinations", () => {
@@ -32,7 +32,7 @@ describe("desktop navigation destinations", () => {
     assert.equal(destinationForView("accessibility-outages"), "accessibility-outages");
     assert.equal(destinationForView("surface-notices"), "surface-notices");
     assert.equal(destinationForView("announcements"), "announcements");
-    assert.equal(destinationForView("feedback"), "more");
+    assert.equal(destinationForView("feedback"), "feedback");
     assert.equal(destinationForView("map"), "status");
   });
 
@@ -54,13 +54,17 @@ describe("desktop navigation destinations", () => {
     assert.match(railSource, /className="desktop-rail-notice-shortcuts"[\s\S]*?className="desktop-rail-alert-shortcuts"/);
   });
 
-  it("renders a bottom divider line with Source Status and Data menus below it", () => {
+  it("renders a bottom divider line with Feedback, Data, and Source Status menus below it", () => {
     assert.match(railSource, /className="desktop-rail-divider"/);
-    assert.match(railSource, /data-dest="source-status"/);
-    assert.match(railSource, /<span>Source<\/span>\s*<span>Status<\/span>/);
+    assert.match(railSource, /data-dest="feedback"/);
+    assert.match(railSource, />\s*Feedback\s*<\/span>/);
+    assert.match(railSource, /MessageSquareText/);
     assert.match(railSource, /data-dest="analytics"/);
     assert.match(railSource, />\s*Data\s*<\/span>/);
     assert.match(railSource, /BarChart3/);
+    assert.match(railSource, /data-dest="source-status"/);
+    assert.match(railSource, /<span>Source<\/span>\s*<span>Status<\/span>/);
+    assert.match(railSource, /data-dest="feedback"[\s\S]*?data-dest="analytics"[\s\S]*?data-dest="source-status"/);
   });
 
   it("places network-specific alert shortcuts immediately above the bottom divider", () => {
@@ -78,10 +82,10 @@ describe("desktop navigation destinations", () => {
     const mapControlsCss = readFileSync(new URL("../src/styles/shell/map-controls.css", import.meta.url), "utf8");
 
     assert.match(ttcMapSource, /className="desktop-map-control-network-group hidden md:flex items-center"/);
-    assert.match(ttcMapSource, /<NetworkSelector network="ttc" onChange=\{onNetworkChange\} \/>/);
+    assert.match(ttcMapSource, /<NetworkSelector network="ttc" onChange=\{onNetworkChange\} ariaLabel="Map network switcher" \/>/);
 
     assert.match(regionalMapSource, /className="desktop-map-control-network-group hidden md:flex items-center"/);
-    assert.match(regionalMapSource, /<NetworkSelector network="regional" onChange=\{onNetworkChange\} \/>/);
+    assert.match(regionalMapSource, /<NetworkSelector network="regional" onChange=\{onNetworkChange\} ariaLabel="Map network switcher" \/>/);
 
     assert.match(mapControlsCss, /\.desktop-map-control-network-group\s*\{[^}]*gap:\s*21px;/s);
     assert.match(mapControlsCss, /\.map-control-rail\s+\.network-selector\s*\{[^}]*margin:\s*0 7px 0 0;/s);
@@ -151,4 +155,3 @@ describe("desktop navigation destinations", () => {
     assert.match(desktopChromeCss, /\.dark \.desktop-status-info-badge--surface\[data-count="positive"\]\s*\{[^}]*color:\s*#a7f3d0;/s);
   });
 });
-

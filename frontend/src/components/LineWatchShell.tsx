@@ -53,6 +53,8 @@ import { DesktopMorePanel } from "./DesktopMorePanel";
 import {
   computeDesktopLayoutMetrics,
   desktopRailDestinationForView,
+  readDesktopSidebarCollapsed,
+  saveDesktopSidebarCollapsed,
   type DesktopRailDestination,
 } from "../app/desktop-sidebar-state";
 import { PwaInstallNudge } from "./PwaInstallNudge";
@@ -582,6 +584,8 @@ export function LineWatchShell({
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(false);
+  const [desktopSidebarPreferenceReady, setDesktopSidebarPreferenceReady] = useState(false);
+  const skipNextDesktopSidebarPreferenceWriteRef = useRef(false);
   const [windowWidth, setWindowWidth] = useState<number>(1200);
   const activeViewRef = useRef<ActiveView>("map");
   const viewHistoryRef = useRef<ActiveView[]>([]);
@@ -851,6 +855,23 @@ export function LineWatchShell({
     mediaQuery.addEventListener("change", sync);
     return () => mediaQuery.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setDesktopSidebarCollapsed(readDesktopSidebarCollapsed(window.localStorage));
+      setDesktopSidebarPreferenceReady(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!desktopSidebarPreferenceReady) return;
+    if (skipNextDesktopSidebarPreferenceWriteRef.current) {
+      skipNextDesktopSidebarPreferenceWriteRef.current = false;
+      return;
+    }
+    saveDesktopSidebarCollapsed(window.localStorage, desktopSidebarCollapsed);
+  }, [desktopSidebarCollapsed, desktopSidebarPreferenceReady]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1316,7 +1337,8 @@ export function LineWatchShell({
       activeView === "surface-notices" ||
       activeView === "announcements" ||
       activeView === "source-status" ||
-      activeView === "analytics";
+      activeView === "analytics" ||
+      activeView === "feedback";
     const desktopFallback: ActiveView = isStatusView ? "status" : "more";
     const mobileFallback: ActiveView = isStatusView
       ? "status"
@@ -1586,6 +1608,7 @@ export function LineWatchShell({
   const closeSelectedStation = useCallback((expectedStationId: string) => {
     if (selectedStationIdRef.current !== expectedStationId) return;
     consumeBrowserNavigationEntries();
+    setNavDirection("back");
     stationDrilldownOriginRef.current = null;
     selectedStationIdRef.current = null;
     setSelectedStationId((current) => current === expectedStationId ? null : current);
@@ -2512,7 +2535,8 @@ export function LineWatchShell({
     setSelectedStationId(null);
     if (isMobile) {
       navigateToMapDrilldown();
-    } else if (desktopMetrics.mode === "overlay") {
+    } else if (desktopMetrics.mode === "overlay" && !desktopSidebarCollapsed) {
+      skipNextDesktopSidebarPreferenceWriteRef.current = true;
       setDesktopSidebarCollapsed(true);
       requestAnimationFrame(() => {
         desktopRailToggleRef.current?.focus();
@@ -3240,6 +3264,7 @@ export function LineWatchShell({
     selectedStationIdRef.current = id;
     stationDrilldownOriginRef.current = null;
     if (id) {
+      setNavDirection("forward");
       setStationSheetRatio(readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null));
       setStationPanelActivationKey((current) => current + 1);
     }
@@ -3683,14 +3708,15 @@ export function LineWatchShell({
       setActiveView("map");
       return;
     }
-    if (desktopMetrics.mode === "overlay") {
+    if (desktopMetrics.mode === "overlay" && !desktopSidebarCollapsed) {
+      skipNextDesktopSidebarPreferenceWriteRef.current = true;
       setDesktopSidebarCollapsed(true);
       requestAnimationFrame(() => {
         desktopRailToggleRef.current?.focus();
       });
     }
     setMapLayoutSignal((prev) => prev + 1);
-  }, [isMobile, desktopMetrics.mode]);
+  }, [isMobile, desktopMetrics.mode, desktopSidebarCollapsed]);
 
   const renderPanelContent = () => {
     switch (activeView) {
@@ -4105,6 +4131,10 @@ export function LineWatchShell({
         navigateRoot("analytics");
         announceDesktop("Reliability Analytics");
         return;
+      case "feedback":
+        navigateRoot("feedback");
+        announceDesktop("Leave Feedback");
+        return;
     }
   }, [desktopSidebarCollapsed, navigateRoot, setCommutePathPreview, setSelectedStationId, setSelection, announceDesktop, selectedNetwork]);
 
@@ -4354,6 +4384,7 @@ export function LineWatchShell({
                 .map((outage) => [outage.id, outage]),
             ).values())}
             accessibilityFresh={!displayData.snapshot && accessibilityOutageResult?.fresh === true}
+            reducedMotion={reducedMotion}
             onClose={() => closeSelectedStation(selectedStationId)}
             onSelectImpact={handleStationSelectImpact}
             authenticated={accountState.authenticated || accountState.source === "unavailable"}
@@ -5930,10 +5961,10 @@ export function LineWatchShell({
                 : "desktop-sidebar-container--overlay"
             } ${desktopSidebarCollapsed ? "desktop-sidebar-container--collapsed" : ""}`}
             style={{
-              width: `${desktopMetrics.sidebarWidth}px`,
-              maxWidth: `${desktopMetrics.sidebarWidth}px`,
-            }}
+              "--desktop-sidebar-width": `${desktopMetrics.sidebarWidth}px`,
+            } as React.CSSProperties}
             aria-hidden={desktopSidebarCollapsed ? "true" : undefined}
+            inert={desktopSidebarCollapsed ? true : undefined}
             aria-label="Sidebar navigation and details"
           >
             <header className="desktop-sidebar-header">
@@ -6210,6 +6241,7 @@ export function LineWatchShell({
               .map((outage) => [outage.id, outage]),
           ).values())}
           accessibilityFresh={!displayData.snapshot && accessibilityOutageResult?.fresh === true}
+          reducedMotion={reducedMotion}
           onClose={() => closeSelectedStation(selectedStationId)}
           onSelectImpact={handleStationSelectImpact}
           authenticated={accountState.authenticated || accountState.source === "unavailable"}

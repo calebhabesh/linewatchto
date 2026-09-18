@@ -1,6 +1,5 @@
 import { useMapViewportPersistence } from "./useMapViewportPersistence";
 import { readMapStationCenterX, readMobileMapFrameInsets } from "./mobileMapFrame";
-import { readDesktopOverlayInsets } from "../app/desktop-sidebar-state";
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, type PointerEvent, type WheelEvent } from "react";
 import {
@@ -159,25 +158,21 @@ export function usePanZoom({
         };
       }
 
-      const desktopOverlay = readDesktopOverlayInsets(containerRef.current);
       return computeDesktopMapFrame({
         viewportWidth: width,
         viewportHeight: height,
         bounds: defaultFrame.bounds,
-        overlayLeft: desktopOverlay.left,
         horizontalInsetRatio: defaultFrame.horizontalInsetRatio ?? 0.025,
         minHorizontalInset: defaultFrame.minHorizontalInset ?? 32,
       });
     }
 
-    const desktopOverlay = readDesktopOverlayInsets(containerRef.current);
     const mapWidth = 4500;
     const mapHeight = 2181.82;
     const scale = computeMapFitScale(width, height, mapWidth, mapHeight);
     const artworkCenterX = (65 + 7925) * (4500 / 8250) / 2;
-    const effectiveCenterX = (width + desktopOverlay.left) / 2;
     return {
-      x: effectiveCenterX - artworkCenterX * scale,
+      x: width / 2 - artworkCenterX * scale,
       y: height / 2 - (mapHeight * 0.435) * scale,
       scale,
     };
@@ -426,7 +421,7 @@ export function usePanZoom({
     };
   }, [setProgrammaticCameraMotion, setUserGestureMotion, setUserZoomMotion]);
 
-  const lastDimensions = useRef({ width: 0, height: 0, overlayLeft: 0 });
+  const lastDimensions = useRef({ width: 0, height: 0 });
 
   // Track real viewport changes without accepting background-tab layout
   // measurements. Chromium may briefly report a collapsed content rect while
@@ -445,15 +440,12 @@ export function usePanZoom({
         viewportOrientation,
       );
 
-      const desktopOverlay = readDesktopOverlayInsets(el);
-      const overlayLeft = desktopOverlay.left;
       const previousViewport = lastDimensions.current;
       const diffW = Math.abs(previousViewport.width - width);
       const diffH = Math.abs(previousViewport.height - height);
-      const diffOverlay = Math.abs(previousViewport.overlayLeft - overlayLeft);
 
       // Ignore subpixel variations to prevent layout feedback loops from layer promotion.
-      if (diffW < 1 && diffH < 1 && diffOverlay < 1) return;
+      if (diffW < 1 && diffH < 1) return;
 
       const defaultTransform = defaultTransformForViewport(width, height);
       const newFit = defaultTransform.scale;
@@ -476,13 +468,13 @@ export function usePanZoom({
               { width, height },
               previousFit,
               newFit,
-              previousViewport.overlayLeft,
-              overlayLeft,
+              0,
+              0,
               window.innerWidth >= 768,
             );
       const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
 
-      lastDimensions.current = { width, height, overlayLeft };
+      lastDimensions.current = { width, height };
       fitScaleRef.current = newFit;
       transformRef.current = snapped;
       setFitScale(newFit);
@@ -504,10 +496,6 @@ export function usePanZoom({
     };
 
     observer.observe(el);
-    const shell = el.closest<HTMLElement>(".linewatch-shell");
-    const sidebar = shell?.querySelector<HTMLElement>(".desktop-sidebar-container");
-    if (sidebar) observer.observe(sidebar);
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       observer.disconnect();
@@ -527,12 +515,9 @@ export function usePanZoom({
       physicalHeight,
       viewportOrientation,
     );
-    const desktopOverlay = readDesktopOverlayInsets(el);
-    const overlayLeft = desktopOverlay.left;
     const diffW = Math.abs(lastDimensions.current.width - width);
     const diffH = Math.abs(lastDimensions.current.height - height);
-    const diffOverlay = Math.abs(lastDimensions.current.overlayLeft - overlayLeft);
-    if (diffW >= 1 || diffH >= 1 || diffOverlay >= 1) {
+    if (diffW >= 1 || diffH >= 1) {
       const previousViewport = lastDimensions.current;
       const defaultTransform = defaultTransformForViewport(width, height);
       const newFit = defaultTransform.scale;
@@ -555,12 +540,12 @@ export function usePanZoom({
               { width, height },
               previousFit,
               newFit,
-              previousViewport.overlayLeft,
-              overlayLeft,
+              0,
+              0,
               window.innerWidth >= 768,
             );
       const snapped = snapTransformToDevicePixels(next, currentDevicePixelRatio());
-      lastDimensions.current = { width, height, overlayLeft };
+      lastDimensions.current = { width, height };
       fitScaleRef.current = newFit;
       transformRef.current = snapped;
       setFitScale(newFit);
@@ -916,7 +901,8 @@ export function usePanZoom({
   ]);
 
   const restoreViewport = useMapViewportPersistence(persistenceKey, transform, fitScale, logicalViewportSize,
-    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !persistenceBlocked && viewportOrientation === "standard");
+    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !persistenceBlocked && viewportOrientation === "standard",
+    () => cameraInitializedRef.current && viewportOrientation === "standard");
   const restoreSavedCamera = useCallback(() => {
     if (persistenceBlocked || viewportOrientation !== "standard") return false;
     const { width, height } = logicalViewportSize();

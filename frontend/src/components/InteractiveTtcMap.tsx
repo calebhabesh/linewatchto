@@ -2146,7 +2146,7 @@ function InteractiveTtcMapComponent({
         {onNetworkChange && (
           <div className="desktop-map-control-network-group hidden md:flex items-center">
             <div className="map-control-divider" aria-hidden="true" />
-            <NetworkSelector network="ttc" onChange={onNetworkChange} />
+            <NetworkSelector network="ttc" onChange={onNetworkChange} ariaLabel="Map network switcher" />
           </div>
         )}
       </div>

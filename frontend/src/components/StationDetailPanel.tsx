@@ -575,7 +575,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   const handleCloseClick = () => {
     setIsClosing(true);
-    const duration = reducedMotion ? 0 : (typeof window !== "undefined" && window.innerWidth < 768) ? 240 : 380;
+    const duration = reducedMotion ? 0 : (typeof window !== "undefined" && window.innerWidth < 768) ? 240 : 180;
     closeTimeoutRef.current = window.setTimeout(() => {
       closeTimeoutRef.current = null;
       onClose();

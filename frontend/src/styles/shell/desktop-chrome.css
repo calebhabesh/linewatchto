@@ -1735,7 +1735,7 @@
   pointer-events: none;
   position: absolute;
   top: 0;
-  transition: left 180ms cubic-bezier(0.16, 1, 0.3, 1), width 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: left 160ms cubic-bezier(0.2, 0.8, 0.2, 1), width 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
   width: var(--desktop-sidebar-width, 560px);
   will-change: left, width;
   z-index: 60;
@@ -1788,6 +1788,26 @@
   outline: none;
   transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
   width: 44px;
+}
+
+.desktop-rail-toggle-icon {
+  align-items: center;
+  animation: desktop-rail-toggle-icon-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  display: inline-flex;
+  justify-content: center;
+  will-change: opacity, transform;
+}
+
+@keyframes desktop-rail-toggle-icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.72) rotate(-18deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
 }
 
 .desktop-rail-toggle:hover {
@@ -2345,11 +2365,21 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-width: 100%;
   overflow: hidden;
-  position: relative;
-  z-index: 20;
-  transition: box-shadow 180ms ease;
+  bottom: 0;
+  left: var(--desktop-rail-width, 80px);
+  position: absolute;
+  top: 0;
+  width: var(--desktop-sidebar-width, 560px);
+  max-width: var(--desktop-sidebar-width, 560px);
+  z-index: 25;
+  transition:
+    box-shadow 180ms ease,
+    width 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    max-width 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 160ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: width, max-width, opacity, transform;
 }
 
 .dark .desktop-sidebar-container {
@@ -2364,7 +2394,7 @@
 }
 
 .desktop-sidebar-container--docked {
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .desktop-sidebar-container--overlay {
@@ -2381,7 +2411,17 @@
 }
 
 .desktop-sidebar-container--collapsed {
-  display: none;
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-12px, 0, 0);
+  width: 0;
+}
+
+.desktop-sidebar-container--overlay.desktop-sidebar-container--collapsed {
+  max-width: var(--desktop-sidebar-width, 560px);
+  transform: translate3d(calc(-100% - 12px), 0, 0);
+  width: var(--desktop-sidebar-width, 560px);
 }
 
 .desktop-sidebar-header {
@@ -2391,6 +2431,8 @@
   flex-shrink: 0;
   gap: 12px;
   padding: 16px 16px 0 16px;
+  transition: opacity 120ms ease, transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  width: var(--desktop-sidebar-width, 560px);
 }
 
 .dark .desktop-sidebar-header {
@@ -2587,6 +2629,14 @@
   min-height: 0;
   overflow-y: auto;
   position: relative;
+  transition: opacity 120ms ease, transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  width: var(--desktop-sidebar-width, 560px);
+}
+
+.desktop-sidebar-container--collapsed .desktop-sidebar-header,
+.desktop-sidebar-container--collapsed .desktop-sidebar-content {
+  opacity: 0;
+  transform: translate3d(-8px, 0, 0);
 }
 
 /* --------------------------------------------------------------------------
@@ -2620,10 +2670,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .desktop-rail-toggle,
+  .desktop-rail-toggle-icon,
   .desktop-rail-item,
   .desktop-rail-item::before,
   .desktop-rail-item::after,
   .desktop-sidebar-container,
+  .desktop-sidebar-header,
+  .desktop-sidebar-content,
   .desktop-sidebar-accent-strip,
   .desktop-nav-rail {
     transition: none;
@@ -4300,19 +4353,47 @@
   color: #ffffff;
 }
 
-.desktop-more-section--default-map .desktop-more-card {
+.desktop-more-section--default-map .desktop-more-default-map-options {
   background: var(--surface-card-opaque);
+  border: none;
+  border-radius: 8px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
     var(--mobile-card-shadow);
-  padding: 6px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  height: 44px;
+  min-height: 44px;
+  padding: 4px;
+  position: relative;
+  width: 100%;
 }
 
-.dark .desktop-more-section--default-map .desktop-more-card {
+.dark .desktop-more-section--default-map .desktop-more-default-map-options {
   background: var(--surface-card-opaque);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     var(--mobile-card-shadow);
+}
+
+.desktop-more-section--default-map .desktop-more-default-map-options .default-map-mode-glider {
+  border-radius: 6px;
+  inset: 4px auto 4px 4px;
+  width: calc((100% - 8px) / 2);
+}
+
+.desktop-more-section--default-map .desktop-more-default-map-options .default-map-mode-btn {
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  height: 100%;
+  padding: 0 12px;
+}
+
+.desktop-more-section--default-map .desktop-more-default-map-options .default-map-mode-btn:focus-visible {
+  outline: 2px solid var(--logo-blue, #2563eb);
+  outline-offset: -2px;
 }
 
 .desktop-more-nav-item {
@@ -4369,7 +4450,7 @@
 
 .high-contrast .desktop-more-account-info,
 .high-contrast .desktop-more-setting-row,
-.high-contrast .desktop-more-section--default-map .desktop-more-card {
+.high-contrast .desktop-more-section--default-map .desktop-more-default-map-options {
   background: #000000;
   border: 1px solid currentColor;
   box-shadow: none;

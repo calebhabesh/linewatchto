@@ -37,21 +37,12 @@ describe("desktop sidebar uniform target width and responsive metrics", () => {
 });
 
 describe("transient 'View on map' collapse contract", () => {
-  it("ensures desktop sidebar opens expanded on fresh page loads and collapse is session-only", () => {
+  it("opens expanded without a preference and remembers later collapse changes", () => {
     const storage = memoryStorage();
-    // Fresh page load always starts expanded
     assert.equal(readDesktopSidebarCollapsed(storage), false);
-
-    // Legacy storage key if present is cleaned up
-    storage.setItem("linewatch-desktop-sidebar-collapsed", "true");
-    assert.equal(readDesktopSidebarCollapsed(storage), false);
-    assert.equal(storage.getItem("linewatch-desktop-sidebar-collapsed"), null);
-
-    // In-memory state manages session collapse without durable storage mutation
-    let inMemoryCollapsed = false;
-    inMemoryCollapsed = true;
-    assert.equal(inMemoryCollapsed, true);
     saveDesktopSidebarCollapsed(storage, true);
+    assert.equal(readDesktopSidebarCollapsed(storage), true);
+    saveDesktopSidebarCollapsed(storage, false);
     assert.equal(readDesktopSidebarCollapsed(storage), false);
   });
 
@@ -82,7 +73,7 @@ describe("transient 'View on map' collapse contract", () => {
 
     const mockShell = {
       querySelector(selector) {
-        if (selector.includes("--overlay") && !isCollapsed) {
+        if (selector.includes(".desktop-sidebar-container") && !isCollapsed) {
           return mockOverlayPanel;
         }
         return null;

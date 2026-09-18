@@ -52,11 +52,12 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
     assert.match(shellSource, /const handleToggleDesktopSidebar = useCallback\(\(\) => \{\s*setDesktopSidebarCollapsed\(\(prev\) => !prev\);\s*\}, \[\]\);/);
   });
 
-  it("accounts for desktop overlay insets in pan zoom camera fitting for both TTC and GO/UP", () => {
-    assert.match(panZoomSource, /readDesktopOverlayInsets/);
+  it("keeps default camera fitting independent from the sidebar and uses its inset only for focused targets", () => {
+    assert.doesNotMatch(panZoomSource, /readDesktopOverlayInsets/);
     assert.match(ttcMapSource, /readDesktopOverlayInsets/);
     assert.match(regionalMapSource, /readDesktopOverlayInsets/);
-    assert.match(regionalMapSource, /const desktopOverlay = readDesktopOverlayInsets\(viewport\);/);
+    assert.doesNotMatch(regionalMapSource, /observer\.observe\(sidebar\)/);
+    assert.doesNotMatch(panZoomSource, /observer\.observe\(sidebar\)/);
   });
 
   it("centers selected station in unoccluded viewport area on desktop", () => {
@@ -73,7 +74,7 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
   it("defines correct CSS layout classes for desktop rail, sidebar, and workspace", () => {
     assert.match(globalCss, /\.linewatch-desktop-layout\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*row;/s);
     assert.match(globalCss, /\.desktop-nav-rail\s*\{[^}]*width:\s*var\(--desktop-rail-width,\s*80px\);/s);
-    assert.match(globalCss, /\.desktop-sidebar-container\s*\{/);
+    assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*position:\s*absolute;/s);
     assert.match(globalCss, /\.desktop-sidebar-container--docked\s*\{/);
     assert.match(globalCss, /\.desktop-sidebar-container--overlay\s*\{/);
     assert.match(globalCss, /\.desktop-sidebar-container--collapsed\s*\{/);

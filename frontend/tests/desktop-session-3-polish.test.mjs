@@ -112,8 +112,10 @@ describe("desktop responsive and accessibility polish (Session 3)", () => {
       assert.equal(mobileFlag.mode, "mobile");
     });
 
-    it("applies shadow transitions without sliding width animation in stylesheet", () => {
+    it("animates sidebar width, collapse, and shadow while retaining reduced-motion coverage", () => {
       assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*transition:\s*box-shadow/);
+      assert.match(globalCss, /\.desktop-sidebar-container\s*\{[^}]*width 160ms cubic-bezier\(0\.2, 0\.8, 0\.2, 1\)/s);
+      assert.match(globalCss, /\.desktop-sidebar-container--collapsed\s*\{[^}]*max-width:\s*0;[^}]*opacity:\s*0;[^}]*width:\s*0;/s);
       assert.match(globalCss, /\.desktop-sidebar-container--overlay\s*\{[^}]*box-shadow/);
       assert.match(globalCss, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.desktop-sidebar-container/);
     });

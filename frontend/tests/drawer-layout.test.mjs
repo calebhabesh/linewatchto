@@ -113,11 +113,12 @@ describe("floating menu layout", () => {
 
   it("keeps the desktop panel chrome stable while animating keyed view content", () => {
     assert.match(shellSource, /<FloatingPanelShell key="desktop-panel" panel=\{activeView\}/);
-    assert.match(shellSource, /<div key=\{activeView\} className="desktop-view-content-wrapper"/);
-    assert.match(globalCss, /\.desktop-view-content-wrapper\s*\{[^}]*animation:\s*desktop-content-fade-in 380ms/s);
-    assert.match(globalCss, /@keyframes desktop-content-fade-in/);
+    assert.match(shellSource, /<div key=\{desktopKey\} className="desktop-view-content-wrapper"/);
+    assert.match(globalCss, /\.desktop-view-content-wrapper\s*\{[^}]*animation:\s*panel-container-root 220ms/s);
+    assert.match(globalCss, /\.desktop-view-content-wrapper\[data-nav-direction="forward"\][^}]*animation:\s*panel-container-forward 220ms/s);
+    assert.match(globalCss, /\.desktop-view-content-wrapper\[data-nav-direction="back"\][^}]*animation:\s*panel-container-back 220ms/s);
     assert.match(selectedImpactScrollSource, /addEventListener\("animationend", handleWrapperAnimationEnd\)/);
-    assert.match(selectedImpactScrollSource, /event\.animationName !== expectedAnimationName/);
+    assert.match(selectedImpactScrollSource, /wrapperAnimationNames\.has\(event\.animationName\)/);
     assert.match(selectedImpactScrollSource, /highlightCard\(\);[\s\S]*const wrapper = /);
     assert.match(selectedImpactScrollSource, /closest<HTMLElement>\("\.alert-stack, \.closure-stack"\)/);
     assert.match(selectedImpactScrollSource, /getComputedStyle\(card\)\.scrollMarginTop/);

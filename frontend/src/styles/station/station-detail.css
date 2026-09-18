@@ -756,23 +756,19 @@
 @media (min-width: 768px) {
   .station-detail-panel.station-detail-closing,
   .station-detail-panel[data-closing="true"] {
-    animation: station-detail-exit-desktop 380ms cubic-bezier(0.32, 1.2, 0.32, 1) forwards;
+    animation: station-detail-exit-desktop 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
     will-change: transform, opacity;
     pointer-events: none !important;
   }
 
   @keyframes station-detail-exit-desktop {
-    0% {
+    from {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translate3d(0, 0, 0);
     }
-    16% {
-      opacity: 1;
-      transform: translateY(-6px) scale(1.008);
-    }
-    100% {
+    to {
       opacity: 0;
-      transform: translateY(20px) scale(0.94);
+      transform: translate3d(12px, 0, 0);
     }
   }
 }

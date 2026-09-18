@@ -2,33 +2,26 @@ export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 export const DESKTOP_SIDEBAR_COLLAPSED_KEY = "linewatch-desktop-sidebar-collapsed";
 
-/**
- * Desktop sidebar opens expanded on every fresh page load.
- * Returns false (expanded) regardless of legacy storage.
- */
+/** Desktop sidebar opens expanded until the visitor records a preference. */
 export function readDesktopSidebarCollapsed(storage: StorageLike | null): boolean {
   if (!storage) return false;
   try {
-    // Clean up obsolete durable collapse key if present.
-    if (storage.getItem(DESKTOP_SIDEBAR_COLLAPSED_KEY) !== null) {
-      storage.removeItem(DESKTOP_SIDEBAR_COLLAPSED_KEY);
-    }
+    return storage.getItem(DESKTOP_SIDEBAR_COLLAPSED_KEY) === "true";
   } catch {
-    /* Optional cleanup. */
+    return false;
   }
-  return false;
 }
 
-/**
- * Desktop sidebar collapse state is session-only; durable persistence is retired.
- */
 export function saveDesktopSidebarCollapsed(
-  _storage: StorageLike | null,
-  _collapsed: boolean,
+  storage: StorageLike | null,
+  collapsed: boolean,
 ): void {
-  void _storage;
-  void _collapsed;
-  // Session-only; do not persist durable collapse state.
+  if (!storage) return;
+  try {
+    storage.setItem(DESKTOP_SIDEBAR_COLLAPSED_KEY, String(collapsed));
+  } catch {
+    // Keep the in-memory preference when storage is unavailable.
+  }
 }
 
 export const DESKTOP_RAIL_WIDTH = 80;
@@ -126,8 +119,8 @@ export function computeDesktopLayoutMetrics({
 }
 
 /**
- * Reads any left occlusion inside the map viewport caused by an overlaying desktop sidebar.
- * In docked mode or collapsed mode, returns { left: 0 } to prevent double-insets.
+ * Reads the left occlusion inside the map viewport caused by the open desktop sidebar.
+ * The sidebar always overlays the stable map workspace; collapsed mode has no inset.
  */
 export function readDesktopOverlayInsets(viewport: HTMLElement | null): { left: number } {
   if (!viewport || typeof window === "undefined" || window.innerWidth < 768) {
@@ -138,7 +131,7 @@ export function readDesktopOverlayInsets(viewport: HTMLElement | null): { left: 
   if (!shell) return { left: 0 };
 
   const overlayPanel = shell.querySelector<HTMLElement>(
-    ".desktop-sidebar-container--overlay:not(.desktop-sidebar-container--collapsed)",
+    ".desktop-sidebar-container:not(.desktop-sidebar-container--collapsed)",
   );
   if (!overlayPanel || overlayPanel.getAttribute("aria-hidden") === "true") {
     return { left: 0 };
@@ -168,7 +161,8 @@ export type DesktopRailDestination =
   | "alert-history"
   | "more"
   | "source-status"
-  | "analytics";
+  | "analytics"
+  | "feedback";
 
 export function desktopRailDestinationForView(view: string): DesktopRailDestination {
   switch (view) {
@@ -203,10 +197,11 @@ export function desktopRailDestinationForView(view: string): DesktopRailDestinat
       return "source-status";
     case "analytics":
       return "analytics";
+    case "feedback":
+      return "feedback";
     case "more":
     case "menu":
     case "notifications":
-    case "feedback":
     case "privacy-acknowledgements":
     case "release-notes":
       return "more";
