@@ -209,6 +209,40 @@ Suggested continuation prompt:
     - Target suites: frontend fast/typecheck/lint/build, smoke and E2E desktop/mobile shell and geographic interaction cases, plus 360px/1440px visual review across light/dark/high contrast and reduced motion.
     - Benchmark criteria: production build with fixed normal/dense fixture snapshots; record viewport, browser/device, DPR, fixture counts, p95 frame intervals, tasks over 50ms, source updates, style requests and lifecycle counts. Require zero ordinary-interaction lifecycle resets; aim for 60fps desktop and at least 30fps on a representative phone, separating warm rendering from cold tile latency and reporting any unavailable physical-device evidence.
 
+- **2026-09-18 Pre-Session 5 polish complete**: Stop here; start Session 5 only in a separate session.
+  - Agreed behavior and implementation now present:
+    - Geographic View-on-Map camera bounds use the rendered projected link/station identity graph, including indirect/source IDs. Initial selections and same-key late geometry retry until a focus succeeds. Unsupported geometry leaves the camera unchanged and announces `Location unavailable on geographic map`.
+    - Explicit direction arrows are no longer suppressed under 120 m. They avoid the midpoint badge, repeat at bounded intervals on longer links, appear from zoom 10.5, and use a dark casing with white core for contrast. Unknown direction still produces no invented arrow. Selecting/hovering a secondary overlap switches arrows to that alert while the priority impact retains the base track.
+    - Train captions are direction-only (`Eastbound`, etc.; none when unavailable). Marker circles and heading glyphs are about 18–20% larger. Direction/train sprites are generated at 2x/3x pixel density to remove rotated raster jaggies.
+    - Contiguous links with an identical alert set consolidate to one per-kind geographic badge. Badges retain the kind glyph and render counts in a separate bubble instead of replacing the glyph with an unexplained number.
+    - Geographic multi-impact clicks retain batched MapLibre layers and mount only one React `MapOverlapChooser`. Desktop chooser follows its geographic anchor; compact layout docks near the bottom. Pure grouping exposes every distinct same-kind and mixed-kind alert.
+  - Final overlap-chooser regression fix:
+    - Replaced the guessed canvas fraction with `window.__linewatchGeographicMapLifecycle.getProjectedImpactAnchor(key)`, a live resolver that projects the current grouped badge (or link/station fallback) through the mounted MapLibre camera and returns it only when `queryRenderedFeatures` confirms the target is actually hittable.
+    - Pinned reduced motion for this chooser regression so unrelated camera animation cannot move the target between resolution and click. Desktop performs a real click at the live badge anchor. Compact switches the inspector to map-focus, pans the badge clear of the inspector, resolves the post-pan rendered anchor, and performs the same real click.
+    - The regression asserts both distinct same-kind Line 4 delay choices. Desktop asserts an in-map anchored chooser; compact uses a 360x800 viewport and asserts the chooser is docked within 16px of the available map bottom.
+  - Final verification:
+    - `npm --prefix frontend run test:fast` passed with 0 failures after the final source change.
+    - `npm --prefix frontend run typecheck` passed cleanly after the final source change.
+    - `npm --prefix frontend run lint` passed with 0 errors and 0 warnings after the final source change.
+    - Focused pure tests: 40/40 in `geographic-alert-parity.test.mjs` and `geographic-arrows-and-trains.test.mjs`.
+    - New View-on-Map browser case passes for supported geometry or the explicit unavailable notice.
+    - Geographic line-badge/detail screenshot test passes; reviewed detail capture shows kind glyphs plus separate count bubbles and prominent repeated arrows.
+    - `LINEWATCH_PLAYWRIGHT_REUSE_BUILD=true npx --prefix frontend playwright test geographic-map-lifecycle.spec.ts -c frontend/playwright.config.ts --project=desktop-chrome --project=mobile-chromium` passed: 7 passed, 5 intentional mobile skips for desktop-only lifecycle/theme/context cases.
+    - Focused chooser command across both projects passed 2/2. Reviewed `/tmp/geographic-overlap-chooser-desktop.png` and `/tmp/geographic-overlap-chooser-compact.png`: desktop chooser followed the Line 4 badge without obscuring the corridor; compact chooser docked at the bottom of the available map region with both choices in its scroll surface. Temporary screenshot capture code was removed.
+    - Working tree covered: base `70b1cd459b29e90e38e6e49fd34a0337381f9463` plus the preserved Sessions 1-4 and completed pre-Session 5 polish changes.
+  - Remaining defects or evidence gaps:
+    - None for this polish checkpoint. Session 5 still owns the broader integration matrix, theme/motion/cross-network review, production build validation, and measured performance comparison.
+  - Next session:
+    - Execute Session 5, “Validate integration and performance,” only, following its existing bounded scope and checks below. Do not add features or broad refactors.
+  - Main changed files for this checkpoint:
+    - `frontend/src/app/geographic-overlays.ts`
+    - `frontend/src/app/geographic-lifecycle.ts`
+    - `frontend/src/components/GeographicNetworkMap.tsx`
+    - `frontend/tests/geographic-alert-parity.test.mjs`
+    - `frontend/tests/geographic-arrows-and-trains.test.mjs`
+    - `frontend/tests/geographic-map-phase-d.test.mjs`
+    - `frontend/tests/smoke/geographic-map-lifecycle.spec.ts`
+
 ## Outcome and agreed scope
 
 Keep a geographic map instance stable while dashboard data, sidebar state, filters, and selection change. After initial loading, normal tile requests must never replace the map with “Loading TTC Geographic Map.” Preserve camera and selection. Match system-map alert eligibility, priority, details, and filters using performant geographic rendering. Add static directional indicators, estimated train markers from existing data, and informational line badges that fade with zoom. Add equivalent badge fading to the system map in a separate stage.

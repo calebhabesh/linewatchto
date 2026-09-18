@@ -30,6 +30,7 @@ import {
   projectCommutePreview,
   getProjectedSelectionBounds,
   getProjectedImpactGroup,
+  getPointAlongPolyline,
 } from "../app/geographic-overlays";
 import type { EstimatedTrainMarker } from "../app/train-markers";
 import {
@@ -49,7 +50,10 @@ import {
   readGeographicMapViewport,
   saveGeographicMapViewport,
 } from "../app/map-viewport-preference";
-import { recordGeographicMapLifecycle } from "../app/geographic-lifecycle";
+import {
+  recordGeographicMapLifecycle,
+  setGeographicProjectedImpactAnchorResolver,
+} from "../app/geographic-lifecycle";
 import {
   GEOGRAPHIC_LINE_BADGE_FULL_ZOOM,
   GEOGRAPHIC_LINE_BADGE_HALF_ZOOM,
@@ -2044,6 +2048,57 @@ export function GeographicNetworkMap({
     const timeoutId = window.setTimeout(() => setFocusNotice(null), 3200);
     return () => window.clearTimeout(timeoutId);
   }, [focusNotice]);
+
+  useEffect(() => {
+    setGeographicProjectedImpactAnchorResolver((key) => {
+      const map = mapRef.current;
+      if (!map || loadStatusRef.current !== "ready") return null;
+      const separator = key.indexOf(":");
+      if (separator < 0) return null;
+      const targetType = key.slice(0, separator);
+      const targetId = key.slice(separator + 1);
+      const data = overlayDataRef.current;
+      const badge = data.impactBadges.features.find(
+        (feature) => feature.properties.targetType === targetType && feature.properties.targetId === targetId,
+      );
+      if (badge) {
+        const point = map.project(badge.geometry.coordinates);
+        const badgeLayers = [
+          "transit-impact-badges-bg",
+          "transit-impact-badges-label",
+          "transit-impact-badges-count-bg",
+          "transit-impact-badges-count-label",
+        ].filter((layerId) => map.getLayer(layerId));
+        const isRendered = badgeLayers.length > 0 && map.queryRenderedFeatures(point, { layers: badgeLayers })
+          .some((feature) => (
+            feature.properties?.targetType === targetType && feature.properties?.targetId === targetId
+          ));
+        return isRendered ? { x: point.x, y: point.y } : null;
+      }
+      if (targetType === "segment") {
+        const link = data.impactedLinks.features.find((feature) => feature.properties.segmentId === targetId);
+        if (link) {
+          const point = map.project(getPointAlongPolyline(link.geometry.coordinates, 0.5));
+          const isRendered = Boolean(map.getLayer("transit-impacts-line")) && map
+            .queryRenderedFeatures(point, { layers: ["transit-impacts-line"] })
+            .some((feature) => feature.properties?.segmentId === targetId);
+          return isRendered ? { x: point.x, y: point.y } : null;
+        }
+      }
+      if (targetType === "station") {
+        const station = data.impactedStations.features.find((feature) => feature.properties.stationId === targetId);
+        if (station) {
+          const point = map.project(station.geometry.coordinates);
+          const isRendered = Boolean(map.getLayer("transit-station-impacts")) && map
+            .queryRenderedFeatures(point, { layers: ["transit-station-impacts"] })
+            .some((feature) => feature.properties?.stationId === targetId);
+          return isRendered ? { x: point.x, y: point.y } : null;
+        }
+      }
+      return null;
+    });
+    return () => setGeographicProjectedImpactAnchorResolver(null);
+  }, []);
 
   useEffect(() => {
     const map = mapRef.current;

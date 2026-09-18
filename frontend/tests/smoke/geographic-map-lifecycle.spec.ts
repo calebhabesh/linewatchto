@@ -132,8 +132,8 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
   });
 
   test("clicking a geographic corridor with multiple alerts opens one complete chooser", async ({ page, isMobile }) => {
-    test.skip(isMobile, "Desktop verifies the geographically anchored chooser; compact presentation is shared");
-    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.setViewportSize(isMobile ? { width: 360, height: 800 } : { width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.route("**/api/dashboard?network=ttc*", async (route) => {
       const response = await route.fetch();
       const body = await response.json();
@@ -175,18 +175,56 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       ) ?? false,
       { after: focusTimestamp },
     )).toBe(true);
+    if (isMobile) {
+      await page.getByRole("button", { name: "Show more map" }).click();
+      await expect(page.locator("[data-mobile-impact-inspector]")).toHaveClass(/mobile-impact-inspector-map-focus/);
+    }
 
+    const targetId = "line-4-leslie-don-mills";
     const canvasBox = await geoMap.locator("canvas").boundingBox();
     expect(canvasBox).not.toBeNull();
-    await page.mouse.click(
-      canvasBox!.x + canvasBox!.width * 0.55,
-      canvasBox!.y + canvasBox!.height * 0.38,
+    if (isMobile) {
+      const moveCount = await page.evaluate(
+        () => window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0,
+      );
+      await page.mouse.move(canvasBox!.x + canvasBox!.width / 2, canvasBox!.y + 300);
+      await page.mouse.down();
+      await page.mouse.move(canvasBox!.x + canvasBox!.width / 2, canvasBox!.y + 180, { steps: 6 });
+      await page.mouse.up();
+      await expect.poll(async () => page.evaluate(
+        ({ before }) => (
+          window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
+        ) > before,
+        { before: moveCount },
+      )).toBe(true);
+    }
+    await expect.poll(async () => page.evaluate(
+      ({ key }) => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(key) ?? null,
+      { key: `segment:${targetId}` },
+    )).not.toBeNull();
+    const anchor = await page.evaluate(
+      ({ key }) => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(key) ?? null,
+      { key: `segment:${targetId}` },
     );
+    expect(anchor).not.toBeNull();
+    const clientX = canvasBox!.x + anchor!.x;
+    const clientY = canvasBox!.y + anchor!.y;
+    await page.mouse.click(clientX, clientY);
 
     const chooser = page.locator("[data-overlap-chooser]");
     await expect(chooser).toBeVisible();
     await expect(chooser.locator('[data-overlap-choice-id="stub-delay-line-4"]')).toBeVisible();
     await expect(chooser.locator('[data-overlap-choice-id="stub-delay-line-4-second"]')).toBeVisible();
+    const chooserBox = await chooser.boundingBox();
+    expect(chooserBox).not.toBeNull();
+    if (isMobile) {
+      const mapBox = await geoMap.boundingBox();
+      expect(mapBox).not.toBeNull();
+      expect(Math.abs((chooserBox!.y + chooserBox!.height) - (mapBox!.y + mapBox!.height))).toBeLessThanOrEqual(16);
+    } else {
+      expect(chooserBox!.x).toBeGreaterThan(canvasBox!.x);
+      expect(chooserBox!.y).toBeGreaterThanOrEqual(canvasBox!.y);
+    }
   });
 
   test("theme switching replaces style only on genuine change, preserving map instance and camera", async ({ page, isMobile }) => {
