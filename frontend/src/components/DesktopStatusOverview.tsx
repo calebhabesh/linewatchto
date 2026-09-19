@@ -25,6 +25,7 @@ import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { ElectricBorder } from "./ui/ElectricBorder";
 import { NetworkSelector } from "./NetworkSelector";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
+import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
 function getAlertElectricColor(kind: string): string {
   switch (kind) {
@@ -497,8 +498,8 @@ export function DesktopStatusOverview({
                 }
               }}
             >
-              <span className="current-service-routes">
-                {(notice.routeIds.length ? notice.routeIds : [regional ? "GO" : "TTC"]).map(
+              {notice.routeIds.length ? <span className="current-service-routes">
+                {notice.routeIds.map(
                   (route) => (
                     <span
                       className="current-service-route"
@@ -510,14 +511,14 @@ export function DesktopStatusOverview({
                     </span>
                   ),
                 )}
-              </span>
+              </span> : null}
               <span className="current-service-notice-copy" data-category={notice.category}>
                 <strong data-category={notice.category}>
                   <SurfaceCategoryIcon category={notice.category} size={13} className="shrink-0" />
                   {noticeLabels[notice.category] || "Notice"}
                 </strong>
                 <span className="current-service-notice-text">
-                  {notice.location || notice.title}
+                  {surfaceNoticePreviewLocation(notice, !regional)}
                 </span>
               </span>
             </button>

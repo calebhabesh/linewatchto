@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleReadRepository;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeResponses.*;
 import java.time.Clock;
 import java.time.Instant;
@@ -22,11 +23,31 @@ class SurfaceServiceNoticeServiceTest {
     private SurfaceServiceNoticeReadRepository repository;
     @Mock
     private IngestionFreshness ingestionFreshness;
+    @Mock
+    private GtfsScheduleReadRepository scheduleRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-14T15:40:00Z"), ZoneId.of("UTC"));
 
     private SurfaceServiceNoticeService getService() {
-        return new SurfaceServiceNoticeService(repository, ingestionFreshness, clock);
+        return new SurfaceServiceNoticeService(repository, scheduleRepository, ingestionFreshness, clock);
+    }
+
+    @Test
+    void enrichesNumericAlertStopsFromTheActiveGtfsStopCatalog() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        when(repository.findActiveNotices()).thenReturn(List.of(new SurfaceServiceNotice(
+            "ttc-surface-live-2032", "live-2032", "no-service", "Bus", "Stop 2032", "", "", null,
+            "NO_SERVICE", "No Service", null, null, "Other Cause.", now, null, now, true, "{}",
+            List.of("29C"), List.of(new SurfaceServiceNotice.StopDetail("2032", "2032"))
+        )));
+        when(scheduleRepository.findActiveStopNames(List.of("2032")))
+            .thenReturn(java.util.Map.of("2032", "Dufferin Gate Loop"));
+
+        NoticeDetail detail = getService().getSurfaceNotices(null, null, null).notices().getFirst();
+
+        assertThat(detail.location()).isEqualTo("Dufferin Gate Loop");
+        assertThat(detail.stops()).containsExactly(new StopDetail("2032", "Dufferin Gate Loop"));
     }
 
     @Test

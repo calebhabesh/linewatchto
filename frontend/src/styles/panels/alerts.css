@@ -389,13 +389,16 @@
 .impact-route__bounds--segment {
   column-gap: 10px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  width: 100%;
+  grid-template-columns: minmax(0, max-content) auto minmax(0, max-content);
+  margin-inline: auto;
+  max-width: 100%;
+  width: fit-content;
 }
 
 .impact-route__bounds--segment > span {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  white-space: nowrap;
 }
 
 .impact-route__bounds--segment > span:first-child {
@@ -419,6 +422,13 @@
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 800;
+}
+
+@container impact-details (max-width: 28rem) {
+  .impact-route__bounds--segment > span {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
 }
 
 @media (min-width: 768px) {

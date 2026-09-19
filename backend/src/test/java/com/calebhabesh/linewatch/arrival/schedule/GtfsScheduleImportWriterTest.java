@@ -113,6 +113,7 @@ class GtfsScheduleImportWriterTest {
         order.verify(repository).beginReplacementImport(any(), any(), any(), any(), any());
         order.verify(repository).insertRoutes(eq(42L), any());
         order.verify(repository).insertStops(eq(42L), any());
+        order.verify(repository).markFullStopCatalogAvailable(42L);
         order.verify(repository).insertServices(eq(42L), any());
         order.verify(repository).insertServiceExceptions(eq(42L), any());
         order.verify(repository).insertTrips(eq(42L), any());

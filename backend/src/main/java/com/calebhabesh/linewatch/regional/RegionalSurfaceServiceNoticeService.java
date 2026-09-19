@@ -141,6 +141,12 @@ public class RegionalSurfaceServiceNoticeService {
                 })
                 .filter(stop -> !stop.stopId().isBlank() || !stop.stopName().isBlank())
                 .toList();
+            if (routes.isEmpty()) {
+                routes = singleCatalogRoute(stops);
+            }
+            if (routes.isEmpty()) {
+                routes = explicitlyNamedRoutes(title, description);
+            }
             String sourceId = firstNonBlank(text(message, "Code"), record.sourceId());
             boolean schedule = RegionalScheduleAnnouncement.matches(title, description);
             String searchable = String.join(" ", title, description, text(message, "SubCategory")).toLowerCase(Locale.CANADA);
@@ -322,6 +328,31 @@ public class RegionalSurfaceServiceNoticeService {
             .flatMap(RegionalNetworkCatalog::station)
             .map(station -> station.name() + " GO")
             .orElse(firstNonBlank(sourceName, stopCode));
+    }
+
+    private List<String> singleCatalogRoute(List<StopDetail> stops) {
+        List<String> stationIds = stops.stream()
+            .map(StopDetail::stopId)
+            .map(RegionalNetworkCatalog::stationIdForStopCode)
+            .flatMap(java.util.Optional::stream)
+            .distinct()
+            .toList();
+        if (stationIds.isEmpty()) return List.of();
+        List<String> routes = RegionalNetworkCatalog.routes().stream()
+            .filter(route -> route.stationIds().containsAll(stationIds))
+            .map(RegionalNetworkCatalog.Route::number)
+            .toList();
+        return routes.size() == 1 ? routes : List.of();
+    }
+
+    private List<String> explicitlyNamedRoutes(String title, String description) {
+        String text = (title + " " + description).toLowerCase(Locale.CANADA);
+        return RegionalNetworkCatalog.routes().stream()
+            .filter(route -> text.contains(route.name().toLowerCase(Locale.CANADA) + " line")
+                || ("UP".equals(route.number()) && text.contains("up express")))
+            .map(RegionalNetworkCatalog.Route::number)
+            .distinct()
+            .toList();
     }
 
     private String safeId(String value) {

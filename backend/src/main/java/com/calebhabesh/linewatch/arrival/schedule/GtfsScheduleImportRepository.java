@@ -79,14 +79,17 @@ public class GtfsScheduleImportRepository {
                 :importId, :stopId, :stopName, :parentStation
             )
             """;
-        SqlParameterSource[] batch = rows.stream()
-            .map(row -> new MapSqlParameterSource()
-                .addValue("importId", importId)
-                .addValue("stopId", row.stopId())
-                .addValue("stopName", row.stopName())
-                .addValue("parentStation", row.parentStation().isEmpty() ? null : row.parentStation()))
-            .toArray(SqlParameterSource[]::new);
-        jdbc.batchUpdate(sql, batch);
+        for (int start = 0; start < rows.size(); start += 1_000) {
+            List<GtfsImportModels.StopRow> chunk = rows.subList(start, Math.min(start + 1_000, rows.size()));
+            SqlParameterSource[] batch = chunk.stream()
+                .map(row -> new MapSqlParameterSource()
+                    .addValue("importId", importId)
+                    .addValue("stopId", row.stopId())
+                    .addValue("stopName", row.stopName())
+                    .addValue("parentStation", row.parentStation().isEmpty() ? null : row.parentStation()))
+                .toArray(SqlParameterSource[]::new);
+            jdbc.batchUpdate(sql, batch);
+        }
     }
 
     public void insertServices(long importId, List<GtfsImportModels.ServiceRow> rows) {
@@ -189,6 +192,11 @@ public class GtfsScheduleImportRepository {
 
     public void markSurfaceScheduleAvailable(long importId) {
         jdbc.update("update gtfs_schedule_imports set surface_schedule_available = true where id = :id",
+            java.util.Map.of("id", importId));
+    }
+
+    public void markFullStopCatalogAvailable(long importId) {
+        jdbc.update("update gtfs_schedule_imports set full_stop_catalog_available = true where id = :id",
             java.util.Map.of("id", importId));
     }
 

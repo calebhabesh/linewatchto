@@ -46,6 +46,7 @@ public class GtfsScheduleImportWriter {
 
         repository.insertRoutes(importId, prepared.routes());
         repository.insertStops(importId, prepared.stops());
+        repository.markFullStopCatalogAvailable(importId);
         repository.insertServices(importId, prepared.services());
         repository.insertServiceExceptions(importId, prepared.serviceExceptions());
         repository.insertTrips(importId, prepared.trips());

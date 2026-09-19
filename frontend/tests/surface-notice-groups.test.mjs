@@ -7,6 +7,7 @@ import {
   surfaceNoticeEmphasis,
   groupSurfaceNoticesByRoute,
   hasExactRouteMatch,
+  surfaceNoticePreviewLocation,
 } from "../src/app/surface-notice-groups.ts";
 
 const baseNotice = {
@@ -24,6 +25,14 @@ const baseNotice = {
   url: "",
   source: "TTC Live Alerts",
 };
+
+it("adds a single TTC stop ID to the dashboard preview location", () => {
+  assert.equal(surfaceNoticePreviewLocation({
+    ...baseNotice,
+    location: "Dufferin Gate Loop",
+    stops: [{ stopId: "2032", stopName: "Dufferin Gate Loop" }],
+  }, true), "Dufferin Gate Loop (2032)");
+});
 
 describe("surface notice route grouping", () => {
   it("groups multiple bypass notices under one route header with stop rows", () => {

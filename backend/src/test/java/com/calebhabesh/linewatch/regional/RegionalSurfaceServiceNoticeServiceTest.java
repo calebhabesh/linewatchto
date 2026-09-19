@@ -129,6 +129,38 @@ class RegionalSurfaceServiceNoticeServiceTest {
         assertThat(stale.notices()).isEmpty();
     }
 
+    @Test
+    void linksAnUntaggedStationNoticeToItsSingleCatalogCorridor() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        when(repository.findActiveRecords(any())).thenReturn(List.of(
+            record(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "KITCHENER-WORK", """
+                {"Code":"KITCHENER-WORK","SubjectEnglish":"Kitchener Line Service Adjustments Sept. 19-20",
+                 "BodyEnglish":"No GO train service at Kitchener GO due to planned construction.",
+                 "Category":"General Information","SubCategory":"E-Ticket",
+                 "Lines":[],"Stops":[{"Name":"Kitchener GO","Code":"KI"}]}
+                """)));
+
+        assertThat(service().getSurfaceNotices(null, null, null).notices())
+            .singleElement().satisfies(notice -> assertThat(notice.routeIds()).containsExactly("KI"));
+    }
+
+    @Test
+    void usesAnExplicitCorridorNameToDisambiguateASharedStation() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        when(repository.findActiveRecords(any())).thenReturn(List.of(
+            record(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "BLOOR-WORK", """
+                {"Code":"BLOOR-WORK","SubjectEnglish":"Kitchener Line Service Adjustments Sept. 19-20",
+                 "BodyEnglish":"No GO Transit service at Bloor GO due to planned construction.",
+                 "Category":"General Information","SubCategory":"E-Ticket",
+                 "Lines":[],"Stops":[{"Name":"Bloor GO","Code":"BL"}]}
+                """)));
+
+        assertThat(service().getSurfaceNotices(null, null, null).notices())
+            .singleElement().satisfies(notice -> assertThat(notice.routeIds()).containsExactly("KI"));
+    }
+
     private RegionalSurfaceServiceNoticeService service() {
         return new RegionalSurfaceServiceNoticeService(repository, freshness,
             new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules(), CLOCK, properties);

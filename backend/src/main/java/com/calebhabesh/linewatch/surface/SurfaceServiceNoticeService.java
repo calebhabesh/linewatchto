@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.surface;
 
+import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleReadRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeResponses.*;
 import org.springframework.stereotype.Service;
@@ -14,15 +15,18 @@ import java.util.stream.Collectors;
 public class SurfaceServiceNoticeService {
 
     private final SurfaceServiceNoticeReadRepository repository;
+    private final GtfsScheduleReadRepository scheduleRepository;
     private final IngestionFreshness ingestionFreshness;
     private final Clock clock;
 
     public SurfaceServiceNoticeService(
         SurfaceServiceNoticeReadRepository repository,
+        GtfsScheduleReadRepository scheduleRepository,
         IngestionFreshness ingestionFreshness,
         Clock clock
     ) {
         this.repository = repository;
+        this.scheduleRepository = scheduleRepository;
         this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
     }
@@ -47,7 +51,7 @@ public class SurfaceServiceNoticeService {
             );
         }
 
-        List<SurfaceServiceNotice> activeNotices = synthesizeDisplayNotices(repository.findActiveNotices());
+        List<SurfaceServiceNotice> activeNotices = synthesizeDisplayNotices(enrichStopNames(repository.findActiveNotices()));
 
         // Calculate Category Summaries (unfiltered count)
         Map<String, Integer> categoryCounts = new LinkedHashMap<>();
@@ -125,6 +129,29 @@ public class SurfaceServiceNoticeService {
             summaries,
             details
         );
+    }
+
+    private List<SurfaceServiceNotice> enrichStopNames(List<SurfaceServiceNotice> notices) {
+        List<String> unresolvedIds = notices.stream()
+            .flatMap(notice -> notice.stops() == null ? java.util.stream.Stream.empty() : notice.stops().stream())
+            .filter(stop -> isNumeric(stop.stopId()) && !hasMeaningfulStopName(stop.stopName()))
+            .map(SurfaceServiceNotice.StopDetail::stopId)
+            .distinct()
+            .toList();
+        Map<String, String> names = scheduleRepository.findActiveStopNames(unresolvedIds);
+        if (names.isEmpty()) return notices;
+        return notices.stream().map(notice -> {
+            if (notice.stops() == null || notice.stops().isEmpty()) return notice;
+            List<SurfaceServiceNotice.StopDetail> stops = notice.stops().stream()
+                .map(stop -> new SurfaceServiceNotice.StopDetail(
+                    stop.stopId(), names.getOrDefault(stop.stopId(), stop.stopName())))
+                .toList();
+            return new SurfaceServiceNotice(
+                notice.id(), notice.sourceId(), notice.category(), notice.routeType(), notice.title(),
+                notice.description(), notice.headerText(), notice.url(), notice.effect(), notice.effectDescription(),
+                notice.direction(), notice.cause(), notice.causeDescription(), notice.activePeriodStart(), notice.activePeriodEnd(),
+                notice.sourceUpdatedAt(), notice.active(), notice.rawPayload(), notice.routeIds(), stops, notice.alertClass());
+        }).toList();
     }
 
     private boolean isRouteMatch(SurfaceServiceNotice notice, String query) {

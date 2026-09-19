@@ -31,6 +31,12 @@ describe("alert card and list views", () => {
     );
   });
 
+  it("keeps rail endpoint names together until the impact card is compact", () => {
+    assert.match(globalCss, /\.impact-route__bounds--segment\s*\{[^}]*grid-template-columns:\s*minmax\(0, max-content\) auto minmax\(0, max-content\);[^}]*margin-inline:\s*auto;[^}]*width:\s*fit-content;/s);
+    assert.match(globalCss, /\.impact-route__bounds--segment > span\s*\{[^}]*white-space:\s*nowrap;/s);
+    assert.match(globalCss, /@container impact-details \(max-width: 28rem\)[\s\S]*?\.impact-route__bounds--segment > span\s*\{[^}]*white-space:\s*normal;/s);
+  });
+
   it("defaults to cards and stores one per-device preference for all alert types", () => {
     assert.match(preferenceSource, /linewatch-impact-list-view-v1/);
     assert.match(preferenceSource, /useSyncExternalStore/);

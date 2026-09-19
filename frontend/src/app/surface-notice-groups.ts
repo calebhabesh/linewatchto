@@ -29,8 +29,8 @@ export function groupSurfaceNoticesByRoute(
   const groups = new Map<string, SurfaceNoticeRouteGroup>();
 
   for (const notice of notices) {
-    const routeIds = notice.routeIds?.length ? notice.routeIds : ["Route"];
-    const routeIdsLabel = routeIds.join(" / ");
+    const routeIds = notice.routeIds ?? [];
+    const routeIdsLabel = routeIds.length ? routeIds.join(" / ") : "unspecified";
     const key = `${notice.category}:${routeIdsLabel}`;
     const derivedName = deriveRouteName(notice);
     const group = groups.get(key) ?? {
@@ -115,6 +115,14 @@ export function deriveDisplayLocation(
   }
 
   return notice.scheduleAnnouncement ? "Schedule announcement" : notice.location?.trim() || "Route-wide Notice";
+}
+
+export function surfaceNoticePreviewLocation(notice: SurfaceNoticeDetail, includeStopId: boolean): string {
+  const location = notice.location?.trim() || notice.title;
+  if (!includeStopId || notice.stops?.length !== 1) return location;
+  const stop = notice.stops[0];
+  if (!stop.stopId?.trim() || !stop.stopName?.trim()) return location;
+  return `${stop.stopName.trim()} (${stop.stopId.trim()})`;
 }
 
 export function deriveSurfaceNoticeCause(notice: SurfaceNoticeDetail): string | null {

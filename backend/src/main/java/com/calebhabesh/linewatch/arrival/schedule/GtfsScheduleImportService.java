@@ -347,6 +347,8 @@ public class GtfsScheduleImportService {
                     ));
                 }
             });
+            stops.clear();
+            stops.addAll(allStopsById.values());
         }
 
         GtfsSchedulePreparedImport prepared = new GtfsSchedulePreparedImport(

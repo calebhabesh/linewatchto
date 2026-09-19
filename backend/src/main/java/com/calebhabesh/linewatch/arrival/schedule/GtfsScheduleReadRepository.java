@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -26,6 +28,23 @@ public class GtfsScheduleReadRepository {
             limit 1
             """, (rs, rowNum) -> rs.getLong("id"));
         return ids.stream().findFirst();
+    }
+
+    public Map<String, String> findActiveStopNames(Collection<String> stopIds) {
+        if (stopIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Map.Entry<String, String>> rows = jdbc.query("""
+            select stop.stop_id, stop.stop_name
+            from gtfs_stops stop
+            join gtfs_schedule_imports schedule on schedule.id = stop.import_id
+            where schedule.active = true
+              and stop.stop_id in (:stopIds)
+            """, new MapSqlParameterSource("stopIds", stopIds), (rs, rowNum) ->
+                Map.entry(rs.getString("stop_id"), rs.getString("stop_name")));
+        Map<String, String> names = new LinkedHashMap<>();
+        rows.forEach(entry -> names.put(entry.getKey(), entry.getValue()));
+        return Map.copyOf(names);
     }
 
     public Optional<Long> findImportIdForServiceDate(LocalDate serviceDate) {
@@ -94,7 +113,12 @@ public class GtfsScheduleReadRepository {
 
     public boolean hasSurfaceCatalog(long importId) {
         Boolean available = jdbc.queryForObject("""
-            select exists (select 1 from gtfs_schedule_imports where id = :importId and surface_schedule_available = true)
+            select exists (
+                       select 1 from gtfs_schedule_imports
+                       where id = :importId
+                         and surface_schedule_available = true
+                         and full_stop_catalog_available = true
+                   )
                and exists (
                        select 1 from ttc_surface_routes where import_id = :importId
                    )

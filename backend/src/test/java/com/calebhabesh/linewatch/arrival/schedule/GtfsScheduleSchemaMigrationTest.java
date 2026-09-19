@@ -26,6 +26,13 @@ class GtfsScheduleSchemaMigrationTest {
         assertThat(sql).contains("route_short_name in ('1', '2', '4', '5', '6')");
     }
 
+    @Test
+    void v83MarksImportsThatPersistTheFullStopCatalog() throws IOException {
+        String sql = migrationSql("/db/migration/V83__ttc_full_stop_catalog.sql");
+
+        assertThat(sql).contains("full_stop_catalog_available boolean not null default false");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

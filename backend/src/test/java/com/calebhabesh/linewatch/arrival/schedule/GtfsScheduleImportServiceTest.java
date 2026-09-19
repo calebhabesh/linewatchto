@@ -47,7 +47,7 @@ class GtfsScheduleImportServiceTest {
         assertThat(prepared.getValue().rapidTransitTripIds()).containsExactly("L1_N_1");
         assertThat(prepared.getValue().stops())
             .extracting(GtfsImportModels.StopRow::stopId)
-            .containsExactlyInAnyOrder("UNION", "UNION_N", "UNION_S");
+            .containsExactlyInAnyOrder("UNION", "UNION_N", "UNION_S", "UNION_STREETCAR", "QUEEN_SURFACE");
         assertThat(summary.stopTimes()).isEqualTo(2);
 
         assertThat(prepared.getValue().surfaceRoutes())
@@ -69,10 +69,10 @@ class GtfsScheduleImportServiceTest {
         assertThat(prepared.getValue().serviceExceptions()).extracting(GtfsImportModels.ServiceExceptionRow::serviceId)
             .contains("SURFACE");
 
-        // Prove that the first pass ignores surface stop times
+        // The name catalog retains surface stops while the rapid-transit stop-time pass remains scoped.
         assertThat(prepared.getValue().stops())
             .extracting(GtfsImportModels.StopRow::stopId)
-            .doesNotContain("QUEEN_SURFACE");
+            .contains("QUEEN_SURFACE");
     }
 
     @Test

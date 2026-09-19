@@ -6,6 +6,7 @@ import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const panelSource = readFileSync(new URL("../src/components/SurfaceNoticesPanel.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
+const overviewSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
 const stylesSource = readAppStylesheet();
 
 describe("surface notices panel and routing source verification", () => {
@@ -30,6 +31,7 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /stopFieldHeading/);
     assert.match(panelSource, /displayStops\.length > 1 \? "Stops" : "Stop"/);
     assert.match(panelSource, /renderCompactField\(stopFieldHeading\(notice\), stopFieldLabel\(notice\)/);
+    assert.match(panelSource, /`\$\{stop\.stopId\} \$\{stop\.stopName\}`/);
   });
 
   it("shows full notice details above metadata with a plain footnote", () => {
@@ -110,5 +112,13 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(stylesSource, /\.filter-reset-button\s*\{[^}]*border:\s*none;/s);
     assert.doesNotMatch(stylesSource, /\.dark\s+\.filter-reset-button\s*\{[^}]*border-color:/s);
   });
-});
 
+  it("labels untagged regional notices clearly and highlights a directly opened notice", () => {
+    assert.doesNotMatch(overviewSource, /Route not (?:specified|listed)/);
+    assert.doesNotMatch(overviewSource, /regional \? "GO" : "TTC"/);
+    assert.match(panelSource, /initialNoticeId/);
+    assert.match(panelSource, /surface-notice-selection-glow/);
+    assert.match(panelSource, /group\.notices\.some\(notice => notice\.id === initialNoticeId\)/);
+    assert.match(stylesSource, /surface-notice-selection-glow[\s\S]*station-impact-card-highlight-pulse/);
+  });
+});

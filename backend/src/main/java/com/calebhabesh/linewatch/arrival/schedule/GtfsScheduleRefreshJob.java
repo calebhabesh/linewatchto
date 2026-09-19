@@ -115,7 +115,7 @@ public class GtfsScheduleRefreshJob {
         }
         if (!readRepository.hasSurfaceCatalog(activeImport.get().id())) {
             log.info(
-                "Refreshing TTC GTFS schedule because active import {} predates or lacks the surface catalog",
+                "Refreshing TTC GTFS schedule because active import {} predates or lacks the full surface stop catalog",
                 activeImport.get().id()
             );
             return true;

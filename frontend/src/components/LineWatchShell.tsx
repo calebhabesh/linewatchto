@@ -1381,6 +1381,7 @@ export function LineWatchShell({
   const [regionalTripChangeCount, setRegionalTripChangeCount] = useState<number | null>(null);
   const [announcementCount, setAnnouncementCount] = useState<number | null>(null);
   const [surfaceNoticeInitialQuery, setSurfaceNoticeInitialQuery] = useState("");
+  const [surfaceNoticeInitialId, setSurfaceNoticeInitialId] = useState<string | null>(null);
   const [surfaceNoticeInitialContent, setSurfaceNoticeInitialContent] = useState<"notices" | "trip-changes">("notices");
 
   useEffect(() => {
@@ -1393,11 +1394,12 @@ export function LineWatchShell({
   }, [accessibilityOutageTarget, activeView]);
 
   useEffect(() => {
-    if (activeView !== "surface-notices" && surfaceNoticeInitialQuery) {
+    if (activeView !== "surface-notices" && (surfaceNoticeInitialQuery || surfaceNoticeInitialId)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSurfaceNoticeInitialQuery("");
+      setSurfaceNoticeInitialId(null);
     }
-  }, [activeView, surfaceNoticeInitialQuery]);
+  }, [activeView, surfaceNoticeInitialId, surfaceNoticeInitialQuery]);
 
   const handleClosePanel = useCallback(() => {
     if (isClosingPanel) return;
@@ -3545,18 +3547,21 @@ export function LineWatchShell({
       ?? notice.stopIds[0]
       ?? notice.title;
     setSurfaceNoticeInitialQuery(targetQuery);
+    setSurfaceNoticeInitialId(notice.id);
     setSurfaceNoticeInitialContent("notices");
     navigateForward("surface-notices");
   }, [navigateForward]);
 
   const openRegionalTripChanges = useCallback(() => {
     setSurfaceNoticeInitialQuery("");
+    setSurfaceNoticeInitialId(null);
     setSurfaceNoticeInitialContent("trip-changes");
     navigateForward("surface-notices");
   }, [navigateForward]);
 
   const openServiceNotices = useCallback(() => {
     setSurfaceNoticeInitialQuery("");
+    setSurfaceNoticeInitialId(null);
     setSurfaceNoticeInitialContent("notices");
     navigateForward("surface-notices");
   }, [navigateForward]);
@@ -4046,6 +4051,7 @@ export function LineWatchShell({
         return (
           <SurfaceNoticesPanel
             initialQuery={surfaceNoticeInitialQuery}
+            initialNoticeId={surfaceNoticeInitialId}
             initialRegionalContent={surfaceNoticeInitialContent}
             networkId={selectedNetwork}
             onBack={handleSubmenuBack}

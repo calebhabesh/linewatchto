@@ -18,6 +18,7 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SurfaceCategoryIcon } from "./SurfaceCategoryIcon";
 import { goNoticeRouteBadgeStyle, goNoticeRouteLabel } from "../app/go-bus-route-colors";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
+import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
 
 type Props = {
@@ -539,8 +540,8 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
         </h3>
         <ServiceList>
           {surfaceRows.slice(0, visibleNoticeCount).map((notice) => <button type="button" className="current-service-notice" key={notice.id} onClick={() => onNotice(notice)}>
-            <span className="current-service-routes">
-              {(notice.routeIds.length ? notice.routeIds : [data.networkId === "ttc" ? "TTC" : "GO"]).map((route) => (
+            {notice.routeIds.length ? <span className="current-service-routes">
+              {notice.routeIds.map((route) => (
                 <span
                   className="current-service-route"
                   key={route}
@@ -550,13 +551,13 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                   {route}
                 </span>
               ))}
-            </span>
+            </span> : null}
             <span className="current-service-notice-copy" data-category={notice.category}>
               <strong data-category={notice.category}>
                 <SurfaceCategoryIcon category={notice.category} size={12} className="shrink-0" />
                 {noticeLabels[notice.category] || "Notice"}
               </strong>
-              <span className="current-service-notice-text">{notice.location || notice.title}</span>
+              <span className="current-service-notice-text">{surfaceNoticePreviewLocation(notice, data.networkId === "ttc")}</span>
             </span>
           </button>)}
           {!surfaceRows.length && <p className="current-service-empty">{!notices || notices.fresh && now === 0 ? "Loading notices…" : notices.fresh ? "No current notices reported" : "Current notices unavailable"}</p>}

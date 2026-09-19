@@ -106,6 +106,7 @@ interface Props {
   onBack: () => void;
   onClose: () => void;
   initialQuery?: string;
+  initialNoticeId?: string | null;
   scopedRoute?: string;
   embeddedNotices?: SurfaceNoticeDetail[];
   externalQuery?: string;
@@ -119,6 +120,7 @@ export function SurfaceNoticesPanel({
   onBack,
   onClose,
   initialQuery = "",
+  initialNoticeId = null,
   scopedRoute,
   embeddedNotices,
   externalQuery,
@@ -146,6 +148,12 @@ export function SurfaceNoticesPanel({
   const tripChangesLoading = regional
     && regionalContent === "trip-changes"
     && tripChangesState?.query !== debouncedQuery;
+  const selectedNoticeRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!initialNoticeId || !selectedNoticeRef.current) return;
+    selectedNoticeRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [initialNoticeId, data]);
 
   useEffect(() => {
     if (!initialQuery) return;
@@ -321,7 +329,7 @@ export function SurfaceNoticesPanel({
     }
 
     return notice.displayStops
-      .map((stop) => stop.stopId ? `${stop.stopName} (${stop.stopId})` : stop.stopName)
+      .map((stop) => stop.stopId ? `${stop.stopId} ${stop.stopName}` : stop.stopName)
       .join(" to ");
   };
 
@@ -545,8 +553,9 @@ export function SurfaceNoticesPanel({
               {displayRouteGroups.map((group) => (
                 <section
                   key={group.key}
+                  ref={group.notices.some(notice => notice.id === initialNoticeId) ? selectedNoticeRef : undefined}
                   data-emphasis={surfaceNoticeEmphasis(group.notices[0])}
-                  className="surface-notice-route-group overflow-hidden rounded-lg border border-transparent bg-slate-50 dark:border-transparent dark:bg-[#12151c] shadow-sm"
+                  className={`surface-notice-route-group overflow-hidden rounded-lg border border-transparent bg-slate-50 dark:border-transparent dark:bg-[#12151c] shadow-sm ${group.notices.some(notice => notice.id === initialNoticeId) ? "surface-notice-selection-glow" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-2 px-3.5 pt-3 pb-2">
                     <div className="min-w-0 flex flex-col gap-1">
@@ -560,12 +569,12 @@ export function SurfaceNoticesPanel({
                               {renderStopDisplay(group.notices[0])}
                             </div>
                           ) : null}
-                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                            {group.notices[0].scheduleAnnouncement ? (
+                          {group.routeIds.length ? <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                            {group.notices[0].scheduleAnnouncement && group.routeIds.length ? (
                               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Published for:</span>
                             ) : null}
                             {renderRegionalRouteList(group.routeIds)}
-                          </div>
+                          </div> : null}
                           <p className="text-sm font-bold leading-snug text-slate-900 dark:text-white">
                             {group.notices[0].title}
                           </p>
@@ -595,7 +604,10 @@ export function SurfaceNoticesPanel({
                   <div className="divide-y divide-black/5 dark:divide-white/5">
                     {group.notices.map((notice) => {
                       return (
-                        <article key={notice.id} className="surface-notice-stop-row">
+                        <article
+                          key={notice.id}
+                          className="surface-notice-stop-row"
+                        >
                           {!regional ? (
                             <div className="flex w-full flex-wrap items-center gap-x-2 gap-y-1.5 px-3.5 py-3 text-left">
                               <span className="min-w-0 flex items-center gap-2">
