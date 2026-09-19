@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { chooseOpeningExperience } from "../src/app/opening-experience.ts";
+import { releaseNotes } from "../src/app/release-notes.ts";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const onboardingPath = new URL("../src/components/OpeningDisclaimer.tsx", import.meta.url);
@@ -13,8 +15,8 @@ describe("first-visit welcome experience", () => {
     assert.ok(existsSync(onboardingPath), "OpeningDisclaimer component should exist");
     assert.match(onboardingSource, /linewatch-welcome-seen-v1/);
     assert.match(onboardingSource, /linewatch-unofficial-notice-ack-v1/);
-    assert.match(onboardingSource, /aria-label="Welcome to LineWatchTO"/);
-    assert.match(onboardingSource, /opening-welcome-version">v 1\.0\.0<\/span>/);
+    assert.match(onboardingSource, /Welcome to LineWatchTO/);
+    assert.match(onboardingSource, /opening-welcome-version">v \{lineWatchAppVersion\}<\/span>/);
     assert.match(globalCss, /\.opening-welcome-version\s*\{[^}]*color:\s*#8f979b;/s);
     assert.match(globalCss, /@media \(max-width: 767px\)[\s\S]*?\.opening-welcome-version\s*\{[^}]*font-size:\s*0\.54em;/);
     assert.match(onboardingSource, /aria-modal="true"/);
@@ -22,6 +24,16 @@ describe("first-visit welcome experience", () => {
     assert.match(onboardingSource, /TTC or Metrolinx/);
     assert.match(onboardingSource, /Information may be delayed or unavailable/);
     assert.match(onboardingSource, /Got it/);
+  });
+
+  it("opens the right tab for new and returning visitors", () => {
+    const featuredRelease = releaseNotes[0];
+    const routineRelease = releaseNotes[1];
+
+    assert.equal(chooseOpeningExperience({ welcomeSeen: false, releaseNote: featuredRelease, seenReleaseVersion: null }), "welcome");
+    assert.equal(chooseOpeningExperience({ welcomeSeen: true, releaseNote: featuredRelease, seenReleaseVersion: null }), "release-notes");
+    assert.equal(chooseOpeningExperience({ welcomeSeen: true, releaseNote: featuredRelease, seenReleaseVersion: featuredRelease.version }), null);
+    assert.equal(chooseOpeningExperience({ welcomeSeen: true, releaseNote: routineRelease, seenReleaseVersion: null }), null);
   });
 
   it("provides three desktop slides and four mobile slides with curated images", () => {
@@ -43,8 +55,8 @@ describe("first-visit welcome experience", () => {
   });
 
   it("uses stable responsive slide stages and accessible manual controls", () => {
-    assert.match(onboardingSource, /Choose an introduction slide/);
-    assert.match(onboardingSource, /Go to slide/);
+    assert.match(onboardingSource, /indicatorsBelowContent/);
+    assert.doesNotMatch(onboardingSource, /SlideDots/);
     assert.match(onboardingSource, /Explore dashboard/);
     assert.match(onboardingSource, /Create a free account/);
     assert.match(globalCss, /\.opening-welcome-slide\s*\{[^}]*min-height:\s*372px;/s);
@@ -53,6 +65,11 @@ describe("first-visit welcome experience", () => {
     assert.match(globalCss, /\.opening-welcome-carousel--desktop\s*\{[^}]*display:\s*none;/s);
     assert.match(onboardingSource, /requestAnimationFrame/);
     assert.match(onboardingSource, /opening-welcome-panel--entrance-ready/);
+    assert.match(onboardingSource, /role="tablist"/);
+    assert.match(onboardingSource, /What's New/);
+    assert.match(onboardingSource, /dismissReleaseNotes/);
+    assert.match(globalCss, /\.opening-experience-tab--active/);
+    assert.match(globalCss, /\.opening-release-notes/);
     assert.match(globalCss, /animation:\s*opening-welcome-card-enter 620ms/);
     assert.match(globalCss, /@keyframes opening-welcome-card-enter\s*\{/);
     assert.match(globalCss, /\.opening-unofficial-notice\s*\{[^}]*align-items:\s*center;/s);

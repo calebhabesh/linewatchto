@@ -1001,9 +1001,9 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /@keyframes utility-popover-enter/);
     assert.match(content, /@keyframes utility-popover-exit/);
     assert.match(content, /\.source-status-panel/);
-    assert.match(content, /\.release-notes-notice/);
+    assert.match(content, /\.opening-release-notes/);
     assert.match(content, /\.release-notes-panel/);
-    assert.match(content, /\.release-notes-current/);
+    assert.match(content, /\.release-note-current-badge/);
     assert.match(content, /\.release-note-card/);
     assert.match(content, /\.privacy-acknowledgements-panel/);
     assert.match(content, /@keyframes opening-disclaimer-backdrop-enter/);

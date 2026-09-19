@@ -7,6 +7,7 @@ const transitMapSource = readFileSync(new URL("../src/app/transit-map.tsx", impo
 const globalCss = readAppStylesheet();
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const interactiveRegionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const geographicMapSource = readFileSync(new URL("../src/components/GeographicNetworkMap.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const chooserKeepoutsSource = readFileSync(new URL("../src/components/map-chooser-keepouts.ts", import.meta.url), "utf8");
@@ -343,8 +344,9 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /isSelectionFastFlashing|isStationFastFlashing/);
   });
 
-  it("does not flash a loading label while the TTC map asset is fetched", () => {
+  it("does not flash a loading label while either map initializes", () => {
     assert.doesNotMatch(interactiveMapSource, /Loading TTC Map/i);
+    assert.doesNotMatch(geographicMapSource, /Loading .*Geographic Map/i);
   });
 
   it("renders reduced speed zone chevron glyphs without a clipping mask", () => {

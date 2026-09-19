@@ -49,7 +49,7 @@ async function prepareDesktopPage(page: import("@playwright/test").Page, options
       window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
       window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
       window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", "1700000000000");
-      window.localStorage.setItem("linewatch-seen-release-notes-version", "1.0.0");
+      window.localStorage.setItem("linewatch-seen-release-notes-version", "1.1.0");
       window.localStorage.setItem("linewatch-reduced-motion-enabled-v1", "true");
       window.localStorage.setItem("linewatch-dot-background-enabled-v1", "false");
       window.localStorage.setItem("linewatch-estimated-trains-enabled-v1", "false");

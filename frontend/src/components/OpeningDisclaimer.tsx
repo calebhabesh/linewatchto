@@ -11,7 +11,15 @@ import onboardingMobileMapGuide from "../../public/assets/linewatch/onboarding/m
 import onboardingMobileImpactDetails from "../../public/assets/linewatch/onboarding/mobile-impact-details.png";
 import onboardingMobileMyCommutesV3 from "../../public/assets/linewatch/onboarding/mobile-my-commutes-v3.png";
 import onboardingMobileMyStationsV3 from "../../public/assets/linewatch/onboarding/mobile-my-stations-v3.png";
-import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { lineWatchAppVersion } from "../app/app-build";
+import { chooseOpeningExperience, type OpeningExperience } from "../app/opening-experience";
+import {
+  RELEASE_NOTES_SEEN_STORAGE_KEY,
+  currentReleaseNote,
+  releaseNotes,
+} from "../app/release-notes";
+import { ReleaseNoteCard } from "./ReleaseNoteCard";
 import Stepper, { Step } from "./Stepper";
 
 export const WELCOME_SEEN_STORAGE_KEY = "linewatch-welcome-seen-v1";
@@ -28,11 +36,29 @@ function hasStoredValue(key: string) {
   }
 }
 
+function readStoredValue(key: string) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
 function storeValue(key: string) {
   try {
     window.localStorage.setItem(key, "true");
   } catch {
     // The current page can still advance when storage is unavailable.
+  }
+}
+
+function storeReleaseVersion() {
+  if (!currentReleaseNote) return;
+
+  try {
+    window.localStorage.setItem(RELEASE_NOTES_SEEN_STORAGE_KEY, currentReleaseNote.version);
+  } catch {
+    // Release notes remain usable when storage is unavailable.
   }
 }
 
@@ -98,45 +124,18 @@ function MapOverlayLegend() {
   );
 }
 
-function SlideDots({
-  activeSlide,
-  count,
-  onSelect,
-}: {
-  activeSlide: number;
-  count: number;
-  onSelect: (slide: number) => void;
-}) {
-  return (
-    <div className="opening-welcome-dots" aria-label="Choose an introduction slide" role="group">
-      {Array.from({ length: count }, (_, index) => (
-        <button
-          type="button"
-          className={index === activeSlide ? "opening-welcome-dot opening-welcome-dot--active" : "opening-welcome-dot"}
-          aria-label={`Go to slide ${index + 1} of ${count}`}
-          aria-current={index === activeSlide ? "step" : undefined}
-          key={index}
-          onClick={() => onSelect(index)}
-        />
-      ))}
-    </div>
-  );
-}
-
 function SlideControls({
   activeSlide,
   count,
   onBack,
   onFinish,
   onNext,
-  onSelect,
 }: {
   activeSlide: number;
   count: number;
   onBack: () => void;
   onFinish: () => void;
   onNext: () => void;
-  onSelect: (slide: number) => void;
 }) {
   const isLastSlide = activeSlide === count - 1;
 
@@ -152,7 +151,6 @@ function SlideControls({
           <ChevronLeft aria-hidden="true" size={16} />
           Back
         </button>
-        <SlideDots activeSlide={activeSlide} count={count} onSelect={onSelect} />
         <button type="button" className="opening-welcome-skip-button" onClick={onFinish}>
           Skip
         </button>
@@ -254,23 +252,40 @@ function useSwipeableCarousel({
 function useActiveSlideHeight(activeSlide: number, viewportId: string) {
   useLayoutEffect(() => {
     const viewport = document.getElementById(viewportId);
-    const activeItem = viewport?.querySelector<HTMLElement>(
-      `.opening-welcome-slide-item[data-slide-index="${activeSlide}"]`,
-    );
-    if (!viewport || !activeItem) return;
+    if (!viewport) return;
+
+    let activeItem: HTMLElement | null = null;
+    let resizeObserver: ResizeObserver | null = null;
 
     const updateHeight = () => {
+      if (!activeItem) return;
       const renderedHeight = activeItem.getBoundingClientRect().height;
       viewport.style.height = `${Math.ceil(Math.max(renderedHeight, activeItem.scrollHeight))}px`;
     };
 
-    updateHeight();
-    const observer = new ResizeObserver(updateHeight);
-    observer.observe(activeItem);
+    const observeActiveSlide = () => {
+      const nextItem = viewport.querySelector<HTMLElement>(
+        `.opening-welcome-slide-item[data-slide-index="${activeSlide}"]`,
+      );
+      if (nextItem === activeItem) return;
+
+      resizeObserver?.disconnect();
+      activeItem = nextItem;
+      if (!activeItem) return;
+
+      resizeObserver = new ResizeObserver(updateHeight);
+      resizeObserver.observe(activeItem);
+      updateHeight();
+    };
+
+    const mutationObserver = new MutationObserver(observeActiveSlide);
+    mutationObserver.observe(viewport, { childList: true, subtree: true });
+    observeActiveSlide();
     window.addEventListener("resize", updateHeight);
 
     return () => {
-      observer.disconnect();
+      mutationObserver.disconnect();
+      resizeObserver?.disconnect();
       window.removeEventListener("resize", updateHeight);
     };
   }, [activeSlide, viewportId]);
@@ -288,6 +303,8 @@ export function OpeningDisclaimer({
   hideNoticeOnMobile?: boolean;
 }) {
   const [welcomeVisible, setWelcomeVisible] = useState(true);
+  const [welcomeRequired, setWelcomeRequired] = useState(true);
+  const [activeTab, setActiveTab] = useState<Exclude<OpeningExperience, null>>("welcome");
   const [welcomeEntranceReady, setWelcomeEntranceReady] = useState(false);
   const [noticeVisible, setNoticeVisible] = useState(false);
   const [isWelcomeExiting, setIsWelcomeExiting] = useState(false);
@@ -315,10 +332,19 @@ export function OpeningDisclaimer({
     Promise.resolve().then(() => {
       if (cancelled) return;
 
-      const showWelcome = !hasStoredValue(WELCOME_SEEN_STORAGE_KEY);
-      setWelcomeVisible(showWelcome);
-      setNoticeVisible(!showWelcome && !hasStoredValue(DISCLAIMER_ACK_STORAGE_KEY));
-      onVisibilityChange?.(showWelcome);
+      const welcomeSeen = hasStoredValue(WELCOME_SEEN_STORAGE_KEY);
+      const openingExperience = chooseOpeningExperience({
+        welcomeSeen,
+        releaseNote: currentReleaseNote,
+        seenReleaseVersion: readStoredValue(RELEASE_NOTES_SEEN_STORAGE_KEY),
+      });
+      const showExperience = openingExperience !== null;
+
+      setWelcomeRequired(!welcomeSeen);
+      setActiveTab(openingExperience ?? "welcome");
+      setWelcomeVisible(showExperience);
+      setNoticeVisible(!showExperience && !hasStoredValue(DISCLAIMER_ACK_STORAGE_KEY));
+      onVisibilityChange?.(showExperience);
     });
 
     return () => {
@@ -342,14 +368,28 @@ export function OpeningDisclaimer({
     };
   }, [isWelcomeExiting, welcomeVisible]);
 
-  const finishWelcome = () => {
-    storeValue(WELCOME_SEEN_STORAGE_KEY);
+  const closeOpeningExperience = () => {
     setIsWelcomeExiting(true);
     window.setTimeout(() => {
       setWelcomeVisible(false);
       setNoticeVisible(!hasStoredValue(DISCLAIMER_ACK_STORAGE_KEY));
       onVisibilityChange?.(false);
     }, 220);
+  };
+
+  const finishWelcome = () => {
+    storeValue(WELCOME_SEEN_STORAGE_KEY);
+    storeReleaseVersion();
+    closeOpeningExperience();
+  };
+
+  const dismissReleaseNotes = () => {
+    storeReleaseVersion();
+    if (welcomeRequired) {
+      setActiveTab("welcome");
+      return;
+    }
+    closeOpeningExperience();
   };
 
   const handleCreateAccountClick = (event: React.MouseEvent) => {
@@ -402,7 +442,7 @@ export function OpeningDisclaimer({
           role="presentation"
         >
           <section
-            aria-label="Welcome to LineWatchTO"
+            aria-label={activeTab === "welcome" ? "Welcome to LineWatchTO" : `What's new in LineWatchTO v${currentReleaseNote?.version ?? lineWatchAppVersion}`}
             aria-modal="true"
             className={`opening-disclaimer-panel opening-welcome-panel ${welcomeEntranceReady ? "opening-welcome-panel--entrance-ready" : ""} ${isWelcomeExiting ? "opening-disclaimer-panel--exiting" : ""}`}
             role="dialog"
@@ -416,6 +456,45 @@ export function OpeningDisclaimer({
               <span />
             </div>
             <div className="opening-disclaimer-content opening-welcome-content">
+              <div className="opening-experience-tabs" role="tablist" aria-label="LineWatchTO introduction and release notes">
+                <button
+                  type="button"
+                  id="opening-experience-welcome-tab"
+                  role="tab"
+                  aria-controls="opening-experience-welcome-panel"
+                  aria-selected={activeTab === "welcome"}
+                  className={activeTab === "welcome" ? "opening-experience-tab opening-experience-tab--active" : "opening-experience-tab"}
+                  onClick={() => setActiveTab("welcome")}
+                >
+                  Welcome
+                </button>
+                {currentReleaseNote ? (
+                  <button
+                    type="button"
+                    id="opening-experience-release-tab"
+                    role="tab"
+                    aria-controls="opening-experience-release-panel"
+                    aria-selected={activeTab === "release-notes"}
+                    className={activeTab === "release-notes" ? "opening-experience-tab opening-experience-tab--active" : "opening-experience-tab"}
+                    onClick={() => setActiveTab("release-notes")}
+                  >
+                    {"What's New"}
+                  </button>
+                ) : null}
+                {!welcomeRequired ? (
+                  <button type="button" className="opening-experience-dismiss" aria-label="Close introduction" onClick={dismissReleaseNotes}>
+                    <X size={17} aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
+
+              {activeTab === "welcome" ? (
+                <div
+                  id="opening-experience-welcome-panel"
+                  className="opening-experience-panel"
+                  role="tabpanel"
+                  aria-labelledby="opening-experience-welcome-tab"
+                >
               <header className="opening-disclaimer-welcome">
                 <Image
                   className="opening-disclaimer-logo"
@@ -429,17 +508,16 @@ export function OpeningDisclaimer({
                   <span className="opening-welcome-intro">Welcome to</span>{" "}
                   <span className="opening-welcome-product-name">
                     <strong className="linewatch-wordmark">LineWatchTO</strong>
-                    <span className="opening-welcome-version">v 1.0.0</span>
+                    <span className="opening-welcome-version">v {lineWatchAppVersion}</span>
                   </span>
                 </h1>
                 <p>Toronto &amp; GTA rapid transit service information, all in one place.</p>
               </header>
 
-              <div className="station-arrival-line-divider opening-welcome-divider" aria-hidden="true" />
-
               <div className="opening-welcome-carousel opening-welcome-carousel--desktop" aria-label="LineWatchTO introduction">
                 <Stepper
                   currentStep={desktopSlide + 1}
+                  indicatorsBelowContent
                   onStepChange={(step) => setDesktopSlide(step - 1)}
                   onFinalStepCompleted={finishWelcome}
                   contentClassName={`opening-welcome-carousel-viewport ${desktopSwipe.isDragging ? "opening-welcome-carousel-viewport--dragging" : ""}`}
@@ -452,7 +530,6 @@ export function OpeningDisclaimer({
                       onBack={() => setDesktopSlide((current) => Math.max(0, current - 1))}
                       onFinish={finishWelcome}
                       onNext={() => setDesktopSlide((current) => Math.min(DESKTOP_SLIDE_COUNT - 1, current + 1))}
-                      onSelect={setDesktopSlide}
                     />
                   )}
                 >
@@ -530,6 +607,7 @@ export function OpeningDisclaimer({
               <div className="opening-welcome-carousel opening-welcome-carousel--mobile" aria-label="LineWatchTO introduction">
                 <Stepper
                   currentStep={mobileSlide + 1}
+                  indicatorsBelowContent
                   onStepChange={(step) => setMobileSlide(step - 1)}
                   onFinalStepCompleted={finishWelcome}
                   contentClassName={`opening-welcome-carousel-viewport ${mobileSwipe.isDragging ? "opening-welcome-carousel-viewport--dragging" : ""}`}
@@ -542,7 +620,6 @@ export function OpeningDisclaimer({
                       onBack={() => setMobileSlide((current) => Math.max(0, current - 1))}
                       onFinish={finishWelcome}
                       onNext={() => setMobileSlide((current) => Math.min(MOBILE_SLIDE_COUNT - 1, current + 1))}
-                      onSelect={setMobileSlide}
                     />
                   )}
                 >
@@ -634,6 +711,21 @@ export function OpeningDisclaimer({
                 </button>{" "}
                 to save stations, commutes, and configure push notifications. All features are free.
               </p>
+                </div>
+              ) : currentReleaseNote ? (
+                <section
+                  id="opening-experience-release-panel"
+                  className="opening-release-notes"
+                  role="tabpanel"
+                  aria-labelledby="opening-experience-release-tab"
+                >
+                  <div className="release-notes-list" aria-label="LineWatchTO release history">
+                    {releaseNotes.map((note) => (
+                      <ReleaseNoteCard key={note.version} note={note} current={note.version === lineWatchAppVersion} />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </div>
           </section>
         </div>

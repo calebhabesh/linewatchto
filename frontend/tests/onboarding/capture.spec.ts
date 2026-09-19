@@ -12,7 +12,7 @@ async function prepare(page: Page) {
       "linewatch-welcome-seen-v1": "true",
       "linewatch-unofficial-notice-ack-v1": "true",
       "linewatch-pwa-install-dismissed-at-v1": String(Date.now()),
-      "linewatch-seen-release-notes-version": "1.0.0",
+      "linewatch-seen-release-notes-version": "1.1.0",
       "linewatch-reduced-motion-enabled-v1": "true",
       "linewatch-dot-background-enabled-v1": "false",
       "linewatch-estimated-trains-enabled-v1": "false",

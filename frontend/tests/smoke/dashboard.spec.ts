@@ -159,7 +159,6 @@ const mapChooserUiKeepoutSelector = [
   ".rotated-map-selection-hud",
   ".subway-closing-soon-chip",
   ".subway-closed-peek-chip",
-  ".release-notes-notice",
   ".saved-station-global-notice",
   "header button",
   "header a",

@@ -1,4 +1,4 @@
-const fallbackVersion = "1.0.0";
+const fallbackVersion = "1.1.0";
 const fallbackBuildLabel = process.env.NODE_ENV === "production" ? "local" : "dev";
 
 export const lineWatchAppVersion = process.env.NEXT_PUBLIC_LINEWATCH_APP_VERSION || fallbackVersion;

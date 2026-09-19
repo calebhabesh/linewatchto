@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_LINEWATCH_APP_VERSION:
       process.env.NEXT_PUBLIC_LINEWATCH_APP_VERSION ||
       packageJson.version ||
-      "1.0.0",
+      "1.1.0",
     NEXT_PUBLIC_LINEWATCH_BUILD_LABEL:
       process.env.NEXT_PUBLIC_LINEWATCH_BUILD_LABEL ||
       shortSha(process.env.VERCEL_GIT_COMMIT_SHA) ||

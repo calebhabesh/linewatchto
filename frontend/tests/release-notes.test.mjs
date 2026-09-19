@@ -20,50 +20,62 @@ const appUpdateBannerSource = readFileSync(new URL("../src/components/AppUpdateB
 const versionRouteSource = readFileSync(new URL("../src/app/version.json/route.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const panelUrl = new URL("../src/components/ReleaseNotesPanel.tsx", import.meta.url);
-const noticeUrl = new URL("../src/components/ReleaseNotesNotice.tsx", import.meta.url);
+const onboardingUrl = new URL("../src/components/OpeningDisclaimer.tsx", import.meta.url);
+const cardUrl = new URL("../src/components/ReleaseNoteCard.tsx", import.meta.url);
 
 describe("release notes data", () => {
-  it("does not publish release notes for the inaugural 1.0.0 package version", () => {
-    assert.equal(packageJson.version, "1.0.0");
-    assert.equal(releaseNotes.length, 0);
-    assert.equal(hasReleaseNotes, false);
-    assert.equal(latestReleaseNote, null);
-    assert.equal(currentReleaseNote, null);
-    assert.equal(releaseNotePreviewForVersion(packageJson.version), null);
+  it("publishes semantic-version release notes newest first", () => {
+    assert.equal(packageJson.version, "1.1.0");
+    assert.deepEqual(releaseNotes.map((note) => note.version), ["1.1.0", "1.0.0"]);
+    assert.equal(hasReleaseNotes, true);
+    assert.equal(latestReleaseNote?.version, "1.1.0");
+    assert.equal(currentReleaseNote?.version, packageJson.version);
+    assert.equal(releaseNotePreviewForVersion("1.0.0")?.title, "The first LineWatchTO release");
     assert.doesNotMatch(JSON.stringify(releaseNotes), /Dev Notes/i);
   });
 
   it("provides a compact release-note preview for version.json and update banners", () => {
     const preview = releaseNotePreviewForVersion(packageJson.version);
 
-    assert.equal(preview, null);
+    assert.equal(preview?.version, packageJson.version);
+    assert.equal(preview?.title, "A new way to explore");
+    assert.match(preview?.summary ?? "", /Map view/);
   });
 
   it("shows the one-time notice only until the current app version has been seen", () => {
     assert.match(RELEASE_NOTES_SEEN_STORAGE_KEY, /linewatch-seen-release-notes-version/);
-    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, null), false);
-    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, ""), false);
+    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, null), true);
+    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, ""), true);
+    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, "1.0.0"), true);
     assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, packageJson.version), false);
+    assert.equal(shouldShowReleaseNotesNotice(releaseNotes[1], null), false);
     assert.equal(shouldShowReleaseNotesNotice(null, packageJson.version), false);
   });
 });
 
 describe("release notes UI wiring", () => {
-  it("adds a release notes panel and one-time notice to the dashboard shell", () => {
+  it("adds release notes to the opening experience without a floating notice", () => {
     assert.equal(existsSync(panelUrl), true);
-    assert.equal(existsSync(noticeUrl), true);
+    assert.equal(existsSync(onboardingUrl), true);
     const panelSource = readFileSync(panelUrl, "utf8");
-    const noticeSource = readFileSync(noticeUrl, "utf8");
+    const onboardingSource = readFileSync(onboardingUrl, "utf8");
+    const cardSource = readFileSync(cardUrl, "utf8");
 
     assert.match(panelSource, /export function ReleaseNotesPanel/);
     assert.match(panelSource, /releaseNotes/);
-    assert.match(panelSource, /currentReleaseNote/);
-    assert.match(noticeSource, /export function ReleaseNotesNotice/);
-    assert.match(noticeSource, /shouldShowReleaseNotesNotice/);
-    assert.match(noticeSource, /localStorage/);
+    assert.match(panelSource, /ReleaseNoteCard/);
+    assert.doesNotMatch(panelSource, /release-notes-current/);
+    assert.match(cardSource, /release-note-current-badge/);
+    assert.match(cardSource, /release-note-version-prefix/);
+    assert.match(cardSource, /Intl.DateTimeFormat\("en-CA"/);
+    assert.match(onboardingSource, /ReleaseNoteCard/);
+    assert.doesNotMatch(panelSource, /lineWatchAppVersionLabel/);
+    assert.match(onboardingSource, /chooseOpeningExperience/);
+    assert.match(onboardingSource, /RELEASE_NOTES_SEEN_STORAGE_KEY/);
+    assert.match(onboardingSource, /opening-experience-release-tab/);
     assert.match(shellSource, /"release-notes"/);
     assert.match(shellSource, /ReleaseNotesPanel/);
-    assert.match(shellSource, /ReleaseNotesNotice/);
+    assert.doesNotMatch(shellSource, /ReleaseNotesNotice/);
     assert.match(shellSource, /panel=release-notes/);
     assert.match(shellSource, /hasReleaseNotes/);
   });
@@ -72,15 +84,13 @@ describe("release notes UI wiring", () => {
     assert.match(shellSource, /navigateForward\("release-notes"\)/);
     assert.match(shellSource, /What's New/);
     assert.match(moreSheetSource, /onOpenReleaseNotes/);
-    assert.match(moreSheetSource, /hasReleaseNotes/);
-    assert.match(moreSheetSource, /What's New/);
+    assert.match(moreSheetSource, /Release Notes/);
     assert.match(appUpdateBannerSource, /releaseNote/);
     assert.match(appUpdateBannerSource, /View changes/);
     assert.match(versionRouteSource, /releaseNotePreviewForVersion/);
     assert.match(versionRouteSource, /releaseNote:/);
     assert.match(globalCss, /\.release-notes-panel/);
-    assert.match(globalCss, /\.release-notes-notice/);
-    assert.match(globalCss, /\.release-notes-notice[\s\S]*pointer-events:\s*none/);
-    assert.match(globalCss, /\.release-notes-notice-actions button[\s\S]*pointer-events:\s*auto/);
+    assert.doesNotMatch(globalCss, /\.release-notes-notice/);
+    assert.match(globalCss, /\.opening-release-notes/);
   });
 });

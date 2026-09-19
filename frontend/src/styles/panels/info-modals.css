@@ -4,7 +4,7 @@
  * Covers:
  * 1. Opening Disclaimer, Welcome Carousel & Unofficial Project Notice
  * 2. Site Guide Dropdown, Utility Popover & Source Status Panel
- * 3. Release Notes Announcement Notice & Release Notes History Panel
+ * 3. Release Notes History Panel
  * 4. Privacy & Acknowledgements Plain-Language Notice Panel
  */
 
@@ -14,7 +14,8 @@
 
 .opening-disclaimer-backdrop {
   align-items: center;
-  background: rgba(0, 0, 0, 0.42);
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(4px);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -32,7 +33,7 @@
 }
 
 .opening-disclaimer-panel {
-  background: var(--panel);
+  background: var(--panel-opaque);
   border: 1px solid var(--border-strong);
   border-radius: 16px;
   box-shadow: 0 18px 70px rgba(0, 0, 0, 0.44);
@@ -48,15 +49,13 @@
 
 .dark .opening-disclaimer-panel,
 .linewatch-shell.dark .opening-disclaimer-panel {
-  background-color: rgba(14, 16, 22, 0.94);
+  background-color: var(--panel-opaque);
   background-image: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.05) 0%,
     rgba(255, 255, 255, 0.015) 50%,
     rgba(0, 0, 0, 0.16) 100%
   );
-  backdrop-filter: blur(28px) saturate(190%) contrast(105%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(105%);
   border: none;
   box-shadow:
     0 24px 80px rgba(0, 0, 0, 0.6),
@@ -89,6 +88,86 @@
   display: grid;
   gap: 14px;
   padding: 18px 24px 20px;
+}
+
+.opening-experience-tabs {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 4px;
+  position: relative;
+}
+
+.opening-experience-tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 750;
+  min-height: 40px;
+  padding: 7px 12px 9px;
+  position: relative;
+  transition: color 180ms ease;
+}
+
+.opening-experience-tab::after {
+  background: #facc15;
+  bottom: -1px;
+  content: "";
+  height: 2px;
+  left: 8px;
+  opacity: 0;
+  position: absolute;
+  right: 8px;
+  transform: scaleX(0.35);
+  transition: opacity 220ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.opening-experience-tab:hover {
+  color: var(--text);
+}
+
+.opening-experience-tab--active {
+  color: var(--text);
+}
+
+.opening-experience-tab--active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.opening-experience-dismiss {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  justify-content: center;
+  margin-left: auto;
+  min-height: 40px;
+  min-width: 40px;
+}
+
+.opening-experience-dismiss:hover { color: var(--text); }
+.opening-experience-dismiss:focus-visible { outline: 2px solid #facc15; }
+
+.opening-experience-tab:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid #facc15;
+  outline-offset: -2px;
+}
+
+.opening-experience-panel {
+  display: grid;
+  gap: 14px;
+  animation: linewatch-dialog-content-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.opening-release-notes {
+  animation: linewatch-dialog-content-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  min-width: 0;
 }
 
 .opening-disclaimer-welcome {
@@ -140,11 +219,6 @@
   margin: 7px 0 0;
 }
 
-.opening-welcome-divider {
-  margin: 14px 0 10px;
-  width: 100%;
-}
-
 .opening-disclaimer-panel p {
   color: var(--muted);
   font-size: 0.92rem;
@@ -173,6 +247,10 @@
 
 .opening-welcome-carousel--mobile {
   display: none;
+}
+
+.opening-welcome-carousel .step-indicator-row {
+  padding: 12px 1rem 0;
 }
 
 .opening-welcome-carousel-viewport {
@@ -347,14 +425,14 @@
 .opening-welcome-controls {
   display: grid;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 6px;
 }
 
 .opening-welcome-control-row {
   align-items: center;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  grid-template-columns: 1fr auto;
   width: 100%;
 }
 
@@ -388,41 +466,6 @@
 .opening-welcome-secondary-button:hover,
 .opening-welcome-skip-button:hover {
   color: var(--text);
-}
-
-.opening-welcome-dots-wrapper {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
-
-.opening-welcome-dots {
-  align-items: center;
-  display: flex;
-  gap: 7px;
-  justify-content: center;
-}
-
-.opening-welcome-dot {
-  background: var(--border-strong);
-  border: 0;
-  border-radius: 999px;
-  cursor: pointer;
-  height: 8px;
-  padding: 0;
-  transition: background-color 250ms ease, width 320ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms ease;
-  width: 8px;
-}
-
-.opening-welcome-dot:hover {
-  background: var(--muted);
-}
-
-.opening-welcome-dot--active {
-  background: #facc15;
-  box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
-  width: 24px;
 }
 
 .opening-welcome-step-counter {
@@ -559,14 +602,17 @@
   transform: none;
 }
 
+.motion-paused :is(.opening-experience-panel, .opening-release-notes),
+.motion-paused .opening-experience-tab::after { animation: none; transition: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .opening-disclaimer-backdrop,
   .opening-disclaimer-panel,
   .opening-unofficial-notice,
-  .opening-welcome-dot {
-    animation: none;
-    transition: none;
-  }
+  .opening-experience-panel,
+  .opening-release-notes { animation: none; }
+  .opening-experience-tab,
+  .opening-experience-tab::after { transition: none; }
 
   .opening-welcome-panel {
     opacity: 1;
@@ -613,6 +659,19 @@
     padding: 12px 12px 14px;
   }
 
+  .opening-experience-tab {
+    flex: 1 1 0;
+    font-size: 0.78rem;
+    min-height: 38px;
+    padding-inline: 8px;
+  }
+
+  .opening-experience-panel {
+    gap: 10px;
+  }
+
+  .opening-release-notes .release-note-card { padding: 12px; }
+
   .opening-disclaimer-logo {
     height: 62px;
     margin-bottom: 5px;
@@ -631,10 +690,6 @@
   .opening-disclaimer-welcome p {
     font-size: 0.78rem;
     margin-top: 5px;
-  }
-
-  .opening-welcome-divider {
-    margin: 10px 0 6px;
   }
 
   .opening-welcome-carousel--desktop {
@@ -739,7 +794,7 @@
     box-sizing: border-box;
     display: grid;
     gap: 4px;
-    grid-template-columns: 60px minmax(0, 1fr) 60px;
+    grid-template-columns: 1fr auto;
     width: 100%;
   }
 
@@ -747,19 +802,6 @@
   .opening-welcome-skip-button {
     font-size: 0.75rem;
     padding: 3px 4px;
-  }
-
-  .opening-welcome-dots {
-    gap: 7px;
-  }
-
-  .opening-welcome-dot {
-    height: 8px;
-    width: 8px;
-  }
-
-  .opening-welcome-dot--active {
-    width: 22px;
   }
 
   .opening-welcome-primary-button {
@@ -1345,129 +1387,8 @@
 }
 
 /* ==========================================================================
-   3. Release Notes Notice Banner & Release Notes Panel
+   3. Release Notes Panel
    ========================================================================== */
-
-.release-notes-notice {
-  align-items: center;
-  background-color: var(--notice-banner-bg, rgba(14, 16, 22, 0.92));
-  background-image: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.015) 50%,
-    rgba(0, 0, 0, 0.16) 100%
-  );
-  backdrop-filter: blur(28px) saturate(190%) contrast(105%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(105%);
-  border: none;
-  border-radius: 12px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.45),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
-  color: white;
-  display: flex;
-  gap: 10px;
-  left: 50%;
-  max-width: min(620px, calc(100vw - 24px));
-  padding: 10px;
-  pointer-events: none;
-  position: fixed;
-  transform: translateX(-50%);
-  width: max-content;
-  z-index: 88;
-}
-
-.high-contrast .release-notes-notice,
-.linewatch-shell.high-contrast .release-notes-notice {
-  border: 1px solid var(--notice-banner-border, #ffffff);
-  box-shadow: none;
-}
-
-.release-notes-notice-icon {
-  align-items: center;
-  background: rgba(254, 209, 5, 0.14);
-  border: 1px solid rgba(254, 209, 5, 0.24);
-  border-radius: 8px;
-  color: #fde68a;
-  display: flex;
-  height: 32px;
-  justify-content: center;
-  width: 32px;
-}
-
-.release-notes-notice-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.release-notes-notice-copy strong {
-  font-size: 13px;
-  line-height: 1.2;
-}
-
-.release-notes-notice-copy span {
-  color: rgb(203, 213, 225);
-  font-size: 11px;
-  line-height: 1.25;
-  max-width: 360px;
-}
-
-.release-notes-notice-actions {
-  align-items: center;
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.release-notes-notice-actions button {
-  align-items: center;
-  background: white;
-  border: 0;
-  border-radius: 8px;
-  color: rgb(15, 23, 42);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 900;
-  gap: 6px;
-  min-height: 36px;
-  padding: 0 10px;
-  pointer-events: auto;
-}
-
-.release-notes-notice-actions .release-notes-notice-dismiss {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  min-width: 36px;
-  padding: 0;
-  justify-content: center;
-}
-
-@media (max-width: 620px) {
-  .release-notes-notice {
-    align-items: stretch;
-    flex-direction: column;
-    width: calc(100vw - 24px);
-  }
-
-  .release-notes-notice-actions {
-    width: 100%;
-  }
-
-  .release-notes-notice-actions button:first-child {
-    flex: 1 1 0;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 767px) {
-  .release-notes-notice {
-    bottom: calc(var(--mobile-bottom-nav-occupied-height, 84px) + 10px);
-  }
-}
 
 :is(.release-notes-panel, .privacy-acknowledgements-panel),
 .floating-panel-shell:is([data-floating-panel="release-notes"], [data-floating-panel="privacy-acknowledgements"]) .floating-panel-scroll {
@@ -1488,28 +1409,17 @@
   padding: 14px;
 }
 
-.release-notes-current,
 .release-note-card {
   border-radius: 8px;
   background: var(--panel-soft);
   box-shadow: var(--shadow);
 }
 
-.dark .release-notes-current,
 .dark .release-note-card,
-.high-contrast .release-notes-current,
 .high-contrast .release-note-card {
   box-shadow: none;
 }
 
-.release-notes-current {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-}
-
-.release-notes-current span,
 .release-note-card-heading time,
 .release-note-section-title {
   color: #64748b;
@@ -1519,33 +1429,9 @@
   text-transform: uppercase;
 }
 
-.dark .release-notes-current span,
 .dark .release-note-card-heading time,
-.high-contrast .release-notes-current span,
 .high-contrast .release-note-card-heading time {
   color: #94a3b8;
-}
-
-.release-notes-current strong {
-  color: #0f172a;
-  font-size: 15px;
-  line-height: 1.25;
-}
-
-.dark .release-notes-current strong,
-.high-contrast .release-notes-current strong {
-  color: #f8fafc;
-}
-
-.release-notes-current p {
-  color: #475569;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.dark .release-notes-current p,
-.high-contrast .release-notes-current p {
-  color: #cbd5e1;
 }
 
 .release-notes-list {
@@ -1565,12 +1451,40 @@
   justify-content: space-between;
 }
 
+.release-note-version-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
 .release-note-version {
   color: #b45309;
-  font-size: 11px;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.release-note-version-prefix {
+  font-size: 0.68em;
+  margin-right: 1px;
+}
+
+.release-note-current-badge {
+  background: color-mix(in srgb, #facc15 16%, transparent);
+  border-radius: 4px;
+  color: #92400e;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.04em;
+  padding: 2px 5px;
   text-transform: uppercase;
+}
+
+.dark .release-note-current-badge,
+.high-contrast .release-note-current-badge {
+  color: #fde68a;
 }
 
 .dark .release-note-version,

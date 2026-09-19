@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import maplibregl, { type Map as MapLibreMap, type ExpressionSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Loader2, AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { GeographicCatalog } from "../app/geographic-catalog";
 import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
@@ -2826,7 +2826,7 @@ export function GeographicNetworkMap({
     >
       <div
         ref={containerRef}
-        className="w-full h-full"
+        className={`w-full h-full ${loadStatus === "ready" ? "visible" : "invisible"}`}
         tabIndex={0}
         role="region"
         aria-label={network === "regional" ? "Regional Rail Geographic Map" : "TTC Geographic Map"}
@@ -2972,16 +2972,6 @@ export function GeographicNetworkMap({
               Clear
             </button>
           )}
-        </div>
-      )}
-
-      {/* Loading Overlay */}
-      {loadStatus === "loading" && (
-        <div className="geographic-map-loading-overlay absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/70 dark:bg-slate-950/75 backdrop-blur-xs transition-opacity">
-          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-semibold text-sm">
-            <Loader2 className="animate-spin text-blue-500" size={20} />
-            <span>Loading {network === "regional" ? "Regional Rail" : "TTC"} Geographic Map…</span>
-          </div>
         </div>
       )}
 

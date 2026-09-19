@@ -36,7 +36,6 @@ const ReliabilityPanel = dynamic(() => import("./ReliabilityPanel").then((mod) =
 const AlertHistoryPanel = dynamic(() => import("./AlertHistoryPanel").then((mod) => mod.AlertHistoryPanel), { ssr: false });
 const FeedbackPanel = dynamic(() => import("./FeedbackPanel").then((mod) => mod.FeedbackPanel), { ssr: false });
 const PrivacyAcknowledgementsPanel = dynamic(() => import("./PrivacyAcknowledgementsPanel").then((mod) => mod.PrivacyAcknowledgementsPanel), { ssr: false });
-import { ReleaseNotesNotice } from "./ReleaseNotesNotice";
 const ReleaseNotesPanel = dynamic(() => import("./ReleaseNotesPanel").then((mod) => mod.ReleaseNotesPanel), { ssr: false });
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
@@ -6542,24 +6541,6 @@ export function LineWatchShell({
           platform={pwaInstallPrompt.platform}
         />
       ) : null}
-
-      <ReleaseNotesNotice
-        blocked={
-          showClosedScreen ||
-          rotatedMapMode ||
-          showPwaInstallNudge ||
-          activeView !== "map" ||
-          Boolean(selection) ||
-          Boolean(selectedStationId) ||
-          Boolean(accountDialogMode) ||
-          Boolean(commutePathPreview)
-        }
-        onViewReleaseNotes={() => {
-          setSelection(null);
-          setSelectedStationId(null);
-          navigateForward("release-notes");
-        }}
-      />
 
       {isMobile && showMobileStatusPeek && (
         <div

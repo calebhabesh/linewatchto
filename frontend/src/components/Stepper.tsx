@@ -26,6 +26,7 @@ export interface StepperProps {
   nextButtonText?: string;
   completeButtonText?: string;
   disableStepIndicators?: boolean;
+  indicatorsBelowContent?: boolean;
   renderStepIndicator?: (props: {
     step: number;
     currentStep: number;
@@ -62,6 +63,7 @@ export default function Stepper({
   nextButtonText = "Continue",
   completeButtonText = "Complete",
   disableStepIndicators = false,
+  indicatorsBelowContent = false,
   renderStepIndicator,
   renderFooter,
   className = "",
@@ -114,46 +116,50 @@ export default function Stepper({
     updateStep(totalSteps + 1);
   };
 
+  const indicators = (
+    <div
+      className={`step-indicator-row ${stepContainerClassName}`.trim()}
+      role="group"
+      aria-label="Choose an introduction slide"
+    >
+      {stepsArray.map((_, index) => {
+        const stepNumber = index + 1;
+        const isNotLastStep = index < totalSteps - 1;
+        return (
+          <React.Fragment key={stepNumber}>
+            {renderStepIndicator ? (
+              renderStepIndicator({
+                step: stepNumber,
+                currentStep,
+                totalSteps,
+                onStepClick: (clicked) => {
+                  setDirection(clicked > currentStep ? 1 : -1);
+                  updateStep(clicked);
+                },
+              })
+            ) : (
+              <StepIndicator
+                step={stepNumber}
+                totalSteps={totalSteps}
+                disableStepIndicators={disableStepIndicators}
+                currentStep={currentStep}
+                onClickStep={(clicked) => {
+                  setDirection(clicked > currentStep ? 1 : -1);
+                  updateStep(clicked);
+                }}
+              />
+            )}
+            {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className={`stepper-outer-container ${className}`.trim()} {...rest}>
       <div className={`stepper-circle-container ${stepCircleContainerClassName}`.trim()}>
-        <div
-          className={`step-indicator-row ${stepContainerClassName}`.trim()}
-          role="group"
-          aria-label="Choose an introduction slide"
-        >
-          {stepsArray.map((_, index) => {
-            const stepNumber = index + 1;
-            const isNotLastStep = index < totalSteps - 1;
-            return (
-              <React.Fragment key={stepNumber}>
-                {renderStepIndicator ? (
-                  renderStepIndicator({
-                    step: stepNumber,
-                    currentStep,
-                    totalSteps,
-                    onStepClick: (clicked) => {
-                      setDirection(clicked > currentStep ? 1 : -1);
-                      updateStep(clicked);
-                    },
-                  })
-                ) : (
-                  <StepIndicator
-                    step={stepNumber}
-                    totalSteps={totalSteps}
-                    disableStepIndicators={disableStepIndicators}
-                    currentStep={currentStep}
-                    onClickStep={(clicked) => {
-                      setDirection(clicked > currentStep ? 1 : -1);
-                      updateStep(clicked);
-                    }}
-                  />
-                )}
-                {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
-              </React.Fragment>
-            );
-          })}
-        </div>
+        {!indicatorsBelowContent && indicators}
 
         <StepContentWrapper
           isCompleted={isCompleted}
@@ -165,6 +171,8 @@ export default function Stepper({
         >
           {stepsArray[Math.max(0, Math.min(totalSteps - 1, currentStep - 1))]}
         </StepContentWrapper>
+
+        {indicatorsBelowContent && indicators}
 
         {!isCompleted &&
           (renderFooter ? (
