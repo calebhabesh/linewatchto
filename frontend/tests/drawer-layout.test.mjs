@@ -239,7 +239,7 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.08rem;[^}]*gap:\s*11px;/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[^}]*\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.55rem;[^}]*gap:\s*17px;/s);
     assert.match(globalCss, /\.impact-route__arrow\s*\{[^}]*height:\s*20px;[^}]*width:\s*40px;/s);
-    assert.match(globalCss, /\.impact-route__bounds--segment\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto minmax\(0, 1fr\)/s);
+    assert.match(globalCss, /\.impact-route__bounds--segment\s*\{[^}]*grid-template-columns:\s*minmax\(0, max-content\) auto minmax\(0, max-content\)/s);
     assert.match(globalCss, /\.impact-route__bounds--segment > span:first-child\s*\{[^}]*justify-self:\s*end/s);
     assert.match(globalCss, /\.impact-route__bounds--segment > span:last-child\s*\{[^}]*justify-self:\s*start/s);
     assert.doesNotMatch(globalCss, /\.impact-route__bounds--segment \.impact-route__arrow\s*\{[^}]*transform:\s*rotate/s);
