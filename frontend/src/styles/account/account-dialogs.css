@@ -46,7 +46,8 @@
 .linewatch-shell:has(.account-dialog-backdrop) .mobile-status-peek,
 .linewatch-shell:has(.account-dialog-backdrop) .mobile-app-info,
 .linewatch-shell:has(.account-dialog-backdrop) .mobile-map-network-switch,
-.linewatch-shell:has(.account-dialog-backdrop) .mobile-train-toggle {
+.linewatch-shell:has(.account-dialog-backdrop) .mobile-train-toggle,
+.linewatch-shell:has(.account-dialog-backdrop) .mobile-train-left-cluster {
   filter: blur(8px);
   transition: filter 180ms ease;
 }
@@ -58,7 +59,8 @@
 .linewatch-shell:has(.account-dialog-backdrop--closing) .mobile-status-peek,
 .linewatch-shell:has(.account-dialog-backdrop--closing) .mobile-app-info,
 .linewatch-shell:has(.account-dialog-backdrop--closing) .mobile-map-network-switch,
-.linewatch-shell:has(.account-dialog-backdrop--closing) .mobile-train-toggle {
+.linewatch-shell:has(.account-dialog-backdrop--closing) .mobile-train-toggle,
+.linewatch-shell:has(.account-dialog-backdrop--closing) .mobile-train-left-cluster {
   filter: blur(0px);
 }
 

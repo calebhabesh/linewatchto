@@ -48,7 +48,8 @@
     --mobile-map-zoom-height: 36px;
   }
 
-  .mobile-train-toggle svg {
+  .mobile-train-toggle svg,
+  .mobile-train-left-cluster .map-view-toggle-btn--compact svg {
     width: 20px;
     height: 20px;
   }
@@ -1056,7 +1057,8 @@
 
     .mobile-alert-history-shortcut,
     .mobile-my-stations-shortcut,
-    .mobile-train-toggle {
+    .mobile-train-toggle,
+    .mobile-train-left-cluster {
       display: flex !important;
     }
 

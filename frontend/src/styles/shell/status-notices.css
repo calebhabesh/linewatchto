@@ -187,7 +187,7 @@
     z-index: 41;
   }
 
-  .linewatch-shell:has(.mobile-train-toggle) .dashboard-availability-notice {
+  .linewatch-shell:has(:is(.mobile-train-toggle, .mobile-train-left-cluster)) .dashboard-availability-notice {
     left: calc(var(--mobile-safe-left) + 68px);
   }
 

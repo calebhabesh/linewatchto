@@ -557,6 +557,12 @@
   color: #38bdf8;
 }
 
+@media (max-width: 767px) {
+  .geographic-network-map .maplibregl-ctrl-attrib {
+    display: none;
+  }
+}
+
 @media (min-width: 768px) {
   .geographic-network-map .maplibregl-ctrl-bottom-right {
     bottom: 8px;

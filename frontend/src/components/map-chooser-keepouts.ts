@@ -7,6 +7,7 @@ export const MAP_CHOOSER_KEEPOUT_SELECTOR = [
   ".mobile-status-peek",
   ".mobile-legend-pill",
   ".mobile-train-toggle",
+  ".mobile-train-left-cluster",
   ".mobile-alert-history-shortcut",
   ".mobile-my-stations-shortcut",
   ".map-utility-cluster",

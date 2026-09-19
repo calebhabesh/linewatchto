@@ -477,12 +477,34 @@ export function MobileMoreSheet({
             <MapIcon size={18} className="text-slate-500 dark:text-slate-400" />
             <div className="mobile-more-map-attribution-copy">
               <span className="mobile-more-map-attribution-title">Map Attribution</span>
-              <span className="mobile-more-map-attribution-summary">Independently re-created in Inkscape</span>
+              <span className="mobile-more-map-attribution-summary">Diagram and geographic map sources</span>
               <dl className="mobile-more-map-attribution-sources">
-                <div><dt>TTC</dt><dd>Based on the TTC route map</dd></div>
-                <div><dt>GO/UP</dt><dd>Based on the Metrolinx system map</dd></div>
+                <div>
+                  <dt>TTC</dt>
+                  <dd>
+                    Diagram based on the TTC route map · Geographic shapes{` `}
+                    <a href="https://open.toronto.ca/" target="_blank" rel="noreferrer">© City of Toronto</a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>GO/UP</dt>
+                  <dd>
+                    Diagram based on the Metrolinx system map · Geographic shapes{` `}
+                    <a href="https://www.gotransit.com/" target="_blank" rel="noreferrer">© Metrolinx</a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Base</dt>
+                  <dd>
+                    <a href="https://openfreemap.org/" target="_blank" rel="noreferrer">OpenFreeMap</a>
+                    {` · `}
+                    <a href="https://openmaptiles.org/" target="_blank" rel="noreferrer">© OpenMapTiles</a>
+                    {` · `}
+                    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>
+                  </dd>
+                </div>
               </dl>
-              <span className="mobile-more-map-attribution-note">Derivative replicas · Not downloaded originals · Not to scale</span>
+              <span className="mobile-more-map-attribution-note">Diagrams independently re-created in Inkscape · Derivative replicas · Not downloaded originals · Not to scale</span>
             </div>
           </div>
           {hasReleaseNotes ? (

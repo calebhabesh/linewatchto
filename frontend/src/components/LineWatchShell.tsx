@@ -6311,31 +6311,44 @@ export function LineWatchShell({
       )}
 
       {!showClosedScreen && !rotatedMapMode && (
-        <div
-          className={`mobile-train-toggle md:hidden ${
-            selectedNetwork === "regional" ? "mobile-train-toggle--regional" : ""
-          } ${estimatedTrainsEnabled ? "active" : ""} ${
-            estimatedTrainDisplayPending ? "mobile-train-toggle--loading" : ""
-          } ${mapViewPreference === "geographic" ? "opacity-40 cursor-not-allowed" : ""}`}
-          data-map-chooser-keepout
-        >
-          <SquishSwitch
-            checked={estimatedTrainsEnabled}
+        <div className="mobile-train-left-cluster md:hidden" data-map-chooser-keepout>
+          <button
+            type="button"
+            onClick={handleToggleEstimatedTrains}
             disabled={!trainNetworkOpen || mapViewPreference === "geographic"}
-            ariaBusy={estimatedTrainDisplayPending}
-            ariaLabel={mapViewPreference === "geographic"
+            className={`mobile-train-toggle ${
+              selectedNetwork === "regional" ? "mobile-train-toggle--regional" : ""
+            } ${estimatedTrainsEnabled ? "active" : ""} ${
+              estimatedTrainDisplayPending ? "mobile-train-toggle--loading" : ""
+            } ${mapViewPreference === "geographic" ? "opacity-40 cursor-not-allowed" : ""}`}
+            aria-pressed={estimatedTrainsEnabled}
+            aria-busy={estimatedTrainDisplayPending}
+            aria-label={mapViewPreference === "geographic"
               ? "Estimated train markers are only available in Diagram view"
               : `Toggle estimated train markers (${estimatedTrainStatusLabel})`}
-            className="mobile-train-squish"
-            height={24}
-            thumbContent={estimatedTrainDisplayPending
-              ? <Loader2 className="mobile-train-pending-spinner animate-spin" size={12} />
-              : <Train size={12} />}
-            trackOnColor="#10b981"
-            onChange={handleToggleEstimatedTrains}
             title={mapViewPreference === "geographic" ? "Estimated train markers are only available in Diagram view" : undefined}
-          />
-          {estimatedTrainDisplayPending ? <span className="sr-only" role="status">{estimatedTrainPendingLabel}</span> : null}
+          >
+            <Train size={16} />
+            <span>
+              View<br />Trains
+            </span>
+            {estimatedTrainDisplayPending ? (
+              <Loader2
+                className="mobile-train-pending-spinner animate-spin"
+                size={18}
+                role="status"
+                aria-label={estimatedTrainPendingLabel}
+              />
+            ) : null}
+          </button>
+          {showMobileStatusPeek && (
+            <MapViewSelector
+              view={mapViewPreference}
+              onChange={setMapViewPreference}
+              compactVertical
+              className="mobile-map-view-toggle"
+            />
+          )}
         </div>
       )}
 
@@ -6558,9 +6571,8 @@ export function LineWatchShell({
       )}
 
       {isMobile && showMobileStatusPeek && (
-        <div className="mobile-map-network-switch mobile-network-selector-slot flex flex-col gap-2" data-map-chooser-keepout>
+        <div className="mobile-map-network-switch mobile-network-selector-slot" data-map-chooser-keepout>
           <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} compactVertical />
-          <MapViewSelector view={mapViewPreference} onChange={setMapViewPreference} compactVertical />
         </div>
       )}
 

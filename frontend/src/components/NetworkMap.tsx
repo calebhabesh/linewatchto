@@ -61,6 +61,7 @@ export function NetworkMap({
           estimatedTrainMarkers={props.estimatedTrainMarkers}
           selectionAttentionGeneration={props.selectionAttentionGeneration}
           mobilePerformanceMode={props.mobilePerformanceMode}
+          layoutResetSignal={props.layoutResetSignal}
         />
         <NetworkMapLegend
           mode={network}

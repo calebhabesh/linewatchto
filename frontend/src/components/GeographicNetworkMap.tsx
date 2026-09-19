@@ -54,6 +54,7 @@ import {
 import {
   recordGeographicMapLifecycle,
   setGeographicProjectedImpactAnchorResolver,
+  setGeographicProjectedSelectionBoundsResolver,
 } from "../app/geographic-lifecycle";
 import {
   GEOGRAPHIC_LINE_BADGE_FULL_ZOOM,
@@ -75,6 +76,10 @@ import {
   GeographicSelectionAttention,
   type SelectionAttentionFrame,
 } from "../app/geographic-selection-attention";
+import {
+  observeMapChooserKeepouts,
+  visibleMapChooserKeepouts,
+} from "./map-chooser-keepouts";
 
 const GEOGRAPHIC_IMPACT_BADGE_MIN_HIT_DIAMETER_PX = 44;
 
@@ -108,6 +113,7 @@ export type GeographicNetworkMapProps = {
   estimatedTrainMarkers?: EstimatedTrainMarker[];
   selectionAttentionGeneration?: number;
   mobilePerformanceMode?: boolean;
+  layoutResetSignal?: number;
 };
 
 const EMPTY_SEGMENTS: NetworkSegment[] = [];
@@ -130,6 +136,158 @@ type GeographicOverlapChooserLayout = {
   layout: MapOverlapChooserLayout;
   viewportSize: { width: number; height: number };
 };
+
+type GeographicChooserKeepout = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+const GEOGRAPHIC_CHOOSER_MARGIN = 12;
+const GEOGRAPHIC_CHOOSER_KEEPOUT_GAP = 8;
+const GEOGRAPHIC_CHOOSER_MIN_HEIGHT = 142;
+const GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM = 14.75;
+
+function geographicMobileSelectionPadding(container: HTMLElement) {
+  const containerRect = container.getBoundingClientRect();
+  const topChromeBottom = visibleMapChooserKeepouts()
+    .filter((element) => element.matches(".mobile-app-topbar, .map-utility-cluster"))
+    .map((element) => element.getBoundingClientRect().bottom)
+    .filter((bottom) => bottom > containerRect.top && bottom < containerRect.bottom)
+    .reduce((bottom, nextBottom) => Math.max(bottom, nextBottom), containerRect.top);
+
+  return {
+    top: Math.max(104, Math.ceil(topChromeBottom - containerRect.top + 16)),
+    bottom: 96,
+    left: 72,
+    right: 72,
+  };
+}
+
+function clampGeographicChooserOffset(value: number, length: number, viewportLength: number, margin: number) {
+  return Math.min(Math.max(margin, viewportLength - margin - length), Math.max(margin, value));
+}
+
+function geographicChooserIntersectsKeepout(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  keepout: GeographicChooserKeepout,
+) {
+  return left < keepout.right
+    && left + width > keepout.left
+    && top < keepout.bottom
+    && top + height > keepout.top;
+}
+
+function chooseGeographicMobileChooserLayout({
+  anchor,
+  viewportSize,
+  requestedSize,
+  keepouts,
+}: {
+  anchor: { x: number; y: number };
+  viewportSize: { width: number; height: number };
+  requestedSize: { width: number; height: number };
+  keepouts: GeographicChooserKeepout[];
+}): GeographicOverlapChooserLayout {
+  const margin = GEOGRAPHIC_CHOOSER_MARGIN;
+  const anchorKeepout = {
+    left: anchor.x - 30,
+    top: anchor.y - 30,
+    right: anchor.x + 30,
+    bottom: anchor.y + 30,
+  };
+  const blocked = [...keepouts, anchorKeepout];
+  const heightCandidates: number[] = [];
+  for (
+    let height = requestedSize.height;
+    height > GEOGRAPHIC_CHOOSER_MIN_HEIGHT;
+    height -= 4
+  ) heightCandidates.push(height);
+  heightCandidates.push(Math.min(requestedSize.height, GEOGRAPHIC_CHOOSER_MIN_HEIGHT));
+
+  for (const height of heightCandidates) {
+    const xCandidates = [
+      margin,
+      clampGeographicChooserOffset(anchor.x - requestedSize.width / 2, requestedSize.width, viewportSize.width, margin),
+      viewportSize.width - margin - requestedSize.width,
+      ...blocked.flatMap((box) => [
+        box.right + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
+        box.left - GEOGRAPHIC_CHOOSER_KEEPOUT_GAP - requestedSize.width,
+      ]),
+    ].map((left) => clampGeographicChooserOffset(left, requestedSize.width, viewportSize.width, margin));
+    const yCandidates = [
+      anchor.y - GEOGRAPHIC_CHOOSER_KEEPOUT_GAP - height,
+      anchor.y + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
+      viewportSize.height - margin - height,
+      margin,
+      ...blocked.flatMap((box) => [
+        box.bottom + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
+        box.top - GEOGRAPHIC_CHOOSER_KEEPOUT_GAP - height,
+      ]),
+    ].map((top) => clampGeographicChooserOffset(top, height, viewportSize.height, margin));
+
+    const candidates = xCandidates.flatMap((left) => yCandidates.map((top) => ({ left, top })))
+      .filter((candidate, index, all) => all.findIndex((other) => (
+        Math.abs(other.left - candidate.left) < 0.5 && Math.abs(other.top - candidate.top) < 0.5
+      )) === index);
+    const bestCandidate = (protectedBoxes: GeographicChooserKeepout[]) => candidates
+      .filter(({ left, top }) => protectedBoxes.every((box) => !geographicChooserIntersectsKeepout(
+          left,
+          top,
+          requestedSize.width,
+          height,
+          box,
+        )))
+      .reduce<{ left: number; top: number; score: number } | null>((current, candidate) => {
+      const centerX = candidate.left + requestedSize.width / 2;
+      const centerY = candidate.top + height / 2;
+      const score = Math.hypot(centerX - anchor.x, centerY - anchor.y);
+      return !current || score < current.score ? { ...candidate, score } : current;
+    }, null);
+    // Match the system-map priority: first avoid both the alert badge and UI,
+    // then permit covering the badge while still treating UI keepouts as hard.
+    const best = bestCandidate(blocked) ?? bestCandidate(keepouts);
+    if (!best) continue;
+    return {
+      chooserSize: { width: requestedSize.width, height },
+      layout: {
+        left: best.left,
+        top: best.top,
+        anchorOffsetX: anchor.x - best.left,
+        anchorOffsetY: anchor.y - best.top,
+      },
+      viewportSize,
+    };
+  }
+
+  const height = Math.min(requestedSize.height, Math.max(80, viewportSize.height - margin * 2));
+  const left = clampGeographicChooserOffset(
+    anchor.x - requestedSize.width / 2,
+    requestedSize.width,
+    viewportSize.width,
+    margin,
+  );
+  const top = clampGeographicChooserOffset(
+    anchor.y - height - GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
+    height,
+    viewportSize.height,
+    margin,
+  );
+  return {
+    chooserSize: { width: requestedSize.width, height },
+    layout: {
+      left,
+      top,
+      anchorOffsetX: anchor.x - left,
+      anchorOffsetY: anchor.y - top,
+    },
+    viewportSize,
+  };
+}
 
 function ensureBadgeImages(
   map: MapLibreMap | null,
@@ -1256,6 +1414,7 @@ export function GeographicNetworkMap({
   estimatedTrainMarkers = EMPTY_TRAIN_MARKERS,
   selectionAttentionGeneration = 0,
   mobilePerformanceMode = false,
+  layoutResetSignal = 0,
 }: GeographicNetworkMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sliderRef = useRef<HTMLInputElement | null>(null);
@@ -2297,6 +2456,31 @@ export function GeographicNetworkMap({
     stopAttentionLoop,
   ]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || window.innerWidth >= 768 || !selection) return;
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready") return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      map.resize();
+      const container = containerRef.current;
+      if (!container) return;
+      const bounds = getProjectedSelectionBounds(
+        selection,
+        overlayDataRef.current.impactedLinks.features,
+        overlayDataRef.current.impactedStations.features,
+      );
+      if (!bounds) return;
+      map.fitBounds(bounds, {
+        padding: geographicMobileSelectionPadding(container),
+        maxZoom: GEOGRAPHIC_MOBILE_SELECTION_MAX_ZOOM,
+        animate: !reducedMotion,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [layoutResetSignal, loadStatus, reducedMotion, selection]);
+
   // Invisibility fallback handler
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -2384,6 +2568,34 @@ export function GeographicNetworkMap({
   }, []);
 
   useEffect(() => {
+    setGeographicProjectedSelectionBoundsResolver((key) => {
+      const map = mapRef.current;
+      if (!map || loadStatusRef.current !== "ready") return null;
+      const separator = key.indexOf(":");
+      if (separator < 0) return null;
+      const id = key.slice(separator + 1);
+      const data = overlayDataRef.current;
+      const coordinates = [
+        ...data.impactedLinks.features
+          .filter((feature) => feature.properties.allCardIds.includes(id))
+          .flatMap((feature) => feature.geometry.coordinates),
+        ...data.impactedStations.features
+          .filter((feature) => (feature.properties.allCardIds ?? [feature.properties.cardId]).includes(id))
+          .map((feature) => feature.geometry.coordinates),
+      ];
+      if (coordinates.length === 0) return null;
+      const points = coordinates.map((coordinate) => map.project(coordinate));
+      return {
+        left: Math.min(...points.map((point) => point.x)),
+        top: Math.min(...points.map((point) => point.y)),
+        right: Math.max(...points.map((point) => point.x)),
+        bottom: Math.max(...points.map((point) => point.y)),
+      };
+    });
+    return () => setGeographicProjectedSelectionBoundsResolver(null);
+  }, []);
+
+  useEffect(() => {
     const map = mapRef.current;
     const container = containerRef.current;
     if (!map || !container || !overlapChooser || loadStatus !== "ready") {
@@ -2405,24 +2617,66 @@ export function GeographicNetworkMap({
           return;
         }
         const compact = width <= 640;
-        const chooserSize = {
-          width: compact ? Math.max(240, width - 24) : Math.min(360, width - 32),
+        const requestedChooserSize = {
+          width: compact ? Math.max(240, Math.min(280, width - 48)) : Math.min(360, width - 32),
           height: compact
             ? Math.min(380, 56 + overlapChooser.impacts.length * 64)
             : Math.min(440, 68 + overlapChooser.impacts.length * 88),
         };
         const margin = compact ? 12 : 16;
+        if (compact) {
+          const containerRect = container.getBoundingClientRect();
+          const visibleKeepoutElements = visibleMapChooserKeepouts()
+            .filter((element) => !element.contains(container));
+          const topChromeBottom = visibleKeepoutElements
+            .filter((element) => element.matches(".mobile-app-topbar, .map-utility-cluster"))
+            .map((element) => element.getBoundingClientRect().bottom)
+            .filter((bottom) => bottom > containerRect.top && bottom < containerRect.bottom)
+            .reduce((bottom, nextBottom) => Math.max(bottom, nextBottom), containerRect.top);
+          const keepouts = visibleKeepoutElements
+            .map((element) => element.getBoundingClientRect())
+            .filter((rect) => (
+              rect.right > containerRect.left
+              && rect.left < containerRect.right
+              && rect.bottom > containerRect.top
+              && rect.top < containerRect.bottom
+            ))
+            .map((rect) => ({
+              left: Math.max(0, rect.left - containerRect.left - GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
+              top: Math.max(0, rect.top - containerRect.top - GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
+              right: Math.min(width, rect.right - containerRect.left + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
+              bottom: Math.min(height, rect.bottom - containerRect.top + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP),
+            }));
+          if (topChromeBottom > containerRect.top) {
+            keepouts.push({
+              left: 0,
+              top: 0,
+              right: width,
+              bottom: Math.min(
+                height,
+                topChromeBottom - containerRect.top + GEOGRAPHIC_CHOOSER_KEEPOUT_GAP,
+              ),
+            });
+          }
+          setOverlapChooserLayout(chooseGeographicMobileChooserLayout({
+            anchor: point,
+            viewportSize: { width, height },
+            requestedSize: requestedChooserSize,
+            keepouts,
+          }));
+          return;
+        }
         const left = compact
           ? margin
           : Math.min(
-              width - chooserSize.width - margin,
-              Math.max(margin, point.x + 24 <= width - chooserSize.width ? point.x + 24 : point.x - chooserSize.width - 24),
+              width - requestedChooserSize.width - margin,
+              Math.max(margin, point.x + 24 <= width - requestedChooserSize.width ? point.x + 24 : point.x - requestedChooserSize.width - 24),
             );
         const top = compact
-          ? Math.max(margin, height - chooserSize.height - margin)
-          : Math.min(height - chooserSize.height - margin, Math.max(margin, point.y - chooserSize.height / 2));
+          ? Math.max(margin, height - requestedChooserSize.height - margin)
+          : Math.min(height - requestedChooserSize.height - margin, Math.max(margin, point.y - requestedChooserSize.height / 2));
         setOverlapChooserLayout({
-          chooserSize,
+          chooserSize: requestedChooserSize,
           layout: {
             left,
             top,
@@ -2437,9 +2691,14 @@ export function GeographicNetworkMap({
     updateLayout();
     map.on("move", updateLayout);
     map.on("resize", updateLayout);
+    const resizeObserver = new ResizeObserver(updateLayout);
+    resizeObserver.observe(container);
+    const stopObservingKeepouts = observeMapChooserKeepouts(updateLayout);
     return () => {
       map.off("move", updateLayout);
       map.off("resize", updateLayout);
+      stopObservingKeepouts();
+      resizeObserver.disconnect();
       if (frameId !== null) window.cancelAnimationFrame(frameId);
     };
   }, [loadStatus, overlapChooser]);

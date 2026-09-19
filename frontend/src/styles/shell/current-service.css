@@ -1801,15 +1801,52 @@
   .mobile-saved-sections button:focus-visible { outline: 2px solid var(--text); outline-offset: -3px; }
 
   .linewatch-shell .mobile-legend-pill { top: calc(var(--mobile-safe-top) + var(--mobile-map-controls-top-offset, 106px)) !important; }
-  .linewatch-shell .mobile-train-toggle {
-    top: auto !important;
-    right: auto !important;
-    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + var(--mobile-map-control-edge-inset, 12px)) !important;
-    left: calc(var(--mobile-safe-left) + var(--mobile-map-control-edge-inset, 12px)) !important;
+  /* Fixed cluster container: anchored bottom-left, grows upward.
+     Height = train-toggle-height (always) + gap + map-view-height (when present).
+     Children use position:absolute so they anchor to this container, not the viewport,
+     bypassing the position:fixed in train-markers.css. */
+  .linewatch-shell .mobile-train-left-cluster {
+    position: fixed;
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + var(--mobile-map-control-edge-inset, 12px));
+    left: calc(var(--mobile-safe-left) + var(--mobile-map-control-edge-inset, 12px));
+    z-index: 42;
     width: var(--mobile-top-action-button-size, 48px);
-    min-width: var(--mobile-top-action-button-size, 48px);
+    /* Default height = train toggle only */
     height: var(--mobile-train-toggle-height, 54px);
+  }
+  /* When map view toggle is also rendered, extend cluster upward */
+  .linewatch-shell .mobile-train-left-cluster:has(.mobile-map-view-toggle) {
+    height: calc(var(--mobile-train-toggle-height, 54px) * 2 + var(--mobile-map-controls-gap, 8px));
+  }
+  /* Both children anchor absolutely to the cluster */
+  .linewatch-shell .mobile-train-left-cluster .mobile-train-toggle,
+  .linewatch-shell .mobile-train-left-cluster .mobile-map-view-toggle {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100%;
     padding: var(--mobile-train-toggle-padding, 4px);
+  }
+  /* Map view toggle: bottom of the cluster */
+  .linewatch-shell .mobile-train-left-cluster .mobile-map-view-toggle {
+    bottom: 0 !important;
+    top: auto !important;
+    height: var(--mobile-train-toggle-height, 54px);
+    min-height: var(--mobile-train-toggle-height, 54px);
+  }
+  /* Train toggle: above the map view toggle */
+  .linewatch-shell .mobile-train-left-cluster:has(.mobile-map-view-toggle) .mobile-train-toggle {
+    bottom: calc(var(--mobile-train-toggle-height, 54px) + var(--mobile-map-controls-gap, 8px)) !important;
+    top: auto !important;
+    height: var(--mobile-train-toggle-height, 54px);
+    min-height: var(--mobile-train-toggle-height, 54px);
+  }
+  /* Train toggle alone (no map view toggle): bottom of cluster */
+  .linewatch-shell .mobile-train-left-cluster:not(:has(.mobile-map-view-toggle)) .mobile-train-toggle {
+    bottom: 0 !important;
+    top: auto !important;
+    height: var(--mobile-train-toggle-height, 54px);
+    min-height: var(--mobile-train-toggle-height, 54px);
   }
   .linewatch-shell .mobile-map-controls-group {
     right: calc(var(--mobile-safe-right) + var(--mobile-map-control-edge-inset, 12px));
@@ -1949,7 +1986,7 @@
 }
 
 @media (max-width: 767px) {
-  .linewatch-shell :is(.mobile-legend-pill, .site-guide-trigger:not(.mobile-app-chip-guide), .mobile-train-toggle:not(.active), .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .network-selector--compact-vertical, .rotate-map-btn) {
+  .linewatch-shell :is(.mobile-legend-pill, .site-guide-trigger:not(.mobile-app-chip-guide), .mobile-train-toggle:not(.active), .mobile-map-view-toggle:not(.active), .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .network-selector--compact-vertical, .rotate-map-btn) {
     --mobile-chrome-background: var(--map-control-bg);
     --mobile-chrome-backdrop-filter: none;
     --mobile-chrome-shadow: var(--map-control-shadow);
@@ -1957,11 +1994,11 @@
     box-shadow: var(--map-control-shadow);
     color: var(--map-control-text);
   }
-  .linewatch-shell :is(.mobile-legend-pill, .mobile-train-toggle, .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .site-guide-trigger:not(.mobile-app-chip-guide), .rotate-map-btn) {
+  .linewatch-shell :is(.mobile-legend-pill, .mobile-train-toggle, .mobile-map-view-toggle, .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .site-guide-trigger:not(.mobile-app-chip-guide), .rotate-map-btn) {
     background-image: none;
   }
-  .high-contrast :is(.mobile-legend-pill, .site-guide-trigger:not(.mobile-app-chip-guide), .mobile-train-toggle, .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .network-selector--compact-vertical, .rotate-map-btn),
-  .linewatch-shell.high-contrast :is(.mobile-legend-pill, .site-guide-trigger:not(.mobile-app-chip-guide), .mobile-train-toggle, .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .network-selector--compact-vertical, .rotate-map-btn) {
+  .high-contrast :is(.mobile-legend-pill, .site-guide-trigger:not(.mobile-app-chip-guide), .mobile-train-toggle, .mobile-map-view-toggle, .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .network-selector--compact-vertical, .rotate-map-btn),
+  .linewatch-shell.high-contrast :is(.mobile-legend-pill, .site-guide-trigger:not(.mobile-app-chip-guide), .mobile-train-toggle, .mobile-map-view-toggle, .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .network-selector--compact-vertical, .rotate-map-btn) {
     border: 1px solid #ffffff;
     box-shadow: none;
   }

@@ -25,6 +25,7 @@ export interface GeographicMapLifecycleStats {
   resizes: number;
   events: GeographicLifecycleEvent[];
   getProjectedImpactAnchor: (key: string) => { x: number; y: number } | null;
+  getProjectedSelectionBounds: (key: string) => { left: number; top: number; right: number; bottom: number } | null;
   reset: () => void;
 }
 
@@ -46,6 +47,7 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
       resizes: 0,
       events: [],
       getProjectedImpactAnchor: () => null,
+      getProjectedSelectionBounds: () => null,
       reset() {},
     };
   }
@@ -59,6 +61,7 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
     resizes: 0,
     events: [],
     getProjectedImpactAnchor: () => null,
+    getProjectedSelectionBounds: () => null,
     reset() {
       this.constructors = 0;
       this.removals = 0;
@@ -77,6 +80,13 @@ export function setGeographicProjectedImpactAnchorResolver(
 ): void {
   if (typeof window === "undefined") return;
   getGeographicMapLifecycle().getProjectedImpactAnchor = resolver ?? (() => null);
+}
+
+export function setGeographicProjectedSelectionBoundsResolver(
+  resolver: ((key: string) => { left: number; top: number; right: number; bottom: number } | null) | null,
+): void {
+  if (typeof window === "undefined") return;
+  getGeographicMapLifecycle().getProjectedSelectionBounds = resolver ?? (() => null);
 }
 
 export function recordGeographicMapLifecycle(

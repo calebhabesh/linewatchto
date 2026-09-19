@@ -907,6 +907,19 @@
     margin: 0;
   }
 
+  .mobile-more-map-attribution-sources a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+    text-underline-offset: 2px;
+  }
+
+  .mobile-more-map-attribution-sources a:focus-visible {
+    border-radius: 2px;
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
   .mobile-more-map-attribution-note {
     color: #475569;
     display: block;
@@ -1636,6 +1649,7 @@
   }
 
   .linewatch-shell.mobile-map-inspector .mobile-train-toggle,
+  .linewatch-shell.mobile-map-inspector .mobile-train-left-cluster,
   .linewatch-shell.mobile-map-inspector .mobile-bottom-nav,
   .linewatch-shell.mobile-map-inspector .mobile-status-peek,
   .linewatch-shell.mobile-map-inspector .mobile-status-peek-recenter-btn,

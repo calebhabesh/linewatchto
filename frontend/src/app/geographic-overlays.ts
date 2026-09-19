@@ -1191,7 +1191,7 @@ export function projectImpactBadges(
   };
 }
 
-export const DEFAULT_ARROW_SPACING_METERS = 320;
+export const DEFAULT_ARROW_SPACING_METERS = 240;
 export const ARROW_SPACING_METERS = DEFAULT_ARROW_SPACING_METERS;
 export const MAX_ARROWS_PER_LINK = 6;
 
@@ -1254,7 +1254,7 @@ export function projectImpactArrows(
 
     const count = Math.max(1, Math.min(
       MAX_ARROWS_PER_LINK,
-      Math.round(table.totalDistance / DEFAULT_ARROW_SPACING_METERS),
+      Math.ceil(table.totalDistance / ARROW_SPACING_METERS),
     ));
 
     for (let index = 0; index < count; index += 1) {

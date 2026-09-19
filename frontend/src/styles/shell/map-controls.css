@@ -365,3 +365,39 @@
   transform: scale(1.08);
 }
 
+/* ============================================================
+   Mobile train-left-cluster: compact map view toggle button
+   Matches the train toggle button layout and border-radius.
+   ============================================================ */
+@media (max-width: 767px) {
+  .mobile-train-left-cluster .map-view-toggle-btn--compact {
+    align-items: center;
+    border-radius: clamp(8px, 3vw, 12px);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    justify-content: center;
+    outline: none;
+    padding: 0;
+    transition: background-color 150ms ease, transform 120ms ease;
+    user-select: none;
+    width: 100%;
+    height: 100%;
+  }
+
+  .mobile-train-left-cluster .map-view-toggle-btn--compact svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .mobile-train-left-cluster .map-view-toggle-btn--compact span {
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: inherit;
+  }
+}

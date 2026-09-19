@@ -131,8 +131,92 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     }
   });
 
+  test("mobile impact focus keeps the complete geographic overlay inside the 50/50 map viewport", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "Mobile inspector framing regression");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.route("**/api/dashboard?network=ttc*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const segment = body.map.segments.find(
+        (candidate: { id: string }) => candidate.id === "line-4-sheppard-yonge-don-mills",
+      );
+      segment.id = "line-1-tmu-college";
+      segment.lineId = "line-1";
+      segment.stationAId = "tmu";
+      segment.stationBId = "college";
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto("/?panel=delays");
+
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+    await page.locator('[data-impact-card-id="stub-delay-line-4"]')
+      .getByRole("button", { name: /on map/i })
+      .click();
+    const inspector = page.locator("[data-mobile-impact-inspector]");
+    await expect(inspector).toBeVisible();
+    await expect.poll(async () => page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds(
+        "delay:stub-delay-line-4",
+      ) ?? null,
+    )).not.toBeNull();
+    await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+    await expect(inspector).toHaveCount(0);
+    await expect.poll(async () => page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(
+        "segment:line-1-tmu-college",
+      ) ?? null,
+    )).not.toBeNull();
+    const anchor = await page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(
+        "segment:line-1-tmu-college",
+      ) ?? null,
+    );
+    const canvasBox = await geoMap.locator("canvas").boundingBox();
+    expect(anchor).not.toBeNull();
+    expect(canvasBox).not.toBeNull();
+    const moveCount = await page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0,
+    );
+    await page.mouse.click(canvasBox!.x + anchor!.x, canvasBox!.y + anchor!.y);
+    await expect(page.locator("[data-mobile-impact-inspector]"))
+      .toHaveClass(/mobile-impact-inspector-details-focus/);
+    await expect.poll(async () => page.evaluate(
+      ({ before }) => (
+        window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
+      ) > before,
+      { before: moveCount },
+    )).toBe(true);
+    await expect.poll(async () => page.evaluate(
+      () => window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds(
+        "delay:stub-delay-line-4",
+      ) ?? null,
+    )).not.toBeNull();
+
+    const framing = await page.evaluate(() => {
+      const map = document.querySelector<HTMLElement>(".geographic-network-map");
+      const mapRect = map?.getBoundingClientRect();
+      const topChromeBottom = Array.from(document.querySelectorAll<HTMLElement>(
+        ".mobile-app-topbar, .map-utility-cluster",
+      )).reduce((bottom, element) => Math.max(bottom, element.getBoundingClientRect().bottom), 0);
+      return {
+        bounds: window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds(
+          "delay:stub-delay-line-4",
+        ) ?? null,
+        width: map?.clientWidth ?? 0,
+        height: map?.clientHeight ?? 0,
+        safeTop: Math.max(104, Math.ceil(topChromeBottom - (mapRect?.top ?? 0) + 16)),
+      };
+    });
+    expect(framing.bounds).not.toBeNull();
+    expect(framing.bounds!.left).toBeGreaterThanOrEqual(72);
+    expect(framing.bounds!.right).toBeLessThanOrEqual(framing.width - 72);
+    expect(framing.bounds!.top).toBeGreaterThanOrEqual(framing.safeTop - 1);
+    expect(framing.bounds!.bottom).toBeLessThanOrEqual(framing.height - 95);
+  });
+
   test("clicking a geographic corridor with multiple alerts opens one complete chooser", async ({ page, isMobile }) => {
-    await page.setViewportSize(isMobile ? { width: 360, height: 800 } : { width: 1440, height: 900 });
+    await page.setViewportSize(isMobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.route("**/api/dashboard?network=ttc*", async (route) => {
       const response = await route.fetch();
@@ -140,19 +224,29 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       const segment = body.map.segments.find(
         (candidate: { id: string }) => candidate.id === "line-4-sheppard-yonge-don-mills",
       );
-      segment.id = "line-4-leslie-don-mills";
-      segment.impacts.push({
-        kind: "delay",
-        cardId: "stub-delay-line-4-second",
-        travelDirection: "reverse",
-        sourceAlertIds: ["stub-delay-line-4-second"],
-      });
-      body.delays.push({
-        ...body.delays.find((delay: { id: string }) => delay.id === "stub-delay-line-4"),
-        id: "stub-delay-line-4-second",
-        title: "Second Line 4 delay",
-        displayDirection: "Westbound",
-      });
+      segment.id = "line-1-tmu-college";
+      segment.lineId = "line-1";
+      segment.stationAId = "tmu";
+      segment.stationBId = "college";
+      for (const [suffix, title] of [
+        ["second", "Second Line 4 delay"],
+        ["third", "Third Line 4 delay"],
+        ["fourth", "Fourth Line 4 delay"],
+      ]) {
+        const id = `stub-delay-line-4-${suffix}`;
+        segment.impacts.push({
+          kind: "delay",
+          cardId: id,
+          travelDirection: "reverse",
+          sourceAlertIds: [id],
+        });
+        body.delays.push({
+          ...body.delays.find((delay: { id: string }) => delay.id === "stub-delay-line-4"),
+          id,
+          title,
+          displayDirection: "Westbound",
+        });
+      }
       await route.fulfill({ response, json: body });
     });
     await page.goto("/?panel=delays");
@@ -176,28 +270,27 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       { after: focusTimestamp },
     )).toBe(true);
     if (isMobile) {
-      await page.getByRole("button", { name: "Show more map" }).click();
-      await expect(page.locator("[data-mobile-impact-inspector]")).toHaveClass(/mobile-impact-inspector-map-focus/);
+      const framing = await page.evaluate(() => {
+        const map = document.querySelector<HTMLElement>(".geographic-network-map");
+        const bounds = window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds(
+          "delay:stub-delay-line-4",
+        ) ?? null;
+        return { bounds, width: map?.clientWidth ?? 0, height: map?.clientHeight ?? 0 };
+      });
+      expect(framing.bounds).not.toBeNull();
+      expect(framing.bounds!.left).toBeGreaterThanOrEqual(32);
+      expect(framing.bounds!.right).toBeLessThanOrEqual(framing.width - 32);
+      expect(framing.bounds!.top).toBeGreaterThanOrEqual(32);
+      expect(framing.bounds!.bottom).toBeLessThanOrEqual(framing.height - 32);
+      const inspector = page.locator("[data-mobile-impact-inspector]");
+      await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+      await expect(inspector).toHaveCount(0);
+      await expect(page.locator(".mobile-status-peek")).toBeVisible();
     }
 
-    const targetId = "line-4-leslie-don-mills";
+    const targetId = "line-1-tmu-college";
     const canvasBox = await geoMap.locator("canvas").boundingBox();
     expect(canvasBox).not.toBeNull();
-    if (isMobile) {
-      const moveCount = await page.evaluate(
-        () => window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0,
-      );
-      await page.mouse.move(canvasBox!.x + canvasBox!.width / 2, canvasBox!.y + 300);
-      await page.mouse.down();
-      await page.mouse.move(canvasBox!.x + canvasBox!.width / 2, canvasBox!.y + 180, { steps: 6 });
-      await page.mouse.up();
-      await expect.poll(async () => page.evaluate(
-        ({ before }) => (
-          window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
-        ) > before,
-        { before: moveCount },
-      )).toBe(true);
-    }
     await expect.poll(async () => page.evaluate(
       ({ key }) => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(key) ?? null,
       { key: `segment:${targetId}` },
@@ -215,12 +308,62 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     await expect(chooser).toBeVisible();
     await expect(chooser.locator('[data-overlap-choice-id="stub-delay-line-4"]')).toBeVisible();
     await expect(chooser.locator('[data-overlap-choice-id="stub-delay-line-4-second"]')).toBeVisible();
+    await expect(chooser.locator("[data-overlap-choice-id]")).toHaveCount(4);
     const chooserBox = await chooser.boundingBox();
     expect(chooserBox).not.toBeNull();
     if (isMobile) {
-      const mapBox = await geoMap.boundingBox();
-      expect(mapBox).not.toBeNull();
-      expect(Math.abs((chooserBox!.y + chooserBox!.height) - (mapBox!.y + mapBox!.height))).toBeLessThanOrEqual(16);
+      const layout = await chooser.evaluate((element) => {
+        const chooserRect = element.getBoundingClientRect();
+        const keepouts = Array.from(document.querySelectorAll<HTMLElement>(
+          "[data-map-chooser-keepout], .mobile-impact-inspector, .mobile-status-peek",
+        )).filter((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          const style = getComputedStyle(candidate);
+          return rect.width > 0 && rect.height > 0
+            && style.display !== "none"
+            && style.visibility !== "hidden"
+            && Number(style.opacity) > 0;
+        }).map((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return {
+            className: candidate.className,
+            left: rect.left,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+          };
+        });
+        const list = element.querySelector<HTMLElement>(".overlap-chooser-list");
+        const topChromeBottom = Array.from(document.querySelectorAll<HTMLElement>(
+          ".mobile-app-topbar, .map-utility-cluster",
+        )).reduce((bottom, candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          const style = getComputedStyle(candidate);
+          if (
+            rect.width <= 0
+            || rect.height <= 0
+            || style.display === "none"
+            || style.visibility === "hidden"
+            || Number(style.opacity) <= 0
+          ) return bottom;
+          return Math.max(bottom, rect.bottom);
+        }, 0);
+        return {
+          collisions: keepouts.filter((rect) => (
+            chooserRect.left < rect.right
+            && chooserRect.right > rect.left
+            && chooserRect.top < rect.bottom
+            && chooserRect.bottom > rect.top
+          )),
+          chooserTop: chooserRect.top,
+          topChromeBottom,
+          listClientHeight: list?.clientHeight ?? 0,
+          listScrollHeight: list?.scrollHeight ?? 0,
+        };
+      });
+      expect(layout.collisions).toEqual([]);
+      expect(layout.chooserTop).toBeGreaterThanOrEqual(layout.topChromeBottom + 8);
+      expect(layout.listScrollHeight).toBeGreaterThan(layout.listClientHeight);
     } else {
       expect(chooserBox!.x).toBeGreaterThan(canvasBox!.x);
       expect(chooserBox!.y).toBeGreaterThanOrEqual(canvasBox!.y);

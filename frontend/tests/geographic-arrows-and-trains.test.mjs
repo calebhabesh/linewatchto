@@ -148,7 +148,7 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
   });
 
   await t.test("projectImpactArrows: equidistant placement fractions (i + 1) / (count + 1) and count rules", () => {
-    // Test count rule clamp(round(segmentLengthMeters / 320), 1, 6)
+    // Test count rule clamp(ceil(segmentLengthMeters / 240), 1, 6)
     // Short: ~100m -> count = 1 -> fraction [0.5]
     const shortCoords = [[-79.38, 43.65], [-79.38, 43.6509]]; // ~100m
     const shortLink = {
@@ -170,7 +170,7 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
     assert.equal(shortRes.features.length, 1);
     assert.equal(shortRes.features[0].properties.fraction, 0.5);
 
-    // Medium: ~960m -> count = 3 -> fractions [0.25, 0.5, 0.75]
+    // Medium: ~960m -> count = 4 -> fractions [0.2, 0.4, 0.6, 0.8]
     const medCoords = [[-79.38, 43.65], [-79.38, 43.6586]]; // ~960m
     const medLink = {
       type: "Feature",
@@ -188,10 +188,11 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
       },
     };
     const medRes = projectImpactArrows(ttcCatalog, [medLink]);
-    assert.equal(medRes.features.length, 3);
-    assert.equal(medRes.features[0].properties.fraction, 0.25);
-    assert.equal(medRes.features[1].properties.fraction, 0.5);
-    assert.equal(medRes.features[2].properties.fraction, 0.75);
+    assert.equal(medRes.features.length, 4);
+    assert.equal(medRes.features[0].properties.fraction, 0.2);
+    assert.equal(medRes.features[1].properties.fraction, 0.4);
+    assert.equal(medRes.features[2].properties.fraction, 0.6);
+    assert.equal(medRes.features[3].properties.fraction, 0.8);
 
     // Palette mapping test (dark casing + light core from handoff seed table)
     const suspColors = getImpactArrowColors("suspension", "ttc");
