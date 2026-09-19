@@ -5882,13 +5882,6 @@ export function LineWatchShell({
         </div>
         )}
 
-        {/* Desktop Collapsed Map Notice (Top Center) */}
-        {!isMobile && desktopSidebarCollapsed && desktopNotice ? (
-          <div className="desktop-collapsed-map-notice-anchor">
-            {renderDesktopNoticeBanner(desktopNotice)}
-          </div>
-        ) : null}
-
         <div className="map-utility-cluster ml-auto pointer-events-auto flex items-center gap-2" data-map-chooser-keepout>
           {isMobile && <LogsDropdown network={selectedNetwork} />}
           {isMobile && (
@@ -6228,6 +6221,12 @@ export function LineWatchShell({
                 selectionAttentionGeneration={selectionAttentionGeneration}
               />
             </main>
+            {/* Desktop Collapsed Map Notice (Bottom Center) */}
+            {desktopSidebarCollapsed && desktopNotice ? (
+              <div className="desktop-collapsed-map-notice-anchor">
+                {renderDesktopNoticeBanner(desktopNotice)}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : (

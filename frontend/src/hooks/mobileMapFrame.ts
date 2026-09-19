@@ -107,6 +107,13 @@ export function readMobileMapFrameInsets(viewport: HTMLElement | null) {
 
   return getCachedInsets(shell);
 }
+
+export function readMobileImpactInspectorInset(viewport: HTMLElement | null) {
+  const shell = viewport?.closest<HTMLElement>(".linewatch-shell.mobile-map-inspector-impact");
+  const inspector = shell?.querySelector<HTMLElement>(".mobile-impact-inspector");
+  return inspector?.getBoundingClientRect().height ?? 0;
+}
+
 /** Station center in the rendered SVG viewport, before the map camera transform. */
 export function readMapStationCenterX(viewport: HTMLElement | null, stationId: string) {
   const station = viewport?.querySelector<SVGGraphicsElement>(`svg #station-${stationId}`);

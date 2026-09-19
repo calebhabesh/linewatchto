@@ -1,7 +1,7 @@
 "use client";
 
 import { useMapViewportPersistence } from "../hooks/useMapViewportPersistence";
-import { observeMobileMapFrame, readMapStationCenterX, readMobileMapFrameInsets } from "../hooks/mobileMapFrame";
+import { observeMobileMapFrame, readMapStationCenterX, readMobileMapFrameInsets, readMobileImpactInspectorInset } from "../hooks/mobileMapFrame";
 import { clearMapViewport } from "../app/map-viewport-preference";
 import { useRetainedHover } from "../hooks/useRetainedHover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
@@ -4190,7 +4190,7 @@ function InteractiveRegionalMapComponent({
       left: focusPadding,
       right: focusPadding,
       top: Math.max(desktopMapTopInset, focusPadding),
-      bottom: Math.max(desktopMapBottomInset, focusPadding),
+      bottom: Math.max(desktopMapBottomInset, focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
     };
 
     if (!isMobile) {

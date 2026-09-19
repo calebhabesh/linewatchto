@@ -1631,12 +1631,8 @@
     --mobile-inspector-total-height: 50dvh;
   }
 
-  .linewatch-shell.mobile-map-inspector[data-network="regional"] > main {
-    bottom: 50dvh;
-  }
-
   .linewatch-shell.mobile-map-inspector > main {
-    bottom: var(--mobile-inspector-total-height);
+    bottom: 0;
   }
 
   .linewatch-shell.mobile-map-inspector-station > main,

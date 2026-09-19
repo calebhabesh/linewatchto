@@ -1823,6 +1823,7 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
 });
 
 test("opens an impact notification deep link in the focused map view", async ({ page, request, isMobile }) => {
+  if (!isMobile) await page.setViewportSize({ width: 1440, height: 900 });
   await setStubMode(request, "seeded");
   await page.goto("/?panel=delays&impactKind=delay&impactId=stub-delay-line-4");
 
@@ -1840,9 +1841,48 @@ test("opens an impact notification deep link in the focused map view", async ({ 
     await expect(page.locator(".mobile-train-toggle")).toBeHidden();
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
-    await expect(mapViewport).toHaveCSS("bottom", /^(?!0px$).+/);
+    await expect(mapViewport).toHaveCSS("bottom", "0px");
+    await expect.poll(() => mapViewport.evaluate((element) => {
+      const map = element.getBoundingClientRect();
+      const sheet = document.querySelector(".mobile-impact-inspector")?.getBoundingClientRect();
+      return Boolean(sheet && map.bottom >= sheet.bottom && map.top < sheet.top);
+    })).toBe(true);
     await expect(page.locator(".network-map-transition-surface").getByLabel("Zoom level slider")).toHaveValue("3.8");
   }
+});
+
+test("reveals the map beneath a closing mobile impact sheet", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "Mobile split view only");
+  await page.setViewportSize({ width: 360, height: 780 });
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).dispatchEvent("click");
+
+  const inspector = page.locator("[data-mobile-impact-inspector]");
+  const mapViewport = page.locator(".linewatch-shell > main");
+  await expect(inspector).toBeVisible();
+  await expect(mapViewport).toHaveCSS("bottom", "0px");
+  await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+  await expect(inspector).toHaveCount(0);
+  await expect(mapViewport).toHaveCSS("bottom", "0px");
+});
+
+test("keeps the regional map beneath a selected impact sheet", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "Mobile split view only");
+  await setStubMode(request, "regional-live");
+  await page.goto("/?network=regional&panel=delays&impactKind=delay&impactId=regional-demo-delay");
+
+  const shell = page.locator(".linewatch-shell");
+  const inspector = page.locator("[data-mobile-impact-inspector]");
+  const mapViewport = shell.locator(":scope > main");
+  await expect(shell).toHaveClass(/mobile-map-inspector-impact/);
+  await expect(inspector).toBeVisible();
+  await expect(mapViewport).toHaveCSS("bottom", "0px");
+  await expect.poll(() => mapViewport.evaluate((element) => {
+    const map = element.getBoundingClientRect();
+    const sheet = document.querySelector(".mobile-impact-inspector")?.getBoundingClientRect();
+    return Boolean(sheet && map.bottom >= sheet.bottom && map.top < sheet.top);
+  })).toBe(true);
 });
 
 test("opens the site guide and completes verified email signup", async ({ page, request, isMobile }) => {

@@ -627,7 +627,7 @@
 
 .desktop-collapsed-map-notice-anchor {
   position: absolute;
-  top: 20px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
@@ -648,5 +648,4 @@
   color: inherit;
   flex-shrink: 0;
 }
-
 

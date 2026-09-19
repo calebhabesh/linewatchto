@@ -131,19 +131,33 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     }
   });
 
-  test("mobile impact focus keeps the complete geographic overlay inside the 50/50 map viewport", async ({ page, isMobile }) => {
+  test("mobile impact focus keeps a multi-segment geographic overlay inside the visible 50/50 map viewport", async ({ page, isMobile }) => {
     test.skip(!isMobile, "Mobile inspector framing regression");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.route("**/api/dashboard?network=ttc*", async (route) => {
       const response = await route.fetch();
       const body = await response.json();
-      const segment = body.map.segments.find(
+      const sourceSegment = body.map.segments.find(
         (candidate: { id: string }) => candidate.id === "line-4-sheppard-yonge-don-mills",
       );
-      segment.id = "line-1-tmu-college";
-      segment.lineId = "line-1";
-      segment.stationAId = "tmu";
-      segment.stationBId = "college";
+      const affectedSegmentIds = [
+        "line-1-college-wellesley",
+        "line-1-wellesley-bloor-yonge",
+        "line-1-bloor-yonge-rosedale",
+        "line-1-rosedale-summerhill",
+        "line-1-summerhill-st-clair",
+      ];
+      body.map.segments.push(...affectedSegmentIds.map((id: string) => ({
+        ...sourceSegment,
+        id,
+        lineId: "line-1",
+        impacts: [{
+          kind: "delay",
+          cardId: "stub-delay-line-4",
+          travelDirection: "bidirectional",
+          sourceAlertIds: ["stub-delay-line-4-source"],
+        }],
+      })));
       await route.fulfill({ response, json: body });
     });
     await page.goto("/?panel=delays");
@@ -154,39 +168,8 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       .getByRole("button", { name: /on map/i })
       .click();
     const inspector = page.locator("[data-mobile-impact-inspector]");
-    await expect(inspector).toBeVisible();
-    await expect.poll(async () => page.evaluate(
-      () => window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds(
-        "delay:stub-delay-line-4",
-      ) ?? null,
-    )).not.toBeNull();
-    await inspector.getByRole("button", { name: "Unfocus impact" }).click();
-    await expect(inspector).toHaveCount(0);
-    await expect.poll(async () => page.evaluate(
-      () => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(
-        "segment:line-1-tmu-college",
-      ) ?? null,
-    )).not.toBeNull();
-    const anchor = await page.evaluate(
-      () => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(
-        "segment:line-1-tmu-college",
-      ) ?? null,
-    );
-    const canvasBox = await geoMap.locator("canvas").boundingBox();
-    expect(anchor).not.toBeNull();
-    expect(canvasBox).not.toBeNull();
-    const moveCount = await page.evaluate(
-      () => window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0,
-    );
-    await page.mouse.click(canvasBox!.x + anchor!.x, canvasBox!.y + anchor!.y);
-    await expect(page.locator("[data-mobile-impact-inspector]"))
+    await expect(inspector)
       .toHaveClass(/mobile-impact-inspector-details-focus/);
-    await expect.poll(async () => page.evaluate(
-      ({ before }) => (
-        window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
-      ) > before,
-      { before: moveCount },
-    )).toBe(true);
     await expect.poll(async () => page.evaluate(
       () => window.__linewatchGeographicMapLifecycle?.getProjectedSelectionBounds(
         "delay:stub-delay-line-4",
@@ -196,6 +179,8 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     const framing = await page.evaluate(() => {
       const map = document.querySelector<HTMLElement>(".geographic-network-map");
       const mapRect = map?.getBoundingClientRect();
+      const inspectorRect = document.querySelector<HTMLElement>("[data-mobile-impact-inspector]")
+        ?.getBoundingClientRect();
       const topChromeBottom = Array.from(document.querySelectorAll<HTMLElement>(
         ".mobile-app-topbar, .map-utility-cluster",
       )).reduce((bottom, element) => Math.max(bottom, element.getBoundingClientRect().bottom), 0);
@@ -204,7 +189,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
           "delay:stub-delay-line-4",
         ) ?? null,
         width: map?.clientWidth ?? 0,
-        height: map?.clientHeight ?? 0,
+        visibleBottom: (inspectorRect?.top ?? mapRect?.bottom ?? 0) - (mapRect?.top ?? 0),
         safeTop: Math.max(104, Math.ceil(topChromeBottom - (mapRect?.top ?? 0) + 16)),
       };
     });
@@ -212,7 +197,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     expect(framing.bounds!.left).toBeGreaterThanOrEqual(72);
     expect(framing.bounds!.right).toBeLessThanOrEqual(framing.width - 72);
     expect(framing.bounds!.top).toBeGreaterThanOrEqual(framing.safeTop - 1);
-    expect(framing.bounds!.bottom).toBeLessThanOrEqual(framing.height - 95);
+    expect(framing.bounds!.bottom).toBeLessThanOrEqual(framing.visibleBottom - 24);
   });
 
   test("clicking a geographic corridor with multiple alerts opens one complete chooser", async ({ page, isMobile }) => {

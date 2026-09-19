@@ -68,8 +68,13 @@ describe("Desktop Sidebar Polish — Checkpoint 2 (Steps 3, 4, 5)", () => {
       // Collapsed map notice
       assert.match(
         shellSource,
-        /!isMobile && desktopSidebarCollapsed && desktopNotice \?\s*\(\s*<div className="desktop-collapsed-map-notice-anchor">/,
+        /<div className="desktop-map-workspace">[\s\S]*?desktopSidebarCollapsed && desktopNotice \?\s*\(\s*<div className="desktop-collapsed-map-notice-anchor">/,
         "Collapsed map must render desktop notice in desktop-collapsed-map-notice-anchor",
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-collapsed-map-notice-anchor\s*\{[^}]*bottom:\s*20px;[^}]*left:\s*50%;/s,
+        "Collapsed map notice must mirror the top console inset at the bottom center",
       );
     });
 

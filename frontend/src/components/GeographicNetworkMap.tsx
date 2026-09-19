@@ -80,6 +80,7 @@ import {
   observeMapChooserKeepouts,
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
+import { readMobileImpactInspectorInset } from "../hooks/mobileMapFrame";
 
 const GEOGRAPHIC_IMPACT_BADGE_MIN_HIT_DIAMETER_PX = 44;
 
@@ -159,7 +160,7 @@ function geographicMobileSelectionPadding(container: HTMLElement) {
 
   return {
     top: Math.max(104, Math.ceil(topChromeBottom - containerRect.top + 16)),
-    bottom: 96,
+    bottom: Math.max(96, Math.ceil(readMobileImpactInspectorInset(container) + 32)),
     left: 72,
     right: 72,
   };

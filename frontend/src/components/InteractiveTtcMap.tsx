@@ -78,7 +78,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { RasterMapPlane, rasterMapSource, type RasterMapTheme } from "./RasterMapPlane";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { mobilePerformanceModeMatches } from "../hooks/useMobilePerformanceMode";
-import { observeMobileMapFrame } from "../hooks/mobileMapFrame";
+import { observeMobileMapFrame, readMobileImpactInspectorInset } from "../hooks/mobileMapFrame";
 import { useMapLabelFontReady } from "../hooks/useMapLabelFontReady";
 import { usePageVisibility } from "../hooks/usePageVisibility";
 import { useRotatedListDragScroll } from "../hooks/useRotatedListDragScroll";
@@ -1056,7 +1056,7 @@ function InteractiveTtcMapComponent({
       left: focusPadding,
       right: focusPadding,
       top: isMobile ? focusPadding : Math.max(desktopMapTopInset + 16, focusPadding),
-      bottom: focusPadding,
+      bottom: Math.max(focusPadding, readMobileImpactInspectorInset(viewport) + focusPadding),
     };
 
     if (!isMobile && typeof window !== "undefined") {
@@ -1263,7 +1263,7 @@ function InteractiveTtcMapComponent({
   useEffect(() => {
     if (loadState !== "ready") return;
 
-    const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${viewportOrientation}`;
+    const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${viewportOrientation}:${geometryReady}:${rasterMapReady}`;
 
     if (isGestureActive()) return;
 
@@ -1315,11 +1315,13 @@ function InteractiveTtcMapComponent({
     desktopMenuPinned,
     focusSelectedMapElements,
     focusTargetKey,
+    geometryReady,
     isGestureActive,
     layoutResetSignal,
     loadState,
     mobilePerformanceMode,
     preserveCameraOnSelectionClear,
+    rasterMapReady,
     recenter,
     viewportOrientation,
   ]);
