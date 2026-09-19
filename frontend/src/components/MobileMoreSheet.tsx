@@ -9,7 +9,6 @@ import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { NetworkId } from "../app/regional-data";
 import { resetLineWatchLocalAppState } from "../app/local-app-reset";
-import { hasReleaseNotes } from "../app/release-notes";
 import { LogsDropdown } from "./LogsDropdown";
 import { PushDeliveryDiagnosticsPanel } from "./PushDeliveryDiagnosticsPanel";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
@@ -467,7 +466,11 @@ export function MobileMoreSheet({
           ) : null}
           <button type="button" className="mobile-more-row" onClick={onOpenPrivacyAcknowledgements}>
             <FileText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            Privacy & Acknowledgements
+            Privacy &amp; Acknowledgements
+          </button>
+          <button type="button" className="mobile-more-row" onClick={onOpenReleaseNotes}>
+            <FileText size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            Release Notes
           </button>
           <a href="/explore" className="mobile-more-row">
             <BookOpen size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
@@ -507,12 +510,6 @@ export function MobileMoreSheet({
               <span className="mobile-more-map-attribution-note">Diagrams independently re-created in Inkscape · Derivative replicas · Not downloaded originals · Not to scale</span>
             </div>
           </div>
-          {hasReleaseNotes ? (
-            <button type="button" className="mobile-more-row" onClick={onOpenReleaseNotes}>
-              <Sparkles size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-              {"What's New"}
-            </button>
-          ) : null}
           <LogsDropdown isMobileMore={true} network={currentNetwork} />
           {canResetLocalAppCache ? (
             <button type="button" className="mobile-more-row" onClick={() => { void resetLineWatchLocalAppState(); }}>

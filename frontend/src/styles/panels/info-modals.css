@@ -1490,18 +1490,15 @@
 
 .release-notes-current,
 .release-note-card {
-  border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+  background: var(--panel-soft);
+  box-shadow: var(--shadow);
 }
 
 .dark .release-notes-current,
 .dark .release-note-card,
 .high-contrast .release-notes-current,
 .high-contrast .release-note-card {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: #111827;
   box-shadow: none;
 }
 

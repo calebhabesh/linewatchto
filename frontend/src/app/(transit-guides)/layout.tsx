@@ -1,26 +1,27 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- full navigation keeps the static guide shell free of client router code */
 import { ArrowRight, ExternalLink, Map, ShieldAlert } from "lucide-react";
 import Image from "next/image";
+import { GuideNav } from "./transit-guide-interactive";
 import styles from "./transit-guide.module.css";
 
 export default function TransitGuideLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className={styles.site}>
+    <div className={`${styles.site} linewatch-shell dark`} data-guide-shell>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){try{var s=document.currentScript.parentElement,t=localStorage.getItem("linewatch-theme-v1"),h=localStorage.getItem("linewatch-high-contrast-enabled-v1")==="true",m=localStorage.getItem("linewatch-reduced-motion-enabled-v1")==="true";s.classList.toggle("dark",t!=="light"||h);s.classList.toggle("high-contrast",h);s.classList.toggle("motion-paused",m)}catch(e){}})();`,
+        }}
+      />
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <a className={styles.brand} href="/" aria-label="LineWatchTO interactive dashboard">
             <Image src="/assets/linewatch/logo.svg" alt="" width={34} height={34} className={styles.brandLogo} />
             <span className={styles.brandWordmark}>LineWatchTO</span>
           </a>
-          <nav className={styles.nav} aria-label="Transit information">
-            <a href="/explore">Explore</a>
-            <a href="/ttc">TTC</a>
-            <a href="/go-up">GO &amp; UP</a>
-            <a href="/ttc/reliability">Reliability</a>
-          </nav>
-          <a className={styles.headerDashboardBtn} href="/" aria-label="Open LineWatchTO interactive live map">
+          <GuideNav />
+          <a className={styles.headerDashboardBtn} href="/" aria-label="Open LineWatchTO map">
             <Map size={16} aria-hidden="true" className={styles.headerDashboardBtnIcon} />
-            <span>View Live Map</span>
+            <span>Open map</span>
             <ArrowRight size={14} aria-hidden="true" className={styles.headerDashboardBtnArrow} />
           </a>
         </div>
@@ -32,10 +33,10 @@ export default function TransitGuideLayout({ children }: Readonly<{ children: Re
             <div className={styles.footerBrandHeader}>
               <Image src="/assets/linewatch/logo.svg" alt="" width={24} height={24} className={styles.footerBrandLogo} />
               <span className={styles.footerBrandWordmark}>LineWatchTO</span>
-              <span className={styles.footerTagBadge}>Unofficial Dashboard</span>
+              <span className={styles.footerTagBadge}>Unofficial transit dashboard</span>
             </div>
             <p className={styles.footerDescription}>
-              An independent, portfolio-grade transit reliability dashboard for Toronto rapid transit (TTC Lines 1, 2, 4, 5, 6) and Metrolinx regional rail (GO Transit &amp; UP Express).
+              Independent guides to the rapid-transit and regional rail routes represented in LineWatchTO. Current conditions remain source- and freshness-labeled in the dashboard.
             </p>
             <div className={styles.footerAdvisory}>
               <ShieldAlert size={14} className={styles.footerAdvisoryIcon} aria-hidden="true" />
@@ -52,35 +53,35 @@ export default function TransitGuideLayout({ children }: Readonly<{ children: Re
             </div>
           </div>
           <div className={styles.footerNavCol}>
-            <span className={styles.footerNavHeader}>Wayfinding &amp; Resources</span>
+            <span className={styles.footerNavHeader}>Guides and resources</span>
             <ul className={styles.footerNavList}>
               <li>
                 <a href="/" className={styles.footerNavLink}>
-                  <span>Interactive Live Map</span>
+                  <span>Current status map</span>
                   <ArrowRight size={12} className={styles.footerNavArrow} aria-hidden="true" />
                 </a>
               </li>
               <li>
                 <a href="/explore" className={styles.footerNavLink}>
-                  <span>Explore Network Guide</span>
+                  <span>Explore transit guides</span>
                   <ArrowRight size={12} className={styles.footerNavArrow} aria-hidden="true" />
                 </a>
               </li>
               <li>
                 <a href="/ttc" className={styles.footerNavLink}>
-                  <span>TTC Subway &amp; LRT</span>
+                  <span>TTC subway and LRT</span>
                   <ArrowRight size={12} className={styles.footerNavArrow} aria-hidden="true" />
                 </a>
               </li>
               <li>
                 <a href="/go-up" className={styles.footerNavLink}>
-                  <span>GO &amp; UP Regional Rail</span>
+                  <span>GO and UP regional rail</span>
                   <ArrowRight size={12} className={styles.footerNavArrow} aria-hidden="true" />
                 </a>
               </li>
               <li>
                 <a href="/ttc/reliability" className={styles.footerNavLink}>
-                  <span>Reliability Methodology</span>
+                  <span>TTC reliability methodology</span>
                   <ArrowRight size={12} className={styles.footerNavArrow} aria-hidden="true" />
                 </a>
               </li>
@@ -89,8 +90,8 @@ export default function TransitGuideLayout({ children }: Readonly<{ children: Re
         </div>
         <div className={styles.footerBottomBar}>
           <div className={styles.footerBottomInner}>
-            <span>All schedule and advisory times displayed in Eastern Time (Toronto).</span>
-            <span>Derivative replicas of referenced transit maps for wayfinding optimization.</span>
+            <span>Times are shown in Toronto local time.</span>
+            <span>Static guides do not guarantee current service.</span>
           </div>
         </div>
       </footer>
