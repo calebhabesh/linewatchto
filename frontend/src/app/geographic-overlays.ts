@@ -41,6 +41,7 @@ import {
 } from "./map-alert-selector.ts";
 import { ALL_LINE_COLORS } from "./geographic-config.ts";
 import type { EstimatedTrainMarker } from "./train-markers.ts";
+import { getOverlapBadgeKey } from "../components/map-overlap-svg.ts";
 
 export { getImpactPriority };
 
@@ -110,6 +111,39 @@ export type ProjectedImpactBadgeFeature = {
     allCardIds?: string[];
     count: number;
     label: string;
+    isOverlap?: boolean;
+    isSelected?: boolean;
+    visualItemCount?: number;
+    pillImage?: string;
+    kinds?: ImpactKind[];
+    kindCounts?: Array<{ kind: ImpactKind; count: number }>;
+    badgeImageKey?: string;
+    rawImpacts?: Array<{
+      kind: ImpactKind;
+      cardId: string;
+      travelDirection?: TravelDirection;
+      sourceAlertIds?: string[];
+    }>;
+    slot0_kind?: string;
+    slot0_count?: number;
+    slot0_label?: string;
+    slot0_color?: string;
+    slot0_offsetX?: number;
+    slot1_kind?: string;
+    slot1_count?: number;
+    slot1_label?: string;
+    slot1_color?: string;
+    slot1_offsetX?: number;
+    slot2_kind?: string;
+    slot2_count?: number;
+    slot2_label?: string;
+    slot2_color?: string;
+    slot2_offsetX?: number;
+    slot3_kind?: string;
+    slot3_count?: number;
+    slot3_label?: string;
+    slot3_color?: string;
+    slot3_offsetX?: number;
   };
 };
 
@@ -125,6 +159,10 @@ export type ProjectedImpactArrowFeature = {
     lineId: string;
     impactKind: ImpactKind;
     impactColor: string;
+    casingColor?: string;
+    coreColor?: string;
+    iconImage?: string;
+    fraction?: number;
     cardId: string;
     allCardIds: string[];
     bearing: number;
@@ -173,6 +211,43 @@ export function getImpactColor(kind: ImpactKind, network: NetworkId = "ttc"): st
     case "delay":
     default:
       return network === "regional" ? "#0ea5e9" : "#f59e0b";
+  }
+}
+
+export interface ImpactArrowColors {
+  casingColor: string;
+  coreColor: string;
+}
+
+/**
+ * Returns light/core and dark/casing arrow color pair derived from the governing impact kind.
+ * When highContrast is enabled, falls back to high-contrast casing/core (#0f172a / #ffffff).
+ */
+export function getImpactArrowColors(
+  kind: ImpactKind,
+  network: NetworkId = "ttc",
+  highContrast: boolean = false,
+): ImpactArrowColors {
+  if (highContrast) {
+    return {
+      casingColor: "#0f172a",
+      coreColor: "#ffffff",
+    };
+  }
+
+  switch (kind) {
+    case "suspension":
+      return { casingColor: "#991b1b", coreColor: "#fecaca" };
+    case "planned-closure":
+      return { casingColor: "#1e40af", coreColor: "#bfdbfe" };
+    case "reduced-speed-zone":
+      return { casingColor: "#78350f", coreColor: "#fde68a" };
+    case "delay":
+    default:
+      if (network === "regional") {
+        return { casingColor: "#075985", coreColor: "#bae6fd" };
+      }
+      return { casingColor: "#92400e", coreColor: "#fde68a" };
   }
 }
 
@@ -824,13 +899,15 @@ export function projectImpactedStations(
 
 /**
  * Projects disruption badges at segment midpoints and impacted stations.
- * Renders compact per-kind badges and deduplicated counts along links and stations.
+ * Renders stable overlap pills for multi-impact groups and compact single badges
+ * for lone impacts, with per-kind icons and deduplicated count bubbles.
  */
 export function projectImpactBadges(
   catalog: GeographicCatalog,
   impactedLinks: ProjectedImpactLinkFeature[],
   impactedStations: ProjectedImpactStationFeature[],
   network: NetworkId = "ttc",
+  selection?: ImpactSelection,
 ): FeatureCollection<ProjectedImpactBadgeFeature> {
   const badges: ProjectedImpactBadgeFeature[] = [];
 
@@ -840,7 +917,12 @@ export function projectImpactBadges(
       link,
     ]),
   );
-  const pendingLinks = new Set(impactedLinks);
+
+  // Deterministically sort impacted links by segmentId so grouping & anchors are stable
+  const sortedImpactedLinks = [...impactedLinks].sort((a, b) =>
+    a.properties.segmentId.localeCompare(b.properties.segmentId),
+  );
+  const pendingLinks = new Set(sortedImpactedLinks);
   const linkGroups: ProjectedImpactLinkFeature[][] = [];
 
   while (pendingLinks.size > 0) {
@@ -881,136 +963,226 @@ export function projectImpactBadges(
         expanded = true;
       }
     }
+    component.sort((a, b) => a.properties.segmentId.localeCompare(b.properties.segmentId));
     linkGroups.push(component);
   }
 
-  // One compact per-kind marker for each contiguous stretch carrying the same alerts.
+  // Helper to compute slot properties for overlap pills
+  const populateSlotProperties = (
+    props: Record<string, unknown>,
+    kindCounts: Array<{ kind: ImpactKind; count: number }>,
+    visualItemCount: number,
+  ) => {
+    const visibleKinds = kindCounts.slice(0, 3);
+    const hiddenCount = Math.max(0, kindCounts.length - 3);
+
+    visibleKinds.forEach(({ kind, count }, index) => {
+      const offsetX = Math.round((index - (visualItemCount - 1) / 2) * 28);
+      props[`slot${index}_kind`] = kind;
+      props[`slot${index}_count`] = count;
+      props[`slot${index}_label`] = getDefaultImpactBadgeLabel(kind);
+      props[`slot${index}_color`] = getImpactColor(kind, network);
+      props[`slot${index}_offsetX`] = offsetX;
+    });
+
+    if (hiddenCount > 0) {
+      const overflowIndex = visibleKinds.length;
+      const offsetX = Math.round((overflowIndex - (visualItemCount - 1) / 2) * 28);
+      props[`slot${overflowIndex}_kind`] = "more";
+      props[`slot${overflowIndex}_count`] = 1;
+      props[`slot${overflowIndex}_label`] = `+${hiddenCount}`;
+      props[`slot${overflowIndex}_color`] = "#334155";
+      props[`slot${overflowIndex}_offsetX`] = offsetX;
+    }
+  };
+
+  // Process link groups: exactly one stable marker per contiguous corridor
   for (const group of linkGroups) {
     const link = group[0];
-    const rawImpacts = link.properties.rawImpacts ?? [
-      {
-        kind: link.properties.impactKind,
-        cardId: link.properties.impactCardId,
-        travelDirection: link.properties.travelDirection,
-        sourceAlertIds: link.properties.allCardIds,
-      },
-    ];
+    const allRawImpacts: Array<{
+      kind: ImpactKind;
+      cardId: string;
+      travelDirection?: TravelDirection;
+      sourceAlertIds?: string[];
+    }> = [];
 
-    const kindCounts = countUniqueImpactsByKind(rawImpacts);
-    const kCount = kindCounts.length;
+    for (const item of group) {
+      const raw = item.properties.rawImpacts ?? [
+        {
+          kind: item.properties.impactKind,
+          cardId: item.properties.impactCardId,
+          travelDirection: item.properties.travelDirection,
+          sourceAlertIds: item.properties.allCardIds,
+        },
+      ];
+      for (const imp of raw) {
+        if (!allRawImpacts.some((existing) => existing.kind === imp.kind && existing.cardId === imp.cardId)) {
+          allRawImpacts.push(imp);
+        }
+      }
+    }
+
+    const kindCounts = countUniqueImpactsByKind(allRawImpacts);
+    const isOverlap = allRawImpacts.length > 1;
+    const visibleKinds = kindCounts.slice(0, 3);
+    const hiddenCount = Math.max(0, kindCounts.length - 3);
+    const visualItemCount = isOverlap
+      ? visibleKinds.length + (hiddenCount > 0 ? 1 : 0)
+      : 1;
+
+    // Deterministic corridor anchor at 0.5 fraction, displaced 16m off track
     const distanceTables = group.map((item) => getCachedPolylineDistances(
       item.id,
       item.geometry.coordinates,
       catalog.coverage?.status ?? "default",
     ));
     const totalDistance = distanceTables.reduce((sum, table) => sum + table.totalDistance, 0);
-
-    // Spacing fractions along link polyline
-    const fractions =
-      kCount === 1
-        ? [0.5]
-        : kCount === 2
-        ? [0.4, 0.6]
-        : kCount === 3
-        ? [0.32, 0.5, 0.68]
-        : [0.25, 0.42, 0.58, 0.75];
-
-    for (let idx = 0; idx < kCount; idx++) {
-      const { kind, count } = kindCounts[idx];
-      const fraction = fractions[idx] ?? 0.5;
-      const targetDistance = totalDistance * fraction;
-      let traversed = 0;
-      let coords = getPointAlongPolyline(link.geometry.coordinates, fraction);
-      for (let groupIndex = 0; groupIndex < group.length; groupIndex += 1) {
-        const groupDistance = distanceTables[groupIndex].totalDistance;
-        if (targetDistance <= traversed + groupDistance || groupIndex === group.length - 1) {
-          const localFraction = groupDistance > 0
-            ? Math.max(0, Math.min(1, (targetDistance - traversed) / groupDistance))
-            : 0.5;
-          coords = getPointAlongPolyline(group[groupIndex].geometry.coordinates, localFraction);
-          break;
-        }
-        traversed += groupDistance;
+    const targetDistance = totalDistance * 0.5;
+    let traversed = 0;
+    let sample = getPointAndBearingAlongPolyline(group[0].geometry.coordinates, 0.5);
+    for (let i = 0; i < group.length; i++) {
+      const segDist = distanceTables[i].totalDistance;
+      if (targetDistance <= traversed + segDist || i === group.length - 1) {
+        const localFraction = segDist > 0 ? Math.max(0, Math.min(1, (targetDistance - traversed) / segDist)) : 0.5;
+        sample = getPointAndBearingAlongPolyline(group[i].geometry.coordinates, localFraction);
+        break;
       }
-
-      const matchingImpact = rawImpacts.find((imp) => imp.kind === kind);
-      const cardId = matchingImpact?.cardId ?? link.properties.impactCardId;
-      const allCardIdsForKind = [...new Set(rawImpacts
-        .filter((imp) => imp.kind === kind)
-        .map((imp) => imp.cardId))];
-
-      const label = getDefaultImpactBadgeLabel(kind);
-
-      badges.push({
-        type: "Feature",
-        id: `badge-seg-${group.map((item) => item.properties.segmentId).join("+")}-${kind}`,
-        geometry: {
-          type: "Point",
-          coordinates: coords,
-        },
-        properties: {
-          targetId: link.properties.segmentId,
-          targetType: "segment",
-          impactKind: kind,
-          impactColor: getImpactColor(kind, network),
-          cardId,
-          allCardIds: allCardIdsForKind,
-          count,
-          label,
-        },
-      });
+      traversed += segDist;
     }
+
+    const perpRad = ((sample.bearing + 90) % 360) * (Math.PI / 180);
+    const offsetMeters = 16;
+    const metersPerLat = 111139;
+    const metersPerLng = 111139 * Math.cos(sample.coordinates[1] * (Math.PI / 180));
+    const dLat = (offsetMeters * Math.cos(perpRad)) / metersPerLat;
+    const dLng = (offsetMeters * Math.sin(perpRad)) / metersPerLng;
+    const anchorCoords: GeographicCoordinate = [
+      Number((sample.coordinates[0] + dLng).toFixed(6)),
+      Number((sample.coordinates[1] + dLat).toFixed(6)),
+    ];
+
+    const governingKind = kindCounts[0]?.kind ?? "delay";
+    const governingColor = getImpactColor(governingKind, network);
+    const primaryCardId = allRawImpacts[0]?.cardId ?? link.properties.impactCardId;
+    const allCardIds = [...new Set(allRawImpacts.map((imp) => imp.cardId))];
+
+    const isSelected = Boolean(
+      selection?.id && (allCardIds.includes(selection.id) || link.properties.allCardIds.includes(selection.id))
+    );
+
+    const properties: ProjectedImpactBadgeFeature["properties"] = {
+      targetId: link.properties.segmentId,
+      targetType: "segment",
+      impactKind: governingKind,
+      impactColor: governingColor,
+      cardId: primaryCardId,
+      allCardIds,
+      count: kindCounts[0]?.count ?? 1,
+      label: getDefaultImpactBadgeLabel(governingKind),
+      isOverlap,
+      isSelected,
+      visualItemCount,
+      pillImage: isOverlap ? `pill-bg-${visualItemCount}` : "pill-bg-1",
+      kinds: kindCounts.map((kc) => kc.kind),
+      kindCounts,
+      badgeImageKey: getOverlapBadgeKey({ kindCounts, isSelected }),
+      rawImpacts: allRawImpacts,
+    };
+
+    if (isOverlap) {
+      populateSlotProperties(properties as unknown as Record<string, unknown>, kindCounts, visualItemCount);
+    }
+
+    badges.push({
+      type: "Feature",
+      id: `badge-seg-${group.map((item) => item.properties.segmentId).join("+")}`,
+      geometry: {
+        type: "Point",
+        coordinates: anchorCoords,
+      },
+      properties,
+    });
   }
 
-  // Badges for impacted stations
+  // Process impacted stations: exactly one stable marker per station
   for (const station of impactedStations) {
-    const rawImpacts = station.properties.rawImpacts ?? [
+    const raw = station.properties.rawImpacts ?? [
       {
         kind: station.properties.impactKind,
         cardId: station.properties.cardId,
-        travelDirection: "bidirectional",
+        travelDirection: "bidirectional" as TravelDirection,
         sourceAlertIds: station.properties.allCardIds ?? [station.properties.cardId],
       },
     ];
 
-    const kindCounts = countUniqueImpactsByKind(rawImpacts);
-    const kCount = kindCounts.length;
+    const allRawImpacts: Array<{
+      kind: ImpactKind;
+      cardId: string;
+      travelDirection?: TravelDirection;
+      sourceAlertIds?: string[];
+    }> = [];
 
-    for (let idx = 0; idx < kCount; idx++) {
-      const { kind, count } = kindCounts[idx];
-      const offsetLng = kCount > 1 ? (idx - (kCount - 1) / 2) * 0.0018 : 0;
-      const coords: GeographicCoordinate = [
-        station.geometry.coordinates[0] + offsetLng,
-        station.geometry.coordinates[1],
-      ];
-
-      const matchingImpact = rawImpacts.find((imp) => imp.kind === kind);
-      const cardId = matchingImpact?.cardId ?? station.properties.cardId;
-      const allCardIdsForKind = rawImpacts
-        .filter((imp) => imp.kind === kind)
-        .map((imp) => imp.cardId);
-
-      const label = getDefaultImpactBadgeLabel(kind);
-
-      badges.push({
-        type: "Feature",
-        id: `badge-sta-${station.properties.stationId}-${kind}`,
-        geometry: {
-          type: "Point",
-          coordinates: coords,
-        },
-        properties: {
-          targetId: station.properties.stationId,
-          targetType: "station",
-          impactKind: kind,
-          impactColor: getImpactColor(kind, network),
-          cardId,
-          allCardIds: allCardIdsForKind,
-          count,
-          label,
-        },
-      });
+    for (const imp of raw) {
+      if (!allRawImpacts.some((existing) => existing.kind === imp.kind && existing.cardId === imp.cardId)) {
+        allRawImpacts.push(imp);
+      }
     }
+
+    const kindCounts = countUniqueImpactsByKind(allRawImpacts);
+    const isOverlap = allRawImpacts.length > 1;
+    const visibleKinds = kindCounts.slice(0, 3);
+    const hiddenCount = Math.max(0, kindCounts.length - 3);
+    const visualItemCount = isOverlap
+      ? visibleKinds.length + (hiddenCount > 0 ? 1 : 0)
+      : 1;
+
+    // Anchor displaced ~35m North (lat) off the station ring
+    const anchorCoords: GeographicCoordinate = [
+      station.geometry.coordinates[0],
+      Number((station.geometry.coordinates[1] + 0.00035).toFixed(6)),
+    ];
+
+    const governingKind = kindCounts[0]?.kind ?? "delay";
+    const governingColor = getImpactColor(governingKind, network);
+    const primaryCardId = allRawImpacts[0]?.cardId ?? station.properties.cardId;
+    const allCardIds = [...new Set(allRawImpacts.map((imp) => imp.cardId))];
+
+    const isSelected = Boolean(
+      selection?.id && (allCardIds.includes(selection.id) || station.properties.allCardIds?.includes(selection.id))
+    );
+
+    const properties: ProjectedImpactBadgeFeature["properties"] = {
+      targetId: station.properties.stationId,
+      targetType: "station",
+      impactKind: governingKind,
+      impactColor: governingColor,
+      cardId: primaryCardId,
+      allCardIds,
+      count: kindCounts[0]?.count ?? 1,
+      label: getDefaultImpactBadgeLabel(governingKind),
+      isOverlap,
+      isSelected,
+      visualItemCount,
+      pillImage: isOverlap ? `pill-bg-${visualItemCount}` : "pill-bg-1",
+      kinds: kindCounts.map((kc) => kc.kind),
+      kindCounts,
+      badgeImageKey: getOverlapBadgeKey({ kindCounts, isSelected }),
+      rawImpacts: allRawImpacts,
+    };
+
+    if (isOverlap) {
+      populateSlotProperties(properties as unknown as Record<string, unknown>, kindCounts, visualItemCount);
+    }
+
+    badges.push({
+      type: "Feature",
+      id: `badge-sta-${station.properties.stationId}`,
+      geometry: {
+        type: "Point",
+        coordinates: anchorCoords,
+      },
+      properties,
+    });
   }
 
   return {
@@ -1019,8 +1191,9 @@ export function projectImpactBadges(
   };
 }
 
+export const DEFAULT_ARROW_SPACING_METERS = 320;
+export const ARROW_SPACING_METERS = DEFAULT_ARROW_SPACING_METERS;
 export const MAX_ARROWS_PER_LINK = 6;
-export const ARROW_SPACING_METERS = 260;
 
 /**
  * Projects spaced, static directional indicators along affected catalog links.
@@ -1077,56 +1250,73 @@ export function projectImpactArrows(
     const isForward = catalogLink ? isLinkPolylineForward(catalog, catalogLink) : true;
     const isSelected = Boolean(selectedSecondary);
     const impactColor = getImpactColor(governingImpact.kind, impactLink.properties.network);
+    const arrowColors = getImpactArrowColors(governingImpact.kind, impactLink.properties.network);
 
-    const baseCount = Math.max(1, Math.min(
+    const count = Math.max(1, Math.min(
       MAX_ARROWS_PER_LINK,
-      Math.ceil(table.totalDistance / ARROW_SPACING_METERS),
+      Math.round(table.totalDistance / DEFAULT_ARROW_SPACING_METERS),
     ));
-    const fractions = Array.from({ length: baseCount }, (_unused, index) => {
-      if (baseCount === 1) return 0.32;
-      return 0.18 + (index * 0.64) / (baseCount - 1);
-    });
-    const addArrow = (
-      idSuffix: string,
-      fraction: number,
-      direction: "forward" | "reverse",
-    ) => {
-      const sample = getPointAndBearingAlongPolyline(coords, fraction);
-      const topologyForward = direction === "forward";
-      const bearing = isForward === topologyForward
-        ? sample.bearing
-        : (sample.bearing + 180) % 360;
-      features.push({
-        type: "Feature",
-        id: `arrow-${impactLink.id}-${idSuffix}`,
-        geometry: {
-          type: "Point",
-          coordinates: sample.coordinates,
-        },
-        properties: {
-          targetId: impactLink.properties.segmentId,
-          lineId: impactLink.properties.lineId,
-          impactKind: governingImpact.kind,
-          impactColor,
-          cardId: governingImpact.cardId,
-          allCardIds: impactLink.properties.allCardIds,
-          bearing: Math.round(bearing),
-          travelDirection: direction,
-          directionCertainty: "explicit",
-          isSelected,
-        },
-      });
-    };
 
-    if (travelDirection === "bidirectional") {
-      const pairCount = Math.max(1, Math.min(3, Math.ceil(table.totalDistance / ARROW_SPACING_METERS)));
-      for (let index = 0; index < pairCount; index += 1) {
-        const center = (index + 1) / (pairCount + 1);
-        addArrow(`pair-${index}-fwd`, Math.max(0.12, center - 0.055), "forward");
-        addArrow(`pair-${index}-rev`, Math.min(0.88, center + 0.055), "reverse");
+    for (let index = 0; index < count; index += 1) {
+      const fraction = (index + 1) / (count + 1);
+      const sample = getPointAndBearingAlongPolyline(coords, fraction);
+
+      if (travelDirection === "bidirectional") {
+        features.push({
+          type: "Feature",
+          id: `arrow-${impactLink.id}-${index}`,
+          geometry: {
+            type: "Point",
+            coordinates: sample.coordinates,
+          },
+          properties: {
+            targetId: impactLink.properties.segmentId,
+            lineId: impactLink.properties.lineId,
+            impactKind: governingImpact.kind,
+            impactColor,
+            casingColor: arrowColors.casingColor,
+            coreColor: arrowColors.coreColor,
+            cardId: governingImpact.cardId,
+            allCardIds: impactLink.properties.allCardIds,
+            bearing: Math.round(sample.bearing),
+            travelDirection: "bidirectional",
+            directionCertainty: "explicit",
+            isSelected,
+            iconImage: "direction-arrow-bidirectional",
+            fraction,
+          },
+        });
+      } else {
+        const topologyForward = travelDirection === "forward";
+        const bearing = isForward === topologyForward
+          ? sample.bearing
+          : (sample.bearing + 180) % 360;
+
+        features.push({
+          type: "Feature",
+          id: `arrow-${impactLink.id}-${index}`,
+          geometry: {
+            type: "Point",
+            coordinates: sample.coordinates,
+          },
+          properties: {
+            targetId: impactLink.properties.segmentId,
+            lineId: impactLink.properties.lineId,
+            impactKind: governingImpact.kind,
+            impactColor,
+            casingColor: arrowColors.casingColor,
+            coreColor: arrowColors.coreColor,
+            cardId: governingImpact.cardId,
+            allCardIds: impactLink.properties.allCardIds,
+            bearing: Math.round(bearing),
+            travelDirection,
+            directionCertainty: "explicit",
+            isSelected,
+            iconImage: "direction-arrow",
+            fraction,
+          },
+        });
       }
-    } else {
-      fractions.forEach((fraction, index) => addArrow(String(index), fraction, travelDirection));
     }
   }
 

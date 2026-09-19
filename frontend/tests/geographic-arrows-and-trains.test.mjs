@@ -16,6 +16,7 @@ import {
   getPointAndBearingAlongPolyline,
   isLinkPolylineForward,
   getTrainMarkerLabel,
+  getImpactArrowColors,
 } from "../src/app/geographic-overlays.ts";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -83,8 +84,8 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
     assert.equal(emptyDir.directionCertainty, "unspecified");
   });
 
-  await t.test("projectImpactArrows: creates forward, reverse, and paired opposing indicators", () => {
-    // Pick a real Line 2 link: Broadview to Chester (length > 120m)
+  await t.test("projectImpactArrows: creates forward, reverse, and single joined bidirectional indicators", () => {
+    // Pick a real Line 2 link: Broadview to Chester
     const broadviewChester = ttcCatalog.features.find(
       (f) => f.properties?.segmentId === "line-2-broadview-chester",
     );
@@ -114,6 +115,7 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
     assert.ok(fwdResult.features.every((feature) => feature.properties.travelDirection === "forward"));
     assert.equal(fwdResult.features[0].properties.directionCertainty, "explicit");
     assert.ok(typeof fwdResult.features[0].properties.bearing === "number");
+    assert.equal(fwdResult.features[0].properties.iconImage, "direction-arrow");
 
     // 2. Reverse direction
     const revImpactLink = {
@@ -130,7 +132,7 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
     const diff = Math.abs(revResult.features[0].properties.bearing - fwdResult.features[0].properties.bearing);
     assert.ok(Math.abs(diff - 180) <= 2, `Expected ~180° bearing difference, got ${diff}`);
 
-    // 3. Bidirectional (paired opposing indicators)
+    // 3. Bidirectional: single joined opposing-chevron feature per position, not two separated features
     const bidiImpactLink = {
       ...baseImpactLink,
       properties: {
@@ -139,12 +141,78 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
       },
     };
     const bidiResult = projectImpactArrows(ttcCatalog, [bidiImpactLink]);
-    assert.ok(bidiResult.features.length >= 2, "Expected paired opposing indicators for bidirectional");
-    const [arrow1, arrow2] = bidiResult.features;
-    assert.equal(arrow1.properties.travelDirection, "forward");
-    assert.equal(arrow2.properties.travelDirection, "reverse");
-    // They should be spaced along the link (arrow1 at 0.42, arrow2 at 0.58)
-    assert.notDeepEqual(arrow1.geometry.coordinates, arrow2.geometry.coordinates);
+    assert.equal(bidiResult.features.length, fwdResult.features.length, "Single joined feature per position");
+    const [bidiArrow] = bidiResult.features;
+    assert.equal(bidiArrow.properties.travelDirection, "bidirectional");
+    assert.equal(bidiArrow.properties.iconImage, "direction-arrow-bidirectional");
+  });
+
+  await t.test("projectImpactArrows: equidistant placement fractions (i + 1) / (count + 1) and count rules", () => {
+    // Test count rule clamp(round(segmentLengthMeters / 320), 1, 6)
+    // Short: ~100m -> count = 1 -> fraction [0.5]
+    const shortCoords = [[-79.38, 43.65], [-79.38, 43.6509]]; // ~100m
+    const shortLink = {
+      type: "Feature",
+      id: "impact-short",
+      geometry: { type: "LineString", coordinates: shortCoords },
+      properties: {
+        segmentId: "short",
+        lineId: "line-1",
+        network: "ttc",
+        impactKind: "delay",
+        impactColor: "#f97316",
+        impactCardId: "alert-short",
+        travelDirection: "forward",
+        directionCertainty: "explicit",
+      },
+    };
+    const shortRes = projectImpactArrows(ttcCatalog, [shortLink]);
+    assert.equal(shortRes.features.length, 1);
+    assert.equal(shortRes.features[0].properties.fraction, 0.5);
+
+    // Medium: ~960m -> count = 3 -> fractions [0.25, 0.5, 0.75]
+    const medCoords = [[-79.38, 43.65], [-79.38, 43.6586]]; // ~960m
+    const medLink = {
+      type: "Feature",
+      id: "impact-med",
+      geometry: { type: "LineString", coordinates: medCoords },
+      properties: {
+        segmentId: "med",
+        lineId: "line-1",
+        network: "ttc",
+        impactKind: "delay",
+        impactColor: "#f97316",
+        impactCardId: "alert-med",
+        travelDirection: "forward",
+        directionCertainty: "explicit",
+      },
+    };
+    const medRes = projectImpactArrows(ttcCatalog, [medLink]);
+    assert.equal(medRes.features.length, 3);
+    assert.equal(medRes.features[0].properties.fraction, 0.25);
+    assert.equal(medRes.features[1].properties.fraction, 0.5);
+    assert.equal(medRes.features[2].properties.fraction, 0.75);
+
+    // Palette mapping test (dark casing + light core from handoff seed table)
+    const suspColors = getImpactArrowColors("suspension", "ttc");
+    assert.equal(suspColors.casingColor, "#991b1b");
+    assert.equal(suspColors.coreColor, "#fecaca");
+
+    const ttcDelayColors = getImpactArrowColors("delay", "ttc");
+    assert.equal(ttcDelayColors.casingColor, "#92400e");
+    assert.equal(ttcDelayColors.coreColor, "#fde68a");
+
+    const regDelayColors = getImpactArrowColors("delay", "regional");
+    assert.equal(regDelayColors.casingColor, "#075985");
+    assert.equal(regDelayColors.coreColor, "#bae6fd");
+
+    const rszColors = getImpactArrowColors("reduced-speed-zone", "ttc");
+    assert.equal(rszColors.casingColor, "#78350f");
+    assert.equal(rszColors.coreColor, "#fde68a");
+
+    const closureColors = getImpactArrowColors("planned-closure", "ttc");
+    assert.equal(closureColors.casingColor, "#1e40af");
+    assert.equal(closureColors.coreColor, "#bfdbfe");
   });
 
   await t.test("projectImpactArrows: suppresses arrows for unspecified direction", () => {
@@ -172,45 +240,6 @@ test("Session 3: Direction indicators and travel direction resolution", async (t
 
     const result = projectImpactArrows(ttcCatalog, [unspecLink]);
     assert.equal(result.features.length, 0, "Arrows must not be inferred for unspecified direction");
-  });
-
-  await t.test("projectImpactArrows: keeps explicit direction visible on short links", () => {
-    // Create a synthetic short link (< 120m)
-    // 0.0005 degrees latitude is ~55 meters
-    const shortCoords = [
-      [-79.3871, 43.6532],
-      [-79.3871, 43.6537],
-    ];
-    const dist = getCoordinateDistanceMeters(shortCoords[0], shortCoords[1]);
-    assert.ok(dist < 120);
-
-    const shortLink = {
-      type: "Feature",
-      id: "impact-short",
-      geometry: {
-        type: "LineString",
-        coordinates: shortCoords,
-      },
-      properties: {
-        segmentId: "segment-short-link",
-        lineId: "line-1",
-        network: "ttc",
-        impactKind: "delay",
-        impactColor: "#f97316",
-        impactCardId: "alert-short",
-        allCardIds: ["alert-short"],
-        travelDirection: "forward",
-        directionCertainty: "explicit",
-      },
-    };
-
-    const result = projectImpactArrows(ttcCatalog, [shortLink]);
-    assert.equal(result.features.length, 1, "Every explicit-direction link needs at least one arrow");
-    assert.notDeepEqual(
-      result.features[0].geometry.coordinates,
-      getPointAndBearingAlongPolyline(shortCoords, 0.5).coordinates,
-      "The arrow must not sit underneath the midpoint impact badge",
-    );
   });
 
   await t.test("projectImpactArrows: repeats direction on long links without unbounded marker growth", () => {

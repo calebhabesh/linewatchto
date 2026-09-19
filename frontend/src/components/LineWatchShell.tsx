@@ -1233,6 +1233,7 @@ export function LineWatchShell({
   // Interactive linking state
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [selection, setSelection] = useState<ImpactSelection>(null);
+  const [selectionAttentionGeneration, setSelectionAttentionGeneration] = useState(0);
   const openImpactCategory = useCallback((view: ImpactCategoryView, lineId?: string) => {
     if (searchClosingTimeoutRef.current) {
       window.clearTimeout(searchClosingTimeoutRef.current);
@@ -2684,6 +2685,7 @@ export function LineWatchShell({
     );
     commutePathPreviewRef.current = preview;
     setCommutePathPreview(preview);
+    setSelectionAttentionGeneration((current) => current + 1);
     setSelection(impactSelection);
     setSelectedStationId(null);
     setMobileInspectorDetent("details-focus");
@@ -3483,6 +3485,7 @@ export function LineWatchShell({
     stationSearchInputRef.current?.blur();
     setSelectedStationId(null);
     setCommutePathPreview(null);
+    setSelectionAttentionGeneration((current) => current + 1);
     selectionBackBehaviorRef.current = "restore-view";
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
@@ -3571,6 +3574,7 @@ export function LineWatchShell({
     }
     setSelectedStationId(null);
     setCommutePathPreview(null);
+    setSelectionAttentionGeneration((current) => current + 1);
     selectionBackBehaviorRef.current = "restore-view";
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
@@ -3621,6 +3625,7 @@ export function LineWatchShell({
       return;
     }
     if (!selectionRef.current) pushBrowserNavigationEntry();
+    setSelectionAttentionGeneration((current) => current + 1);
     const currentView = activeViewRef.current;
     const targetView = viewForImpactSelection(nextSelection);
     if (isMobile) {
@@ -6220,6 +6225,7 @@ export function LineWatchShell({
                 onNetworkChange={handleNetworkChange}
                 mapView={mapViewPreference}
                 onMapViewChange={setMapViewPreference}
+                selectionAttentionGeneration={selectionAttentionGeneration}
               />
             </main>
           </div>
@@ -6267,6 +6273,7 @@ export function LineWatchShell({
             estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
             mapView={mapViewPreference}
             onMapViewChange={setMapViewPreference}
+            selectionAttentionGeneration={selectionAttentionGeneration}
           />
 
           {selectedNetwork === "ttc" && (!initialMapReady || mobileMapPerformanceMode) ? (

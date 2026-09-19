@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import maplibregl, { type Map as MapLibreMap, type ExpressionSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Loader2, AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut, X } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { GeographicCatalog } from "../app/geographic-catalog";
 import type { NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
@@ -11,6 +11,7 @@ import type {
   ActiveAlert,
   ImpactSelection,
   MapImpact,
+  MapImpactKind,
   NetworkSegment,
   PlannedClosure,
   StationNodeImpact,
@@ -61,6 +62,17 @@ import {
   projectGeographicLineBadges,
 } from "../app/map-line-badges";
 import { MapOverlapChooser, type MapOverlapChooserLayout } from "./MapOverlapChooser";
+import {
+  generateOverlapBadgeSvg,
+  getOverlapBadgeKey,
+  parseOverlapBadgeKey,
+  createSvgImage,
+} from "./map-overlap-svg";
+import { countUniqueImpactsByKind } from "../app/map-alert-selector";
+import {
+  GeographicSelectionAttention,
+  type SelectionAttentionFrame,
+} from "../app/geographic-selection-attention";
 
 export type GeographicNetworkMapProps = {
   network: NetworkId;
@@ -90,22 +102,8 @@ export type GeographicNetworkMapProps = {
   onMapViewChange?: (view: MapViewPreference) => void;
   estimatedTrainsEnabled?: boolean;
   estimatedTrainMarkers?: EstimatedTrainMarker[];
-};
-
-const LINE_NAMES: Record<string, string> = {
-  "line-1": "Line 1 (Yonge-University)",
-  "line-2": "Line 2 (Bloor-Danforth)",
-  "line-4": "Line 4 (Sheppard)",
-  "line-5": "Line 5 (Eglinton)",
-  "line-6": "Line 6 (Finch West)",
-  "regional-br": "Barrie Corridor",
-  "regional-ki": "Kitchener Corridor",
-  "regional-le": "Lakeshore East Corridor",
-  "regional-lw": "Lakeshore West Corridor",
-  "regional-mi": "Milton Corridor",
-  "regional-rh": "Richmond Hill Corridor",
-  "regional-st": "Stouffville Corridor",
-  "regional-up": "UP Express Corridor",
+  selectionAttentionGeneration?: number;
+  mobilePerformanceMode?: boolean;
 };
 
 const EMPTY_SEGMENTS: NetworkSegment[] = [];
@@ -128,6 +126,27 @@ type GeographicOverlapChooserLayout = {
   layout: MapOverlapChooserLayout;
   viewportSize: { width: number; height: number };
 };
+
+function ensureBadgeImages(
+  map: MapLibreMap | null,
+  features: GeoJSON.Feature<GeoJSON.Point, Record<string, unknown>>[],
+) {
+  if (!map || !map.hasImage) return;
+  for (const feature of features) {
+    const key = feature.properties?.badgeImageKey as string | undefined;
+    if (!key || map.hasImage(key)) continue;
+    const badgeInfo = parseOverlapBadgeKey(key);
+    if (!badgeInfo) continue;
+    const svg = generateOverlapBadgeSvg(badgeInfo);
+    createSvgImage(svg)
+      .then((img) => {
+        if (map && map.hasImage && !map.hasImage(key)) {
+          map.addImage(key, img, { pixelRatio: 2 });
+        }
+      })
+      .catch(() => {});
+  }
+}
 
 function uniqueMapImpacts(impacts: MapImpact[]): MapImpact[] {
   const seen = new Set<string>();
@@ -165,6 +184,38 @@ function registerMapImages(map: MapLibreMap) {
       }
     } catch {
       // Ignored if canvas or WebGL image creation is unsupported
+    }
+  }
+
+  // Register joined opposing-chevron glyph for explicit bidirectionality (side-by-side)
+  if (map.hasImage && !map.hasImage("direction-arrow-bidirectional")) {
+    try {
+      const size = 64;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.scale(2, 2);
+        ctx.lineWidth = 3.5;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        // Forward chevron on left (pointing up along link tangent)
+        ctx.moveTo(3, 21);
+        ctx.lineTo(9, 9);
+        ctx.lineTo(15, 21);
+        // Reverse chevron on right (pointing down along link tangent)
+        ctx.moveTo(17, 11);
+        ctx.lineTo(23, 23);
+        ctx.lineTo(29, 11);
+        ctx.stroke();
+        const imgData = ctx.getImageData(0, 0, size, size);
+        map.addImage("direction-arrow-bidirectional", imgData, { sdf: true, pixelRatio: 2 });
+      }
+    } catch {
+      // Ignored if unsupported
     }
   }
 
@@ -323,6 +374,7 @@ function installTransitLayers(
   } else {
     map.addSource("transit-impact-badges", { type: "geojson", data: initialData.overlayData.impactBadges });
   }
+  ensureBadgeImages(map, initialData.overlayData.impactBadges.features as GeoJSON.Feature<GeoJSON.Point, Record<string, unknown>>[]);
 
   // 6. Commute Links Source
   if (map.getSource("transit-commute-links")) {
@@ -575,7 +627,7 @@ function installTransitLayers(
       source: "transit-impact-arrows",
       minzoom: 10.5,
       layout: {
-        "icon-image": "direction-arrow",
+        "icon-image": ["coalesce", ["get", "iconImage"], "direction-arrow"],
         "icon-size": ["interpolate", ["linear"], ["zoom"], 10.5, 0.82, 14, 1.08, 17, 1.32],
         "icon-rotate": ["get", "bearing"],
         "icon-rotation-alignment": "map",
@@ -585,7 +637,7 @@ function installTransitLayers(
         "icon-ignore-placement": true,
       },
       paint: {
-        "icon-color": "#0f172a",
+        "icon-color": highContrast ? "#0f172a" : ["coalesce", ["get", "casingColor"], "#0f172a"],
         "icon-opacity": initialData.activeFilteredLine
           ? ["case", ["==", ["get", "lineId"], initialData.activeFilteredLine], 0.98, 0.2]
           : 0.98,
@@ -601,7 +653,7 @@ function installTransitLayers(
       source: "transit-impact-arrows",
       minzoom: 10.5,
       layout: {
-        "icon-image": "direction-arrow",
+        "icon-image": ["coalesce", ["get", "iconImage"], "direction-arrow"],
         "icon-size": [
           "interpolate",
           ["linear"],
@@ -621,7 +673,7 @@ function installTransitLayers(
         "icon-ignore-placement": true,
       },
       paint: {
-        "icon-color": "#ffffff",
+        "icon-color": highContrast ? "#ffffff" : ["coalesce", ["get", "coreColor"], "#ffffff"],
         "icon-opacity": initialData.activeFilteredLine
           ? [
               "case",
@@ -938,97 +990,6 @@ function installTransitLayers(
     });
   }
 
-  // --- LAYER 12: Disruption Badges Background Circle ---
-  if (!map.getLayer("transit-impact-badges-bg")) {
-    map.addLayer({
-      id: "transit-impact-badges-bg",
-      type: "circle",
-      source: "transit-impact-badges",
-      paint: {
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          9.0,
-          13,
-          12.0,
-          17,
-          15.0,
-        ],
-        "circle-color": ["get", "impactColor"],
-        "circle-stroke-width": 2,
-        "circle-stroke-color": dark ? "#0f172a" : "#ffffff",
-        "circle-stroke-opacity": 0.95,
-      },
-    });
-  }
-
-  // --- LAYER 13: Disruption Badges Text Label ---
-  if (!map.getLayer("transit-impact-badges-label")) {
-    map.addLayer({
-      id: "transit-impact-badges-label",
-      type: "symbol",
-      source: "transit-impact-badges",
-      layout: {
-        "text-field": ["get", "label"],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-        "text-size": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          9.5,
-          13,
-          11.0,
-          17,
-          13.0,
-        ],
-        "text-allow-overlap": true,
-        "text-ignore-placement": true,
-      },
-      paint: {
-        "text-color": "#ffffff",
-      },
-    });
-  }
-
-  if (!map.getLayer("transit-impact-badges-count-bg")) {
-    map.addLayer({
-      id: "transit-impact-badges-count-bg",
-      type: "circle",
-      source: "transit-impact-badges",
-      filter: [">", ["get", "count"], 1],
-      paint: {
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 5.5, 13, 7, 17, 8.5],
-        "circle-color": dark ? "#f8fafc" : "#0f172a",
-        "circle-stroke-width": 1.5,
-        "circle-stroke-color": dark ? "#0f172a" : "#ffffff",
-        "circle-translate": [9, -9],
-      },
-    });
-  }
-
-  if (!map.getLayer("transit-impact-badges-count-label")) {
-    map.addLayer({
-      id: "transit-impact-badges-count-label",
-      type: "symbol",
-      source: "transit-impact-badges",
-      filter: [">", ["get", "count"], 1],
-      layout: {
-        "text-field": ["to-string", ["get", "count"]],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 9, 7.5, 13, 9, 17, 10],
-        "text-offset": [0.72, -0.72],
-        "text-allow-overlap": true,
-        "text-ignore-placement": true,
-      },
-      paint: {
-        "text-color": dark ? "#0f172a" : "#ffffff",
-      },
-    });
-  }
-
   // --- LAYER 14: Station Names (progressive zoom reveal) ---
   if (!map.getLayer("transit-station-labels")) {
     map.addLayer({
@@ -1063,8 +1024,7 @@ function installTransitLayers(
   }
 
   // Decorative route identifiers are installed after station labels so they
-  // yield collision space to names. Alert badges deliberately allow overlap
-  // and remain readable above them.
+  // yield collision space to names.
   if (!map.getLayer("transit-line-badges")) {
     map.addLayer({
       id: "transit-line-badges",
@@ -1084,14 +1044,22 @@ function installTransitLayers(
       },
     });
   }
-  for (const impactBadgeLayer of [
-    "transit-impact-badges-bg",
-    "transit-impact-badges-label",
-    "transit-impact-badges-count-bg",
-    "transit-impact-badges-count-label",
-  ]) {
-    if (map.getLayer(impactBadgeLayer)) map.moveLayer(impactBadgeLayer);
+
+  // --- LAYER 15: Disruption Overlap Badges ---
+  if (!map.getLayer("transit-impact-badges")) {
+    map.addLayer({
+      id: "transit-impact-badges",
+      type: "symbol",
+      source: "transit-impact-badges",
+      layout: {
+        "icon-image": ["get", "badgeImageKey"],
+        "icon-size": 0.25,
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+      },
+    });
   }
+  if (map.getLayer("transit-impact-badges")) map.moveLayer("transit-impact-badges");
 }
 
 function applyDynamicDataAndFilters(
@@ -1116,7 +1084,10 @@ function applyDynamicDataAndFilters(
   if (sStations) sStations.setData(overlay.impactedStations);
 
   const sBadges = map.getSource("transit-impact-badges") as maplibregl.GeoJSONSource | undefined;
-  if (sBadges) sBadges.setData(overlay.impactBadges);
+  if (sBadges) {
+    ensureBadgeImages(map, overlay.impactBadges.features as GeoJSON.Feature<GeoJSON.Point, Record<string, unknown>>[]);
+    sBadges.setData(overlay.impactBadges);
+  }
 
   const sArrows = map.getSource("transit-impact-arrows") as maplibregl.GeoJSONSource | undefined;
   if (sArrows) sArrows.setData(overlay.impactArrows);
@@ -1270,6 +1241,8 @@ export function GeographicNetworkMap({
   onMapViewChange,
   estimatedTrainsEnabled = false,
   estimatedTrainMarkers = EMPTY_TRAIN_MARKERS,
+  selectionAttentionGeneration = 0,
+  mobilePerformanceMode = false,
 }: GeographicNetworkMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sliderRef = useRef<HTMLInputElement | null>(null);
@@ -1278,6 +1251,68 @@ export function GeographicNetworkMap({
   const catalogRef = useRef<GeographicCatalog | null>(null);
   const [loadStatus, setLoadStatus] = useState<"loading" | "ready" | "error">("loading");
   const loadStatusRef = useRef(loadStatus);
+
+  // Selection attention animation state & refs
+  const selectionAttentionRef = useRef<GeographicSelectionAttention>(new GeographicSelectionAttention());
+  const rafIdRef = useRef<number | null>(null);
+  const pendingCameraFlightGenRef = useRef<number | null>(null);
+
+  const stopAttentionLoop = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+  }, []);
+
+  const applyAttentionFrame = useCallback((frame: SelectionAttentionFrame) => {
+    const map = mapRef.current;
+    if (!map || loadStatusRef.current !== "ready") return;
+
+    if (map.getLayer("transit-impacts-selection")) {
+      map.setPaintProperty("transit-impacts-selection", "line-opacity", frame.opacity);
+      map.setPaintProperty("transit-impacts-selection", "line-width", [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        9,
+        7.5 * frame.widthMultiplier,
+        14,
+        13.0 * frame.widthMultiplier,
+        17,
+        18.0 * frame.widthMultiplier,
+      ]);
+    }
+
+    if (map.getLayer("transit-station-impacts-selection")) {
+      map.setPaintProperty("transit-station-impacts-selection", "circle-stroke-opacity", frame.opacity);
+      map.setPaintProperty("transit-station-impacts-selection", "circle-stroke-width", 4 * frame.widthMultiplier);
+      map.setPaintProperty("transit-station-impacts-selection", "circle-radius", [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        9,
+        9.0 * frame.widthMultiplier,
+        14,
+        15.0 * frame.widthMultiplier,
+        17,
+        22.0 * frame.widthMultiplier,
+      ]);
+    }
+  }, []);
+
+  const startAttentionLoop = useCallback(() => {
+    stopAttentionLoop();
+    const step = (now: number) => {
+      const frame = selectionAttentionRef.current.computeFrame(now);
+      applyAttentionFrame(frame);
+      if (frame.active) {
+        rafIdRef.current = requestAnimationFrame(step);
+      } else {
+        rafIdRef.current = null;
+      }
+    };
+    rafIdRef.current = requestAnimationFrame(step);
+  }, [applyAttentionFrame, stopAttentionLoop]);
 
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     if (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean") {
@@ -1311,9 +1346,8 @@ export function GeographicNetworkMap({
   const isStyleLoadingRef = useRef<boolean>(false);
   const initGenerationRef = useRef<number>(0);
 
-  // Internal line filter state when not controlled via props
-  const [internalFilteredLineId, setInternalFilteredLineId] = useState<string | null>(null);
-  const activeFilteredLine = filteredLineId !== undefined ? filteredLineId : internalFilteredLineId;
+  const activeFilteredLine = filteredLineId ?? null;
+  const isDraggingRef = useRef(false);
 
   // Resolve real-time dashboard data with stable references
   const dashboardData = useOptionalDashboardData();
@@ -1383,7 +1417,36 @@ export function GeographicNetworkMap({
       },
     );
     const impactedStations = projectImpactedStations(catalog, resolvedStationNodeImpacts, network);
-    const impactBadges = projectImpactBadges(catalog, impactedLinks.features, impactedStations.features, network);
+    const rawBadges = projectImpactBadges(catalog, impactedLinks.features, impactedStations.features, network, selection);
+    const impactBadges = {
+      ...rawBadges,
+      features: rawBadges.features.map((feature) => {
+        const rawImpacts = feature.properties.rawImpacts ?? [{
+          kind: feature.properties.impactKind,
+          cardId: feature.properties.cardId ?? feature.properties.targetId,
+          travelDirection: "bidirectional" as const,
+          sourceAlertIds: feature.properties.allCardIds ?? [feature.properties.cardId ?? feature.properties.targetId],
+        }];
+        const kindCounts = (feature.properties.kindCounts ?? countUniqueImpactsByKind(rawImpacts)) as { kind: MapImpactKind; count: number }[];
+        const isSelected = Boolean(
+          selection?.id && (feature.properties.allCardIds?.includes(selection.id) || feature.properties.cardId === selection.id)
+        );
+        const badgeImageKey = getOverlapBadgeKey({
+          kindCounts,
+          isDark,
+          highContrast,
+          isSelected,
+        });
+        return {
+          ...feature,
+          properties: {
+            ...feature.properties,
+            badgeImageKey,
+            isSelected,
+          },
+        };
+      }),
+    };
     const directionalSelection = hoveredOverlapImpact
       ? { kind: hoveredOverlapImpact.kind, id: hoveredOverlapImpact.cardId }
       : selection;
@@ -1421,6 +1484,8 @@ export function GeographicNetworkMap({
     estimatedTrainsEnabled,
     estimatedTrainMarkers,
     isOnline,
+    isDark,
+    highContrast,
   ]);
 
   // Stable references to dynamic data & props for map listeners & style reload
@@ -1436,7 +1501,11 @@ export function GeographicNetworkMap({
     onSelectImpact,
     onFilterLineId,
     persistCamera,
-    setInternalFilteredLineId,
+  });
+  const attentionHandlersRef = useRef({
+    applyAttentionFrame,
+    startAttentionLoop,
+    stopAttentionLoop,
   });
 
   useEffect(() => {
@@ -1453,12 +1522,16 @@ export function GeographicNetworkMap({
       onSelectImpact,
       onFilterLineId,
       persistCamera,
-      setInternalFilteredLineId,
     };
-  }, [loadStatus, overlayData, selectedStationId, selection, activeFilteredLine, highContrast, isDark, onReady, onSelectStationId, onSelectImpact, onFilterLineId, persistCamera]);
+    attentionHandlersRef.current = {
+      applyAttentionFrame,
+      startAttentionLoop,
+      stopAttentionLoop,
+    };
+  }, [loadStatus, overlayData, selectedStationId, selection, activeFilteredLine, highContrast, isDark, onReady, onSelectStationId, onSelectImpact, onFilterLineId, persistCamera, applyAttentionFrame, startAttentionLoop, stopAttentionLoop]);
 
-  const attachMapListeners = useCallback((map: MapLibreMap) => {
-    const activateImpactTarget = (
+  const activateImpactTarget = useCallback(
+    (
       targetType: "segment" | "station",
       targetId: string,
       coordinate: [number, number],
@@ -1470,7 +1543,33 @@ export function GeographicNetworkMap({
         data.impactedLinks.features,
         data.impactedStations.features,
       );
-      if (!group) return;
+      if (!group) {
+        const badge = data.impactBadges.features.find(
+          (f) => f.properties.targetType === targetType && f.properties.targetId === targetId,
+        );
+        if (badge) {
+          const raw = badge.properties.rawImpacts ?? [];
+          if (raw.length <= 1 && raw[0]) {
+            callbacksRef.current.onSelectImpact?.({ kind: raw[0].kind, id: raw[0].cardId });
+          } else if (raw.length > 1) {
+            setHoveredOverlapImpact(null);
+            setOverlapChooser({
+              markerId: `geographic-${targetType}-${targetId}`,
+              targetId,
+              targetType,
+              label: badge.properties.label ?? "Alerts",
+              impacts: raw.map((r) => ({
+                kind: r.kind,
+                cardId: r.cardId,
+                travelDirection: r.travelDirection ?? "bidirectional",
+                sourceAlertIds: r.sourceAlertIds ?? [r.cardId],
+              })),
+              coordinate,
+            });
+          }
+        }
+        return;
+      }
       const impacts = uniqueMapImpacts(group.impacts);
       if (impacts.length <= 1) {
         const impact = impacts[0];
@@ -1488,7 +1587,11 @@ export function GeographicNetworkMap({
         impacts,
         coordinate,
       });
-    };
+    },
+    [],
+  );
+
+  const attachMapListeners = useCallback((map: MapLibreMap) => {
 
     // Click on Disruption Badges
     const handleBadgeClick = (e: maplibregl.MapLayerMouseEvent) => {
@@ -1498,10 +1601,54 @@ export function GeographicNetworkMap({
         activateImpactTarget(props.targetType, props.targetId, e.lngLat.toArray());
       }
     };
-    map.on("click", "transit-impact-badges-bg", handleBadgeClick);
-    map.on("click", "transit-impact-badges-label", handleBadgeClick);
-    map.on("click", "transit-impact-badges-count-bg", handleBadgeClick);
-    map.on("click", "transit-impact-badges-count-label", handleBadgeClick);
+    map.on("click", "transit-impact-badges", handleBadgeClick);
+
+    // Hover on Disruption Badges
+    map.on("mousemove", "transit-impact-badges", (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const props = e.features[0].properties;
+      if (props?.rawImpacts) {
+        try {
+          const raw = typeof props.rawImpacts === "string" ? JSON.parse(props.rawImpacts) : props.rawImpacts;
+          if (Array.isArray(raw) && raw.length > 0) {
+            setHoveredOverlapImpact({
+              kind: raw[0].kind,
+              cardId: raw[0].cardId,
+              travelDirection: raw[0].travelDirection ?? "bidirectional",
+              sourceAlertIds: raw[0].sourceAlertIds ?? [raw[0].cardId],
+            });
+            return;
+          }
+        } catch {}
+      }
+      if (props?.impactKind && props?.cardId) {
+        setHoveredOverlapImpact({
+          kind: props.impactKind,
+          cardId: props.cardId,
+          travelDirection: props.travelDirection ?? "bidirectional",
+          sourceAlertIds: props.allCardIds ?? [props.cardId],
+        });
+      }
+    });
+    map.on("mouseleave", "transit-impact-badges", () => {
+      setHoveredOverlapImpact(null);
+    });
+
+    // Dynamic style image fallback for overlap badges
+    map.on("styleimagemissing", (e) => {
+      const id = e.id;
+      if (!id || !id.startsWith("overlap-badge:")) return;
+      const badgeInfo = parseOverlapBadgeKey(id);
+      if (!badgeInfo) return;
+      const svg = generateOverlapBadgeSvg(badgeInfo);
+      createSvgImage(svg)
+        .then((img) => {
+          if (map && map.hasImage && !map.hasImage(id)) {
+            map.addImage(id, img, { pixelRatio: 2 });
+          }
+        })
+        .catch(() => {});
+    });
 
     // Click on Station Impacts
     map.on("click", "transit-station-impacts", (e) => {
@@ -1528,7 +1675,7 @@ export function GeographicNetworkMap({
       if (props && callbacksRef.current.onSelectImpact) {
         callbacksRef.current.onSelectImpact({
           kind: props.impactKind,
-          id: props.cardId,
+          id: props.impactCardId,
         });
       }
     });
@@ -1542,33 +1689,14 @@ export function GeographicNetworkMap({
       }
     });
 
-    // Route click handler for line/corridor filtering
-    map.on("click", "transit-routes", (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const clickedLineId = e.features[0].properties?.lineId as string | undefined;
-      if (!clickedLineId) return;
-
-      const currentFilter = activeFilteredLineRef.current;
-      const nextFilter = currentFilter === clickedLineId ? null : clickedLineId;
-      if (callbacksRef.current.onFilterLineId) {
-        callbacksRef.current.onFilterLineId(nextFilter);
-      } else {
-        callbacksRef.current.setInternalFilteredLineId(nextFilter);
-      }
-    });
-
     // Empty map background click clears selection and filters
     map.on("click", (e) => {
       const interactiveLayers = [
-        "transit-impact-badges-bg",
-        "transit-impact-badges-label",
-        "transit-impact-badges-count-bg",
-        "transit-impact-badges-count-label",
+        "transit-impact-badges",
         "transit-station-impacts",
         "transit-impacts-line",
         "transit-impact-arrows",
         "transit-stations-outer",
-        "transit-routes",
       ].filter((l) => map.getLayer(l));
 
       const features = map.queryRenderedFeatures(e.point, { layers: interactiveLayers });
@@ -1577,25 +1705,16 @@ export function GeographicNetworkMap({
         setHoveredOverlapImpact(null);
         callbacksRef.current.onSelectStationId?.(null);
         callbacksRef.current.onSelectImpact?.(null as unknown as ImpactSelection);
-        if (callbacksRef.current.onFilterLineId) {
-          callbacksRef.current.onFilterLineId(null);
-        } else {
-          callbacksRef.current.setInternalFilteredLineId(null);
-        }
       }
     });
 
     // Pointer cursor on interactive features
     const pointerLayers = [
       "transit-stations-outer",
-      "transit-impact-badges-bg",
-      "transit-impact-badges-label",
-      "transit-impact-badges-count-bg",
-      "transit-impact-badges-count-label",
+      "transit-impact-badges",
       "transit-station-impacts",
       "transit-impacts-line",
       "transit-impact-arrows",
-      "transit-routes",
     ];
     for (const layerId of pointerLayers) {
       map.on("mouseenter", layerId, () => {
@@ -1605,6 +1724,27 @@ export function GeographicNetworkMap({
         map.getCanvas().style.cursor = "";
       });
     }
+
+    map.on("dragstart", () => {
+      isDraggingRef.current = true;
+      const frame = selectionAttentionRef.current.onUserGestureStart();
+      attentionHandlersRef.current.applyAttentionFrame(frame);
+      attentionHandlersRef.current.stopAttentionLoop();
+    });
+
+    map.on("dragend", () => {
+      window.setTimeout(() => {
+        isDraggingRef.current = false;
+      }, 80);
+    });
+
+    map.on("zoomstart", (e) => {
+      if (e.originalEvent) {
+        const frame = selectionAttentionRef.current.onUserGestureStart();
+        attentionHandlersRef.current.applyAttentionFrame(frame);
+        attentionHandlersRef.current.stopAttentionLoop();
+      }
+    });
 
     map.on("zoom", () => {
       if (sliderRef.current) {
@@ -1619,8 +1759,24 @@ export function GeographicNetworkMap({
       }
       setCurrentZoom(map.getZoom());
       callbacksRef.current.persistCamera();
+
+      if (pendingCameraFlightGenRef.current !== null) {
+        const flightGen = pendingCameraFlightGenRef.current;
+        pendingCameraFlightGenRef.current = null;
+        const frame = selectionAttentionRef.current.onCameraFlightEnd(flightGen);
+        attentionHandlersRef.current.applyAttentionFrame(frame);
+        if (frame.active) {
+          attentionHandlersRef.current.startAttentionLoop();
+        }
+      } else if (selectionAttentionRef.current.getState() === "gesture-pause") {
+        const frame = selectionAttentionRef.current.onUserGestureEnd();
+        attentionHandlersRef.current.applyAttentionFrame(frame);
+        if (frame.active) {
+          attentionHandlersRef.current.startAttentionLoop();
+        }
+      }
     });
-  }, []);
+  }, [activateImpactTarget]);
 
   // Main Map lifecycle: owns creation, catalog acquisition, listeners, and cleanup.
   // Must NOT depend on theme, selections, data, or filters.
@@ -1788,7 +1944,10 @@ export function GeographicNetworkMap({
     if (impactStationsSource) impactStationsSource.setData(overlayData.impactedStations);
 
     const badgesSource = map.getSource("transit-impact-badges") as maplibregl.GeoJSONSource | undefined;
-    if (badgesSource) badgesSource.setData(overlayData.impactBadges);
+    if (badgesSource) {
+      ensureBadgeImages(map, overlayData.impactBadges.features as GeoJSON.Feature<GeoJSON.Point, Record<string, unknown>>[]);
+      badgesSource.setData(overlayData.impactBadges);
+    }
 
     const arrowsSource = map.getSource("transit-impact-arrows") as maplibregl.GeoJSONSource | undefined;
     if (arrowsSource) arrowsSource.setData(overlayData.impactArrows);
@@ -1960,6 +2119,20 @@ export function GeographicNetworkMap({
     if (map.getLayer("transit-routes-casing")) {
       map.setPaintProperty("transit-routes-casing", "line-opacity", highContrast ? 1.0 : 0.85);
     }
+    if (map.getLayer("transit-impact-arrows-casing")) {
+      map.setPaintProperty(
+        "transit-impact-arrows-casing",
+        "icon-color",
+        highContrast ? "#0f172a" : ["coalesce", ["get", "casingColor"], "#0f172a"],
+      );
+    }
+    if (map.getLayer("transit-impact-arrows")) {
+      map.setPaintProperty(
+        "transit-impact-arrows",
+        "icon-color",
+        highContrast ? "#ffffff" : ["coalesce", ["get", "coreColor"], "#ffffff"],
+      );
+    }
   }, [highContrast, loadStatus]);
 
   // React to station selection changes
@@ -1992,7 +2165,7 @@ export function GeographicNetworkMap({
     lastSelectedStationIdRef.current = selectedStationId ?? null;
   }, [selectedStationId, loadStatus, reducedMotion]);
 
-  // React to impact selection changes (focus camera on affected corridor/station)
+  // React to impact selection changes (focus camera on affected corridor/station and drive attention controller)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || loadStatus !== "ready") return;
@@ -2014,15 +2187,29 @@ export function GeographicNetworkMap({
       );
     }
 
-    const currentSelectionKey = selection ? `${selection.kind}:${selection.id}` : null;
-    if (selection && currentSelectionKey !== lastSelectionRef.current) {
+    if (!selection) {
+      lastSelectionRef.current = null;
+      lastMissingSelectionRef.current = null;
+      window.setTimeout(() => setFocusNotice(null), 0);
+      pendingCameraFlightGenRef.current = null;
+      stopAttentionLoop();
+      selectionAttentionRef.current.reset();
+      const idleFrame = selectionAttentionRef.current.computeFrame();
+      applyAttentionFrame(idleFrame);
+      return;
+    }
+
+    const currentSelectionKey = `${selection.kind}:${selection.id}`;
+    let hasCameraFlight = false;
+
+    if (currentSelectionKey !== lastSelectionRef.current) {
       const bounds = getProjectedSelectionBounds(
         selection,
         overlayData.impactedLinks.features,
         overlayData.impactedStations.features,
       );
       if (bounds) {
-        recordGeographicMapLifecycle("focus", currentSelectionKey ?? undefined);
+        recordGeographicMapLifecycle("focus", currentSelectionKey);
         map.fitBounds(bounds, {
           padding: { top: 90, bottom: 90, left: 60, right: 60 },
           maxZoom: 15.0,
@@ -2031,17 +2218,76 @@ export function GeographicNetworkMap({
         lastSelectionRef.current = currentSelectionKey;
         lastMissingSelectionRef.current = null;
         window.setTimeout(() => setFocusNotice(null), 0);
+
+        if (!reducedMotion && map.isMoving()) {
+          hasCameraFlight = true;
+          pendingCameraFlightGenRef.current = selectionAttentionGeneration;
+        }
       } else if (lastMissingSelectionRef.current !== currentSelectionKey) {
         lastMissingSelectionRef.current = currentSelectionKey;
         window.setTimeout(() => setFocusNotice("Location unavailable on geographic map"), 0);
       }
     }
-    if (!selection) {
-      lastSelectionRef.current = null;
-      lastMissingSelectionRef.current = null;
-      window.setTimeout(() => setFocusNotice(null), 0);
+
+    const isDocHidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+    const staticFallback = Boolean(reducedMotion || mobilePerformanceMode || isDocHidden);
+
+    const frame = selectionAttentionRef.current.requestAttention(
+      {
+        id: selection.id,
+        kind: selection.kind,
+        generation: selectionAttentionGeneration,
+        hasCameraFlight,
+      },
+      staticFallback,
+    );
+    applyAttentionFrame(frame);
+    if (frame.active) {
+      startAttentionLoop();
+    } else {
+      stopAttentionLoop();
     }
-  }, [selection, loadStatus, overlayData.impactedLinks, overlayData.impactedStations, reducedMotion]);
+  }, [
+    selection,
+    selectionAttentionGeneration,
+    loadStatus,
+    overlayData.impactedLinks,
+    overlayData.impactedStations,
+    reducedMotion,
+    mobilePerformanceMode,
+    applyAttentionFrame,
+    startAttentionLoop,
+    stopAttentionLoop,
+  ]);
+
+  // Invisibility fallback handler
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const handleVisibilityChange = () => {
+      if (!selectionRef.current) return;
+      const isDocHidden = document.visibilityState === "hidden";
+      const staticFallback = Boolean(reducedMotion || mobilePerformanceMode || isDocHidden);
+      const frame = selectionAttentionRef.current.requestAttention(
+        {
+          id: selectionRef.current.id,
+          kind: selectionRef.current.kind,
+          generation: selectionAttentionGeneration,
+          hasCameraFlight: false,
+        },
+        staticFallback,
+      );
+      applyAttentionFrame(frame);
+      if (frame.active) {
+        startAttentionLoop();
+      } else {
+        stopAttentionLoop();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [reducedMotion, mobilePerformanceMode, selectionAttentionGeneration, applyAttentionFrame, startAttentionLoop, stopAttentionLoop]);
 
   useEffect(() => {
     if (!focusNotice) return;
@@ -2063,17 +2309,17 @@ export function GeographicNetworkMap({
       );
       if (badge) {
         const point = map.project(badge.geometry.coordinates);
-        const badgeLayers = [
-          "transit-impact-badges-bg",
-          "transit-impact-badges-label",
-          "transit-impact-badges-count-bg",
-          "transit-impact-badges-count-label",
-        ].filter((layerId) => map.getLayer(layerId));
-        const isRendered = badgeLayers.length > 0 && map.queryRenderedFeatures(point, { layers: badgeLayers })
-          .some((feature) => (
-            feature.properties?.targetType === targetType && feature.properties?.targetId === targetId
-          ));
-        return isRendered ? { x: point.x, y: point.y } : null;
+        const container = map.getContainer();
+        const inViewport =
+          point.x >= 0 && point.x <= container.clientWidth && point.y >= 0 && point.y <= container.clientHeight;
+        const hasLayer = Boolean(map.getLayer("transit-impact-badges"));
+        const isRendered = hasLayer && (
+          map.queryRenderedFeatures(point, { layers: ["transit-impact-badges"] })
+            .some((f) => f.properties?.targetType === targetType && f.properties?.targetId === targetId) ||
+          map.queryRenderedFeatures([[point.x - 16, point.y - 16], [point.x + 16, point.y + 16]], { layers: ["transit-impact-badges"] })
+            .some((f) => f.properties?.targetType === targetType && f.properties?.targetId === targetId)
+        );
+        return inViewport && (isRendered || hasLayer) ? { x: point.x, y: point.y } : null;
       }
       if (targetType === "segment") {
         const link = data.impactedLinks.features.find((feature) => feature.properties.segmentId === targetId);
@@ -2408,31 +2654,6 @@ export function GeographicNetworkMap({
         )}
       </div>
 
-      {/* Floating Line/Corridor Filter Indicator */}
-      {activeFilteredLine && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="absolute top-28 sm:top-20 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 dark:bg-slate-800/90 text-white text-xs font-semibold shadow-lg backdrop-blur-xs border border-white/10"
-        >
-          <span>Filtering: <strong>{LINE_NAMES[activeFilteredLine] ?? activeFilteredLine}</strong></span>
-          <button
-            type="button"
-            onClick={() => {
-              if (onFilterLineId) {
-                onFilterLineId(null);
-              } else {
-                setInternalFilteredLineId(null);
-              }
-            }}
-            className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
-            title="Clear corridor filter"
-            aria-label="Clear corridor filter"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
 
       {/* Floating Commute Path Preview Banner */}
       {commutePathPreview && !selection && (

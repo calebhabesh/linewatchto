@@ -237,11 +237,30 @@ Suggested continuation prompt:
   - Main changed files for this checkpoint:
     - `frontend/src/app/geographic-overlays.ts`
     - `frontend/src/app/geographic-lifecycle.ts`
-    - `frontend/src/components/GeographicNetworkMap.tsx`
     - `frontend/tests/geographic-alert-parity.test.mjs`
     - `frontend/tests/geographic-arrows-and-trains.test.mjs`
     - `frontend/tests/geographic-map-phase-d.test.mjs`
     - `frontend/tests/smoke/geographic-map-lifecycle.spec.ts`
+
+- **2026-09-18 Post-checkpoint visual and interaction refinements delivered**:
+  - **Zero-wiggle WebGL Badges**: Eliminated the React HTML/SVG DOM overlay and `map.on("move")` re-projection loop that was causing 1–2 frame compositor lag / wiggling during panning and zooming. Badges are now rendered directly inside MapLibre's WebGL canvas on symbol layer `transit-impact-badges` using crisp SVG textures registered at `pixelRatio: 2` with ahead-of-time caching and `styleimagemissing` fallback.
+  - **100% System Map Visual Parity**: Implemented `frontend/src/components/map-overlap-svg.ts` generating identical vector layout to `MapOverlapIndicator`: rounded pill with theme-aware borders, per-kind circular badges with Lucide/Delay vector icons, red circular count bubbles at `(x + 28, -28)` with white Inter Black vector numbers (`MAP_BADGE_GLYPH_OUTLINES`), and `+N` overflow badge when > 3 kinds.
+  - **Clickable Badges for All Alerts**: Preserved clickable badges for all alerts (both lone alerts and overlapping alerts) on geographic map to cut through geographic visual clutter. Clicking lone badges selects directly; clicking overlap pills opens `MapOverlapChooser`.
+  - **Bidirectional Arrow Geometry**: Updated `direction-arrow-bidirectional` sprite to side-by-side parallel opposing chevrons (`^ v`) centered at (16,16) where inner parallel legs meet without crossing, matching the user sketch.
+  - **Route Filter Banner Removal**: Removed route line click listener and floating filter banner `"Filtering: Line ..."` to align with system map interaction model.
+  - **Verification**:
+    - `npx playwright test tests/smoke/geographic-map-lifecycle.spec.ts`: 7 passed, 5 skipped (desktop and mobile lifecycle, panning, and chooser interactions all passing).
+    - `npm --prefix frontend run test:fast`: All unit tests passing.
+    - `npm --prefix frontend run typecheck`: 0 errors.
+    - `npm --prefix frontend run lint`: 0 errors, 0 warnings.
+    - `node --test frontend/tests/css-architecture-guardrails.test.mjs`: 18 passed, strict `!important` ceiling maintained.
+  - Modified files:
+    - `frontend/src/components/map-overlap-svg.ts` (new)
+    - `frontend/src/components/GeographicNetworkMap.tsx`
+    - `frontend/src/app/geographic-overlays.ts`
+    - `frontend/src/styles/map/overlap-chooser.css`
+    - `docs/handoffs/2026-09-18-geographic-map-performance-and-parity.md`
+  - Next task: Session 5 (integration and performance validation matrix). Stop here.
 
 ## Outcome and agreed scope
 
@@ -252,6 +271,9 @@ The user approved these decisions after a grilling interview:
 - Share alert semantics between views, including eligible upcoming planned previews and station-only service impacts. Missing geographic coverage leaves an alert available in the existing list/details; never invent a location.
 - Highest-priority service impact owns the track treatment. Compact per-kind badges/counts expose overlapping impacts. Reveal more detail with zoom and selection.
 - Direction arrows are static for everyone. Distinguish explicit bidirectional coverage from unspecified direction.
+- Geographic direction symbols use alert-type-derived light/dark tones. Each affected catalog segment gets at least one symbol; longer segments get proportionally more at equal segment-relative gaps. Explicit bidirectionality uses one joined opposing-chevron glyph per position.
+- Geographic overlap groups mirror the system-map badge grammar: one outer pill, up to three visible per-kind icons/counts plus a `+N` overflow item, one chooser hit target, and a compact lone badge when there is no overlap.
+- Explicit geographic alert selection uses the system selection-attention cadence: four flashes over 2.4 seconds, then a 1.2-second alternating breathe. Keep severity visible beneath a cyan halo; use a static halo for reduced-motion/performance fallbacks.
 - Trains reuse existing estimated positions and freshness gates; this is not GPS tracking or a new provider integration.
 - Prioritize responsive interaction on ordinary phones; reduce labels and consolidate badges before sacrificing affected-track visibility. Preserve selected items.
 - Geographic line-number badges appear at termini and sparse reviewed intermediate anchors, including both Line 1 arms. System-map badges retain authored placements. Badges are informational and must not intercept gestures.
@@ -439,6 +461,119 @@ Bounded scope: Geographic badge placement, sprites, and zoom fading; system-map 
 ### Stop
 
 Stop. Do not proceed to Session 5 in this session. Further splitting is reserved for unexpected complexity—not routine steps.
+
+## Pre-Session 5 follow-up visual polish: arrow rhythm, overlap pills, and selection attention
+
+### Bounded scope and architecture
+
+This is a user-approved follow-up checkpoint, not Session 5. Implement only the geographic presentation refinements below, update the progress log with evidence, and stop. Do not fold new features or the final integration/performance matrix into this work.
+
+#### Direction symbol palette and geometry
+
+Keep direction semantics unchanged: resolve against topology and polyline tangents, omit unspecified direction, and let a selected secondary impact govern its own arrows without recoloring the priority service stroke. Change presentation and placement only.
+
+Replace the universal near-black/white arrow pair with a reviewed light/core and dark/casing pair derived from the governing impact type. Use named mappings rather than runtime color arithmetic so TTC, regional, dark, light, and high-contrast results are deterministic. Starting pairs to inspect, not unreviewed accessibility guarantees:
+
+| Impact kind | Existing base | Dark casing seed | Light core seed |
+| --- | --- | --- | --- |
+| Suspension | `#ef4444` | `#991b1b` | `#fecaca` |
+| TTC delay | `#f59e0b` | `#92400e` | `#fde68a` |
+| Regional delay | `#0ea5e9` | `#075985` | `#bae6fd` |
+| Reduced speed zone | `#d97706` | `#78350f` | `#fde68a` |
+| Planned closure | `#3b82f6` | `#1e40af` | `#bfdbfe` |
+
+The casing and core remain two batched MapLibre symbol layers and preserve filtering/selection opacity. High-contrast mode may deliberately use the current black/white treatment if the type-derived pair fails the affected themes; record the reviewed result rather than assuming the seed table passes.
+
+Space symbols independently within every affected catalog segment. Do not carry a fixed-distance phase across station/link boundaries, and do not suppress the only arrow on a short segment. Use this initial pure rule:
+
+1. `count = clamp(round(segmentLengthMeters / 320), 1, 6)`.
+2. For zero-based index `i`, place the symbol at fraction `(i + 1) / (count + 1)`.
+3. Sample position and tangent from cumulative polyline distance, as today.
+
+This makes the leading gap, all internal gaps, and trailing gap equal within that segment while scaling density to its length. Treat 320 metres and the cap of six as named tuning constants. Inspect the default overview before changing them; any refinement must preserve at least one symbol and equal fractions.
+
+Register a second SDF sprite for explicit bidirectionality. It is one compact joined opposing-chevron glyph, visually equivalent to a forward caret and reverse caret sharing one footprint. Project one GeoJSON feature at each calculated position and rotate the glyph once to the link tangent. Do not represent a pair as two points, do not create a length-dependent gap between its halves, and do not double the count. Single-direction impacts continue using the existing one-chevron sprite.
+
+#### Geographic overlap pill parity
+
+Change the geographic badge model from independently placed per-kind points to one stable marker per contiguous same-line overlap group with the same logical impact signature. Retain every raw impact/card association for the chooser. Keep a single-impact group as one compact type badge; use the containing pill only for a genuine overlap.
+
+Mirror `MapOverlapIndicator`'s information hierarchy without mounting a React/DOM marker for each geographic group:
+
+- Light/dark outer rounded pill, using a circular container for one visual item.
+- Up to three visible kinds in the existing deterministic priority/order, each with the shared `ImpactTypeIcon` visual vocabulary or an equivalent bounded MapLibre sprite.
+- A red count bubble on each kind only when its unique logical per-kind count exceeds one. Count means alerts of that kind, never an overall total.
+- A final `+N` item when more than three kinds exist.
+- One generous pill hit target. A multi-impact activation opens the existing single React `MapOverlapChooser`; a lone badge directly selects its impact.
+- One accessible list/detail path remains authoritative; do not create canvas tab stops for every marker.
+
+Use a bounded native MapLibre source/layer/sprite scheme. A practical structure is one group feature carrying visible slot/count properties, fixed pill-background sprites for supported slot counts, noninteractive slot layers, and one interactive pill-background layer. If count backgrounds and labels remain separate layers, give both the same pixel translation; do not mix `circle-translate` pixels with `text-offset` ems. This directly fixes the off-centre number defect.
+
+Anchor the group deterministically near its affected corridor and displace it slightly off the track. Preserve the equal arrow rhythm: the pill moves off-track rather than deleting or shifting a required arrow. Avoid per-frame anchor regeneration. At overview zoom, allow ordinary unselected pills to participate in collision placement; render the selected pill regardless of collision. Reveal all groups at detail zoom. Alert pills remain above decorative line badges.
+
+The pill treatment applies to both TTC and GO/UP geographic maps because the renderer is shared. Preserve each network's current alert colors and do not add regional alert capabilities.
+
+#### Geographic selection attention
+
+Reuse the existing geographic selection layers rather than changing semantic projection. `transit-impacts-selection` and `transit-station-impacts-selection` already match primary or secondary IDs through `allCardIds` and sit behind the severity artwork. Animate only their cyan opacity/size treatment; the primary service rail keeps its alert color and arrows keep their alert-derived colors.
+
+Use the system-map attention cadence as the contract:
+
+- Intro duration `2.4s`, with four bright peaks at 12.5%, 37.5%, 62.5%, and 87.5% (one quick cycle every `0.6s`).
+- Then an indefinite `1.2s` low-to-high alternate breathe.
+- Corridor halo: animate opacity and width multipliers matching the system-map low/high ratios rather than replacing the alert rail.
+- Station-only impact: apply the same phase to ring opacity and radius/stroke width.
+
+MapLibre cannot inherit the SVG CSS keyframes. Implement one cancellable selection-attention controller/state machine keyed separately from semantic selection. It may drive paint transitions or a throttled animation loop, but it must never rebuild GeoJSON per frame. Keep only one controller active. Cancel or generation-guard it on selection change/clear, style replacement, retry, network switch, and unmount. A polling/source refresh with the same selected identity must not restart the intro.
+
+Selection identity and attention requests are different state. Every explicit selection action from an alert card, map badge, or overlap chooser creates a new attention request, including reselecting the same alert; passive rerenders and fresh data do not. Forward a small monotonic request generation through the existing map boundary if React equality otherwise makes re-selection unobservable. Opening or hovering a multi-impact pill does not start the flash; choosing a concrete child does.
+
+For sidebar/View-on-Map focus, immediately show the selected halo in a static, legible state during `fitBounds`, then start the complete intro on that focus operation's `moveend`. If the camera does not move, start immediately. Stale `moveend` callbacks must not start an older selection. During direct user pan/zoom, freeze at a legible static state and resume the breathe phase after interaction; do not replay the intro. This post-arrival intro intentionally refines the system map, which has no equivalent geographic flight.
+
+Reduced motion, the existing motion-paused state, document invisibility, and mobile performance mode use a static visible cyan halo and no animation/filter work. Forward the performance-mode state if the geographic renderer cannot currently observe it. Keep the current geographic cyan if it remains clearer over the basemap than the authored-map cyan; the semantic parity is selection cyan, not necessarily an identical hex value.
+
+### Checks
+
+- Arrow unit tests:
+  - short, medium, and long segments produce the named count rule and exact `(i + 1) / (count + 1)` fractions;
+  - leading/internal/trailing distance tolerances are equal on curved polylines;
+  - forward/reverse orientation remains correct;
+  - bidirectionality produces one joined feature per position, not two separated features;
+  - unknown direction still produces none;
+  - alert-type/network palette mappings and high-contrast fallback are explicit.
+- Badge-model tests:
+  - one contiguous group yields one geographic marker, not one point per kind;
+  - single, two-kind, three-kind, and four-kind/`+N` layouts retain all chooser IDs;
+  - counts are deduplicated per kind and omitted at one;
+  - the group anchor is stable across input order and unchanged polls;
+  - single badges select directly and pills open the complete chooser.
+- Selection-attention unit tests:
+  - four intro peaks over 2.4 seconds transition into the 1.2-second breathe;
+  - a new explicit request and same-alert reselect restart, while a same-key poll does not;
+  - clear/unmount/style generation cancels stale work;
+  - secondary overlap and station-only selection animate the existing halo;
+  - reduced-motion, motion-paused, hidden-document, and mobile-performance states remain statically visible without a loop.
+- Focused browser inspection at 1440px and 360px:
+  - TTC and GO/UP, normal light/dark plus high contrast for the arrow pairs;
+  - overview and detail zoom for arrow rhythm, joined glyph clarity, pill collision, count centring, and selected-pill preservation;
+  - sidebar alert selection, same-alert reselect, map pill/chooser selection, focus-flight timing, manual gesture pause/resume, station-only selection, and reduced-motion fallback;
+  - no map constructor/removal/style reset and no per-frame GeoJSON update during attention animation.
+- Run once when stable: `npm --prefix frontend run test:fast`, `npm --prefix frontend run typecheck`, and `npm --prefix frontend run lint`. Run the focused geographic Playwright cases needed for the interactions above; leave the full integration/performance matrix and production build to Session 5.
+
+### Handoff
+
+- Replace the pending progress-log entry with a completed checkpoint. List changed files and concrete delivered behavior.
+- Record exact commands/results, browser viewports/themes reviewed, and any tuning changes from the 320-metre/count-six seeds.
+- Record selection-attention lifecycle evidence, including same-key polling, re-selection, reduced-motion/mobile fallback, and lifecycle/source-update counts.
+- State any visual or performance gap honestly. If this bounded checkpoint passes, name Session 5 as the next task.
+
+### Stop
+
+Stop after this checkpoint. Do not begin Session 5 in the same session.
+
+Suggested implementation prompt:
+
+> Read `docs/handoffs/2026-09-18-geographic-map-performance-and-parity.md`, including the progress log and “Pre-Session 5 follow-up visual polish.” Implement only that checkpoint: alert-derived/equidistant direction symbols, joined bidirectional glyphs, system-style geographic overlap pills, and geographic selection attention. Run its focused checks, replace the pending progress entry with completion evidence, and stop. Do not begin Session 5.
 
 ## Session 5: Validate integration and performance
 

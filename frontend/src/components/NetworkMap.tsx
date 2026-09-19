@@ -20,6 +20,7 @@ type NetworkMapProps = TtcMapProps & {
   mobileAnnouncementVisible: boolean;
   onMapReady?: () => void;
   legendProps: Omit<NetworkMapLegendProps, "mode" | "closingSoon">;
+  selectionAttentionGeneration?: number;
 };
 
 export function NetworkMap({
@@ -58,6 +59,8 @@ export function NetworkMap({
           onMapViewChange={props.onMapViewChange}
           estimatedTrainsEnabled={props.estimatedTrainsEnabled}
           estimatedTrainMarkers={props.estimatedTrainMarkers}
+          selectionAttentionGeneration={props.selectionAttentionGeneration}
+          mobilePerformanceMode={props.mobilePerformanceMode}
         />
         <NetworkMapLegend
           mode={network}

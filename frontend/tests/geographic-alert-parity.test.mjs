@@ -16,7 +16,6 @@ import {
   projectImpactedStations,
   projectImpactBadges,
   getSelectionBounds,
-  getProjectedSelectionBounds,
   getProjectedImpactGroup,
 } from "../src/app/geographic-overlays.ts";
 
@@ -254,7 +253,7 @@ test("Session 2: Overlap hierarchy, stroke layering & secondary selection", asyn
     assert.ok(linkFeature.properties.allCardIds.includes("rsz-1"));
   });
 
-  await t.test("produces multiple distinct per-kind badges along polyline for overlapping kinds", () => {
+  await t.test("produces one stable overlap pill marker per contiguous corridor for overlapping kinds", () => {
     const segments = [
       {
         id: "line-1-bloor-yonge-rosedale",
@@ -274,76 +273,58 @@ test("Session 2: Overlap hierarchy, stroke layering & secondary selection", asyn
       (b) => b.properties.targetId === "line-1-bloor-yonge-rosedale",
     );
 
-    // Must have 2 separate badges: 1 for suspension and 1 for delay
-    assert.equal(linkBadges.length, 2);
-
-    const suspBadge = linkBadges.find((b) => b.properties.impactKind === "suspension");
-    const delayBadge = linkBadges.find((b) => b.properties.impactKind === "delay");
-
-    assert.ok(suspBadge);
-    assert.equal(suspBadge.properties.label, "!");
-    assert.equal(suspBadge.properties.impactColor, "#ef4444");
-
-    assert.ok(delayBadge);
-    assert.equal(delayBadge.properties.label, "D");
-    assert.equal(delayBadge.properties.impactColor, "#f59e0b");
-
-    // Coordinates must differ along polyline fractions
-    assert.notDeepEqual(suspBadge.geometry.coordinates, delayBadge.geometry.coordinates);
+    // Must have 1 stable pill marker for the overlap group
+    assert.equal(linkBadges.length, 1);
+    const pillBadge = linkBadges[0];
+    assert.equal(pillBadge.properties.isOverlap, true);
+    assert.equal(pillBadge.properties.visualItemCount, 2);
+    assert.equal(pillBadge.properties.slot0_kind, "suspension");
+    assert.equal(pillBadge.properties.slot0_count, 1);
+    assert.equal(pillBadge.properties.slot1_kind, "delay");
+    assert.equal(pillBadge.properties.slot1_count, 1);
+    assert.deepEqual(pillBadge.properties.allCardIds.sort(), ["delay-1", "susp-1"]);
   });
 
-  await t.test("secondary selection bounds correctly resolves coordinates for hidden impact", () => {
-    const segments = [
-      {
-        id: "line-1-bloor-yonge-rosedale",
-        lineId: "line-1",
-        label: "Bloor-Yonge to Rosedale",
-        impacts: [
-          { kind: "suspension", cardId: "primary-susp-1", travelDirection: "bidirectional", sourceAlertIds: [] },
-          { kind: "delay", cardId: "secondary-delay-2", travelDirection: "bidirectional", sourceAlertIds: [] },
-        ],
-      },
-    ];
-
-    // Select the secondary delay
-    const bounds = getSelectionBounds(
-      ttcCatalog,
-      { kind: "delay", id: "secondary-delay-2" },
-      segments,
-      [],
-    );
-
-    assert.ok(bounds, "Must compute valid camera bounds for secondary impact");
-    const [[west, south], [east, north]] = bounds;
-    assert.ok(west < east);
-    assert.ok(south < north);
-  });
-
-  await t.test("camera bounds follow rendered overlay identity, including indirect source IDs", () => {
-    const segments = [{
+  await t.test("badge layouts support 1-kind (lone badge), 2-kind, 3-kind, and 4-kind (+N) layouts", () => {
+    // 1 kind: lone badge (isOverlap: false)
+    const singleSeg = [{
       id: "line-1-bloor-yonge-rosedale",
       lineId: "line-1",
       label: "Bloor-Yonge to Rosedale",
-      impacts: [{
-        kind: "reduced-speed-zone",
-        cardId: "grouped-rsz-card",
-        sourceAlertIds: ["sidebar-rsz-id"],
-        travelDirection: "forward",
-      }],
+      impacts: [{ kind: "delay", cardId: "d1", travelDirection: "bidirectional", sourceAlertIds: [] }],
     }];
-    const projected = projectImpactedLinks(ttcCatalog, segments, "ttc");
-    const bounds = getProjectedSelectionBounds(
-      { kind: "reduced-speed-zone", id: "sidebar-rsz-id" },
-      projected.features,
-      [],
-    );
+    const p1 = projectImpactedLinks(ttcCatalog, singleSeg, "ttc");
+    const b1 = projectImpactBadges(ttcCatalog, p1.features, [], "ttc");
+    assert.equal(b1.features.length, 1);
+    assert.equal(b1.features[0].properties.isOverlap, false);
+    assert.equal(b1.features[0].properties.label, "D");
 
-    assert.ok(bounds, "A rendered indirect alert ID must produce camera bounds");
-    assert.ok(bounds[0][0] < bounds[1][0]);
-    assert.ok(bounds[0][1] < bounds[1][1]);
+    // 4 kinds: yields +N slot
+    const fourSeg = [{
+      id: "line-1-bloor-yonge-rosedale",
+      lineId: "line-1",
+      label: "Bloor-Yonge to Rosedale",
+      impacts: [
+        { kind: "suspension", cardId: "s1", travelDirection: "bidirectional", sourceAlertIds: [] },
+        { kind: "delay", cardId: "d1", travelDirection: "bidirectional", sourceAlertIds: [] },
+        { kind: "reduced-speed-zone", cardId: "r1", travelDirection: "bidirectional", sourceAlertIds: [] },
+        { kind: "planned-closure", cardId: "c1", travelDirection: "bidirectional", sourceAlertIds: [] },
+      ],
+    }];
+    const p4 = projectImpactedLinks(ttcCatalog, fourSeg, "ttc");
+    const b4 = projectImpactBadges(ttcCatalog, p4.features, [], "ttc");
+    assert.equal(b4.features.length, 1);
+    assert.equal(b4.features[0].properties.isOverlap, true);
+    assert.equal(b4.features[0].properties.visualItemCount, 4);
+    assert.equal(b4.features[0].properties.slot0_kind, "suspension");
+    assert.equal(b4.features[0].properties.slot1_kind, "delay");
+    assert.equal(b4.features[0].properties.slot2_kind, "planned-closure");
+    assert.equal(b4.features[0].properties.slot3_kind, "more");
+    assert.equal(b4.features[0].properties.slot3_count, 1); // +1 remaining (RSZ)
+    assert.equal(b4.features[0].properties.allCardIds.length, 4);
   });
 
-  await t.test("contiguous links with the same overlap set share one per-kind chooser badge", () => {
+  await t.test("contiguous links with the same overlap set share one stable overlap pill marker", () => {
     const sharedImpacts = [
       { kind: "delay", cardId: "delay-a", travelDirection: "forward", sourceAlertIds: [] },
       { kind: "delay", cardId: "delay-b", travelDirection: "reverse", sourceAlertIds: [] },
@@ -366,12 +347,15 @@ test("Session 2: Overlap hierarchy, stroke layering & secondary selection", asyn
     const projected = projectImpactedLinks(ttcCatalog, segments, "ttc");
     const badges = projectImpactBadges(ttcCatalog, projected.features, [], "ttc");
 
-    assert.equal(badges.features.length, 2, "The contiguous overlap group should have one badge per kind");
-    const delayBadge = badges.features.find((badge) => badge.properties.impactKind === "delay");
-    assert.ok(delayBadge);
-    assert.equal(delayBadge.properties.label, "D", "The type icon stays visible instead of becoming a bare number");
-    assert.equal(delayBadge.properties.count, 2);
-    assert.deepEqual(delayBadge.properties.allCardIds.sort(), ["delay-a", "delay-b"]);
+    assert.equal(badges.features.length, 1, "Contiguous links with identical impact signature share one pill marker");
+    const pill = badges.features[0];
+    assert.equal(pill.properties.isOverlap, true);
+    assert.equal(pill.properties.visualItemCount, 2);
+    assert.equal(pill.properties.slot0_kind, "delay");
+    assert.equal(pill.properties.slot0_count, 2, "Deduplicated count per kind is 2");
+    assert.equal(pill.properties.slot1_kind, "reduced-speed-zone");
+    assert.equal(pill.properties.slot1_count, 1);
+    assert.deepEqual(pill.properties.allCardIds.sort(), ["delay-a", "delay-b", "rsz-a"]);
   });
 
   await t.test("geographic overlap groups expose every distinct chooser option", () => {
