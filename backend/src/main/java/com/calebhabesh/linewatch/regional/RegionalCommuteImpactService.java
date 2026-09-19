@@ -45,6 +45,7 @@ public class RegionalCommuteImpactService {
         List<CommuteResponses.MatchedImpactResponse> matches = new ArrayList<>();
 
         for (RegionalNormalizedAlert alert : alertStore.findActiveAlerts()) {
+            if ("advisory".equals(alert.impactKind())) continue;
             if (!pathLines.contains(alert.lineId())) continue;
             List<String> matchedSegments = intersection(alert.affectedSegmentIds(), pathSegments);
             List<String> matchedStations = intersection(alert.stationIds(), pathStations);

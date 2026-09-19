@@ -359,6 +359,7 @@ function InteractiveTtcMapComponent({
   onNetworkChange,
   mapView,
   onMapViewChange,
+  selectionAttentionGeneration = 0,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -390,6 +391,7 @@ function InteractiveTtcMapComponent({
   onNetworkChange?: (network: NetworkId) => void;
   mapView?: MapViewPreference;
   onMapViewChange?: (view: MapViewPreference) => void;
+  selectionAttentionGeneration?: number;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
   const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(() => (
@@ -407,6 +409,20 @@ function InteractiveTtcMapComponent({
   const pageVisible = usePageVisibility();
   const useMobileRendering = mobilePerformanceMode || mobilePerformanceModeMatches();
   const mapEffectMotionPaused = reducedMotion || !pageVisible;
+  const selectionIntroKey = selection
+    ? `${selection.kind}:${selection.id}:${selectionAttentionGeneration}`
+    : selectedStationId
+      ? `station:${selectedStationId}:${selectionAttentionGeneration}`
+      : null;
+  const [completedSelectionIntroKey, setCompletedSelectionIntroKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!selectionIntroKey) return;
+    const timer = window.setTimeout(() => {
+      setCompletedSelectionIntroKey(selectionIntroKey);
+    }, 2400);
+    return () => window.clearTimeout(timer);
+  }, [selectionIntroKey]);
+  const selectionIntroComplete = Boolean(selectionIntroKey && completedSelectionIntroKey === selectionIntroKey);
   const lockedOverlapBadgeLayoutsRef = useRef<LockedOverlapBadgeLayouts>(new Map());
   const rasterTheme: RasterMapTheme = highContrast ? "high-contrast" : isDark ? "dark" : "light";
   // The shell's media-query hook resolves after hydration. Read the same query
@@ -2300,6 +2316,7 @@ function InteractiveTtcMapComponent({
                       <SelectedImpactEmphasis
                         key={`${selection?.kind}:${selectedImpactEmphasis.id}`}
                         emphasis={selectedImpactEmphasis}
+                        introComplete={selectionIntroComplete}
                       />
                     )
                   ) : null}
@@ -2844,7 +2861,7 @@ function InteractiveTtcMapComponent({
                           data-map-highlight-id={station.id}
                           data-station-selection-foreground={station.id}
                           data-station-anchor-id={anchorId}
-                          className="station-selection-flash map-selection-attention"
+                          className={`station-selection-flash map-selection-attention${selectionIntroComplete ? " selection-intro-complete" : ""}`}
                           cx={point.x}
                           cy={point.y}
                           r={highlightRadius}
@@ -2874,7 +2891,7 @@ function InteractiveTtcMapComponent({
                             <circle
                               data-map-highlight-id={selection.id}
                               data-station-impact-selection-id={impact.cardId}
-                              className="station-selection-flash map-selection-attention"
+                              className={`station-selection-flash map-selection-attention${selectionIntroComplete ? " selection-intro-complete" : ""}`}
                               cx={point.x}
                               cy={point.y}
                               r={impactRingRadius}
@@ -5425,14 +5442,16 @@ function OverlaySegment({
 
 function SelectedImpactEmphasis({
   emphasis: selectedImpactEmphasis,
+  introComplete,
 }: {
   emphasis: SelectedImpactEmphasisLayer;
+  introComplete: boolean;
 }) {
   return (
     <path
       data-selected-impact-emphasis={selectedImpactEmphasis.id}
       data-map-highlight-id={selectedImpactEmphasis.id}
-      className="asset-alert-path map-selection-flash map-selection-attention pointer-events-none"
+      className={`asset-alert-path map-selection-flash map-selection-attention pointer-events-none${introComplete ? " selection-intro-complete" : ""}`}
       d={selectedImpactEmphasis.segment.pathD}
       aria-hidden="true"
     />

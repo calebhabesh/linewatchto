@@ -514,7 +514,7 @@ describe("asset-backed map layering", () => {
     assert.ok(stationLayerIndex > selectedEmphasisIndex, "station art must remain above the selected emphasis");
     assert.match(interactiveMapSource, /data-selected-impact-emphasis=\{selectedImpactEmphasis\.id\}/);
     assert.match(interactiveMapSource, /function SelectedImpactEmphasis\(/);
-    assert.match(interactiveMapSource, /className="asset-alert-path map-selection-flash map-selection-attention pointer-events-none"/);
+    assert.match(interactiveMapSource, /className=\{`asset-alert-path map-selection-flash map-selection-attention pointer-events-none\$\{introComplete \? " selection-intro-complete" : ""\}`\}/);
     assert.match(
       interactiveMapSource,
       /data-selected-commute-impact-overlay=\{selectedImpactEmphasis\.id\}[\s\S]*?<OverlaySegment[\s\S]*?impact=\{selectedImpactEmphasis\.impact\}[\s\S]*?idSuffix="-commute-focus"/,
@@ -850,8 +850,8 @@ describe("asset-backed map layering", () => {
   it("keeps alert and station selections on one smooth attention-to-breathing animation lifecycle", () => {
     assert.match(interactiveMapSource, /data-map-highlight-id=\{selection\.id\}/);
     assert.match(interactiveMapSource, /data-map-highlight-id=\{station\.id\}/);
-    assert.match(interactiveMapSource, /className="asset-alert-path map-selection-flash map-selection-attention pointer-events-none"/);
-    assert.match(interactiveMapSource, /className="station-selection-flash map-selection-attention"/);
+    assert.match(interactiveMapSource, /className=\{`asset-alert-path map-selection-flash map-selection-attention pointer-events-none\$\{introComplete \? " selection-intro-complete" : ""\}`\}/);
+    assert.match(interactiveMapSource, /className=\{`station-selection-flash map-selection-attention\$\{selectionIntroComplete \? " selection-intro-complete" : ""\}`\}/);
     assert.doesNotMatch(interactiveMapSource, /isSelectionFastFlashing|isStationFastFlashing/);
     assert.match(globalCss, /\.map-selection-attention\s*\{[^}]*animation-name:\s*var\(--selection-intro-name\),\s*var\(--selection-breathe-name\)/s);
     assert.match(globalCss, /animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/);

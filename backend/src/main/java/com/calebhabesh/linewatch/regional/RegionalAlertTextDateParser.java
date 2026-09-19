@@ -1,14 +1,13 @@
 package com.calebhabesh.linewatch.regional;
 
-import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,27 +37,28 @@ final class RegionalAlertTextDateParser {
 
     private RegionalAlertTextDateParser() {}
 
-    static DateRange parse(String text, OffsetDateTime publishedAt, Clock clock) {
-        if (text == null || text.isBlank()) return null;
-        LocalDate anchor = publishedAt == null
-            ? OffsetDateTime.now(clock).atZoneSameInstant(TORONTO).toLocalDate()
-            : publishedAt.atZoneSameInstant(TORONTO).toLocalDate();
+    static DateRange parse(String text, OffsetDateTime publishedAt, java.time.Clock clock) {
+        List<DateRange> ranges = ranges(text, publishedAt);
+        if (ranges.isEmpty()) return null;
+        DateRange first = ranges.getFirst();
+        return ranges.stream().allMatch(range -> !range.start().isBefore(first.start())
+            && !range.endExclusive().isAfter(first.endExclusive())) ? first : null;
+    }
+
+    static List<DateRange> ranges(String text, OffsetDateTime publishedAt) {
+        if (text == null || text.isBlank()) return List.of();
+        LocalDate anchor = publishedAt == null ? null : publishedAt.atZoneSameInstant(TORONTO).toLocalDate();
         Matcher matcher = DATE_RANGE.matcher(text);
-        Set<LocalDateRange> ranges = new LinkedHashSet<>();
+        List<DateRange> ranges = new ArrayList<>();
         while (matcher.find()) {
             LocalDateRange range = localRange(matcher, anchor);
-            if (range != null) ranges.add(range);
+            if (range != null) ranges.add(new DateRange(
+                range.start().atStartOfDay(TORONTO).toOffsetDateTime(),
+                range.endInclusive().plusDays(1).atStartOfDay(TORONTO).toOffsetDateTime(),
+                matcher.start(), matcher.end()
+            ));
         }
-        if (ranges.isEmpty()) return null;
-        LocalDateRange range = ranges.stream()
-            .filter(candidate -> ranges.stream().allMatch(candidate::contains))
-            .findFirst()
-            .orElse(null);
-        if (range == null) return null;
-        return new DateRange(
-            range.start().atStartOfDay(TORONTO).toOffsetDateTime(),
-            range.endInclusive().plusDays(1).atStartOfDay(TORONTO).toOffsetDateTime()
-        );
+        return List.copyOf(ranges);
     }
 
     private static LocalDateRange localRange(Matcher matcher, LocalDate anchor) {
@@ -68,6 +68,7 @@ final class RegionalAlertTextDateParser {
             int endMonth = matcher.group(3) == null ? startMonth : month(matcher.group(3));
             int endDay = matcher.group(4) == null ? startDay : Integer.parseInt(matcher.group(4));
             int explicitYear = matcher.group(5) == null ? 0 : Integer.parseInt(matcher.group(5));
+            if (explicitYear == 0 && anchor == null) return null;
             int startYear = explicitYear == 0 ? anchor.getYear() : explicitYear;
             LocalDate start = LocalDate.of(startYear, startMonth, startDay);
             if (explicitYear == 0 && start.isBefore(anchor.minusDays(31))) {
@@ -88,11 +89,8 @@ final class RegionalAlertTextDateParser {
         return month;
     }
 
-    record DateRange(OffsetDateTime start, OffsetDateTime endExclusive) {}
+    record DateRange(OffsetDateTime start, OffsetDateTime endExclusive, int from, int to) {}
 
     private record LocalDateRange(LocalDate start, LocalDate endInclusive) {
-        private boolean contains(LocalDateRange other) {
-            return !other.start().isBefore(start) && !other.endInclusive().isAfter(endInclusive);
-        }
     }
 }

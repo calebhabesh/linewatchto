@@ -421,6 +421,7 @@ public class PushNotificationDispatchService {
         if (!event.isDeliveryAllowed()) {
             return false;
         }
+        if (regionalLine(event.getLineId())) return false;
         if (event.getCommuteId() != null) {
             return savedCommuteClearanceAllowed(
                 preferences,
@@ -474,6 +475,8 @@ public class PushNotificationDispatchService {
             if (hasEquivalentCurrentCandidate(activeEvent, allSavedCommuteCandidates)) {
                 continue;
             }
+            // A regional alert window ending is not evidence that service was restored.
+            if (regionalLine(activeEvent.getLineId())) continue;
             String clearedDedupeKey = activeEvent.getDedupeKey() + "|cleared";
             if (eventRepository.existsByDedupeKey(clearedDedupeKey)
                 || eventRepository.existsByNotificationKeyAndNotificationState(activeEvent.getNotificationKey(), CLEARED_STATE)) {
@@ -567,6 +570,10 @@ public class PushNotificationDispatchService {
 
         for (PushLineEventObservationEntity observation : lineEventObservationService.activeObservations(accountId)) {
             if (!freshForLine(observation.getLineId(), freshnessScope)) {
+                continue;
+            }
+            if (regionalLine(observation.getLineId())) {
+                lineEventObservationService.markCleared(observation, now);
                 continue;
             }
             if (currentLineNotificationKeys.contains(observation.getNotificationKey())) {

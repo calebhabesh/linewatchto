@@ -103,6 +103,7 @@ export function NetworkMap({
           onNetworkChange={props.onNetworkChange}
           mapView={props.mapView}
           onMapViewChange={props.onMapViewChange}
+          selectionAttentionGeneration={props.selectionAttentionGeneration}
         />
       ) : (
         <InteractiveTtcMap

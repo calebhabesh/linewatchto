@@ -96,17 +96,23 @@ public class MetrolinxAlertNormalizer {
     ) {
         List<RegionalNormalizedAlert> alerts = new ArrayList<>();
         for (RegionalAlertClassification classification : classifications) {
-            if (classification.activePeriodEnd() != null
-                && !classification.activePeriodEnd().isAfter(OffsetDateTime.now(clock))) continue;
-            String impactKind = dashboardImpactKind(classification);
-            if (impactKind == null || "unknown".equals(classification.scope())) continue;
-            for (String lineId : classification.lineIds()) {
-                RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
-                if (route == null) continue;
-                List<String> scopedStations = scopedStations(classification, route);
-                if ("segment-span".equals(classification.scope()) && scopedStations.size() != 2) continue;
-                if ("listed-stations".equals(classification.scope()) && scopedStations.isEmpty()) continue;
-                alerts.add(normalized(classification, route, impactKind, scopedStations, feed.sourceUpdatedAt()));
+            List<RegionalAlertClassification.Impact> impacts = classification.impacts().isEmpty()
+                ? List.of(new RegionalAlertClassification.Impact("main", classification.serviceEffect(),
+                    classification.scope(), classification.spanStationIds(), classification.activePeriodStart(),
+                    classification.activePeriodEnd(), classification.activePeriodBasis(), "legacy", null))
+                : classification.impacts();
+            for (RegionalAlertClassification.Impact impact : impacts) {
+                if (impact.endExclusive() != null && !impact.endExclusive().isAfter(OffsetDateTime.now(clock))) continue;
+                String impactKind = dashboardImpactKind(impact);
+                if (impactKind == null) continue;
+                for (String lineId : classification.lineIds()) {
+                    RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
+                    if (route == null) continue;
+                    List<String> scopedStations = scopedStations(classification, impact, route);
+                    if ("segment-span".equals(impact.scope()) && scopedStations.size() != 2) continue;
+                    if ("listed-stations".equals(impact.scope()) && scopedStations.isEmpty()) continue;
+                    alerts.add(normalized(classification, impact, route, impactKind, scopedStations, feed.sourceUpdatedAt()));
+                }
             }
         }
         return List.copyOf(alerts);
@@ -156,7 +162,7 @@ public class MetrolinxAlertNormalizer {
             canonicalEventId(record, lineIds.equals(List.of("regional-up"))),
             record, lineIds, stationIds, tripNumbers,
             title, description, category, subcategory, "", "",
-            null, null, parseMetrolinxDateTime(text(message, "PostedDateTime"))
+            null, null, parseMetrolinxDateTime(text(message, "PostedDateTime")), List.of()
         );
     }
 
@@ -187,7 +193,11 @@ public class MetrolinxAlertNormalizer {
             canonicalEventId(record, upExpress), record, lineIds, stationIds, List.of(),
             translation(alert.path("header_text"), ""), translation(alert.path("description_text"), ""),
             "", "", text(alert, "effect").toUpperCase(Locale.CANADA),
-            text(alert, "cause").toUpperCase(Locale.CANADA), startsAt, endsAt, null
+            text(alert, "cause").toUpperCase(Locale.CANADA), startsAt, endsAt, null,
+            periods.stream().map(period -> new RegionalAlertTextDateParser.DateRange(
+                epoch(period.get("start")), epoch(period.get("end")), 0, 0))
+                .filter(period -> period.start() != null && period.endExclusive() != null
+                    && period.endExclusive().isAfter(period.start())).toList()
         );
     }
 
@@ -210,13 +220,11 @@ public class MetrolinxAlertNormalizer {
                 value.title(), trimRiderBoilerplate(value.description())))
             .reduce("", (left, right) -> left + " " + right)
             .toLowerCase(Locale.CANADA);
-        RegionalAlertTextDateParser.DateRange textDateRange = RegionalAlertTextDateParser.parse(
-            title + " " + description, publishedAt, clock
-        );
-        boolean textOverridesSourcePeriod = textDateRange != null && (
-            sourceStartsAt == null || !sourceStartsAt.atZoneSameInstant(TORONTO_ZONE).toLocalDate()
-                .equals(textDateRange.start().atZoneSameInstant(TORONTO_ZONE).toLocalDate())
-        );
+        List<RegionalAlertTextDateParser.DateRange> titleDates = RegionalAlertTextDateParser.ranges(title, publishedAt);
+        List<RegionalAlertTextDateParser.DateRange> bodyDates = RegionalAlertTextDateParser.ranges(description, publishedAt);
+        RegionalAlertTextDateParser.DateRange textDateRange = !titleDates.isEmpty() ? titleDates.getFirst()
+            : bodyDates.size() == 1 ? bodyDates.getFirst() : null;
+        boolean textOverridesSourcePeriod = textDateRange != null;
         OffsetDateTime startsAt = textOverridesSourcePeriod ? textDateRange.start() : sourceStartsAt;
         OffsetDateTime endsAt = textOverridesSourcePeriod ? textDateRange.endExclusive() : sourceEndsAt;
         String activePeriodBasis = textOverridesSourcePeriod ? "text-date-range"
@@ -235,16 +243,26 @@ public class MetrolinxAlertNormalizer {
             ? "cancelled-trip"
             : searchable.contains("reduced speed") ? "reduced-speed" : null;
         String timing = startsAt == null
-            ? (containsAny(searchable, PLANNED_PHRASES) ? "planned" : "current")
-            : (startsAt.isAfter(OffsetDateTime.now(clock)) ? "planned" : "current");
+            ? (containsAny(searchable, PLANNED_PHRASES) ? "planned" : "unknown")
+            : (startsAt.isAfter(OffsetDateTime.now(clock)) ? "planned"
+                : endsAt != null && !endsAt.isAfter(OffsetDateTime.now(clock)) ? "ended" : "current");
         String cause = classifiedCause(searchable, ordered);
         String replacementService = replacementService(searchable);
         Integer maximumDelayMinutes = maximumDelay(searchable);
+        List<String> disruptedSpan = disruptedSpanStations(description, lineIds);
+        String lowerDescription = description.toLowerCase(Locale.CANADA);
+        boolean continuingServiceClause = lowerDescription.contains("trains run")
+            || lowerDescription.contains("trains operate")
+            || lowerDescription.contains("service continues");
         List<String> spanStations = scheduleAnnouncement || "trip-cancellation".equals(serviceEffect)
             ? List.of()
-            : spanStations(searchable, lineIds);
+            : !disruptedSpan.isEmpty() ? disruptedSpan
+                : "no-service".equals(serviceEffect) && continuingServiceClause ? List.of()
+                    : spanStations(searchable, lineIds);
         String scope = scheduleAnnouncement ? "corridor"
             : scope(searchable, serviceEffect, lineIds, structuredStations, spanStations);
+        if ("no-service".equals(serviceEffect) && continuingServiceClause
+            && disruptedSpan.isEmpty()) scope = "unknown";
         Map<String, String> stationRoles = stationRoles(
             searchable, lineIds, serviceEffect, scope, replacementService, structuredStations
         );
@@ -264,6 +282,10 @@ public class MetrolinxAlertNormalizer {
         addSources(fieldSources, "description", ordered, value -> !value.description().isBlank() && value.description().equals(description));
         addSources(fieldSources, "classification", ordered, value -> true);
 
+        List<RegionalAlertClassification.Impact> impacts = impacts(
+            title, description, serviceEffect, scope, spanStations, structuredStations,
+            startsAt, endsAt, activePeriodBasis, titleDates, bodyDates, ordered, publishedAt
+        );
         return new RegionalAlertClassification(
             primary.canonicalEventId(),
             ordered.stream().map(value -> new RegionalAlertClassification.SourceReference(
@@ -272,7 +294,7 @@ public class MetrolinxAlertNormalizer {
             maximumDelayMinutes, title, description, startsAt, endsAt, activePeriodBasis,
             sourceStartsAt, sourceEndsAt, publishedAt,
             structuredStations, spanStations, Map.copyOf(stationRoles), Map.copyOf(fieldSources),
-            primary.record().rawPayload()
+            primary.record().rawPayload(), impacts
         );
     }
 
@@ -352,6 +374,105 @@ public class MetrolinxAlertNormalizer {
         return mentioned.size() >= 2 ? List.of(mentioned.getFirst(), mentioned.getLast()) : List.of();
     }
 
+    private List<String> disruptedSpanStations(String description, List<String> lineIds) {
+        for (String clause : description.toLowerCase(Locale.CANADA).split("[.;\\n]")) {
+            if (!(clause.contains("no service") || clause.contains("no go train service")
+                || clause.contains("no train service") || clause.contains("closed between"))) continue;
+            // A positive-service clause can mention the same endpoints. Only bind stations
+            // in the clause that states the disruption.
+            if (clause.contains("trains run") || clause.contains("trains operate")) continue;
+            List<String> mentioned = mentionedStations(clause, lineIds);
+            if (mentioned.size() >= 2) return List.of(mentioned.getFirst(), mentioned.get(1));
+        }
+        return List.of();
+    }
+
+    private List<String> mentionedStations(String clause, List<String> lineIds) {
+        List<String> mentioned = new ArrayList<>();
+        for (String lineId : lineIds) {
+            RegionalNetworkCatalog.route(lineId).ifPresent(route -> route.stationIds().stream()
+                .filter(stationId -> stationMentioned(clause, stationId))
+                .forEach(stationId -> {
+                    if (!mentioned.contains(stationId)) mentioned.add(stationId);
+                }));
+        }
+        mentioned.sort(Comparator.comparingInt(stationId -> stationMentionIndex(clause, stationId)));
+        return mentioned;
+    }
+
+    private List<RegionalAlertClassification.Impact> impacts(
+        String title, String description, String serviceEffect, String scope,
+        List<String> spanStations, List<String> structuredStations,
+        OffsetDateTime startsAt, OffsetDateTime endsAt, String basis,
+        List<RegionalAlertTextDateParser.DateRange> titleDates,
+        List<RegionalAlertTextDateParser.DateRange> bodyDates,
+        List<Evidence> evidence, OffsetDateTime publishedAt
+    ) {
+        List<RegionalAlertClassification.Impact> result = new ArrayList<>();
+        List<RegionalAlertTextDateParser.DateRange> windows = new ArrayList<>();
+        if (!titleDates.isEmpty()) windows.add(titleDates.getFirst());
+        else if (bodyDates.size() == 1) windows.add(bodyDates.getFirst());
+        else if (!bodyDates.isEmpty() && bodyDates.stream().allMatch(range ->
+            range.start().equals(bodyDates.getFirst().start())
+                && range.endExclusive().equals(bodyDates.getFirst().endExclusive()))) windows.add(bodyDates.getFirst());
+        if (windows.isEmpty() && bodyDates.isEmpty() && "source-active-period".equals(basis)) {
+            evidence.stream().flatMap(item -> item.periods().stream()).distinct()
+                .sorted(Comparator.comparing(RegionalAlertTextDateParser.DateRange::start))
+                .forEach(windows::add);
+        }
+        if (windows.isEmpty() && bodyDates.isEmpty() && startsAt != null && endsAt != null) {
+            windows.add(new RegionalAlertTextDateParser.DateRange(startsAt, endsAt, 0, 0));
+        }
+        List<String> stations = "segment-span".equals(scope) ? spanStations : structuredStations;
+        int index = 0;
+        for (var window : windows) {
+            result.add(new RegionalAlertClassification.Impact(
+                "window-" + index++, serviceEffect, scope, stations, window.start(),
+                window.endExclusive(), basis, "explicit service window", null
+            ));
+        }
+        if (windows.isEmpty() && bodyDates.isEmpty() && (startsAt != null || endsAt != null)
+            && ("no-service".equals(serviceEffect) || "delay".equals(serviceEffect))) {
+            result.add(new RegionalAlertClassification.Impact("partial-window", serviceEffect,
+                scope, stations, startsAt, endsAt, basis, "partial source period",
+                startsAt == null ? "Start timing not verified" : "End timing not verified"));
+        }
+        if (result.isEmpty() && ("no-service".equals(serviceEffect) || "delay".equals(serviceEffect))) {
+            result.add(new RegionalAlertClassification.Impact("timing-unknown", serviceEffect,
+                scope, stations, null, null, "unknown", "notice wording", "Timing not verified"));
+        }
+        // The relative phrase identifies a possible earlier effect, but contains no hour.
+        if (description.toLowerCase(Locale.CANADA).matches("(?s).*\\blate[ -]evening tonight\\b.*")) {
+            var publicationDate = publishedAt == null ? null
+                : publishedAt.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+            result.add(new RegionalAlertClassification.Impact("late-evening", serviceEffect,
+                scope, stations, null, publicationDate == null ? null
+                    : publicationDate.plusDays(1).atStartOfDay(TORONTO_ZONE).toOffsetDateTime(),
+                "relative-imprecise", "late-evening tonight",
+                publishedAt == null ? "Publication time unavailable; timing uncertain"
+                    : "Earlier start on " + publicationDate + "; exact time unknown"));
+        }
+        // A separate timetable clause is retained as linked classification evidence. It
+        // remains a Service Notice and cannot extend the closure or create an overlay.
+        for (var date : bodyDates) {
+            boolean covered = windows.stream().anyMatch(window -> !date.start().isBefore(window.start())
+                && !date.endExclusive().isAfter(window.endExclusive()));
+            if (covered) continue;
+            String nearby = description.substring(Math.max(0, date.from() - 70),
+                Math.min(description.length(), date.to() + 110)).toLowerCase(Locale.CANADA);
+            if (nearby.matches("(?s).*(?:schedule|timetable|adjust|resume|return).*")) {
+                result.add(new RegionalAlertClassification.Impact("timetable-" + index++,
+                    "service-adjustment", "corridor", List.of(), date.start(), date.endExclusive(),
+                    "text-date-range", "timetable clause", null));
+            } else {
+                result.add(new RegionalAlertClassification.Impact("unresolved-" + index++,
+                    serviceEffect, "unknown", List.of(), date.start(), date.endExclusive(),
+                    "text-date-range", "unbound date clause", "Scope and effect uncertain"));
+            }
+        }
+        return List.copyOf(result);
+    }
+
     private boolean stationMentioned(String searchable, String stationId) {
         String name = RegionalNetworkCatalog.station(stationId).map(station -> station.name()).orElse(stationId);
         return stationPhraseIndex(searchable, name) >= 0
@@ -377,6 +498,7 @@ public class MetrolinxAlertNormalizer {
 
     private RegionalNormalizedAlert normalized(
         RegionalAlertClassification classification,
+        RegionalAlertClassification.Impact impact,
         RegionalNetworkCatalog.Route route,
         String impactKind,
         List<String> stationIds,
@@ -384,26 +506,31 @@ public class MetrolinxAlertNormalizer {
     ) {
         RegionalAlertClassification.SourceReference primary = classification.sources().getFirst();
         return new RegionalNormalizedAlert(
-            "regional-" + safeId(classification.canonicalEventId()) + "-" + route.number().toLowerCase(Locale.CANADA),
+            "regional-" + safeId(classification.canonicalEventId()) + "-" + route.number().toLowerCase(Locale.CANADA)
+                + ("window-0".equals(impact.id()) ? "" : "-" + impact.id()),
             primary.sourceSystem(), primary.sourceId(), route.id(), impactKind,
             EnglishClockTextFormatter.toTwelveHourClock(classification.title().trim()),
-            EnglishClockTextFormatter.toTwelveHourClock(classification.description().trim()),
+            "advisory".equals(impactKind)
+                ? firstNonBlank(impact.uncertainty(), "Service timing or scope unverified")
+                    + ". " + EnglishClockTextFormatter.toTwelveHourClock(classification.description().trim())
+                : EnglishClockTextFormatter.toTwelveHourClock(classification.description().trim()),
             firstNonBlank(humanize(classification.cause()), "Metrolinx service update"),
-            classification.activePeriodStart(), classification.activePeriodEnd(), sourceUpdatedAt,
-            stationIds, RegionalNetworkCatalog.segmentIds(route.id(), stationIds),
-            classification.activePeriodBasis(),
+            impact.start(), impact.endExclusive(), sourceUpdatedAt,
+            stationIds, "advisory".equals(impactKind) || "unknown".equals(impact.scope())
+                ? List.of() : RegionalNetworkCatalog.segmentIds(route.id(), stationIds),
+            impact.basis(),
             classification.primaryRawPayload()
         );
     }
 
     private List<String> scopedStations(
         RegionalAlertClassification classification,
+        RegionalAlertClassification.Impact impact,
         RegionalNetworkCatalog.Route route
     ) {
-        List<String> candidates = switch (classification.scope()) {
+        List<String> candidates = switch (impact.scope()) {
             case "corridor" -> List.of();
-            case "segment-span" -> classification.spanStationIds();
-            case "listed-stations" -> classification.stationIds();
+            case "segment-span", "listed-stations" -> impact.stationIds();
             default -> List.of();
         };
         return List.copyOf(new LinkedHashSet<>(candidates.stream().filter(route.stationIds()::contains).toList()));
@@ -437,13 +564,12 @@ public class MetrolinxAlertNormalizer {
         return roles;
     }
 
-    private String dashboardImpactKind(RegionalAlertClassification classification) {
-        if ("no-service".equals(classification.serviceEffect())) {
-            return "planned".equals(classification.timing()) ? "planned-closure" : "suspension";
-        }
-        if ("delay".equals(classification.serviceEffect()) && "current".equals(classification.timing())) {
-            return "delay";
-        }
+    private String dashboardImpactKind(RegionalAlertClassification.Impact impact) {
+        if ("service-adjustment".equals(impact.serviceEffect())
+            || "trip-cancellation".equals(impact.serviceEffect())) return null;
+        if (impact.uncertainty() != null || "unknown".equals(impact.scope())) return "advisory";
+        if ("no-service".equals(impact.serviceEffect())) return "planned-closure";
+        if ("delay".equals(impact.serviceEffect())) return "delay";
         return null;
     }
 
@@ -571,7 +697,9 @@ public class MetrolinxAlertNormalizer {
     private OffsetDateTime parseMetrolinxDateTime(String value) {
         if (value == null || value.isBlank()) return null;
         try {
-            return LocalDateTime.parse(value.trim(), METROLINX_DATE_TIME).atZone(TORONTO_ZONE).toOffsetDateTime();
+            LocalDateTime local = LocalDateTime.parse(value.trim(), METROLINX_DATE_TIME);
+            List<ZoneOffset> offsets = TORONTO_ZONE.getRules().getValidOffsets(local);
+            return offsets.size() == 1 ? OffsetDateTime.of(local, offsets.getFirst()) : null;
         } catch (DateTimeParseException ignored) {
             return null;
         }
@@ -628,6 +756,7 @@ public class MetrolinxAlertNormalizer {
         String cause,
         OffsetDateTime startsAt,
         OffsetDateTime endsAt,
-        OffsetDateTime publishedAt
+        OffsetDateTime publishedAt,
+        List<RegionalAlertTextDateParser.DateRange> periods
     ) {}
 }

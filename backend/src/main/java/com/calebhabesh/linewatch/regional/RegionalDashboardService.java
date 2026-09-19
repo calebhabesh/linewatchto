@@ -52,11 +52,17 @@ public class RegionalDashboardService {
         Optional<IngestionRunSnapshot> latestSuccessful = runStore.findLatestSuccessful();
         Optional<IngestionRunSnapshot> latestAttempt = runStore.findLatest();
         boolean fresh = freshness.remainingFreshness(latestSuccessful).isPresent();
+        boolean alertCoverageIncomplete = latestSuccessful.stream()
+            .flatMap(run -> runStore.findSourceStatuses(run.id()).stream())
+            .anyMatch(source -> !source.complete() && (
+                MetrolinxSourceSystem.GO_INFORMATION_ALERTS.equals(source.sourceSystem())
+                    || MetrolinxSourceSystem.GO_GTFS_ALERTS.equals(source.sourceSystem())
+            ));
         String availability = fresh && latestAttempt
             .filter(run -> "failed".equalsIgnoreCase(run.status()))
             .isPresent()
                 ? "degraded"
-                : fresh ? "available" : "unavailable";
+                : fresh ? alertCoverageIncomplete ? "degraded" : "available" : "unavailable";
         List<RegionalNormalizedAlert> alerts = fresh ? alertStore.findActiveAlerts() : List.of();
         OffsetDateTime sourceUpdatedAt = latestSuccessful.map(IngestionRunSnapshot::sourceFeedUpdatedAt).orElse(null);
         return new DashboardResponses.DashboardResponse(
@@ -71,7 +77,7 @@ public class RegionalDashboardService {
             ),
             message(availability, latestSuccessful),
             map(alerts),
-            status(alerts, sourceUpdatedAt, latestSuccessful.orElse(null), fresh),
+            status(alerts, sourceUpdatedAt, latestSuccessful.orElse(null), fresh, alertCoverageIncomplete),
             activeAlerts(alerts),
             delays(alerts),
             List.of(),
@@ -84,12 +90,17 @@ public class RegionalDashboardService {
         return freshness.remainingFreshness(runStore.findLatestSuccessful());
     }
 
+    public Optional<Duration> nextTransition() {
+        return alertStore.nextTransition();
+    }
+
     private MapController.MapResponse map(List<RegionalNormalizedAlert> alerts) {
         List<MapController.StationDto> stations = RegionalNetworkCatalog.stations().stream()
             .map(station -> new MapController.StationDto(station.id(), station.name(), 0, 0, station.interchange()))
             .toList();
         Map<String, List<RegionalNormalizedAlert>> alertsBySegment = new LinkedHashMap<>();
         for (RegionalNormalizedAlert alert : alerts) {
+            if ("advisory".equals(alert.impactKind())) continue;
             for (String segmentId : alert.affectedSegmentIds()) {
                 alertsBySegment.computeIfAbsent(segmentId, ignored -> new ArrayList<>()).add(alert);
             }
@@ -98,6 +109,8 @@ public class RegionalDashboardService {
             .map(segment -> segment(segment, alertsBySegment.getOrDefault(segment.id(), List.of())))
             .toList();
         List<MapController.StationNodeImpactDto> stationImpacts = alerts.stream()
+            .filter(alert -> !"advisory".equals(alert.impactKind())
+                && !"planned-closure".equals(alert.impactKind()))
             .filter(alert -> alert.stationIds().size() == 1 && alert.affectedSegmentIds().isEmpty())
             .map(alert -> new MapController.StationNodeImpactDto(
                 alert.stationIds().getFirst(), alert.impactKind(), alert.id(), alert.title()
@@ -113,7 +126,9 @@ public class RegionalDashboardService {
         List<RegionalNormalizedAlert> ordered = alerts.stream()
             .sorted(Comparator.comparingInt(alert -> impactPriority(alert.impactKind())))
             .toList();
-        RegionalNormalizedAlert primary = ordered.isEmpty() ? null : ordered.getFirst();
+        RegionalNormalizedAlert primary = ordered.stream()
+            .filter(alert -> !"planned-closure".equals(alert.impactKind()))
+            .findFirst().orElse(null);
         List<MapController.SegmentImpactDto> impacts = ordered.stream()
             .map(alert -> new MapController.SegmentImpactDto(
                 alert.impactKind(), alert.id(), "bidirectional", List.of(alert.id())
@@ -133,7 +148,8 @@ public class RegionalDashboardService {
         List<RegionalNormalizedAlert> alerts,
         OffsetDateTime sourceUpdatedAt,
         IngestionRunSnapshot latestRun,
-        boolean fresh
+        boolean fresh,
+        boolean alertCoverageIncomplete
     ) {
         OffsetDateTime displayTime = sourceUpdatedAt == null ? OffsetDateTime.now(clock) : sourceUpdatedAt;
         var toronto = displayTime.atZoneSameInstant(TORONTO_ZONE);
@@ -144,7 +160,7 @@ public class RegionalDashboardService {
             )
             : new StatusController.GeneratedAtDto("Unavailable", "Regional source unavailable", false, "not configured or stale");
         List<StatusController.LineStatusDto> lines = RegionalNetworkCatalog.routes().stream()
-            .map(route -> lineStatus(route, alerts, fresh))
+            .map(route -> lineStatus(route, alerts, fresh, alertCoverageIncomplete))
             .toList();
         return new StatusController.StatusResponse(generated, lines);
     }
@@ -167,7 +183,8 @@ public class RegionalDashboardService {
     private StatusController.LineStatusDto lineStatus(
         RegionalNetworkCatalog.Route route,
         List<RegionalNormalizedAlert> alerts,
-        boolean fresh
+        boolean fresh,
+        boolean alertCoverageIncomplete
     ) {
         List<RegionalNormalizedAlert> lineAlerts = alerts.stream()
             .filter(alert -> route.id().equals(alert.lineId()))
@@ -180,11 +197,28 @@ public class RegionalDashboardService {
             );
         }
         if (lineAlerts.isEmpty()) {
+            if (alertCoverageIncomplete) {
+                return new StatusController.LineStatusDto(
+                    route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
+                    "ready", "Alert coverage incomplete",
+                    "No confirmed current rail impact; a supplemental Metrolinx alert collection did not refresh.",
+                    "Latest poll"
+                );
+            }
             return new StatusController.LineStatusDto(
                 route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
                 "normal", "Normal", "No current rail service impacts in the latest Metrolinx alert dataset.", "Latest poll"
             );
         }
+        if (lineAlerts.stream().allMatch(alert -> "advisory".equals(alert.impactKind()))) {
+            return new StatusController.LineStatusDto(
+                route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
+                "ready", "Advisory — timing or scope unverified",
+                lineAlerts.getFirst().title() + " — service impact not verified; see Service Notices.",
+                "Latest poll"
+            );
+        }
+        lineAlerts = lineAlerts.stream().filter(alert -> !"advisory".equals(alert.impactKind())).toList();
         RegionalNormalizedAlert primary = lineAlerts.getFirst();
         String state = switch (primary.impactKind()) {
             case "suspension" -> "suspension";
@@ -196,7 +230,7 @@ public class RegionalDashboardService {
             case "planned-closure" -> "Planned change";
             default -> "Service change";
         };
-        String summary = lineAlerts.size() == 1 ? primary.title() : lineAlerts.size() + " current Metrolinx service updates";
+        String summary = lineAlerts.size() == 1 ? primary.title() : lineAlerts.size() + " Metrolinx service updates";
         return new StatusController.LineStatusDto(
             route.id(), route.number(), route.name(), route.name() + " corridor", route.color(),
             state, label, summary, "Latest poll"
@@ -263,7 +297,7 @@ public class RegionalDashboardService {
 
     private String message(String availability, Optional<IngestionRunSnapshot> latestSuccessful) {
         if ("degraded".equals(availability)) {
-            return "The latest Metrolinx refresh failed; LineWatchTO is retaining the last successful fresh snapshot.";
+            return "Some Metrolinx alert data did not refresh; LineWatchTO is retaining the last successful fresh snapshot where available.";
         }
         if ("available".equals(availability)) return "Fresh purpose-built GO and UP rail status derived from the Metrolinx Open API.";
         if (!properties.isEnabled()) return "Regional realtime ingestion is disabled; static catalog data is provided for interface use only.";

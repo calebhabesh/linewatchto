@@ -61,6 +61,7 @@ public class RegionalLineSubscriptionPushPlanner {
         Instant now = clock.instant();
         List<PushNotificationCandidate> candidates = new ArrayList<>();
         for (RegionalNormalizedAlert alert : alertStore.findActiveAlerts()) {
+            if ("advisory".equals(alert.impactKind())) continue;
             if (!subscribedLineIds.contains(alert.lineId())) {
                 continue;
             }

@@ -74,11 +74,10 @@ class RegionalAlertScenarioCatalogTest {
             "regional-mi", "regional-rh", "regional-st", "regional-up"
         );
         assertThat(alerts).extracting(RegionalNormalizedAlert::impactKind)
-            .contains("delay", "suspension", "planned-closure");
-        assertThat(alerts).anySatisfy(alert -> {
-            assertThat(alert.stationIds()).isEmpty();
-            assertThat(alert.affectedSegmentIds()).hasSizeGreaterThan(1);
-        });
+            .contains("advisory", "delay", "planned-closure")
+            .doesNotContain("suspension");
+        assertThat(alerts).filteredOn(alert -> "advisory".equals(alert.impactKind()))
+            .allSatisfy(alert -> assertThat(alert.affectedSegmentIds()).isEmpty());
         assertThat(alerts).anySatisfy(alert -> {
             assertThat(alert.stationIds()).hasSize(1);
             assertThat(alert.affectedSegmentIds()).isEmpty();
@@ -89,7 +88,7 @@ class RegionalAlertScenarioCatalogTest {
         });
         assertThat(alerts).filteredOn(alert -> alert.lineId().equals("regional-le"))
             .extracting(RegionalNormalizedAlert::impactKind)
-            .contains("delay", "planned-closure");
+            .contains("advisory");
     }
 
     @Test
@@ -103,7 +102,9 @@ class RegionalAlertScenarioCatalogTest {
         properties.setEnabled(true);
         properties.setApiKey("scenario-key");
         OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-29T18:00:00Z");
-        when(alertStore.findActiveAlerts()).thenReturn(alerts);
+        when(alertStore.findActiveAlerts()).thenReturn(alerts.stream()
+            .map(alert -> RegionalAlertProjection.at(alert, CLOCK.instant()))
+            .filter(java.util.Objects::nonNull).toList());
         when(runStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
             1L, "success", completedAt.minusSeconds(1), completedAt,
             12, 12, 12, 0, completedAt.minusMinutes(2), null
@@ -114,14 +115,16 @@ class RegionalAlertScenarioCatalogTest {
             alertStore, runStore, freshness, properties, CLOCK
         ).dashboard();
 
-        assertThat(dashboard.activeAlerts()).hasSize(2);
-        assertThat(dashboard.delays()).hasSize(8);
-        assertThat(dashboard.plannedClosures()).hasSize(1);
-        assertThat(dashboard.map().stationNodeImpacts()).hasSize(2);
+        assertThat(dashboard.activeAlerts()).hasSize(1);
+        assertThat(dashboard.delays()).hasSize(1);
+        assertThat(dashboard.plannedClosures()).isEmpty();
+        assertThat(dashboard.map().stationNodeImpacts()).hasSize(1);
         assertThat(dashboard.map().segments())
             .anySatisfy(segment -> assertThat(segment.impacts())
                 .extracting(impact -> impact.kind())
-                .contains("delay", "planned-closure"));
+                .contains("suspension"));
+        assertThat(dashboard.status().lines()).anySatisfy(line ->
+            assertThat(line.statusLabel()).contains("Advisory"));
     }
 
     @Test

@@ -72,4 +72,24 @@ class RegionalFeedApplicationServiceTest {
         verify(operationalStore, never()).deactivateMissing(MetrolinxSourceSystem.GO_GTFS_TRIP_UPDATES, Set.of("TU-1"));
         assertThat(counts).isEqualTo(new FeedApplicationCounts(3, 3, 1, 2));
     }
+
+    @Test
+    void revisionRemovesObsoleteImpactsButFailedSupplementalCollectionKeepsLastGoodRows() {
+        RegionalAlertStore alertStore = mock(RegionalAlertStore.class);
+        RegionalFeedApplicationService service = new RegionalFeedApplicationService(
+            alertStore, mock(RegionalOperationalSourceStore.class), CLOCK);
+        MetrolinxFetchedRecord revised = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M1", "{\"Code\":\"M1\"}");
+        MetrolinxFeed feed = new MetrolinxFeed(NOW, List.of(revised), Map.of(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, true,
+            MetrolinxSourceSystem.GO_GTFS_ALERTS, false));
+        when(alertStore.sourceIdsBySystem(feed)).thenReturn(Map.of(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, Set.of("M1")));
+
+        service.apply(feed, List.of(), List.of());
+
+        verify(alertStore).deactivateMissingAlerts(MetrolinxSourceSystem.GO_SERVICE_ALERTS, Set.of(), NOW);
+        verify(alertStore, never()).deactivateMissingAlerts(
+            MetrolinxSourceSystem.GO_GTFS_ALERTS, Set.of(), NOW);
+    }
 }

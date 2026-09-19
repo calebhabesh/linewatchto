@@ -66,6 +66,8 @@ public class DashboardController {
                     ? remaining
                     : cacheProperties.getFullDashboardTtl())
                 .orElse(cacheProperties.getFullDashboardTtl());
+            Duration boundary = regionalDashboardService.nextTransition().orElse(ttl);
+            if (boundary.compareTo(ttl) < 0) ttl = boundary;
             return cache.getOrCompute(
                 "dashboard:full:regional",
                 new TypeReference<DashboardResponses.DashboardResponse>() {},

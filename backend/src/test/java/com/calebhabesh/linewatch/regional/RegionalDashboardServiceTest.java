@@ -123,6 +123,42 @@ class RegionalDashboardServiceTest {
     }
 
     @Test
+    void uncertainNoticeDoesNotProduceAnOverlayOrAnAllClear() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(
+            "regional-go-uncertain-br", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "U1", "regional-br",
+            "advisory", "Barrie service notice", "Timing not verified. Possible closure.",
+            "Construction", null, null, OffsetDateTime.parse("2026-07-29T14:00:00-04:00"),
+            List.of("union", "downsview-park"), List.of(), "unknown", ""
+        )));
+
+        var dashboard = service.dashboard();
+        assertThat(dashboard.status().lines()).filteredOn(line -> line.id().equals("regional-br"))
+            .singleElement().satisfies(line -> {
+                assertThat(line.statusLabel()).contains("Advisory");
+                assertThat(line.summary()).contains("not verified");
+            });
+        assertThat(dashboard.map().segments()).allSatisfy(segment -> assertThat(segment.impacts()).isEmpty());
+        assertThat(dashboard.activeAlerts()).isEmpty();
+        assertThat(dashboard.plannedClosures()).isEmpty();
+    }
+
+    @Test
+    void failedSupplementalAlertCollectionDoesNotBecomeAnAllClear() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        when(runStore.findSourceStatuses(successfulRun().id())).thenReturn(List.of(
+            new RegionalIngestionRunStore.SourceStatus(
+                MetrolinxSourceSystem.GO_GTFS_ALERTS, false, 0, null)));
+
+        var dashboard = service.dashboard();
+        assertThat(dashboard.availability()).isEqualTo("degraded");
+        assertThat(dashboard.status().lines()).allSatisfy(line -> {
+            assertThat(line.status()).isEqualTo("ready");
+            assertThat(line.statusLabel()).isEqualTo("Alert coverage incomplete");
+        });
+    }
+
+    @Test
     void retainsFreshSuccessfulSnapshotWhileTheNextPollIsRunning() {
         IngestionRunSnapshot running = new IngestionRunSnapshot(
             8L, "running", OffsetDateTime.parse("2026-07-28T18:14:58Z"), null,

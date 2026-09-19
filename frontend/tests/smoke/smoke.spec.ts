@@ -14,7 +14,7 @@ test("loads TTC status and connects a map impact to its rider-facing detail", as
 
   await expect(page.getByRole("button", { name: "Center map view" }).first()).toBeVisible();
   await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
-  await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).click();
+  await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).press("Enter");
 
   if (isMobile) {
     const inspector = page.locator("[data-mobile-impact-inspector]");

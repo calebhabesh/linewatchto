@@ -60,15 +60,12 @@ class MetrolinxAlertNormalizerTest {
         assertThat(alerts).singleElement().satisfies(alert -> {
             assertThat(alert.sourceSystem()).isEqualTo(MetrolinxSourceSystem.GO_SERVICE_ALERTS);
             assertThat(alert.lineId()).isEqualTo("regional-ki");
-            assertThat(alert.impactKind()).isEqualTo("delay");
+            assertThat(alert.impactKind()).isEqualTo("advisory");
             assertThat(alert.description()).isEqualTo(
-                "Trips are operating five minutes later than usual from 3:30 PM to 6:45 PM."
+                "Timing not verified. Trips are operating five minutes later than usual from 3:30 PM to 6:45 PM."
             );
             assertThat(alert.stationIds()).containsExactly("bloor", "mount-dennis", "weston");
-            assertThat(alert.affectedSegmentIds()).containsExactly(
-                "segment-ki-bloor-mount-dennis",
-                "segment-ki-mount-dennis-weston"
-            );
+            assertThat(alert.affectedSegmentIds()).isEmpty();
         });
     }
 
@@ -110,7 +107,7 @@ class MetrolinxAlertNormalizerTest {
 
         assertThat(alerts).singleElement().satisfies(alert -> {
             assertThat(alert.lineId()).isEqualTo("regional-up");
-            assertThat(alert.impactKind()).isEqualTo("suspension");
+            assertThat(RegionalAlertProjection.at(alert, CLOCK.instant()).impactKind()).isEqualTo("suspension");
             assertThat(alert.stationIds()).containsExactly("weston", "pearson-airport");
             assertThat(alert.affectedSegmentIds()).containsExactly(
                 "segment-up-weston-pearson-airport"
@@ -170,7 +167,8 @@ class MetrolinxAlertNormalizerTest {
             assertThat(classification.activePeriodEnd())
                 .isEqualTo(OffsetDateTime.parse("2026-08-17T00:00:00-04:00"));
         });
-        assertThat(augustFourteenth.normalize(feed)).singleElement().satisfies(alert -> {
+        assertThat(augustFourteenth.normalize(feed)).filteredOn(alert -> !"advisory".equals(alert.impactKind()))
+            .singleElement().satisfies(alert -> {
             assertThat(alert.sourceSystem()).isEqualTo(MetrolinxSourceSystem.GO_SERVICE_ALERTS);
             assertThat(alert.lineId()).isEqualTo("regional-up");
             assertThat(alert.impactKind()).isEqualTo("planned-closure");
@@ -182,6 +180,8 @@ class MetrolinxAlertNormalizerTest {
                 "segment-up-weston-pearson-airport"
             );
         });
+        assertThat(augustFourteenth.normalize(feed)).filteredOn(alert -> "advisory".equals(alert.impactKind()))
+            .singleElement().satisfies(alert -> assertThat(alert.affectedSegmentIds()).isEmpty());
     }
 
     @Test
@@ -279,7 +279,8 @@ class MetrolinxAlertNormalizerTest {
             Instant.parse("2026-07-29T20:00:00Z"), ZoneOffset.UTC
         ));
         assertThat(activeWindowNormalizer.normalize(feed)).singleElement()
-            .extracting(RegionalNormalizedAlert::impactKind).isEqualTo("suspension");
+            .extracting(alert -> RegionalAlertProjection.at(alert, Instant.parse("2026-07-29T20:00:00Z")).impactKind())
+            .isEqualTo("suspension");
     }
 
     @Test
@@ -299,7 +300,7 @@ class MetrolinxAlertNormalizerTest {
         MetrolinxFeed feed = feed(record);
 
         assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
-            assertThat(classification.timing()).isEqualTo("current");
+            assertThat(classification.timing()).isEqualTo("unknown");
             assertThat(classification.serviceEffect()).isEqualTo("delay");
             assertThat(classification.operatingChange()).isEqualTo("reduced-speed");
             assertThat(classification.scope()).isEqualTo("segment-span");
@@ -307,9 +308,9 @@ class MetrolinxAlertNormalizerTest {
             assertThat(classification.maximumDelayMinutes()).isEqualTo(20);
         });
         assertThat(normalizer.normalize(feed)).singleElement().satisfies(alert -> {
-            assertThat(alert.impactKind()).isEqualTo("delay");
+            assertThat(alert.impactKind()).isEqualTo("advisory");
             assertThat(alert.stationIds()).containsExactly("kitchener", "stratford");
-            assertThat(alert.affectedSegmentIds()).containsExactly("segment-ki-kitchener-stratford");
+            assertThat(alert.affectedSegmentIds()).isEmpty();
         });
     }
 
@@ -408,12 +409,7 @@ class MetrolinxAlertNormalizerTest {
         });
         assertThat(normalizer.normalize(feed)).singleElement().satisfies(alert -> {
             assertThat(alert.stationIds()).containsExactly("stouffville", "unionville");
-            assertThat(alert.affectedSegmentIds()).containsExactly(
-                "segment-st-unionville-centennial",
-                "segment-st-centennial-markham",
-                "segment-st-markham-mount-joy",
-                "segment-st-mount-joy-stouffville"
-            );
+            assertThat(alert.affectedSegmentIds()).isEmpty();
         });
     }
 
@@ -502,7 +498,8 @@ class MetrolinxAlertNormalizerTest {
             Instant.parse("2026-08-15T16:00:00Z"), ZoneOffset.UTC
         ));
         assertThat(duringClosure.normalize(feed)).singleElement()
-            .extracting(RegionalNormalizedAlert::impactKind).isEqualTo("suspension");
+            .extracting(alert -> RegionalAlertProjection.at(alert, Instant.parse("2026-08-15T16:00:00Z")).impactKind())
+            .isEqualTo("suspension");
 
         MetrolinxAlertNormalizer afterClosure = new MetrolinxAlertNormalizer(Clock.fixed(
             Instant.parse("2026-08-17T04:00:00Z"), ZoneOffset.UTC
@@ -572,9 +569,92 @@ class MetrolinxAlertNormalizerTest {
              "Lines":[{"Code":"LE"}],"Stops":[]}
             """));
         assertThat(normalizer.normalize(input)).singleElement().satisfies(alert -> {
-            assertThat(alert.impactKind()).isEqualTo("planned-closure");
+            assertThat(alert.impactKind()).isEqualTo("advisory");
             assertThat(alert.lineId()).isEqualTo("regional-le");
-            assertThat(alert.affectedSegmentIds()).isNotEmpty();
+            assertThat(alert.affectedSegmentIds()).isEmpty();
+        });
+    }
+
+    @Test
+    void keepsSeptemberWeekendClosureSeparateFromMondayScheduleAndEarlierUncertainStart() throws Exception {
+        MetrolinxFetchedRecord notice = serviceAlert("""
+            {"Code":"M0000528001","PostedDateTime":"2026-09-18 09:00:00",
+             "SubjectEnglish":"UP Express closure September 19–20",
+             "BodyEnglish":"Starting late-evening tonight, GO buses replace UP Express trains. No train service on the UP Express line September 19–20. On Monday September 21, the timetable will be adjusted.",
+             "Lines":[{"Code":"UP"}],"Stops":[]}
+            """);
+        MetrolinxFeed input = feed(notice);
+        var classified = normalizer.classify(input).getFirst();
+        assertThat(classified.impacts()).extracting(RegionalAlertClassification.Impact::serviceEffect)
+            .contains("no-service", "service-adjustment");
+        assertThat(classified.impacts()).filteredOn(impact -> "late-evening".equals(impact.id()))
+            .singleElement().satisfies(impact -> {
+                assertThat(impact.start()).isNull();
+                assertThat(impact.uncertainty()).contains("exact time unknown");
+            });
+        assertThat(normalizer.normalize(input)).filteredOn(alert -> "planned-closure".equals(alert.impactKind()))
+            .singleElement().satisfies(alert -> {
+                assertThat(alert.activePeriodStart()).isEqualTo(OffsetDateTime.parse("2026-09-19T00:00:00-04:00"));
+                assertThat(alert.activePeriodEnd()).isEqualTo(OffsetDateTime.parse("2026-09-21T00:00:00-04:00"));
+                assertThat(RegionalAlertProjection.at(alert, Instant.parse("2026-09-18T20:00:00Z")).impactKind())
+                    .isEqualTo("planned-closure");
+                assertThat(RegionalAlertProjection.at(alert, Instant.parse("2026-09-19T04:00:00Z")).impactKind())
+                    .isEqualTo("suspension");
+                assertThat(RegionalAlertProjection.at(alert, Instant.parse("2026-09-21T04:00:00Z"))).isNull();
+            });
+    }
+
+    @Test
+    void preservesTwoBarriePeriodsAndOnlyClosesTheExplicitlyDisruptedSpan() throws Exception {
+        MetrolinxFetchedRecord notice = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_GTFS_ALERTS, "two-periods", """
+            {"id":"two-periods","alert":{
+             "active_period":[
+                {"start":1791028800,"end":1791050400},
+                {"start":1791115200,"end":1791136800}],
+             "effect":"NO_SERVICE",
+             "header_text":{"translation":[{"language":"en","text":"Barrie closure"}]},
+             "description_text":{"translation":[{"language":"en","text":"No train service between Union Station and Downsview Park GO. Trains run between Aurora GO and Downsview Park GO."}]},
+             "informed_entity":[{"route_id":"BR"}]}}
+            """);
+        List<RegionalNormalizedAlert> alerts = normalizer.normalize(feed(notice));
+        assertThat(alerts).hasSize(2);
+        assertThat(alerts).allSatisfy(alert -> {
+            assertThat(alert.stationIds()).containsExactly("union", "downsview-park");
+            assertThat(alert.affectedSegmentIds()).doesNotContain("segment-br-downsview-park-rutherford");
+        });
+        assertThat(alerts.stream().map(alert -> RegionalAlertProjection.at(alert,
+            Instant.parse("2026-10-03T15:00:00Z"))).filter(java.util.Objects::nonNull)
+            .map(RegionalNormalizedAlert::impactKind)).containsExactlyInAnyOrder("suspension", "planned-closure");
+        assertThat(alerts.stream().map(alert -> RegionalAlertProjection.at(alert,
+            Instant.parse("2026-10-03T23:00:00Z"))).filter(java.util.Objects::nonNull)
+            .map(RegionalNormalizedAlert::impactKind)).doesNotContain("suspension");
+    }
+
+    @Test
+    void dateOnlyWindowUsesTorontoMidnightAcrossFallDstAndMissingContextStaysUnknown() {
+        var parsed = RegionalAlertTextDateParser.ranges("October 31–November 1", OffsetDateTime.parse("2026-10-30T12:00:00-04:00"));
+        assertThat(parsed).singleElement().satisfies(range -> {
+            assertThat(range.start()).isEqualTo(OffsetDateTime.parse("2026-10-31T00:00:00-04:00"));
+            assertThat(range.endExclusive()).isEqualTo(OffsetDateTime.parse("2026-11-02T00:00:00-05:00"));
+        });
+        assertThat(RegionalAlertTextDateParser.ranges("October 31–November 1", null)).isEmpty();
+    }
+
+    @Test
+    void partialStructuredTimingRetainsKnownStartWithoutAClosureOverlay() {
+        MetrolinxFetchedRecord notice = upAlert("partial-start", """
+            {"id":"partial-start","alert":{
+             "active_period":[{"start":1785348000}],"effect":"NO_SERVICE",
+             "header_text":{"translation":[{"language":"en","text":"UP service notice"}]},
+             "description_text":{"translation":[{"language":"en","text":"No train service between Weston and Pearson."}]},
+             "informed_entity":[{"stop_id":"WE"},{"stop_id":"PA"}]}}
+            """);
+        assertThat(normalizer.normalize(feed(notice))).singleElement().satisfies(alert -> {
+            assertThat(alert.impactKind()).isEqualTo("advisory");
+            assertThat(alert.activePeriodStart()).isEqualTo(OffsetDateTime.parse("2026-07-29T18:00:00Z"));
+            assertThat(alert.activePeriodEnd()).isNull();
+            assertThat(alert.affectedSegmentIds()).isEmpty();
         });
     }
 

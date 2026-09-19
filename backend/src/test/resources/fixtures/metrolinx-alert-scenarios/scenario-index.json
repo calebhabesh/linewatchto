@@ -6,11 +6,11 @@
       "file": "all-alert-types.json",
       "goRecordCount": 9,
       "upRecordCount": 3,
-      "normalizedAlertCount": 12,
+      "normalizedAlertCount": 11,
       "accessibilityCount": 3,
       "impactKinds": [
+        "advisory",
         "delay",
-        "suspension",
         "planned-closure"
       ],
       "lineIds": [
@@ -24,7 +24,7 @@
         "regional-up"
       ],
       "scopes": [
-        "route-wide",
+        "unverified",
         "segment",
         "station"
       ],
@@ -41,16 +41,14 @@
       "normalizedAlertCount": 3,
       "accessibilityCount": 0,
       "impactKinds": [
-        "delay",
-        "planned-closure"
+        "advisory"
       ],
       "lineIds": [
         "regional-le",
         "regional-lw"
       ],
       "scopes": [
-        "route-wide",
-        "segment"
+        "unverified"
       ],
       "recordOrigins": [
         "synthetic"
@@ -64,13 +62,13 @@
       "normalizedAlertCount": 1,
       "accessibilityCount": 3,
       "impactKinds": [
-        "suspension"
+        "advisory"
       ],
       "lineIds": [
         "regional-ki"
       ],
       "scopes": [
-        "station"
+        "unverified"
       ],
       "recordOrigins": [
         "synthetic",
@@ -82,18 +80,16 @@
       "file": "up-service-alerts.json",
       "goRecordCount": 0,
       "upRecordCount": 3,
-      "normalizedAlertCount": 3,
+      "normalizedAlertCount": 2,
       "accessibilityCount": 0,
       "impactKinds": [
         "delay",
-        "suspension",
         "planned-closure"
       ],
       "lineIds": [
         "regional-up"
       ],
       "scopes": [
-        "route-wide",
         "segment",
         "station"
       ],

@@ -61,6 +61,19 @@ class RegionalLineSubscriptionPushPlannerTest {
     }
 
     @Test
+    void uncertainNoticeCannotProduceADefiniteLineNotification() {
+        when(freshness.isFresh()).thenReturn(true);
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(
+            "regional-uncertain", "metrolinx-go-service-alerts", "M-uncertain", "regional-br",
+            "advisory", "Possible closure", "Timing unverified", "construction", null, null,
+            OffsetDateTime.parse("2026-07-29T11:00:00Z"), List.of(), List.of(), "unknown", ""
+        )));
+        assertThat(planner.candidatesFor(
+            "user_1", List.of("regional-br"), PlannedClosureFollowUpPolicy.SMART
+        )).isEmpty();
+    }
+
+    @Test
     void feedTimestampRefreshDoesNotChangeRegionalNotificationIdentity() {
         RegionalNormalizedAlert firstPoll = alertWithSourceUpdatedAt("2026-08-03T19:20:00Z");
         RegionalNormalizedAlert secondPoll = alertWithSourceUpdatedAt("2026-08-03T19:25:00Z");

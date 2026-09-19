@@ -305,6 +305,15 @@
   transition: none;
 }
 
+.regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-interactive-glow.selection-intro-complete {
+  animation-name: var(--selection-breathe-name);
+  animation-duration: var(--selection-breathe-duration);
+  animation-delay: 0s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-fill-mode: none;
+}
+
 @keyframes regional-selection-path-intro {
   0%, 25%, 50%, 75%, 100% {
     opacity: 0.4;

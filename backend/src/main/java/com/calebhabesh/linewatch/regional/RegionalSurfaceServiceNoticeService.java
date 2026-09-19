@@ -59,8 +59,7 @@ public class RegionalSurfaceServiceNoticeService {
         repository.findActiveRecords(now.minus(properties.getMaxDashboardAge())).stream()
             .sorted(java.util.Comparator.comparingInt(record ->
                 MetrolinxSourceSystem.GO_GTFS_ALERTS.equals(record.sourceSystem()) ? 1 : 0))
-            .map(this::normalize)
-            .filter(java.util.Objects::nonNull)
+            .flatMap(record -> normalizeAll(record).stream())
             .forEach(notice -> unique.putIfAbsent(notice.id(), notice));
         List<NoticeDetail> all = unique.values().stream()
             .sorted((left, right) -> compareTimes(right.updatedAt(), left.updatedAt()))
@@ -80,6 +79,44 @@ public class RegionalSurfaceServiceNoticeService {
             .limit(resultLimit)
             .toList();
         return new SurfaceServiceNoticesResponse(now, true, SOURCE, summaries, notices);
+    }
+
+    private List<NoticeDetail> normalizeAll(SourceRecord record) {
+        NoticeDetail ordinary = normalize(record);
+        List<NoticeDetail> notices = new ArrayList<>();
+        if (ordinary != null) notices.add(ordinary);
+        if (!MetrolinxSourceSystem.GO_SERVICE_ALERTS.equals(record.sourceSystem())
+            || record.classificationJson() == null) return notices;
+        try {
+            RegionalAlertClassification classification = objectMapper.readValue(
+                record.classificationJson(), RegionalAlertClassification.class);
+            JsonNode message = objectMapper.readTree(record.rawPayload());
+            List<String> routes = values(message.path("Lines"), "Code").stream()
+                .map(this::canonicalRouteCode).distinct().toList();
+            for (RegionalAlertClassification.Impact impact : classification.impacts()) {
+                boolean timetable = "service-adjustment".equals(impact.serviceEffect())
+                    && impact.id().startsWith("timetable-");
+                if (!timetable && impact.uncertainty() == null) continue;
+                String title = timetable ? "Timetable adjustment — " + classification.title()
+                    : "Advisory — " + classification.title();
+                String description = timetable
+                    ? "Separate timetable adjustment mentioned in this Metrolinx notice. "
+                        + classification.description()
+                    : impact.uncertainty() + ". " + classification.description();
+                notices.add(new NoticeDetail(
+                    "regional-notice-" + safeId(noticeId(record.sourceId())) + "-" + safeId(impact.id()),
+                    timetable ? "service-change" : "notice", "GO / UP", routes,
+                    EnglishClockTextFormatter.toTwelveHourClock(title),
+                    EnglishClockTextFormatter.toTwelveHourClock(description),
+                    "", List.of(), List.of(), null, timetable ? "Timetable" : "Timing or scope unverified",
+                    impact.start(), impact.endExclusive(), record.lastSeenAt(), null, SOURCE,
+                    timetable, null
+                ));
+            }
+        } catch (Exception ignored) {
+            // A malformed persisted classification cannot hide an ordinary source notice.
+        }
+        return notices;
     }
 
     private NoticeDetail normalize(SourceRecord record) {

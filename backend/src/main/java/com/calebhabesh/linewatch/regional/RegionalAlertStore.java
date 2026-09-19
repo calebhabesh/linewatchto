@@ -3,11 +3,14 @@ package com.calebhabesh.linewatch.regional;
 import com.calebhabesh.linewatch.alert.RawAlertDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -18,10 +21,22 @@ public class RegionalAlertStore {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper objectMapper;
+    private final Clock clock;
+    private final MetrolinxProperties properties;
 
     public RegionalAlertStore(NamedParameterJdbcTemplate jdbc, ObjectMapper objectMapper) {
+        this(jdbc, objectMapper, Clock.systemUTC(), new MetrolinxProperties());
+    }
+
+    @Autowired
+    public RegionalAlertStore(
+        NamedParameterJdbcTemplate jdbc, ObjectMapper objectMapper, Clock clock,
+        MetrolinxProperties properties
+    ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.clock = clock;
+        this.properties = properties;
     }
 
     public void upsertSource(MetrolinxFetchedRecord record, OffsetDateTime now) {
@@ -130,13 +145,18 @@ public class RegionalAlertStore {
 
     private void snapshotIfChanged(String alertId, OffsetDateTime now) {
         jdbc.update("""
+            with projected as (
+                select a.id, a.line_id, a.impact_kind, a.title, a.station_ids,
+                       (a.active and a.impact_kind <> 'advisory'
+                        and (a.active_period_end is null or a.active_period_end > :now)) as active
+                from regional_alerts a where a.id = :alertId
+            )
             insert into regional_alert_snapshots (
                 alert_id, line_id, impact_kind, title, station_ids, active, snapshot_time
             )
             select a.id, a.line_id, a.impact_kind, a.title, a.station_ids, a.active, :now
-            from regional_alerts a
-            where a.id = :alertId
-              and not exists (
+            from projected a
+            where not exists (
                   select 1
                   from regional_alert_snapshots s
                   where s.id = (
@@ -182,9 +202,10 @@ public class RegionalAlertStore {
                    cause, active_period_start, active_period_end, source_updated_at,
                    station_ids::text, affected_segment_ids::text, active_period_basis
             from regional_alerts
-            where active = true
+            where active = true and source_updated_at >= :seenAfter
             order by source_updated_at desc nulls last, id
-            """, (resultSet, rowNumber) -> new RegionalNormalizedAlert(
+            """, new MapSqlParameterSource("seenAfter", OffsetDateTime.now(clock)
+                .minus(properties.getMaxDashboardAge())), (resultSet, rowNumber) -> new RegionalNormalizedAlert(
                 resultSet.getString("id"),
                 resultSet.getString("source_system"),
                 resultSet.getString("source_id"),
@@ -200,7 +221,25 @@ public class RegionalAlertStore {
                 strings(resultSet.getString("affected_segment_ids")),
                 resultSet.getString("active_period_basis"),
                 ""
-            ));
+            )).stream().map(alert -> RegionalAlertProjection.at(alert, clock.instant()))
+            .filter(java.util.Objects::nonNull).toList();
+    }
+
+    public java.util.Optional<Duration> nextTransition() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        OffsetDateTime next = jdbc.queryForObject("""
+            select min(boundary) from (
+                select active_period_start as boundary from regional_alerts
+                where active and active_period_start > :now and source_updated_at >= :seenAfter
+                union all
+                select active_period_end as boundary from regional_alerts
+                where active and active_period_end > :now and source_updated_at >= :seenAfter
+            ) transitions
+            """, new MapSqlParameterSource("now", now)
+                .addValue("seenAfter", now.minus(properties.getMaxDashboardAge())),
+            OffsetDateTime.class);
+        return next == null ? java.util.Optional.empty()
+            : java.util.Optional.of(Duration.between(now, next));
     }
 
     public List<StoredClassification> findActiveClassifications(

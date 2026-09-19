@@ -130,7 +130,8 @@ class RegionalSurfaceServiceNoticeServiceTest {
     }
 
     private RegionalSurfaceServiceNoticeService service() {
-        return new RegionalSurfaceServiceNoticeService(repository, freshness, new com.fasterxml.jackson.databind.ObjectMapper(), CLOCK, properties);
+        return new RegionalSurfaceServiceNoticeService(repository, freshness,
+            new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules(), CLOCK, properties);
     }
 
     @Test
@@ -239,6 +240,34 @@ class RegionalSurfaceServiceNoticeServiceTest {
                     assertThat(notice.stopIds()).isEmpty();
                 });
         }
+    }
+
+    @Test
+    void exposesLinkedTimetableAndUncertainStartAsNotices() throws Exception {
+        String payload = """
+            {"Code":"M0000528001","PostedDateTime":"2026-09-18 09:00:00",
+             "SubjectEnglish":"UP Express closure September 19–20",
+             "BodyEnglish":"Starting late-evening tonight, GO buses replace UP Express trains. No train service on the UP Express line September 19–20. On Monday September 21, the timetable will be adjusted.",
+             "Lines":[{"Code":"UP"}],"Stops":[]}
+            """;
+        MetrolinxFetchedRecord record = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M0000528001", payload);
+        var classification = new MetrolinxAlertNormalizer(CLOCK).classify(new MetrolinxFeed(
+            OffsetDateTime.parse("2026-09-18T14:00:00Z"), List.of(record), java.util.Map.of())).getFirst();
+        String json = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules()
+            .writeValueAsString(classification);
+        when(freshness.isFresh()).thenReturn(true);
+        when(properties.getMaxDashboardAge()).thenReturn(java.time.Duration.ofMinutes(10));
+        when(repository.findActiveRecords(any())).thenReturn(List.of(
+            new RegionalSurfaceServiceNoticeReadRepository.SourceRecord(
+                record.sourceSystem(), record.sourceId(), payload,
+                OffsetDateTime.parse("2026-09-18T14:00:00Z"), json)));
+
+        var notices = service().getSurfaceNotices(null, null, null).notices();
+        assertThat(notices).extracting(notice -> notice.title())
+            .anySatisfy(title -> assertThat(title).startsWith("Advisory"))
+            .anySatisfy(title -> assertThat(title).startsWith("Timetable adjustment"));
+        assertThat(notices).allSatisfy(notice -> assertThat(notice.routeIds()).contains("UP"));
     }
 
     private RegionalSurfaceServiceNoticeReadRepository.SourceRecord record(String source, String id, String payload) {

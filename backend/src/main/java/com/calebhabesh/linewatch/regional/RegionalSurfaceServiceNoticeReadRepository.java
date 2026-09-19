@@ -14,11 +14,19 @@ public class RegionalSurfaceServiceNoticeReadRepository {
         this.jdbc = jdbc;
     }
 
-    public record SourceRecord(String sourceSystem, String sourceId, String rawPayload, OffsetDateTime lastSeenAt) {}
+    public record SourceRecord(
+        String sourceSystem, String sourceId, String rawPayload, OffsetDateTime lastSeenAt,
+        String classificationJson
+    ) {
+        public SourceRecord(String sourceSystem, String sourceId, String rawPayload, OffsetDateTime lastSeenAt) {
+            this(sourceSystem, sourceId, rawPayload, lastSeenAt, null);
+        }
+    }
 
     public List<SourceRecord> findActiveRecords(OffsetDateTime seenAfter) {
         return jdbc.query("""
-            select source_system, source_id, payload::text, last_seen_at
+            select source_system, source_id, payload::text, last_seen_at,
+                   deterministic_classification::text as classification_json
             from metrolinx_alert_source_records
             where source_system in (:sourceSystems)
               and active = true
@@ -33,7 +41,8 @@ public class RegionalSurfaceServiceNoticeReadRepository {
                 resultSet.getString("source_system"),
                 resultSet.getString("source_id"),
                 resultSet.getString("payload"),
-                resultSet.getObject("last_seen_at", OffsetDateTime.class)
+                resultSet.getObject("last_seen_at", OffsetDateTime.class),
+                resultSet.getString("classification_json")
             ));
     }
 }
