@@ -6181,7 +6181,7 @@ export function LineWatchShell({
               <NetworkMap
                 network={selectedNetwork}
                 isMapActive={!showClosedScreen}
-                animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
+                animateInitialEntrance={false}
                 deferInitialEntrance={disclaimerVisible
                   || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
                   || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
@@ -6236,7 +6236,7 @@ export function LineWatchShell({
           <NetworkMap
             network={selectedNetwork}
             isMapActive={activeView === "map" && !isClosingSearch}
-            animateInitialEntrance={!initialMapReady && !mobileMapPerformanceMode}
+            animateInitialEntrance={false}
             deferInitialEntrance={disclaimerVisible
               || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
               || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}

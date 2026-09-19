@@ -1,5 +1,31 @@
 import { test, expect } from '@playwright/test';
 import { installDismissedTransientUi, setStubMode } from './test-support';
+
+for (const network of ['ttc', 'regional'] as const) {
+  test(`desktop ${network} opens at the fitted camera even with a saved session viewport`, async ({ page, request, isMobile }) => {
+    test.skip(isMobile);
+    await page.setViewportSize({ width: 2048, height: 1164 });
+    await setStubMode(request, 'seeded');
+    await installDismissedTransientUi(page);
+    await page.addInitScript((selectedNetwork) => {
+      localStorage.setItem('linewatch-seen-release-notes-version', '1.1.0');
+      localStorage.setItem('linewatch-default-network-v1', selectedNetwork);
+      sessionStorage.setItem(`linewatch-map-viewport-v1:${selectedNetwork}`, JSON.stringify({
+        version: 1, centerX: 2500, centerY: 1100, zoom: 2.3,
+      }));
+    }, network);
+    await page.goto('/');
+    await expect(page.locator('.linewatch-shell')).toHaveAttribute('data-network', network);
+    const stage = page.locator(network === 'ttc' ? '.ttc-map-stage' : '.regional-map-stage');
+    await expect(stage).toHaveAttribute('data-raster-map-ready', 'true');
+    await expect(stage).toBeVisible();
+    const opening = await stage.evaluate((element) => getComputedStyle(element).transform);
+    await page.getByRole('button', { name: 'Center map view', exact: true }).click();
+    const fitted = await stage.evaluate((element) => getComputedStyle(element).transform);
+    expect(opening).toBe(fitted);
+  });
+}
+
 for (const network of ['ttc', 'regional']) {
  test(`${network} mobile camera survives reload and Center clears the saved view`, async ({page,request,isMobile})=>{
   test.skip(!isMobile);

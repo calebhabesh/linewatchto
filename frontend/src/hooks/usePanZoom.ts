@@ -185,6 +185,7 @@ export function usePanZoom({
         viewportOrientation,
         containerRef.current?.clientWidth ?? 0,
       );
+      mapRef.current.style.visibility = "visible";
     }
   }, [viewportOrientation]);
 
@@ -303,6 +304,10 @@ export function usePanZoom({
       Math.abs(transformRef.current.y - snapped.y) < 0.5 &&
       Math.abs(transformRef.current.scale - snapped.scale) < 0.0001
     ) {
+      if (!mapRef.current?.style.transform) {
+        setMapTransition("none");
+        writeMapTransform(snapped);
+      }
       if (nextFitScale !== undefined && nextFitScale !== fitScaleRef.current) {
         fitScaleRef.current = nextFitScale;
         setFitScale(nextFitScale);
@@ -901,8 +906,7 @@ export function usePanZoom({
   ]);
 
   const restoreViewport = useMapViewportPersistence(persistenceKey, transform, fitScale, logicalViewportSize,
-    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !persistenceBlocked && viewportOrientation === "standard",
-    () => cameraInitializedRef.current && viewportOrientation === "standard");
+    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !persistenceBlocked && viewportOrientation === "standard");
   const restoreSavedCamera = useCallback(() => {
     if (persistenceBlocked || viewportOrientation !== "standard") return false;
     const { width, height } = logicalViewportSize();

@@ -68,14 +68,14 @@ describe("privacy and acknowledgement navigation", () => {
     assert.match(shellSource, /navigateForward\("privacy-acknowledgements"\)/);
     assert.match(shellSource, /Privacy & Acknowledgements/);
     assert.match(moreSheetSource, /onOpenPrivacyAcknowledgements/);
-    assert.match(moreSheetSource, /Privacy & Acknowledgements/);
+    assert.match(moreSheetSource, /Privacy &amp; Acknowledgements/);
   });
 
   it("shows both derivative-map attributions directly in mobile More", () => {
     assert.match(moreSheetSource, /Map Attribution/);
-    assert.match(moreSheetSource, /Independently re-created in Inkscape/);
-    assert.match(moreSheetSource, /Based on the TTC route map/);
-    assert.match(moreSheetSource, /Based on the Metrolinx system map/);
+    assert.match(moreSheetSource, /Diagrams independently re-created in Inkscape/);
+    assert.match(moreSheetSource, /Diagram based on the TTC route map/);
+    assert.match(moreSheetSource, /Diagram based on the Metrolinx system map/);
     assert.match(moreSheetSource, /Derivative replicas · Not downloaded originals · Not to scale/);
     assert.match(moreSheetSource, /aria-label="Map Attribution"/);
     assert.match(globalCss, /\.mobile-more-map-attribution-sources\s*\{[^}]*display:\s*grid;/s);

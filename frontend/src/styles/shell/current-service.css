@@ -1821,16 +1821,16 @@
   /* Both children anchor absolutely to the cluster */
   .linewatch-shell .mobile-train-left-cluster .mobile-train-toggle,
   .linewatch-shell .mobile-train-left-cluster .mobile-map-view-toggle {
-    position: absolute !important;
-    left: 0 !important;
-    right: 0 !important;
+    position: absolute;
+    left: 0;
+    right: 0;
     width: 100%;
     padding: var(--mobile-train-toggle-padding, 4px);
   }
   /* Map view toggle: bottom of the cluster */
   .linewatch-shell .mobile-train-left-cluster .mobile-map-view-toggle {
-    bottom: 0 !important;
-    top: auto !important;
+    bottom: 0;
+    top: auto;
     height: var(--mobile-train-toggle-height, 54px);
     min-height: var(--mobile-train-toggle-height, 54px);
   }

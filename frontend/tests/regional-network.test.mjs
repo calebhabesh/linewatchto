@@ -175,7 +175,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(networkChangeBody, /setMapEntranceSignal/);
     assert.doesNotMatch(networkMapSource, /key=\{network\}/);
     assert.doesNotMatch(regionalMapSource, /startInitialFlyIn/);
-    assert.match(shellSource, /animateInitialEntrance=\{!initialMapReady && !mobileMapPerformanceMode\}/);
+    assert.equal((shellSource.match(/animateInitialEntrance=\{false\}/g) ?? []).length, 2);
     assert.match(regionalMapSource, /const initializeMapCamera = useCallback/);
     assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\) \{[\s\S]*computeFittedCameraFlyInStart[\s\S]*animateCameraTo\(fitted\.camera, fitted\.scale\)/);
     assert.match(
@@ -184,11 +184,11 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("runs one readiness-gated desktop entrance for the initially preferred map", () => {
+  it("starts the initially preferred diagram at its fitted camera", () => {
     assert.match(shellSource, /const \[initialMapReady, setInitialMapReady\] = useState\(false\)/);
     assert.match(
       shellSource,
-      /animateInitialEntrance=\{!initialMapReady && !mobileMapPerformanceMode\}/,
+      /animateInitialEntrance=\{false\}/,
     );
     assert.match(shellSource, /onMapReady=\{handleMapReady\}/);
     assert.match(

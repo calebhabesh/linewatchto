@@ -386,10 +386,10 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
   });
 
-  it("limits the fitted-camera entrance to initial page load", () => {
+  it("opens diagram maps at the fitted camera", () => {
     assert.doesNotMatch(shellSource, /mapEntranceSignal|previousEntranceViewRef/);
     assert.doesNotMatch(shellSource, /entranceSignal=/);
-    assert.match(shellSource, /animateInitialEntrance=\{!initialMapReady && !mobileMapPerformanceMode\}/);
+    assert.equal((shellSource.match(/animateInitialEntrance=\{false\}/g) ?? []).length, 2);
   });
 
   it("uses a paint-only mobile entrance reveal without animating map-stage opacity or entrance fade", () => {

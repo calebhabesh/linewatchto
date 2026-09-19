@@ -132,8 +132,8 @@ describe("Desktop Sidebar Polish — Checkpoint 2 (Steps 3, 4, 5)", () => {
 
   describe("Step 5: Polish desktop map legends", () => {
     it("enlarges desktop TTC route badge and number font", () => {
-      assert.match(globalCss, /\.desktop-legend-route-badge--ttc\s*\{[^}]*height:\s*40px;[^}]*width:\s*40px;/s);
-      assert.match(globalCss, /\.desktop-legend-route-badge--ttc \.desktop-legend-route-number\s*\{[^}]*font-size:\s*22px;/s);
+      assert.match(globalCss, /\.desktop-legend-route-badge--ttc\s*\{[^}]*height:\s*44px;[^}]*width:\s*44px;/s);
+      assert.match(globalCss, /\.desktop-legend-route-badge--ttc \.desktop-legend-route-number\s*\{[^}]*font-size:\s*24px;/s);
     });
 
     it("reduces TTC alert count bubbles and scales vector label", () => {
@@ -152,8 +152,8 @@ describe("Desktop Sidebar Polish — Checkpoint 2 (Steps 3, 4, 5)", () => {
       // Regional legend positioning (inset right: 14px, bottom: 28px)
       assert.match(globalCss, /\.desktop-map-legend--regional\s*\{[^}]*right:\s*14px;[^}]*bottom:\s*28px;/s);
 
-      // Line name text size increased to 20px
-      assert.match(lineLegendSource, /isRegional \? "text-\[20px\]" : "text-\[20px\]"/);
+      // Regional names use 22px; TTC names use 24px.
+      assert.match(lineLegendSource, /isRegional \? "text-\[22px\]" : "text-\[24px\]"/);
 
       // Chooser keepouts protects desktop map legend
       assert.match(chooserKeepoutsSource, /"\.desktop-map-legend"/);

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { installDismissedTransientUi } from "./test-support";
 
 const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
 const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
@@ -9,11 +10,7 @@ for (const network of ["ttc", "regional"] as const) {
     test.slow();
     await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
     await page.setViewportSize({ width: 393, height: 556 });
-    await page.addInitScript(() => {
-      localStorage.setItem("linewatch-welcome-seen-v1", "true");
-      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-      localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-    });
+    await installDismissedTransientUi(page);
     await page.goto(openMapPreviewUrl);
     if (network === "regional") {
       const switcher = page.locator(".mobile-map-network-switch");
@@ -101,11 +98,7 @@ for (const network of ["ttc", "regional"] as const) {
     test.slow();
     await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
     await page.setViewportSize({ width: 393, height: 556 });
-    await page.addInitScript(() => {
-      localStorage.setItem("linewatch-welcome-seen-v1", "true");
-      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-      localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-    });
+    await installDismissedTransientUi(page);
     await page.goto(openMapPreviewUrl);
     if (network === "regional") {
       const switcher = page.locator(".mobile-map-network-switch");
@@ -144,11 +137,7 @@ for (const network of ["ttc", "regional"] as const) {
     test.slow();
     await request.post(`${stubUrl}/__test/mode`, { data: { mode: "seeded" } });
     await page.setViewportSize({ width: 393, height: 556 });
-    await page.addInitScript(() => {
-      localStorage.setItem("linewatch-welcome-seen-v1", "true");
-      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-      localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-    });
+    await installDismissedTransientUi(page);
     await page.goto(openMapPreviewUrl);
     if (network === "regional") {
       const switcher = page.locator(".mobile-map-network-switch");

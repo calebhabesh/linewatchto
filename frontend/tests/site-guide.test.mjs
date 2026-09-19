@@ -158,7 +158,7 @@ describe("site guide dropdown", () => {
     const guideSource = readFileSync(guideComponentUrl, "utf8");
     assert.match(guideSource, /export function SiteGuideDropdown/);
     assert.match(guideSource, /\/assets\/linewatch\/site-guide\.svg/);
-    assert.match(guideSource, /\/assets\/linewatch\/transportation-train\.svg/);
+    assert.match(guideSource, /\/assets\/linewatch\/logo\.svg/);
     assert.match(guideSource, /\/assets\/linewatch\/info-map-overlays\//);
     for (const assetName of infoOverlayAssetNames) {
       assert.match(guideSource, new RegExp(assetName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));

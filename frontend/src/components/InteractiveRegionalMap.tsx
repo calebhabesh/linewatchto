@@ -3406,8 +3406,7 @@ function InteractiveRegionalMapComponent({
   }, [reducedMotion, resetNetworkCamera]);
 
   const restoreViewport = useMapViewportPersistence("regional", camera, fitScale, logicalViewportSize,
-    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !selection && !selectedStationId && !commutePathPreview && viewportOrientation === "standard",
-    () => cameraInitializedRef.current && viewportOrientation === "standard");
+    () => cameraInitializedRef.current && cameraAdjustedByUserRef.current && !selection && !selectedStationId && !commutePathPreview && viewportOrientation === "standard");
   const restoreSavedCamera = useCallback(() => {
     if (selection || selectedStationId || commutePathPreview || viewportOrientation !== "standard") return false;
     const fitted = fittedCamera();

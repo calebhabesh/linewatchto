@@ -2142,6 +2142,7 @@ function InteractiveTtcMapComponent({
               width: "4500px",
               height: "2181.8px",
               transformOrigin: "0 0",
+              visibility: "hidden",
             }}
           >
             <style>

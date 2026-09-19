@@ -39,8 +39,8 @@ describe("regional alert scenario catalog", () => {
         "regional-mi", "regional-rh", "regional-st", "regional-up",
       ],
     );
-    assert.deepEqual(expected.impactKinds, ["delay", "suspension", "planned-closure"]);
-    assert.deepEqual(expected.scopes, ["route-wide", "segment", "station"]);
+    assert.deepEqual(expected.impactKinds, ["advisory", "delay", "planned-closure"]);
+    assert.deepEqual(expected.scopes, ["unverified", "segment", "station"]);
   });
 
   it("identifies reviewed samples separately from synthetic breadth records", () => {
