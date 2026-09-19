@@ -8,11 +8,13 @@ import {
   Apple,
   Bus,
   Download,
+  Earth,
   Info,
   Map as MapIcon,
+  MapPin,
+  MapPinCheck,
   Menu,
   MousePointer2,
-  MoreHorizontal,
   MoreVertical,
   Navigation,
   Activity,
@@ -315,7 +317,7 @@ export function SiteGuideDropdown({
               <Info size={18} aria-hidden="true" />
               <div>
                 <h2><span className="linewatch-wordmark">LineWatchTO</span> Guide</h2>
-                <p>Unofficial TTC subway and LRT reliability dashboard.</p>
+                <p>Unofficial TTC subway/LRT and GO/UP rail reliability dashboard.</p>
               </div>
             </div>
             <button
@@ -333,18 +335,18 @@ export function SiteGuideDropdown({
             <GuideSection
               icon={
                 <Image
-                  src="/assets/linewatch/transportation-train.svg"
+                  src="/assets/linewatch/logo.svg"
                   alt=""
                   aria-hidden="true"
-                  width={15}
-                  height={15}
-                  className="dark:invert high-contrast:invert shrink-0"
+                  width={24}
+                  height={24}
+                  className="shrink-0"
                 />
               }
               title="What LineWatchTO Does"
             >
               <p>
-                LineWatchTO shows TTC subway/LRT alerts, delays, reduced speed zones, planned closures, station details, and My Commutes impact checks. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
+                LineWatchTO covers TTC subway/LRT and GO/UP rail, showing alerts, delays, reduced speed zones, planned closures, and station details across both networks. Save stations to My Stations and set up My Commutes to track how disruptions affect your regular routes. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
               </p>
             </GuideSection>
 
@@ -404,25 +406,52 @@ export function SiteGuideDropdown({
 
             <GuideSection icon={<Signpost size={15} />} title="How to Use LineWatchTO">
               <ul className="site-guide-action-list">
-                <GuideActionRow icon={<MousePointer2 size={14} />} label="Drag The Map" text="Pan to navigate the network. Scroll or pinch to zoom." />
+                <GuideActionRow icon={<MousePointer2 size={14} />} label="Drag The Map" text={isMobile ? "Pan to navigate the network. Pinch to zoom." : "Pan to navigate the network. Scroll or pinch to zoom."} />
                 <GuideActionRow
                   icon={
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
                       <path d="M7 7L5.5 5.5M15 7L16.5 5.5M5.5 16.5L7 15M11 5L11 3M5 11L3 11M17.1603 16.9887L21.0519 15.4659C21.4758 15.3001 21.4756 14.7003 21.0517 14.5346L11.6992 10.8799C11.2933 10.7213 10.8929 11.1217 11.0515 11.5276L14.7062 20.8801C14.8719 21.304 15.4717 21.3042 15.6375 20.8803L17.1603 16.9887Z" />
                     </svg>
                   }
-                  label="Click a Colored Overlay"
+                  label="Tap a Colored Overlay"
                   text="Tap any line overlay to view its active alert or closure card."
                 />
-                <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, arrivals, or select it as an origin or destination in My Commutes." />
+                <GuideActionRow icon={<MapIcon size={14} />} label="Tap a Station" text="Tap a station dot to view accessibility status, alerts, and arrivals. Use the bookmark icon to save it to My Stations for quick access." />
                 <GuideActionRow
                   icon={<Navigation size={14} />}
                   label="Monitor My Commutes"
                   text="Choose the TTC or GO/UP rail route you intend to take. LineWatchTO checks that route for disruptions; it does not find the fastest journey or account for buses, walking, and transfer time. For a mixed-network commute, save one route for each system."
                 />
-                <GuideActionRow icon={<Search size={14} />} label="Station & Alert Search" text="Use the search icon on the left to quickly jump to any station or find active alerts." />
+                <GuideActionRow icon={<MapPin size={14} />} label="My Stations" text="Save your frequented stations to keep arrivals and service impacts close at hand. Tap the bookmark icon on any station card, or use the My Stations panel." />
+                <GuideActionRow icon={<Search size={14} />} label="Station & Alert Search" text="Use the search icon to quickly jump to any station or find active alerts." />
+                <GuideActionRow
+                  icon={
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                      <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0M8 12h8M15 9l3 3-3 3" />
+                    </svg>
+                  }
+                  label="Train Markers"
+                  text={isMobile ? "Use the Train Markers chip at the top of the map to toggle estimated train positions on or off." : "Use the Train Markers chip at the top left of the map to toggle estimated train positions on or off."}
+                />
+                <GuideActionRow
+                  icon={
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                      <circle cx="12" cy="12" r="2" /><circle cx="12" cy="12" r="8" strokeDasharray="3 2" />
+                    </svg>
+                  }
+                  label="Map Mode"
+                  text={isMobile ? "Use the TTC / GO/UP switcher on the map to switch between networks. The selected network is what the whole dashboard shows." : "Use the TTC / GO/UP switcher on the map to switch between networks. The selected network drives the entire dashboard view."}
+                />
+                <GuideActionRow
+                  icon={<Earth size={14} />}
+                  label="Map View"
+                  text="Toggle between the schematic system map and the geographic map view. The schematic is the stylized line diagram; the geographic view places stations on their real-world coordinates."
+                />
                 {!isMobile && (
-                  <GuideActionRow icon={<Menu size={14} />} label="Main Menu" text="Use the menu icon at the top left to create an account and access lists, commutes, analytics, contrast, and motion controls." />
+                  <GuideActionRow icon={<MapPinCheck size={14} />} label="Default Map" text="Set which network loads on launch from the sidebar. This is separate from switching networks during a session." />
+                )}
+                {!isMobile && (
+                  <GuideActionRow icon={<Menu size={14} />} label="Side Navigation" text="Use the nav rail on the left to switch between Status, My Stations, My Commutes, Alert History, and more." />
                 )}
               </ul>
             </GuideSection>
@@ -506,21 +535,25 @@ export function SiteGuideDropdown({
               <ul className="site-guide-action-list">
                 {isMobile ? (
                   <GuideActionRow
-                    icon={<MoreHorizontal size={14} />}
-                    label="More Options"
-                    text="Access high contrast, reduced motion, account settings, and reliability analytics."
+                    icon={
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                        <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+                      </svg>
+                    }
+                    label="More"
+                    text="Open More from the bottom bar to access your account, notifications, display settings (high contrast, reduced motion), reliability analytics, and app info."
                   />
                 ) : (
                   <>
                     <GuideActionRow
                       icon={<Activity size={14} />}
-                      label="TTC Source Status"
-                      text="View freshness, availability, and normalized ingestion counts without exposing source payloads."
+                      label="Source Status"
+                      text="View freshness, availability, and normalized ingestion counts for TTC and GO/UP sources without exposing raw payloads."
                     />
                   </>
                 )}
                 <GuideActionRow icon={<Sun size={14} />} label="Sun / Moon" text="Toggle light and dark map themes." />
-                <GuideActionRow icon={<Bus size={14} />} label="Shuttle Badge" text="Blue badge indicates replacement bus service is active." />
+                <GuideActionRow icon={<Bus size={14} />} label="Shuttle Badge" text="Appears on alert and closure cards when replacement bus service is active for that disruption." />
                 <GuideActionRow icon={<ListFilter size={14} />} label="Filter & Sort Alerts" text="Use the toolbar buttons in alert lists to filter by line and sort by time or severity." />
               </ul>
             </GuideSection>
@@ -528,7 +561,7 @@ export function SiteGuideDropdown({
             <div className="site-guide-note">
               <AlertTriangle size={14} aria-hidden="true" />
               <p>
-                LineWatchTO is a personal project, not an official TTC app. Always verify critical travel decisions with TTC sources.
+                LineWatchTO is a personal project, not an official TTC or Metrolinx app. Always verify critical travel decisions with official TTC and GO Transit sources.
               </p>
             </div>
           </div>

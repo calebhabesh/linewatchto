@@ -64,8 +64,8 @@ describe("arrival tile source indicator and site guide controls", () => {
     assert.match(myStationsPanelSource, /sourceLabel === "Mixed"\s*\?\s*\(\s*<Layers/);
   });
 
-  it("uses Activity icon for TTC Source Status under Other Controls in SiteGuideDropdown", () => {
+  it("uses Activity icon for Source Status under Other Controls in SiteGuideDropdown", () => {
     assert.match(siteGuideSource, /import[\s\S]*Activity[\s\S]*from\s*"lucide-react"/);
-    assert.match(siteGuideSource, /<GuideActionRow\s+icon=\{<Activity size=\{14\} \/>\}\s+label="TTC Source Status"/);
+    assert.match(siteGuideSource, /<GuideActionRow\s+icon=\{<Activity size=\{14\} \/>\}\s+label="Source Status"/);
   });
 });

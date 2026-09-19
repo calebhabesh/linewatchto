@@ -4,8 +4,10 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import catalog from "../public/assets/linewatch/geographic/ttc-catalog.json" with { type: "json" };
+import regionalCatalog from "../public/assets/linewatch/geographic/regional-catalog.json" with { type: "json" };
 import {
   GEOGRAPHIC_LINE_BADGE_HIDDEN_ZOOM,
+  REGIONAL_GEOGRAPHIC_LINE_BADGE_ANCHORS,
   SYSTEM_LINE_BADGE_FULL_SCALE,
   SYSTEM_LINE_BADGE_HALF_SCALE,
   SYSTEM_LINE_BADGE_HIDDEN_SCALE,
@@ -38,6 +40,39 @@ describe("map line badges", () => {
     );
   });
 
+  it("projects a badge for every regional corridor at reviewed topology anchors", () => {
+    const badges = projectGeographicLineBadges(regionalCatalog);
+    assert.equal(badges.features.length, REGIONAL_GEOGRAPHIC_LINE_BADGE_ANCHORS.length);
+    assert.deepEqual(
+      new Set(badges.features.map((feature) => feature.properties.lineId)),
+      new Set([
+        "regional-br",
+        "regional-ki",
+        "regional-le",
+        "regional-lw",
+        "regional-mi",
+        "regional-rh",
+        "regional-st",
+        "regional-up",
+      ]),
+    );
+    assert.equal(
+      badges.features.filter((feature) => feature.properties.lineId === "regional-lw").length,
+      3,
+    );
+
+    const withoutPearson = {
+      ...regionalCatalog,
+      features: regionalCatalog.features.filter(
+        (feature) => feature.properties.stationId !== "pearson-airport",
+      ),
+    };
+    assert.equal(
+      projectGeographicLineBadges(withoutPearson).features.length,
+      REGIONAL_GEOGRAPHIC_LINE_BADGE_ANCHORS.length - 1,
+    );
+  });
+
   it("uses the calibrated system-map fade points", () => {
     assert.equal(systemLineBadgeOpacity(SYSTEM_LINE_BADGE_FULL_SCALE), 1);
     assert.equal(systemLineBadgeOpacity(SYSTEM_LINE_BADGE_HALF_SCALE), 0.5);
@@ -59,6 +94,7 @@ describe("map line badges", () => {
     assert.match(layer, /"icon-allow-overlap": false/);
     assert.match(layer, /"icon-ignore-placement": false/);
     assert.doesNotMatch(listenerSection, /map\.on\([^\n]*transit-line-badges/);
+    assert.match(source, /REGIONAL_ROUTE_DEFINITIONS\.map\(\(route\) =>/);
   });
 
   it("separates authored badges from labels, stations, and track artwork", async () => {

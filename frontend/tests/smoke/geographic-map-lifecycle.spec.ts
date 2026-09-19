@@ -227,6 +227,55 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     }
   });
 
+  test("single circular alert badges have a forgiving click target", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop regression isolates geographic symbol hit testing");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route("**/api/dashboard?network=ttc*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const segment = body.map.segments.find(
+        (candidate: { id: string }) => candidate.id === "line-4-sheppard-yonge-don-mills",
+      );
+      segment.id = "line-4-leslie-don-mills";
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto("/?panel=delays");
+
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+
+    const card = page.locator('[data-impact-card-id="stub-delay-line-4"]');
+    await card.getByRole("button", { name: /on map/i }).click();
+    await expect(card).toHaveClass(/highlight-active-card/);
+
+    const canvasBox = await geoMap.locator("canvas").boundingBox();
+    expect(canvasBox).not.toBeNull();
+    await page.mouse.click(canvasBox!.x + 4, canvasBox!.y + 4);
+    await expect(card).not.toHaveClass(/highlight-active-card/);
+
+    const key = "segment:line-4-leslie-don-mills";
+    await expect.poll(async () => page.evaluate(
+      ({ targetKey }) => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(targetKey) ?? null,
+      { targetKey: key },
+    )).not.toBeNull();
+
+    const projectedAnchor = await page.evaluate(
+      ({ targetKey }) => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(targetKey) ?? null,
+      { targetKey: key },
+    );
+    expect(projectedAnchor).not.toBeNull();
+
+    // The visible circle is about 34px wide. Its interactive target should be
+    // at least 44px wide, so a click 20px from the centre must still activate it.
+    await page.mouse.click(
+      canvasBox!.x + projectedAnchor!.x + 20,
+      canvasBox!.y + projectedAnchor!.y,
+    );
+
+    await expect(card).toHaveClass(/highlight-active-card/);
+    await expect(page.getByText("Location unavailable on geographic map", { exact: true })).toHaveCount(0);
+  });
+
   test("theme switching replaces style only on genuine change, preserving map instance and camera", async ({ page, isMobile }) => {
     test.skip(isMobile, "Theme switching applies to desktop viewports");
     await page.setViewportSize({ width: 1440, height: 900 });

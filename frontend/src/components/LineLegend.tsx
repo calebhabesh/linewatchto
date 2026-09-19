@@ -337,7 +337,7 @@ export function LineLegend({
         >
           <span
             className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap leading-none ${
-              isRegional ? "text-[20px]" : "text-[20px]"
+              isRegional ? "text-[22px]" : "text-[24px]"
             }`}
           >
             {line.name}
@@ -388,7 +388,7 @@ export function LineLegend({
           />
         </svg>
       </div>
-      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[20px] leading-none">
+      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[22px] leading-none">
         Limited Service
       </span>
     </div>
@@ -406,7 +406,7 @@ export function LineLegend({
         }}
         aria-hidden="true"
       />
-      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[20px] leading-none">
+      <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap text-[22px] leading-none">
         Regular Service
       </span>
     </div>

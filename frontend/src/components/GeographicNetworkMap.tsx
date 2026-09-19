@@ -5,7 +5,7 @@ import maplibregl, { type Map as MapLibreMap, type ExpressionSpecification } fro
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Loader2, AlertCircle, RefreshCw, Layers, Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { GeographicCatalog } from "../app/geographic-catalog";
-import type { NetworkId } from "../app/regional-data";
+import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId } from "../app/regional-data";
 import type { MapViewPreference } from "../app/visual-preferences";
 import type {
   ActiveAlert,
@@ -67,12 +67,16 @@ import {
   getOverlapBadgeKey,
   parseOverlapBadgeKey,
   createSvgImage,
+  MAP_BADGE_PIXEL_RATIO,
 } from "./map-overlap-svg";
+import { createSdfImageData } from "./map-sprite-sdf";
 import { countUniqueImpactsByKind } from "../app/map-alert-selector";
 import {
   GeographicSelectionAttention,
   type SelectionAttentionFrame,
 } from "../app/geographic-selection-attention";
+
+const GEOGRAPHIC_IMPACT_BADGE_MIN_HIT_DIAMETER_PX = 44;
 
 export type GeographicNetworkMapProps = {
   network: NetworkId;
@@ -141,7 +145,7 @@ function ensureBadgeImages(
     createSvgImage(svg)
       .then((img) => {
         if (map && map.hasImage && !map.hasImage(key)) {
-          map.addImage(key, img, { pixelRatio: 2 });
+          map.addImage(key, img, { pixelRatio: MAP_BADGE_PIXEL_RATIO });
         }
       })
       .catch(() => {});
@@ -180,7 +184,7 @@ function registerMapImages(map: MapLibreMap) {
         ctx.lineTo(24, 21);
         ctx.stroke();
         const imgData = ctx.getImageData(0, 0, size, size);
-        map.addImage("direction-arrow", imgData, { sdf: true, pixelRatio: 2 });
+        map.addImage("direction-arrow", createSdfImageData(imgData), { sdf: true, pixelRatio: 2 });
       }
     } catch {
       // Ignored if canvas or WebGL image creation is unsupported
@@ -212,7 +216,7 @@ function registerMapImages(map: MapLibreMap) {
         ctx.lineTo(29, 11);
         ctx.stroke();
         const imgData = ctx.getImageData(0, 0, size, size);
-        map.addImage("direction-arrow-bidirectional", imgData, { sdf: true, pixelRatio: 2 });
+        map.addImage("direction-arrow-bidirectional", createSdfImageData(imgData), { sdf: true, pixelRatio: 2 });
       }
     } catch {
       // Ignored if unsupported
@@ -237,7 +241,7 @@ function registerMapImages(map: MapLibreMap) {
         ctx.closePath();
         ctx.fill();
         const imgData = ctx.getImageData(0, 0, size, size);
-        map.addImage("train-arrow", imgData, { sdf: true, pixelRatio: 3 });
+        map.addImage("train-arrow", createSdfImageData(imgData), { sdf: true, pixelRatio: 3 });
       }
     } catch {
       // Ignored if unsupported
@@ -250,6 +254,11 @@ function registerMapImages(map: MapLibreMap) {
     { number: "4", background: "#A21A68", foreground: "#ffffff" },
     { number: "5", background: "#EB8738", foreground: "#ffffff" },
     { number: "6", background: "#969594", foreground: "#ffffff" },
+    ...REGIONAL_ROUTE_DEFINITIONS.map((route) => ({
+      number: route.number,
+      background: route.color,
+      foreground: "#ffffff",
+    })),
   ] as const;
   for (const sprite of lineBadgeSprites) {
     const imageId = `line-badge-${sprite.number}`;
@@ -262,14 +271,18 @@ function registerMapImages(map: MapLibreMap) {
       const ctx = canvas.getContext("2d");
       if (!ctx) continue;
       ctx.beginPath();
-      ctx.arc(size / 2, size / 2, 27, 0, Math.PI * 2);
+      if (sprite.number.length === 1) {
+        ctx.arc(size / 2, size / 2, 27, 0, Math.PI * 2);
+      } else {
+        ctx.roundRect(5, 5, 54, 54, 7);
+      }
       ctx.fillStyle = sprite.background;
       ctx.fill();
       ctx.lineWidth = 3;
       ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
       ctx.stroke();
       ctx.fillStyle = sprite.foreground;
-      ctx.font = "700 36px Arial, sans-serif";
+      ctx.font = `700 ${sprite.number.length === 1 ? 36 : 25}px Arial, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(sprite.number, size / 2, size / 2 + 1);
@@ -1053,7 +1066,7 @@ function installTransitLayers(
       source: "transit-impact-badges",
       layout: {
         "icon-image": ["get", "badgeImageKey"],
-        "icon-size": 0.25,
+        "icon-size": 1,
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },
@@ -1592,17 +1605,6 @@ export function GeographicNetworkMap({
   );
 
   const attachMapListeners = useCallback((map: MapLibreMap) => {
-
-    // Click on Disruption Badges
-    const handleBadgeClick = (e: maplibregl.MapLayerMouseEvent) => {
-      if (!e.features || e.features.length === 0) return;
-      const props = e.features[0].properties;
-      if (props?.targetType && props?.targetId) {
-        activateImpactTarget(props.targetType, props.targetId, e.lngLat.toArray());
-      }
-    };
-    map.on("click", "transit-impact-badges", handleBadgeClick);
-
     // Hover on Disruption Badges
     map.on("mousemove", "transit-impact-badges", (e) => {
       if (!e.features || e.features.length === 0) return;
@@ -1644,7 +1646,7 @@ export function GeographicNetworkMap({
       createSvgImage(svg)
         .then((img) => {
           if (map && map.hasImage && !map.hasImage(id)) {
-            map.addImage(id, img, { pixelRatio: 2 });
+            map.addImage(id, img, { pixelRatio: MAP_BADGE_PIXEL_RATIO });
           }
         })
         .catch(() => {});
@@ -1689,10 +1691,45 @@ export function GeographicNetworkMap({
       }
     });
 
-    // Empty map background click clears selection and filters
+    // Badge clicks use exact rendered-symbol hits first. Single-circle badges
+    // also receive a 44px minimum target so their interaction area does not
+    // shrink below the visible marker at low zoom or high pixel density.
     map.on("click", (e) => {
+      const exactBadge = map.getLayer("transit-impact-badges")
+        ? map.queryRenderedFeatures(e.point, { layers: ["transit-impact-badges"] })[0]
+        : undefined;
+      if (exactBadge?.properties?.targetType && exactBadge.properties.targetId) {
+        activateImpactTarget(
+          exactBadge.properties.targetType,
+          exactBadge.properties.targetId,
+          (exactBadge.geometry as GeoJSON.Point).coordinates as [number, number],
+        );
+        return;
+      }
+
+      const hitRadius = GEOGRAPHIC_IMPACT_BADGE_MIN_HIT_DIAMETER_PX / 2;
+      const nearbySingleBadge = overlayDataRef.current.impactBadges.features
+        .filter((feature) => (feature.properties.kindCounts?.length ?? 0) === 1)
+        .map((feature) => {
+          const point = map.project(feature.geometry.coordinates);
+          return {
+            feature,
+            distance: Math.hypot(point.x - e.point.x, point.y - e.point.y),
+          };
+        })
+        .filter(({ distance }) => distance <= hitRadius)
+        .sort((a, b) => a.distance - b.distance)[0]?.feature;
+      if (nearbySingleBadge) {
+        activateImpactTarget(
+          nearbySingleBadge.properties.targetType,
+          nearbySingleBadge.properties.targetId,
+          nearbySingleBadge.geometry.coordinates,
+        );
+        return;
+      }
+
+      // Empty map background clicks clear selection and filters.
       const interactiveLayers = [
-        "transit-impact-badges",
         "transit-station-impacts",
         "transit-impacts-line",
         "transit-impact-arrows",

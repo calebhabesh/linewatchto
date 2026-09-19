@@ -45,7 +45,7 @@ test("system-map badges fade independently at calibrated diagram scales", async 
   }
 });
 
-test("geographic badges render from overview through their detail cutoff", async ({ page }, testInfo) => {
+test("TTC and regional geographic badges render from overview through their detail cutoff", async ({ page }, testInfo) => {
   await page.addInitScript(() => localStorage.setItem("linewatch-map-view-v1", "geographic"));
   await page.goto("/");
   const map = page.locator(".geographic-network-map");
@@ -68,4 +68,16 @@ test("geographic badges render from overview through their detail cutoff", async
   }
 
   await expect(map.locator("canvas")).toBeVisible();
+
+  const networkSelector = testInfo.project.name.includes("mobile")
+    ? page.locator(".mobile-map-network-switch")
+    : page.getByRole("group", { name: "Select transit network" }).first();
+  await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional");
+  await expect(map).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+  await expect(slider).toHaveValue("9");
+  await page.screenshot({
+    path: `${inspectionDirectory}/${testInfo.project.name}-geographic-regional-overview.png`,
+    animations: "disabled",
+  });
 });

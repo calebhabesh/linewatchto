@@ -191,8 +191,8 @@ describe("site guide dropdown", () => {
     assert.doesNotMatch(guideSource, /<Share2 size=\{14\}/);
     assert.doesNotMatch(guideSource, /<Check size=\{14\}/);
     assert.match(guideSource, /Drag The Map/);
-    assert.match(guideSource, /Click a Station/);
-    assert.match(guideSource, /Click a Colored Overlay/);
+    assert.match(guideSource, /Tap a Station/);
+    assert.match(guideSource, /Tap a Colored Overlay/);
     assert.match(guideSource, /Both Ways/);
     assert.match(guideSource, /Suspended or Closed Service/);
     assert.match(guideSource, /both ways shows centered no-entry icons/);
@@ -208,8 +208,8 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /Station Impact Ring/);
     assert.match(guideSource, /Overlap Badge/);
     assert.match(guideSource, /Shuttle Badge/);
-    assert.match(guideSource, /Main Menu/);
-    assert.match(guideSource, /TTC Source Status/);
+    assert.match(guideSource, /Side Navigation/);
+    assert.match(guideSource, /Source Status/);
     assert.doesNotMatch(guideSource, /raw alert feed/i);
   });
 

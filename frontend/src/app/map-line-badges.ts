@@ -38,6 +38,24 @@ export const TTC_GEOGRAPHIC_LINE_BADGE_ANCHORS: readonly GeographicLineBadgeAnch
   { id: "line-6-finch-west", lineId: "line-6", lineNumber: "6", stationId: "finch-west", offset: [20, -14] },
 ] as const;
 
+// Regional badges sit at outer termini and selected interior anchors so every
+// corridor remains identifiable when map chrome obscures an edge of the full
+// network overview. Avoid stacking eight labels around Union.
+export const REGIONAL_GEOGRAPHIC_LINE_BADGE_ANCHORS: readonly GeographicLineBadgeAnchor[] = [
+  { id: "regional-br-allandale", lineId: "regional-br", lineNumber: "BR", stationId: "allandale-waterfront", offset: [0, 20] },
+  { id: "regional-br-aurora", lineId: "regional-br", lineNumber: "BR", stationId: "aurora", offset: [-20, 0] },
+  { id: "regional-ki-stratford", lineId: "regional-ki", lineNumber: "KI", stationId: "stratford", offset: [20, 0] },
+  { id: "regional-ki-georgetown", lineId: "regional-ki", lineNumber: "KI", stationId: "georgetown", offset: [0, -20] },
+  { id: "regional-le-oshawa", lineId: "regional-le", lineNumber: "LE", stationId: "durham-college-oshawa", offset: [-20, 0] },
+  { id: "regional-lw-hamilton", lineId: "regional-lw", lineNumber: "LW", stationId: "hamilton", offset: [-18, 18] },
+  { id: "regional-lw-burlington", lineId: "regional-lw", lineNumber: "LW", stationId: "burlington", offset: [-18, -12] },
+  { id: "regional-lw-niagara", lineId: "regional-lw", lineNumber: "LW", stationId: "niagara-falls", offset: [0, -20] },
+  { id: "regional-mi-milton", lineId: "regional-mi", lineNumber: "MI", stationId: "milton", offset: [18, -12] },
+  { id: "regional-rh-bloomington", lineId: "regional-rh", lineNumber: "RH", stationId: "bloomington", offset: [-20, 8] },
+  { id: "regional-st-old-elm", lineId: "regional-st", lineNumber: "ST", stationId: "old-elm", offset: [-18, 12] },
+  { id: "regional-up-pearson", lineId: "regional-up", lineNumber: "UP", stationId: "pearson-airport", offset: [20, -10] },
+] as const;
+
 export type GeographicLineBadgeFeature = GeoJSON.Feature<GeoJSON.Point, {
   anchorId: string;
   lineId: string;
@@ -49,7 +67,9 @@ export type GeographicLineBadgeFeature = GeoJSON.Feature<GeoJSON.Point, {
 export function projectGeographicLineBadges(
   catalog: GeographicCatalog,
 ): GeoJSON.FeatureCollection<GeoJSON.Point, GeographicLineBadgeFeature["properties"]> {
-  if (catalog.network !== "ttc") return { type: "FeatureCollection", features: [] };
+  const anchors = catalog.network === "regional"
+    ? REGIONAL_GEOGRAPHIC_LINE_BADGE_ANCHORS
+    : TTC_GEOGRAPHIC_LINE_BADGE_ANCHORS;
 
   const stationCoordinates = new Map<string, GeographicCoordinate>();
   for (const feature of catalog.features) {
@@ -60,7 +80,7 @@ export function projectGeographicLineBadges(
 
   return {
     type: "FeatureCollection",
-    features: TTC_GEOGRAPHIC_LINE_BADGE_ANCHORS.flatMap((anchor) => {
+    features: anchors.flatMap((anchor) => {
       const coordinates = stationCoordinates.get(anchor.stationId);
       if (!coordinates) return [];
       return [{

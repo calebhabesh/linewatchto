@@ -7,6 +7,8 @@ export const OVERLAP_BADGE_ITEM_SPACING =
   OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP;
 export const OVERLAP_BADGE_PILL_THICKNESS =
   OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP * 2;
+export const MAP_BADGE_DISPLAY_SCALE = 0.25;
+export const MAP_BADGE_PIXEL_RATIO = 3;
 export const MAP_BADGE_GLYPH_TOP = 124;
 export const MAP_BADGE_GLYPH_BOTTOM = 1662;
 export const MAP_BADGE_GLYPH_GAP = 28;
@@ -193,9 +195,11 @@ export function generateOverlapBadgeSvg({
     itemSvgs.push(renderVectorLabelSvg(`+${hiddenKindCount}`, x, 0, 22, 44));
   }
 
-  // 2x rasterization resolution for Retina sharpness in WebGL texture
-  const renderWidth = width * 2;
-  const renderHeight = height * 2;
+  // Rasterize at the final logical size so MapLibre does not heavily shrink
+  // the texture in its sprite atlas. Three source pixels cover DPR 1–3.
+  const rasterScale = MAP_BADGE_DISPLAY_SCALE * MAP_BADGE_PIXEL_RATIO;
+  const renderWidth = Math.round(width * rasterScale);
+  const renderHeight = Math.round(height * rasterScale);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${renderWidth}" height="${renderHeight}" viewBox="${-width / 2} ${-height / 2} ${width} ${height}">${pillSvg}<g transform="scale(${OVERLAP_INDICATOR_SCALE})">${itemSvgs.join("")}</g></svg>`;
 }

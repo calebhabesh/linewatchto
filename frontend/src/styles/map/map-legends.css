@@ -75,13 +75,13 @@
   font-family: var(--font-subway), ui-sans-serif, system-ui, sans-serif;
   font-weight: 900;
   line-height: 1;
-  height: 40px;
-  width: 40px;
-  flex: 0 0 40px;
+  height: 44px;
+  width: 44px;
+  flex: 0 0 44px;
 }
 
 .desktop-legend-route-badge--ttc .desktop-legend-route-number {
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .desktop-legend-route-badge .desktop-legend-route-number {
@@ -631,7 +631,7 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 4px 0 0;
   border: 0;
   border-radius: 4px;
