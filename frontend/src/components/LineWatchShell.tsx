@@ -1232,6 +1232,7 @@ export function LineWatchShell({
   // Interactive linking state
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [selection, setSelection] = useState<ImpactSelection>(null);
+  const [mobileImpactReturnView, setMobileImpactReturnView] = useState<"my-stations" | null>(null);
   const [selectionAttentionGeneration, setSelectionAttentionGeneration] = useState(0);
   const openImpactCategory = useCallback((view: ImpactCategoryView, lineId?: string) => {
     if (searchClosingTimeoutRef.current) {
@@ -2691,6 +2692,7 @@ export function LineWatchShell({
     setSelectedStationId(null);
     setMobileInspectorDetent("details-focus");
     if (isMobile) {
+      setMobileImpactReturnView(null);
       pushBrowserNavigationEntry();
       navigateToMapDrilldown();
     } else {
@@ -3587,8 +3589,14 @@ export function LineWatchShell({
       && targetDashboard.activeAlerts.some((alert) => alert.id === nextSelection.id)
       ? "alerts"
       : viewForImpactKind(nextSelection.kind);
+    if (isMobile) {
+      setMobileImpactReturnView("my-stations");
+      pushBrowserNavigationEntry();
+      navigateToMapDrilldown();
+      return;
+    }
     navigateForward(targetView);
-  }, [navigateForward, regionalData, selectedNetwork, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, ttcData, viewForImpactKind]);
+  }, [isMobile, navigateForward, navigateToMapDrilldown, pushBrowserNavigationEntry, regionalData, selectedNetwork, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, ttcData, viewForImpactKind]);
 
   const handleMyStationsSelectAccessibilityOutageDetails = useCallback((
     assetType: AccessibilityOutageTarget["assetType"],
@@ -3633,7 +3641,11 @@ export function LineWatchShell({
     const currentView = activeViewRef.current;
     const targetView = viewForImpactSelection(nextSelection);
     if (isMobile) {
-      selectionBackBehaviorRef.current = currentView === "map" ? "clear" : "restore-view";
+      const preservesOrigin = currentView === "map"
+        && selectionBackBehaviorRef.current === "restore-view"
+        && mobileImpactReturnView !== null;
+      selectionBackBehaviorRef.current = currentView === "map" && !preservesOrigin ? "clear" : "restore-view";
+      if (!preservesOrigin) setMobileImpactReturnView(null);
     } else if (currentView === targetView) {
       selectionBackBehaviorRef.current = "clear";
     } else {
@@ -3653,7 +3665,7 @@ export function LineWatchShell({
     }
     activeViewRef.current = targetView;
     setActiveView(targetView);
-  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement, desktopSidebarCollapsed]);
+  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, mobileImpactReturnView, recordPwaInstallEngagement, desktopSidebarCollapsed]);
 
   const handleStationSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     if (selectedStationIdRef.current) {
@@ -3729,10 +3741,15 @@ export function LineWatchShell({
   const handleClearMobileImpactSelection = useCallback(() => {
     if (selectionRef.current) consumeBrowserNavigationEntries();
     selectionRef.current = null;
+    const shouldRestoreOrigin = selectionBackBehaviorRef.current === "restore-view";
     selectionBackBehaviorRef.current = "clear";
+    setMobileImpactReturnView(null);
     setSelection(null);
     setMobileInspectorDetent("map-focus");
-  }, [consumeBrowserNavigationEntries, setMobileInspectorDetent, setSelection]);
+    if (shouldRestoreOrigin) {
+      restoreMapDrilldownOrigin();
+    }
+  }, [consumeBrowserNavigationEntries, restoreMapDrilldownOrigin, setMobileInspectorDetent, setSelection]);
 
   const handleClearRotatedSelection = useCallback(() => {
     if (selectionRef.current || selectedStationIdRef.current) consumeBrowserNavigationEntries();
@@ -6334,7 +6351,7 @@ export function LineWatchShell({
           >
             <Train size={16} />
             <span>
-              View<br />Trains
+              {estimatedTrainsEnabled ? "Viewing" : "View"}<br />Trains
             </span>
             {estimatedTrainDisplayPending ? (
               <Loader2
@@ -6530,6 +6547,7 @@ export function LineWatchShell({
           detent={mobileInspectorDetent}
           onChangeDetent={setMobileInspectorDetent}
           onUnfocus={handleClearMobileImpactSelection}
+          unfocusLabel={mobileImpactReturnView === "my-stations" ? "Back to My Stations" : undefined}
           onViewFullDetails={() => navigateForward(viewForImpactSelection(selection))}
           onSelectImpact={handleMapSelectImpact}
           commutePathPreview={commutePathPreview}

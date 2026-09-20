@@ -221,31 +221,16 @@
   width: 20px;
 }
 
-.mobile-train-toggle.active {
-  border-color: #2563eb !important;
-  background: rgba(37, 99, 235, 0.22) !important;
-}
-
 .mobile-train-toggle.active svg {
-  color: #1d4ed8;
-}
-
-.dark .mobile-train-toggle.active {
-  border-color: #60a5fa !important;
-  background: rgba(96, 165, 250, 0.35) !important;
+  color: #2563eb;
 }
 
 .dark .mobile-train-toggle.active svg {
   color: #93c5fd;
 }
 
-.high-contrast .mobile-train-toggle.active {
-  border-color: #ffffff !important;
-  background: #ffffff !important;
-}
-
 .high-contrast .mobile-train-toggle.active svg {
-  color: #000000;
+  color: #ffffff;
 }
 
 .mobile-train-toggle span {
@@ -260,7 +245,7 @@
 }
 
 .mobile-train-toggle.active span {
-  color: #1d4ed8 !important;
+  color: #2563eb !important;
 }
 
 .dark .mobile-train-toggle.active span {
@@ -268,33 +253,7 @@
 }
 
 .high-contrast .mobile-train-toggle.active span {
-  color: #000000 !important;
-}
-
-.mobile-train-toggle.mobile-train-toggle--loading,
-.mobile-train-toggle.active.mobile-train-toggle--loading,
-.mobile-train-toggle[aria-busy="true"],
-.mobile-train-toggle.active[aria-busy="true"] {
-  background: rgba(71, 85, 105, 0.55) !important;
-  border-color: rgba(100, 116, 139, 0.45) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
-}
-
-.dark .mobile-train-toggle.mobile-train-toggle--loading,
-.dark .mobile-train-toggle.active.mobile-train-toggle--loading,
-.dark .mobile-train-toggle[aria-busy="true"],
-.dark .mobile-train-toggle.active[aria-busy="true"] {
-  background: rgba(51, 65, 85, 0.75) !important;
-  border-color: rgba(148, 163, 184, 0.3) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45) !important;
-}
-
-.high-contrast .mobile-train-toggle.mobile-train-toggle--loading,
-.high-contrast .mobile-train-toggle.active.mobile-train-toggle--loading,
-.high-contrast .mobile-train-toggle[aria-busy="true"],
-.high-contrast .mobile-train-toggle.active[aria-busy="true"] {
-  background: #334155 !important;
-  border-color: #94a3b8 !important;
+  color: #ffffff !important;
 }
 
 .mobile-train-toggle.mobile-train-toggle--loading > svg:not(.mobile-train-pending-spinner),

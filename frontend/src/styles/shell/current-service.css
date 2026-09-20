@@ -1808,7 +1808,7 @@
   .linewatch-shell .mobile-train-left-cluster {
     position: fixed;
     bottom: calc(var(--mobile-bottom-nav-occupied-height) + var(--mobile-status-peek-actual-height, 108px) + var(--mobile-map-control-edge-inset, 12px));
-    left: calc(var(--mobile-safe-left) + var(--mobile-map-control-edge-inset, 12px));
+    left: 0;
     z-index: 42;
     width: var(--mobile-top-action-button-size, 48px);
     /* Default height = train toggle only */
@@ -1822,8 +1822,8 @@
   .linewatch-shell .mobile-train-left-cluster .mobile-train-toggle,
   .linewatch-shell .mobile-train-left-cluster .mobile-map-view-toggle {
     position: absolute;
-    left: 0;
-    right: 0;
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset));
+    right: auto;
     width: 100%;
     padding: var(--mobile-train-toggle-padding, 4px);
   }
@@ -1986,7 +1986,7 @@
 }
 
 @media (max-width: 767px) {
-  .linewatch-shell :is(.mobile-legend-pill, .site-guide-trigger:not(.mobile-app-chip-guide), .mobile-train-toggle:not(.active), .mobile-map-view-toggle:not(.active), .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .network-selector--compact-vertical, .rotate-map-btn) {
+  .linewatch-shell :is(.mobile-legend-pill, .site-guide-trigger:not(.mobile-app-chip-guide), .mobile-train-toggle, .mobile-map-view-toggle:not(.active), .mobile-map-recenter-btn, .mobile-map-zoom-capsule, .network-selector--compact-vertical, .rotate-map-btn) {
     --mobile-chrome-background: var(--map-control-bg);
     --mobile-chrome-backdrop-filter: none;
     --mobile-chrome-shadow: var(--map-control-shadow);

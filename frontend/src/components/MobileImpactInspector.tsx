@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, ArrowRight, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -59,6 +59,7 @@ type Props = {
   detent: MobileInspectorDetent;
   onChangeDetent: (detent: MobileInspectorDetent) => void;
   onUnfocus: () => void;
+  unfocusLabel?: string;
   onViewFullDetails: () => void;
   onSelectImpact: (selection: ImpactSelection) => void;
   commutePathPreview?: AccountCommutePathPreview | null;
@@ -412,6 +413,7 @@ export function MobileImpactInspector({
   detent,
   onChangeDetent,
   onUnfocus,
+  unfocusLabel = "Unfocus impact",
   onViewFullDetails,
   onSelectImpact,
   commutePathPreview,
@@ -512,8 +514,8 @@ export function MobileImpactInspector({
             {details.categoryLabel}
           </h2>
         </div>
-        <button type="button" onClick={handleUnfocusClick} className="mobile-impact-inspector-icon-button" aria-label="Unfocus impact">
-          <X size={20} />
+        <button type="button" onClick={handleUnfocusClick} className="mobile-impact-inspector-icon-button" aria-label={unfocusLabel}>
+          {unfocusLabel === "Unfocus impact" ? <X size={20} /> : <ArrowLeft size={20} />}
         </button>
       </div>
 

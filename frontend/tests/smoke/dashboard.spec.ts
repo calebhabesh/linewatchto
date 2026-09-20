@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   appUrl,
+  installDismissedTransientUi,
   reportBrowserErrors,
   setStubMode,
   stubUrl,
@@ -4888,6 +4889,7 @@ test("saved commute View on Map transitions cleanly across network modes and pan
 });
 
 test("signed-in riders save, browse, remove, undo, and reload My Stations", async ({ page, request, isMobile }) => {
+  await installDismissedTransientUi(page);
   await setStubMode(request, "seeded");
   if (isMobile) {
     await page.goto("/");
@@ -4895,12 +4897,17 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
     await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Demo Account" }).click();
   } else {
-    await openDashboardMenu(page, isMobile);
-    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+    await page.goto("/");
+    await page.locator('[data-dest="more"]').click();
+    await page.getByRole("button", { name: "Demo Account" }).click();
   }
 
   await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
-  await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  } else {
+    await page.locator('[data-dest="status"]').click();
+  }
   await expect(page.getByRole("heading", { name: "My Commutes" })).toHaveCount(0);
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
@@ -4945,8 +4952,13 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
   const viewAlertDetails = panel.getByRole("button", { name: "View Stub Station alert details" }).first();
   await expect(viewAlertDetails).toContainText("View Details");
   await viewAlertDetails.click();
-  await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
-  await page.getByRole("button", { name: "Back", exact: true }).click();
+  if (isMobile) {
+    await expect(page.getByRole("complementary", { name: "Selected map impact details" })).toBeVisible();
+    await page.getByRole("button", { name: "Back to My Stations", exact: true }).click();
+  } else {
+    await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+  }
   await expect(panel).toBeVisible();
   await expect(panel.locator(".saved-station-disruption-disclosure")).toHaveAttribute("open", "");
   await panel.getByRole("button", { name: "Remove Stub Station from My Stations" }).click();
@@ -4960,8 +4972,7 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
     await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "My Stations" }).click();
   } else {
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: "My Stations" }).click();
+    await page.locator('[data-dest="stations"]').click();
   }
   await expect(page.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
 });
@@ -5426,6 +5437,40 @@ test("renders and incrementally moves estimated train markers on desktop and mob
   expect(new Set(markerFrames.map((frame) => frame.transform)).size).toBeGreaterThanOrEqual(6);
   const frameSpan = markerFrames.at(-1)!.at - markerFrames[0].at;
   expect(frameSpan).toBeGreaterThanOrEqual(160);
+});
+
+test("mobile train toggle changes its label and blue foreground without changing its surface", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile train control");
+  await installDismissedTransientUi(page);
+  await setStubMode(request, "seeded");
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.goto("/");
+
+  const toggle = page.locator(".mobile-train-toggle");
+  await expect(toggle).toContainText(/View\s*Trains/);
+  const before = await toggle.evaluate((button) => {
+    const style = getComputedStyle(button);
+    const bounds = button.getBoundingClientRect();
+    return { background: style.backgroundColor, backgroundImage: style.backgroundImage, shadow: style.boxShadow, width: bounds.width, height: bounds.height };
+  });
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toContainText(/Viewing\s*Trains/);
+  const after = await toggle.evaluate((button) => {
+    const style = getComputedStyle(button);
+    const bounds = button.getBoundingClientRect();
+    const iconColor = getComputedStyle(button.querySelector("svg")!).color;
+    const labelColor = getComputedStyle(button.querySelector("span")!).color;
+    return { background: style.backgroundColor, backgroundImage: style.backgroundImage, shadow: style.boxShadow, width: bounds.width, height: bounds.height, iconColor, labelColor };
+  });
+  expect(after).toMatchObject(before);
+  expect(after.iconColor).toBe(after.labelColor);
+  expect(after.iconColor).toMatch(/^rgb\((37, 99, 235|147, 197, 253)\)$/);
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toContainText(/View\s*Trains/);
 });
 
 test("shows train-marker connection progress until markers return on desktop and mobile", async ({ page, request, isMobile }) => {
