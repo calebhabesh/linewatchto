@@ -116,7 +116,6 @@ import {
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
 import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
-import { systemLineBadgeOpacity } from "../app/map-line-badges";
 
 const SVG_TO_RENDERED_MAP_SCALE = 4500 / 8250;
 const DESKTOP_MAP_HORIZONTAL_INSET_RATIO = 0.025;
@@ -637,7 +636,6 @@ function InteractiveTtcMapComponent({
     defaultFrame: defaultMapFrame,
     animateInitialEntrance,
   });
-  const lineBadgeOpacity = systemLineBadgeOpacity(relativeScale);
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
   const automaticResizeRefitBlockedRef = useRef(false);
@@ -2200,7 +2198,6 @@ function InteractiveTtcMapComponent({
               plane="badges"
               theme={rasterTheme}
               density={rasterDensity}
-              style={{ opacity: lineBadgeOpacity }}
               onReady={() => markRasterPlaneReady("badges")}
             />
 
@@ -2220,7 +2217,6 @@ function InteractiveTtcMapComponent({
                   aria-hidden="true"
                   className="ttc-authored-svg-source ttc-authored-line-badges"
                   pointerEvents="none"
-                  style={{ opacity: lineBadgeOpacity }}
                   dangerouslySetInnerHTML={{ __html: svgParts?.badges ?? "" }}
                 />
 

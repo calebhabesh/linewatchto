@@ -4,10 +4,6 @@ export const GEOGRAPHIC_LINE_BADGE_FULL_ZOOM = 10;
 export const GEOGRAPHIC_LINE_BADGE_HALF_ZOOM = 12;
 export const GEOGRAPHIC_LINE_BADGE_HIDDEN_ZOOM = 14;
 
-export const SYSTEM_LINE_BADGE_FULL_SCALE = 1;
-export const SYSTEM_LINE_BADGE_HALF_SCALE = 1.7;
-export const SYSTEM_LINE_BADGE_HIDDEN_SCALE = 2.5;
-
 type GeographicLineBadgeAnchor = {
   id: string;
   lineId: string;
@@ -97,19 +93,4 @@ export function projectGeographicLineBadges(
       }];
     }),
   };
-}
-
-export function systemLineBadgeOpacity(relativeScale: number): number {
-  if (!Number.isFinite(relativeScale) || relativeScale <= SYSTEM_LINE_BADGE_FULL_SCALE) return 1;
-  if (relativeScale >= SYSTEM_LINE_BADGE_HIDDEN_SCALE) return 0;
-  if (relativeScale <= SYSTEM_LINE_BADGE_HALF_SCALE) {
-    return 1 - 0.5 * (
-      (relativeScale - SYSTEM_LINE_BADGE_FULL_SCALE)
-      / (SYSTEM_LINE_BADGE_HALF_SCALE - SYSTEM_LINE_BADGE_FULL_SCALE)
-    );
-  }
-  return 0.5 * (
-    (SYSTEM_LINE_BADGE_HIDDEN_SCALE - relativeScale)
-    / (SYSTEM_LINE_BADGE_HIDDEN_SCALE - SYSTEM_LINE_BADGE_HALF_SCALE)
-  );
 }
