@@ -1509,7 +1509,6 @@ export function GeographicNetworkMap({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [currentZoom, setCurrentZoom] = useState<number>(() => getGeographicDefaultZoom(network));
-  const [focusNotice, setFocusNotice] = useState<string | null>(null);
   const [overlapChooser, setOverlapChooser] = useState<GeographicOverlapChooserState | null>(null);
   const [overlapChooserLayout, setOverlapChooserLayout] = useState<GeographicOverlapChooserLayout | null>(null);
   const [hoveredOverlapImpact, setHoveredOverlapImpact] = useState<MapImpact | null>(null);
@@ -1546,7 +1545,6 @@ export function GeographicNetworkMap({
   const lastZoomOutSignalRef = useRef(zoomOutSignal ?? 0);
   const lastSelectedStationIdRef = useRef<string | null>(selectedStationId ?? null);
   const lastSelectionRef = useRef<string | null>(null);
-  const lastMissingSelectionRef = useRef<string | null>(null);
   const lastCommutePreviewIdRef = useRef<string | null>(commutePathPreview?.id ?? null);
 
   // Persist camera on movement end
@@ -2386,8 +2384,6 @@ export function GeographicNetworkMap({
 
     if (!selection) {
       lastSelectionRef.current = null;
-      lastMissingSelectionRef.current = null;
-      window.setTimeout(() => setFocusNotice(null), 0);
       pendingCameraFlightGenRef.current = null;
       stopAttentionLoop();
       selectionAttentionRef.current.reset();
@@ -2413,16 +2409,11 @@ export function GeographicNetworkMap({
           animate: !reducedMotion,
         });
         lastSelectionRef.current = currentSelectionKey;
-        lastMissingSelectionRef.current = null;
-        window.setTimeout(() => setFocusNotice(null), 0);
 
         if (!reducedMotion && map.isMoving()) {
           hasCameraFlight = true;
           pendingCameraFlightGenRef.current = selectionAttentionGeneration;
         }
-      } else if (lastMissingSelectionRef.current !== currentSelectionKey) {
-        lastMissingSelectionRef.current = currentSelectionKey;
-        window.setTimeout(() => setFocusNotice("Location unavailable on geographic map"), 0);
       }
     }
 
@@ -2510,12 +2501,6 @@ export function GeographicNetworkMap({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [reducedMotion, mobilePerformanceMode, selectionAttentionGeneration, applyAttentionFrame, startAttentionLoop, stopAttentionLoop]);
-
-  useEffect(() => {
-    if (!focusNotice) return;
-    const timeoutId = window.setTimeout(() => setFocusNotice(null), 3200);
-    return () => window.clearTimeout(timeoutId);
-  }, [focusNotice]);
 
   useEffect(() => {
     setGeographicProjectedImpactAnchorResolver((key) => {
@@ -2851,16 +2836,6 @@ export function GeographicNetworkMap({
           compactMotion={overlapChooserLayout.viewportSize.width <= 640}
           viewportSize={overlapChooserLayout.viewportSize}
         />
-      ) : null}
-
-      {focusNotice ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="absolute bottom-20 sm:bottom-10 left-1/2 -translate-x-1/2 z-30 rounded-lg bg-slate-950/90 px-3 py-2 text-xs font-semibold text-white shadow-xl"
-        >
-          {focusNotice}
-        </div>
       ) : null}
 
       {/* Desktop Top center map controls */}

@@ -106,7 +106,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     expect(stats?.loadingTransitions).toBe(1);
   });
 
-  test("View on Map focuses supported categories and reports missing geographic coverage", async ({ page, isMobile }) => {
+  test("View on Map keeps the geographic map usable across impact categories", async ({ page, isMobile }) => {
     test.skip(isMobile, "Category camera focus regression is covered on the desktop map surface");
     await page.setViewportSize({ width: 1440, height: 900 });
 
@@ -115,19 +115,12 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       const geoMap = page.locator(".geographic-network-map");
       await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
 
-      const beforeFocusCount = await page.evaluate(
-        () => window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "focus").length ?? 0,
-      );
       const card = page.locator("[data-impact-card-id]").first();
       await expect(card).toBeVisible();
-      await card.getByRole("button", { name: /on map/i }).click();
-      await expect.poll(async () => page.evaluate(
-        ({ before }) => {
-          const focusCount = window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "focus").length ?? 0;
-          return focusCount > before || document.body.innerText.includes("Location unavailable on geographic map");
-        },
-        { before: beforeFocusCount },
-      )).toBe(true);
+      const mapButton = card.getByRole("button", { name: /on map/i });
+      await mapButton.click();
+      await expect(mapButton).toHaveAttribute("aria-pressed", "true");
+      await expect(geoMap).toHaveAttribute("data-status", "ready");
     }
   });
 
@@ -401,7 +394,6 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     );
 
     await expect(card).toHaveClass(/highlight-active-card/);
-    await expect(page.getByText("Location unavailable on geographic map", { exact: true })).toHaveCount(0);
   });
 
   test("theme switching replaces style only on genuine change, preserving map instance and camera", async ({ page, isMobile }) => {
