@@ -1316,10 +1316,10 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdateBannerSource, /New version available/);
     assert.match(appUpdateBannerSource, /Update LineWatchTO to get the latest fixes and improvements\./);
     assert.match(appUpdateBannerSource, /releaseNote/);
-    assert.match(appUpdateBannerSource, /View changes/);
+    assert.match(appUpdateBannerSource, /View Changes/);
     assert.match(appUpdateBannerSource, /\/app-update\.html/);
     assert.match(appUpdateBannerSource, /panel=release-notes/);
-    assert.match(appUpdateBannerSource, /Update now/);
+    assert.match(appUpdateBannerSource, /Update Now/);
     assert.match(appUpdateBannerSource, /Later/);
     assert.match(appUpdateBannerSource, /sessionStorage/);
     assert.match(appUpdateBannerSource, /linewatch-dismissed-update-release/);

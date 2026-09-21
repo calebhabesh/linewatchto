@@ -86,7 +86,7 @@ describe("release notes UI wiring", () => {
     assert.match(moreSheetSource, /onOpenReleaseNotes/);
     assert.match(moreSheetSource, /Release Notes/);
     assert.match(appUpdateBannerSource, /releaseNote/);
-    assert.match(appUpdateBannerSource, /View changes/);
+    assert.match(appUpdateBannerSource, /View Changes/);
     assert.match(versionRouteSource, /releaseNotePreviewForVersion/);
     assert.match(versionRouteSource, /releaseNote:/);
     assert.match(globalCss, /\.release-notes-panel/);

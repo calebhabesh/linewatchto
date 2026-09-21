@@ -238,13 +238,13 @@
     inset 0 -1px 2px 0 rgba(0, 0, 0, 0.45);
   color: white;
   display: flex;
-  gap: 12px;
+  gap: 24px;
   left: 50%;
-  max-width: min(560px, calc(100vw - 24px));
-  padding: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 16px 18px;
   position: fixed;
   transform: translateX(-50%);
-  width: max-content;
+  width: 700px;
   z-index: 90;
 }
 
@@ -257,16 +257,30 @@
 .app-update-banner-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
-.app-update-banner-copy > strong {
+.app-update-banner-heading {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.app-update-banner-heading > strong {
   font-size: 13px;
   line-height: 1.2;
 }
 
-.app-update-banner-copy span {
+.app-update-banner-version {
+  color: #fde68a;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.app-update-banner-summary {
   color: rgb(203, 213, 225);
   font-size: 11px;
   line-height: 1.25;
@@ -275,6 +289,7 @@
 .app-update-banner-actions {
   align-items: center;
   display: flex;
+  flex: none;
   gap: 6px;
   margin-left: auto;
 }
@@ -289,8 +304,11 @@
   font-size: 12px;
   font-weight: 900;
   gap: 6px;
+  justify-content: center;
   min-height: 36px;
   padding: 0 10px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .app-update-banner-actions button:disabled {
@@ -359,20 +377,47 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .app-update-banner {
     align-items: stretch;
     flex-direction: column;
+    gap: 12px;
+    padding: 12px;
     width: calc(100vw - 24px);
   }
 
   .app-update-banner-actions {
+    flex: 1 1 auto;
     width: 100%;
   }
 
   .app-update-banner-actions button {
     flex: 1 1 0;
     justify-content: center;
+    min-width: 0;
+  }
+
+  .app-update-banner-actions .app-update-banner-view {
+    flex-grow: 1.05;
+  }
+
+  .app-update-banner-actions .app-update-banner-later {
+    flex-grow: 0.7;
+  }
+
+  .app-update-banner-actions button:last-child {
+    flex-grow: 1.25;
+  }
+}
+
+@media (max-width: 340px) {
+  .app-update-banner-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-update-banner-actions .app-update-banner-view {
+    grid-column: 1 / -1;
   }
 }
 

@@ -127,6 +127,7 @@ export function AppUpdateBanner() {
 
   const latestReleaseKey = latestVersion ? appUpdateReleaseKey(latestVersion) : null;
   const releaseNote = latestVersion?.releaseNote ?? null;
+  const updateVersion = releaseNote?.version ?? latestVersion?.appVersion?.trim();
 
   if (!latestReleaseKey || latestReleaseKey === dismissedReleaseKey) {
     return null;
@@ -135,13 +136,16 @@ export function AppUpdateBanner() {
   return (
     <aside className="app-update-banner" role="status" aria-live="polite" aria-busy={isUpdating}>
       <div className="app-update-banner-copy">
-        <strong>{releaseNote ? `${releaseNote.title} available` : "New version available"}</strong>
-        <span>{releaseNote?.summary ?? "Update LineWatchTO to get the latest fixes and improvements."}</span>
+        <div className="app-update-banner-heading">
+          <strong>{releaseNote ? `${releaseNote.title} available` : "New version available"}</strong>
+          {updateVersion ? <span className="app-update-banner-version">v{updateVersion}</span> : null}
+        </div>
+        <span className="app-update-banner-summary">{releaseNote?.summary ?? "Update LineWatchTO to get the latest fixes and improvements."}</span>
       </div>
       <div className="app-update-banner-actions">
         {releaseNote ? (
           <button type="button" className="app-update-banner-view" disabled={isUpdating} onClick={handleViewChanges}>
-            View changes
+            View Changes
           </button>
         ) : null}
         <button
@@ -154,7 +158,7 @@ export function AppUpdateBanner() {
         </button>
         <button type="button" onClick={handleUpdate} disabled={isUpdating}>
           <RefreshCcw size={15} className={isUpdating ? "app-update-banner-spin" : undefined} />
-          {isUpdating ? "Updating..." : "Update now"}
+          {isUpdating ? "Updating..." : "Update Now"}
         </button>
       </div>
       {isUpdating && (
