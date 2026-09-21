@@ -4,6 +4,8 @@ import { RefreshCcw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { lineWatchAppVersion, lineWatchBuildLabel } from "../app/app-build";
 import {
+  appUpdateReleaseNote,
+  appUpdateNewVersion,
   appUpdateReleaseKey,
   shouldShowAppUpdate,
   type AppUpdateVersion,
@@ -126,8 +128,8 @@ export function AppUpdateBanner() {
   }, []);
 
   const latestReleaseKey = latestVersion ? appUpdateReleaseKey(latestVersion) : null;
-  const releaseNote = latestVersion?.releaseNote ?? null;
-  const updateVersion = releaseNote?.version ?? latestVersion?.appVersion?.trim();
+  const releaseNote = latestVersion ? appUpdateReleaseNote(latestVersion, installedVersion) : null;
+  const updateVersion = latestVersion ? appUpdateNewVersion(latestVersion, installedVersion) : null;
 
   if (!latestReleaseKey || latestReleaseKey === dismissedReleaseKey) {
     return null;

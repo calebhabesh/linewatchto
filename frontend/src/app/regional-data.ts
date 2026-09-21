@@ -821,6 +821,21 @@ export function regionalDashboardDataForScenario(
     shuttle: false,
     source: "Synthetic regional fixture",
   };
+  const stationPlannedClosure: PlannedClosure = {
+    id: "regional-station-only-planned",
+    lineId: "regional-le",
+    lineNumber: "LE",
+    title: "Pickering station construction",
+    window: "Fixture station closure window",
+    location: "Pickering",
+    description: "Synthetic station-only planned closure for map focus verification.",
+    previewSegmentIds: [],
+    previewStationIds: ["pickering"],
+    shuttle: false,
+    source: "Synthetic regional fixture",
+    activeNow: false,
+    timingStatus: "upcoming",
+  };
   const stationDelay: DelayAlert = {
     id: "regional-demo-bloor-station-delay",
     lineId: "regional-up",
@@ -880,7 +895,7 @@ export function regionalDashboardDataForScenario(
     }),
   ];
   data.delays = [delay, lwCorridorDelay, lwOverlappingDelay, stationDelay];
-  data.plannedClosures = [plannedClosure];
+  data.plannedClosures = [plannedClosure, stationPlannedClosure];
   data.stationNodeImpacts = [stationImpact];
   data.networkSegments = data.networkSegments.map((segment) => {
     const impacts = [];

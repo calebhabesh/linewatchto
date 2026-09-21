@@ -40,6 +40,8 @@ type Props = {
   active: boolean;
   toneClassName: string;
   onShowOnMap: () => void;
+  mapUnavailable?: boolean;
+  mapActionLabel?: string;
 };
 
 export function CompactImpactListItem({
@@ -57,12 +59,16 @@ export function CompactImpactListItem({
   active,
   toneClassName,
   onShowOnMap,
+  mapUnavailable = false,
+  mapActionLabel,
 }: Props) {
   const omitTitle = hideTypeLabel && /^(planned closure|reduced speed zone|delay|service delay|service suspension|suspension|active alert)$/i.test(title.trim());
   const routeFirst = locationFirst || omitTitle;
   const renderedFacts: CompactImpactFact[] = direction
     ? [{ label: "Direction", value: direction }, ...facts]
     : facts;
+  const effectiveMapActionLabel = mapUnavailable ? "No map location" : mapActionLabel ?? (active ? "Back" : "Map");
+  const mapActionIsBack = effectiveMapActionLabel === "Back";
 
   const content = (
     <button
@@ -70,9 +76,12 @@ export function CompactImpactListItem({
       data-impact-card-id={details ? undefined : impactId}
       className={`compact-impact-list-item ${routeFirst ? "compact-impact-list-item--organized" : ""} ${toneClassName}${active ? " is-active" : ""}`}
       onClick={onShowOnMap}
-      aria-label={active ? `Back to ${title} details: ${location}` : `Show ${title} on map: ${location}`}
+      disabled={mapUnavailable}
+      aria-label={mapUnavailable
+        ? `${title}: location unavailable on map`
+        : mapActionIsBack ? `Back to ${title} details: ${location}` : `Show ${title} on map: ${location}`}
       aria-pressed={active}
-      title={active ? "Back to details" : "View on map"}
+      title={mapUnavailable ? "Location unavailable on map" : mapActionIsBack ? "Back to details" : "View on map"}
     >
       <LineBadge lineId={lineId} lineNumber={lineNumber} />
       <span className="compact-impact-list-item__body">
@@ -85,13 +94,13 @@ export function CompactImpactListItem({
         </span> : null}
       </span>
       <span className="compact-impact-list-item__map-action" aria-hidden="true">
-        {active ? (
+        {mapUnavailable ? null : mapActionIsBack ? (
           <ArrowLeft className="compact-impact-list-item__map-action-icon" size={16} />
         ) : (
           <JumpToLocationIcon className="compact-impact-list-item__map-action-icon" />
         )}
         <span className="compact-impact-list-item__map-action-label">
-          {active ? "Back" : "Map"}
+          {effectiveMapActionLabel}
         </span>
       </span>
       {renderedFacts.length > 0 ? (

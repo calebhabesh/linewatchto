@@ -224,8 +224,6 @@
   stroke: var(--planned-preview-rail, #ffffff);
   stroke-dasharray: none;
   stroke-width: var(--regional-impact-width);
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--regional-map-pulse-offset, var(--map-pulse-offset, 0s));
 }
 
 @keyframes map-overlay-rail-pulse {
@@ -483,4 +481,31 @@
 .dark .regional-map-stage .map-connection-airport :is(text, tspan),
 .high-contrast .regional-map-stage .map-connection-airport :is(text, tspan) {
   fill: #f8fafc !important;
+}
+.regional-planned-station-marker {
+  fill: transparent;
+  stroke: #3b82f6;
+  stroke-width: 12;
+  stroke-dasharray: 22 15;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.regional-planned-station-marker[data-regional-impact-selected="true"] {
+  opacity: 1;
+  pointer-events: stroke;
+}
+
+.regional-planned-station-marker:hover,
+.regional-planned-station-marker:focus-visible,
+.regional-planned-station-marker[data-regional-impact-selected="true"] {
+  stroke: #93c5fd;
+  stroke-width: 18;
+  outline: none;
+}
+
+.regional-planned-station-marker[data-active-now="true"] {
+  stroke: #ef4444;
+  stroke-dasharray: none;
 }

@@ -169,6 +169,7 @@ export type PlannedClosure = {
   targetRemoval?: string | null;
   updatedAgo?: string | null;
   previewSegmentIds: string[];
+  previewStationIds?: string[];
   shuttle: boolean;
   source: string;
   activeNow?: boolean;

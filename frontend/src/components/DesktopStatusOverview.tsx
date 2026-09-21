@@ -42,7 +42,7 @@ function getAlertElectricColor(kind: string): string {
 }
 import type { NetworkId } from "../app/regional-data";
 import type { ImpactSelection } from "../app/linewatch-data";
-import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
+import { surfaceNoticeServiceLabel, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import {
   currentServiceSummary,
@@ -513,10 +513,13 @@ export function DesktopStatusOverview({
                 )}
               </span> : null}
               <span className="current-service-notice-copy" data-category={notice.category}>
-                <strong data-category={notice.category}>
-                  <SurfaceCategoryIcon category={notice.category} size={13} className="shrink-0" />
-                  {noticeLabels[notice.category] || "Notice"}
-                </strong>
+                <span className="current-service-notice-heading">
+                  <strong data-category={notice.category}>
+                    <SurfaceCategoryIcon category={notice.category} size={13} className="shrink-0" />
+                    {noticeLabels[notice.category] || "Notice"}
+                  </strong>
+                  {surfaceNoticeServiceLabel(notice) && <span className="current-service-notice-service">{surfaceNoticeServiceLabel(notice)}</span>}
+                </span>
                 <span className="current-service-notice-text">
                   {surfaceNoticePreviewLocation(notice, !regional)}
                 </span>

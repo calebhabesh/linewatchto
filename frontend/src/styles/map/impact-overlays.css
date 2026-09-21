@@ -541,8 +541,6 @@
   stroke: var(--planned-preview-rail);
   stroke-dasharray: none;
   stroke-width: var(--map-overlay-rail-width);
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
   transition: none;
 }
 

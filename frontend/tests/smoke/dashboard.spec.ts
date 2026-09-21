@@ -7,6 +7,7 @@ import {
   stubUrl,
   waitForNetworkTransition,
 } from "./test-support";
+import { currentReleaseNote, RELEASE_NOTES_SEEN_STORAGE_KEY } from "../../src/app/release-notes";
 
 const welcomeStorageKey = "linewatch-welcome-seen-v1";
 const disclaimerStorageKey = "linewatch-unofficial-notice-ack-v1";
@@ -218,12 +219,18 @@ async function freezeBrowserTime(page: Page, isoTime: string) {
 test.beforeEach(async ({ page }) => {
   reportBrowserErrors(page);
   await freezeBrowserTime(page, "2026-06-04T12:00:00-04:00");
-  await page.addInitScript(({ disclaimerKey, welcomeKey }) => {
+  await page.addInitScript(({ disclaimerKey, welcomeKey, releaseNotesKey, releaseVersion }) => {
     window.localStorage.setItem(welcomeKey, "true");
     window.localStorage.setItem(disclaimerKey, "true");
+    if (releaseVersion) window.localStorage.setItem(releaseNotesKey, releaseVersion);
     // Suppress the PWA install nudge during smoke tests to avoid UI layout conflicts
     window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-  }, { disclaimerKey: disclaimerStorageKey, welcomeKey: welcomeStorageKey });
+  }, {
+    disclaimerKey: disclaimerStorageKey,
+    welcomeKey: welcomeStorageKey,
+    releaseNotesKey: RELEASE_NOTES_SEEN_STORAGE_KEY,
+    releaseVersion: currentReleaseNote?.version,
+  });
 });
 
 test("foreground recovery restarts map and constellation animation with stale visibility state", async ({ page, request }) => {
@@ -1378,10 +1385,9 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect((lwCorridorPaths[0].match(/\bM\b/g) ?? []).length).toBe(2);
   expect((lwCorridorPaths[0].match(/\bL\b/g) ?? []).length).toBeGreaterThanOrEqual(15);
   const lwHoverMaskX = await page.locator(
-    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-lw-corridor-delay"] mask',
+    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-lw-corridor-delay"] mask[id^="regional-hover-boundary-mask-"]',
   ).first().getAttribute("x");
   expect(Number(lwHoverMaskX)).toBeLessThan(-330);
-
   const delayHoverPoint = await delayOverlay.locator(".regional-impact-hit-target").evaluate((path) => {
     const geometry = path as SVGPathElement;
     const point = geometry.getPointAtLength(geometry.getTotalLength() * 0.85);
@@ -1399,11 +1405,12 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     .toHaveAttribute("mask", /regional-hover-boundary-mask-/);
   await expect(delayHoverForeground.locator(".regional-impact-hover-boundary-edge"))
     .toHaveAttribute("mask", /regional-hover-boundary-mask-.*-outer/);
-  const hoverMaskWidths = await delayHoverForeground.locator("mask").evaluateAll((masks) => masks.map((mask) => ({
+  const hoverMaskWidths = await delayHoverForeground.locator('mask[id^="regional-hover-boundary-mask-"]')
+    .evaluateAll((masks) => masks.map((mask) => ({
     outer: mask.id.endsWith("-outer"),
     outline: Number(mask.querySelector("path[stroke='white']")?.getAttribute("stroke-width")),
     cutout: Number(mask.querySelector("path[stroke='black']")?.getAttribute("stroke-width")),
-  })));
+    })));
   expect(hoverMaskWidths).toHaveLength(2);
   const coreMaskWidths = hoverMaskWidths.find((mask) => !mask.outer);
   const edgeMaskWidths = hoverMaskWidths.find((mask) => mask.outer);
@@ -1439,6 +1446,87 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(stationPanel.getByText("Delayed estimate", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("6 Min Late", { exact: true })).toBeVisible();
   await expectRegionalPriorityOrder();
+});
+
+test("regional corridor hover matches TTC segment and overlap preview behavior", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "network selection is desktop-only");
+  await setStubMode(request, "regional-live");
+
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+
+  const corridor = page.locator(
+    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-lw-corridor-delay"]',
+  );
+  const segmentTargets = corridor.locator(".regional-impact-segment-focus-target");
+  const hoverForeground = page.locator(
+    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-lw-corridor-delay"]',
+  );
+  await expect(segmentTargets).toHaveCount(15);
+
+  const overlapBadge = page.getByRole("button", {
+    name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/,
+  });
+  await overlapBadge.focus();
+  await expect(hoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(hoverForeground).not.toHaveAttribute("mask");
+
+  await segmentTargets.nth(1).focus();
+  await expect(hoverForeground).toHaveAttribute("mask", /regional-hover-segment-mask-.*-1/);
+  await segmentTargets.nth(2).focus();
+  await expect(hoverForeground).toHaveAttribute("mask", /regional-hover-segment-mask-.*-2/);
+
+  const hoverPoint = await segmentTargets.nth(1).evaluate((path) => {
+    const geometry = path as SVGPathElement;
+    const point = geometry.getPointAtLength(geometry.getTotalLength() / 2);
+    const screenPoint = point.matrixTransform(geometry.getScreenCTM()!);
+    return { x: screenPoint.x, y: screenPoint.y };
+  });
+  await page.mouse.move(hoverPoint.x, hoverPoint.y);
+  await expect(hoverForeground).toHaveAttribute("mask", /regional-hover-segment-mask-/);
+
+  await corridor.locator(".regional-impact-hit-target").dispatchEvent("click");
+  await expect(corridor).toHaveAttribute("data-regional-impact-selected", "true");
+  await segmentTargets.nth(2).focus();
+  await expect(hoverForeground).toHaveAttribute("mask", /regional-hover-segment-mask-.*-2/);
+  await expect(corridor).toHaveAttribute("data-regional-impact-selected", "true");
+});
+
+test("focuses a station-only regional planned closure on the map", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "network selection is desktop-only");
+  await setStubMode(request, "regional-live");
+
+  await page.goto("/?regionalScenario=all-impact-types");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await waitForNetworkTransition(page, "regional");
+  await page.locator('[data-dest="closures"]').click();
+
+  const card = page.locator('[data-impact-card-id="regional-station-only-planned"]');
+  const mapStage = page.locator(".regional-map-stage");
+  const initialTransform = await mapStage.getAttribute("style");
+  const mapButton = card.getByRole("button", { name: "View Pickering station construction on map" });
+  await mapButton.click();
+
+  const marker = page.locator(
+    '.regional-planned-station-marker[data-regional-impact-id="regional-station-only-planned"][data-regional-planned-station-id="pickering"]',
+  );
+  await expect(marker).toHaveAttribute("data-regional-impact-selected", "true");
+  await expect(marker).toBeVisible();
+  await expect.poll(() => mapStage.getAttribute("style")).not.toBe(initialTransform);
+
+  const expandSidebar = page.getByRole("button", { name: "Expand sidebar" });
+  if (await expandSidebar.isVisible()) await expandSidebar.click();
+  await mapButton.click();
+  await expect(marker).toHaveAttribute("data-regional-impact-selected", "true");
+
+  const viewport = page.locator(".regional-map-viewport");
+  await viewport.dispatchEvent("pointerdown", { pointerId: 91, pointerType: "mouse", button: 0, clientX: 12, clientY: 12 });
+  await viewport.dispatchEvent("pointerup", { pointerId: 91, pointerType: "mouse", button: 0, clientX: 12, clientY: 12 });
+  await expect(marker).not.toHaveAttribute("data-regional-impact-selected", "true");
 });
 
 test("keeps transformed regional junction selection aligned with its station dots", async ({ page, request, isMobile }) => {
@@ -2533,7 +2621,7 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
 });
 
-test("overlapping alert rails preserve their shared size when dense TTC overlays pause ambient pulses", async ({ page, request, isMobile }) => {
+test("planned closure rails stay static while overlapping alert pulses remain available", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop ambient overlay pulse verification");
   await setStubMode(request, "map-authoritative-overlap");
   await page.goto("/");
@@ -2572,6 +2660,12 @@ test("overlapping alert rails preserve their shared size when dense TTC overlays
   expect(ttcPulse.closureMaskAnimation).toBe("none");
   expect(ttcPulse.closureMaskWidth).toBe("102px");
 
+  const releaseNotesDismiss = page.getByRole("button", { name: "Close introduction" });
+  if (await releaseNotesDismiss.isVisible()) {
+    await releaseNotesDismiss.click();
+    await expect(page.locator(".opening-disclaimer-backdrop")).toBeHidden();
+  }
+
   await setStubMode(request, "regional-live");
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
@@ -2595,15 +2689,13 @@ test("overlapping alert rails preserve their shared size when dense TTC overlays
     };
     return {
       delay: pulseProgress(delay),
-      planned: pulseProgress(planned),
-      delayWidth: getComputedStyle(delay).strokeWidth,
+      plannedAnimation: getComputedStyle(planned).animationName,
       plannedWidth: getComputedStyle(planned).strokeWidth,
     };
   });
   expect(regionalPulse.delay.duration).toBe(1200);
-  expect(regionalPulse.planned.duration).toBe(1200);
-  expect(Math.abs((regionalPulse.delay.progress ?? 0) - (regionalPulse.planned.progress ?? 0))).toBeLessThan(0.02);
-  expect(regionalPulse.delayWidth).toBe(regionalPulse.plannedWidth);
+  expect(regionalPulse.plannedAnimation).toBe("none");
+  expect(regionalPulse.plannedWidth).toBe("196px");
 });
 
 test("paints current delays above planned closures on both maps", async ({ page, request, isMobile }) => {

@@ -51,7 +51,8 @@ describe("alert card and list views", () => {
     assert.match(compactRowSource, /Back to .* details/);
     assert.match(compactRowSource, /aria-pressed=\{active\}/);
     assert.match(compactRowSource, /active \? "Back" : "Map"/);
-    assert.match(compactRowSource, /active \? \([\s\S]*?<ArrowLeft[\s\S]*?: \([\s\S]*?<JumpToLocationIcon/);
+    assert.match(compactRowSource, /mapActionIsBack \? \([\s\S]*?<ArrowLeft[\s\S]*?: \([\s\S]*?<JumpToLocationIcon/);
+    assert.match(panelSources[3], /mapActionLabel="Map"/);
     assert.match(compactRowSource, /label: "Direction"/);
     assert.match(compactRowSource, /CompactImpactTimeValue/);
     assert.match(panelSources[2], /label: "Reduced Speed"/);

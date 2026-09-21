@@ -1507,8 +1507,24 @@ public class AlertDashboardService {
         String windowHours,
         String windowDates,
         @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle,
-        String travelDirection
+        String travelDirection,
+        List<String> previewStationIds
     ) {
+        public PlannedClosureDto(
+            String id, String lineId, String lineNumber, String title, String window, String location,
+            String displayDirection, String description, OffsetDateTime startedAt, OffsetDateTime updatedAt,
+            List<String> previewSegmentIds, boolean shuttle, String source, String cause, String resolution,
+            boolean activeNow, String timingStatus, boolean nightly, OffsetDateTime activeWindowStart,
+            OffsetDateTime activeWindowEnd, String activeWindowLabel, OffsetDateTime nextWindowStart,
+            OffsetDateTime nextWindowEnd, String nextWindowLabel, String windowHours, String windowDates,
+            String notificationTitle, String travelDirection
+        ) {
+            this(id, lineId, lineNumber, title, window, location, displayDirection, description,
+                startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution,
+                activeNow, timingStatus, nightly, activeWindowStart, activeWindowEnd, activeWindowLabel,
+                nextWindowStart, nextWindowEnd, nextWindowLabel, windowHours, windowDates,
+                notificationTitle, travelDirection, List.of());
+        }
         public PlannedClosureDto(
             String id,
             String lineId,
@@ -1604,6 +1620,18 @@ public class AlertDashboardService {
                 previewSegmentIds, shuttle, source, cause, resolution,
                 false, "unknown", false, null, null, null, null, null, null, null, null, title, "bidirectional"
             );
+        }
+
+        public PlannedClosureDto(
+            String id, String lineId, String lineNumber, String title, String window, String location,
+            String displayDirection, String description, OffsetDateTime startedAt, OffsetDateTime updatedAt,
+            List<String> previewSegmentIds, boolean shuttle, String source, String cause, String resolution,
+            List<String> previewStationIds
+        ) {
+            this(id, lineId, lineNumber, title, window, location, displayDirection, description,
+                startedAt, updatedAt, previewSegmentIds, shuttle, source, cause, resolution,
+                false, "unknown", false, null, null, null, null, null, null, null, null,
+                title, "bidirectional", previewStationIds);
         }
     }
 

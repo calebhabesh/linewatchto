@@ -87,6 +87,14 @@ class RegionalDashboardServiceTest {
                 OffsetDateTime.parse("2026-07-29T14:05:00-04:00"), null,
                 OffsetDateTime.parse("2026-07-29T14:08:00-04:00"),
                 List.of("bloor"), List.of(), ""
+            ),
+            new RegionalNormalizedAlert(
+                "regional-go-planned-pickering", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "P2", "regional-le",
+                "planned-closure", "Pickering construction", "No trains at Pickering.", "Construction",
+                OffsetDateTime.parse("2026-09-26T00:00:00-04:00"),
+                OffsetDateTime.parse("2026-09-28T00:00:00-04:00"),
+                OffsetDateTime.parse("2026-09-21T16:00:00-04:00"),
+                List.of("pickering"), List.of(), ""
             )
         ));
 
@@ -103,6 +111,13 @@ class RegionalDashboardServiceTest {
             .satisfies(impact -> {
                 assertThat(impact.stationId()).isEqualTo("bloor");
                 assertThat(impact.cardId()).isEqualTo("regional-go-station-ki");
+            });
+        assertThat(dashboard.plannedClosures())
+            .filteredOn(closure -> closure.id().equals("regional-go-planned-pickering"))
+            .singleElement()
+            .satisfies(closure -> {
+                assertThat(closure.previewStationIds()).containsExactly("pickering");
+                assertThat(closure.previewSegmentIds()).isEmpty();
             });
         assertThat(dashboard.map().segments())
             .noneSatisfy(segment -> assertThat(segment.impacts())

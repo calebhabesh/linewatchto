@@ -544,7 +544,11 @@ describe("network-scoped regional dashboard", () => {
     assert.equal(regionalDashboardData.activeAlerts.length, 0);
     assert.equal(scenario.activeAlerts.length, 5);
     assert.equal(scenario.delays.length, 4);
-    assert.equal(scenario.plannedClosures.length, 1);
+    assert.equal(scenario.plannedClosures.length, 2);
+    assert.deepEqual(
+      scenario.plannedClosures.find((closure) => closure.id === "regional-station-only-planned")?.previewStationIds,
+      ["pickering"],
+    );
     assert.equal(scenario.stationNodeImpacts.length, 1);
     assert.equal(scenario.stationNodeImpacts[0].stationId, "bloor");
     assert.equal(scenario.stationNodeImpacts[0].cardId, "regional-demo-bloor-station-delay");
@@ -635,9 +639,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /regional-impact-hit-target\s*\{[^}]*stroke-width:\s*var\(--regional-impact-hit-target-width\)/s);
     assert.match(globalsCss, /regional-impact-width\) \+ 169px/);
     assert.match(globalsCss, /data-regional-impact-kind="planned-closure"[\s\S]*regional-impact-aura[\s\S]*display:\s*none/);
-    assert.match(
+    assert.doesNotMatch(
       globalsCss,
-      /data-regional-impact-kind="planned-closure"[^}]*regional-impact-path\s*\{[^}]*animation:\s*map-overlay-rail-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\)/s,
+      /data-regional-impact-kind="planned-closure"[^}]*regional-impact-path\s*\{[^}]*animation:/s,
     );
     assert.match(globalsCss, /data-regional-impact-selected="true"[\s\S]*regional-impact-interactive-glow[\s\S]*regional-selection-path-intro/);
     assert.match(globalsCss, /regional-impact-interactive-glow\s*\{[^}]*filter:\s*drop-shadow\(0 0 12px/s);
@@ -756,7 +760,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /bringRegionalStationImpactToFront\(root, selection\.kind, selection\.id/);
     assert.match(regionalMapSource, /function setRegionalImpactHoverForeground\(/);
     assert.match(regionalMapSource, /regional-impact-hover-foreground-layer/);
-    assert.match(regionalMapSource, /regionalSegmentHoverForeground\(source, index\)/);
+    assert.match(regionalMapSource, /regionalSegmentHoverForeground\(source, index, segments\)/);
+    assert.match(regionalMapSource, /classList\.add\("regional-impact-segment-focus-target"\)/);
+    assert.match(regionalMapSource, /regional-hover-segment-mask-/);
     assert.doesNotMatch(regionalMapSource, /regionalStationHoverForeground\(source\)/);
     assert.match(regionalMapSource, /function setRegionalStationImpactHover\(/);
     assert.match(regionalMapSource, /indicator\.dataset\.regionalStationImpactHovered = "true"/);

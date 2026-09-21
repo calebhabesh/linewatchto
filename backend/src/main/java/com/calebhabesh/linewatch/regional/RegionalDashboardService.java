@@ -260,7 +260,7 @@ public class RegionalDashboardService {
             .map(alert -> new AlertDashboardService.PlannedClosureDto(
                 alert.id(), alert.lineId(), lineNumber(alert), alert.title(), window(alert), location(alert), null,
                 alert.description(), alert.activePeriodStart(), alert.sourceUpdatedAt(), alert.affectedSegmentIds(),
-                false, sourceLabel(alert), alert.cause(), null
+                false, sourceLabel(alert), alert.cause(), null, alert.stationIds()
             )).toList();
     }
 

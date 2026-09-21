@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { ArrowRight, BusFront, Info, TrainFront } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
-import type { SurfaceNoticeResponse, SurfaceNoticeDetail } from "../app/surface-notice-data";
+import { surfaceNoticeServiceLabel, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import {
   currentServiceSummary,
   currentSurfaceNotices,
@@ -553,10 +553,13 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
               ))}
             </span> : null}
             <span className="current-service-notice-copy" data-category={notice.category}>
-              <strong data-category={notice.category}>
-                <SurfaceCategoryIcon category={notice.category} size={12} className="shrink-0" />
-                {noticeLabels[notice.category] || "Notice"}
-              </strong>
+              <span className="current-service-notice-heading">
+                <strong data-category={notice.category}>
+                  <SurfaceCategoryIcon category={notice.category} size={12} className="shrink-0" />
+                  {noticeLabels[notice.category] || "Notice"}
+                </strong>
+                {surfaceNoticeServiceLabel(notice) && <span className="current-service-notice-service">{surfaceNoticeServiceLabel(notice)}</span>}
+              </span>
               <span className="current-service-notice-text">{surfaceNoticePreviewLocation(notice, data.networkId === "ttc")}</span>
             </span>
           </button>)}

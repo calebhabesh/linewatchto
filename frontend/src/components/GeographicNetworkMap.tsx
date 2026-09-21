@@ -757,6 +757,27 @@ function installTransitLayers(
     });
   }
 
+  // Hover keylines sit below the severity rail, leaving its color and dash
+  // pattern visible while bringing only the pointed segment forward.
+  for (const [id, color, widths] of [
+    ["transit-impacts-hover-edge", "#f8fafc", [9.2, 12.5, 15.5]],
+    ["transit-impacts-hover-core", "#0f172a", [8.0, 11.0, 14.0]],
+  ] as const) {
+    if (map.getLayer(id)) continue;
+    map.addLayer({
+      id,
+      type: "line",
+      source: "transit-impacts",
+      filter: ["==", ["get", "segmentId"], ""],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": color,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 9, widths[0], 14, widths[1], 17, widths[2]],
+        "line-offset": routeOffsetExpr,
+      },
+    });
+  }
+
   // --- LAYER 6: Impacted segments main overlay line ---
   if (!map.getLayer("transit-impacts-line")) {
     map.addLayer({
@@ -980,6 +1001,22 @@ function installTransitLayers(
     });
   }
 
+  if (!map.getLayer("transit-station-impacts-hover")) {
+    map.addLayer({
+      id: "transit-station-impacts-hover",
+      type: "circle",
+      source: "transit-impact-stations",
+      filter: ["==", ["get", "stationId"], ""],
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 9, 14, 16, 17, 23],
+        "circle-color": "transparent",
+        "circle-stroke-width": 2.5,
+        "circle-stroke-color": "#f8fafc",
+        "circle-stroke-opacity": 0.95,
+      },
+    });
+  }
+
   // --- LAYER 10: Commute origin and destination station rings ---
   if (!map.getLayer("transit-commute-stations")) {
     map.addLayer({
@@ -1028,6 +1065,22 @@ function installTransitLayers(
         "circle-color": "transparent",
         "circle-stroke-width": 3.5,
         "circle-stroke-color": "#38bdf8",
+        "circle-stroke-opacity": 0.95,
+      },
+    });
+  }
+
+  if (!map.getLayer("transit-planned-station-selection")) {
+    map.addLayer({
+      id: "transit-planned-station-selection",
+      type: "circle",
+      source: "transit-stations",
+      filter: ["==", ["get", "stationId"], ""],
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 10, 14, 17, 17, 24],
+        "circle-color": "transparent",
+        "circle-stroke-width": 4,
+        "circle-stroke-color": "#3b82f6",
         "circle-stroke-opacity": 0.95,
       },
     });
@@ -1512,6 +1565,11 @@ export function GeographicNetworkMap({
   const [overlapChooser, setOverlapChooser] = useState<GeographicOverlapChooserState | null>(null);
   const [overlapChooserLayout, setOverlapChooserLayout] = useState<GeographicOverlapChooserLayout | null>(null);
   const [hoveredOverlapImpact, setHoveredOverlapImpact] = useState<MapImpact | null>(null);
+  const [hoveredMapTarget, setHoveredMapTarget] = useState<{
+    type: "segment" | "station";
+    id: string;
+  } | null>(null);
+  const [styleRevision, setStyleRevision] = useState(0);
 
   // Style and generation lifecycle guards
   const appliedStyleUrlRef = useRef<string | null>(null);
@@ -1767,6 +1825,11 @@ export function GeographicNetworkMap({
     map.on("mousemove", "transit-impact-badges", (e) => {
       if (!e.features || e.features.length === 0) return;
       const props = e.features[0].properties;
+      if ((props?.targetType === "segment" || props?.targetType === "station") && props.targetId) {
+        setHoveredMapTarget((current) => current?.type === props.targetType && current?.id === props.targetId
+          ? current
+          : { type: props.targetType, id: props.targetId });
+      }
       if (props?.rawImpacts) {
         try {
           const raw = typeof props.rawImpacts === "string" ? JSON.parse(props.rawImpacts) : props.rawImpacts;
@@ -1792,7 +1855,22 @@ export function GeographicNetworkMap({
     });
     map.on("mouseleave", "transit-impact-badges", () => {
       setHoveredOverlapImpact(null);
+      setHoveredMapTarget(null);
     });
+
+    for (const [layerId, type, property] of [
+      ["transit-impacts-line", "segment", "segmentId"],
+      ["transit-station-impacts", "station", "stationId"],
+    ] as const) {
+      map.on("mousemove", layerId, (event) => {
+        const id = event.features?.[0]?.properties?.[property];
+        if (!id) return;
+        setHoveredMapTarget((current) => current?.type === type && current.id === id
+          ? current
+          : { type, id });
+      });
+      map.on("mouseleave", layerId, () => setHoveredMapTarget(null));
+    }
 
     // Dynamic style image fallback for overlap badges
     map.on("styleimagemissing", (e) => {
@@ -1843,9 +1921,17 @@ export function GeographicNetworkMap({
     // Station click handler
     map.on("click", "transit-stations-outer", (e) => {
       if (!e.features || e.features.length === 0) return;
+      if (map.getLayer("transit-planned-station-selection")
+        && map.queryRenderedFeatures(e.point, { layers: ["transit-planned-station-selection"] }).length > 0) return;
       const stationId = e.features[0].properties?.stationId;
       if (stationId && callbacksRef.current.onSelectStationId) {
         callbacksRef.current.onSelectStationId(stationId);
+      }
+    });
+
+    map.on("click", "transit-planned-station-selection", () => {
+      if (selectionRef.current?.kind === "planned-closure") {
+        callbacksRef.current.onSelectImpact?.(selectionRef.current);
       }
     });
 
@@ -1892,6 +1978,7 @@ export function GeographicNetworkMap({
         "transit-impacts-line",
         "transit-impact-arrows",
         "transit-stations-outer",
+        "transit-planned-station-selection",
       ].filter((l) => map.getLayer(l));
 
       const features = map.queryRenderedFeatures(e.point, { layers: interactiveLayers });
@@ -1906,6 +1993,7 @@ export function GeographicNetworkMap({
     // Pointer cursor on interactive features
     const pointerLayers = [
       "transit-stations-outer",
+      "transit-planned-station-selection",
       "transit-impact-badges",
       "transit-station-impacts",
       "transit-impacts-line",
@@ -1922,6 +2010,7 @@ export function GeographicNetworkMap({
 
     map.on("dragstart", () => {
       isDraggingRef.current = true;
+      setHoveredMapTarget(null);
       const frame = selectionAttentionRef.current.onUserGestureStart();
       attentionHandlersRef.current.applyAttentionFrame(frame);
       attentionHandlersRef.current.stopAttentionLoop();
@@ -2157,6 +2246,49 @@ export function GeographicNetworkMap({
     if (commuteStationsSource) commuteStationsSource.setData(overlayData.commuteStations);
   }, [overlayData, loadStatus]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loadStatus !== "ready" || isStyleLoadingRef.current) return;
+
+    let segmentIds: string[] = [];
+    let stationIds: string[] = [];
+    if (overlapChooser) {
+      const impactId = hoveredOverlapImpact?.cardId;
+      if (impactId) {
+        segmentIds = overlayData.impactedLinks.features
+          .filter((feature) => feature.properties.allCardIds.includes(impactId))
+          .map((feature) => feature.properties.segmentId);
+        stationIds = overlayData.impactedStations.features
+          .filter((feature) => feature.properties.allCardIds?.includes(impactId))
+          .map((feature) => feature.properties.stationId);
+      }
+    } else if (hoveredMapTarget?.type === "segment") {
+      segmentIds = [hoveredMapTarget.id];
+    } else if (hoveredMapTarget?.type === "station") {
+      stationIds = [hoveredMapTarget.id];
+    }
+
+    const filterFor = (property: "segmentId" | "stationId", ids: string[]): Parameters<MapLibreMap["setFilter"]>[1] => (
+      ids.length > 0
+        ? ["in", ["get", property], ["literal", [...new Set(ids)]]]
+        : ["==", ["get", property], ""]
+    );
+    for (const layerId of ["transit-impacts-hover-edge", "transit-impacts-hover-core"]) {
+      if (map.getLayer(layerId)) map.setFilter(layerId, filterFor("segmentId", segmentIds));
+    }
+    if (map.getLayer("transit-station-impacts-hover")) {
+      map.setFilter("transit-station-impacts-hover", filterFor("stationId", stationIds));
+    }
+
+    const container = containerRef.current;
+    if (container) {
+      if (segmentIds.length === 1) container.dataset.hoveredImpactSegment = segmentIds[0];
+      else delete container.dataset.hoveredImpactSegment;
+      if (stationIds.length === 1) container.dataset.hoveredImpactStation = stationIds[0];
+      else delete container.dataset.hoveredImpactStation;
+    }
+  }, [hoveredMapTarget, hoveredOverlapImpact, loadStatus, overlapChooser, overlayData, styleRevision]);
+
   // React to line/corridor filtering changes via paint properties
   useEffect(() => {
     const map = mapRef.current;
@@ -2299,6 +2431,7 @@ export function GeographicNetworkMap({
           selectedStationIdRef.current ?? null,
           selectionRef.current?.id ?? null,
         );
+        setStyleRevision((current) => current + 1);
       }
     });
 
@@ -2365,6 +2498,21 @@ export function GeographicNetworkMap({
     const map = mapRef.current;
     if (!map || loadStatus !== "ready") return;
 
+    const selectedPlannedClosure = selection?.kind === "planned-closure"
+      ? resolvedPlannedClosures.find((closure) => closure.id === selection.id)
+      : undefined;
+    const plannedStationIds = selectedPlannedClosure?.previewStationIds ?? [];
+    if (map.getLayer("transit-planned-station-selection")) {
+      map.setFilter("transit-planned-station-selection", plannedStationIds.length > 0
+        ? ["in", ["get", "stationId"], ["literal", plannedStationIds]]
+        : ["==", ["get", "stationId"], ""]);
+      map.setPaintProperty(
+        "transit-planned-station-selection",
+        "circle-stroke-color",
+        selectedPlannedClosure?.activeNow ? "#ef4444" : "#3b82f6",
+      );
+    }
+
     if (map.getLayer("transit-impacts-selection")) {
       map.setFilter(
         "transit-impacts-selection",
@@ -2392,15 +2540,26 @@ export function GeographicNetworkMap({
       return;
     }
 
-    const currentSelectionKey = `${selection.kind}:${selection.id}`;
+    const currentSelectionKey = `${selection.kind}:${selection.id}:${selectionAttentionGeneration}`;
     let hasCameraFlight = false;
 
     if (currentSelectionKey !== lastSelectionRef.current) {
-      const bounds = getProjectedSelectionBounds(
+      const impactBounds = getProjectedSelectionBounds(
         selection,
         overlayData.impactedLinks.features,
         overlayData.impactedStations.features,
       );
+      const stationCoordinates = plannedStationIds.flatMap((stationId) => {
+        const coordinate = catalogRef.current && getStationCoordinates(catalogRef.current, stationId);
+        return coordinate ? [coordinate] : [];
+      });
+      const coordinates = [...stationCoordinates, ...(impactBounds ? [impactBounds[0], impactBounds[1]] : [])];
+      const bounds: [[number, number], [number, number]] | null = coordinates.length > 0
+        ? [
+            [Math.min(...coordinates.map((coordinate) => coordinate[0])), Math.min(...coordinates.map((coordinate) => coordinate[1]))],
+            [Math.max(...coordinates.map((coordinate) => coordinate[0])), Math.max(...coordinates.map((coordinate) => coordinate[1]))],
+          ]
+        : null;
       if (bounds) {
         recordGeographicMapLifecycle("focus", currentSelectionKey);
         map.fitBounds(bounds, {
@@ -2441,6 +2600,7 @@ export function GeographicNetworkMap({
     loadStatus,
     overlayData.impactedLinks,
     overlayData.impactedStations,
+    resolvedPlannedClosures,
     reducedMotion,
     mobilePerformanceMode,
     applyAttentionFrame,

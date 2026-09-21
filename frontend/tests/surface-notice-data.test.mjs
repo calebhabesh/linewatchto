@@ -4,7 +4,13 @@ import { describe, it } from "node:test";
 import {
   getSurfaceNotices,
   fallbackSurfaceNotices,
+  surfaceNoticeServiceLabel,
 } from "../src/app/surface-notice-data.ts";
+
+it("labels regional schedule notices without claiming they are bus-only", () => {
+  assert.equal(surfaceNoticeServiceLabel({ routeType: "GO Bus", routeIds: ["30"] }), "Bus");
+  assert.equal(surfaceNoticeServiceLabel({ routeType: "GO / UP", routeIds: ["30", "31"], scheduleAnnouncement: true }), "GO / UP");
+});
 
 describe("surface notice data adapter", () => {
   it("uses same-origin API by default", async () => {

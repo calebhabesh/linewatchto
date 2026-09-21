@@ -70,6 +70,12 @@
   outline-offset: 2px;
 }
 
+.impact-card-map-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
 .impact-card-map-btn .map-pinned-icon,
 .impact-card-map-btn svg {
   flex-shrink: 0;
@@ -1253,6 +1259,11 @@
 .compact-impact-list-item:focus-visible {
   outline: 2px solid rgb(37, 99, 235);
   outline-offset: 2px;
+}
+
+.compact-impact-list-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .compact-impact-list-item__body,

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { installDismissedTransientUi, setStubMode } from "./test-support";
+import { installDismissedTransientUi, setStubMode, waitForNetworkTransition } from "./test-support";
 
 test.describe("Geographic Map Stability & Lifecycle", () => {
   test.beforeEach(async ({ page, request }) => {
@@ -51,6 +51,65 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     expect(postActionStats?.removals, "Zero map removals after toggles and polls").toBe(0);
     expect(postActionStats?.loadingTransitions, "Zero additional loading transitions (no flashing)").toBe(1);
     expect(postActionStats?.styleReplacements, "Zero style replacements during toggles and polls").toBe(0);
+  });
+
+  test("segment hover uses the same geographic highlight in TTC and GO/UP modes", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "Desktop pointer hover regression");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route("**/api/dashboard?network=ttc*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const segment = body.map.segments.find(
+        (candidate: { id: string }) => candidate.id === "line-4-sheppard-yonge-don-mills",
+      );
+      segment.id = "line-1-tmu-college";
+      segment.lineId = "line-1";
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto("/?panel=delays");
+
+    const geoMap = page.locator(".geographic-network-map");
+    const hoverSurface = geoMap.locator(':scope > [role="region"]');
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+    const hoverProjectedSegment = async (segmentId: string, impactId?: string) => {
+      if (impactId) {
+        await page.locator(`[data-impact-card-id="${impactId}"]`)
+          .getByRole("button", { name: /on map/i })
+          .click();
+      }
+      const canvasBox = await geoMap.locator("canvas").boundingBox();
+      expect(canvasBox).not.toBeNull();
+      await expect.poll(async () => page.evaluate(
+        ({ key }) => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(key) ?? null,
+        { key: `segment:${segmentId}` },
+      )).not.toBeNull();
+      const projected = await page.evaluate(
+        ({ key }) => window.__linewatchGeographicMapLifecycle?.getProjectedImpactAnchor(key) ?? null,
+        { key: `segment:${segmentId}` },
+      );
+      expect(projected).not.toBeNull();
+      for (const [offsetX, offsetY] of [[0, 0], [0, -36], [0, 36], [-36, 0], [36, 0]]) {
+        await page.mouse.move(
+          canvasBox!.x + projected!.x + offsetX,
+          canvasBox!.y + projected!.y + offsetY,
+        );
+        if (await hoverSurface.getAttribute("data-hovered-impact-segment") === segmentId) break;
+      }
+      await expect(hoverSurface).toHaveAttribute("data-hovered-impact-segment", segmentId);
+    };
+
+    await hoverProjectedSegment("line-1-tmu-college", "stub-delay-line-4");
+    await page.mouse.move(10, 10);
+    await expect(hoverSurface).not.toHaveAttribute("data-hovered-impact-segment");
+
+    await setStubMode(request, "regional-live");
+    await page.getByRole("button", { name: /^Status/ }).click();
+    await page.getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true })
+      .click();
+    await waitForNetworkTransition(page, "regional");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+    await hoverProjectedSegment("segment-le-pickering-ajax");
   });
 
   test("camera center/zoom and active selection survive sidebar toggles, data refreshes, and filter changes", async ({ page, isMobile }) => {

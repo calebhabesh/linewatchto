@@ -155,6 +155,7 @@ const REGIONAL_MAP_VIEWBOX = {
 const REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer";
 const REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID = "regional-dynamic-selected-segment-layer";
 const REGIONAL_DYNAMIC_STATION_RING_LAYER_ID = "regional-dynamic-station-ring-layer";
+const REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID = "regional-dynamic-planned-station-layer";
 const REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer";
 const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
 const REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer";
@@ -2130,7 +2131,9 @@ function regionalImpactIdentity(target: EventTarget | null) {
   );
   const kind = (impact?.dataset.regionalImpactKind ?? impact?.dataset.impactKind) as ImpactKind | undefined;
   const id = impact?.dataset.regionalImpactId ?? impact?.dataset.impactId;
-  return kind && id ? { kind, id } : null;
+  const segmentId = target.closest<SVGElement>("[data-regional-hover-segment-id]")
+    ?.dataset.regionalHoverSegmentId;
+  return kind && id ? { kind, id, segmentId } : null;
 }
 
 function regionalSegmentImpactAtClientPoint(
@@ -2150,7 +2153,16 @@ function regionalSegmentImpactAtClientPoint(
     point.x = clientX;
     point.y = clientY;
     if (!hitTarget.isPointInStroke(point.matrixTransform(screenMatrix.inverse()))) continue;
-    return regionalImpactIdentity(hitTarget);
+    const identity = regionalImpactIdentity(hitTarget);
+    const group = hitTarget.closest<SVGGElement>(".regional-overlay-segment-group");
+    if (!identity || !group) return identity;
+    const segmentTargets = [...group.querySelectorAll<SVGPathElement>(".regional-impact-segment-focus-target")];
+    const segment = segmentTargets.reverse().find((target) => {
+      const matrix = target.getScreenCTM();
+      if (!matrix) return false;
+      return target.isPointInStroke(point.matrixTransform(matrix.inverse()));
+    });
+    return { ...identity, segmentId: segment?.dataset.regionalHoverSegmentId ?? identity.segmentId };
   }
   return null;
 }
@@ -2181,6 +2193,7 @@ function setRegionalImpactHoverForeground(
   kind: ImpactKind,
   id: string,
   hovered: boolean,
+  segmentId?: string,
 ) {
   root.querySelectorAll<SVGElement>("[data-regional-hover-impact-kind][data-regional-hover-impact-id]")
     .forEach((foreground) => {
@@ -2189,8 +2202,15 @@ function setRegionalImpactHoverForeground(
         || foreground.dataset.regionalHoverImpactId !== id
       ) return;
       if (hovered) {
+        const segmentMask = segmentId
+          ? [...foreground.querySelectorAll<SVGMaskElement>("mask[data-regional-hover-segment-id]")]
+              .find((mask) => mask.dataset.regionalHoverSegmentId === segmentId)
+          : null;
+        if (segmentMask) foreground.setAttribute("mask", `url(#${segmentMask.id})`);
+        else foreground.removeAttribute("mask");
         foreground.dataset.regionalImpactHovered = "true";
       } else {
+        foreground.removeAttribute("mask");
         foreground.removeAttribute("data-regional-impact-hovered");
       }
   });
@@ -2256,7 +2276,11 @@ function regionalHoverMaskBounds(source: SVGElement) {
   };
 }
 
-function regionalSegmentHoverForeground(source: SVGElement, maskIndex: number) {
+function regionalSegmentHoverForeground(
+  source: SVGElement,
+  maskIndex: number,
+  segments: RegionalHoverSegment[] = [],
+) {
   const foreground = source.cloneNode(true) as SVGElement;
   removeDescendantIds(foreground);
   foreground.dataset.regionalHoverImpactKind = source.dataset.regionalImpactKind ?? "";
@@ -2333,9 +2357,67 @@ function regionalSegmentHoverForeground(source: SVGElement, maskIndex: number) {
     edgeBoundary.style.setProperty("filter", "drop-shadow(0 0 7px rgba(191, 219, 254, 0.62))");
     foreground.append(edgeBoundary);
   }
+  if (segments.length > 1) {
+    const maskBounds = regionalHoverMaskBounds(source);
+    const definitions = source.ownerDocument.createElementNS(SVG_NAMESPACE, "defs");
+    segments.forEach((segment, segmentIndex) => {
+      const mask = source.ownerDocument.createElementNS(SVG_NAMESPACE, "mask");
+      mask.id = `regional-hover-segment-mask-${maskIndex}-${segmentIndex}`;
+      mask.dataset.regionalHoverSegmentId = segment.id;
+      mask.setAttribute("maskUnits", "userSpaceOnUse");
+      mask.setAttribute("x", String(maskBounds.x));
+      mask.setAttribute("y", String(maskBounds.y));
+      mask.setAttribute("width", String(maskBounds.width));
+      mask.setAttribute("height", String(maskBounds.height));
+      const background = source.ownerDocument.createElementNS(SVG_NAMESPACE, "rect");
+      background.setAttribute("x", String(maskBounds.x));
+      background.setAttribute("y", String(maskBounds.y));
+      background.setAttribute("width", String(maskBounds.width));
+      background.setAttribute("height", String(maskBounds.height));
+      background.setAttribute("fill", "black");
+      const path = source.ownerDocument.createElementNS(SVG_NAMESPACE, "path");
+      path.setAttribute("d", segment.pathD);
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "white");
+      path.setAttribute("stroke-width", String(REGIONAL_IMPACT_HIT_TARGET_WIDTH));
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      mask.append(background, path);
+      definitions.append(mask);
+    });
+    foreground.prepend(definitions);
+  }
   foreground.setAttribute("aria-hidden", "true");
   foreground.setAttribute("pointer-events", "none");
   return foreground;
+}
+
+type RegionalHoverSegment = { id: string; label: string; pathD: string };
+
+function addRegionalSegmentFocusTargets(group: SVGGElement, segments: RegionalHoverSegment[]) {
+  const hitTarget = group.querySelector<SVGPathElement>(".regional-impact-hit-target");
+  if (!hitTarget || segments.length === 0) return;
+  if (segments.length === 1) {
+    hitTarget.dataset.regionalHoverSegmentId = segments[0].id;
+    return;
+  }
+
+  hitTarget.setAttribute("tabindex", "-1");
+  hitTarget.setAttribute("aria-hidden", "true");
+  for (const segment of segments) {
+    const focusTarget = group.ownerDocument.createElementNS(SVG_NAMESPACE, "path");
+    focusTarget.classList.add("regional-impact-segment-focus-target");
+    focusTarget.dataset.regionalHoverSegmentId = segment.id;
+    focusTarget.setAttribute("d", segment.pathD);
+    focusTarget.setAttribute("fill", "none");
+    focusTarget.setAttribute("stroke", "transparent");
+    focusTarget.setAttribute("stroke-width", String(REGIONAL_IMPACT_HIT_TARGET_WIDTH));
+    focusTarget.setAttribute("pointer-events", "none");
+    focusTarget.setAttribute("role", "button");
+    focusTarget.setAttribute("tabindex", "0");
+    focusTarget.setAttribute("aria-label", `${segment.label} impact details`);
+    group.append(focusTarget);
+  }
 }
 
 function nextRegionalPointerImpactSelection(
@@ -2865,6 +2947,7 @@ export function preloadRegionalMapMarkup(): Promise<string> {
       const commuteLayer = createLayer(REGIONAL_DYNAMIC_COMMUTE_LAYER_ID);
       const selectedSegmentLayer = createLayer(REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID, "regional-selected-segment-layer");
       const stationRingLayer = createLayer(REGIONAL_DYNAMIC_STATION_RING_LAYER_ID);
+      const plannedStationLayer = createLayer(REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID);
       const hoverLayer = createLayer(REGIONAL_DYNAMIC_HOVER_LAYER_ID, "regional-impact-hover-foreground-layer");
       hoverLayer.setAttribute("aria-hidden", "true");
       hoverLayer.setAttribute("pointer-events", "none");
@@ -2873,6 +2956,7 @@ export function preloadRegionalMapMarkup(): Promise<string> {
       stationsLayer.insertBefore(selectedSegmentLayer, firstStationTarget);
       stationsLayer.insertBefore(stationRingLayer, firstStationTarget);
       stationsLayer.insertBefore(hoverLayer, firstStationTarget);
+      stationsLayer.append(plannedStationLayer);
 
       const effectsLayer = createLayer(REGIONAL_DYNAMIC_EFFECTS_LAYER_ID, "regional-station-impact-effects-layer");
       effectsLayer.setAttribute("aria-label", "Station alert beacons and directions");
@@ -2956,7 +3040,7 @@ function InteractiveRegionalMapComponent({
   onMapViewChange?: (view: MapViewPreference) => void;
   selectionAttentionGeneration?: number;
 }) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts, stations } = useDashboardData();
   const regionalMapRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
@@ -3454,11 +3538,11 @@ function InteractiveRegionalMapComponent({
   }, [animateCameraTo, animateInitialEntrance, fittedCamera, shouldAnimateProgrammaticTransform, snapCameraToNetwork, restoreSavedCamera]);
 
   const focusTargetKey = useMemo(() => {
-    if (selection) return `${selection.kind}:${selection.id}`;
+    if (selection) return `${selection.kind}:${selection.id}:${selectionAttentionGeneration}`;
     if (selectedStationId) return `station:${selectedStationId}`;
     if (commutePathPreview) return `commute:${commutePathPreview.id}:${commutePathPreview.legId}`;
     return null;
-  }, [commutePathPreview, selection, selectedStationId]);
+  }, [commutePathPreview, selection, selectedStationId, selectionAttentionGeneration]);
 
   // The mounted map already fits its current layout. Only new commands
   // should reset it; replaying a stored command interrupts network entry.
@@ -3534,14 +3618,16 @@ function InteractiveRegionalMapComponent({
     const segmentLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SEGMENT_LAYER_ID}`);
     const selectedSegmentLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_SELECTED_SEGMENT_LAYER_ID}`);
     const stationRingLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_STATION_RING_LAYER_ID}`);
+    const plannedStationLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID}`);
     const commuteLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_COMMUTE_LAYER_ID}`);
     const hoverLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_HOVER_LAYER_ID}`);
     const effectsLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_EFFECTS_LAYER_ID}`);
-    if (!segmentLayer || !stationRingLayer || !commuteLayer || !hoverLayer || !effectsLayer) return;
+    if (!segmentLayer || !stationRingLayer || !plannedStationLayer || !commuteLayer || !hoverLayer || !effectsLayer) return;
 
     segmentLayer.replaceChildren();
     if (selectedSegmentLayer) selectedSegmentLayer.replaceChildren();
     stationRingLayer.replaceChildren();
+    plannedStationLayer.replaceChildren();
     commuteLayer.replaceChildren();
     hoverLayer.replaceChildren();
     effectsLayer.replaceChildren();
@@ -3550,6 +3636,7 @@ function InteractiveRegionalMapComponent({
     stationImpactBeaconLayer.classList.add("regional-station-impact-beacon-layer");
     const stationImpactDirectionLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
     stationImpactDirectionLayer.classList.add("regional-station-impact-direction-layer");
+    const hoverSources = new Map<SVGGElement, RegionalHoverSegment[]>();
 
     const stationOnlyImpactIds = new Set(stationNodeImpacts.map((impact) => impact.cardId));
     const corridorWideAlerts = activeAlerts
@@ -3567,12 +3654,23 @@ function InteractiveRegionalMapComponent({
       overlaySource.setAttribute("style", "display:inline");
       overlaySource.setAttribute("d", pathD);
       const kind = alert.severity === "planned" ? "planned-closure" : alert.severity;
-      segmentLayer.append(regionalImpactGroup(documentNode, overlaySource, {
+      const segments = networkSegments
+        .filter((segment) => segment.lineId === alert.lineId)
+        .flatMap((segment) => {
+          const segmentPathD = resolvedRegionalSegmentPath(documentNode, segment);
+          return segmentPathD ? [{ id: segment.id, label: segment.label, pathD: segmentPathD }] : [];
+        });
+      const group = regionalImpactGroup(documentNode, overlaySource, {
         impactId: alert.id,
         kind,
         label: `${alert.lineNumber} ${alert.title}`,
+        segmentCount: segments.length,
+        segmentIds: segments.map((segment) => segment.id),
         reducedMotion: mapEffectMotionPaused,
-      }));
+      });
+      addRegionalSegmentFocusTargets(group, segments);
+      segmentLayer.append(group);
+      hoverSources.set(group, segments);
     }
 
     const overlayPieces: RegionalOverlayPiece[] = [];
@@ -3606,7 +3704,11 @@ function InteractiveRegionalMapComponent({
       const lastSegment = run.segments.at(-1) ?? firstSegment;
       const startLabel = firstSegment.label.split(" to ")[0];
       const endLabel = lastSegment.label.split(" to ").at(-1) ?? lastSegment.label;
-      segmentLayer.append(regionalImpactGroup(documentNode, overlaySource, {
+      const segments = run.segments.flatMap((segment) => {
+        const segmentPathD = resolvedRegionalSegmentPath(documentNode, segment);
+        return segmentPathD ? [{ id: segment.id, label: segment.label, pathD: segmentPathD }] : [];
+      });
+      const group = regionalImpactGroup(documentNode, overlaySource, {
         impactId: run.impact.cardId,
         kind: run.impact.kind,
         label: `${startLabel} to ${endLabel} ${run.impact.kind} impact`,
@@ -3614,7 +3716,10 @@ function InteractiveRegionalMapComponent({
         segmentIds: run.segments.map((segment) => segment.id),
         travelDirection: run.impact.travelDirection,
         reducedMotion: mapEffectMotionPaused,
-      }));
+      });
+      addRegionalSegmentFocusTargets(group, segments);
+      segmentLayer.append(group);
+      hoverSources.set(group, segments);
     }
 
     const directionData = { activeAlerts, delays, reducedSpeedZones, plannedClosures };
@@ -3707,6 +3812,29 @@ function InteractiveRegionalMapComponent({
         }
       }
     }
+    for (const closure of plannedClosures) {
+      for (const stationId of closure.previewStationIds ?? []) {
+        const stationVisual = svg.querySelector<SVGElement>(`#station-${CSS.escape(stationId)}`);
+        if (!stationVisual) continue;
+        const anchor = regionalStationImpactAnchors(stationVisual, closure.lineId)[0];
+        if (!anchor) continue;
+        const stationName = stations.find((station) => station.id === stationId)?.name
+          ?? stationId.replaceAll("-", " ");
+        const marker = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+        marker.classList.add("regional-planned-station-marker");
+        marker.dataset.regionalImpactKind = "planned-closure";
+        marker.dataset.regionalImpactId = closure.id;
+        marker.dataset.regionalPlannedStationId = stationId;
+        marker.dataset.activeNow = closure.activeNow ? "true" : "false";
+        marker.setAttribute("cx", String(anchor.point.x));
+        marker.setAttribute("cy", String(anchor.point.y));
+        marker.setAttribute("r", String(Math.max(58, anchor.radius * 1.45)));
+        marker.setAttribute("role", "button");
+        marker.setAttribute("tabindex", "0");
+        marker.setAttribute("aria-label", `${closure.title} at ${stationName}, ${closure.activeNow ? "active planned closure" : "upcoming planned closure"} details`);
+        plannedStationLayer.append(marker);
+      }
+    }
     effectsLayer.append(stationImpactBeaconLayer, stationImpactDirectionLayer);
 
     if (commutePathPreview) {
@@ -3763,8 +3891,10 @@ function InteractiveRegionalMapComponent({
     // Corridor-wide and segment-specific alerts share one paint order.
     restoreRegionalOverlayOrder(segmentLayer);
     const orderedSegmentOverlays = segmentLayer.querySelectorAll<SVGElement>(".regional-overlay-segment-group");
-    orderedSegmentOverlays
-      .forEach((source, index) => hoverLayer.append(regionalSegmentHoverForeground(source, index)));
+    orderedSegmentOverlays.forEach((source, index) => {
+      const segments = hoverSources.get(source as SVGGElement) ?? [];
+      hoverLayer.append(regionalSegmentHoverForeground(source, index, segments));
+    });
 
     const currentSelectedStationId = selectedStationIdRef.current;
     const currentSelection = selectionRef.current;
@@ -3821,6 +3951,7 @@ function InteractiveRegionalMapComponent({
     mapEffectMotionPaused,
     reducedSpeedZones,
     stationNodeImpacts,
+    stations,
     svgMarkup,
   ]);
 
@@ -4619,6 +4750,9 @@ function InteractiveRegionalMapComponent({
       } else {
         onSelectImpact(activation.selection);
       }
+    } else if (event.type === "pointerup" && !dragMovedRef.current && !activation) {
+      onSelectImpact(null);
+      onSelectStationId(null);
     }
     setCamera({ ...cameraRef.current });
     setUserGestureMotion(false);
@@ -4639,13 +4773,14 @@ function InteractiveRegionalMapComponent({
     }
   }, [onSelectImpact, onSelectStationId]);
 
-  const setLinkedImpactHover = useCallback((target: EventTarget | null, hovered: boolean) => {
-    const impact = regionalImpactIdentity(target);
+  const setLinkedImpactHover = useCallback((
+    impact: ReturnType<typeof regionalImpactIdentity>,
+    hovered: boolean,
+  ) => {
     const root = viewportRef.current;
     if (!root || !impact) return;
-    const { kind, id } = impact;
-    setRegionalImpactHoverForeground(root, kind, id, hovered);
-    setRegionalStationImpactHover(root, kind, id, hovered);
+    setRegionalImpactHoverForeground(root, impact.kind, impact.id, hovered, impact.segmentId);
+    setRegionalStationImpactHover(root, impact.kind, impact.id, hovered);
   }, []);
 
   const setRegionalOverlapImpactsHovered = useCallback((
@@ -4662,11 +4797,15 @@ function InteractiveRegionalMapComponent({
         externallyHoveredImpactKeysRef.current.delete(key);
       }
       const mapImpact = hoveredMapImpactRef.current;
-      const shouldRemainHovered = hovered || (
+      setRegionalImpactHoverForeground(root, impact.kind, impact.cardId, false);
+      if (hovered) {
+        setRegionalImpactHoverForeground(root, impact.kind, impact.cardId, true);
+      } else if (mapImpact?.kind === impact.kind && mapImpact.id === impact.cardId) {
+        setRegionalImpactHoverForeground(root, impact.kind, impact.cardId, true, mapImpact.segmentId);
+      }
+      setRegionalStationImpactHover(root, impact.kind, impact.cardId, hovered || (
         mapImpact?.kind === impact.kind && mapImpact.id === impact.cardId
-      );
-      setRegionalImpactHoverForeground(root, impact.kind, impact.cardId, shouldRemainHovered);
-      setRegionalStationImpactHover(root, impact.kind, impact.cardId, shouldRemainHovered);
+      ));
     }
   }, []);
 
@@ -4677,23 +4816,16 @@ function InteractiveRegionalMapComponent({
       if (
         hoveredMapImpact?.kind === nextImpact?.kind
         && hoveredMapImpact?.id === nextImpact?.id
+        && hoveredMapImpact?.segmentId === nextImpact?.segmentId
       ) return;
       if (
         hoveredMapImpact
         && !externalHoverKeys.has(`${hoveredMapImpact.kind}:${hoveredMapImpact.id}`)
-      ) setLinkedImpactHover(
-        viewportRef.current?.querySelector(
-          `[data-regional-impact-kind="${hoveredMapImpact.kind}"][data-regional-impact-id="${CSS.escape(hoveredMapImpact.id)}"]`,
-        ) ?? null,
-        false,
-      );
+      ) setLinkedImpactHover(hoveredMapImpact, false);
       hoveredMapImpactRef.current = nextImpact;
-      if (nextImpact) setLinkedImpactHover(
-        viewportRef.current?.querySelector(
-          `[data-regional-impact-kind="${nextImpact.kind}"][data-regional-impact-id="${CSS.escape(nextImpact.id)}"]`,
-        ) ?? null,
-        true,
-      );
+      if (nextImpact && !externalHoverKeys.has(`${nextImpact.kind}:${nextImpact.id}`)) {
+        setLinkedImpactHover(nextImpact, true);
+      }
     };
     const handlePointerMove = (event: globalThis.PointerEvent) => {
       if (activePointersRef.current.size > 0) return;
@@ -4717,7 +4849,7 @@ function InteractiveRegionalMapComponent({
       setHoveredMapImpact(nextImpact);
     };
     const handleFocusIn = (event: FocusEvent) => {
-      setLinkedImpactHover(event.target, true);
+      setLinkedImpactHover(regionalImpactIdentity(event.target), true);
       const station = event.target instanceof Element
         ? event.target.closest<SVGElement>("[data-regional-station-id]")
         : null;
@@ -4744,8 +4876,11 @@ function InteractiveRegionalMapComponent({
       if (
         currentImpact?.kind === nextImpact?.kind
         && currentImpact?.id === nextImpact?.id
+        && currentImpact?.segmentId === nextImpact?.segmentId
       ) return;
-      setLinkedImpactHover(event.target, false);
+      if (currentImpact && !externalHoverKeys.has(`${currentImpact.kind}:${currentImpact.id}`)) {
+        setLinkedImpactHover(currentImpact, false);
+      }
     };
     document.addEventListener("pointermove", handlePointerMove);
     document.addEventListener("focusin", handleFocusIn);

@@ -548,14 +548,14 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("keeps upcoming closure previews persistent with direction-independent pulsing", () => {
+  it("keeps upcoming closure previews persistent and static", () => {
     assert.match(interactiveMapSource, /plannedClosures\.map\(\(closure\) =>/);
     assert.doesNotMatch(interactiveMapSource, /if \(!selectedClosure\) return \[\];/);
     assert.match(interactiveMapSource, /plannedPreviewSegmentIds/);
     assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer\(segment, closure\)/);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*(?:0\.\d+|1(?:\.0)?);/s);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s);
-    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:\s*map-overlay-rail-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);/s);
+    assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:/s);
     assert.match(globalCss, /\.motion-paused \.asset-alert-path\.planned-preview/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\.selected\s*\{[^}]*stroke-width:\s*118;/s);
   });
@@ -823,7 +823,7 @@ describe("asset-backed map layering", () => {
   it("keeps the overlap chooser open when a map pan produces a click", () => {
     assert.match(
       interactiveMapSource,
-      /onClick=\{\(\) => \{\s*if \(shouldSuppressMapClick\(\)\) return;\s*setExpandedOverlapBadgeId\(null\);\s*\}\}/s,
+      /onClick=\{\(event\) => \{\s*if \(shouldSuppressMapClick\(\)\) return;\s*setExpandedOverlapBadgeId\(null\);[\s\S]*?onSelectImpact\(null\);[\s\S]*?onSelectStationId\(null\);\s*\}\}/s,
     );
   });
 

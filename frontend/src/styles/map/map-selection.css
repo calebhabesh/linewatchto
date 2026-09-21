@@ -17,6 +17,16 @@
   transition-delay: 0s;
 }
 
+.motion-paused .ttc-impact-hover-foreground {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ttc-impact-hover-foreground {
+    transition: none;
+  }
+}
+
 .ttc-impact-hover-outline,
 .ttc-impact-hover-outline-mask-outer,
 .ttc-impact-hover-outline-mask-cutout,

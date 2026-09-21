@@ -33,3 +33,14 @@ export function shouldShowAppUpdate(latest: AppUpdateVersion, installed: AppUpda
     || (latestBuildLabel && installedBuildLabel && latestBuildLabel !== installedBuildLabel),
   );
 }
+
+export function appUpdateReleaseNote(latest: AppUpdateVersion, installed: AppUpdateVersion): ReleaseNotePreview | null {
+  const latestVersion = appUpdateNewVersion(latest, installed);
+  const note = latest.releaseNote;
+  return latestVersion && note?.version === latestVersion ? note : null;
+}
+
+export function appUpdateNewVersion(latest: AppUpdateVersion, installed: AppUpdateVersion): string | null {
+  const latestVersion = cleanVersionPart(latest.appVersion);
+  return latestVersion && latestVersion !== cleanVersionPart(installed.appVersion) ? latestVersion : null;
+}

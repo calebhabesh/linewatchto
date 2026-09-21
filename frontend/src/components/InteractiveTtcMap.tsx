@@ -2111,9 +2111,13 @@ function InteractiveTtcMapComponent({
           if (!isMapWheelScrollRegionTarget(event.target)) clearMapHover();
           handleWheel(event);
         }}
-        onClick={() => {
+        onClick={(event) => {
           if (shouldSuppressMapClick()) return;
           setExpandedOverlapBadgeId(null);
+          const target = event.target instanceof Element ? event.target : null;
+          if (target?.closest(".station-hit-target, .station-label-hit-target, [data-overlay-interaction-target], [data-map-highlight-id], .overlap-indicator, button, [role='button'], [data-map-chooser-keepout]")) return;
+          onSelectImpact(null);
+          onSelectStationId(null);
         }}
       >
         {loadState === "error" && (

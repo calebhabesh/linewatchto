@@ -31,6 +31,13 @@ export type SurfaceNoticeDetail = {
   alertClass?: "service-alert" | "service-advisory" | null;
 };
 
+export function surfaceNoticeServiceLabel(notice: SurfaceNoticeDetail) {
+  if (notice.routeType === "Bus" || notice.routeType === "GO Bus") return "Bus";
+  if (notice.routeType === "Streetcar") return "Streetcar";
+  if (notice.routeType === "GO / UP") return "GO / UP";
+  return null;
+}
+
 export type SurfaceNoticeStopDetail = {
   stopId: string;
   stopName: string;

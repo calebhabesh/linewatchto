@@ -1368,6 +1368,16 @@ export function LineWatchShell({
   const announceDesktop = useCallback((message: string) => {
     setDesktopLiveAnnouncement(message);
   }, []);
+  useEffect(() => {
+    if (selection?.kind !== "planned-closure") return;
+    if (displayData.plannedClosures.some((closure) => closure.id === selection.id)) return;
+    selectionRef.current = null;
+    // The notice can disappear on refresh or after its final window closes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelection(null);
+    setMobileInspectorDetent("map-focus");
+    announceDesktop("Selected planned closure is no longer available");
+  }, [announceDesktop, displayData.plannedClosures, selection, setMobileInspectorDetent]);
   const [accessibilityOutageState, setAccessibilityOutageState] = useState<{
     networkId: NetworkId;
     data: AccessibilityOutageResponse;

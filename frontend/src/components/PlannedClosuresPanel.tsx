@@ -68,7 +68,7 @@ export function PlannedClosuresPanel({
   mapActionVariant,
 }: Props) {
   const dashboard = useDashboardData();
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts, stations } = dashboard;
   const [lineId, setLineId] = useState(initialLineId ?? "all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("soonest");
@@ -82,13 +82,8 @@ export function PlannedClosuresPanel({
   if (embedded && visibleClosures.length === 0) return null;
 
   const handleClosureClick = (closureId: string) => {
-    const isActivating = !(selection?.kind === "planned-closure" && selection.id === closureId);
-    onSelectImpact(
-      isActivating ? { kind: "planned-closure", id: closureId } : null,
-    );
-    if (isActivating && onFocusMap) {
-      onFocusMap();
-    }
+    onSelectImpact({ kind: "planned-closure", id: closureId });
+    onFocusMap?.();
   };
 
   return (
@@ -138,6 +133,8 @@ export function PlannedClosuresPanel({
         ) : (
           visibleClosures.map((closure) => {
             const isActive = selection?.kind === "planned-closure" && selection.id === closure.id;
+            const hasMapTarget = closure.previewSegmentIds.some((id) => networkSegments.some((segment) => segment.id === id))
+              || (closure.previewStationIds ?? []).some((id) => stations.some((station) => station.id === id));
             const activeAlert = activeAlerts.find(
               (alert) => alert.relatedPlannedClosureId === closure.id || (
                 closure.activeNow && alert.id === closure.id
@@ -181,6 +178,8 @@ export function PlannedClosuresPanel({
                   active={isActive}
                   toneClassName="planned-closure-card-border"
                   onShowOnMap={() => handleClosureClick(closure.id)}
+                  mapUnavailable={!hasMapTarget}
+                  mapActionLabel="Map"
                 />
               );
             }
@@ -201,6 +200,8 @@ export function PlannedClosuresPanel({
                   direction={closure.displayDirection}
                   isMapActive={isActive}
                   onMapAction={() => handleClosureClick(closure.id)}
+                  mapActionLabel="Map"
+                  mapUnavailable={!hasMapTarget}
                   onFocusMap={onFocusMap}
                   mapActionVariant={mapActionVariant}
                   badges={(

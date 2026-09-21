@@ -356,6 +356,7 @@ export interface ImpactCardMapButtonProps {
   actionLabel?: string;
   variant?: "icon-only" | "labeled";
   className?: string;
+  disabled?: boolean;
 }
 
 export function ImpactCardMapButton({
@@ -365,10 +366,13 @@ export function ImpactCardMapButton({
   actionLabel,
   variant = "labeled",
   className = "",
+  disabled = false,
 }: ImpactCardMapButtonProps) {
   const labelText = actionLabel ?? (isActive ? "Back" : "Map");
   const isBack = labelText.toLowerCase().includes("back") || labelText.toLowerCase().includes("unfocus");
-  const ariaText = isBack ? `Back: ${title} (unfocus)` : `View ${title} on map`;
+  const ariaText = disabled
+    ? `${title}: location unavailable on map`
+    : isBack ? `Back: ${title} (unfocus)` : `View ${title} on map`;
   const tooltipText = isBack ? "Back (Unfocus)" : "View on Map";
 
   return (
@@ -381,7 +385,8 @@ export function ImpactCardMapButton({
       className={`impact-card-map-btn ${variant === "icon-only" ? "impact-card-map-btn--icon-only" : "impact-card-map-btn--labeled"} ${isActive ? "is-active" : ""} ${className}`.trim()}
       aria-label={ariaText}
       aria-pressed={isActive}
-      title={tooltipText}
+      title={disabled ? "Location unavailable on map" : tooltipText}
+      disabled={disabled}
       data-variant={variant}
     >
       {isBack ? (
@@ -411,6 +416,8 @@ export function ImpactCardShell({
   onMapAction,
   onFocusMap,
   mapActionVariant,
+  mapActionLabel,
+  mapUnavailable = false,
   badges,
   overlaps,
 }: {
@@ -426,6 +433,8 @@ export function ImpactCardShell({
   onMapAction: () => void;
   onFocusMap?: () => void;
   mapActionVariant?: "icon-only" | "labeled";
+  mapActionLabel?: string;
+  mapUnavailable?: boolean;
   badges?: ReactNode;
   overlaps?: ReactNode;
 }) {
@@ -441,6 +450,8 @@ export function ImpactCardShell({
           onFocusMap={onFocusMap}
           title={title}
           variant={mapActionVariant}
+          actionLabel={mapActionLabel}
+          disabled={mapUnavailable}
         />
       </div>
 
