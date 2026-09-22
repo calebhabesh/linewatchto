@@ -760,9 +760,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /bringRegionalStationImpactToFront\(root, selection\.kind, selection\.id/);
     assert.match(regionalMapSource, /function setRegionalImpactHoverForeground\(/);
     assert.match(regionalMapSource, /regional-impact-hover-foreground-layer/);
-    assert.match(regionalMapSource, /regionalSegmentHoverForeground\(source, index, segments\)/);
+    assert.match(regionalMapSource, /regionalSegmentHoverForeground\(source, index\)/);
     assert.match(regionalMapSource, /classList\.add\("regional-impact-segment-focus-target"\)/);
-    assert.match(regionalMapSource, /regional-hover-segment-mask-/);
     assert.doesNotMatch(regionalMapSource, /regionalStationHoverForeground\(source\)/);
     assert.match(regionalMapSource, /function setRegionalStationImpactHover\(/);
     assert.match(regionalMapSource, /indicator\.dataset\.regionalStationImpactHovered = "true"/);

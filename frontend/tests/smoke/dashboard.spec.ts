@@ -1448,7 +1448,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expectRegionalPriorityOrder();
 });
 
-test("regional corridor hover matches TTC segment and overlap preview behavior", async ({ page, request, isMobile }) => {
+test("regional corridor hover encloses the entire referenced impact", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "network selection is desktop-only");
   await setStubMode(request, "regional-live");
 
@@ -1474,9 +1474,9 @@ test("regional corridor hover matches TTC segment and overlap preview behavior",
   await expect(hoverForeground).not.toHaveAttribute("mask");
 
   await segmentTargets.nth(1).focus();
-  await expect(hoverForeground).toHaveAttribute("mask", /regional-hover-segment-mask-.*-1/);
+  await expect(hoverForeground).not.toHaveAttribute("mask");
   await segmentTargets.nth(2).focus();
-  await expect(hoverForeground).toHaveAttribute("mask", /regional-hover-segment-mask-.*-2/);
+  await expect(hoverForeground).not.toHaveAttribute("mask");
 
   const hoverPoint = await segmentTargets.nth(1).evaluate((path) => {
     const geometry = path as SVGPathElement;
@@ -1485,13 +1485,71 @@ test("regional corridor hover matches TTC segment and overlap preview behavior",
     return { x: screenPoint.x, y: screenPoint.y };
   });
   await page.mouse.move(hoverPoint.x, hoverPoint.y);
-  await expect(hoverForeground).toHaveAttribute("mask", /regional-hover-segment-mask-/);
+  await expect(hoverForeground).not.toHaveAttribute("mask");
 
   await corridor.locator(".regional-impact-hit-target").dispatchEvent("click");
   await expect(corridor).toHaveAttribute("data-regional-impact-selected", "true");
   await segmentTargets.nth(2).focus();
-  await expect(hoverForeground).toHaveAttribute("mask", /regional-hover-segment-mask-.*-2/);
+  await expect(hoverForeground).not.toHaveAttribute("mask");
   await expect(corridor).toHaveAttribute("data-regional-impact-selected", "true");
+});
+
+test("selecting a hovered regional station preserves distinct overlays", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "hover requires a pointer");
+  await setStubMode(request, "regional-live");
+  const duplicateKeys: string[] = [];
+  page.on("console", (message) => {
+    if (message.text().includes("same key")) duplicateKeys.push(message.text());
+  });
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true }).click();
+  await waitForNetworkTransition(page, "regional");
+  const station = page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]');
+  await station.focus();
+  await expect(page.locator('.regional-map-stage .raster-station-label-text-hover')).toHaveCount(1);
+  await station.press("Enter");
+  await expect(page.getByRole("complementary", { name: "Pickering regional station details" })).toBeVisible();
+  await expect(page.locator('.regional-station-top-selection')).toHaveCount(1);
+  expect(duplicateKeys).toEqual([]);
+});
+
+test.describe("regional planned station impacts", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("Pickering station impacts include corridor and station planned closures", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "desktop regional station regression");
+    await setStubMode(request, "regional-live");
+    const duplicateKeys: string[] = [];
+    page.on("console", (message) => {
+      if (message.text().includes("same key")) duplicateKeys.push(message.text());
+    });
+    await page.context().route(url => url.pathname === "/api/dashboard" && url.searchParams.get("network") === "regional", async (route) => {
+      const response = await route.fetch();
+      const data = await response.json();
+      data.plannedClosures = [...data.plannedClosures.filter((closure: { id: string }) => closure.id !== "regional-station-only-planned"), {
+        ...data.plannedClosures[0],
+        id: "regional-station-only-planned",
+        title: "Pickering station construction",
+        previewSegmentIds: [],
+        previewStationIds: ["pickering"],
+        activeNow: false,
+        timingStatus: "upcoming",
+      }];
+      await route.fulfill({ response, json: data });
+    });
+    await page.goto("/");
+    await page.getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true }).click();
+    await waitForNetworkTransition(page, "regional");
+    await page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]').press("Enter");
+    const panel = page.getByRole("complementary", { name: "Pickering regional station details" });
+    const impacts = panel.locator('[data-station-section="station-impacts"]');
+    await expect(impacts.getByText("Pickering station construction", { exact: true })).toBeVisible();
+    await expect(impacts.getByText("Synthetic planned service change", { exact: true })).toBeVisible();
+    expect(duplicateKeys).toEqual([]);
+  });
+
 });
 
 test("focuses a station-only regional planned closure on the map", async ({ page, request, isMobile }) => {

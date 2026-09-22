@@ -2193,7 +2193,6 @@ function setRegionalImpactHoverForeground(
   kind: ImpactKind,
   id: string,
   hovered: boolean,
-  segmentId?: string,
 ) {
   root.querySelectorAll<SVGElement>("[data-regional-hover-impact-kind][data-regional-hover-impact-id]")
     .forEach((foreground) => {
@@ -2202,12 +2201,8 @@ function setRegionalImpactHoverForeground(
         || foreground.dataset.regionalHoverImpactId !== id
       ) return;
       if (hovered) {
-        const segmentMask = segmentId
-          ? [...foreground.querySelectorAll<SVGMaskElement>("mask[data-regional-hover-segment-id]")]
-              .find((mask) => mask.dataset.regionalHoverSegmentId === segmentId)
-          : null;
-        if (segmentMask) foreground.setAttribute("mask", `url(#${segmentMask.id})`);
-        else foreground.removeAttribute("mask");
+        // Hover identifies the impact represented by this entire overlay.
+        foreground.removeAttribute("mask");
         foreground.dataset.regionalImpactHovered = "true";
       } else {
         foreground.removeAttribute("mask");
@@ -2279,7 +2274,6 @@ function regionalHoverMaskBounds(source: SVGElement) {
 function regionalSegmentHoverForeground(
   source: SVGElement,
   maskIndex: number,
-  segments: RegionalHoverSegment[] = [],
 ) {
   const foreground = source.cloneNode(true) as SVGElement;
   removeDescendantIds(foreground);
@@ -2356,36 +2350,6 @@ function regionalSegmentHoverForeground(
     edgeBoundary.style.setProperty("stroke-width", String(REGIONAL_HIGHLIGHT_OUTLINE_WIDTH));
     edgeBoundary.style.setProperty("filter", "drop-shadow(0 0 7px rgba(191, 219, 254, 0.62))");
     foreground.append(edgeBoundary);
-  }
-  if (segments.length > 1) {
-    const maskBounds = regionalHoverMaskBounds(source);
-    const definitions = source.ownerDocument.createElementNS(SVG_NAMESPACE, "defs");
-    segments.forEach((segment, segmentIndex) => {
-      const mask = source.ownerDocument.createElementNS(SVG_NAMESPACE, "mask");
-      mask.id = `regional-hover-segment-mask-${maskIndex}-${segmentIndex}`;
-      mask.dataset.regionalHoverSegmentId = segment.id;
-      mask.setAttribute("maskUnits", "userSpaceOnUse");
-      mask.setAttribute("x", String(maskBounds.x));
-      mask.setAttribute("y", String(maskBounds.y));
-      mask.setAttribute("width", String(maskBounds.width));
-      mask.setAttribute("height", String(maskBounds.height));
-      const background = source.ownerDocument.createElementNS(SVG_NAMESPACE, "rect");
-      background.setAttribute("x", String(maskBounds.x));
-      background.setAttribute("y", String(maskBounds.y));
-      background.setAttribute("width", String(maskBounds.width));
-      background.setAttribute("height", String(maskBounds.height));
-      background.setAttribute("fill", "black");
-      const path = source.ownerDocument.createElementNS(SVG_NAMESPACE, "path");
-      path.setAttribute("d", segment.pathD);
-      path.setAttribute("fill", "none");
-      path.setAttribute("stroke", "white");
-      path.setAttribute("stroke-width", String(REGIONAL_IMPACT_HIT_TARGET_WIDTH));
-      path.setAttribute("stroke-linecap", "round");
-      path.setAttribute("stroke-linejoin", "round");
-      mask.append(background, path);
-      definitions.append(mask);
-    });
-    foreground.prepend(definitions);
   }
   foreground.setAttribute("aria-hidden", "true");
   foreground.setAttribute("pointer-events", "none");
@@ -3636,7 +3600,6 @@ function InteractiveRegionalMapComponent({
     stationImpactBeaconLayer.classList.add("regional-station-impact-beacon-layer");
     const stationImpactDirectionLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
     stationImpactDirectionLayer.classList.add("regional-station-impact-direction-layer");
-    const hoverSources = new Map<SVGGElement, RegionalHoverSegment[]>();
 
     const stationOnlyImpactIds = new Set(stationNodeImpacts.map((impact) => impact.cardId));
     const corridorWideAlerts = activeAlerts
@@ -3670,7 +3633,6 @@ function InteractiveRegionalMapComponent({
       });
       addRegionalSegmentFocusTargets(group, segments);
       segmentLayer.append(group);
-      hoverSources.set(group, segments);
     }
 
     const overlayPieces: RegionalOverlayPiece[] = [];
@@ -3719,7 +3681,6 @@ function InteractiveRegionalMapComponent({
       });
       addRegionalSegmentFocusTargets(group, segments);
       segmentLayer.append(group);
-      hoverSources.set(group, segments);
     }
 
     const directionData = { activeAlerts, delays, reducedSpeedZones, plannedClosures };
@@ -3892,8 +3853,7 @@ function InteractiveRegionalMapComponent({
     restoreRegionalOverlayOrder(segmentLayer);
     const orderedSegmentOverlays = segmentLayer.querySelectorAll<SVGElement>(".regional-overlay-segment-group");
     orderedSegmentOverlays.forEach((source, index) => {
-      const segments = hoverSources.get(source as SVGGElement) ?? [];
-      hoverLayer.append(regionalSegmentHoverForeground(source, index, segments));
+      hoverLayer.append(regionalSegmentHoverForeground(source, index));
     });
 
     const currentSelectedStationId = selectedStationIdRef.current;
@@ -4779,7 +4739,7 @@ function InteractiveRegionalMapComponent({
   ) => {
     const root = viewportRef.current;
     if (!root || !impact) return;
-    setRegionalImpactHoverForeground(root, impact.kind, impact.id, hovered, impact.segmentId);
+    setRegionalImpactHoverForeground(root, impact.kind, impact.id, hovered);
     setRegionalStationImpactHover(root, impact.kind, impact.id, hovered);
   }, []);
 
@@ -4801,7 +4761,7 @@ function InteractiveRegionalMapComponent({
       if (hovered) {
         setRegionalImpactHoverForeground(root, impact.kind, impact.cardId, true);
       } else if (mapImpact?.kind === impact.kind && mapImpact.id === impact.cardId) {
-        setRegionalImpactHoverForeground(root, impact.kind, impact.cardId, true, mapImpact.segmentId);
+        setRegionalImpactHoverForeground(root, impact.kind, impact.cardId, true);
       }
       setRegionalStationImpactHover(root, impact.kind, impact.cardId, hovered || (
         mapImpact?.kind === impact.kind && mapImpact.id === impact.cardId
@@ -5122,7 +5082,7 @@ function InteractiveRegionalMapComponent({
           >
             {selectedStationId ? (
               <use
-                key={selectedStationId}
+                key={`station-selection:${selectedStationId}`}
                 aria-hidden="true"
                 className="regional-station-top-selection map-selection-attention"
                 data-regional-station-top-selected="true"
@@ -5133,7 +5093,7 @@ function InteractiveRegionalMapComponent({
               <g
                 aria-hidden="true"
                 className="raster-station-label-text-hover"
-                key={hoveredStationLabel.stationId}
+                key={`station-label-hover:${hoveredStationLabel.stationId}`}
                 data-hover-active={activeHoveredStationLabel !== null}
                 style={{ transformOrigin: `${hoveredStationLabel.center.x + 200}px ${hoveredStationLabel.center.y + 200}px` }}
               >

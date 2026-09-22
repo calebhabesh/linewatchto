@@ -36,6 +36,7 @@ import {
 } from "../app/regional-arrivals";
 import type { StationSummary } from "../app/station-data";
 import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
+import { stationImpactSelection } from "../app/station-impact-types";
 import { formatImpactTimestamp } from "../app/impact-time";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -374,6 +375,17 @@ export function RegionalStationDetailPanel({
           ?? dashboard.plannedClosures.find((item) => item.id === impact.cardId)
           ?? dashboard.reducedSpeedZones.find((item) => item.id === impact.cardId);
         add(impact.kind, impact.cardId, card?.title ?? `${segment.label} impact`);
+      }
+    }
+    // Upcoming closures are preview geometry, not current network impacts.
+    const stationSegmentIds = new Set(dashboard.networkSegments
+      .filter((segment) => segment.stationAId === station.id || segment.stationBId === station.id)
+      .map((segment) => segment.id));
+    for (const closure of dashboard.plannedClosures) {
+      if (closure.previewStationIds?.includes(station.id)
+        || closure.previewSegmentIds.some((id) => stationSegmentIds.has(id))) {
+        const selection = stationImpactSelection(closure.id, dashboard);
+        if (selection) add(selection.kind, selection.id, closure.title);
       }
     }
     return [...related.values()];
