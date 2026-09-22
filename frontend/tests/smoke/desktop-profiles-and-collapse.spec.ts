@@ -66,9 +66,9 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
     await expect(page.locator(".alert-card.is-active")).toHaveCount(1);
     await expect(page.getByRole("button", { name: /^Back:/i })).toBeVisible();
-    await expect.poll(() => page.evaluate(() => (
+    expect(await page.evaluate(() => (
       window.localStorage.getItem("linewatch-desktop-sidebar-collapsed")
-    ))).toBe("false");
+    ))).toBeNull();
   });
 
   test("preserves destination-based width for station detail and restores on close", async ({ page, request, isMobile }) => {
@@ -244,25 +244,25 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     expect(await regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(regionalCamera);
   });
 
-  test("restores a visitor's desktop sidebar preference on the next visit", async ({ page, request, isMobile }) => {
-    test.skip(isMobile, "Desktop sidebar preference applies only to desktop");
+  test("starts expanded on every desktop visit and ignores retired saved collapse state", async ({ page, request, isMobile }) => {
+    test.skip(isMobile, "Desktop sidebar startup applies only to desktop");
     await setStubMode(request, "seeded");
     await page.setViewportSize({ width: 1440, height: 900 });
+    await page.addInitScript(() => {
+      window.localStorage.setItem("linewatch-desktop-sidebar-collapsed", "true");
+    });
     await page.goto("/");
 
     const sidebar = page.locator("#desktop-sidebar-container");
     await expect(sidebar).not.toHaveClass(/desktop-sidebar-container--collapsed/);
-    await page.getByRole("button", { name: "Collapse sidebar" }).click();
     await expect.poll(() => page.evaluate(() => (
       window.localStorage.getItem("linewatch-desktop-sidebar-collapsed")
-    ))).toBe("true");
+    ))).toBeNull();
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+    await expect(sidebar).toHaveClass(/desktop-sidebar-container--collapsed/);
 
     await page.reload();
-    await expect(sidebar).toHaveClass(/desktop-sidebar-container--collapsed/);
-    await page.getByRole("button", { name: "Expand sidebar" }).click();
-    await expect.poll(() => page.evaluate(() => (
-      window.localStorage.getItem("linewatch-desktop-sidebar-collapsed")
-    ))).toBe("false");
+    await expect(sidebar).not.toHaveClass(/desktop-sidebar-container--collapsed/);
   });
 });
 

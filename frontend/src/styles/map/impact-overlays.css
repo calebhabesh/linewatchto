@@ -268,8 +268,6 @@
 
 .asset-alert-path.suspension-candy {
   stroke-width: var(--map-overlay-rail-width);
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
   transition: none;
 }
 
@@ -309,8 +307,6 @@
 
 .asset-alert-path.delay-candy {
   stroke-width: var(--map-overlay-rail-width);
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
   transition: none;
 }
 
@@ -493,8 +489,6 @@
 .asset-alert-path.delay-static-base {
   stroke: rgba(14, 165, 233, 0.88); /* Frozen blue base */
   stroke-width: var(--map-overlay-rail-width);
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
   transition: none;
 }
 

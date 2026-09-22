@@ -131,12 +131,16 @@ const MAP_OVERLAY_PULSE_SCALE = 114 / 102;
 // narrower target lets the visible highlight grow into an inert strip and
 // then disappear while the pointer is still visibly over the overlay.
 const REGIONAL_IMPACT_HIT_TARGET_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 169;
-// Match TTC's dual-keyline hover proportions at the regional map's larger SVG
-// scale. The inner cutout overlaps the resting rail slightly so antialiasing
-// cannot leave a seam between the impact artwork and its hover outline.
-const REGIONAL_HIGHLIGHT_OUTLINE_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 31;
-const REGIONAL_HIGHLIGHT_DIVIDER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 12;
+// Match the TTC hover keyline's rendered weight. The regional schematic is
+// displayed at a smaller SVG-to-screen scale, so proportional widths made its
+// inner black and outer white bands read much thinner in screen pixels.
+const REGIONAL_HIGHLIGHT_OUTLINE_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 52;
+const REGIONAL_HIGHLIGHT_DIVIDER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH + 30;
 const REGIONAL_HIGHLIGHT_INNER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH - 12;
+// Union is an intentionally oversized interchange hub rather than a round
+// terminus dot. Let the hub remain visually continuous when a corridor ends
+// there; ordinary terminus dots still receive the TTC-style top keyline.
+const REGIONAL_UNION_TOP_HOVER_CUTOUT_STROKE_WIDTH = 96;
 const REGIONAL_DELAY_GLYPH_SPACING = 96;
 // TTC's lane advances 160 SVG units over 12 seconds. Regional authored map
 // units are about 175 / 102 larger for the equivalent corridor stroke.
@@ -159,6 +163,7 @@ const REGIONAL_DYNAMIC_PLANNED_STATION_LAYER_ID = "regional-dynamic-planned-stat
 const REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer";
 const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
 const REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer";
+const REGIONAL_TOP_HOVER_LAYER_ID = "regional-top-hover-layer";
 const REGIONAL_TRAIN_MARKER_LAYER_ID = "regional-train-marker-layer";
 const REGIONAL_TRAIN_MARKER_LANE_OFFSET = 44;
 const SELECTION_INTRO_DURATION_MS = 2400;
@@ -2275,7 +2280,7 @@ function regionalSegmentHoverForeground(
   source: SVGElement,
   maskIndex: number,
 ) {
-  const foreground = source.cloneNode(true) as SVGElement;
+  const foreground = source.cloneNode(true) as SVGGElement;
   removeDescendantIds(foreground);
   foreground.dataset.regionalHoverImpactKind = source.dataset.regionalImpactKind ?? "";
   foreground.dataset.regionalHoverImpactId = source.dataset.regionalImpactId ?? "";
@@ -2349,11 +2354,126 @@ function regionalSegmentHoverForeground(
     edgeBoundary.style.setProperty("stroke", "rgba(248, 250, 252, 0.98)");
     edgeBoundary.style.setProperty("stroke-width", String(REGIONAL_HIGHLIGHT_OUTLINE_WIDTH));
     edgeBoundary.style.setProperty("filter", "drop-shadow(0 0 7px rgba(191, 219, 254, 0.62))");
-    foreground.append(edgeBoundary);
+    // Keep both keylines in the same nested SVG group. Appending the edge to
+    // the foreground root drops ancestor transforms used by authored regional
+    // routes, which leaves only the black inner keyline aligned with the rail.
+    boundary.after(edgeBoundary);
   }
   foreground.setAttribute("aria-hidden", "true");
   foreground.setAttribute("pointer-events", "none");
   return foreground;
+}
+
+function regionalTopHoverForeground(
+  source: SVGPathElement,
+  cloneIndex: number,
+) {
+  const documentNode = source.ownerDocument;
+  const impact = source.closest<SVGGElement>(".regional-overlay-segment-group");
+  const topForeground = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  topForeground.classList.add("regional-impact-top-hover-foreground");
+  topForeground.dataset.regionalHoverImpactKind = impact?.dataset.regionalImpactKind ?? "";
+  topForeground.dataset.regionalHoverImpactId = impact?.dataset.regionalImpactId ?? "";
+  topForeground.setAttribute("aria-hidden", "true");
+  topForeground.setAttribute("pointer-events", "none");
+
+  // This outline is painted in a sibling SVG above the raster station plane.
+  // Rebuild TTC's outline-only foreground from the authored path instead of
+  // copying a live getCTM() and mask tree across SVG roots. The latter can
+  // retain a viewport-relative matrix and paint a detached route fragment.
+  const origin = pointInSvgRootCoordinates(source, { x: 0, y: 0 });
+  const xBasis = pointInSvgRootCoordinates(source, { x: 1, y: 0 });
+  const yBasis = pointInSvgRootCoordinates(source, { x: 0, y: 1 });
+  topForeground.setAttribute("transform", `matrix(${[
+    xBasis.x - origin.x,
+    xBasis.y - origin.y,
+    yBasis.x - origin.x,
+    yBasis.y - origin.y,
+    origin.x,
+    origin.y,
+  ].join(" ")})`);
+
+  const maskBounds = regionalHoverMaskBounds(source);
+  const coreMaskId = `regional-top-hover-boundary-mask-${cloneIndex}`;
+  const edgeMaskId = `${coreMaskId}-outer`;
+  const pathClone = () => {
+    const path = source.cloneNode(false) as SVGPathElement;
+    path.removeAttribute("id");
+    path.removeAttribute("class");
+    path.removeAttribute("style");
+    path.removeAttribute("transform");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    return path;
+  };
+  const unionCutout = () => {
+    // Both the dynamic corridor and station-union live in the authored
+    // stations-layer coordinate system. A local cutout therefore follows the
+    // top foreground's copied transform without depending on screen CTMs.
+    const union = documentNode.getElementById("station-union") as SVGRectElement | null;
+    if (!union || union.tagName.toLowerCase() !== "rect") return null;
+    const cutout = union.cloneNode(false) as SVGRectElement;
+    cutout.removeAttribute("id");
+    cutout.removeAttribute("class");
+    cutout.removeAttribute("style");
+    cutout.removeAttribute("transform");
+    cutout.dataset.regionalTopHoverUnionCutout = "true";
+    cutout.setAttribute("fill", "black");
+    cutout.setAttribute("stroke", "black");
+    // Cover the authored hub border too, so the highlight disappears behind
+    // Union instead of appearing to slice through its rounded end cap.
+    cutout.setAttribute("stroke-width", String(REGIONAL_UNION_TOP_HOVER_CUTOUT_STROKE_WIDTH));
+    return cutout;
+  };
+  const maskStroke = (color: "white" | "black", width: number) => {
+    const path = pathClone();
+    path.setAttribute("stroke", color);
+    path.setAttribute("stroke-width", String(width));
+    return path;
+  };
+  const hoverMask = (id: string, cutoutWidth: number) => {
+    const mask = documentNode.createElementNS(SVG_NAMESPACE, "mask");
+    mask.id = id;
+    mask.setAttribute("maskUnits", "userSpaceOnUse");
+    mask.setAttribute("x", String(maskBounds.x));
+    mask.setAttribute("y", String(maskBounds.y));
+    mask.setAttribute("width", String(maskBounds.width));
+    mask.setAttribute("height", String(maskBounds.height));
+    const background = documentNode.createElementNS(SVG_NAMESPACE, "rect");
+    background.setAttribute("x", String(maskBounds.x));
+    background.setAttribute("y", String(maskBounds.y));
+    background.setAttribute("width", String(maskBounds.width));
+    background.setAttribute("height", String(maskBounds.height));
+    background.setAttribute("fill", "black");
+    mask.append(
+      background,
+      maskStroke("white", REGIONAL_HIGHLIGHT_OUTLINE_WIDTH),
+      maskStroke("black", cutoutWidth),
+    );
+    const hubCutout = unionCutout();
+    if (hubCutout) mask.append(hubCutout);
+    return mask;
+  };
+  const definitions = documentNode.createElementNS(SVG_NAMESPACE, "defs");
+  definitions.append(
+    hoverMask(coreMaskId, REGIONAL_HIGHLIGHT_INNER_WIDTH),
+    hoverMask(edgeMaskId, REGIONAL_HIGHLIGHT_DIVIDER_WIDTH),
+  );
+
+  const core = pathClone();
+  core.classList.add("regional-impact-hover-boundary", "regional-impact-hover-boundary-core");
+  core.setAttribute("mask", `url(#${coreMaskId})`);
+  core.style.setProperty("stroke", "rgba(15, 23, 42, 0.98)");
+  core.style.setProperty("stroke-width", String(REGIONAL_HIGHLIGHT_OUTLINE_WIDTH));
+  const edge = pathClone();
+  edge.classList.add("regional-impact-hover-boundary", "regional-impact-hover-boundary-edge");
+  edge.setAttribute("mask", `url(#${edgeMaskId})`);
+  edge.style.setProperty("stroke", "rgba(248, 250, 252, 0.98)");
+  edge.style.setProperty("stroke-width", String(REGIONAL_HIGHLIGHT_OUTLINE_WIDTH));
+  edge.style.setProperty("filter", "drop-shadow(0 0 7px rgba(191, 219, 254, 0.62))");
+  topForeground.append(definitions, core, edge);
+  return topForeground;
 }
 
 type RegionalHoverSegment = { id: string; label: string; pathD: string };
@@ -2920,13 +3040,14 @@ export function preloadRegionalMapMarkup(): Promise<string> {
       stationsLayer.insertBefore(selectedSegmentLayer, firstStationTarget);
       stationsLayer.insertBefore(stationRingLayer, firstStationTarget);
       stationsLayer.insertBefore(hoverLayer, firstStationTarget);
-      stationsLayer.append(plannedStationLayer);
 
       const effectsLayer = createLayer(REGIONAL_DYNAMIC_EFFECTS_LAYER_ID, "regional-station-impact-effects-layer");
       effectsLayer.setAttribute("aria-label", "Station alert beacons and directions");
       effectsLayer.setAttribute("pointer-events", "none");
       effectsLayer.style.setProperty("--map-pulse-offset", "0s");
-      stationsLayer.append(effectsLayer);
+      // Match TTC's split planes: the complete repaint stays below authored
+      // stations, while the outline-only copy is painted in the top SVG.
+      stationsLayer.append(plannedStationLayer, effectsLayer);
       const root = documentNode.documentElement;
       root.removeAttribute("width");
       root.removeAttribute("height");
@@ -3586,7 +3707,10 @@ function InteractiveRegionalMapComponent({
     const commuteLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_COMMUTE_LAYER_ID}`);
     const hoverLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_HOVER_LAYER_ID}`);
     const effectsLayer = svg.querySelector<SVGGElement>(`#${REGIONAL_DYNAMIC_EFFECTS_LAYER_ID}`);
-    if (!segmentLayer || !stationRingLayer || !plannedStationLayer || !commuteLayer || !hoverLayer || !effectsLayer) return;
+    const topHoverLayer = viewportRef.current?.querySelector<SVGGElement>(
+      "#" + REGIONAL_TOP_HOVER_LAYER_ID,
+    );
+    if (!segmentLayer || !stationRingLayer || !plannedStationLayer || !commuteLayer || !hoverLayer || !effectsLayer || !topHoverLayer) return;
 
     segmentLayer.replaceChildren();
     if (selectedSegmentLayer) selectedSegmentLayer.replaceChildren();
@@ -3594,6 +3718,7 @@ function InteractiveRegionalMapComponent({
     plannedStationLayer.replaceChildren();
     commuteLayer.replaceChildren();
     hoverLayer.replaceChildren();
+    topHoverLayer.replaceChildren();
     effectsLayer.replaceChildren();
 
     const stationImpactBeaconLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
@@ -3853,7 +3978,12 @@ function InteractiveRegionalMapComponent({
     restoreRegionalOverlayOrder(segmentLayer);
     const orderedSegmentOverlays = segmentLayer.querySelectorAll<SVGElement>(".regional-overlay-segment-group");
     orderedSegmentOverlays.forEach((source, index) => {
-      hoverLayer.append(regionalSegmentHoverForeground(source, index));
+      const foreground = regionalSegmentHoverForeground(source, index);
+      hoverLayer.append(foreground);
+      const sourceBoundary = source.querySelector<SVGPathElement>(".regional-impact-hover-boundary");
+      if (sourceBoundary) {
+        topHoverLayer.append(regionalTopHoverForeground(sourceBoundary, index));
+      }
     });
 
     const currentSelectedStationId = selectedStationIdRef.current;
@@ -5080,6 +5210,12 @@ function InteractiveRegionalMapComponent({
             viewBox="-200 -200 17036.959 9031.6719"
             preserveAspectRatio="xMidYMid meet"
           >
+            <g
+              id={REGIONAL_TOP_HOVER_LAYER_ID}
+              className="regional-impact-top-hover-layer"
+              aria-hidden="true"
+              pointerEvents="none"
+            />
             {selectedStationId ? (
               <use
                 key={`station-selection:${selectedStationId}`}

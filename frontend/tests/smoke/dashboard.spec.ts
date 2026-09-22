@@ -1318,10 +1318,13 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     markerBox!.y + markerBox!.height / 2,
   );
   const delayHoverForeground = page.locator(
-    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-delay"]',
+    '.regional-impact-hover-foreground-layer .regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-delay"]',
   );
   const plannedHoverForeground = page.locator(
-    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-planned"]',
+    '.regional-impact-hover-foreground-layer .regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-planned"]',
+  );
+  const delayTopHoverForeground = page.locator(
+    '#regional-top-hover-layer .regional-impact-top-hover-foreground[data-regional-hover-impact-id="regional-demo-delay"]',
   );
   await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
   await expect(plannedHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
@@ -1396,6 +1399,24 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   });
   await page.mouse.move(delayHoverPoint.x, delayHoverPoint.y);
   await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(delayTopHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(delayTopHoverForeground.locator(".regional-impact-hover-boundary")).toHaveCount(2);
+  await expect(delayTopHoverForeground.locator('[data-regional-top-hover-union-cutout="true"]')).toHaveCount(2);
+  expect(await delayTopHoverForeground.evaluate((foreground) => {
+    const topPath = foreground.querySelector<SVGPathElement>(".regional-impact-hover-boundary-core");
+    const lowerPath = document.querySelector<SVGPathElement>(
+      '.regional-impact-hover-foreground-layer .regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-delay"] .regional-impact-hover-boundary-core',
+    );
+    if (!topPath || !lowerPath) return Number.POSITIVE_INFINITY;
+    const ratios = [0, 0.25, 0.5, 0.75, 1];
+    return Math.max(...ratios.map((ratio) => {
+      const topPoint = topPath.getPointAtLength(topPath.getTotalLength() * ratio)
+        .matrixTransform(topPath.getScreenCTM()!);
+      const lowerPoint = lowerPath.getPointAtLength(lowerPath.getTotalLength() * ratio)
+        .matrixTransform(lowerPath.getScreenCTM()!);
+      return Math.hypot(topPoint.x - lowerPoint.x, topPoint.y - lowerPoint.y);
+    }));
+  })).toBeLessThan(1);
   await expect(delayOverlay).not.toHaveAttribute("data-regional-impact-hovered");
   await expect(delayHoverForeground.locator(".regional-impact-aura, .regional-impact-path, .regional-delay-glyph-lane"))
     .toHaveCount(3);
@@ -1417,8 +1438,27 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect(coreMaskWidths).toBeDefined();
   expect(edgeMaskWidths).toBeDefined();
   expect(coreMaskWidths!.outline).toBe(edgeMaskWidths!.outline);
+  expect(coreMaskWidths!.outline).toBe(248);
+  expect(coreMaskWidths!.cutout).toBe(184);
+  expect(edgeMaskWidths!.cutout).toBe(226);
   expect(coreMaskWidths!.cutout).toBeLessThan(edgeMaskWidths!.cutout);
   expect(edgeMaskWidths!.cutout).toBeLessThan(edgeMaskWidths!.outline);
+  expect(await delayHoverForeground.evaluate((foreground) => {
+    const core = foreground.querySelector(".regional-impact-hover-boundary-core");
+    const edge = foreground.querySelector(".regional-impact-hover-boundary-edge");
+    return core?.parentElement === edge?.parentElement;
+  })).toBe(true);
+  expect(await delayHoverForeground.evaluate((foreground) => {
+    const hoverLayer = foreground.closest("#regional-dynamic-hover-layer");
+    const stationVisual = hoverLayer?.parentElement?.querySelector(".regional-station-visual");
+    return Boolean(
+      hoverLayer
+      && stationVisual
+      && (hoverLayer.compareDocumentPosition(stationVisual) & Node.DOCUMENT_POSITION_FOLLOWING),
+    );
+  })).toBe(true);
+  await expect(delayHoverForeground.locator(".regional-impact-path"))
+    .toHaveCSS("animation-name", "none");
   await expect(delayOverlay.locator(".regional-impact-interactive-glow"))
     .not.toHaveAttribute("mask");
   await expect(delayOverlay.locator(".regional-impact-interactive-glow"))
@@ -2679,7 +2719,7 @@ test("desktop map gestures pause overlay pulses and suppress expensive glows", a
   await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
 });
 
-test("planned closure rails stay static while overlapping alert pulses remain available", async ({ page, request, isMobile }) => {
+test("disruption rails stay static across TTC and regional maps", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop ambient overlay pulse verification");
   await setStubMode(request, "map-authoritative-overlap");
   await page.goto("/");
@@ -2730,7 +2770,7 @@ test("planned closure rails stay static while overlapping alert pulses remain av
     .click();
   await waitForNetworkTransition(page, "regional");
 
-  const regionalPulse = await page.locator(".regional-map").evaluate((root) => {
+  const regionalRails = await page.locator(".regional-map").evaluate((root) => {
     const delay = root.querySelector<SVGPathElement>(
       '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-path',
     );
@@ -2738,22 +2778,17 @@ test("planned closure rails stay static while overlapping alert pulses remain av
       '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"] .regional-impact-path',
     );
     if (!delay || !planned) throw new Error("Missing overlapping regional delay and planned-closure rails");
-    const pulseProgress = (element: Element) => {
-      const animation = element.getAnimations().find((candidate) =>
-        "animationName" in candidate && candidate.animationName === "map-overlay-rail-pulse");
-      if (!animation?.effect) throw new Error("Missing regional pulse animation");
-      const timing = animation.effect.getComputedTiming();
-      return { progress: timing.progress, duration: timing.duration };
-    };
     return {
-      delay: pulseProgress(delay),
+      delayAnimation: getComputedStyle(delay).animationName,
+      delayWidth: getComputedStyle(delay).strokeWidth,
       plannedAnimation: getComputedStyle(planned).animationName,
       plannedWidth: getComputedStyle(planned).strokeWidth,
     };
   });
-  expect(regionalPulse.delay.duration).toBe(1200);
-  expect(regionalPulse.plannedAnimation).toBe("none");
-  expect(regionalPulse.plannedWidth).toBe("196px");
+  expect(regionalRails.delayAnimation).toBe("none");
+  expect(regionalRails.plannedAnimation).toBe("none");
+  expect(regionalRails.delayWidth).toBe(regionalRails.plannedWidth);
+  expect(regionalRails.plannedWidth).toBe("196px");
 });
 
 test("paints current delays above planned closures on both maps", async ({ page, request, isMobile }) => {

@@ -48,6 +48,7 @@ import {
   GEOGRAPHIC_MAX_ZOOM,
 } from "../app/geographic-config";
 import {
+  clearGeographicMapViewport,
   readGeographicMapViewport,
   saveGeographicMapViewport,
 } from "../app/map-viewport-preference";
@@ -1604,17 +1605,18 @@ export function GeographicNetworkMap({
   const lastSelectedStationIdRef = useRef<string | null>(selectedStationId ?? null);
   const lastSelectionRef = useRef<string | null>(null);
   const lastCommutePreviewIdRef = useRef<string | null>(commutePathPreview?.id ?? null);
+  const cameraAdjustedByUserRef = useRef(false);
 
-  // Persist camera on movement end
+  // A map camera is transient working context. Persist only settled mobile
+  // cameras that the rider deliberately moved; selection flights, resizes,
+  // refreshes, and desktop sessions must not redefine the next map view.
   const persistCamera = useCallback(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !cameraAdjustedByUserRef.current) return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
     const center = map.getCenter();
     const zoom = map.getZoom();
-    const storage = window.matchMedia("(max-width: 767px)").matches
-      ? window.localStorage
-      : window.sessionStorage;
-    saveGeographicMapViewport(storage, network, {
+    saveGeographicMapViewport(window.localStorage, network, {
       lng: center.lng,
       lat: center.lat,
       zoom,
@@ -2009,6 +2011,7 @@ export function GeographicNetworkMap({
     }
 
     map.on("dragstart", () => {
+      cameraAdjustedByUserRef.current = true;
       isDraggingRef.current = true;
       setHoveredMapTarget(null);
       const frame = selectionAttentionRef.current.onUserGestureStart();
@@ -2024,6 +2027,7 @@ export function GeographicNetworkMap({
 
     map.on("zoomstart", (e) => {
       if (e.originalEvent) {
+        cameraAdjustedByUserRef.current = true;
         const frame = selectionAttentionRef.current.onUserGestureStart();
         attentionHandlersRef.current.applyAttentionFrame(frame);
         attentionHandlersRef.current.stopAttentionLoop();
@@ -2109,10 +2113,10 @@ export function GeographicNetworkMap({
         }
 
         // Restore saved camera or fallback to network bounds
-        const storage = window.matchMedia("(max-width: 767px)").matches
-          ? window.localStorage
-          : window.sessionStorage;
-        const savedCamera = readGeographicMapViewport(storage, network);
+        const mobile = window.matchMedia("(max-width: 767px)").matches;
+        const savedCamera = mobile
+          ? readGeographicMapViewport(window.localStorage, network)
+          : null;
 
         const initialCenter = savedCamera
           ? ([savedCamera.lng, savedCamera.lat] as [number, number])
@@ -2207,7 +2211,6 @@ export function GeographicNetworkMap({
       cancelled = true;
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       if (mapRef.current) {
-        callbacksRef.current.persistCamera();
         recordGeographicMapLifecycle("removal", "cleanup");
         mapRef.current.remove();
         mapRef.current = null;
@@ -2885,6 +2888,8 @@ export function GeographicNetworkMap({
     const map = mapRef.current;
     if (!map || loadStatus !== "ready") return;
 
+    cameraAdjustedByUserRef.current = false;
+    clearGeographicMapViewport(window.localStorage, network);
     map.fitBounds(getGeographicBounds(network), {
       padding: { top: 70, bottom: 90, left: 40, right: 40 },
       animate: !reducedMotion,
@@ -2898,6 +2903,7 @@ export function GeographicNetworkMap({
 
     const map = mapRef.current;
     if (!map || loadStatus !== "ready") return;
+    cameraAdjustedByUserRef.current = true;
     map.zoomIn({ animate: !reducedMotion });
   }, [zoomInSignal, loadStatus, reducedMotion]);
 
@@ -2908,6 +2914,7 @@ export function GeographicNetworkMap({
 
     const map = mapRef.current;
     if (!map || loadStatus !== "ready") return;
+    cameraAdjustedByUserRef.current = true;
     map.zoomOut({ animate: !reducedMotion });
   }, [zoomOutSignal, loadStatus, reducedMotion]);
 
@@ -3009,6 +3016,8 @@ export function GeographicNetworkMap({
             onClick={() => {
               const map = mapRef.current;
               if (map) {
+                cameraAdjustedByUserRef.current = false;
+                clearGeographicMapViewport(window.localStorage, network);
                 map.fitBounds(networkBounds, {
                   padding: { top: 70, bottom: 90, left: 40, right: 40 },
                   animate: !reducedMotion,
@@ -3031,7 +3040,10 @@ export function GeographicNetworkMap({
           <div className="map-control-divider" aria-hidden="true" />
           <button
             type="button"
-            onClick={() => mapRef.current?.zoomOut({ animate: !reducedMotion })}
+            onClick={() => {
+              cameraAdjustedByUserRef.current = true;
+              mapRef.current?.zoomOut({ animate: !reducedMotion });
+            }}
             className="map-control-button group"
             title="Zoom out"
             aria-label="Zoom out"
@@ -3050,6 +3062,7 @@ export function GeographicNetworkMap({
               value={currentZoom}
               onChange={(e) => {
                 const targetZoom = parseFloat(e.target.value);
+                cameraAdjustedByUserRef.current = true;
                 setCurrentZoom(targetZoom);
                 mapRef.current?.setZoom(targetZoom);
               }}
@@ -3061,7 +3074,10 @@ export function GeographicNetworkMap({
 
           <button
             type="button"
-            onClick={() => mapRef.current?.zoomIn({ animate: !reducedMotion })}
+            onClick={() => {
+              cameraAdjustedByUserRef.current = true;
+              mapRef.current?.zoomIn({ animate: !reducedMotion });
+            }}
             className="map-control-button group"
             title="Zoom in"
             aria-label="Zoom in"

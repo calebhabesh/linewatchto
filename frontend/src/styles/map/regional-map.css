@@ -106,13 +106,16 @@
 
 .regional-impact-hover-foreground-layer,
 .regional-impact-hover-foreground,
+.regional-impact-top-hover-layer,
+.regional-impact-top-hover-foreground,
 .regional-station-impact-effects-layer,
 .regional-station-impact-hover-foreground-layer,
 .regional-station-impact-hover-foreground {
   pointer-events: none;
 }
 
-.regional-impact-hover-foreground {
+.regional-impact-hover-foreground,
+.regional-impact-top-hover-foreground {
   opacity: 0;
   visibility: hidden;
   transition:
@@ -120,7 +123,8 @@
     visibility 0s linear 70ms;
 }
 
-.regional-impact-hover-foreground[data-regional-impact-hovered="true"] {
+.regional-impact-hover-foreground[data-regional-impact-hovered="true"],
+.regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;
@@ -187,11 +191,10 @@
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="delay"] .regional-impact-path {
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
   stroke: #0ea5e9;
   stroke-dasharray: none;
   stroke-width: var(--regional-impact-width);
+  transition: none;
 }
 
 .regional-delay-glyph-lane,
@@ -210,13 +213,11 @@
 
 .regional-overlay-segment-group[data-regional-impact-kind="reduced-speed-zone"] .regional-impact-path {
   stroke-dasharray: none;
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
+  transition: none;
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="suspension"] .regional-impact-path {
-  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
-  animation-delay: var(--map-pulse-offset);
+  transition: none;
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-path {
@@ -338,7 +339,8 @@
   }
 }
 
-.regional-impact-hover-foreground[data-regional-impact-hovered="true"] .regional-impact-hover-boundary {
+.regional-impact-hover-foreground[data-regional-impact-hovered="true"] .regional-impact-hover-boundary,
+.regional-impact-top-hover-foreground[data-regional-impact-hovered="true"] .regional-impact-hover-boundary {
   opacity: 0.94 !important;
 }
 
@@ -444,6 +446,7 @@
 .motion-paused .regional-station-impact-beacon-group .station-impact-dot-red-glow,
 .motion-paused .regional-station-impact-beacon-group .station-impact-dot-red-ping,
 .motion-paused .regional-impact-hover-foreground,
+.motion-paused .regional-impact-top-hover-foreground,
 .motion-paused .regional-station-impact-hover-foreground,
 .motion-paused .regional-impact-aura,
 .motion-paused .regional-impact-path,
@@ -464,6 +467,7 @@
   .regional-station-impact-beacon-group .station-impact-dot-red-glow,
   .regional-station-impact-beacon-group .station-impact-dot-red-ping,
   .regional-impact-hover-foreground,
+  .regional-impact-top-hover-foreground,
   .regional-station-impact-hover-foreground {
     animation: none;
     transition: none;

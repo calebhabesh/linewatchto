@@ -53,6 +53,57 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     expect(postActionStats?.styleReplacements, "Zero style replacements during toggles and polls").toBe(0);
   });
 
+  test("desktop background refresh preserves the geographic camera and does not save it", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Desktop camera persistence regression applies to desktop viewports");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+
+    const geoMap = page.locator(".geographic-network-map");
+    await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+    const canvas = geoMap.locator("canvas");
+    const bounds = await canvas.boundingBox();
+    expect(bounds).not.toBeNull();
+    await page.mouse.move(bounds!.x + bounds!.width * 0.65, bounds!.y + bounds!.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(bounds!.x + bounds!.width * 0.45, bounds!.y + bounds!.height * 0.5, { steps: 5 });
+    await page.mouse.up();
+    await expect.poll(() => page.evaluate(() => (
+      window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
+    ))).toBeGreaterThan(0);
+
+    const moveEndsBeforeResume = await page.evaluate(() => (
+      window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
+    ));
+    expect(await page.evaluate(() => ({
+      local: window.localStorage.getItem("linewatch-geographic-map-viewport-v1:ttc"),
+      session: window.sessionStorage.getItem("linewatch-geographic-map-viewport-v1:ttc"),
+    }))).toEqual({ local: null, session: null });
+
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => (
+      window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
+    ))).toBe(moveEndsBeforeResume);
+  });
+
+  test("mobile train toggle operates in Geographic view", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "Mobile geographic train control");
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto("/");
+    await expect(page.locator(".geographic-network-map")).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
+
+    const toggle = page.locator(".mobile-train-toggle");
+    await expect(toggle).toBeEnabled();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    const response = page.waitForResponse((candidate) => (
+      new URL(candidate.url()).pathname === "/api/trains" && candidate.status() === 200
+    ));
+    await toggle.click();
+    await response;
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle).toContainText(/Viewing\s*Trains/);
+  });
+
   test("segment hover uses the same geographic highlight in TTC and GO/UP modes", async ({ page, request, isMobile }) => {
     test.skip(isMobile, "Desktop pointer hover regression");
     await page.setViewportSize({ width: 1440, height: 900 });

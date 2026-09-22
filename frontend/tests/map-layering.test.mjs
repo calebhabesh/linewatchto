@@ -411,8 +411,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /animation\.startTime = pulseCycleStartMs/);
     assert.match(interactiveMapSource, /requestAnimationFrame\(synchronizePulseAnimations\)/);
     assert.match(interactiveMapSource, /\}, \[loadState, overlayPulseMotionPaused, pulseSyncSignature\]\);/);
-    assert.match(globalCss, /\.asset-alert-path\.delay-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
-    assert.match(globalCss, /\.asset-alert-path\.suspension-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.doesNotMatch(globalCss, /\.asset-alert-path\.(?:delay-candy|suspension-candy|delay-static-base)\s*\{[^}]*map-overlay-rail-pulse/s);
     assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s);
     assert.doesNotMatch(globalCss, /@keyframes mask-size-pulse/);
     assert.match(globalCss, /\.station-impact-ring\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);

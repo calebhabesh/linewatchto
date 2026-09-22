@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  readDesktopSidebarCollapsed,
-  saveDesktopSidebarCollapsed,
   computeDesktopLayoutMetrics,
   desktopRailDestinationForView,
   DESKTOP_DOCK_BUDGET,
@@ -12,38 +10,6 @@ import {
   DESKTOP_MAP_MIN_WIDTH,
   DESKTOP_OVERLAY_MIN_MAP_EXPOSED,
 } from "../src/app/desktop-sidebar-state.ts";
-
-const memoryStorage = () => {
-  const map = new Map();
-  return {
-    getItem: (key) => map.get(key) ?? null,
-    setItem: (key, val) => map.set(key, String(val)),
-    removeItem: (key) => map.delete(key),
-  };
-};
-
-describe("desktop sidebar startup behavior and durable preference", () => {
-  it("defaults to expanded and restores subsequent preferences", () => {
-    assert.equal(readDesktopSidebarCollapsed(null), false);
-    const storage = memoryStorage();
-    assert.equal(readDesktopSidebarCollapsed(storage), false);
-    saveDesktopSidebarCollapsed(storage, true);
-    assert.equal(readDesktopSidebarCollapsed(storage), true);
-    saveDesktopSidebarCollapsed(storage, false);
-    assert.equal(readDesktopSidebarCollapsed(storage), false);
-  });
-
-  it("handles throwing storage gracefully without errors", () => {
-    const brokenStorage = {
-      getItem() { throw new Error("Blocked"); },
-      setItem() { throw new Error("Blocked"); },
-      removeItem() { throw new Error("Blocked"); },
-    };
-
-    assert.equal(readDesktopSidebarCollapsed(brokenStorage), false);
-    assert.doesNotThrow(() => saveDesktopSidebarCollapsed(brokenStorage, true));
-  });
-});
 
 describe("desktop layout budget and responsive modes", () => {
   it("returns mobile mode for mobile viewports or screens under 768px", () => {

@@ -53,8 +53,6 @@ import { DesktopMorePanel } from "./DesktopMorePanel";
 import {
   computeDesktopLayoutMetrics,
   desktopRailDestinationForView,
-  readDesktopSidebarCollapsed,
-  saveDesktopSidebarCollapsed,
   type DesktopRailDestination,
 } from "../app/desktop-sidebar-state";
 import { PwaInstallNudge } from "./PwaInstallNudge";
@@ -612,8 +610,6 @@ export function LineWatchShell({
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(false);
-  const [desktopSidebarPreferenceReady, setDesktopSidebarPreferenceReady] = useState(false);
-  const skipNextDesktopSidebarPreferenceWriteRef = useRef(false);
   const [windowWidth, setWindowWidth] = useState<number>(1200);
   const activeViewRef = useRef<ActiveView>("map");
   const viewHistoryRef = useRef<ActiveView[]>([]);
@@ -726,6 +722,9 @@ export function LineWatchShell({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // Desktop collapse is page-lifetime UI state. Remove the retired durable
+    // preference so an older visit cannot affect this or future releases.
+    window.localStorage.removeItem("linewatch-desktop-sidebar-collapsed");
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuPinned(window.localStorage.getItem("linewatch-menu-pinned") === "true");
     setMenuPinPreferenceReady(true);
@@ -886,23 +885,6 @@ export function LineWatchShell({
     mediaQuery.addEventListener("change", sync);
     return () => mediaQuery.removeEventListener("change", sync);
   }, []);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      setDesktopSidebarCollapsed(readDesktopSidebarCollapsed(window.localStorage));
-      setDesktopSidebarPreferenceReady(true);
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
-
-  useEffect(() => {
-    if (!desktopSidebarPreferenceReady) return;
-    if (skipNextDesktopSidebarPreferenceWriteRef.current) {
-      skipNextDesktopSidebarPreferenceWriteRef.current = false;
-      return;
-    }
-    saveDesktopSidebarCollapsed(window.localStorage, desktopSidebarCollapsed);
-  }, [desktopSidebarCollapsed, desktopSidebarPreferenceReady]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1821,6 +1803,11 @@ export function LineWatchShell({
               ? "Unavailable"
               : "Waiting"
       : "Off";
+  const estimatedTrainControlUnavailableReason = !trainNetworkOpen
+    ? "Estimated train markers are unavailable while rail service is closed"
+    : displayData.snapshot
+      ? "Estimated train markers are unavailable while viewing saved data"
+      : null;
 
   const estimatedTrainDisplayPending = estimatedTrainMarkersVisible
     && estimatedTrainSnapshot.markers.length === 0
@@ -2655,7 +2642,6 @@ export function LineWatchShell({
     if (isMobile) {
       navigateToMapDrilldown();
     } else if (desktopMetrics.mode === "overlay" && !desktopSidebarCollapsed) {
-      skipNextDesktopSidebarPreferenceWriteRef.current = true;
       setDesktopSidebarCollapsed(true);
       requestAnimationFrame(() => {
         desktopRailToggleRef.current?.focus();
@@ -3862,7 +3848,6 @@ export function LineWatchShell({
       return;
     }
     if (desktopMetrics.mode === "overlay" && !desktopSidebarCollapsed) {
-      skipNextDesktopSidebarPreferenceWriteRef.current = true;
       setDesktopSidebarCollapsed(true);
       requestAnimationFrame(() => {
         desktopRailToggleRef.current?.focus();
@@ -6346,18 +6331,17 @@ export function LineWatchShell({
           <button
             type="button"
             onClick={handleToggleEstimatedTrains}
-            disabled={!trainNetworkOpen || mapViewPreference === "geographic"}
+            disabled={estimatedTrainControlUnavailableReason !== null}
             className={`mobile-train-toggle ${
               selectedNetwork === "regional" ? "mobile-train-toggle--regional" : ""
             } ${estimatedTrainsEnabled ? "active" : ""} ${
               estimatedTrainDisplayPending ? "mobile-train-toggle--loading" : ""
-            } ${mapViewPreference === "geographic" ? "opacity-40 cursor-not-allowed" : ""}`}
+            } ${estimatedTrainControlUnavailableReason ? "opacity-40 cursor-not-allowed" : ""}`}
             aria-pressed={estimatedTrainsEnabled}
             aria-busy={estimatedTrainDisplayPending}
-            aria-label={mapViewPreference === "geographic"
-              ? "Estimated train markers are only available in Diagram view"
-              : `Toggle estimated train markers (${estimatedTrainStatusLabel})`}
-            title={mapViewPreference === "geographic" ? "Estimated train markers are only available in Diagram view" : undefined}
+            aria-label={estimatedTrainControlUnavailableReason
+              ?? `Toggle estimated train markers (${estimatedTrainStatusLabel})`}
+            title={estimatedTrainControlUnavailableReason ?? undefined}
           >
             <Train size={16} />
             <span>

@@ -1,20 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  readDesktopSidebarCollapsed,
-  saveDesktopSidebarCollapsed,
   computeDesktopLayoutMetrics,
   readDesktopOverlayInsets,
 } from "../src/app/desktop-sidebar-state.ts";
-
-const memoryStorage = () => {
-  const map = new Map();
-  return {
-    getItem: (key) => map.get(key) ?? null,
-    setItem: (key, val) => map.set(key, String(val)),
-    removeItem: (key) => map.delete(key),
-  };
-};
 
 describe("desktop sidebar uniform target width and responsive metrics", () => {
   it("targets 560px uniform width across all destinations when docked", () => {
@@ -37,15 +26,6 @@ describe("desktop sidebar uniform target width and responsive metrics", () => {
 });
 
 describe("transient 'View on map' collapse contract", () => {
-  it("opens expanded without a preference and remembers later collapse changes", () => {
-    const storage = memoryStorage();
-    assert.equal(readDesktopSidebarCollapsed(storage), false);
-    saveDesktopSidebarCollapsed(storage, true);
-    assert.equal(readDesktopSidebarCollapsed(storage), true);
-    saveDesktopSidebarCollapsed(storage, false);
-    assert.equal(readDesktopSidebarCollapsed(storage), false);
-  });
-
   it("yields zero overlay insets when collapsed, preventing duplicate camera jumps", () => {
     // Simulated mock elements
     const mockViewport = {
