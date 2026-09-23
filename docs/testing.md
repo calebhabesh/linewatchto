@@ -95,20 +95,21 @@ local WebKit debugging is necessary.
 
 ## Broader checks
 
-Backend and mobile verification remain separate:
+Backend verification remains separate from frontend verification:
 
 ```bash
 mvn -f backend/pom.xml test
-npm --prefix mobile run typecheck
-npm --prefix mobile run lint
-npm --prefix mobile test
 ```
+
+The native `mobile/` workspace has no app or checks yet. Add platform-specific
+checks when an Android or iOS project is created.
 
 ## Validation policy
 
-The [root guide](../AGENTS.md) defines proportional iteration and honest reporting;
-[frontend](../frontend/AGENTS.md), [backend](../backend/AGENTS.md), and
-[mobile](../mobile/AGENTS.md) guides define final checks for their layers.
+The [root guide](../AGENTS.md) defines proportional iteration and honest reporting.
+The [frontend](../frontend/AGENTS.md) and [backend](../backend/AGENTS.md)
+guides define final checks for their layers. The [mobile guide](../mobile/AGENTS.md)
+describes the empty native workspace.
 Validate once when stable, unless the user explicitly defers validation. Cross-stack
 changes need affected-layer and integration coverage, not unrelated platform suites.
 

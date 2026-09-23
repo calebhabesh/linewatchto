@@ -136,7 +136,7 @@ Data and infrastructure:
 ```text
 backend/   Spring Boot API, ingestion services, and backend tests
 frontend/  Next.js dashboard, typed fixtures, UI, and frontend checks
-mobile/    Expo/React Native Android and iOS prototype
+mobile/    Blank native workspace for future Android and iOS apps
 docs/      design specs and implementation plans
 ```
 
@@ -146,7 +146,7 @@ Important project guidance files:
 AGENTS.md           Project-wide agent rules and task routing
 frontend/AGENTS.md  Web UI conventions and scoped verification
 backend/AGENTS.md   API, persistence, ingestion, and backend checks
-mobile/AGENTS.md    Native prototype conventions and checks
+mobile/AGENTS.md    Native workspace guidance
 ```
 
 For small design iterations, give the affected view and desired change; the agent
@@ -166,16 +166,9 @@ Install frontend dependencies:
 npm --prefix frontend install
 ```
 
-Install and verify the mobile prototype:
-
-```bash
-npm --prefix mobile ci
-npm --prefix mobile run typecheck
-npm --prefix mobile run lint
-npm --prefix mobile test
-```
-
-See [`mobile/README.md`](mobile/README.md) for Expo development-build, API URL, Android, and EAS setup.
+The native mobile workspace is currently empty. See [`mobile/README.md`](mobile/README.md)
+before starting a future Android or iOS app. The responsive web dashboard and
+installable PWA remain in `frontend/`.
 
 Copy the example environment file if you plan to run local infrastructure:
 

@@ -1,5 +1,8 @@
 # Mobile implementation handoff
 
+> Historical reference only. The Expo / React Native prototype was removed in
+> September 2026. See [the native workspace](../mobile/README.md) for current status.
+
 The `mobile/` application owns the Expo, navigation, data, persistence, theme, and map-interaction architecture. Extend those seams rather than regenerating the app or replacing its providers.
 
 ## Completed Slices & Architecture

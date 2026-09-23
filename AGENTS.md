@@ -19,7 +19,7 @@ Read the scoped guide before editing that directory, including when starting at 
 | --- | --- | --- |
 | Web | [frontend/AGENTS.md](frontend/AGENTS.md): Next.js App Router, React, TypeScript | `npm --prefix frontend run test:fast`, `run typecheck`, `run lint` (same prefix) |
 | API | [backend/AGENTS.md](backend/AGENTS.md): Java 21, Spring Boot, Flyway, PostgreSQL/PostGIS, Redis | `mvn -f backend/pom.xml test` |
-| Native | [mobile/AGENTS.md](mobile/AGENTS.md): Expo / React Native prototype | `npm --prefix mobile run typecheck`, `run lint`, `test` (same prefix) |
+| Native | [mobile/AGENTS.md](mobile/AGENTS.md): empty Android/iOS workspace | Platform checks once a native project exists |
 
 ## Invariants
 

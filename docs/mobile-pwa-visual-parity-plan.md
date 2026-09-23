@@ -1,5 +1,8 @@
 # Mobile / PWA visual parity implementation plan
 
+> Historical reference only. The Expo / React Native prototype was removed in
+> September 2026. See [the native workspace](../mobile/README.md) for current status.
+
 Last updated: 2026-09-02
 
 ## Purpose
