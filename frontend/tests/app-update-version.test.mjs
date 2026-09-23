@@ -19,13 +19,13 @@ describe("app update release identity", () => {
     );
   });
 
-  it("shows an update when the build label changes inside the same app version", () => {
+  it("does not show an update when only the build label changes inside the same app version", () => {
     assert.equal(
       shouldShowAppUpdate(
         { appVersion: "1.0.0", buildLabel: "prod-abcdef123456" },
         { appVersion: "1.0.0", buildLabel: "prod-111111111111" },
       ),
-      true,
+      false,
     );
   });
 
@@ -39,10 +39,10 @@ describe("app update release identity", () => {
     );
   });
 
-  it("uses the same composite key for update dismissal storage", () => {
+  it("uses the app version for update dismissal storage", () => {
     assert.equal(
       appUpdateReleaseKey({ appVersion: "1.0.0", buildLabel: "prod-abcdef123456" }),
-      "version:1.0.0|build:prod-abcdef123456",
+      "version:1.0.0",
     );
   });
 

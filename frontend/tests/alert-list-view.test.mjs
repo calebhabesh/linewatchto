@@ -31,9 +31,10 @@ describe("alert card and list views", () => {
     );
   });
 
-  it("keeps rail endpoint names together until the impact card is compact", () => {
-    assert.match(globalCss, /\.impact-route__bounds--segment\s*\{[^}]*grid-template-columns:\s*minmax\(0, max-content\) auto minmax\(0, max-content\);[^}]*margin-inline:\s*auto;[^}]*width:\s*fit-content;/s);
-    assert.match(globalCss, /\.impact-route__bounds--segment > span\s*\{[^}]*white-space:\s*nowrap;/s);
+  it("keeps rail endpoint names together and wraps long segments cleanly", () => {
+    assert.match(globalCss, /\.impact-route__bounds--segment\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*wrap;[^}]*margin-inline:\s*auto;[^}]*width:\s*fit-content;/s);
+    assert.match(globalCss, /\.impact-route__target\s*\{[^}]*display:\s*inline-flex;/s);
+    assert.match(globalCss, /\.impact-route__target\s*\{[^}]*align-items:\s*center;/s);
     assert.match(globalCss, /@container impact-details \(max-width: 28rem\)[\s\S]*?\.impact-route__bounds--segment > span\s*\{[^}]*white-space:\s*normal;/s);
   });
 

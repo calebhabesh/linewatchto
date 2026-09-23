@@ -393,28 +393,35 @@
 }
 
 .impact-route__bounds--segment {
-  column-gap: 10px;
-  display: grid;
-  grid-template-columns: minmax(0, max-content) auto minmax(0, max-content);
+  align-items: center;
+  column-gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   margin-inline: auto;
   max-width: 100%;
+  row-gap: 4px;
+  text-align: center;
   width: fit-content;
 }
 
 .impact-route__bounds--segment > span {
   min-width: 0;
   overflow-wrap: normal;
-  white-space: nowrap;
 }
 
-.impact-route__bounds--segment > span:first-child {
-  justify-self: end;
-  text-align: right;
+.impact-route__station {
+  display: inline-block;
+  max-width: 100%;
+  text-wrap: balance;
 }
 
-.impact-route__bounds--segment > span:last-child {
-  justify-self: start;
-  text-align: left;
+.impact-route__target {
+  align-items: center;
+  column-gap: 10px;
+  display: inline-flex;
+  justify-content: center;
+  max-width: 100%;
 }
 
 .impact-route__arrow {
@@ -432,7 +439,7 @@
 
 @container impact-details (max-width: 28rem) {
   .impact-route__bounds--segment > span {
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     white-space: normal;
   }
 }

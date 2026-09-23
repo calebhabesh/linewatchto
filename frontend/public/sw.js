@@ -104,18 +104,6 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.mode === "navigate") {
-    const isPublicDashboard = (url.pathname === "/" || url.pathname === OFFLINE_DASHBOARD_URL)
-      && ![...url.searchParams.keys()].some((key) => /token|code|password|email/i.test(key));
-
-    if (isPublicDashboard) {
-      event.respondWith((async () => {
-        const cached = await caches.match(OFFLINE_DASHBOARD_URL);
-        if (cached) return cached;
-        return networkFirstNavigation(request);
-      })());
-      return;
-    }
-
     event.respondWith(networkFirstNavigation(request));
     return;
   }
