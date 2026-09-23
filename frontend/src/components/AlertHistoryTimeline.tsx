@@ -68,7 +68,7 @@ import {
   type AlertHistoryViewItem,
 } from "./alert-history-filters";
 
-import { historyCategory, historyCause, historyChangedFields, historyDescription, historyEventsNewestFirst } from "./alert-history-details";
+import { affectedStationLabel, historyCategory, historyCause, historyChangedFields, historyDescription, historyEventsNewestFirst } from "./alert-history-details";
 
 const HISTORY_PAGE_SIZE = 50;
 const COLLAPSED_LIFECYCLE_THRESHOLD = 4;
@@ -597,7 +597,7 @@ const HistoryIncident = memo(function HistoryIncident({
         <div className="alert-history-fact-grid" aria-label="Alert summary">
           {incident.location ? (
             <span className="alert-history-fact alert-history-fact-location">
-              <span>Affected area</span>
+              <span>{affectedStationLabel(incident.location)}</span>
               <strong><CompactImpactLocation location={incident.location} /></strong>
             </span>
           ) : null}
@@ -663,7 +663,7 @@ const HistoryIncident = memo(function HistoryIncident({
                     {historyDescription(event) ? <p className="alert-history-description">{historyDescription(event)}</p> : null}
                     {!event.description?.trim() ? <p>No description supplied in this snapshot.</p> : null}
                     <dl>
-                      <dt>Affected area</dt><dd>{event.location || "Not supplied"}</dd>
+                      <dt>{affectedStationLabel(event.location)}</dt><dd>{event.location || "Not supplied"}</dd>
                       <dt>Direction</dt><dd>{event.displayDirection || "Not supplied"}</dd>
                       <dt>Cause</dt><dd>{historyCause(event.cause) ? formatCause(event.cause!) : "Not supplied"}</dd>
                       <dt>Source</dt><dd>{normalizeDashboardSourceLabel(event.source)}</dd>

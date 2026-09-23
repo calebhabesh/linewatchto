@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { historyDescription, historyCause, historyCategory, historyChangedFields, historyEventsNewestFirst } from "../src/components/alert-history-details.ts";
+import { affectedStationLabel, historyDescription, historyCause, historyCategory, historyChangedFields, historyEventsNewestFirst } from "../src/components/alert-history-details.ts";
+
+test("affected station label follows the location span", () => {
+  assert.equal(affectedStationLabel("Don Valley"), "Affected station");
+  assert.equal(affectedStationLabel("Union to Pickering"), "Affected stations");
+  assert.equal(affectedStationLabel("King ↔ Union"), "Affected stations");
+});
 
 test("regional body preserves the reported location and TTC duplicate prose is suppressed", () => {
   assert.equal(historyDescription({ title: "Barrie - Equipment Issue", description: "Equipment issue south of Rutherford GO." }), "Equipment issue south of Rutherford GO.");
@@ -23,7 +29,7 @@ test("title category is source-labeled and requires a matching corridor prefix",
 test("snapshot changes include removed fields without treating clearance as a narrative update", () => {
   const previous = { id: 1, happenedAt: "2026-09-01T17:24:00Z", title: "Barrie - Equipment Issue", description: "Repair crews responding.", location: "Union to Allandale Waterfront", cause: "Unknown Cause" };
   assert.deepEqual(historyChangedFields({ ...previous, state: "cleared" }, previous), []);
-  assert.deepEqual(historyChangedFields({ ...previous, description: "Buses requested.", location: "" }, previous), ["Description", "Affected area"]);
+  assert.deepEqual(historyChangedFields({ ...previous, description: "Buses requested.", location: "" }, previous), ["Description", "Affected stations"]);
   assert.deepEqual(historyChangedFields(previous), []);
   const updated = { ...previous, id: 2 };
   const events = [previous, updated];

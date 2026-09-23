@@ -14,6 +14,10 @@ export function historyCause(cause: string | null | undefined) {
   return !key || ["unknown", "unknown cause"].includes(key) ? null : cause!.trim();
 }
 
+export function affectedStationLabel(location: string) {
+  return /\s(?:to|↔|→|<->)\s/i.test(location) ? "Affected stations" : "Affected station";
+}
+
 // This is a source title category, never a replacement structured cause.
 export function historyCategory(incident: AlertHistoryIncident) {
   if (incident.source !== "Metrolinx Open API") return null;
@@ -28,7 +32,7 @@ export function historyCategory(incident: AlertHistoryIncident) {
 export function historyChangedFields(event: AlertHistoryEvent, previous?: AlertHistoryEvent) {
   if (!previous) return [];
   const fields = [
-    ["title", "Title"], ["description", "Description"], ["location", "Affected area"],
+    ["title", "Title"], ["description", "Description"], ["location", affectedStationLabel(event.location || previous.location)],
     ["displayDirection", "Direction"], ["cause", "Cause"], ["source", "Source"],
   ] as const;
   return fields.filter(([key]) => comparable(event[key]) !== comparable(previous[key]))

@@ -1389,7 +1389,7 @@
   }
   .mobile-service-sheet .mobile-status-peek-badge-icon { flex: 0 0 13px; width: 13px; height: 13px; margin: 0; }
   .mobile-service-sheet .mobile-status-peek-chevron { display: none; }
-  .mobile-service-sheet-details { overflow-y: auto; overscroll-behavior-y: contain; min-height: 0; flex: 1; padding-top: 0; margin-bottom: calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height)); }
+  .mobile-service-sheet-details { overflow-y: auto; overscroll-behavior-y: contain; min-height: 0; flex: 1; padding: 0 12px 0 0; margin-right: -12px; margin-bottom: calc(var(--service-sheet-expanded-height) - var(--service-sheet-visible-height)); }
   /* Paint the full content while the shell moves using only a transform.
      Settled positions constrain the scroll area to the visible sheet height. */
   .mobile-service-sheet[data-dragging="true"] .mobile-service-sheet-details { margin-bottom: 0; }
