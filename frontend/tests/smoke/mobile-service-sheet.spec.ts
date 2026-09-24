@@ -1,6 +1,49 @@
 import { expect, test } from "@playwright/test";
 import { installDismissedTransientUi } from "./test-support";
 
+test("compact mobile overview headings and close buttons stay inside their scroll area", async ({ page, isMobile, request }) => {
+  test.skip(!isMobile);
+  await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });
+  await installDismissedTransientUi(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  for (const width of [360, 393, 400, 401, 412]) {
+    await page.setViewportSize({ width, height: 852 });
+    await page.goto("/?previewTime=2026-08-14T16:00:00.000Z");
+
+    for (const menu of ["Status", "More"] as const) {
+      await page.getByRole("button", { name: menu, exact: true }).click();
+      const scrollArea = page.locator(menu === "Status" ? ".mobile-status-content-scroll" : ".mobile-more-content-scroll");
+      await expect(scrollArea.locator(".mobile-sheet-heading")).toBeVisible();
+      const bounds = await scrollArea.evaluate((element) => {
+        const scroll = element.getBoundingClientRect();
+        const heading = element.querySelector(".mobile-sheet-heading")!.getBoundingClientRect();
+        const title = element.querySelector(".mobile-sheet-heading h2")!.getBoundingClientRect();
+        const close = element.querySelector(".mobile-sheet-icon-button")!.getBoundingClientRect();
+        return {
+          scrollLeft: scroll.left,
+          scrollRight: scroll.right,
+          headingLeft: heading.left,
+          headingRight: heading.right,
+          titleLeft: title.left,
+          titleRight: title.right,
+          closeLeft: close.left,
+          closeRight: close.right,
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        };
+      });
+      expect(bounds.headingLeft).toBeGreaterThanOrEqual(bounds.scrollLeft - 1);
+      expect(bounds.headingRight).toBeLessThanOrEqual(bounds.scrollRight + 1);
+      expect(bounds.titleLeft).toBeGreaterThanOrEqual(bounds.scrollLeft - 1);
+      expect(bounds.titleRight).toBeLessThanOrEqual(bounds.scrollRight + 1);
+      expect(bounds.closeLeft).toBeGreaterThanOrEqual(bounds.scrollLeft - 1);
+      expect(bounds.closeRight).toBeLessThanOrEqual(bounds.scrollRight + 1);
+      expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.clientWidth);
+    }
+  }
+});
+
 test("multiple rail incidents stack without overlapping", async ({ page, isMobile, request }) => {
   test.skip(!isMobile);
   await request.post("http://127.0.0.1:4174/__test/mode", { data: { mode: "seeded" } });

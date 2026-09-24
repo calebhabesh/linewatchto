@@ -589,15 +589,8 @@
     margin: -9px -9px -9px;
   }
 
-  .mobile-status-sheet .mobile-sheet-heading {
-    margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px));
-  }
-
-  .mobile-more-sheet .mobile-sheet-heading {
-    margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px)) -6px;
-    padding-bottom: 0;
-  }
-
+  /* Status and More headings sit inside scroll areas. The more specific rule in
+     mobile-sheets.css keeps their inline margins at zero to prevent cropping. */
   .mobile-sheet-heading {
     border-bottom: none;
     margin: 0 calc(-1 * var(--mobile-sheet-gutter, 10px));

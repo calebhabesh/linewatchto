@@ -4424,43 +4424,26 @@ export function LineWatchShell({
 
     if (notice.action) {
       return (
-        <div
-          role="status"
+        <button
+          type="button"
           aria-live="polite"
-          className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${notice.kind}`}
-          onClick={(e) => {
-            e.stopPropagation();
+          className={`mobile-service-sheet-notice-row desktop-operating-notice mobile-service-sheet-notice-row--${notice.kind}`}
+          onClick={(event) => {
+            event.stopPropagation();
             notice.action?.();
           }}
-          style={{ cursor: "pointer" }}
         >
-          <span className="mobile-service-sheet-notice-left">
-            <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
-              {notice.kind === "closing-soon" ? (
-                <Clock3 size={13} strokeWidth={2.5} />
-              ) : (
-                <Moon size={13} strokeWidth={1} fill="currentColor" />
-              )}
-            </span>
+          <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
+            <Moon size={13} strokeWidth={1} fill="currentColor" />
+          </span>
+          <span className="desktop-operating-notice-copy">
             <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
+            {notice.details && <span className="mobile-service-sheet-notice-details">{notice.details}</span>}
           </span>
           {notice.details && (
-            <span className="mobile-service-sheet-notice-right">
-              <span className="mobile-service-sheet-notice-details">{notice.details}</span>
-              <ChevronRight size={12} strokeWidth={2.5} className="mobile-service-sheet-notice-chevron" aria-hidden="true" />
-            </span>
+            <ChevronRight size={12} strokeWidth={2.5} className="mobile-service-sheet-notice-chevron" aria-hidden="true" />
           )}
-          <button
-            type="button"
-            className="mobile-service-sheet-notice-action"
-            onClick={(e) => {
-              e.stopPropagation();
-              notice.action?.();
-            }}
-          >
-            Closed Screen
-          </button>
-        </div>
+        </button>
       );
     }
 
@@ -4468,19 +4451,15 @@ export function LineWatchShell({
       <div
         role="status"
         aria-live="polite"
-        className={`mobile-service-sheet-notice-row mobile-service-sheet-notice-row--${notice.kind}`}
+        className={`mobile-service-sheet-notice-row desktop-operating-notice mobile-service-sheet-notice-row--${notice.kind}`}
       >
-        <span className="mobile-service-sheet-notice-left">
-          <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
-            <Clock3 size={13} strokeWidth={2.5} />
-          </span>
-          <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
+        <span className="mobile-service-sheet-notice-icon shrink-0" aria-hidden="true">
+          <Clock3 size={13} strokeWidth={2.5} />
         </span>
-        {notice.details && (
-          <span className="mobile-service-sheet-notice-right">
-            <span className="mobile-service-sheet-notice-details">{notice.details}</span>
-          </span>
-        )}
+        <span className="desktop-operating-notice-copy">
+          <strong className="mobile-service-sheet-notice-title">{notice.title}</strong>
+          {notice.details && <span className="mobile-service-sheet-notice-details">{notice.details}</span>}
+        </span>
       </div>
     );
   };

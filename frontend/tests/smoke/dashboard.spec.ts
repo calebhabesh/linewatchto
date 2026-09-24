@@ -418,6 +418,9 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
     expect(searchBox).not.toBeNull();
     expect(closedNoticeBox).not.toBeNull();
     expect(closedNoticeBox!.y).toBeGreaterThanOrEqual(searchBox!.y + searchBox!.height);
+    expect(await page.locator(".mobile-service-sheet-notice-row--closed").evaluate(
+      (notice) => notice.scrollWidth <= notice.clientWidth,
+    )).toBe(true);
 
     const networkSelector = page.locator("#desktop-sidebar-container")
       .getByRole("group", { name: "Select transit network" });
@@ -444,7 +447,11 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
 
   await page.getByRole("button", { name: "Close station details" }).click();
 
-  await (isMobile ? page.locator(".mobile-service-sheet-notice-row--closed") : page.getByRole("button", { name: "Closed Screen" })).click();
+  if (isMobile) {
+    await page.locator(".mobile-service-sheet-notice-row--closed").click();
+  } else {
+    await page.getByRole("button", { name: /Subway Closed.*Resumes/ }).press("Enter");
+  }
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
 });
 

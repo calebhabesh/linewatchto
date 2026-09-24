@@ -554,6 +554,46 @@
   color: #0f172a;
 }
 
+.desktop-operating-notice {
+  align-items: center;
+  justify-content: flex-start;
+  font: inherit;
+}
+
+div.desktop-operating-notice {
+  cursor: default;
+}
+
+div.desktop-operating-notice:active {
+  transform: none;
+}
+
+.desktop-operating-notice:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.desktop-operating-notice-copy {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+  column-gap: 3px;
+  min-width: 0;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.desktop-operating-notice .mobile-service-sheet-notice-title,
+.desktop-operating-notice .mobile-service-sheet-notice-details {
+  line-height: inherit;
+  white-space: normal;
+}
+
+.desktop-operating-notice .mobile-service-sheet-notice-details {
+  min-width: 0;
+}
+
 /* Connection notice variant: black container with yellow border */
 .mobile-service-sheet-notice-row.mobile-service-sheet-notice-row--connection,
 .dark .mobile-service-sheet-notice-row.mobile-service-sheet-notice-row--connection {
@@ -619,6 +659,7 @@
   letter-spacing: -0.15px;
   text-align: left;
   color: #fde68a;
+  overflow-wrap: anywhere;
 }
 
 .linewatch-shell:not(.dark) .mobile-service-sheet-notice-row--connection .mobile-service-sheet-notice-message {
@@ -680,17 +721,3 @@
   width: max-content;
   pointer-events: auto;
 }
-
-.mobile-service-sheet-notice-action {
-  background: transparent;
-  border: none;
-  font-size: 11px;
-  font-weight: 700;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 2px 6px;
-  margin-left: auto;
-  color: inherit;
-  flex-shrink: 0;
-}
-
