@@ -150,12 +150,17 @@ test("switches to GO/UP when WebKit animation frames stall", async ({ page, requ
     });
   });
   await page.goto("/");
+  const mapNetworkSwitcher = page.getByRole("group", { name: "Map network switcher" });
+  const regionalButton = mapNetworkSwitcher.getByRole("button", { name: "GO/UP" });
+  await expect(regionalButton).toBeVisible();
   await page.evaluate(() => {
     window.requestAnimationFrame = () => 1;
   });
 
-  await page.getByRole("button", { name: "GO/UP", exact: true }).first().click();
-  await expect(page.getByRole("group", { name: "Map network switcher" }).getByRole("button", { name: "GO/UP" }))
+  // Playwright's click actionability check also waits for animation frames.
+  // Dispatch the button click directly to exercise the app with stalled frames.
+  await regionalButton.evaluate((button: HTMLButtonElement) => button.click());
+  await expect(regionalButton)
     .toHaveAttribute("aria-pressed", "true", { timeout: 10_000 });
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible({ timeout: 30_000 });
 });
