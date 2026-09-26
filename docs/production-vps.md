@@ -122,7 +122,7 @@ deployment rather than silently initialize an empty database or certificate stor
 
 ## Server-Local Files
 
-- Recommended checkout: `/home/ubuntu/linewatchto`.
+- Production checkout: `/home/ubuntu/apps/linewatchto`.
 - Production env: `.env.production` in the checkout.
 - Production env template: `.env.production.example`.
 - Release env: `.env.release` in the checkout, written by `scripts/prod-deploy.sh` after a healthy deployment.
@@ -213,7 +213,7 @@ Create a GitHub Environment named `production` and add these **environment secre
 | `VPS_SSH_KNOWN_HOSTS` | Pinned SSH host key entry for `VPS_HOST`; verify the fingerprint through an existing trusted connection before storing it. |
 | `VPS_WIREGUARD_CONFIG` | Full client `wg0.conf` for a **dedicated Actions peer**, if SSH is private to WireGuard. Add its public key as a new peer on the VPS first. Omit only when the runner has another authorized SSH route. |
 
-Optional `production` environment **variables** are `VPS_SSH_PORT` (default `22`) and `VPS_DEPLOY_PATH` (default `/home/ubuntu/linewatchto`). Keep `.env.production`, `.env.release`, provider credentials, and persistent volumes on the VPS; they are not Actions secrets. If using WireGuard, the runner config should route only the VPS tunnel address through the peer (for example `AllowedIPs = 10.0.0.1/32`), and the VPS must allow that dedicated peer to reach SSH. Do not open public SSH solely for this workflow. GitHub's [WireGuard runner guide](https://docs.github.com/en/actions/how-tos/manage-runners/github-hosted-runners/connect-to-a-private-network/connect-with-wireguard) describes the peer setup.
+Optional `production` environment **variables** are `VPS_SSH_PORT` (default `22`) and `VPS_DEPLOY_PATH` (default `/home/ubuntu/apps/linewatchto`). Keep `.env.production`, `.env.release`, provider credentials, and persistent volumes on the VPS; they are not Actions secrets. If using WireGuard, the runner config should route only the VPS tunnel address through the peer (for example `AllowedIPs = 10.0.0.1/32`), and the VPS must allow that dedicated peer to reach SSH. Do not open public SSH solely for this workflow. GitHub's [WireGuard runner guide](https://docs.github.com/en/actions/how-tos/manage-runners/github-hosted-runners/connect-to-a-private-network/connect-with-wireguard) describes the peer setup.
 
 The production checkout needs a working `origin` fetch and must have no tracked local changes. Actions leaves it detached at the deployed SHA. The new workflow file and scripts must be pushed to `main` before the button appears. No production credentials or WireGuard keys belong in Git.
 

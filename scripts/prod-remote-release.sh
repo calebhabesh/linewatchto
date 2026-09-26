@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SHA="${1:-}"
-ROOT_DIR="${2:-/home/ubuntu/linewatchto}"
+ROOT_DIR="${2:-/home/ubuntu/apps/linewatchto}"
 FRONTEND_IMAGE="${3:-}"
 BACKEND_IMAGE="${4:-}"
 POSTGRES_IMAGE="${5:-}"
