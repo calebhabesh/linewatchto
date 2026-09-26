@@ -82,12 +82,15 @@ test("keeps TTC dynamic geometry in authored viewBox coordinates", async ({ page
 });
 
 test("prepares regional map SVG with dynamic layers, planned station layer, and hit targets", async ({ page, request }) => {
+  test.setTimeout(60_000);
   await setStubMode(request, "seeded");
   await page.goto("/");
 
   await page.getByRole("button", { name: "GO/UP", exact: true }).first().click();
   const regionalMap = page.getByRole("region", { name: "Interactive GO and UP map" });
-  await expect(regionalMap).toBeVisible();
+  // WebKit can spend several seconds snapshotting the large map during the
+  // document view transition before React mounts the regional map.
+  await expect(regionalMap).toBeVisible({ timeout: 20_000 });
 
   const layerInventory = await page.evaluate(() => {
     const svg = document.querySelector('svg[aria-label="GO and UP regional rail schematic"]');
