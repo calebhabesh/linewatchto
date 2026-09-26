@@ -1,6 +1,6 @@
 "use client";
 
-import { googleAuthStartUrl, type GoogleAuthMode } from "../app/account-data";
+import { googleAuthStartUrl, type GoogleAuthMode } from "../app/auth-data";
 
 type GoogleSignInButtonProps = {
   disabled?: boolean;

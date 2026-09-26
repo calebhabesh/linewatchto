@@ -628,7 +628,7 @@ function multiplyMatrix(a: MapMatrix | null, b: MapMatrix): MapMatrix | null {
   };
 }
 
-function transformPoint(point: MapPoint, matrix: MapMatrix): MapPoint {
+export function transformPoint(point: MapPoint, matrix: MapMatrix): MapPoint {
   return {
     x: matrix.a * point.x + matrix.c * point.y + matrix.e,
     y: matrix.b * point.x + matrix.d * point.y + matrix.f,

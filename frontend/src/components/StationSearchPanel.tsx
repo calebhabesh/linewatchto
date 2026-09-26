@@ -38,7 +38,7 @@ import {
 } from "../app/station-data";
 import { stationImpactKindsByStation } from "../app/station-impact-types";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
-import type { AccountSavedCommute } from "../app/account-data";
+import type { AccountSavedCommute } from "../app/commute-data";
 import type { NetworkId } from "../app/regional-data";
 import {
   matchGlobalDestinations,

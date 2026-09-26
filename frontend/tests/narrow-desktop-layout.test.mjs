@@ -7,19 +7,7 @@ const globalCss = readAppStylesheet();
 test("narrow desktop windows reflow dense chrome without switching to mobile navigation", () => {
   assert.match(
     globalCss,
-    /@media \(min-width: 768px\) and \(max-width: 1099px\)[\s\S]*?\.desktop-status-capsule-anchor\s*\{[^}]*top:\s*104px\s*!important;[^}]*width:\s*min\(680px, calc\(100vw - 32px\)\);/,
-  );
-  assert.match(
-    globalCss,
     /@media \(min-width: 768px\) and \(max-width: 1099px\)[\s\S]*?\.floating-panel-shell\s*\{[^}]*width:\s*min\(680px, 72vw, calc\(100vw - 48px\)\);/,
-  );
-  assert.match(
-    globalCss,
-    /\.linewatch-shell:not\(\[data-active-view="map"\]\) \.desktop-status-capsule-anchor\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;/,
-  );
-  assert.match(
-    globalCss,
-    /\.desktop-status-time,[\s\S]*?\.desktop-status-time \+ \.desktop-status-divider\s*\{[^}]*display:\s*none;/,
   );
 });
 

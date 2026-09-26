@@ -1,4 +1,4 @@
-import type { PushNotificationDiagnosticGroup, PushRecipientDiagnostic } from "./account-data.ts";
+import type { PushNotificationDiagnosticGroup, PushRecipientDiagnostic } from "./push-data.ts";
 
 export type PushDiagnosticDeviceOption = {
   key: string;

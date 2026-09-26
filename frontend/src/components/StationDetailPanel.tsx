@@ -2,11 +2,15 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowDownToLine, ArrowRight, BadgeInfo, Bus, CalendarCheck2, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, Layers, Train } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bus, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, Train } from "lucide-react";
 import Image from "next/image";
 import { StationSubmenuNavButtons, type StationSubmenuNavItem } from "./StationSubmenuNavButtons";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
+import {
+  ArrivalSourceBadge,
+  ArrivalTerminatingBadge,
+} from "./ArrivalSourceBadge";
 import {
   ARRIVAL_COUNTDOWN_TICK_MS,
   formatArrivalClockTime,
@@ -20,6 +24,7 @@ import {
 } from "../app/station-arrivals";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import {
+  formatStationNoticeDate,
   isLrtOnlyStation,
   isStationParkingAvailable,
   isStationWashroomAvailable,
@@ -28,6 +33,7 @@ import {
   isStationBikeShareAvailable,
   isStationPpudoAvailable,
   isSubwayAndLrtStation,
+  stationNoticeCategoryLabel,
   type StationArrival,
   type StationDataResult,
   type StationDetail,
@@ -47,7 +53,6 @@ import type {
 } from "../app/linewatch-data";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
-import { LiveSignalIcon } from "./LiveSignalIcon";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
@@ -270,47 +275,6 @@ function stationImpactButtonClassName(tone: StationImpactDetailsTarget["tone"]) 
     return `${base} border-[#F59E0B]/35 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 hover:border-[#F59E0B]/65`;
   }
   return `${base} border-[#FEEC41]/35 bg-[#FEEC41]/10 hover:bg-[#FEEC41]/20 hover:border-[#FEEC41]/65`;
-}
-
-function stationNoticeCategoryLabel(category: string) {
-  switch (category) {
-    case "construction": return "Construction";
-    case "service-change": return "Service Change";
-    case "facility": return "Facility";
-    default: return "Notice";
-  }
-}
-
-function formatStationNoticeDate(value?: string | null) {
-  if (!value) return null;
-  const date = new Date(value.length === 10 ? `${value}T12:00:00Z` : value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-CA", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "America/Toronto",
-  }).format(date);
-}
-
-function arrivalSourceBadgeClassName(label: string) {
-  const base = "inline-flex h-[22px] shrink-0 items-center rounded border px-2 text-[10.5px] font-black uppercase tracking-wide leading-none";
-  if (label === "Live") {
-    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
-  }
-  if (label === "Scheduled") {
-    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-  }
-  if (label === "Mixed") {
-    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
-  }
-  if (label === "No live ETA") {
-    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-  }
-  if (label === "Demo") {
-    return `${base} border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-200`;
-  }
-  return `${base} border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400`;
 }
 
 function arrivalSourceTitle(arrivals: StationArrival[]) {
@@ -1079,10 +1043,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                               <span className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                                                 {destinationPart}
                                                 {group.isTerminating && (
-                                                  <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                    <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                    Terminating
-                                                  </span>
+                                                  <ArrivalTerminatingBadge />
                                                 )}
                                               </span>
                                             </div>
@@ -1094,30 +1055,16 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                               {group.directionLabel}
                                             </strong>
                                             {group.isTerminating && (
-                                              <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                Terminating
-                                              </span>
+                                              <ArrivalTerminatingBadge />
                                             )}
                                           </div>
                                         );
                                       })()}
                                         <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
-                                          <span
-                                            className={arrivalSourceBadgeClassName(groupSourceLabel)}
-                                            data-arrival-source={groupSourceLabel.toLowerCase()}
+                                          <ArrivalSourceBadge
+                                            label={groupSourceLabel}
                                             title={groupSourceTitle}
-                                            aria-label={groupSourceTitle}
-                                          >
-                                            {groupSourceLabel}
-                                            {groupSourceLabel === "Live" ? (
-                                               <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
-                                            ) : groupSourceLabel === "Scheduled" ? (
-                                               <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
-                                            ) : groupSourceLabel === "Mixed" ? (
-                                               <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
-                                            ) : null}
-                                          </span>
+                                          />
                                         </div>
                                       </div>
                                     {group.arrivals.length === 0 ? (

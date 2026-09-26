@@ -21,6 +21,15 @@ import {
 } from "../../scripts/lib/geographic-geometry.mjs";
 import { STATION_LINE_STATION_IDS } from "../src/app/station-data.ts";
 import { REGIONAL_ROUTE_STATIONS, REGIONAL_ROUTE_LINKS } from "../src/app/regional-data.ts";
+import {
+  OPENFREEMAP_STYLES,
+  GEOGRAPHIC_LOAD_TIMEOUT_MS,
+  TTC_LINE_COLORS,
+  REGIONAL_LINE_COLORS,
+  IMPACT_COLORS,
+  REGIONAL_MAJOR_STATIONS,
+  getGeographicAttribution,
+} from "../src/app/geographic-config.ts";
 
 const manifestUrl = new URL("../public/assets/linewatch/geographic/manifest.json", import.meta.url);
 const ttcCatalogUrl = new URL("../public/assets/linewatch/geographic/ttc-catalog.json", import.meta.url);
@@ -350,5 +359,63 @@ describe("catalog helper utility functions", () => {
     const isStation = isGeographicStationFeature(station);
     const isLink = isGeographicLinkFeature(station);
     assert.equal(isStation, !isLink);
+  });
+});
+
+describe("geographic bundle isolation", () => {
+  it("ensures diagram session does not load maplibre-gl statically", () => {
+    const globalsCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+    assert.equal(globalsCss.includes("maplibre-gl"), false);
+
+    const ttcMap = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+    assert.equal(ttcMap.includes('from "maplibre-gl"'), false);
+    assert.equal(ttcMap.includes('import("maplibre-gl")'), false);
+
+    const networkMap = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
+    assert.ok(networkMap.includes("dynamic("));
+    assert.ok(networkMap.includes("./GeographicNetworkMap"));
+    assert.ok(networkMap.includes("ssr: false"));
+  });
+});
+
+describe("geographic configuration invariants", () => {
+  it("restrains OpenFreeMap style endpoints to clean HTTPS URLs without tokens", () => {
+    assert.equal(OPENFREEMAP_STYLES.light, "https://tiles.openfreemap.org/styles/positron");
+    assert.equal(OPENFREEMAP_STYLES.dark, "https://tiles.openfreemap.org/styles/dark");
+    assert.ok(!OPENFREEMAP_STYLES.light.includes("?"), "Light style must not contain query tokens");
+    assert.ok(!OPENFREEMAP_STYLES.dark.includes("?"), "Dark style must not contain query tokens");
+  });
+
+  it("bounds load timeout between 5s and 15s", () => {
+    assert.ok(GEOGRAPHIC_LOAD_TIMEOUT_MS >= 5000 && GEOGRAPHIC_LOAD_TIMEOUT_MS <= 15000);
+    assert.equal(GEOGRAPHIC_LOAD_TIMEOUT_MS, 12000);
+  });
+
+  it("defines line colors covering all TTC lines and Regional corridors", () => {
+    for (const lineId of ["line-1", "line-2", "line-4", "line-5", "line-6"]) {
+      assert.ok(TTC_LINE_COLORS[lineId], `Missing color for TTC line ${lineId}`);
+    }
+    for (const corr of ["regional-br", "regional-ki", "regional-le", "regional-lw", "regional-mi", "regional-rh", "regional-st", "regional-up"]) {
+      assert.ok(REGIONAL_LINE_COLORS[corr], `Missing color for Regional corridor ${corr}`);
+    }
+  });
+
+  it("defines impact color palette and major terminal stations", () => {
+    assert.ok(IMPACT_COLORS.suspension);
+    assert.ok(IMPACT_COLORS.delayTtc);
+    assert.ok(IMPACT_COLORS.delayRegional);
+    assert.ok(IMPACT_COLORS.reducedSpeedZone);
+    assert.ok(IMPACT_COLORS.plannedClosure);
+
+    for (const hub of ["union", "kitchener", "allandale-waterfront", "durham-college-oshawa", "niagara-falls", "pearson-airport"]) {
+      assert.ok(REGIONAL_MAJOR_STATIONS.has(hub), `Major station ${hub} missing from regional hubs set`);
+    }
+  });
+
+  it("discloses required public transit attributions", () => {
+    const ttcAttr = getGeographicAttribution("ttc");
+    assert.ok(ttcAttr.includes("City of Toronto"));
+    const regAttr = getGeographicAttribution("regional");
+    assert.ok(regAttr.includes("Metrolinx"));
   });
 });

@@ -7,6 +7,7 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const desktopMoreSource = readFileSync(new URL("../src/components/DesktopMorePanel.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
+const notificationSummarySource = readFileSync(new URL("../src/components/SavedCommuteNotificationSummary.tsx", import.meta.url), "utf8");
 const notificationPanelSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
 const diagnosticsPanelSource = readFileSync(new URL("../src/components/PushDeliveryDiagnosticsPanel.tsx", import.meta.url), "utf8");
 const diagnosticsStateSource = readFileSync(new URL("../src/app/push-diagnostics-state.ts", import.meta.url), "utf8");
@@ -32,8 +33,8 @@ describe("notification settings navigation", () => {
     assert.match(shellSource, /<DesktopMorePanel[\s\S]*?onOpenNotifications=\{\(\) => navigateForward\("notifications"\)\}/);
 
     assert.match(savedCommutesSource, /onOpenNotificationSettings/);
-    assert.match(savedCommutesSource, /Notifications:/);
-    assert.match(savedCommutesSource, /\bManage\b/);
+    assert.match(notificationSummarySource, /Notifications:/);
+    assert.match(notificationSummarySource, /\bManage\b/);
     assert.doesNotMatch(savedCommutesSource, /function PushNotificationSettings/);
   });
 

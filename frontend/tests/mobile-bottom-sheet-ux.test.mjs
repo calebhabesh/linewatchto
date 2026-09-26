@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const bottomNavSource = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const statusPeekSource = readFileSync(new URL("../src/components/MobileStatusPeek.tsx", import.meta.url), "utf8");
@@ -352,10 +353,10 @@ describe("mobile bottom sheet UX", () => {
 
   it("ensures mobile submenu headers are below top URL bar and fit on a single line", () => {
     // Check chronological back navigation history state
-    assert.match(shellSource, /viewHistoryRef/);
-    assert.match(shellSource, /pushViewHistory/);
-    assert.match(shellSource, /popViewHistory/);
-    assert.match(shellSource, /handleSubmenuBack/);
+    assert.match(shellSource + navSource, /viewHistoryRef/);
+    assert.match(shellSource + navSource, /pushViewHistory/);
+    assert.match(shellSource + navSource, /popViewHistory/);
+    assert.match(shellSource + navSource, /handleSubmenuBack/);
     // Check css rules for single-line headers and top offset max-height constraint
     assert.match(globalCss, /\.floating-panel-shell \.panel-heading/);
     assert.match(globalCss, /flex-wrap:\s*nowrap/);

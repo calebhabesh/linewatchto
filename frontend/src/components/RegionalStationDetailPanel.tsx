@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, ArrowDownToLine, ArrowRight, BadgeInfo, Bus, CalendarCheck2, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, Layers, LoaderCircle, Train, Wifi } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bus, ChevronDown, ConciergeBell, Construction, ExternalLink, FileText, GitMerge, LoaderCircle, Train, Wifi } from "lucide-react";
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
@@ -23,6 +23,7 @@ import {
   formatRegionalArrivalClockTime,
   formatRegionalArrivalSourceSummary,
   formatRegionalDestinationName,
+  formatRegionalGroupSourceBadgeLabel,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
@@ -53,9 +54,9 @@ import { MobileSheetDragHandle } from "./MobileSheetDragHandle";
 import { useMobileDraggableSheet } from "../hooks/useMobileDraggableSheet";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
-import { LiveSignalIcon } from "./LiveSignalIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
+import { ArrivalSourceBadge, ArrivalTerminatingBadge } from "./ArrivalSourceBadge";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
@@ -265,20 +266,6 @@ function noticeCategoryLabel(cat: string) {
     default:
       return "Notice";
   }
-}
-
-function regionalArrivalSourceBadgeClassName(label: string) {
-  const base = "inline-flex h-[22px] shrink-0 items-center rounded border px-2 text-[10.5px] font-black uppercase tracking-wide leading-none";
-  if (label === "Live") {
-    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
-  }
-  if (label === "Scheduled") {
-    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-  }
-  if (label === "Mixed") {
-    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
-  }
-  return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
 }
 
 export function RegionalStationDetailPanel({
@@ -1004,13 +991,7 @@ export function RegionalStationDetailPanel({
                                   const isFirst = groupIndex === 0;
                                   const isLast = groupIndex === section.groups.length - 1;
                                   const allGroupArrivals = group.platforms.flatMap((platform) => platform.arrivals);
-                                  const hasLive = allGroupArrivals.some((arrival) => arrival.status === "live");
-                                  const hasScheduled = allGroupArrivals.some((arrival) => arrival.status === "scheduled");
-                                  const statusLabel = hasLive
-                                    ? hasScheduled
-                                      ? "Mixed"
-                                      : "Live"
-                                    : "Scheduled";
+                                  const statusLabel = formatRegionalGroupSourceBadgeLabel(allGroupArrivals);
 
                                   return (
                                     <article
@@ -1051,29 +1032,14 @@ export function RegionalStationDetailPanel({
                                           <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                                             {group.destinationLabel}
                                             {group.isTerminating && (
-                                              <span className="animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                                <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                                Terminating
-                                              </span>
+                                              <ArrivalTerminatingBadge />
                                             )}
                                           </span>
                                         </div>
                                         <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
-                                            <span
-                                              className={regionalArrivalSourceBadgeClassName(statusLabel)}
-                                              data-arrival-source={statusLabel.toLowerCase()}
-                                            >
-                                              {statusLabel}
-                                              {statusLabel === "Live" ? (
-                                                <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
-                                              ) : statusLabel === "Scheduled" ? (
-                                                <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
-                                              ) : statusLabel === "Mixed" ? (
-                                                <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
-                                              ) : null}
-                                            </span>
-                                          </div>
+                                          <ArrivalSourceBadge label={statusLabel} />
                                         </div>
+                                      </div>
 
                                         <div className="mt-2 flex flex-col gap-3">
                                         {group.platforms.map((platform) => (

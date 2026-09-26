@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCurrentAccount, loginDevAccount } from "../app/account-data";
+import { getCurrentAccount, loginDevAccount } from "../app/auth-data";
 import type { DashboardData } from "../app/DataContext";
 import type { InitialVisualPreferences } from "../app/visual-preferences";
 import { LineWatchShell } from "./LineWatchShell";

@@ -1,5 +1,4 @@
-import type { DashboardData } from "./DataContext.tsx";
-import type { NetworkId } from "./regional-data.ts";
+import type { DashboardData, NetworkId } from "./dashboard-contract.ts";
 
 export const SNAPSHOT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 export const DASHBOARD_VERIFICATION_MS = 2 * 60 * 1000;

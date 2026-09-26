@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
@@ -39,7 +40,7 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
   });
 
   it("initializes activeView deterministically and syncs status on desktop mount", () => {
-    assert.match(shellSource, /const \[activeView, setActiveView\] = useState<ActiveView>\("map"\);/);
+    assert.match(navSource, /const \[activeView, setActiveView\] = useState<ActiveView>\("map"\);/);
     assert.match(shellSource, /setActiveView\(\(curr\) => \(curr === "map" \? "status" : curr\)\);/);
   });
 
@@ -53,9 +54,9 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
   });
 
   it("keeps default camera fitting independent from the sidebar and uses its inset only for focused targets", () => {
-    assert.doesNotMatch(panZoomSource, /readDesktopOverlayInsets/);
-    assert.match(ttcMapSource, /readDesktopOverlayInsets/);
-    assert.match(regionalMapSource, /readDesktopOverlayInsets/);
+    assert.doesNotMatch(panZoomSource, /readDesktopOverlayInsets|readDesktopLeftOcclusion/);
+    assert.match(ttcMapSource, /readDesktopLeftOcclusion/);
+    assert.match(regionalMapSource, /readDesktopLeftOcclusion/);
     assert.doesNotMatch(regionalMapSource, /observer\.observe\(sidebar\)/);
     assert.doesNotMatch(panZoomSource, /observer\.observe\(sidebar\)/);
   });
@@ -101,5 +102,60 @@ describe("desktop shell layout & geometry integration (Session 1)", () => {
       globalCss,
       /@media\s*\([^)]*max-width:\s*767px[^)]*\)[^{]*\{[\s\S]*?\.desktop-sidebar-accent-strip[\s\S]*?display:\s*none/s,
     );
+  });
+
+  describe("desktop keyboard shortcuts and accessibility announcements", () => {
+    it("registers global Escape listener to dismiss search, close stations, or clear selection", () => {
+      const combinedSource = shellSource + navSource;
+      assert.match(combinedSource, /handleDesktopKeyDown/);
+      assert.match(combinedSource, /if \(event\.key !== "Escape"\) return/);
+      assert.match(combinedSource, /window\.addEventListener\("keydown", handleDesktopKeyDown\)/);
+      assert.match(combinedSource, /activeView(?:Ref\.current)? === "search"[\s\S]*?handleCloseSearch\(\)/);
+      assert.match(combinedSource, /selectedStationId[\s\S]*?closeSelectedStation\(/);
+      assert.match(combinedSource, /selection[\s\S]*?setSelection\(null\)/);
+      assert.match(combinedSource, /handleSubmenuBack\(\)/);
+    });
+
+    it("mounts dedicated ARIA live region announcing sidebar state and navigation", () => {
+      const combinedSource = shellSource + navSource;
+      assert.match(shellSource, /className="desktop-live-region"/);
+      assert.match(shellSource, /role="status"/);
+      assert.match(shellSource, /aria-live="polite"/);
+      assert.match(shellSource, /aria-atomic="true"/);
+      assert.match(shellSource, /announceDesktop\(desktopSidebarCollapsed \? "Sidebar collapsed" : "Sidebar expanded"\)/);
+      assert.match(shellSource, /announceDesktop\("System status overview"\)/);
+      assert.match(shellSource, /announceDesktop\("My Stations"\)/);
+      assert.match(shellSource, /announceDesktop\("My Commutes"\)/);
+      assert.match(shellSource, /Switched to GO Transit and UP Express network/);
+      assert.match(shellSource, /Switched to TTC Subway and LRT network/);
+      assert.match(combinedSource, /announceDesktop\("Station details opened"\)/);
+      assert.match(combinedSource, /announceDesktop\("Station details closed"\)/);
+    });
+  });
+
+  describe("desktop notice ownership and priority", () => {
+    it("prioritizes connection notices over operating notices in desktopNotice", () => {
+      const desktopNoticeStart = shellSource.indexOf("const desktopNotice: DesktopNotice | null = useMemo(");
+      assert.notEqual(desktopNoticeStart, -1, "desktopNotice must be defined in LineWatchShell");
+
+      const connectionCheckIdx = shellSource.indexOf("// Priority 1: Connection notice", desktopNoticeStart);
+      const operatingCheckIdx = shellSource.indexOf("// Priority 2: Operating notice", desktopNoticeStart);
+
+      assert.ok(connectionCheckIdx > -1, "desktopNotice must check connection priority");
+      assert.ok(operatingCheckIdx > -1, "desktopNotice must check operating priority");
+      assert.ok(connectionCheckIdx < operatingCheckIdx, "Connection notice must precede operating notice");
+    });
+
+    it("renders desktop notice in status overview and collapsed map anchor", () => {
+      assert.match(shellSource, /<DesktopStatusOverview[\s\S]*?notice=\{/);
+      assert.match(
+        shellSource,
+        /<div className="desktop-map-workspace">[\s\S]*?desktopSidebarCollapsed && desktopNotice \?\s*\(\s*<div className="desktop-collapsed-map-notice-anchor">/,
+      );
+      assert.match(
+        globalCss,
+        /\.desktop-collapsed-map-notice-anchor\s*\{[^}]*bottom:\s*20px;[^}]*left:\s*50%;/s,
+      );
+    });
   });
 });

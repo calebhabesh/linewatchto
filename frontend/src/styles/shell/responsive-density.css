@@ -1132,38 +1132,6 @@
     padding: 16px;
   }
 
-  .desktop-status-capsule-anchor {
-    flex-direction: column;
-    gap: 6px;
-    left: 50%;
-    max-width: calc(100vw - 32px);
-    top: 104px !important;
-    transform: translateX(-50%);
-    width: min(680px, calc(100vw - 32px));
-  }
-
-  .desktop-status-capsule,
-  .desktop-status-stack,
-  .desktop-status-primary-row {
-    max-width: 100%;
-  }
-
-  .desktop-status-primary-row {
-    gap: 7px;
-  }
-
-  .desktop-status-primary-row > div:first-child,
-  .desktop-status-primary-row > .desktop-status-divider:first-of-type,
-  .desktop-status-time,
-  .desktop-status-time + .desktop-status-divider {
-    display: none;
-  }
-
-  .linewatch-shell:not([data-active-view="map"]) .desktop-status-capsule-anchor {
-    opacity: 0;
-    pointer-events: none;
-  }
-
   .floating-panel-shell {
     width: min(680px, 72vw, calc(100vw - 48px));
   }
@@ -1190,9 +1158,5 @@
   .header-search-bar:focus-within,
   .header-search-bar[data-active="true"] {
     width: min(var(--desktop-global-search-width), calc(100vw - 240px));
-  }
-
-  .desktop-status-capsule {
-    padding-inline: 8px;
   }
 }

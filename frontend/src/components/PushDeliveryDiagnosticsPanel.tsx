@@ -2,16 +2,16 @@
 
 import { useCallback, useMemo, useState, type SyntheticEvent } from "react";
 import { Activity, ChevronDown, Loader2, RefreshCw } from "lucide-react";
+import type { AccountState } from "../app/auth-data";
 import {
   disablePushDevice,
   getPushDeliveryDiagnostics,
   getPushDevices,
   sendPushDeviceTestNotification,
-  type AccountState,
   type PushDeliveryDiagnostic,
   type PushDevice,
   type PushNotificationDiagnosticGroup,
-} from "../app/account-data";
+} from "../app/push-data";
 import {
   diagnosticDeviceKey,
   diagnosticDeviceOptions,

@@ -11,6 +11,7 @@ const stationSearch = readFileSync(new URL("../src/components/StationSearchPanel
 const mobileMore = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const styles = readAppStylesheet();
 const transitLineBadge = readFileSync(new URL("../src/components/TransitLineBadge.tsx", import.meta.url), "utf8");
+const lifecycle = readFileSync(new URL("../src/app/station-request-lifecycle.ts", import.meta.url), "utf8");
 
 describe("My Stations UI", () => {
   it("adds an account-owned shell view with desktop and mobile navigation", () => {
@@ -103,7 +104,8 @@ describe("My Stations UI", () => {
   });
 
   it("enriches saved rows with condensed disruptions and source-labeled arrivals", () => {
-    assert.match(panel, /getStationDetail/);
+    assert.match(panel, /fetchSavedTtcStationDetails/);
+    assert.match(lifecycle, /getStationDetail/);
     assert.doesNotMatch(panel, /StationImpactBadge/);
     assert.doesNotMatch(styles, /\.my-stations-impact-badge/);
     assert.match(panel, /Active Disruptions/);
@@ -130,12 +132,13 @@ describe("My Stations UI", () => {
     assert.match(panel, /saved-station-arrivals/);
     assert.match(panel, /formatArrivalSourceSummary/);
     assert.match(panel, /groupStationArrivals/);
-    assert.match(panel, /getRegionalStationArrivals/);
+    assert.match(lifecycle, /getRegionalStationArrivals/);
     assert.match(panel, /groupRegionalStationArrivals/);
     assert.match(panel, /isRegionalArrivalDue/);
     assert.match(panel, /isRegionalArrivalSoon/);
     assert.match(panel, /shouldUseDetailedRegionalArrivalCountdown/);
-    assert.match(panel, /getAccessibilityOutages\(undefined, \{ networkId: "regional" \}\)/);
+    assert.match(panel, /fetchSavedRegionalStationDetails/);
+    assert.match(lifecycle, /getAccessibilityOutages\(undefined, \{ networkId: "regional"/);
     assert.match(panel, /regionalAccessibility\?\.fresh/);
     assert.match(panel, /regionalArrivalSnapshot\.source/);
     assert.match(panel, /Published regional schedule/);

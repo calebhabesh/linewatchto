@@ -5,17 +5,17 @@ import { describe, it } from "node:test";
 import {
   defaultPushNotificationPreferences,
   normalizePlannedClosureFollowUpPolicy,
-} from "../src/app/account-data.ts";
+} from "../src/app/push-data.ts";
 
 const hookSource = readFileSync(new URL("../src/hooks/usePushNotificationSettings.ts", import.meta.url), "utf8");
 const notificationPanelSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
-const accountDataSource = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
+const pushDataSource = readFileSync(new URL("../src/app/push-data.ts", import.meta.url), "utf8");
 
 describe("push notification preferences schema", () => {
-  it("defines nested preferences structure in account-data.ts", () => {
-    assert.match(accountDataSource, /savedCommutes/);
-    assert.match(accountDataSource, /lineSubscriptions/);
-    assert.match(accountDataSource, /plannedClosureFollowUp/);
+  it("defines nested preferences structure in push-data.ts", () => {
+    assert.match(pushDataSource, /savedCommutes/);
+    assert.match(pushDataSource, /lineSubscriptions/);
+    assert.match(pushDataSource, /plannedClosureFollowUp/);
   });
 
   it("maps legacy reminder switches to the new single follow-up policy", () => {
@@ -75,7 +75,7 @@ describe("push notification preferences schema", () => {
     assert.doesNotMatch(hookSource, /BrowserPushStatus/);
     assert.doesNotMatch(hookSource, /browserStatus/);
     assert.match(hookSource, /deviceSetupState/);
-    assert.doesNotMatch(accountDataSource, /defaultPushDeviceSummary/);
-    assert.doesNotMatch(accountDataSource, /deviceSummary:\s*PushDeviceSummary/);
+    assert.doesNotMatch(pushDataSource, /defaultPushDeviceSummary/);
+    assert.doesNotMatch(pushDataSource, /deviceSummary:\s*PushDeviceSummary/);
   });
 });

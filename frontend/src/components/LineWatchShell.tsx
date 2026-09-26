@@ -8,7 +8,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
-import { preloadRegionalMapMarkup, preloadTtcMapMarkup } from "../app/map-preload";
+import { preloadTtcMapMarkup } from "../app/map-preload";
+import { preloadRegionalMapMarkup } from "../app/regional-map-asset";
 import { preloadRasterMapSource, rasterMapSource } from "./RasterMapPlane";
 import { startMapSurfaceTransition } from "../app/map-surface-transition";
 import { NetworkMap } from "./NetworkMap";
@@ -63,9 +64,11 @@ import { LogsDropdown, SourceDiagnosticsBody, SourceStatusRefreshButton } from "
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
-import { dashboardDataFromApi } from "../app/dashboard-adapter";
-import { getDashboardRefresh, retryDashboardRefresh, getReliabilitySnapshot } from "../app/dashboard-client";
-import { canSaveDashboard, DASHBOARD_VERIFICATION_MS, SNAPSHOT_RETENTION_MS, readDashboardSnapshot, saveDashboardSnapshot, snapshotDashboard, snapshotNotice } from "../app/dashboard-snapshot";
+import { snapshotNotice } from "../app/dashboard-snapshot";
+import {
+  useDashboardSession,
+  dashboardRefreshIntervalMs,
+} from "../hooks/useDashboardSession";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { stationImpactSelectionsByStation } from "../app/station-impact-types";
@@ -102,7 +105,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { MOBILE_VIEWPORT_QUERY, useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Accessibility, Activity, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck, Clock3 } from "lucide-react";
+import { Accessibility, Activity, Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, MapPin, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Contrast, Pause, History, MessageSquareText, FileText, HeartHandshake, Sparkles, Pin, PinOff, Megaphone, Loader2, BookOpen, ChevronRight, CircleCheck, Clock3 } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -117,32 +120,27 @@ import {
   readStoredSheetHeightRatio,
 } from "../hooks/useMobileDraggableSheet";
 import {
-  AccountRequestError,
-  confirmEmailVerification,
-  confirmPasswordReset,
-  commutePathPreviewFromCommute,
-  getAuthConfig,
-  getCurrentAccountWithRetry,
-  getSavedCommutes,
-  loginAccount,
-  loginDemoAccount,
-  loginWithGoogle,
-  linkGoogleAccount,
-  logoutAccount,
-  registerAccount,
-  requestEmailVerification,
-  requestPasswordReset,
-  preserveAccountStateDuringOutage,
-  summarizeSavedCommuteStatuses,
-  unavailableAuthConfig,
   type AccountState,
+} from "../app/auth-data";
+import { useAccountSession } from "../hooks/useAccountSession";
+import {
+  AccountDialog,
+  type AccountDialogMode,
+  type AccountEntryIntent,
+  type AccountDialogIntentOptions,
+  GOOGLE_LINK_SUCCESS_PARAM,
+  GOOGLE_LINK_SUCCESS_VALUE,
+  GOOGLE_LINK_SUCCESS_MESSAGE,
+} from "./AccountDialog";
+import {
+  commutePathPreviewFromCommute,
+  getSavedCommutes,
+  summarizeSavedCommuteStatuses,
   type AccountSavedCommute,
-  type AccountCommutePathPreview,
   type AccountCommuteLegId,
   type AccountMatchedImpact,
-  type AuthConfig,
   type SavedCommuteSort,
-} from "../app/account-data";
+} from "../app/commute-data";
 import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
 import {
   getSavedStations,
@@ -151,9 +149,7 @@ import {
   type AccountSavedStation,
 } from "../app/saved-station-data";
 import { summarizeSavedStationStatuses } from "../app/saved-stations";
-import { GoogleSignInButton } from "./GoogleSignInButton";
 import { accountOAuthErrorState } from "../app/account-oauth-error";
-import { normalizeAccountEmail, validateAccountCredentials, validateAccountEmail } from "../app/account-validation";
 import { getCurrentPushSubscription } from "../app/push-browser-state";
 import { hasReleaseNotes } from "../app/release-notes";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -170,137 +166,27 @@ import {
 } from "../app/visual-preferences";
 import { MapViewSelector } from "./MapViewSelector";
 import {
-  regionalDashboardData,
-  regionalDashboardDataFromApi,
-  regionalDashboardDataForScenario,
   regionalStationSummaries,
   type NetworkId,
-  type RegionalDashboardApiResponse,
-  type RegionalScenarioId,
 } from "../app/regional-data";
-import { popViewHistory, pushViewHistory, resolveInAppBackAction } from "../app/view-navigation";
+import {
+  type ImpactCategoryView,
+  replaceBrowserSearchParams,
+  resolveLineDeepLink,
+} from "../app/navigation-transitions";
 
+export type ActiveView = "map" | "menu" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes" | "source-status";
+import {
+  useNavigationTransitions,
+} from "../hooks/useNavigationTransitions";
 
-type ActiveView = "map" | "menu" | "search" | "status" | "line-impacts" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes" | "source-status";
-type ImpactCategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures";
-type AccountDialogMode = "auth-choice" | "login" | "register" | "verify-email" | "forgot-password" | "reset-password" | "link-google";
-type AccountEntryIntent = "login" | "register";
 type EstimatedTrainRequestState = "idle" | "loading" | "ready" | "reconnecting";
-type DashboardRequestState = "ready" | "reconnecting";
 type SavedStationNotice = {
   message: string;
   linksToMyStations?: boolean;
 };
 
-const VIEW_SCROLL_SELECTORS: Partial<Record<ActiveView, string>> = {
-  menu: "#linewatch-main-menu-scroll",
-  status: ".mobile-status-content-scroll",
-  more: ".mobile-more-content-scroll",
-};
-
-const DEFAULT_DASHBOARD_REFRESH_MS = 30_000;
-const MIN_DASHBOARD_REFRESH_MS = 10_000;
 const STATION_DETAIL_REFRESH_MS = 15_000;
-const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
-const GOOGLE_LINK_SUCCESS_VALUE = "google";
-const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";
-const BROWSER_NAVIGATION_STATE_KEY = "linewatchNavigation";
-
-type BrowserNavigationState = {
-  sessionId: string;
-  depth: number;
-};
-
-function dashboardRefreshIntervalMs() {
-  const configured = Number(process.env.NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS);
-
-  if (!Number.isFinite(configured) || configured <= 0) {
-    return DEFAULT_DASHBOARD_REFRESH_MS;
-  }
-
-  return Math.max(configured, MIN_DASHBOARD_REFRESH_MS);
-}
-
-function replaceBrowserSearchParams(params: URLSearchParams) {
-  const search = params.toString();
-  const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
-  window.history.replaceState(null, "", nextUrl);
-}
-
-function resolveLineDeepLink(rawLine: string | null): { lineId: string; network: NetworkId } | null {
-  if (!rawLine) return null;
-  const normalized = rawLine.trim().toLowerCase();
-
-  // TTC matching
-  if (normalized === "line-1" || normalized === "1" || normalized === "1-yonge-university" || normalized === "yonge-university") {
-    return { lineId: "line-1", network: "ttc" };
-  }
-  if (normalized === "line-2" || normalized === "2" || normalized === "2-bloor-danforth" || normalized === "bloor-danforth") {
-    return { lineId: "line-2", network: "ttc" };
-  }
-  if (normalized === "line-4" || normalized === "4" || normalized === "4-sheppard" || normalized === "sheppard") {
-    return { lineId: "line-4", network: "ttc" };
-  }
-  if (normalized === "line-5" || normalized === "5" || normalized === "5-eglinton" || normalized === "eglinton") {
-    return { lineId: "line-5", network: "ttc" };
-  }
-  if (normalized === "line-6" || normalized === "6" || normalized === "6-finch-west" || normalized === "finch-west") {
-    return { lineId: "line-6", network: "ttc" };
-  }
-
-  // Regional matching
-  const regionalMap: Record<string, string> = {
-    "regional-lw": "regional-lw",
-    "lw": "regional-lw",
-    "lakeshore-west": "regional-lw",
-    "regional-le": "regional-le",
-    "le": "regional-le",
-    "lakeshore-east": "regional-le",
-    "regional-ki": "regional-ki",
-    "ki": "regional-ki",
-    "kitchener": "regional-ki",
-    "regional-mi": "regional-mi",
-    "mi": "regional-mi",
-    "milton": "regional-mi",
-    "regional-st": "regional-st",
-    "st": "regional-st",
-    "stouffville": "regional-st",
-    "regional-rh": "regional-rh",
-    "rh": "regional-rh",
-    "richmond-hill": "regional-rh",
-    "regional-br": "regional-br",
-    "br": "regional-br",
-    "barrie": "regional-br",
-    "regional-up": "regional-up",
-    "up": "regional-up",
-    "up-express": "regional-up",
-  };
-
-  if (regionalMap[normalized]) {
-    return { lineId: regionalMap[normalized], network: "regional" };
-  }
-
-  return null;
-}
-
-function currentBrowserLocalPath() {
-  if (typeof window === "undefined") {
-    return "/";
-  }
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
-}
-
-function googleLinkSuccessReturnTo() {
-  const currentPath = currentBrowserLocalPath();
-  if (!currentPath.startsWith("/") || currentPath.startsWith("//") || currentPath.includes("\n") || currentPath.includes("\r")) {
-    return `/?${GOOGLE_LINK_SUCCESS_PARAM}=${GOOGLE_LINK_SUCCESS_VALUE}`;
-  }
-
-  const url = new URL(currentPath, "https://linewatch.local");
-  url.searchParams.delete("account_error");
-  url.searchParams.set(GOOGLE_LINK_SUCCESS_PARAM, GOOGLE_LINK_SUCCESS_VALUE);
-  return `${url.pathname}${url.search}${url.hash}`;
-}
 
 function viewForSavedCommuteImpact(
   impact: AccountMatchedImpact,
@@ -327,59 +213,26 @@ export function LineWatchShell({
   initialPasswordResetToken?: string;
   initialVisualPreferences?: InitialVisualPreferences;
 }) {
-  const router = useRouter();
+  useRouter();
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
   const [defaultNetworkPreference, setDefaultNetworkPreference] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
-  const [ttcData, setTtcData] = useState(initialData);
-  const [regionalData, setRegionalData] = useState(regionalDashboardData);
-  const [dashboardRequestStates, setDashboardRequestStates] = useState<Record<NetworkId, DashboardRequestState>>({
-    ttc: "ready",
-    regional: "ready",
-  });
-  const [sessionVerified, setSessionVerified] = useState<Record<NetworkId, boolean>>({
-    ttc: false,
-    regional: false,
-  });
-  const sessionVerifiedRef = useRef(sessionVerified);
-  useEffect(() => {
-    sessionVerifiedRef.current = sessionVerified;
-  }, [sessionVerified]);
-  const dashboardRefreshInFlightRef = useRef<Record<NetworkId, boolean>>({ ttc: false, regional: false });
-  const regionalScenarioActiveRef = useRef(false);
-  const [connectionOffline, setConnectionOffline] = useState(offlineShell);
-  const [snapshotClock, setSnapshotClock] = useState(() => Date.now());
-  const [verifiedAt, setVerifiedAt] = useState<Record<NetworkId, number | null>>({ ttc: null, regional: null });
-  const verifiedAtRef = useRef(verifiedAt);
-  const rawDisplayData = selectedNetwork === "regional" ? regionalData : ttcData;
-  const storedVerifiedAt = verifiedAt[selectedNetwork];
-  const lastVerified = storedVerifiedAt !== null && snapshotClock - storedVerifiedAt <= SNAPSHOT_RETENTION_MS ? storedVerifiedAt : null;
-  const snapshotReason = connectionOffline ? "offline"
-    : dashboardRequestStates[selectedNetwork] === "reconnecting" ? "reconnecting"
-    : !sessionVerified[selectedNetwork] ? "refreshing"
-    : storedVerifiedAt !== null && snapshotClock - storedVerifiedAt >= DASHBOARD_VERIFICATION_MS ? "stale"
-    : offlineShell && lastVerified === null ? "reconnecting" : null;
-  const displayData = useMemo(() => snapshotReason
-    ? snapshotDashboard(rawDisplayData, lastVerified, snapshotReason)
-    : rawDisplayData, [rawDisplayData, lastVerified, snapshotReason]);
 
-  useEffect(() => {
-    const tick = () => setSnapshotClock(Date.now());
-    const online = () => { setConnectionOffline(false); tick(); };
-    const offline = () => { setConnectionOffline(true); tick(); };
-    // Browser connectivity is only a hint; successful requests still decide freshness.
-    if (!navigator.onLine) offline();
-    else online();
-    const interval = window.setInterval(tick, 15_000);
-    window.addEventListener("online", online);
-    window.addEventListener("offline", offline);
-    document.addEventListener("visibilitychange", tick);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener("online", online);
-      window.removeEventListener("offline", offline);
-      document.removeEventListener("visibilitychange", tick);
-    };
-  }, []);
+  const {
+    displayData,
+    ttcData,
+    regionalData,
+    dashboards: effectiveDashboards,
+    dashboardRequestState,
+    dashboardAvailabilityNotice,
+    snapshotClock,
+    connectionOffline,
+    snapshotReason,
+  } = useDashboardSession({
+    initialData,
+    selectedNetwork,
+    offlineShell,
+  });
+
   const networkTransitionTargetRef = useRef<NetworkId | null>(null);
   const networkFadeAnimationRef = useRef<Animation | null>(null);
   const mobileNetworkTransitionRef = useRef<ReturnType<typeof startMapSurfaceTransition> | null>(null);
@@ -388,7 +241,6 @@ export function LineWatchShell({
     finished: Promise<void>;
     skipTransition: () => void;
   } | null>(null);
-  const crossNetworkStationSelectionRef = useRef<{ networkId: NetworkId; stationId: string } | null>(null);
 
   useEffect(() => () => {
     mobileNetworkTransitionRef.current?.cancel();
@@ -397,135 +249,6 @@ export function LineWatchShell({
     delete document.documentElement.dataset.networkTransitionPhase;
     delete document.documentElement.dataset.networkTransitionDirection;
   }, []);
-
-  useEffect(() => {
-    if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") return;
-    const requestedScenario = new URLSearchParams(window.location.search).get("regionalScenario");
-    const supportedScenarios: RegionalScenarioId[] = [
-      "none",
-      "all-impact-types",
-      "shared-station",
-      "stale-source",
-    ];
-    if (requestedScenario && supportedScenarios.includes(requestedScenario as RegionalScenarioId)) {
-      regionalScenarioActiveRef.current = true;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setRegionalData(regionalDashboardDataForScenario(requestedScenario as RegionalScenarioId));
-    }
-  }, []);
-
-  useLayoutEffect(() => {
-    const restored: Record<NetworkId, number | null> = { ...verifiedAtRef.current };
-    for (const network of ["ttc", "regional"] as const) {
-      let saved = null;
-      try { saved = readDashboardSnapshot(window.localStorage, network); } catch { /* Storage denied. */ }
-      if (network === "ttc" && canSaveDashboard(initialData) && !offlineShell && navigator.onLine) {
-        const now = Date.now();
-        try { saveDashboardSnapshot(window.localStorage, initialData, now); } catch { /* Storage denied. */ }
-        restored.ttc = now;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setTtcData(initialData);
-      } else if (saved && !(network === "regional" && regionalScenarioActiveRef.current)) {
-        restored[network] = saved.savedAt;
-        if (network === "ttc") setTtcData(saved.data);
-        else setRegionalData(saved.data);
-      }
-    }
-    verifiedAtRef.current = restored;
-    setVerifiedAt(restored);
-  }, [initialData, offlineShell]);
-
-  const fetchDashboard = useCallback(async (networkId: NetworkId) => {
-    if (
-      document.visibilityState !== "visible"
-      || dashboardRefreshInFlightRef.current[networkId]
-      || (networkId === "regional" && regionalScenarioActiveRef.current)
-    ) return;
-
-    dashboardRefreshInFlightRef.current[networkId] = true;
-    const isInitial = !sessionVerifiedRef.current[networkId];
-    try {
-      const { payload, reliability } = await retryDashboardRefresh(
-        () => isInitial ? getDashboardRefresh(networkId, true) : getDashboardRefresh(networkId),
-        () => setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" })),
-      );
-      // An in-flight response can finish after connectivity was lost. It must
-      // not re-verify the view or recreate a snapshot cleared while offline.
-      if (!navigator.onLine) return;
-      const next = networkId === "regional"
-        ? regionalDashboardDataFromApi(payload as RegionalDashboardApiResponse, reliability ?? undefined)
-        : dashboardDataFromApi(payload, reliability ?? undefined);
-      if (canSaveDashboard(next)) {
-        const now = Date.now();
-        try { saveDashboardSnapshot(window.localStorage, next, now); } catch { /* Storage denied. */ }
-        verifiedAtRef.current = { ...verifiedAtRef.current, [networkId]: now };
-        setVerifiedAt(verifiedAtRef.current);
-        setSnapshotClock(now);
-        setSessionVerified((current) => ({ ...current, [networkId]: true }));
-        if (networkId === "regional") setRegionalData(next);
-        else setTtcData(next);
-        setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
-
-        if (isInitial) {
-          void getReliabilitySnapshot(networkId).then((deferredReliability) => {
-            if (!deferredReliability) return;
-            const update = (current: DashboardData): DashboardData => ({
-              ...current,
-              reliability: deferredReliability,
-            });
-            if (networkId === "regional") setRegionalData(update);
-            else setTtcData(update);
-          });
-        }
-      } else if (verifiedAtRef.current[networkId] !== null) {
-        // A valid unavailable response must not overwrite the last real observation.
-        setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
-      } else {
-        setSessionVerified((current) => ({ ...current, [networkId]: true }));
-        if (networkId === "regional") setRegionalData(next);
-        else setTtcData(next);
-        setDashboardRequestStates((current) => ({ ...current, [networkId]: "ready" }));
-      }
-    } catch {
-      setDashboardRequestStates((current) => ({ ...current, [networkId]: "reconnecting" }));
-    } finally {
-      dashboardRefreshInFlightRef.current[networkId] = false;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedNetwork !== "regional" || regionalScenarioActiveRef.current) return;
-    const refresh = () => { void fetchDashboard("regional"); };
-    refresh();
-    const interval = window.setInterval(refresh, dashboardRefreshIntervalMs());
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    window.addEventListener("online", refresh);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      window.removeEventListener("online", refresh);
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [fetchDashboard, selectedNetwork]);
-
-  useEffect(() => {
-    if (selectedNetwork !== "ttc") return;
-    const refresh = () => { void fetchDashboard("ttc"); };
-    refresh();
-    const interval = window.setInterval(refresh, dashboardRefreshIntervalMs());
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    window.addEventListener("online", refresh);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      window.removeEventListener("online", refresh);
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [fetchDashboard, selectedNetwork]);
 
   const {
     generatedAt,
@@ -542,19 +265,38 @@ export function LineWatchShell({
     + reducedSpeedZoneCount
     + plannedClosures.length;
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
-  const dashboardRequestState = dashboardRequestStates[selectedNetwork];
-  const dashboardAvailabilityNotice = displayData.snapshot ? snapshotNotice(displayData.snapshot, snapshotClock)
-    : dashboardRequestState === "reconnecting"
-    ? "Connection Issue — Showing latest dashboard snapshot while LineWatchTO reconnects."
-    : displayData.availability === "degraded"
-      ? "Source Refresh Issue — Showing the last successful fresh update."
-      : displayData.availability === "unavailable"
-        ? "Live service data is unavailable — Showing the fallback dashboard."
-        : null;
   const isLive = displayData.generatedAt.live && displayData.availability !== "unavailable" && displayData.availability !== "fixture";
   const isConnectionIssue = snapshotReason !== "refreshing" && (
     Boolean(displayData.snapshot) || dashboardRequestState === "reconnecting" || displayData.availability === "degraded"
   );
+  const [desktopLiveAnnouncement, setDesktopLiveAnnouncement] = useState("");
+  const announceDesktop = useCallback((message: string) => {
+    setDesktopLiveAnnouncement(message);
+  }, []);
+
+  const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
+    switch (kind) {
+      case "suspension":
+        return "alerts";
+      case "delay":
+        return "delays";
+      case "reduced-speed-zone":
+        return "reduced-speed-zones";
+      case "planned-closure":
+        return "closures";
+    }
+  }, []);
+
+  const viewForImpactSelection = useCallback((nextSelection: NonNullable<ImpactSelection>): ActiveView => {
+    if (
+      nextSelection.kind === "planned-closure" &&
+      activeAlerts.some((alert) => alert.id === nextSelection.id)
+    ) {
+      return "alerts";
+    }
+    return viewForImpactKind(nextSelection.kind);
+  }, [activeAlerts, viewForImpactKind]);
+
   const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
   const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);
   const [reducedMotion, setReducedMotion] = useState(initialVisualPreferences.reducedMotion);
@@ -563,29 +305,8 @@ export function LineWatchShell({
   const [mapViewPreference, setMapViewPreference] = useState<MapViewPreference>(initialVisualPreferences.mapView ?? "diagram");
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
-  const [activeView, setActiveView] = useState<ActiveView>("map");
   const lastSavedViewRef = useRef<"my-stations" | "commutes">("my-stations");
 
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem("linewatch-last-saved-view-v1");
-      if (stored === "my-stations" || stored === "commutes") {
-        lastSavedViewRef.current = stored;
-      }
-    } catch {
-      // Keep the default when browser storage is unavailable.
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeView !== "my-stations" && activeView !== "commutes") return;
-    lastSavedViewRef.current = activeView;
-    try {
-      window.localStorage.setItem("linewatch-last-saved-view-v1", activeView);
-    } catch {
-      // Remember the selection for this session even if storage is unavailable.
-    }
-  }, [activeView]);
   const [initialMapReady, setInitialMapReady] = useState(false);
   useEffect(() => {
     if (!initialMapReady) return;
@@ -603,33 +324,11 @@ export function LineWatchShell({
     return () => window.clearTimeout(timer);
   }, [initialMapReady, selectedNetwork, highContrast, isDark]);
 
-  const [impactListLaunch, setImpactListLaunch] = useState({ lineId: null as string | null, requestId: 0 });
-  const [lineImpactLaunch, setLineImpactLaunch] = useState({ lineId: null as string | null, requestId: 0 });
-  const [navDirection, setNavDirection] = useState<"root" | "forward" | "back">("root");
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(false);
   const [windowWidth, setWindowWidth] = useState<number>(1200);
-  const activeViewRef = useRef<ActiveView>("map");
-  const viewHistoryRef = useRef<ActiveView[]>([]);
-  const viewScrollPositionsRef = useRef<Partial<Record<ActiveView, number>>>({});
-  const browserNavigationSessionRef = useRef("");
-  const browserNavigationDepthRef = useRef(0);
-  const suppressedPopstateCountRef = useRef(0);
-  interface SearchReturnContext {
-    activeView: ActiveView;
-    selectedStationId: string | null;
-    selectedNetwork: NetworkId;
-    commutesActiveTab?: "create" | "saved";
-    focusedElement?: HTMLElement | null;
-  }
-  const searchReturnContextRef = useRef<SearchReturnContext | null>(null);
-  const [searchReturnDestination, setSearchReturnDestination] = useState("status");
-  const [searchReturnLabel, setSearchReturnLabel] = useState("Back to Status");
-  const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
-  const commutePathPreviewRef = useRef<AccountCommutePathPreview | null>(null);
-  const stationDrilldownOriginRef = useRef<string | null>(null);
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("details-focus");
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
@@ -653,35 +352,33 @@ export function LineWatchShell({
     : regionalRailOperatingState.status === "open";
   const estimatedTrainMarkersVisible = estimatedTrainsEnabled && trainNetworkOpen && !displayData.snapshot;
 
-  const [accountState, setAccountState] = useState<AccountState>({
-    source: "unavailable",
-    authenticated: false,
-    user: null,
+  const onSignOutCommuteResetRef = useRef<() => void>(() => {});
+
+  const accountSession = useAccountSession({
+    onSignOut: () => {
+      setAccountCommutes([]);
+      setSavedStations([]);
+      setPendingSavedStationIds(new Set());
+      setSavedStationsError(null);
+      onSignOutCommuteResetRef.current();
+    },
   });
-  const [accountDialogMode, setAccountDialogMode] = useState<AccountDialogMode | null>(
-    initialEmailVerificationToken.trim()
-      ? "verify-email"
-      : initialPasswordResetToken.trim()
-        ? "reset-password"
-        : null
-  );
-  const [isClosingAccount, setIsClosingAccount] = useState(false);
-  const isClosingAccountRef = useRef(false);
-  const closingAccountTimeoutRef = useRef<number | null>(null);
-  const [accountEntryIntent, setAccountEntryIntent] = useState<AccountEntryIntent>("login");
-  const [accountEmail, setAccountEmail] = useState("");
-  const [accountPassword, setAccountPassword] = useState("");
-  const [accountPasswordConfirmation, setAccountPasswordConfirmation] = useState("");
-  const [accountResetToken, setAccountResetToken] = useState(initialPasswordResetToken.trim());
-  const [accountResetMessage, setAccountResetMessage] = useState<string | null>(null);
-  const [accountDevResetToken, setAccountDevResetToken] = useState<string | null>(null);
-  const [accountVerificationToken, setAccountVerificationToken] = useState(initialEmailVerificationToken.trim());
-  const [accountVerificationMessage, setAccountVerificationMessage] = useState<string | null>(null);
-  const [accountDevVerificationToken, setAccountDevVerificationToken] = useState<string | null>(null);
-  const [accountDisplayName, setAccountDisplayName] = useState("");
-  const [accountError, setAccountError] = useState<string | null>(null);
-  const [accountSuccessMessage, setAccountSuccessMessage] = useState<string | null>(null);
-  const [accountBusy, setAccountBusy] = useState(false);
+  const { accountState, setAccountState, userGeneration, userGenerationRef, authConfig } = accountSession;
+
+  const [accountActionError, setAccountActionError] = useState<string | null>(null);
+  const [isActionBusy, setIsActionBusy] = useState(false);
+  const accountBusy = accountSession.isSigningOut || isActionBusy;
+
+  const [accountDialogRequest, setAccountDialogRequest] = useState<AccountDialogIntentOptions | null>(() => {
+    if (initialEmailVerificationToken.trim()) {
+      return { mode: "verify-email", initialToken: initialEmailVerificationToken.trim() };
+    }
+    if (initialPasswordResetToken.trim()) {
+      return { mode: "reset-password", initialToken: initialPasswordResetToken.trim() };
+    }
+    return null;
+  });
+  const accountDialogOpenRef = useRef(Boolean(accountDialogRequest));
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
   const [savedStations, setSavedStations] = useState<AccountSavedStation[]>([]);
   const [savedStationsLoading, setSavedStationsLoading] = useState(false);
@@ -693,7 +390,6 @@ export function LineWatchShell({
   const [myStationsListModeEpoch, setMyStationsListModeEpoch] = useState(0);
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
   const [commutesDraft, setCommutesDraft] = useState<SavedCommuteDraft | null>(() => persistedCommuteDraftStore.current);
-  const [commutesFocusedCommuteId, setCommutesFocusedCommuteId] = useState<string | null>(null);
   const [commutesSortBy, setCommutesSortBy] = useState<SavedCommuteSort>("impact");
   const [commutesNetworkFilter, setCommutesNetworkFilter] = useState<AccountNetworkFilter>("all");
   const [commutesSelectedLegIds, setCommutesSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
@@ -714,11 +410,6 @@ export function LineWatchShell({
     }
     setCommutesExpandedImpactDisclosures((prev) => ({ ...prev, [key]: isOpen }));
   }, []);
-  const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
-  const selectedStationIdRef = useRef<string | null>(null);
-  const selectionRef = useRef<ImpactSelection>(null);
-  const selectionBackBehaviorRef = useRef<"clear" | "restore-view">("clear");
-  const accountDialogModeRef = useRef<AccountDialogMode | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -739,6 +430,212 @@ export function LineWatchShell({
     if (!isMobile) return;
     setPwaEngagementSignal((current) => current + 1);
   }, [isMobile]);
+
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
+  const handleCloseSearchRef = useRef<() => void>(() => {});
+
+  const nav = useNavigationTransitions({
+    isMobile,
+    reducedMotion,
+    selectedNetwork,
+    accountDialogOpen: Boolean(accountDialogRequest),
+    onCloseAccountDialog: () => {
+      accountDialogOpenRef.current = false;
+      setAccountDialogRequest(null);
+    },
+    onNetworkChange: (networkId) => {
+      handleNetworkChange(networkId);
+    },
+    onClearPersistedCommuteDraft: () => {
+      setCommutesActiveTab("saved");
+      setCommutesDraft(null);
+      clearPersistedCommuteDraft();
+    },
+    onResetMapPresentation: () => {
+      setMapPresentationMode("standard");
+    },
+    onSetMobileInspectorDetent: (detent) => {
+      setMobileInspectorDetent(detent);
+    },
+    onRecordPwaEngagement: () => {
+      recordPwaInstallEngagement();
+    },
+    onDesktopSidebarEnsureOpen: () => {
+      if (!isMobile && desktopSidebarCollapsed) {
+        setDesktopSidebarCollapsed(false);
+      }
+    },
+    onAnnounceDesktop: (msg) => {
+      announceDesktop(msg);
+    },
+    onDesktopEscapeSearch: () => {
+      handleCloseSearchRef.current();
+    },
+    isSearchFocused: () => Boolean(desktopSearchInputRef.current && document.activeElement === desktopSearchInputRef.current),
+    viewForImpactSelection,
+  });
+
+  const {
+    activeView,
+    navDirection,
+    selectedStationId,
+    selection,
+    commutePathPreview,
+    commutesFocusedCommuteId,
+    searchReturnDestination,
+    searchReturnLabel,
+    stationPanelActivationKey,
+    selectionAttentionGeneration,
+    mobileImpactReturnView,
+    impactListLaunch,
+    lineImpactLaunch,
+    accessibilityOutageTarget,
+    surfaceNoticeInitialQuery,
+    surfaceNoticeInitialId,
+    surfaceNoticeInitialContent,
+    isClosingPanel,
+    isGoingBack,
+    isClosingSearch,
+    activeViewRef,
+    selectedStationIdRef,
+    stationDrilldownOriginRef,
+    selectionRef,
+    selectionBackBehaviorRef,
+    commutePathPreviewRef,
+    searchReturnContextRef,
+    crossNetworkStationSelectionRef,
+    viewScrollPositionsRef,
+    navigateRoot,
+    navigateForward,
+    handleClosePanel,
+    handleSubmenuBack,
+    handleSelectStationId: navSelectStationId,
+    closeSelectedStation,
+    handleMapSelectImpact: navMapSelectImpact,
+    handleStationSelectImpact: navStationSelectImpact,
+    clearCommutePreview,
+    openImpactCategory,
+    openLineImpacts,
+    captureSearchReturnContext,
+    navigateToMapDrilldown,
+    restoreMapDrilldownOrigin,
+    pushBrowserNavigationEntry,
+    consumeBrowserNavigationEntries,
+    setActiveView,
+    setSelectedStationId,
+    setSelection,
+    setCommutePathPreview,
+    setCommutesFocusedCommuteId,
+    setStationPanelActivationKey,
+    setSelectionAttentionGeneration,
+    setImpactListLaunch,
+    setIsClosingSearch,
+    searchClosingTimeoutRef,
+    setAccessibilityOutageTarget,
+    setSurfaceNoticeInitialQuery,
+    setSurfaceNoticeInitialId,
+    setSurfaceNoticeInitialContent,
+    setMobileImpactReturnView,
+  } = nav;
+
+  useEffect(() => {
+    onSignOutCommuteResetRef.current = () => {
+      setCommutePathPreview(null);
+    };
+  }, [setCommutePathPreview]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("linewatch-last-saved-view-v1");
+      if (stored === "my-stations" || stored === "commutes") {
+        lastSavedViewRef.current = stored;
+      }
+    } catch {
+      // Keep the default when browser storage is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeView !== "my-stations" && activeView !== "commutes") return;
+    lastSavedViewRef.current = activeView;
+    try {
+      window.localStorage.setItem("linewatch-last-saved-view-v1", activeView);
+    } catch {
+      // Remember the selection for this session even if storage is unavailable.
+    }
+  }, [activeView]);
+
+  const openAccountDialog = useCallback((options: AccountDialogIntentOptions | AccountDialogMode) => {
+    const next: AccountDialogIntentOptions = typeof options === "string" ? { mode: options } : options;
+    if (!accountDialogOpenRef.current) {
+      pushBrowserNavigationEntry();
+    }
+    accountDialogOpenRef.current = true;
+    setAccountDialogRequest(next);
+  }, [pushBrowserNavigationEntry, setAccountDialogRequest]);
+
+  const closeAccountDialog = useCallback(() => {
+    if (!accountDialogOpenRef.current && !accountDialogRequest) return;
+    consumeBrowserNavigationEntries();
+    accountDialogOpenRef.current = false;
+    setAccountDialogRequest(null);
+  }, [accountDialogRequest, consumeBrowserNavigationEntries, setAccountDialogRequest]);
+
+  const openAuthChoice = useCallback((intent: AccountEntryIntent) => {
+    openAccountDialog({ mode: "auth-choice", entryIntent: intent });
+  }, [openAccountDialog]);
+
+  const openGoogleLinkDialog = useCallback(() => {
+    openAccountDialog({ mode: "link-google" });
+  }, [openAccountDialog]);
+
+  useEffect(() => {
+    if (initialEmailVerificationToken.trim() || window.location.pathname !== "/verify-email") {
+      return;
+    }
+    const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get("token")?.trim() ?? "";
+    if (!fragmentToken) {
+      return;
+    }
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${window.location.search}`,
+    );
+    const openTimer = window.setTimeout(() => {
+      openAccountDialog({
+        mode: "verify-email",
+        initialToken: fragmentToken,
+      });
+    }, 0);
+    return () => window.clearTimeout(openTimer);
+  }, [initialEmailVerificationToken, openAccountDialog]);
+
+  const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
+    if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
+    return readStoredSheetHeightRatio(window.localStorage);
+  });
+
+  const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
+    if (nextSelection && isMobile) {
+      setMobileInspectorDetent("details-focus");
+    }
+    navMapSelectImpact(nextSelection);
+  }, [isMobile, navMapSelectImpact, setMobileInspectorDetent]);
+
+  const handleSelectStationId = useCallback((id: string | null) => {
+    navSelectStationId(id);
+    if (id) {
+      setStationSheetRatio(readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null));
+    }
+  }, [navSelectStationId]);
+
+  const handleStationSelectImpact = useCallback((nextSelection: ImpactSelection) => {
+    if (stationDrilldownOriginRef.current) {
+      // Station drilldown origin is preserved for back navigation
+    }
+    navStationSelectImpact(nextSelection);
+  }, [navStationSelectImpact, stationDrilldownOriginRef]);
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
@@ -1001,147 +898,7 @@ export function LineWatchShell({
     }
   }, []);
 
-  useEffect(() => {
-    activeViewRef.current = activeView;
-  }, [activeView]);
 
-  useEffect(() => {
-    const selector = VIEW_SCROLL_SELECTORS[activeView];
-    const savedScrollTop = viewScrollPositionsRef.current[activeView];
-    if (!selector || savedScrollTop === undefined) return;
-
-    let secondFrame: number | null = null;
-    const firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => {
-        const scrollElement = document.querySelector<HTMLElement>(selector);
-        if (scrollElement) scrollElement.scrollTop = savedScrollTop;
-      });
-    });
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-      if (secondFrame !== null) window.cancelAnimationFrame(secondFrame);
-    };
-  }, [activeView]);
-
-  const pushBrowserNavigationEntry = useCallback(() => {
-    if (typeof window === "undefined" || !browserNavigationSessionRef.current) return;
-    const depth = browserNavigationDepthRef.current + 1;
-    browserNavigationDepthRef.current = depth;
-    window.history.pushState({
-      ...window.history.state,
-      [BROWSER_NAVIGATION_STATE_KEY]: {
-        sessionId: browserNavigationSessionRef.current,
-        depth,
-      } satisfies BrowserNavigationState,
-    }, "", currentBrowserLocalPath());
-  }, []);
-
-  const consumeBrowserNavigationEntries = useCallback((requestedCount = 1) => {
-    if (typeof window === "undefined" || !browserNavigationSessionRef.current) return;
-    const count = Math.min(requestedCount, browserNavigationDepthRef.current);
-    if (count <= 0) return;
-    browserNavigationDepthRef.current -= count;
-    suppressedPopstateCountRef.current += 1;
-    window.history.go(-count);
-  }, []);
-
-  const navigateForward = useCallback((nextView: ActiveView) => {
-    const currentView = activeViewRef.current;
-    if (currentView === nextView) return;
-    const scrollSelector = VIEW_SCROLL_SELECTORS[currentView];
-    const scrollElement = scrollSelector ? document.querySelector<HTMLElement>(scrollSelector) : null;
-    if (scrollElement) {
-      viewScrollPositionsRef.current[currentView] = scrollElement.scrollTop;
-    }
-    pushBrowserNavigationEntry();
-    viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
-    if (nextView !== "search") {
-      searchReturnContextRef.current = null;
-    }
-    activeViewRef.current = nextView;
-    setNavDirection("forward");
-    setActiveView(nextView);
-  }, [pushBrowserNavigationEntry, setActiveView]);
-
-  const [isClosingSearch, setIsClosingSearch] = useState(false);
-  const searchClosingTimeoutRef = useRef<number | null>(null);
-  const [isClosingPanel, setIsClosingPanel] = useState(false);
-  const closingTimeoutRef = useRef<number | null>(null);
-  const [isGoingBack, setIsGoingBack] = useState(false);
-  const backTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (searchClosingTimeoutRef.current) {
-        window.clearTimeout(searchClosingTimeoutRef.current);
-      }
-      if (closingTimeoutRef.current) {
-        window.clearTimeout(closingTimeoutRef.current);
-      }
-      if (backTimeoutRef.current) {
-        window.clearTimeout(backTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const navigateRoot = useCallback((nextView: ActiveView) => {
-    if (searchClosingTimeoutRef.current) {
-      window.clearTimeout(searchClosingTimeoutRef.current);
-      searchClosingTimeoutRef.current = null;
-    }
-    setIsClosingSearch(false);
-    const currentView = activeViewRef.current;
-    if (currentView === nextView) return;
-    if (nextView === "map") {
-      consumeBrowserNavigationEntries(browserNavigationDepthRef.current);
-    } else if (currentView === "map") {
-      pushBrowserNavigationEntry();
-    } else if (browserNavigationDepthRef.current > 1) {
-      consumeBrowserNavigationEntries(browserNavigationDepthRef.current - 1);
-    }
-    viewHistoryRef.current = [];
-    stationDrilldownOriginRef.current = null;
-    if (nextView !== "search") {
-      searchReturnContextRef.current = null;
-    }
-    activeViewRef.current = nextView;
-    setNavDirection("root");
-    setActiveView(nextView);
-  }, [consumeBrowserNavigationEntries, pushBrowserNavigationEntry, setActiveView]);
-
-  const navigateToMapDrilldown = useCallback(() => {
-    const currentView = activeViewRef.current;
-    if (currentView === "map") {
-      setActiveView("map");
-      return;
-    }
-    viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, "map" as ActiveView);
-    activeViewRef.current = "map";
-    setActiveView("map");
-  }, [setActiveView]);
-
-  const restorePreviousView = useCallback(() => {
-    const fallback: ActiveView = commutePathPreviewRef.current
-      ? "commutes"
-      : isMobile
-        ? "map"
-        : "status";
-    const previous = popViewHistory(viewHistoryRef.current, fallback);
-    viewHistoryRef.current = previous.history;
-    activeViewRef.current = previous.view;
-    if (commutePathPreviewRef.current && previous.view === "commutes") {
-      setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-      commutePathPreviewRef.current = null;
-      setCommutePathPreview(null);
-    }
-    setActiveView(previous.view);
-    return previous.view;
-  }, [isMobile, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId]);
-
-  const restoreMapDrilldownOrigin = useCallback(() => {
-    if (activeViewRef.current !== "map") return;
-    restorePreviousView();
-  }, [restorePreviousView]);
 
   useEffect(() => {
     if (
@@ -1211,91 +968,7 @@ export function LineWatchShell({
   const showClosedScreen = showTtcClosedScreen || showRegionalClosedScreen;
 
 
-  // Interactive linking state
-  const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
-  const [selection, setSelection] = useState<ImpactSelection>(null);
-  const [mobileImpactReturnView, setMobileImpactReturnView] = useState<"my-stations" | null>(null);
-  const [selectionAttentionGeneration, setSelectionAttentionGeneration] = useState(0);
-  const openImpactCategory = useCallback((view: ImpactCategoryView, lineId?: string) => {
-    if (searchClosingTimeoutRef.current) {
-      window.clearTimeout(searchClosingTimeoutRef.current);
-      searchClosingTimeoutRef.current = null;
-    }
-    if (closingTimeoutRef.current) {
-      window.clearTimeout(closingTimeoutRef.current);
-      closingTimeoutRef.current = null;
-    }
-    if (backTimeoutRef.current) {
-      window.clearTimeout(backTimeoutRef.current);
-      backTimeoutRef.current = null;
-    }
-    setIsClosingSearch(false);
-    setIsClosingPanel(false);
-    setIsGoingBack(false);
 
-    setDesktopSidebarCollapsed(false);
-    setSelectedStationId(null);
-    selectedStationIdRef.current = null;
-    setCommutePathPreview(null);
-    commutePathPreviewRef.current = null;
-    searchReturnContextRef.current = null;
-
-    setImpactListLaunch((current) => ({
-      lineId: lineId ?? null,
-      requestId: current.requestId + 1,
-    }));
-    setSelection(null);
-    setNavDirection("forward");
-
-    if (activeViewRef.current === view) {
-      const scrollSelector = VIEW_SCROLL_SELECTORS[view];
-      const scrollElement = scrollSelector ? document.querySelector<HTMLElement>(scrollSelector) : null;
-      if (scrollElement) {
-        scrollElement.scrollTop = 0;
-      }
-      return;
-    }
-    navigateForward(view);
-  }, [navigateForward]);
-
-  const openLineImpacts = useCallback((lineId: string) => {
-    if (searchClosingTimeoutRef.current) {
-      window.clearTimeout(searchClosingTimeoutRef.current);
-      searchClosingTimeoutRef.current = null;
-    }
-    if (closingTimeoutRef.current) {
-      window.clearTimeout(closingTimeoutRef.current);
-      closingTimeoutRef.current = null;
-    }
-    if (backTimeoutRef.current) {
-      window.clearTimeout(backTimeoutRef.current);
-      backTimeoutRef.current = null;
-    }
-    setIsClosingSearch(false);
-    setIsClosingPanel(false);
-    setIsGoingBack(false);
-
-    setDesktopSidebarCollapsed(false);
-    setSelectedStationId(null);
-    selectedStationIdRef.current = null;
-    setCommutePathPreview(null);
-    commutePathPreviewRef.current = null;
-    searchReturnContextRef.current = null;
-
-    setLineImpactLaunch((current) => ({ lineId, requestId: current.requestId + 1 }));
-    setSelection(null);
-    setNavDirection("forward");
-
-    if (activeViewRef.current === "line-impacts") {
-      const scrollSelector = VIEW_SCROLL_SELECTORS["line-impacts"];
-      const scrollElement = scrollSelector ? document.querySelector<HTMLElement>(scrollSelector) : null;
-      if (scrollElement) {
-        scrollElement.scrollTop = 0;
-      }
-      return;
-    }
-    navigateForward("line-impacts");
-  }, [navigateForward]);
 
   const openLegendImpactCategory = useCallback((view: ImpactCategoryView, lineId: string) => {
     setLegendExpanded(false);
@@ -1328,10 +1001,6 @@ export function LineWatchShell({
     return computeDesktopLayoutMetrics({ windowWidth, isMobile, activeView, selectedStationId });
   }, [windowWidth, isMobile, activeView, selectedStationId]);
   const [searchExpandedLineId, setSearchExpandedLineId] = useState<string | null>(null);
-  const [stationSheetRatio, setStationSheetRatio] = useState<number>(() => {
-    if (typeof window === "undefined") return MOBILE_SHEET_DEFAULT_RATIO;
-    return readStoredSheetHeightRatio(window.localStorage);
-  });
 
   useEffect(() => {
     const handleSheetResize = (e: Event) => {
@@ -1343,13 +1012,8 @@ export function LineWatchShell({
     window.addEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
     return () => window.removeEventListener(MOBILE_STATION_SHEET_RESIZE_EVENT, handleSheetResize);
   }, []);
-  const [stationPanelActivationKey, setStationPanelActivationKey] = useState(0);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
-  const [desktopLiveAnnouncement, setDesktopLiveAnnouncement] = useState("");
-  const announceDesktop = useCallback((message: string) => {
-    setDesktopLiveAnnouncement(message);
-  }, []);
   useEffect(() => {
     if (selection?.kind !== "planned-closure") return;
     if (displayData.plannedClosures.some((closure) => closure.id === selection.id)) return;
@@ -1357,6 +1021,7 @@ export function LineWatchShell({
     // The notice can disappear on refresh or after its final window closes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelection(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileInspectorDetent("map-focus");
     announceDesktop("Selected planned closure is no longer available");
   }, [announceDesktop, displayData.plannedClosures, selection, setMobileInspectorDetent]);
@@ -1367,354 +1032,12 @@ export function LineWatchShell({
   const accessibilityOutageResult = accessibilityOutageState?.networkId === selectedNetwork
     ? accessibilityOutageState.data
     : null;
-  const [accessibilityOutageTarget, setAccessibilityOutageTarget] = useState<AccessibilityOutageTarget | null>(null);
   const [expandedMyStationDisruptionIds, setExpandedMyStationDisruptionIds] = useState<Set<string>>(() => new Set());
   const [currentServiceNotices, setCurrentServiceNotices] = useState<{ networkId: NetworkId; data: SurfaceNoticeResponse } | null>(null);
   const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
   const [regionalTripChangeCount, setRegionalTripChangeCount] = useState<number | null>(null);
   const [announcementCount, setAnnouncementCount] = useState<number | null>(null);
-  const [surfaceNoticeInitialQuery, setSurfaceNoticeInitialQuery] = useState("");
-  const [surfaceNoticeInitialId, setSurfaceNoticeInitialId] = useState<string | null>(null);
-  const [surfaceNoticeInitialContent, setSurfaceNoticeInitialContent] = useState<"notices" | "trip-changes">("notices");
 
-  useEffect(() => {
-    if (activeView !== "accessibility-outages" && accessibilityOutageTarget) {
-      // The target only describes a direct My Stations drill-down and must not
-      // leak into a later visit from the normal Status navigation.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAccessibilityOutageTarget(null);
-    }
-  }, [accessibilityOutageTarget, activeView]);
-
-  useEffect(() => {
-    if (activeView !== "surface-notices" && (surfaceNoticeInitialQuery || surfaceNoticeInitialId)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSurfaceNoticeInitialQuery("");
-      setSurfaceNoticeInitialId(null);
-    }
-  }, [activeView, surfaceNoticeInitialId, surfaceNoticeInitialQuery]);
-
-  const handleClosePanel = useCallback(() => {
-    if (isClosingPanel) return;
-    consumeBrowserNavigationEntries(browserNavigationDepthRef.current);
-    setIsClosingPanel(true);
-    viewHistoryRef.current = [];
-    setSelectedStationId(null);
-    commutePathPreviewRef.current = null;
-    setCommutePathPreview(null);
-    setCommutesActiveTab("saved");
-    setCommutesDraft(null);
-    clearPersistedCommuteDraft();
-    if (closingTimeoutRef.current) {
-      window.clearTimeout(closingTimeoutRef.current);
-    }
-    closingTimeoutRef.current = window.setTimeout(() => {
-      activeViewRef.current = "map";
-      setActiveView("map");
-      setIsClosingPanel(false);
-      setSelection(null);
-      setMapPresentationMode("standard");
-      setMobileInspectorDetent("map-focus");
-      setAccessibilityOutageTarget(null);
-    }, reducedMotion ? 0 : isMobile ? 240 : 380);
-  }, [consumeBrowserNavigationEntries, isClosingPanel, isMobile, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent, setCommutePathPreview]);
-
-  const handleSubmenuBack = useCallback(() => {
-    if (isGoingBack) return;
-    consumeBrowserNavigationEntries();
-    setNavDirection("back");
-    if (backTimeoutRef.current) {
-      window.clearTimeout(backTimeoutRef.current);
-    }
-
-    const stationOriginId = stationDrilldownOriginRef.current;
-    const isStatusView =
-      activeView === "alerts" ||
-      activeView === "delays" ||
-      activeView === "reduced-speed-zones" ||
-      activeView === "closures" ||
-      activeView === "line-impacts" ||
-      activeView === "accessibility-outages" ||
-      activeView === "surface-notices" ||
-      activeView === "announcements" ||
-      activeView === "source-status" ||
-      activeView === "analytics" ||
-      activeView === "feedback";
-    const desktopFallback: ActiveView = isStatusView ? "status" : "more";
-    const mobileFallback: ActiveView = isStatusView
-      ? "status"
-      : activeView === "commutes"
-        ? "map"
-        : "more";
-    const fallback: ActiveView = commutePathPreviewRef.current
-      ? "commutes"
-      : isMobile
-        ? mobileFallback
-        : desktopFallback;
-    const previous = stationOriginId
-      ? { history: [] as ActiveView[], view: "map" as ActiveView }
-      : popViewHistory(viewHistoryRef.current, fallback);
-    const targetView: ActiveView = commutePathPreviewRef.current
-      ? "commutes"
-      : previous.view;
-    const returningToCommutesFromPreview = Boolean(commutePathPreviewRef.current) && targetView === "commutes";
-    const returningToSelectedMap = targetView === "map" && Boolean(selectionRef.current) && !stationOriginId;
-
-    const finishBackNavigation = () => {
-      backTimeoutRef.current = null;
-      if (stationOriginId) {
-        stationDrilldownOriginRef.current = null;
-        viewHistoryRef.current = [];
-        activeViewRef.current = "map";
-        setActiveView("map");
-        setIsGoingBack(false);
-        selectionRef.current = null;
-        selectionBackBehaviorRef.current = "clear";
-        setSelection(null);
-        setAccessibilityOutageTarget(null);
-        selectedStationIdRef.current = stationOriginId;
-        setSelectedStationId(stationOriginId);
-        return;
-      }
-      if (returningToCommutesFromPreview) {
-        if (commutePathPreviewRef.current) {
-          setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-        }
-        commutePathPreviewRef.current = null;
-        setCommutePathPreview(null);
-      }
-      viewHistoryRef.current = previous.history.length > 0
-        ? previous.history
-        : returningToCommutesFromPreview
-          ? (isMobile ? ["more"] : ["status"])
-          : [];
-      activeViewRef.current = targetView;
-      setActiveView(targetView);
-      setIsGoingBack(false);
-      if (!returningToSelectedMap) {
-        selectionRef.current = null;
-        selectionBackBehaviorRef.current = "clear";
-        setSelection(null);
-      }
-      setAccessibilityOutageTarget(null);
-    };
-
-    // Desktop Back commits the destination immediately so incoming content animates once.
-    // A mobile panel-to-panel Back also swaps content immediately without dismissing the sheet.
-    if (reducedMotion || !isMobile || (isMobile && targetView !== "map")) {
-      finishBackNavigation();
-      return;
-    }
-
-    setIsGoingBack(true);
-    backTimeoutRef.current = window.setTimeout(
-      finishBackNavigation,
-      240,
-    );
-  }, [activeView, consumeBrowserNavigationEntries, isGoingBack, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setSelectedStationId, setSelection]);
-
-  const reducedMotionRef = useRef(reducedMotion);
-
-  useEffect(() => {
-    selectedStationIdRef.current = selectedStationId;
-    selectionRef.current = selection;
-    accountDialogModeRef.current = accountDialogMode;
-    commutePathPreviewRef.current = commutePathPreview;
-    reducedMotionRef.current = reducedMotion;
-  }, [accountDialogMode, commutePathPreview, reducedMotion, selectedStationId, selection]);
-
-  useEffect(() => {
-    const sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-    browserNavigationSessionRef.current = sessionId;
-    browserNavigationDepthRef.current = 0;
-    window.history.replaceState({
-      ...window.history.state,
-      [BROWSER_NAVIGATION_STATE_KEY]: { sessionId, depth: 0 } satisfies BrowserNavigationState,
-    }, "", currentBrowserLocalPath());
-    if (accountDialogModeRef.current) {
-      pushBrowserNavigationEntry();
-    }
-
-    const handlePopState = (event: PopStateEvent) => {
-      const navigationState = event.state?.[BROWSER_NAVIGATION_STATE_KEY] as BrowserNavigationState | undefined;
-      browserNavigationDepthRef.current = navigationState?.sessionId === sessionId
-        ? navigationState.depth
-        : 0;
-
-      if (suppressedPopstateCountRef.current > 0) {
-        suppressedPopstateCountRef.current -= 1;
-        return;
-      }
-
-      setNavDirection("back");
-      setMapPresentationMode("standard");
-      setMobileInspectorDetent("map-focus");
-
-      const action = resolveInAppBackAction({
-        accountDialogOpen: Boolean(accountDialogModeRef.current),
-        stationOpen: Boolean(selectedStationIdRef.current),
-        commutePreviewOpen: Boolean(commutePathPreviewRef.current),
-        viewOpen: activeViewRef.current !== "map",
-        impactOpen: Boolean(selectionRef.current),
-      });
-      switch (action) {
-        case "close-account-dialog":
-          if (isClosingAccountRef.current) return;
-          accountDialogModeRef.current = null;
-          isClosingAccountRef.current = true;
-          setIsClosingAccount(true);
-          if (closingAccountTimeoutRef.current) {
-            window.clearTimeout(closingAccountTimeoutRef.current);
-          }
-          closingAccountTimeoutRef.current = window.setTimeout(() => {
-            setAccountDialogMode(null);
-            isClosingAccountRef.current = false;
-            setIsClosingAccount(false);
-          }, reducedMotionRef.current ? 0 : 180);
-          return;
-        case "close-station":
-          selectedStationIdRef.current = null;
-          setSelectedStationId(null);
-          restoreMapDrilldownOrigin();
-          return;
-        case "close-commute-preview":
-          if (commutePathPreviewRef.current) {
-            setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-          }
-          commutePathPreviewRef.current = null;
-          setCommutePathPreview(null);
-          selectionRef.current = null;
-          setSelection(null);
-          setActiveView("commutes");
-          return;
-        case "navigate-view": {
-          if (stationDrilldownOriginRef.current) {
-            const originStationId = stationDrilldownOriginRef.current;
-            stationDrilldownOriginRef.current = null;
-            viewHistoryRef.current = [];
-            activeViewRef.current = "map";
-            setActiveView("map");
-            selectionRef.current = null;
-            selectionBackBehaviorRef.current = "clear";
-            setSelection(null);
-            setAccessibilityOutageTarget(null);
-            selectedStationIdRef.current = originStationId;
-            setSelectedStationId(originStationId);
-            return;
-          }
-          if (selectionRef.current && selectionBackBehaviorRef.current === "clear" && !commutePathPreviewRef.current) {
-            selectionRef.current = null;
-            setSelection(null);
-            return;
-          }
-          if (commutePathPreviewRef.current) {
-            setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-            commutePathPreviewRef.current = null;
-            setCommutePathPreview(null);
-            setActiveView("commutes");
-            selectionRef.current = null;
-            selectionBackBehaviorRef.current = "clear";
-            setSelection(null);
-            setAccessibilityOutageTarget(null);
-            return;
-          }
-          const restoredView = restorePreviousView();
-          if (restoredView !== "map") {
-            selectionRef.current = null;
-            selectionBackBehaviorRef.current = "clear";
-            setSelection(null);
-          }
-          setAccessibilityOutageTarget(null);
-          return;
-        }
-        case "clear-impact":
-          selectionRef.current = null;
-          setSelection(null);
-          if (selectionBackBehaviorRef.current === "restore-view") {
-            restoreMapDrilldownOrigin();
-          }
-          selectionBackBehaviorRef.current = "clear";
-          return;
-        case "none":
-          return;
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      browserNavigationSessionRef.current = "";
-    };
-  }, [pushBrowserNavigationEntry, restoreMapDrilldownOrigin, restorePreviousView, setAccountDialogMode]);
-
-  useEffect(() => {
-    return () => {
-      if (closingAccountTimeoutRef.current) {
-        window.clearTimeout(closingAccountTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const openAccountDialog = useCallback((mode: AccountDialogMode) => {
-    if (closingAccountTimeoutRef.current) {
-      window.clearTimeout(closingAccountTimeoutRef.current);
-      closingAccountTimeoutRef.current = null;
-    }
-    isClosingAccountRef.current = false;
-    setIsClosingAccount(false);
-    if (!accountDialogModeRef.current) {
-      pushBrowserNavigationEntry();
-    }
-    accountDialogModeRef.current = mode;
-    setAccountDialogMode(mode);
-  }, [pushBrowserNavigationEntry]);
-
-  useEffect(() => {
-    if (initialEmailVerificationToken.trim() || window.location.pathname !== "/verify-email") {
-      return;
-    }
-    const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get("token")?.trim() ?? "";
-    if (!fragmentToken) {
-      return;
-    }
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${window.location.pathname}${window.location.search}`,
-    );
-    const openTimer = window.setTimeout(() => {
-      setAccountVerificationToken(fragmentToken);
-      openAccountDialog("verify-email");
-    }, 0);
-    return () => window.clearTimeout(openTimer);
-  }, [initialEmailVerificationToken, openAccountDialog]);
-
-  const closeAccountDialog = useCallback(() => {
-    if (!accountDialogModeRef.current && !accountDialogMode) return;
-    if (isClosingAccountRef.current) return;
-    consumeBrowserNavigationEntries();
-    accountDialogModeRef.current = null;
-    isClosingAccountRef.current = true;
-    setIsClosingAccount(true);
-    if (closingAccountTimeoutRef.current) {
-      window.clearTimeout(closingAccountTimeoutRef.current);
-    }
-    closingAccountTimeoutRef.current = window.setTimeout(() => {
-      setAccountDialogMode(null);
-      isClosingAccountRef.current = false;
-      setIsClosingAccount(false);
-    }, reducedMotion ? 0 : 180);
-  }, [accountDialogMode, consumeBrowserNavigationEntries, reducedMotion, setAccountDialogMode]);
-
-  const closeSelectedStation = useCallback((expectedStationId: string) => {
-    if (selectedStationIdRef.current !== expectedStationId) return;
-    consumeBrowserNavigationEntries();
-    setNavDirection("back");
-    stationDrilldownOriginRef.current = null;
-    selectedStationIdRef.current = null;
-    setSelectedStationId((current) => current === expectedStationId ? null : current);
-    announceDesktop("Station details closed");
-  }, [consumeBrowserNavigationEntries, setSelectedStationId, announceDesktop]);
 
   const currentSavedStations = useMemo(
     () => savedStations.filter((saved) => saved.networkId === selectedNetwork),
@@ -1852,49 +1175,6 @@ export function LineWatchShell({
   );
 
   useEffect(() => {
-    let cancelled = false;
-    let request: Promise<void> | null = null;
-    const refreshAccount = () => {
-      if (request) return request;
-      request = getCurrentAccountWithRetry()
-        .then((state) => {
-          if (!cancelled) {
-            setAccountState((current) => preserveAccountStateDuringOutage(current, state));
-          }
-        })
-        .finally(() => {
-          request = null;
-        });
-      return request;
-    };
-    const handleOnline = () => { void refreshAccount(); };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") void refreshAccount();
-    };
-
-    void refreshAccount();
-    window.addEventListener("online", handleOnline);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("online", handleOnline);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    getAuthConfig().then((result) => {
-      if (!cancelled) {
-        setAuthConfig(result.config);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
     // supports panel=notifications, panel=commutes, panel=alerts, panel=delays, panel=reduced-speed-zones, panel=closures, panel=release-notes
     const params = new URLSearchParams(window.location.search);
     const nextParams = new URLSearchParams(params);
@@ -1907,9 +1187,10 @@ export function LineWatchShell({
 
     const accountLinkedValue = params.get(GOOGLE_LINK_SUCCESS_PARAM);
     if (accountLinkedValue === GOOGLE_LINK_SUCCESS_VALUE) {
-      openAccountDialog("link-google");
-      setAccountError(null);
-      setAccountSuccessMessage("Google sign-in has been linked to your account.");
+      openAccountDialog({
+        mode: "link-google",
+        successMessage: GOOGLE_LINK_SUCCESS_MESSAGE,
+      });
       nextParams.delete("account_error");
       nextParams.delete(GOOGLE_LINK_SUCCESS_PARAM);
       shouldReplaceUrl = true;
@@ -1918,10 +1199,11 @@ export function LineWatchShell({
       if (accountErrorCode !== null) {
         const oauthErrorState = accountOAuthErrorState(accountErrorCode);
         if (oauthErrorState) {
-          setAccountEntryIntent(oauthErrorState.entryIntent);
-          openAccountDialog(oauthErrorState.dialogMode);
-          setAccountError(oauthErrorState.message);
-          setAccountSuccessMessage(null);
+          openAccountDialog({
+            mode: oauthErrorState.dialogMode,
+            entryIntent: oauthErrorState.entryIntent,
+            error: oauthErrorState.message,
+          });
         }
         nextParams.delete("account_error");
         shouldReplaceUrl = true;
@@ -2014,15 +1296,15 @@ export function LineWatchShell({
     let cancelled = false;
 
     if (!accountState.authenticated) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAccountCommutes([]);
       return () => {
         cancelled = true;
       };
     }
 
+    const currentGeneration = userGeneration;
     getSavedCommutes().then((result) => {
-      if (!cancelled) {
+      if (!cancelled && userGenerationRef.current === currentGeneration) {
         setAccountCommutes(result.commutes);
       }
     });
@@ -2030,9 +1312,10 @@ export function LineWatchShell({
     return () => {
       cancelled = true;
     };
-  }, [accountState.authenticated, accountState.user?.id]);
+  }, [accountState.authenticated, accountState.user?.id, userGeneration, userGenerationRef]);
 
   const refreshSavedStations = useCallback(async () => {
+    const currentGeneration = userGeneration;
     if (!accountState.authenticated) {
       setSavedStations([]);
       setSavedStationsError(null);
@@ -2042,6 +1325,9 @@ export function LineWatchShell({
 
     setSavedStationsLoading(true);
     const result = await getSavedStations();
+    if (userGenerationRef.current !== currentGeneration) {
+      return;
+    }
     if (result.source === "backend") {
       setSavedStations(result.stations);
       setSavedStationsError(null);
@@ -2049,7 +1335,7 @@ export function LineWatchShell({
       setSavedStationsError(result.message ?? "Saved stations are unavailable.");
     }
     setSavedStationsLoading(false);
-  }, [accountState.authenticated]);
+  }, [accountState.authenticated, userGeneration, userGenerationRef]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -2097,27 +1383,6 @@ export function LineWatchShell({
     navigateForward("commutes");
   };
 
-  const resetAccountForm = () => {
-    setAccountEmail("");
-    setAccountPassword("");
-    setAccountPasswordConfirmation("");
-    setAccountDisplayName("");
-    setAccountResetToken("");
-    setAccountResetMessage(null);
-    setAccountDevResetToken(null);
-    setAccountVerificationToken("");
-    setAccountVerificationMessage(null);
-    setAccountDevVerificationToken(null);
-    setAccountError(null);
-    setAccountSuccessMessage(null);
-  };
-
-  const openAuthChoice = (intent: AccountEntryIntent) => {
-    resetAccountForm();
-    setAccountEntryIntent(intent);
-    openAccountDialog("auth-choice");
-  };
-
   const setSavedStationPending = useCallback((stationId: string, pending: boolean) => {
     setPendingSavedStationIds((current) => {
       const next = new Set(current);
@@ -2133,9 +1398,7 @@ export function LineWatchShell({
       return false;
     }
     if (!accountState.authenticated) {
-      setAccountEntryIntent("register");
-      openAccountDialog("auth-choice");
-      setAccountError(null);
+      openAuthChoice("register");
       return false;
     }
     if (savedStations.some((saved) => saved.networkId === networkId && saved.station.id === stationId)) return true;
@@ -2169,7 +1432,7 @@ export function LineWatchShell({
     } finally {
       setSavedStationPending(stationId, false);
     }
-  }, [accountState.authenticated, accountState.source, openAccountDialog, pendingSavedStationIds, savedStations, selectedNetwork, setAccountEntryIntent, setAccountError, setSavedStationPending, showSavedStationNotice, stationCatalogs]);
+  }, [accountState.authenticated, accountState.source, openAuthChoice, pendingSavedStationIds, savedStations, selectedNetwork, setSavedStationPending, showSavedStationNotice, stationCatalogs]);
 
   const handleRemoveSavedStation = useCallback(async (stationId: string, networkId: NetworkId = selectedNetwork) => {
     if (accountState.source === "unavailable") {
@@ -2209,353 +1472,22 @@ export function LineWatchShell({
       void handleSaveStation(stationId, networkId);
     }
   }, [handleRemoveSavedStation, handleSaveStation, savedStations, selectedNetwork]);
-
-  const openEmailAuth = () => {
-    setAccountError(null);
-    setAccountSuccessMessage(null);
-    openAccountDialog(accountEntryIntent);
-  };
-
-  const openGoogleLinkDialog = () => {
-    resetAccountForm();
-    openAccountDialog("link-google");
-  };
-
-  const accountDialogTitle = () => {
-    switch (accountDialogMode) {
-      case "auth-choice":
-        return accountEntryIntent === "register" ? "Create Account" : "Sign In";
-      case "link-google":
-        return "Link Google";
-      case "register":
-        return "Create Account";
-      case "verify-email":
-        return "Verify Email";
-      case "forgot-password":
-        return "Reset password";
-      case "reset-password":
-        return "Choose new password";
-      case "login":
-      default:
-        return "Sign In";
-    }
-  };
-
-  const accountDialogAriaLabel = () => {
-    switch (accountDialogMode) {
-      case "auth-choice":
-        return accountEntryIntent === "register" ? "Choose how to create a LineWatchTO account" : "Choose how to sign in to LineWatchTO";
-      case "link-google":
-        return "Link Google sign-in to LineWatchTO account";
-      case "register":
-        return "Create LineWatchTO account";
-      case "verify-email":
-        return "Verify your email for LineWatchTO";
-      case "forgot-password":
-        return "Reset LineWatchTO password";
-      case "reset-password":
-        return "Choose a new LineWatchTO password";
-      case "login":
-      default:
-        return "Sign in to LineWatchTO";
-    }
-  };
-
-  const accountDialogDescription = () => {
-    if (accountDialogMode === "auth-choice" && accountEntryIntent === "login") {
-      return "Sign in to access your saved stations and commutes, notification settings, and disruption impacts.";
-    }
-    if (accountDialogMode === "verify-email") {
-      return "Email verification protects account-owned commutes, stations, and notification settings.";
-    }
-    return "Create a free account to save stations and commutes, get push notifications, and track disruption impacts. All features are free.";
-  };
-
-  const handleSubmitAccount = async () => {
-    if (!accountDialogMode) return;
-
-    if (accountDialogMode === "auth-choice") {
-      return;
-    }
-
-    if (accountDialogMode === "link-google") {
-      return;
-    }
-    if (accountDialogMode === "verify-email") {
-      if (accountVerificationToken.trim()) {
-        await handleConfirmEmailVerification();
-      } else {
-        await handleRequestEmailVerification();
-      }
-      return;
-    }
-    if (accountDialogMode === "forgot-password") {
-      handleRequestPasswordReset();
-      return;
-    }
-    if (accountDialogMode === "reset-password") {
-      handleConfirmPasswordReset();
-      return;
-    }
-    if (accountDialogMode !== "login" && accountDialogMode !== "register") {
-      return;
-    }
-
-    const validation = accountDialogMode === "register"
-      ? validateAccountEmail(accountEmail)
-      : validateAccountCredentials({
-          mode: "login",
-          email: accountEmail,
-          password: accountPassword,
-        });
-
-    if (!validation.valid) {
-      setAccountError(validation.message);
-      return;
-    }
-
-    setAccountBusy(true);
-    setAccountError(null);
-    setAccountSuccessMessage(null);
+  const handleDemoAccount = useCallback(async () => {
+    setIsActionBusy(true);
+    setAccountActionError(null);
     try {
-      const normalizedEmail = validation.normalizedEmail;
-      if (accountDialogMode === "login") {
-        const response = await loginAccount({ email: normalizedEmail, password: accountPassword });
-        setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-        closeAccountDialog();
-        resetAccountForm();
-      } else {
-        const response = await registerAccount({
-          email: normalizedEmail,
-          displayName: accountDisplayName.trim(),
-        });
-        setAccountEmail(normalizedEmail);
-        setAccountPassword("");
-        setAccountPasswordConfirmation("");
-        setAccountVerificationMessage(response.message);
-        setAccountDevVerificationToken(response.devVerificationToken ?? null);
-        setAccountVerificationToken(response.devVerificationToken ?? "");
-        openAccountDialog("verify-email");
-      }
-    } catch (error) {
-      if (error instanceof AccountRequestError) {
-        if (accountDialogMode === "login" && error.errorCode === "email_not_verified") {
-          setAccountVerificationMessage(error.message);
-          setAccountDevVerificationToken(null);
-          setAccountVerificationToken("");
-          openAccountDialog("verify-email");
-        } else {
-          setAccountError(error.message);
-        }
-      } else {
-        setAccountError(accountDialogMode === "login" ? "Incorrect Email or Password." : "Could not create that account.");
-      }
-    } finally {
-      setAccountBusy(false);
-    }
-  };
-
-  const handleRequestPasswordReset = async () => {
-    const normalizedEmail = normalizeAccountEmail(accountEmail);
-    if (!normalizedEmail || !normalizedEmail.includes("@")) {
-      setAccountError("Enter a valid email address.");
-      return;
-    }
-
-    setAccountBusy(true);
-    setAccountError(null);
-    setAccountResetMessage(null);
-    setAccountDevResetToken(null);
-    try {
-      const response = await requestPasswordReset({ email: normalizedEmail });
-      setAccountEmail(normalizedEmail);
-      setAccountResetMessage(response.message);
-      setAccountDevResetToken(response.devResetToken ?? null);
-    } catch (error) {
-      if (error instanceof AccountRequestError) {
-        setAccountError(error.message);
-      } else {
-        setAccountError("Password reset is unavailable.");
-      }
-    } finally {
-      setAccountBusy(false);
-    }
-  };
-
-  const handleRequestEmailVerification = async () => {
-    const normalizedEmail = normalizeAccountEmail(accountEmail);
-    if (!normalizedEmail || !normalizedEmail.includes("@")) {
-      setAccountError("Enter a valid email address.");
-      return;
-    }
-
-    setAccountBusy(true);
-    setAccountError(null);
-    setAccountSuccessMessage(null);
-    try {
-      const response = await requestEmailVerification({ email: normalizedEmail });
-      setAccountEmail(normalizedEmail);
-      setAccountVerificationMessage(response.message);
-      setAccountDevVerificationToken(response.devVerificationToken ?? null);
-      setAccountVerificationToken(response.devVerificationToken ?? "");
-    } catch (error) {
-      if (error instanceof AccountRequestError) {
-        setAccountError(error.message);
-      } else {
-        setAccountError("Email verification is unavailable.");
-      }
-    } finally {
-      setAccountBusy(false);
-    }
-  };
-
-  const handleConfirmEmailVerification = async (rawToken = accountVerificationToken) => {
-    const token = rawToken.trim();
-    if (!token) {
-      setAccountError("Open the verification link from your email or request a new one.");
-      return;
-    }
-
-    const passwordValidation = validateAccountCredentials({
-      mode: "register",
-      email: accountEmail || "verification@example.com",
-      password: accountPassword,
-    });
-    if (!passwordValidation.valid && passwordValidation.message !== "Enter a valid email address.") {
-      setAccountError(passwordValidation.message);
-      return;
-    }
-    if (accountPassword !== accountPasswordConfirmation) {
-      setAccountError("Passwords do not match.");
-      return;
-    }
-
-    setAccountBusy(true);
-    setAccountError(null);
-    try {
-      const response = await confirmEmailVerification({ token, password: accountPassword });
-      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      setAccountVerificationToken("");
-      setAccountDevVerificationToken(null);
-      setAccountVerificationMessage(null);
-      setAccountSuccessMessage("Email verified. You are now signed in.");
-      router.replace("/");
-    } catch (error) {
-      if (error instanceof AccountRequestError) {
-        setAccountError(error.message);
-      } else {
-        setAccountError("Could not verify that email.");
-      }
-    } finally {
-      setAccountBusy(false);
-    }
-  };
-
-  const handleConfirmPasswordReset = async () => {
-    if (!accountResetToken.trim()) {
-      setAccountError("Enter the reset token.");
-      return;
-    }
-    const validation = validateAccountCredentials({
-      mode: "register",
-      email: accountEmail || "reset@example.com",
-      password: accountPassword,
-    });
-    if (!validation.valid && validation.message !== "Enter a valid email address.") {
-      setAccountError(validation.message);
-      return;
-    }
-    if (accountPassword !== accountPasswordConfirmation) {
-      setAccountError("Passwords do not match.");
-      return;
-    }
-
-    setAccountBusy(true);
-    setAccountError(null);
-    try {
-      const response = await confirmPasswordReset({
-        token: accountResetToken.trim(),
-        password: accountPassword,
-      });
-      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      if (typeof window !== "undefined" && window.location.pathname === "/reset-password") {
-        accountDialogModeRef.current = null;
-        setAccountDialogMode(null);
-        resetAccountForm();
-        router.replace("/");
-      } else {
-        closeAccountDialog();
-        resetAccountForm();
-      }
-    } catch (error) {
-      if (error instanceof AccountRequestError) {
-        setAccountError(error.message);
-      } else {
-        setAccountError("Could not reset that password.");
-      }
-    } finally {
-      setAccountBusy(false);
-    }
-  };
-
-  const handleDemoAccount = async () => {
-    setAccountBusy(true);
-    setAccountError(null);
-    try {
-      const response = await loginDemoAccount();
-      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
+      await accountSession.loginDemo();
       setActiveView("commutes");
     } catch {
-      setAccountError("Demo account is unavailable.");
+      setAccountActionError("Demo account is unavailable.");
     } finally {
-      setAccountBusy(false);
+      setIsActionBusy(false);
     }
-  };
+  }, [accountSession, setActiveView, setAccountActionError, setIsActionBusy]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleGoogleCredential = async (credential: string) => {
-    setAccountBusy(true);
-    setAccountError(null);
-    try {
-      const response = await loginWithGoogle({ credential });
-      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      closeAccountDialog();
-      resetAccountForm();
-      setActiveView("commutes");
-    } catch (error) {
-      if (error instanceof AccountRequestError) {
-        setAccountError(error.message);
-      } else {
-        setAccountError("Google sign-in is unavailable.");
-      }
-    } finally {
-      setAccountBusy(false);
-    }
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleLinkGoogleCredential = async (credential: string) => {
-    setAccountBusy(true);
-    setAccountError(null);
-    setAccountSuccessMessage(null);
-    try {
-      const response = await linkGoogleAccount({ credential });
-      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      openAccountDialog("link-google");
-      setAccountSuccessMessage(GOOGLE_LINK_SUCCESS_MESSAGE);
-    } catch (error) {
-      if (error instanceof AccountRequestError) {
-        setAccountError(error.message);
-      } else {
-        setAccountError("Could not link Google sign-in.");
-      }
-    } finally {
-      setAccountBusy(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    setAccountBusy(true);
+  const handleSignOut = useCallback(async () => {
+    setIsActionBusy(true);
+    setAccountActionError(null);
     try {
       let pushEndpoint: string | null = null;
       try {
@@ -2566,17 +1498,20 @@ export function LineWatchShell({
       } catch {
         pushEndpoint = null;
       }
-      await logoutAccount({ pushEndpoint });
-      setAccountState({ source: "backend", authenticated: false, user: null });
-      setAccountCommutes([]);
-      setSavedStations([]);
-      setPendingSavedStationIds(new Set());
-      setSavedStationsError(null);
-      setCommutePathPreview(null);
+      await accountSession.signOut({ pushEndpoint });
+    } catch {
+      setAccountActionError("Sign out failed.");
     } finally {
-      setAccountBusy(false);
+      setIsActionBusy(false);
     }
-  };
+  }, [accountSession, pushSettings.supported, setAccountActionError, setIsActionBusy]);
+
+  const handleAuthenticated = useCallback((nextState: AccountState) => {
+    setAccountState(nextState);
+    closeAccountDialog();
+    setActiveView("commutes");
+  }, [closeAccountDialog, setAccountState, setActiveView]);
+
 
   const handleShareLineWatchApp = useCallback(async () => {
     if (typeof window === "undefined" || typeof navigator === "undefined") return;
@@ -2700,90 +1635,15 @@ export function LineWatchShell({
   };
 
   const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
-    const commuteId = typeof commuteIdOrEvent === "string" ? commuteIdOrEvent : undefined;
-    if (commuteId && (!commutePathPreviewRef.current || (commutePathPreviewRef.current.id !== commuteId && commutePathPreviewRef.current.commuteId !== commuteId))) {
-      return;
-    }
-    if (activeViewRef.current === "commutes") {
-      commutePathPreviewRef.current = null;
-      setCommutePathPreview(null);
-      selectionRef.current = null;
-      setSelection(null);
-      setSelectedStationId(null);
-      setAccessibilityOutageTarget(null);
-      return;
-    }
-    if (commutePathPreviewRef.current) {
-      setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-    }
-    consumeBrowserNavigationEntries();
-    setNavDirection("back");
-    setIsGoingBack(true);
-    if (backTimeoutRef.current) {
-      window.clearTimeout(backTimeoutRef.current);
-    }
-    backTimeoutRef.current = window.setTimeout(() => {
-      if (commutePathPreviewRef.current) {
-        setCommutesFocusedCommuteId(commutePathPreviewRef.current.commuteId ?? commutePathPreviewRef.current.id);
-      }
-      commutePathPreviewRef.current = null;
-      setCommutePathPreview(null);
-      selectionRef.current = null;
-      setSelection(null);
-      setSelectedStationId(null);
-      setAccessibilityOutageTarget(null);
-      viewHistoryRef.current = isMobile ? ["more"] : ["status"];
-      activeViewRef.current = "commutes";
-      setActiveView("commutes");
-      setIsGoingBack(false);
-    }, reducedMotion ? 0 : 380);
-  }, [consumeBrowserNavigationEntries, isMobile, reducedMotion, setActiveView, setCommutePathPreview, setCommutesFocusedCommuteId, setSelection, setSelectedStationId]);
+    clearCommutePreview(commuteIdOrEvent);
+  }, [clearCommutePreview]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);
-  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
   const desktopRailToggleRef = useRef<HTMLButtonElement>(null);
   const searchOriginRef = useRef<ActiveView>("status");
   const searchSessionActiveRef = useRef<boolean>(false);
   const suppressSearchReopenRef = useRef<boolean>(false);
-
-  const captureSearchReturnContext = useCallback(() => {
-    if (activeView === "search") return;
-    if (!searchReturnContextRef.current) {
-      const labels: Record<string, string> = {
-        status: "Status",
-        map: "Status",
-      more: "More",
-      "my-stations": "My Stations",
-      commutes: "My Commutes",
-      "source-status": "Source Status",
-      alerts: "Active Alerts",
-      delays: "Delays",
-      closures: "Planned Closures",
-      "reduced-speed-zones": "Reduced Speed Zones",
-      "alert-history": "Alert History",
-      "line-impacts": "Line Impacts",
-      "accessibility-outages": "Accessibility",
-      "surface-notices": "Service Notices",
-      announcements: "Announcements",
-      analytics: "Analytics",
-      notifications: "Notifications",
-      "release-notes": "Release Notes",
-      "privacy-acknowledgements": "Privacy",
-      feedback: "Feedback",
-    };
-    const dest = selectedStationId ? "my-stations" : activeView;
-    setSearchReturnDestination(dest);
-    setSearchReturnLabel(selectedStationId ? "Back to station details" : `Back to ${labels[activeView] ?? "previous page"}`);
-    searchReturnContextRef.current = {
-      activeView,
-      selectedStationId,
-      selectedNetwork,
-      commutesActiveTab: activeView === "commutes" ? commutesActiveTab : undefined,
-      focusedElement: (typeof document !== "undefined" ? (document.activeElement as HTMLElement) : null),
-    };
-    }
-  }, [activeView, commutesActiveTab, selectedNetwork, selectedStationId]);
   const headerSearchBarRef = useRef<HTMLDivElement>(null);
   const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
@@ -2998,6 +1858,7 @@ export function LineWatchShell({
   useEffect(() => {
     let cancelled = false;
     let requestId = 0;
+    let controller: AbortController | null = null;
 
     if (!selectedStationId || selectedNetwork !== "ttc") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -3005,23 +1866,36 @@ export function LineWatchShell({
       setStationLoading(false);
       return () => {
         cancelled = true;
+        controller?.abort();
       };
     }
 
     const fetchStationDetail = (showLoading: boolean) => {
+      controller?.abort();
+      controller = new AbortController();
       const activeRequestId = ++requestId;
       if (showLoading) {
         setStationLoading(true);
       }
-      getStationDetail(selectedStationId).then((result) => {
-        if (!cancelled && activeRequestId === requestId) {
-          setVisibleStationResult((current) => preserveStationDetailOnRefresh(current, result));
-        }
-      }).finally(() => {
-        if (!cancelled && activeRequestId === requestId) {
-          setStationLoading(false);
-        }
-      });
+      getStationDetail(selectedStationId, { signal: controller.signal })
+        .then((result) => {
+          if (!cancelled && activeRequestId === requestId) {
+            setVisibleStationResult((current) => preserveStationDetailOnRefresh(current, result));
+          }
+        })
+        .catch((error) => {
+          if (
+            (error instanceof DOMException && error.name === "AbortError")
+            || (typeof error === "object" && error !== null && (error as { name?: string }).name === "AbortError")
+          ) {
+            return;
+          }
+        })
+        .finally(() => {
+          if (!cancelled && activeRequestId === requestId) {
+            setStationLoading(false);
+          }
+        });
     };
 
     fetchStationDetail(true);
@@ -3044,6 +1918,7 @@ export function LineWatchShell({
 
     return () => {
       cancelled = true;
+      controller?.abort();
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -3250,77 +2125,9 @@ export function LineWatchShell({
     }, isMobile ? 220 : 200);
   }, [accountState.authenticated, accountState.source, isClosingSearch, isMobile, navigateRoot, reducedMotion, selectedNetwork, stationCatalogs]);
 
-  // Desktop keyboard shortcuts (Escape key navigation)
   useEffect(() => {
-    if (isMobile) return;
-
-    const handleDesktopKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-
-      // If an active modal dialog is open, let the modal handle its own Escape
-      if (document.querySelector("[role='dialog'][aria-modal='true'], [role='alertdialog'][aria-modal='true']")) {
-        return;
-      }
-
-      // If search query is active or search input is focused / activeView === 'search'
-      if (activeView === "search" || document.activeElement === desktopSearchInputRef.current) {
-        if (event.defaultPrevented) return;
-        event.preventDefault();
-        desktopSearchInputRef.current?.blur();
-        suppressSearchReopenRef.current = true;
-        searchSessionActiveRef.current = false;
-        handleCloseSearch();
-        return;
-      }
-
-      // If a station is selected on desktop
-      if (selectedStationId) {
-        event.preventDefault();
-        closeSelectedStation(selectedStationId);
-        return;
-      }
-
-      // If map selection is active
-      if (selection) {
-        event.preventDefault();
-        setSelection(null);
-        return;
-      }
-
-      // If in a subpanel view
-      const subviews: ActiveView[] = [
-        "alerts",
-        "delays",
-        "reduced-speed-zones",
-        "closures",
-        "line-impacts",
-        "accessibility-outages",
-        "surface-notices",
-        "announcements",
-        "analytics",
-        "alert-history",
-        "notifications",
-        "feedback",
-        "privacy-acknowledgements",
-        "release-notes",
-      ];
-      if (subviews.includes(activeView)) {
-        event.preventDefault();
-        handleSubmenuBack();
-      }
-    };
-
-    window.addEventListener("keydown", handleDesktopKeyDown);
-    return () => window.removeEventListener("keydown", handleDesktopKeyDown);
-  }, [
-    isMobile,
-    activeView,
-    selectedStationId,
-    selection,
-    handleCloseSearch,
-    closeSelectedStation,
-    handleSubmenuBack,
-  ]);
+    handleCloseSearchRef.current = handleCloseSearch;
+  }, [handleCloseSearch]);
 
   const handleOpenSearch = useCallback(() => {
     if (!isMobile) {
@@ -3372,38 +2179,6 @@ export function LineWatchShell({
     };
   }, [activeView, handleCloseSearch]);
 
-  const handleSelectStationId = useCallback((id: string | null) => {
-    const currentId = selectedStationIdRef.current;
-    if (id && !currentId) {
-      pushBrowserNavigationEntry();
-    } else if (!id && currentId) {
-      consumeBrowserNavigationEntries();
-    }
-    selectedStationIdRef.current = id;
-    stationDrilldownOriginRef.current = null;
-    if (id) {
-      setNavDirection("forward");
-      setStationSheetRatio(readStoredSheetHeightRatio(typeof window !== "undefined" ? window.localStorage : null));
-      setStationPanelActivationKey((current) => current + 1);
-    }
-    setSelectedStationId(id);
-    setSelection(null);
-    setCommutePathPreview(null);
-    if (id) {
-      if (!isMobile && desktopSidebarCollapsed) {
-        setDesktopSidebarCollapsed(false);
-      }
-      if (!isMobile) {
-        announceDesktop("Station details opened");
-      }
-      recordPwaInstallEngagement();
-      if (isMobile) {
-        setMobileInspectorDetent("details-focus");
-      }
-      navigateToMapDrilldown();
-    }
-  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, isMobile, recordPwaInstallEngagement, desktopSidebarCollapsed, announceDesktop]);
-
 
   const openMobileShortcut = (view: ActiveView, noticeContent?: "notices" | "trip-changes") => {
     setSelection(null);
@@ -3450,30 +2225,6 @@ export function LineWatchShell({
         navigateRoot("map");
     }
   }, [navigateRoot, setCommutePathPreview, setMapPresentationMode, setMobileInspectorDetent, setSelectedStationId, setSelection, recordPwaInstallEngagement]);
-
-
-  const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
-    switch (kind) {
-      case "suspension":
-        return "alerts";
-      case "delay":
-        return "delays";
-      case "reduced-speed-zone":
-        return "reduced-speed-zones";
-      case "planned-closure":
-        return "closures";
-    }
-  }, []);
-
-  const viewForImpactSelection = useCallback((nextSelection: NonNullable<ImpactSelection>): ActiveView => {
-    if (
-      nextSelection.kind === "planned-closure" &&
-      activeAlerts.some((alert) => alert.id === nextSelection.id)
-    ) {
-      return "alerts";
-    }
-    return viewForImpactKind(nextSelection.kind);
-  }, [activeAlerts, viewForImpactKind]);
 
   const handleSearchSelectImpact = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
     if (searchClosingTimeoutRef.current) {
@@ -3620,56 +2371,6 @@ export function LineWatchShell({
     });
   }, []);
 
-  const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
-    setSelectedStationId(null);
-    if (!commutePathPreviewRef.current) {
-      setCommutePathPreview(null);
-    }
-    if (!nextSelection) {
-      if (selectionRef.current) consumeBrowserNavigationEntries();
-      selectionRef.current = null;
-      selectionBackBehaviorRef.current = "clear";
-      setSelection(null);
-      return;
-    }
-    if (!selectionRef.current) pushBrowserNavigationEntry();
-    setSelectionAttentionGeneration((current) => current + 1);
-    const currentView = activeViewRef.current;
-    const targetView = viewForImpactSelection(nextSelection);
-    if (isMobile) {
-      const preservesOrigin = currentView === "map"
-        && selectionBackBehaviorRef.current === "restore-view"
-        && mobileImpactReturnView !== null;
-      selectionBackBehaviorRef.current = currentView === "map" && !preservesOrigin ? "clear" : "restore-view";
-      if (!preservesOrigin) setMobileImpactReturnView(null);
-    } else if (currentView === targetView) {
-      selectionBackBehaviorRef.current = "clear";
-    } else {
-      selectionBackBehaviorRef.current = "restore-view";
-      viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, targetView);
-    }
-    selectionRef.current = nextSelection;
-    setSelection(nextSelection);
-    if (isMobile) {
-      recordPwaInstallEngagement();
-      setMobileInspectorDetent("details-focus");
-      navigateToMapDrilldown();
-      return;
-    }
-    if (desktopSidebarCollapsed) {
-      setDesktopSidebarCollapsed(false);
-    }
-    activeViewRef.current = targetView;
-    setActiveView(targetView);
-  }, [consumeBrowserNavigationEntries, navigateToMapDrilldown, pushBrowserNavigationEntry, setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, mobileImpactReturnView, recordPwaInstallEngagement, desktopSidebarCollapsed]);
-
-  const handleStationSelectImpact = useCallback((nextSelection: ImpactSelection) => {
-    if (selectedStationIdRef.current) {
-      stationDrilldownOriginRef.current = selectedStationIdRef.current;
-    }
-    handleMapSelectImpact(nextSelection);
-  }, [handleMapSelectImpact]);
-
   const handlePeekClosedMap = () => {
     if (isClosedScreenExiting) return;
     setIsClosedScreenExiting(true);
@@ -3786,7 +2487,7 @@ export function LineWatchShell({
       rotatedMapMode ||
       mobileInspectorOpen ||
       Boolean(selectedStationId) ||
-      Boolean(accountDialogMode) ||
+      Boolean(accountDialogRequest) ||
       Boolean(commutePathPreview),
     engagementSignal: pwaEngagementSignal,
     isMobile,
@@ -4003,7 +2704,7 @@ export function LineWatchShell({
             accountState={accountState}
             savedStations={savedStations}
             stationCatalogs={stationCatalogs}
-            dashboards={{ ttc: connectionOffline || dashboardRequestStates.ttc === "reconnecting" ? snapshotDashboard(ttcData, verifiedAt.ttc, connectionOffline ? "offline" : "reconnecting") : ttcData, regional: connectionOffline || dashboardRequestStates.regional === "reconnecting" ? snapshotDashboard(regionalData, verifiedAt.regional, connectionOffline ? "offline" : "reconnecting") : regionalData }}
+            dashboards={effectiveDashboards}
             activeNetwork={selectedNetwork}
             loading={savedStationsLoading}
             error={savedStationsError}
@@ -4482,11 +3183,7 @@ export function LineWatchShell({
               saved={savedStationIds.has(selectedStationId)}
               savePending={pendingSavedStationIds.has(selectedStationId)}
               onToggleSaved={handleToggleSavedStation}
-              onRequestSignIn={() => {
-                setAccountEntryIntent("register");
-                openAccountDialog("auth-choice");
-                setAccountError(null);
-              }}
+              onRequestSignIn={() => openAuthChoice("register")}
             />
           );
         }
@@ -4509,11 +3206,7 @@ export function LineWatchShell({
             saved={savedStationIds.has(selectedStationId)}
             savePending={pendingSavedStationIds.has(selectedStationId)}
             onToggleSaved={handleToggleSavedStation}
-            onRequestSignIn={() => {
-              setAccountEntryIntent("register");
-              openAccountDialog("auth-choice");
-              setAccountError(null);
-            }}
+            onRequestSignIn={() => openAuthChoice("register")}
           />
         );
       }
@@ -4545,11 +3238,7 @@ export function LineWatchShell({
             savedStationKeys={savedStationKeys}
             pendingSavedStationIds={pendingSavedStationIds}
             onToggleSavedStation={handleToggleSavedStation}
-            onRequestSignIn={() => {
-              setAccountEntryIntent("register");
-              openAccountDialog("auth-choice");
-              setAccountError(null);
-            }}
+            onRequestSignIn={() => openAuthChoice("register")}
             savedCommutes={accountCommutes}
             surfaceSearchEnabled
             onOpenDestination={(view) => {
@@ -5410,7 +4099,7 @@ export function LineWatchShell({
                     value={defaultNetworkPreference}
                     onChange={handleDefaultNetworkChange}
                   />
-                  {accountError ? <p className="px-2 pb-2 text-xs font-semibold text-red-600 dark:text-red-300">{accountError}</p> : null}
+                  {accountActionError ? <p className="px-2 pb-2 text-xs font-semibold text-red-600 dark:text-red-300">{accountActionError}</p> : null}
                 </div>
 
                 {/* Maps & Alerts */}
@@ -5852,11 +4541,7 @@ export function LineWatchShell({
             savedStationKeys={savedStationKeys}
             pendingSavedStationIds={pendingSavedStationIds}
             onToggleSavedStation={handleToggleSavedStation}
-            onRequestSignIn={() => {
-              setAccountEntryIntent("register");
-              openAccountDialog("auth-choice");
-              setAccountError(null);
-            }}
+            onRequestSignIn={() => openAuthChoice("register")}
             savedCommutes={accountCommutes}
             surfaceSearchEnabled
             onOpenDestination={(view) => {
@@ -6360,11 +5045,7 @@ export function LineWatchShell({
           saved={savedStationIds.has(selectedStationId)}
           savePending={pendingSavedStationIds.has(selectedStationId)}
           onToggleSaved={handleToggleSavedStation}
-          onRequestSignIn={() => {
-            setAccountEntryIntent("register");
-            openAccountDialog("auth-choice");
-            setAccountError(null);
-          }}
+          onRequestSignIn={() => openAuthChoice("register")}
         />
       )}
 
@@ -6387,11 +5068,7 @@ export function LineWatchShell({
           saved={savedStationIds.has(selectedStationId)}
           savePending={pendingSavedStationIds.has(selectedStationId)}
           onToggleSaved={handleToggleSavedStation}
-          onRequestSignIn={() => {
-            setAccountEntryIntent("register");
-            openAccountDialog("auth-choice");
-            setAccountError(null);
-          }}
+          onRequestSignIn={() => openAuthChoice("register")}
         />
       ) : null}
 
@@ -6618,449 +5295,15 @@ export function LineWatchShell({
           ) : null}
         </div>
       ) : null}
-      {accountDialogMode || isClosingAccount ? (
-        <div
-          className={`account-dialog-backdrop ${isClosingAccount ? "account-dialog-backdrop--closing" : ""}`}
-          role="presentation"
-          onMouseDown={closeAccountDialog}
-        >
-          <section
-            className={`account-dialog ${isClosingAccount ? "account-dialog--closing" : ""}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label={accountDialogAriaLabel()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.stopPropagation();
-                closeAccountDialog();
-              }
-            }}
-          >
-            <div className="account-dialog-header">
-              <div
-                key={`intro-${accountDialogMode}-${accountEntryIntent}`}
-                className="account-dialog-intro"
-              >
-                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {accountDialogTitle()}
-                </h2>
-                <p className="account-dialog-description">{accountDialogDescription()}</p>
-              </div>
-              <button type="button" className="account-dialog-close" onClick={closeAccountDialog} aria-label="Close account dialog">
-                <X size={20} />
-              </button>
-            </div>
-            <form
-              key={`${accountDialogMode}-${accountEntryIntent}`}
-              data-account-dialog-view={accountDialogMode}
-              data-account-dialog-intent={accountEntryIntent}
-              className="flex flex-col gap-3 px-5 py-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleSubmitAccount();
-              }}
-            >
-              {accountDialogMode === "auth-choice" ? (
-                <>
-                  <div className="account-provider-stack">
-                    {authConfig.googleSignInAvailable ? (
-                      <>
-                        <div aria-label="Continue With Google">
-                          <GoogleSignInButton
-                            disabled={accountBusy}
-                            mode="login"
-                            onError={setAccountError}
-                          />
-                        </div>
-                        <div className="account-auth-divider" aria-hidden="true">
-                          <span>Or</span>
-                        </div>
-                      </>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="account-choice-primary"
-                      onClick={openEmailAuth}
-                      disabled={accountBusy}
-                    >
-                      <Mail size={18} />
-                      Continue With Email
-                    </button>
-                  </div>
-                  {accountError ? (
-                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
-                      {accountError}
-                    </p>
-                  ) : null}
-                  <div className="account-dialog-footer">
-                    <button
-                      type="button"
-                      className="account-switch-button"
-                      onClick={() => {
-                        setAccountError(null);
-                        setAccountEntryIntent(accountEntryIntent === "login" ? "register" : "login");
-                      }}
-                    >
-                      {accountEntryIntent === "login" ? (
-                        <>
-                          <span className="account-switch-text">Don&apos;t have an account?</span>{" "}
-                          <span className="account-switch-link">Sign Up</span>
-                        </>
-                      ) : (
-                        <span className="account-switch-link">Already Have an Account?</span>
-                      )}
-                    </button>
-                  </div>
-                </>
-              ) : accountDialogMode === "link-google" ? (
-                <>
-                  {accountSuccessMessage ? (
-                    <div className="account-reset-status" role="status">
-                      <p>{accountSuccessMessage}</p>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="account-reset-hint">
-                        Link Google sign-in to {accountState.user?.email}. The Google account email must match this LineWatch account.
-                      </p>
-                      {authConfig.googleSignInAvailable ? (
-                        <div aria-label="Link Google">
-                          <GoogleSignInButton
-                            disabled={accountBusy}
-                            mode="link"
-                            returnTo={googleLinkSuccessReturnTo()}
-                            onError={setAccountError}
-                          />
-                        </div>
-                      ) : (
-                        <p className="account-reset-hint">Google sign-in is not configured for this environment.</p>
-                      )}
-                    </>
-                  )}
-                  {accountError ? (
-                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
-                      {accountError}
-                    </p>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="account-link-button"
-                    onClick={() => {
-                      setAccountError(null);
-                      closeAccountDialog();
-                    }}
-                  >
-                    Back To Account
-                  </button>
-                </>
-              ) : accountDialogMode === "verify-email" ? (
-                <>
-                  {accountSuccessMessage ? (
-                    <div className="account-reset-status" role="status">
-                      <p>{accountSuccessMessage}</p>
-                    </div>
-                  ) : (
-                    <>
-                      {accountVerificationMessage ? (
-                        <div className="account-reset-status" role="status">
-                          <p>{accountVerificationMessage}</p>
-                        </div>
-                      ) : accountBusy ? (
-                        <p className="account-reset-hint" role="status">Creating your verified account…</p>
-                      ) : (
-                        <p className="account-reset-hint">Use the secure link sent to your email address. Verification links expire after 24 hours.</p>
-                      )}
-                      {accountEmail ? (
-                        <p className="account-reset-hint">Verification address: <strong>{accountEmail}</strong></p>
-                      ) : !accountVerificationToken || accountError ? (
-                        <label className="account-field">
-                          <span>{accountVerificationToken ? "Email for a new link" : "Email"}</span>
-                          <input
-                            type="email"
-                            value={accountEmail}
-                            autoComplete="email"
-                            onBlur={() => setAccountEmail((current) => normalizeAccountEmail(current))}
-                            onChange={(event) => setAccountEmail(event.target.value)}
-                          />
-                        </label>
-                      ) : null}
-                      {accountVerificationToken ? (
-                        <>
-                          <p className="account-reset-hint">Choose the password you will use after verification. It was intentionally not accepted before mailbox ownership was proven.</p>
-                          <label className="account-field">
-                            <span>Password</span>
-                            <input
-                              type="password"
-                              value={accountPassword}
-                              autoComplete="new-password"
-                              aria-describedby="account-verification-password-help"
-                              onChange={(event) => setAccountPassword(event.target.value)}
-                            />
-                          </label>
-                          <label className="account-field">
-                            <span>Confirm password</span>
-                            <input
-                              type="password"
-                              value={accountPasswordConfirmation}
-                              autoComplete="new-password"
-                              onChange={(event) => setAccountPasswordConfirmation(event.target.value)}
-                            />
-                          </label>
-                          <p id="account-verification-password-help" className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">
-                            Use at least 8 characters with a letter and a number, symbol, or space.
-                          </p>
-                        </>
-                      ) : null}
-                      {accountDevVerificationToken ? (
-                        <>
-                          <p className="account-reset-dev-note">Local dev mode: no email was sent. Use this one-time token to test account verification.</p>
-                          <button
-                            type="button"
-                            className="account-primary-button"
-                            onClick={() => void handleConfirmEmailVerification(accountDevVerificationToken)}
-                            disabled={accountBusy}
-                          >
-                            Verify Local Account
-                          </button>
-                        </>
-                      ) : null}
-                    </>
-                  )}
-                  {accountError ? (
-                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
-                      {accountError}
-                    </p>
-                  ) : null}
-                  {accountSuccessMessage ? (
-                    <button
-                      type="button"
-                      className="account-primary-button"
-                      onClick={() => {
-                        closeAccountDialog();
-                        resetAccountForm();
-                      }}
-                    >
-                      Continue
-                    </button>
-                  ) : (
-                    <>
-                      {accountVerificationToken && !accountDevVerificationToken && !accountBusy ? (
-                        <button
-                          type="button"
-                          className="account-primary-button"
-                          onClick={() => void handleConfirmEmailVerification()}
-                        >
-                          Verify Email
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="account-link-button"
-                        onClick={() => void handleRequestEmailVerification()}
-                        disabled={accountBusy || !accountEmail.trim()}
-                      >
-                        Send New Verification Link
-                      </button>
-                      <button
-                        type="button"
-                        className="account-link-button"
-                        onClick={() => {
-                          setAccountError(null);
-                          setAccountVerificationMessage(null);
-                          setAccountDevVerificationToken(null);
-                          openAccountDialog("login");
-                        }}
-                      >
-                        Back To Sign In
-                      </button>
-                    </>
-                  )}
-                </>
-              ) : accountDialogMode === "forgot-password" ? (
-                <>
-                  <label className="account-field">
-                    <span>Email</span>
-                    <input
-                      type="email"
-                      value={accountEmail}
-                      autoComplete="email"
-                      onBlur={() => setAccountEmail((current) => normalizeAccountEmail(current))}
-                      onChange={(event) => setAccountEmail(event.target.value)}
-                    />
-                  </label>
-                  {accountResetMessage ? (
-                    <div className="account-reset-status" role="status">
-                      <p>{accountResetMessage}</p>
-                      {accountDevResetToken ? (
-                        <>
-                          <p className="account-reset-dev-note">Local dev mode: no email was sent. Use this generated token to test recovery.</p>
-                          <button
-                            type="button"
-                            className="account-link-button"
-                            onClick={() => {
-                              setAccountResetToken(accountDevResetToken);
-                              setAccountPassword("");
-                              setAccountPasswordConfirmation("");
-                              setAccountError(null);
-                              openAccountDialog("reset-password");
-                            }}
-                          >
-                            Open Local Reset Form
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {accountError ? (
-                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
-                      {accountError}
-                    </p>
-                  ) : null}
-                  <button type="button" className="account-primary-button" onClick={handleRequestPasswordReset} disabled={accountBusy}>
-                    Send Reset Link
-                  </button>
-                  <button
-                    type="button"
-                    className="account-link-button"
-                    onClick={() => {
-                      setAccountError(null);
-                      setAccountResetMessage(null);
-                      setAccountDevResetToken(null);
-                      openAccountDialog("login");
-                    }}
-                  >
-                    Back To Sign In
-                  </button>
-                </>
-              ) : accountDialogMode === "reset-password" ? (
-                <>
-                  {accountResetToken.trim() ? (
-                    <p className="account-reset-hint">Enter a new password to finish recovery.</p>
-                  ) : (
-                    <label className="account-field">
-                      <span>Reset token</span>
-                      <input
-                        value={accountResetToken}
-                        autoComplete="one-time-code"
-                        onChange={(event) => setAccountResetToken(event.target.value)}
-                      />
-                    </label>
-                  )}
-                  <label className="account-field">
-                    <span>New password</span>
-                    <input
-                      type="password"
-                      value={accountPassword}
-                      autoComplete="new-password"
-                      aria-describedby="account-password-help"
-                      onChange={(event) => setAccountPassword(event.target.value)}
-                    />
-                  </label>
-                  <label className="account-field">
-                    <span>Confirm password</span>
-                    <input
-                      type="password"
-                      value={accountPasswordConfirmation}
-                      autoComplete="new-password"
-                      onChange={(event) => setAccountPasswordConfirmation(event.target.value)}
-                    />
-                  </label>
-                  <p id="account-password-help" className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">
-                    Use at least 8 characters with a letter and a number, symbol, or space.
-                  </p>
-                  {accountError ? (
-                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
-                      {accountError}
-                    </p>
-                  ) : null}
-                  <button type="button" className="account-primary-button" onClick={handleConfirmPasswordReset} disabled={accountBusy}>
-                    Reset Password
-                  </button>
-                  <button
-                    type="button"
-                    className="account-link-button"
-                    onClick={() => {
-                      setAccountError(null);
-                      openAccountDialog("login");
-                    }}
-                  >
-                    Back To Sign In
-                  </button>
-                </>
-              ) : (
-                <>
-                  {accountDialogMode === "register" ? (
-                    <label className="account-field">
-                      <span>Display name</span>
-                      <input value={accountDisplayName} onChange={(event) => setAccountDisplayName(event.target.value)} />
-                    </label>
-                  ) : null}
-                  <label className="account-field">
-                    <span>Email</span>
-                    <input
-                      type="email"
-                      value={accountEmail}
-                      autoComplete="email"
-                      aria-invalid={Boolean(accountError && accountDialogMode === "register")}
-                      onBlur={() => setAccountEmail((current) => normalizeAccountEmail(current))}
-                      onChange={(event) => setAccountEmail(event.target.value)}
-                    />
-                  </label>
-                  {accountDialogMode === "login" ? (
-                    <label className="account-field">
-                      <span>Password</span>
-                      <input
-                        type="password"
-                        value={accountPassword}
-                        autoComplete="current-password"
-                        onChange={(event) => setAccountPassword(event.target.value)}
-                      />
-                    </label>
-                  ) : null}
-                  {accountDialogMode === "login" ? (
-                    <button
-                      type="button"
-                      className="account-link-button justify-self-start"
-                      onClick={() => {
-                        setAccountError(null);
-                        setAccountResetMessage(null);
-                        setAccountDevResetToken(null);
-                        openAccountDialog("forgot-password");
-                      }}
-                    >
-                      Forgot Password?
-                    </button>
-                  ) : null}
-                  {accountDialogMode === "register" ? (
-                    <p className="account-reset-hint">
-                      We will email a one-time link. You will choose your password only after opening it, so nobody else can pre-register a password for your address.
-                    </p>
-                  ) : null}
-                  {accountError ? (
-                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
-                      {accountError}
-                    </p>
-                  ) : null}
-                  <button type="submit" className="account-primary-button" disabled={accountBusy}>
-                    {accountDialogMode === "login" ? "Sign In" : "Create Account"}
-                  </button>
-                  <button
-                    type="button"
-                    className="account-link-button"
-                    onClick={() => {
-                      setAccountError(null);
-                      openAccountDialog("auth-choice");
-                    }}
-                  >
-                    Back To Options
-                  </button>
-                </>
-              )}
-            </form>
-          </section>
-        </div>
-      ) : null}
+      <AccountDialog
+        isOpen={Boolean(accountDialogRequest)}
+        request={accountDialogRequest}
+        accountState={accountState}
+        authConfig={authConfig}
+        reducedMotion={reducedMotion}
+        onClose={closeAccountDialog}
+        onAuthenticated={handleAuthenticated}
+      />
       {isMobile && (!showClosedScreen || displayData.snapshot) && dashboardAvailabilityNotice ? (
         <div
           className={`dashboard-availability-notice ${isMobile && (!displayData.snapshot || showMobileStatusPeek && !showClosedScreen) ? "dashboard-availability-notice--mobile-hidden" : ""}`}

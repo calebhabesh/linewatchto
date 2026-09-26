@@ -25,7 +25,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { AccessibilityMenuIcon } from "./AccessibilityMenuIcon";
-import type { AccountState } from "../app/account-data";
+import type { AccountState } from "../app/auth-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { NetworkId } from "../app/regional-data";
 import SquishSwitch from "./SquishSwitch";

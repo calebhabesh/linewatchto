@@ -7,7 +7,8 @@ export type GeographicLifecycleEventType =
   | "error"
   | "focus"
   | "moveend"
-  | "resize";
+  | "resize"
+  | "sourceUpdate";
 
 export interface GeographicLifecycleEvent {
   type: GeographicLifecycleEventType;
@@ -23,9 +24,12 @@ export interface GeographicMapLifecycleStats {
   readyTransitions: number;
   errorTransitions: number;
   resizes: number;
+  sourceUpdates: number;
   events: GeographicLifecycleEvent[];
   getProjectedImpactAnchor: (key: string) => { x: number; y: number } | null;
   getProjectedSelectionBounds: (key: string) => { left: number; top: number; right: number; bottom: number } | null;
+  isMoving: () => boolean;
+  getCamera: () => { lng: number; lat: number; zoom: number } | null;
   reset: () => void;
 }
 
@@ -45,9 +49,12 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
       readyTransitions: 0,
       errorTransitions: 0,
       resizes: 0,
+      sourceUpdates: 0,
       events: [],
       getProjectedImpactAnchor: () => null,
       getProjectedSelectionBounds: () => null,
+      isMoving: () => false,
+      getCamera: () => null,
       reset() {},
     };
   }
@@ -59,9 +66,12 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
     readyTransitions: 0,
     errorTransitions: 0,
     resizes: 0,
+    sourceUpdates: 0,
     events: [],
     getProjectedImpactAnchor: () => null,
     getProjectedSelectionBounds: () => null,
+    isMoving: () => false,
+    getCamera: () => null,
     reset() {
       this.constructors = 0;
       this.removals = 0;
@@ -70,6 +80,7 @@ export function getGeographicMapLifecycle(): GeographicMapLifecycleStats {
       this.readyTransitions = 0;
       this.errorTransitions = 0;
       this.resizes = 0;
+      this.sourceUpdates = 0;
       this.events = [];
     },
   });
@@ -103,6 +114,7 @@ export function recordGeographicMapLifecycle(
   else if (type === "ready") store.readyTransitions++;
   else if (type === "error") store.errorTransitions++;
   else if (type === "resize") store.resizes++;
+  else if (type === "sourceUpdate") store.sourceUpdates++;
 
   store.events.push({
     type,

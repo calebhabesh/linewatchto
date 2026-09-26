@@ -17,13 +17,32 @@ const waitFor = (milliseconds: number) => new Promise<void>((resolve) => {
   window.setTimeout(resolve, milliseconds);
 });
 
+export type DashboardRefreshOptions = {
+  fetcher?: Fetcher;
+  deferReliability?: boolean;
+};
+
 export async function getDashboardRefresh(
   networkId: NetworkId,
-  fetcherOrDefer: Fetcher | boolean = fetch,
+  optionsOrFetcherOrDefer: Fetcher | boolean | DashboardRefreshOptions = fetch,
   deferReliability = false,
 ): Promise<DashboardRefreshResult> {
-  const fetcher = typeof fetcherOrDefer === "function" ? fetcherOrDefer : fetch;
-  const shouldDefer = typeof fetcherOrDefer === "boolean" ? fetcherOrDefer : deferReliability;
+  let fetcher: Fetcher = fetch;
+  let shouldDefer = deferReliability;
+
+  if (typeof optionsOrFetcherOrDefer === "function") {
+    fetcher = optionsOrFetcherOrDefer;
+  } else if (typeof optionsOrFetcherOrDefer === "boolean") {
+    shouldDefer = optionsOrFetcherOrDefer;
+  } else if (optionsOrFetcherOrDefer && typeof optionsOrFetcherOrDefer === "object") {
+    if (optionsOrFetcherOrDefer.fetcher) {
+      fetcher = optionsOrFetcherOrDefer.fetcher;
+    }
+    if (typeof optionsOrFetcherOrDefer.deferReliability === "boolean") {
+      shouldDefer = optionsOrFetcherOrDefer.deferReliability;
+    }
+  }
+
   const reliabilityRequest = shouldDefer
     ? null
     : fetcher(apiUrl(`/api/reliability/lines?network=${networkId}`), {

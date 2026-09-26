@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Construct
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
-import type { AccountCommutePathPreview } from "../app/account-data";
+import type { AccountCommutePathPreview } from "../app/commute-data";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";

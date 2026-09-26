@@ -17,11 +17,19 @@ function environmentLabel() {
   return process.env.NODE_ENV === "development" ? "Dev" : "";
 }
 
-const allowedDevOrigins = [
-  '192.0.2.25',
-  '192.0.2.25:3000',
+const rawDevOrigins = [
   process.env.LINEWATCH_DEV_ALLOWED_ORIGIN,
-].filter((origin): origin is string => Boolean(origin));
+  ...(process.env.LINEWATCH_DEV_ALLOWED_ORIGINS
+    ? process.env.LINEWATCH_DEV_ALLOWED_ORIGINS.split(/[\s,]+/)
+    : []),
+];
+const allowedDevOrigins = Array.from(
+  new Set(
+    rawDevOrigins
+      .map((origin) => origin?.trim())
+      .filter((origin): origin is string => Boolean(origin)),
+  ),
+);
 
 const staticGuideCacheControl = "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
 const staticGuideSources = ["/explore", "/ttc", "/ttc/:path*", "/go-up", "/go-up/:path*"];

@@ -1,5 +1,4 @@
 export const MAP_CHOOSER_KEEPOUT_SELECTOR = [
-  ".desktop-status-capsule-anchor",
   ".desktop-map-control-rail",
   ".desktop-map-legend",
   ".desktop-status-chip-row-container",
@@ -16,7 +15,6 @@ export const MAP_CHOOSER_KEEPOUT_SELECTOR = [
   ".rotated-map-hud",
   ".rotated-map-selection-hud",
   ".subway-closing-soon-chip",
-  ".subway-closed-peek-chip",
   ".saved-station-global-notice",
   "header button",
   "header a",

@@ -154,4 +154,22 @@ describe("desktop navigation destinations", () => {
     assert.match(desktopChromeCss, /\.desktop-status-info-badge--surface\[data-count="positive"\]\s*\{[^}]*color:\s*#047857;/s);
     assert.match(desktopChromeCss, /\.dark \.desktop-status-info-badge--surface\[data-count="positive"\]\s*\{[^}]*color:\s*#a7f3d0;/s);
   });
+
+  describe("keyboard roving focus navigation", () => {
+    it("supports ArrowDown, ArrowUp, Home, and End roving focus across rail items", () => {
+      assert.match(railSource, /handleItemKeyDown/);
+      assert.match(railSource, /event\.key === "ArrowDown"/);
+      assert.match(railSource, /event\.key === "ArrowUp"/);
+      assert.match(railSource, /event\.key === "Home"/);
+      assert.match(railSource, /event\.key === "End"/);
+      assert.match(railSource, /handleToggleKeyDown/);
+      assert.match(railSource, /itemRefs\.current\[0\]\?\.focus\(\)/);
+    });
+
+    it("binds refs and keyboard handlers to all rail buttons", () => {
+      assert.match(railSource, /itemRefs\.current\[index\] = element/);
+      assert.match(railSource, /onKeyDown=\{\(e\) => handleItemKeyDown\(index, e\)\}/);
+      assert.match(railSource, /onKeyDown=\{handleToggleKeyDown\}/);
+    });
+  });
 });

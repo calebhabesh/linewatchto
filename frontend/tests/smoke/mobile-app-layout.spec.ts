@@ -113,6 +113,7 @@ test("Saved remembers the last section across navigation and reloads", async ({ 
 
 test("mobile search dismisses with a sleek slide out and fade out animation", async ({ page, isMobile }) => {
   test.skip(!isMobile);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
   const search = page.getByRole("searchbox", { name: "Station Search" });
   await search.click();

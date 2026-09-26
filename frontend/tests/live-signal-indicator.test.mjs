@@ -8,6 +8,7 @@ const stationPanelSource = readFileSync(new URL("../src/components/StationDetail
 const regionalStationPanelSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const myStationsPanelSource = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const surfaceConnectionsSource = readFileSync(new URL("../src/components/SurfaceConnectionsSection.tsx", import.meta.url), "utf8");
+const badgeSource = readFileSync(new URL("../src/components/ArrivalSourceBadge.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
 describe("live signal indicator and propagating wave visual effect", () => {
@@ -41,23 +42,22 @@ describe("live signal indicator and propagating wave visual effect", () => {
     assert.match(globalCss, /\.motion-paused \.live-signal-icon/);
   });
 
-  it("renders LiveSignalIcon to the right of the LIVE badge text in StationDetailPanel", () => {
-    assert.match(stationPanelSource, /import\s*\{[^}]*LiveSignalIcon[^}]*\}\s*from\s*"\.\/LiveSignalIcon"/);
-    assert.match(stationPanelSource, /\{groupSourceLabel\}[\s\S]*\{groupSourceLabel === "Live"\s*\?\s*\(\s*<LiveSignalIcon[\s\S]*ml-1/);
+  it("renders LiveSignalIcon to the right of the LIVE badge text in ArrivalSourceBadge", () => {
+    assert.match(badgeSource, /import\s*\{[^}]*LiveSignalIcon[^}]*\}\s*from\s*"\.\/LiveSignalIcon"/);
+    assert.match(badgeSource, /\{label\}[\s\S]*\{label === "Live"\s*\?\s*\(\s*<LiveSignalIcon[\s\S]*ml-1/);
   });
 
-  it("renders LiveSignalIcon to the right of the LIVE badge text in RegionalStationDetailPanel", () => {
-    assert.match(regionalStationPanelSource, /import\s*\{[^}]*LiveSignalIcon[^}]*\}\s*from\s*"\.\/LiveSignalIcon"/);
-    assert.match(regionalStationPanelSource, /\{statusLabel\}[\s\S]*\{statusLabel === "Live"\s*\?\s*\(\s*<LiveSignalIcon[\s\S]*ml-1/);
+  it("renders LiveSignalIcon in ArrivalTileSourceIndicator for individual live arrival tiles", () => {
+    assert.match(stationPanelSource, /<ArrivalTileSourceIndicator/);
+    assert.match(regionalStationPanelSource, /<ArrivalTileSourceIndicator/);
+    assert.match(myStationsPanelSource, /<ArrivalTileSourceIndicator/);
+    assert.match(surfaceConnectionsSource, /<ArrivalTileSourceIndicator/);
   });
 
-  it("renders LiveSignalIcon to the right of LIVE arrival badges in MyStationsPanel", () => {
-    assert.match(myStationsPanelSource, /import\s*\{[^}]*LiveSignalIcon[^}]*\}\s*from\s*"\.\/LiveSignalIcon"/);
-    assert.match(myStationsPanelSource, /\{sourceLabel\}[\s\S]*\{sourceLabel === "Live"\s*\?\s*\(\s*<LiveSignalIcon[\s\S]*ml-1/);
-  });
-
-  it("renders LiveSignalIcon to the right of LIVE arrival badges in SurfaceConnectionsSection", () => {
-    assert.match(surfaceConnectionsSource, /import\s*\{[^}]*LiveSignalIcon[^}]*\}\s*from\s*"\.\/LiveSignalIcon"/);
-    assert.match(surfaceConnectionsSource, /\{groupSourceLabel\}[\s\S]*\{groupSourceLabel === "Live"\s*\?\s*\(\s*<LiveSignalIcon/);
+  it("renders ArrivalSourceBadge across StationDetailPanel, RegionalStationDetailPanel, MyStationsPanel, and SurfaceConnectionsSection", () => {
+    assert.match(stationPanelSource, /<ArrivalSourceBadge\s+label=\{groupSourceLabel\}/);
+    assert.match(regionalStationPanelSource, /<ArrivalSourceBadge\s+label=\{statusLabel\}/);
+    assert.match(myStationsPanelSource, /<ArrivalSourceBadge[\s\S]*?label=\{sourceLabel\}[\s\S]*?size="compact"/);
+    assert.match(surfaceConnectionsSource, /<ArrivalSourceBadge\s+label=\{groupSourceLabel\}/);
   });
 });

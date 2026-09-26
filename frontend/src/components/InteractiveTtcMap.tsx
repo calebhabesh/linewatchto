@@ -22,7 +22,7 @@ import {
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
 import { MOBILE_VIEWPORT_QUERY } from "../hooks/useMobilePerformanceMode";
-import { readDesktopOverlayInsets } from "../app/desktop-sidebar-state";
+import { readDesktopLeftOcclusion, measureDesktopMapInsets } from "../app/desktop-sidebar-state";
 import {
   clampPanZoomScale,
   clientRectToLogicalViewportBounds,
@@ -53,7 +53,7 @@ import type {
   TravelDirection,
 } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
-import type { AccountCommutePathPreview } from "../app/account-data";
+import type { AccountCommutePathPreview } from "../app/commute-data";
 import {
   estimatedTrainMarkerLanePoint,
   createEstimatedTrainMarkerTransition,
@@ -116,6 +116,19 @@ import {
   visibleMapChooserKeepouts,
 } from "./map-chooser-keepouts";
 import { isMapWheelScrollRegionTarget } from "./map-wheel-events";
+import { getImpactPriority } from "../app/map-alert-selector";
+import {
+  OVERLAP_CHOOSER_MOBILE_BREAKPOINT,
+  boundsForBadgePosition,
+  expandBox,
+  boxesIntersect,
+  boxIntersectionArea,
+  boundsListsMatch,
+  boundsContainingBoxes,
+  overlapChooserSize,
+  overlapChooserScreenLayout,
+  type OverlapChooserScreenLayout,
+} from "./ttc-chooser-placement";
 
 const SVG_TO_RENDERED_MAP_SCALE = 4500 / 8250;
 const DESKTOP_MAP_HORIZONTAL_INSET_RATIO = 0.025;
@@ -458,12 +471,7 @@ function InteractiveTtcMapComponent({
     if (typeof window === "undefined" || window.innerWidth < 768) return 0;
     const rail = document.querySelector<HTMLElement>(".desktop-map-control-rail");
     const root = document.querySelector<HTMLElement>(".ttc-map-root");
-    if (rail && root && window.getComputedStyle(rail).display !== "none") {
-      const railRect = rail.getBoundingClientRect();
-      const rootRect = root.getBoundingClientRect();
-      return Math.max(0, Math.round(railRect.bottom - rootRect.top));
-    }
-    return 76;
+    return measureDesktopMapInsets(root, rail).top || 76;
   });
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const desktopMapInsetsRef = useRef({ top: desktopMapTopInset, bottom: desktopMapBottomInset });
@@ -655,39 +663,13 @@ function InteractiveTtcMapComponent({
     if (!root || !rail) return;
 
     const measureDesktopInsets = () => {
-      const railStyle = window.getComputedStyle(rail);
-      if (railStyle.display === "none" || window.innerWidth < 768) {
-        setDesktopMapTopInset(0);
-        setDesktopMapBottomInset(0);
-        return;
-      }
-
-      const rootRect = root.getBoundingClientRect();
-      const railRect = rail.getBoundingClientRect();
-      const nextTopInset = Math.max(0, Math.round(railRect.bottom - rootRect.top));
-
-      const impactBadges = document.querySelector<HTMLElement>(".desktop-status-chip-row-container");
-      const legend = document.querySelector<HTMLElement>(".desktop-map-legend");
-      let nextBottomInset = 0;
-      if (impactBadges && window.getComputedStyle(impactBadges).display !== "none") {
-        const badgesRect = impactBadges.getBoundingClientRect();
-        if (badgesRect.width > 0 && badgesRect.height > 0) {
-          nextBottomInset = Math.max(0, Math.round(rootRect.bottom - badgesRect.top));
-        }
-      }
-      if (legend && window.getComputedStyle(legend).display !== "none") {
-        const legendRect = legend.getBoundingClientRect();
-        if (legendRect.width > 0 && legendRect.height > 0) {
-          nextBottomInset = Math.max(nextBottomInset, Math.round(rootRect.bottom - legendRect.top));
-        }
-      }
-
-      const insetsChanged = desktopMapInsetsRef.current.top !== nextTopInset
-        || desktopMapInsetsRef.current.bottom !== nextBottomInset;
+      const insets = measureDesktopMapInsets(root, rail);
+      const insetsChanged = desktopMapInsetsRef.current.top !== insets.top
+        || desktopMapInsetsRef.current.bottom !== insets.bottom;
       if (insetsChanged) {
-        desktopMapInsetsRef.current = { top: nextTopInset, bottom: nextBottomInset };
-        setDesktopMapTopInset(nextTopInset);
-        setDesktopMapBottomInset(nextBottomInset);
+        desktopMapInsetsRef.current = insets;
+        setDesktopMapTopInset(insets.top);
+        setDesktopMapBottomInset(insets.bottom);
         refitIfCameraUntouched();
       }
     };
@@ -1058,26 +1040,9 @@ function InteractiveTtcMapComponent({
     };
 
     if (!isMobile && typeof window !== "undefined") {
-      const desktopOverlay = readDesktopOverlayInsets(viewport);
-      const shell = viewport.closest<HTMLElement>(".linewatch-shell");
-      const overlayRightEdges = [
-        desktopOverlay.left > 0 ? viewportRect.left + desktopOverlay.left : null,
-        desktopMenuPinned ? shell?.querySelector<HTMLElement>("#linewatch-main-menu") : null,
-        shell?.querySelector<HTMLElement>(".floating-panel-shell"),
-      ].flatMap((element) => {
-        if (typeof element === "number") return [element];
-        if (!element || element.getAttribute("aria-hidden") === "true") return [];
-        const rect = element.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0 ? [rect.right] : [];
-      });
-
-      if (overlayRightEdges.length > 0) {
-        const overlayRight = Math.max(...overlayRightEdges);
-        const minimumVisibleWidth = Math.min(320, viewportRect.width * 0.4);
-        selectionFocusInsets.left = Math.max(selectionFocusInsets.left, Math.min(
-          Math.max(overlayRight - viewportRect.left + 24, 0),
-          Math.max(viewportRect.width - minimumVisibleWidth, 0),
-        ));
+      const leftOcclusion = readDesktopLeftOcclusion(viewport, desktopMenuPinned, 24);
+      if (leftOcclusion > 0) {
+        selectionFocusInsets.left = Math.max(selectionFocusInsets.left, leftOcclusion);
       }
     }
 
@@ -3102,14 +3067,6 @@ const OVERLAP_BADGE_TEXT_PADDING = 18;
 const STANDARD_MAP_COMPONENT_MAX_BOUNDS = 1200;
 const LARGE_MAP_COMPONENT_MAX_THICKNESS = 220;
 const LARGE_MAP_COMPONENT_TILE_LENGTH = 760;
-const MAP_SVG_TO_CSS_SCALE = 4500 / MAP_VIEWBOX_BOUNDS.width;
-const OVERLAP_CHOOSER_WIDTH = 360;
-const OVERLAP_CHOOSER_MOBILE_BREAKPOINT = 640;
-const OVERLAP_CHOOSER_MOBILE_WIDTH = 280;
-const OVERLAP_CHOOSER_TARGET_GAP = 16;
-const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;
-const OVERLAP_CHOOSER_UI_GAP = 8;
-const MAX_SOFT_OVERLAY_DISTANCE_PENALTY = 48;
 
 function impactCollisionKey(kind: MapImpactKind, cardId: string): string {
   return `${kind}:${cardId}`;
@@ -3141,429 +3098,6 @@ function stationOverlapProtectedBox(point: MapPoint): SvgBounds {
     { x: point.x, y: point.y, width: 0, height: 0 },
     OVERLAY_CORRIDOR_COLLISION_RADIUS,
   );
-}
-
-function overlapChooserSize(impactCount: number, viewportWidth = OVERLAP_CHOOSER_WIDTH + 32): OverlapBadgeSize {
-  const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT;
-  const maximumWidth = isMobile ? OVERLAP_CHOOSER_MOBILE_WIDTH : OVERLAP_CHOOSER_WIDTH;
-  const horizontalMargin = isMobile ? 48 : 32;
-  return {
-    width: Math.max(240, Math.min(maximumWidth, viewportWidth - horizontalMargin)),
-    height: isMobile
-      ? Math.min(380, 56 + impactCount * 64)
-      : Math.min(440, 68 + impactCount * 88),
-  };
-}
-
-function clampChooserScreenCoordinate(
-  coordinate: number,
-  chooserLength: number,
-  viewportLength: number,
-  margin: number,
-): number {
-  const minimum = margin + chooserLength / 2;
-  const maximum = Math.max(minimum, viewportLength - margin - chooserLength / 2);
-  return Math.min(maximum, Math.max(minimum, coordinate));
-}
-
-type OverlapChooserScreenLayout = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  anchorOffsetX: number;
-  anchorOffsetY: number;
-};
-
-const OVERLAP_CHOOSER_MIN_COMPACT_HEIGHT = 142;
-const OVERLAP_CHOOSER_HEIGHT_STEP = 4;
-
-function overlapChooserScreenLayout(
-  badge: OverlapBadgeWithChooser,
-  mapTransform: { x: number; y: number; scale: number },
-  viewportSize: { width: number; height: number },
-  screenKeepoutBoxes: SvgBounds[] = [],
-  mapAlertOverlayBoxes: SvgBounds[] = [],
-): OverlapChooserScreenLayout {
-  const mapContentScale = mapTransform.scale * MAP_SVG_TO_CSS_SCALE;
-  const anchor = {
-    x: mapTransform.x + badge.position.x * mapContentScale,
-    y: mapTransform.y + badge.position.y * mapContentScale,
-  };
-  const proposed = {
-    x: mapTransform.x + badge.chooserPosition.x * mapContentScale,
-    y: mapTransform.y + badge.chooserPosition.y * mapContentScale,
-  };
-  const toScreenBox = (box: SvgBounds): SvgBounds => ({
-    x: mapTransform.x + box.x * mapContentScale,
-    y: mapTransform.y + box.y * mapContentScale,
-    width: box.width * mapContentScale,
-    height: box.height * mapContentScale,
-  });
-  const representedProtectedBoxes = badge.protectedBoxes.map(toScreenBox);
-  const alertOverlayProtectedBoxes = mapAlertOverlayBoxes.map(toScreenBox);
-  const badgeScreenBox = expandBox({
-    x: anchor.x - badge.size.width * mapContentScale / 2,
-    y: anchor.y - badge.size.height * mapContentScale / 2,
-    width: badge.size.width * mapContentScale,
-    height: badge.size.height * mapContentScale,
-  }, OVERLAP_CHOOSER_UI_GAP);
-  const protectedArea = boundsContainingBoxes(representedProtectedBoxes) ?? {
-    x: anchor.x,
-    y: anchor.y,
-    width: 0,
-    height: 0,
-  };
-  const margin = 16;
-  const direction = {
-    x: proposed.x - anchor.x,
-    y: proposed.y - anchor.y,
-  };
-  const preferredAxis = Math.abs(direction.x) > Math.abs(direction.y) ? "horizontal" : "vertical";
-  const preferredHorizontalSign = direction.x < 0 ? -1 : 1;
-  const preferredVerticalSign = direction.y < 0 ? -1 : 1;
-  const paddedScreenKeepoutBoxes = screenKeepoutBoxes.map((box) => expandBox(box, OVERLAP_CHOOSER_UI_GAP));
-  const requestedSize = badge.chooserSize;
-  const minimumHeight = Math.min(
-    requestedSize.height,
-    Math.max(80, Math.min(OVERLAP_CHOOSER_MIN_COMPACT_HEIGHT, viewportSize.height - margin * 2)),
-  );
-  const heightCandidates: number[] = [];
-  for (let height = requestedSize.height; height > minimumHeight; height -= OVERLAP_CHOOSER_HEIGHT_STEP) {
-    heightCandidates.push(height);
-  }
-  heightCandidates.push(minimumHeight);
-
-  const attemptLayout = (chooserSize: OverlapBadgeSize) => {
-  const horizontalCenter = (sign: number, gap: number) => ({
-    x: sign < 0
-      ? protectedArea.x - chooserSize.width / 2 - gap
-      : protectedArea.x + protectedArea.width + chooserSize.width / 2 + gap,
-    y: clampChooserScreenCoordinate(proposed.y, chooserSize.height, viewportSize.height, margin),
-  });
-  const verticalCenter = (sign: number, gap: number) => ({
-    x: clampChooserScreenCoordinate(proposed.x, chooserSize.width, viewportSize.width, margin),
-    y: sign < 0
-      ? protectedArea.y - chooserSize.height / 2 - gap
-      : protectedArea.y + protectedArea.height + chooserSize.height / 2 + gap,
-  });
-  const candidatesForGap = (gap: number) => preferredAxis === "horizontal"
-    ? [
-        horizontalCenter(preferredHorizontalSign, gap),
-        horizontalCenter(-preferredHorizontalSign, gap),
-        verticalCenter(preferredVerticalSign, gap),
-        verticalCenter(-preferredVerticalSign, gap),
-      ]
-    : [
-        verticalCenter(preferredVerticalSign, gap),
-        verticalCenter(-preferredVerticalSign, gap),
-        horizontalCenter(preferredHorizontalSign, gap),
-        horizontalCenter(-preferredHorizontalSign, gap),
-      ];
-  const preferredCandidates = candidatesForGap(OVERLAP_CHOOSER_TARGET_GAP);
-  const edgeCandidates = candidatesForGap(0);
-  const hardKeepoutBoxes = [badgeScreenBox, ...paddedScreenKeepoutBoxes];
-  const uiKeepoutBoxes = paddedScreenKeepoutBoxes;
-  const localProtectedBoxes = nearestProtectedBoxesToPoint(representedProtectedBoxes, anchor, 6);
-  const alertEdgeCandidates = chooserKeepoutEdgeCandidates(
-    proposed,
-    chooserSize,
-    viewportSize,
-    [protectedArea, ...localProtectedBoxes],
-    margin,
-    OVERLAP_CHOOSER_TARGET_GAP,
-  );
-  const uiEdgeCandidates = chooserKeepoutEdgeCandidates(
-    proposed,
-    chooserSize,
-    viewportSize,
-    hardKeepoutBoxes,
-    margin,
-  );
-  const hardBlockedBoxes = [...representedProtectedBoxes, ...hardKeepoutBoxes];
-  const viewportCandidates = boundedChooserViewportCandidates(
-    anchor,
-    chooserSize,
-    viewportSize,
-    margin,
-  );
-  const exhaustiveUiCandidates = chooserKeepoutGridCandidates(
-    proposed,
-    chooserSize,
-    viewportSize,
-    hardKeepoutBoxes,
-    margin,
-  );
-  const allCandidates = [
-    ...preferredCandidates,
-    ...edgeCandidates,
-    ...alertEdgeCandidates,
-    ...uiEdgeCandidates,
-    ...viewportCandidates,
-    ...exhaustiveUiCandidates,
-  ];
-  const validCandidates = allCandidates
-    .filter((candidate) =>
-      chooserCenterFitsViewport(candidate, chooserSize, viewportSize, 0)
-        && chooserCenterAvoidsProtectedBoxes(candidate, chooserSize, hardBlockedBoxes),
-    );
-  const uiSafeCandidates = validCandidates.length > 0 ? [] : [
-    ...allCandidates,
-  ].filter((candidate) =>
-    chooserCenterFitsViewport(candidate, chooserSize, viewportSize, 0)
-      && chooserCenterAvoidsProtectedBoxes(candidate, chooserSize, uiKeepoutBoxes),
-  );
-  const badgeOnlyCandidates = validCandidates.length > 0 || uiSafeCandidates.length > 0
-    ? []
-    : [
-        ...preferredCandidates,
-        ...edgeCandidates,
-        ...viewportCandidates,
-        ...exhaustiveUiCandidates,
-      ].filter((candidate) =>
-        chooserCenterFitsViewport(candidate, chooserSize, viewportSize, 0)
-          && chooserCenterAvoidsProtectedBoxes(candidate, chooserSize, [badgeScreenBox]),
-      );
-  const centerCandidates = validCandidates.length > 0
-    ? validCandidates
-    : uiSafeCandidates.length > 0
-      ? uiSafeCandidates
-      : badgeOnlyCandidates;
-  const center = centerCandidates.reduce<{ position: MapPoint; score: number } | null>((best, position) => {
-    const score = scoreChooserScreenCandidate(
-      position,
-      anchor,
-      chooserSize,
-      representedProtectedBoxes,
-      alertOverlayProtectedBoxes,
-    );
-    return !best || score < best.score ? { position, score } : best;
-  }, null)?.position ?? {
-    x: clampChooserScreenCoordinate(proposed.x, chooserSize.width, viewportSize.width, margin),
-    y: clampChooserScreenCoordinate(proposed.y, chooserSize.height, viewportSize.height, margin),
-  };
-
-  return {
-    center,
-    clearsUiKeepouts: validCandidates.length > 0 || uiSafeCandidates.length > 0,
-  };
-  };
-
-  let chosenSize = requestedSize;
-  let chosenAttempt = attemptLayout(requestedSize);
-  for (const height of heightCandidates) {
-    const size = { width: requestedSize.width, height };
-    const attempt = attemptLayout(size);
-    chosenSize = size;
-    chosenAttempt = attempt;
-    if (attempt.clearsUiKeepouts) break;
-  }
-  const center = chosenAttempt.center;
-
-  return {
-    left: center.x - chosenSize.width / 2,
-    top: center.y - chosenSize.height / 2,
-    width: chosenSize.width,
-    height: chosenSize.height,
-    anchorOffsetX: anchor.x - center.x,
-    anchorOffsetY: anchor.y - center.y,
-  };
-}
-
-function boundedChooserViewportCandidates(
-  anchor: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  viewportSize: { width: number; height: number },
-  margin: number,
-): MapPoint[] {
-  const minimumX = margin + chooserSize.width / 2;
-  const maximumX = viewportSize.width - margin - chooserSize.width / 2;
-  const minimumY = margin + chooserSize.height / 2;
-  const maximumY = viewportSize.height - margin - chooserSize.height / 2;
-  if (maximumX < minimumX || maximumY < minimumY) return [];
-
-  const nearHorizontalOffset = chooserSize.width / 2 + OVERLAP_CHOOSER_UI_GAP;
-  const nearVerticalOffset = chooserSize.height / 2 + OVERLAP_CHOOSER_UI_GAP;
-  const xCoordinates = [
-    minimumX,
-    clampChooserScreenCoordinate(anchor.x - nearHorizontalOffset, chooserSize.width, viewportSize.width, margin),
-    clampChooserScreenCoordinate(anchor.x, chooserSize.width, viewportSize.width, margin),
-    clampChooserScreenCoordinate(anchor.x + nearHorizontalOffset, chooserSize.width, viewportSize.width, margin),
-    maximumX,
-  ];
-  const yCoordinates = [
-    minimumY,
-    clampChooserScreenCoordinate(anchor.y - nearVerticalOffset, chooserSize.height, viewportSize.height, margin),
-    clampChooserScreenCoordinate(anchor.y, chooserSize.height, viewportSize.height, margin),
-    clampChooserScreenCoordinate(anchor.y + nearVerticalOffset, chooserSize.height, viewportSize.height, margin),
-    maximumY,
-  ];
-  const seen = new Set<string>();
-  return xCoordinates.flatMap((x) => yCoordinates.flatMap((y) => {
-    const key = `${Math.round(x)}:${Math.round(y)}`;
-    if (seen.has(key)) return [];
-    seen.add(key);
-    return [{ x, y }];
-  }));
-}
-
-function scoreChooserScreenCandidate(
-  center: MapPoint,
-  anchor: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  referencedAlertBoxes: SvgBounds[],
-  softCollisionBoxes: SvgBounds[],
-): number {
-  const chooserBox = boundsForBadgePosition(center, chooserSize);
-  const nearestX = Math.max(chooserBox.x, Math.min(anchor.x, chooserBox.x + chooserBox.width));
-  const nearestY = Math.max(chooserBox.y, Math.min(anchor.y, chooserBox.y + chooserBox.height));
-  const proximity = Math.hypot(anchor.x - nearestX, anchor.y - nearestY);
-  const referencedAlertGap = referencedAlertBoxes.length > 0
-    ? minimumGapToBounds(chooserBox, referencedAlertBoxes)
-    : OVERLAP_CHOOSER_TARGET_GAP;
-  const gapDeviation = Math.abs(referencedAlertGap - OVERLAP_CHOOSER_TARGET_GAP);
-  const overlapArea = softCollisionBoxes.reduce(
-    (total, box) => total + boxIntersectionArea(chooserBox, box),
-    0,
-  );
-  const overlapRatio = Math.min(1, overlapArea / Math.max(1, chooserBox.width * chooserBox.height));
-  return proximity
-    + gapDeviation * OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT
-    + overlapRatio * MAX_SOFT_OVERLAY_DISTANCE_PENALTY;
-}
-
-function minimumBoundsGap(a: SvgBounds, b: SvgBounds): number {
-  const horizontalGap = Math.max(a.x - (b.x + b.width), b.x - (a.x + a.width), 0);
-  const verticalGap = Math.max(a.y - (b.y + b.height), b.y - (a.y + a.height), 0);
-  return Math.hypot(horizontalGap, verticalGap);
-}
-
-function minimumGapToBounds(bounds: SvgBounds, boxes: SvgBounds[]): number {
-  let minimumGap = Number.POSITIVE_INFINITY;
-  for (const box of boxes) {
-    minimumGap = Math.min(minimumGap, minimumBoundsGap(bounds, box));
-    if (minimumGap === 0) return 0;
-  }
-  return minimumGap;
-}
-
-function nearestProtectedBoxesToPoint(boxes: SvgBounds[], point: MapPoint, limit: number): SvgBounds[] {
-  const pointBounds = { x: point.x, y: point.y, width: 0, height: 0 };
-  return [...boxes]
-    .sort((a, b) => {
-      return minimumBoundsGap(a, pointBounds) - minimumBoundsGap(b, pointBounds);
-    })
-    .slice(0, limit);
-}
-
-function chooserKeepoutEdgeCandidates(
-  proposed: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  viewportSize: { width: number; height: number },
-  keepoutBoxes: SvgBounds[],
-  margin: number,
-  edgeGap: number = OVERLAP_CHOOSER_UI_GAP,
-): MapPoint[] {
-  const clampedX = clampChooserScreenCoordinate(proposed.x, chooserSize.width, viewportSize.width, margin);
-  const clampedY = clampChooserScreenCoordinate(proposed.y, chooserSize.height, viewportSize.height, margin);
-  const candidates = keepoutBoxes.flatMap((box) => [
-    {
-      x: clampedX,
-      y: box.y - chooserSize.height / 2 - edgeGap,
-    },
-    {
-      x: clampedX,
-      y: box.y + box.height + chooserSize.height / 2 + edgeGap,
-    },
-    {
-      x: box.x - chooserSize.width / 2 - edgeGap,
-      y: clampedY,
-    },
-    {
-      x: box.x + box.width + chooserSize.width / 2 + edgeGap,
-      y: clampedY,
-    },
-  ]);
-
-  return candidates.sort((a, b) =>
-    Math.hypot(a.x - proposed.x, a.y - proposed.y)
-      - Math.hypot(b.x - proposed.x, b.y - proposed.y),
-  );
-}
-
-function chooserKeepoutGridCandidates(
-  proposed: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  viewportSize: { width: number; height: number },
-  keepoutBoxes: SvgBounds[],
-  margin: number,
-): MapPoint[] {
-  const minimumX = margin + chooserSize.width / 2;
-  const maximumX = viewportSize.width - margin - chooserSize.width / 2;
-  const minimumY = margin + chooserSize.height / 2;
-  const maximumY = viewportSize.height - margin - chooserSize.height / 2;
-  if (maximumX < minimumX || maximumY < minimumY) return [];
-
-  const xCoordinates = new Set([minimumX, maximumX, Math.min(maximumX, Math.max(minimumX, proposed.x))]);
-  const yCoordinates = new Set([minimumY, maximumY, Math.min(maximumY, Math.max(minimumY, proposed.y))]);
-  keepoutBoxes.forEach((box) => {
-    xCoordinates.add(box.x - chooserSize.width / 2);
-    xCoordinates.add(box.x + box.width + chooserSize.width / 2);
-    yCoordinates.add(box.y - chooserSize.height / 2);
-    yCoordinates.add(box.y + box.height + chooserSize.height / 2);
-  });
-
-  return [...xCoordinates]
-    .filter((x) => x >= minimumX && x <= maximumX)
-    .flatMap((x) => [...yCoordinates]
-      .filter((y) => y >= minimumY && y <= maximumY)
-      .map((y) => ({ x, y })));
-}
-
-function boundsListsMatch(left: SvgBounds[], right: SvgBounds[]): boolean {
-  return left.length === right.length && left.every((box, index) => {
-    const other = right[index];
-    return Boolean(other)
-      && Math.abs(box.x - other.x) < 0.5
-      && Math.abs(box.y - other.y) < 0.5
-      && Math.abs(box.width - other.width) < 0.5
-      && Math.abs(box.height - other.height) < 0.5;
-  });
-}
-
-function boundsContainingBoxes(boxes: SvgBounds[]): SvgBounds | null {
-  if (boxes.length === 0) return null;
-  const left = Math.min(...boxes.map((box) => box.x));
-  const top = Math.min(...boxes.map((box) => box.y));
-  const right = Math.max(...boxes.map((box) => box.x + box.width));
-  const bottom = Math.max(...boxes.map((box) => box.y + box.height));
-  return { x: left, y: top, width: right - left, height: bottom - top };
-}
-
-function chooserCenterAvoidsProtectedBoxes(
-  center: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  protectedBoxes: SvgBounds[],
-): boolean {
-  const chooserBox = {
-    x: center.x - chooserSize.width / 2,
-    y: center.y - chooserSize.height / 2,
-    width: chooserSize.width,
-    height: chooserSize.height,
-  };
-  return protectedBoxes.every((box) => !boxesIntersect(chooserBox, box));
-}
-
-function chooserCenterFitsViewport(
-  center: MapPoint,
-  chooserSize: OverlapBadgeSize,
-  viewportSize: { width: number; height: number },
-  margin: number,
-): boolean {
-  return center.x - chooserSize.width / 2 >= margin
-    && center.x + chooserSize.width / 2 <= viewportSize.width - margin
-    && center.y - chooserSize.height / 2 >= margin
-    && center.y + chooserSize.height / 2 <= viewportSize.height - margin;
 }
 
 function overlapBadgePositionCandidates(size: OverlapBadgeSize, frame?: PathFrame | null): Array<{ dx: number; dy: number }> {
@@ -3690,21 +3224,6 @@ function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
   }
 }
 
-function getImpactPriority(kind: MapImpactKind): number {
-  switch (kind) {
-    case "suspension":
-      return 4;
-    case "delay":
-      return 3;
-    case "planned-closure":
-      return 2;
-    case "reduced-speed-zone":
-      return 1;
-    default:
-      return 0;
-  }
-}
-
 function getUniqueImpactKinds(impacts: MapImpact[]): MapImpactKind[] {
   return Array.from(new Set(impacts.map((impact) => impact.kind)))
     .sort((a, b) => getImpactPriority(b) - getImpactPriority(a));
@@ -3784,39 +3303,6 @@ function groupOverlapBadgeSegments(
 
 function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
   return mapOverlapIndicatorSizeForKindCount(impactKindCount);
-}
-
-function boundsForBadgePosition(position: MapPoint, size: OverlapBadgeSize): SvgBounds {
-  return {
-    x: position.x - size.width / 2,
-    y: position.y - size.height / 2,
-    width: size.width,
-    height: size.height,
-  };
-}
-
-function expandBox(box: SvgBounds, padding: number): SvgBounds {
-  return {
-    x: box.x - padding,
-    y: box.y - padding,
-    width: box.width + padding * 2,
-    height: box.height + padding * 2,
-  };
-}
-
-function boxesIntersect(a: SvgBounds, b: SvgBounds): boolean {
-  return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
-  );
-}
-
-function boxIntersectionArea(a: SvgBounds, b: SvgBounds): number {
-  const width = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
-  const height = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
-  return width * height;
 }
 
 function scoreBadgeCandidate(

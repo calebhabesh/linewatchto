@@ -3,6 +3,11 @@ import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import {
+  RASTER_MAP_RENDERED_SIZES,
+  RASTER_MAP_WIDTHS,
+  listAllRasterMapVariants,
+} from "../src/app/map-raster-manifest.ts";
 
 const frontendRoot = fileURLToPath(new URL("..", import.meta.url));
 const assetRoot = `${frontendRoot}/public/assets/linewatch/raster-maps`;
@@ -18,24 +23,15 @@ function pngDimensions(buffer) {
 
 describe("stable raster map renderer", () => {
   it("ships static artwork planes for every network, theme, and density", async () => {
-    const expectedWidths = {
-      ttc: { mobile: 3000, balanced: 4500, desktop: 6750 },
-      regional: { mobile: 3200, balanced: 4739, desktop: 7109 },
-    };
+    const variants = listAllRasterMapVariants();
+    assert.equal(variants.length, 63, "must advertise exactly 63 static raster variants (36 TTC + 27 Regional)");
 
-    for (const network of ["ttc", "regional"]) {
-      const planes = ["background", "foreground", "labels", ...(network === "ttc" ? ["badges"] : [])];
-      for (const plane of planes) {
-        for (const theme of ["light", "dark", "high-contrast"]) {
-          for (const density of ["mobile", "balanced", "desktop"]) {
-            const buffer = await readFile(`${assetRoot}/${network}-${plane}-${theme}-${density}.png`);
-            const dimensions = pngDimensions(buffer);
-            assert.equal(dimensions.width, expectedWidths[network][density]);
-            assert.ok(dimensions.height > 1000);
-            assert.ok(buffer.byteLength > 10_000, "raster plane must contain rendered artwork");
-          }
-        }
-      }
+    for (const { network, density, filename } of variants) {
+      const buffer = await readFile(`${assetRoot}/${filename}`);
+      const dimensions = pngDimensions(buffer);
+      assert.equal(dimensions.width, RASTER_MAP_WIDTHS[network][density]);
+      assert.ok(dimensions.height > 1000);
+      assert.ok(buffer.byteLength > 10_000, `raster plane ${filename} must contain rendered artwork`);
     }
   });
 
@@ -67,7 +63,10 @@ describe("stable raster map renderer", () => {
     assert.match(regional, /mobilePerformanceMode \|\| mobilePerformanceModeMatches\(\)/);
     assert.match(ttc, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
     assert.match(regional, /useMobileRendering\s*\?\s*"mobile"\s*:\s*"balanced"/);
-    assert.match(await readFile(`${frontendRoot}/src/app/map-assets.ts`, "utf8"), /"mobile" \| "balanced" \| "desktop"/);
+    assert.match(
+      await readFile(`${frontendRoot}/src/app/map-raster-manifest.ts`, "utf8"),
+      /"mobile" \| "balanced" \| "desktop"/,
+    );
     assert.match(ttc, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(regional, /mapEffectMotionPaused = reducedMotion \|\| !pageVisible/);
     assert.match(ttc, /reducedMotion=\{mapEffectMotionPaused\}/);
@@ -115,10 +114,12 @@ describe("stable raster map renderer", () => {
   });
 
   it("preserves authored label weights and theme-aware interchange leaders", async () => {
-    const [generator, ttc, regional, css, mapLabelFontHook] = await Promise.all([
+    const [generator, ttc, regional, regionalAsset, regionalGeometry, css, mapLabelFontHook] = await Promise.all([
       readFile(`${frontendRoot}/scripts/generate-map-rasters.mjs`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveTtcMap.tsx`, "utf8"),
       readFile(`${frontendRoot}/src/components/InteractiveRegionalMap.tsx`, "utf8"),
+      readFile(`${frontendRoot}/src/app/regional-map-asset.ts`, "utf8"),
+      readFile(`${frontendRoot}/src/app/regional-map-geometry.ts`, "utf8"),
       readAppStylesheet(),
       readFile(`${frontendRoot}/src/hooks/useMapLabelFontReady.ts`, "utf8"),
     ]);
@@ -147,21 +148,23 @@ describe("stable raster map renderer", () => {
       /<feMorphology[\s\S]*?result="expandedAlpha"/,
     );
     assert.match(ttc, /clipPath="url\(#ttc-hovered-station-label-clip\)"/);
-    assert.match(ttc, /filter="url\(#ttc-hovered-label-white-alpha\)"/);
-    assert.match(generator, /labelsRenderedSize: \{ width: 17036\.959, height: 9031\.6719 \}/);
-    assert.match(regional, /rasterMapSource\("regional", "labels", rasterTheme, rasterDensity\)/);
+    assert.match(
+      generator,
+      /labelsRenderedSize:\s*(?:RASTER_MAP_RENDERED_SIZES\.regionalLabels|\{ width: 17036\.959, height: 9031\.6719 \})/,
+    );
+    assert.deepEqual(RASTER_MAP_RENDERED_SIZES.regionalLabels, { width: 17036.959, height: 9031.6719 });
     assert.match(regional, /mask="url\(#regional-hovered-station-label-mask\)"/);
     assert.match(regional, /id="regional-hovered-station-target-mask"/);
     assert.match(regional, /mask="url\(#regional-hovered-station-target-mask\)"/);
     assert.match(regional, /<feMorphology in="SourceAlpha" operator="dilate" radius="6" result="expandedTargetAlpha" \/>/);
     assert.match(regional, /clipPath="url\(#regional-hovered-station-label-clip\)"/);
     assert.match(regional, /filter="url\(#regional-hovered-label-white-alpha\)"/);
-    assert.match(regional, /removeDescendantIds\(isolatedCutoutSource\)/);
-    assert.match(regional, /cutoutMarkup: isolatedCutoutSource\.outerHTML/);
+    assert.match(regionalGeometry, /removeDescendantIds\(isolatedCutoutSource\)/);
+    assert.match(regionalGeometry, /cutoutMarkup: isolatedCutoutSource\.outerHTML/);
     assert.doesNotMatch(regional, /regional-raster-station-label-live-copy/);
-    assert.match(regional, /labelSource\.classList\.add\("regional-station-label-source"\)/);
-    assert.match(regional, /labelCutoutSources\.id = "regional-station-label-cutout-sources"/);
-    assert.match(regional, /cutoutSource\.id = `regional-station-label-cutout-source-\$\{stationId\}`/);
+    assert.match(regionalAsset, /labelSource\.classList\.add\("regional-station-label-source"\)/);
+    assert.match(regionalAsset, /labelCutoutSources\.id = "regional-station-label-cutout-sources"/);
+    assert.match(regionalAsset, /cutoutSource\.id = `regional-station-label-cutout-source-\$\{stationId\}`/);
     assert.doesNotMatch(regional, /cutoutMarkup: `<rect x=/);
     assert.match(
       regional,

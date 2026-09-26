@@ -231,17 +231,16 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
       (element as HTMLElement).style.transform
     ))).not.toBe(regionalDefaultCamera);
     await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
-    const regionalCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
 
     await sidebar.getByRole("button", { name: "TTC", exact: true }).click();
     await expect(ttcStage).toHaveAttribute("data-raster-map-ready", "true");
     await expect(ttcViewport).toHaveAttribute("data-map-camera-moving", "false");
-    expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcCamera);
+    expect(await ttcStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(ttcDefaultCamera);
 
     await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
     await expect(regionalStage).toHaveAttribute("data-raster-map-ready", "true");
     await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
-    expect(await regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(regionalCamera);
+    expect(await regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(regionalDefaultCamera);
   });
 
   test("starts expanded on every desktop visit and ignores retired saved collapse state", async ({ page, request, isMobile }) => {

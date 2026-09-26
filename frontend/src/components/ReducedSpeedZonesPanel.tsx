@@ -6,7 +6,7 @@ import { DirectionalZoneCount } from "./DirectionalZoneCount";
 import { Construction } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactSelection } from "../app/linewatch-data";
-import type { AccountCommutePathPreview } from "../app/account-data";
+import type { AccountCommutePathPreview } from "../app/commute-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { MetadataGrid, CardSource, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";

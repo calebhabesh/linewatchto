@@ -8,7 +8,7 @@ import {
   pushDeviceDisabledStorageKey,
   setupStateAfterPreferenceUpdate,
 } from "../src/app/push-notification-state.ts";
-import { defaultPushNotificationPreferences } from "../src/app/account-data.ts";
+import { defaultPushNotificationPreferences } from "../src/app/push-data.ts";
 
 describe("push notification account and device state", () => {
   it("treats saved commute notification preferences as account-level intent", () => {

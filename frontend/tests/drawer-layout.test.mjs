@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts", import.meta.url), "utf8");
+const transitionsSource = readFileSync(new URL("../src/app/navigation-transitions.ts", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const lineStatusSource = readFileSync(new URL("../src/components/LineStatusPanel.tsx", import.meta.url), "utf8");
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
@@ -19,6 +21,7 @@ const impactOverlapRefsSource = readFileSync(new URL("../src/components/ImpactOv
 const impactOverlapRefsLogicSource = readFileSync(new URL("../src/components/impact-overlap-refs.ts", import.meta.url), "utf8");
 const impactTypeIconSource = readFileSync(new URL("../src/components/ImpactTypeIcon.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
+const savedCommuteCardSource = readFileSync(new URL("../src/components/SavedCommuteCard.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
 const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const linewatchDataSource = readFileSync(new URL("../src/app/linewatch-data.ts", import.meta.url), "utf8");
@@ -57,9 +60,9 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /@media \(max-width:\s*767px\)[\s\S]*?\.line-impacts-panel \.impact-list-toolbar\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/s);
     assert.match(globalCss, /\.line-impact-panel-stack\s*\{[^}]*overflow-y:\s*auto/s);
     assert.match(globalCss, /\.embedded-impact-panel > \.panel-heading,[\s\S]*display:\s*none !important/s);
-    assert.match(shellSource, /VIEW_SCROLL_SELECTORS[\s\S]*mobile-status-content-scroll[\s\S]*mobile-more-content-scroll/);
-    assert.match(shellSource, /viewScrollPositionsRef\.current\[currentView\] = scrollElement\.scrollTop/);
-    assert.match(shellSource, /scrollElement\.scrollTop = savedScrollTop/);
+    assert.match(shellSource + navSource + transitionsSource, /VIEW_SCROLL_SELECTORS[\s\S]*mobile-status-content-scroll[\s\S]*mobile-more-content-scroll/);
+    assert.match(shellSource + navSource, /viewScrollPositionsRef\.current\[currentView\] = scrollElement\.scrollTop/);
+    assert.match(shellSource + navSource, /scrollElement\.scrollTop = savedScrollTop/);
   });
 
   it("keeps legend shortcuts as temporary line-focused alert categories", () => {
@@ -194,8 +197,8 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /Demo Account/);
     assert.match(shellSource, /Create Account/);
     assert.match(shellSource, /Sign In/);
-    assert.match(savedCommutesSource, /impact\.statusLabel/);
-    assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
+    assert.match(savedCommuteCardSource, /impact\.statusLabel/);
+    assert.doesNotMatch(savedCommuteCardSource, /Impact matching pending/);
 
     assert.match(shellSource, /"status"/);
     assert.match(shellSource, /"more"/);
@@ -499,7 +502,6 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.subway-closed-screen/);
     assert.match(globalCss, /\.subway-closed-map-backdrop/);
     assert.match(globalCss, /filter:\s*blur\(9px\) saturate\(0\.72\) brightness\(0\.42\)/);
-    assert.match(globalCss, /\.subway-closed-peek-chip/);
     assert.match(globalCss, /#8B5CF6/);
     assert.match(globalCss, /#FACC15/);
   });

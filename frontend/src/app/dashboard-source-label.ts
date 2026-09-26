@@ -1,4 +1,4 @@
-import type { DashboardData } from "./DataContext";
+import type { DashboardData } from "./dashboard-contract";
 
 export function normalizeDashboardSourceLabel(source: string) {
   const normalized = source.trim();

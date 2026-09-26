@@ -1,4 +1,4 @@
-import type { AccountSavedCommuteNotificationRule } from "./account-data";
+import type { AccountSavedCommuteNotificationRule } from "./commute-data.ts";
 import type { NetworkId } from "./regional-data";
 
 export interface SavedCommuteDraft {

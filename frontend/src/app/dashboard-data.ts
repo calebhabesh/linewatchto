@@ -25,10 +25,10 @@ import {
   type Station,
   type StationNodeImpact
 } from "./linewatch-data";
-import type { DashboardData } from "./DataContext";
 import {
   isDashboardApiResponse,
   type DashboardApiResponse,
+  type DashboardData,
 } from "./dashboard-contract";
 import { dashboardDataFromApi } from "./dashboard-adapter";
 

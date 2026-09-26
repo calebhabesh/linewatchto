@@ -2,11 +2,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { getImpactPriority } from "../src/app/map-alert-selector.ts";
 
-const transitMapSource = readFileSync(new URL("../src/app/transit-map.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const interactiveRegionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const regionalGeometrySource = readFileSync(new URL("../src/app/regional-map-geometry.ts", import.meta.url), "utf8");
+const regionalAssetSource = readFileSync(new URL("../src/app/regional-map-asset.ts", import.meta.url), "utf8");
+const regionalOverlaysSource = readFileSync(new URL("../src/app/regional-map-overlays.ts", import.meta.url), "utf8");
+const ttcChooserPlacementSource = readFileSync(new URL("../src/components/ttc-chooser-placement.ts", import.meta.url), "utf8");
 const geographicMapSource = readFileSync(new URL("../src/components/GeographicNetworkMap.tsx", import.meta.url), "utf8");
 const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
@@ -35,9 +39,22 @@ describe("asset-backed map layering", () => {
   });
 
   it("renders a station and label layer above alert overlays", () => {
-    assert.match(transitMapSource, /className="asset-label-frame"/);
-    assert.match(globalCss, /\.asset-label-frame/);
-    assert.match(globalCss, /\.asset-label-frame svg #line-1/);
+    assert.match(interactiveMapSource, /aria-label="Disruption overlays"/);
+    assert.match(interactiveMapSource, /dangerouslySetInnerHTML=\{\{\s*__html:\s*svgParts\?\.part2/);
+    assert.ok(
+      interactiveMapSource.indexOf('aria-label="Disruption overlays"') <
+        interactiveMapSource.indexOf("dangerouslySetInnerHTML={{ __html: svgParts?.part2"),
+      "station and label layers must render above disruption overlays in the authored SVG plane",
+    );
+    assert.ok(
+      interactiveMapSource.indexOf('plane="badges"') <
+        interactiveMapSource.indexOf('aria-label="Disruption overlays"') &&
+      interactiveMapSource.indexOf('aria-label="Disruption overlays"') <
+        interactiveMapSource.indexOf('plane="foreground"') &&
+      interactiveMapSource.indexOf('plane="foreground"') <
+        interactiveMapSource.indexOf('plane="labels"'),
+      "raster planes must stack badges underneath disruption overlays, with foreground stations and labels above",
+    );
   });
 
   it("renders station hit targets above disruption overlays", () => {
@@ -96,10 +113,10 @@ describe("asset-backed map layering", () => {
   });
 
   it("gives regional station names the TTC hover glow with a bounded fast reveal", () => {
-    assert.match(interactiveRegionalMapSource, /dataset\.regionalStationLabelFor = stationId/);
+    assert.match(regionalAssetSource, /dataset\.regionalStationLabelFor = stationId/);
     assert.match(interactiveRegionalMapSource, /raster-station-label-text-hover/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-station-label-hover-clone/);
-    assert.match(interactiveRegionalMapSource, /dataset\.regionalStationId = stationId/);
+    assert.match(regionalAssetSource, /dataset\.regionalStationId = stationId/);
     assert.match(interactiveRegionalMapSource, /regionalStationLabelHover/);
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-raster-label-halo/);
     assert.match(
@@ -113,7 +130,7 @@ describe("asset-backed map layering", () => {
     );
     assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*transition:\s*transform 120ms ease, filter 120ms ease;/s);
     assert.match(globalCss, /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*transition-delay:\s*0ms;/s);
-    assert.match(interactiveRegionalMapSource, /bounds:\s*\{[\s\S]*?Math\.min\(\.\.\.corners/);
+    assert.match(regionalGeometrySource, /bounds:\s*\{[\s\S]*?Math\.min\(\.\.\.corners/);
     assert.match(interactiveRegionalMapSource, /x=\{hoveredStationLabel\.bounds\.x\}/);
     assert.doesNotMatch(globalCss, /@keyframes station-label-selection-(?:intro|breathe)/);
   });
@@ -475,12 +492,13 @@ describe("asset-backed map layering", () => {
   });
 
   it("renders current delays above planned closures while keeping suspensions highest", () => {
-    assert.match(interactiveMapSource, /function getImpactPriority\(/);
-    assert.match(interactiveMapSource, /case "suspension":\s*return 4;/);
-    assert.match(interactiveMapSource, /case "delay":\s*return 3;/);
-    assert.match(interactiveMapSource, /case "planned-closure":\s*return 2;/);
-    assert.match(interactiveMapSource, /case "reduced-speed-zone":\s*return 1;/);
-    assert.match(overlapChooserSource, /case "suspension":\s*return 4;[\s\S]*case "delay":\s*return 3;[\s\S]*case "planned-closure":\s*return 2;/);
+    assert.ok(getImpactPriority("suspension") > getImpactPriority("delay"));
+    assert.ok(getImpactPriority("delay") > getImpactPriority("planned-closure"));
+    assert.ok(getImpactPriority("planned-closure") > getImpactPriority("reduced-speed-zone"));
+    assert.ok(getImpactPriority("reduced-speed-zone") > getImpactPriority("clear"));
+
+    assert.match(interactiveMapSource, /import\s*\{[^}]*getImpactPriority[^}]*\}\s*from\s*"\.\.\/app\/map-alert-selector"/);
+    assert.match(overlapChooserSource, /import\s*\{[^}]*getImpactPriority[^}]*\}\s*from\s*"\.\.\/app\/map-alert-selector"/);
 
     assert.match(
       interactiveMapSource,
@@ -685,7 +703,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /getSelectedImpactDetails/);
     assert.match(interactiveMapSource, /chooseOverlapChooserPosition/);
     assert.match(interactiveMapSource, /chooserPosition/);
-    assert.match(interactiveMapSource, /MAP_SVG_TO_CSS_SCALE/);
+    assert.match(ttcChooserPlacementSource, /MAP_SVG_TO_CSS_SCALE/);
+    assert.match(interactiveMapSource, /import\s*\{[^}]*overlapChooserScreenLayout[^}]*\}\s*from\s*"\.\/ttc-chooser-placement"/);
     assert.match(interactiveMapSource, /overlapChooserScreenLayout/);
     assert.match(
       interactiveMapSource,
@@ -700,7 +719,7 @@ describe("asset-backed map layering", () => {
     assert.match(chooserKeepoutsSource, /record\.type === "attributes"/);
     assert.match(chooserKeepoutsSource, /transitionrun/);
     assert.match(chooserKeepoutsSource, /window\.visualViewport/);
-    assert.match(chooserKeepoutsSource, /\.desktop-status-capsule-anchor/);
+    assert.match(chooserKeepoutsSource, /\[data-map-chooser-keepout\]/);
     assert.match(chooserKeepoutsSource, /\.desktop-map-control-rail/);
     assert.match(chooserKeepoutsSource, /\.desktop-map-legend/);
     assert.match(chooserKeepoutsSource, /\.desktop-status-chip-row-container/);
@@ -708,44 +727,44 @@ describe("asset-backed map layering", () => {
     assert.match(chooserKeepoutsSource, /\.mobile-legend-pill/);
     assert.match(chooserKeepoutsSource, /\.mobile-my-stations-shortcut/);
     assert.doesNotMatch(interactiveMapSource, /mapViewportSize\.width > OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
-    assert.match(interactiveMapSource, /chooserKeepoutEdgeCandidates/);
-    assert.match(interactiveMapSource, /chooserKeepoutGridCandidates/);
-    assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MIN_COMPACT_HEIGHT/);
-    assert.match(interactiveMapSource, /if \(attempt\.clearsUiKeepouts\) break/);
+    assert.match(ttcChooserPlacementSource, /chooserKeepoutEdgeCandidates/);
+    assert.match(ttcChooserPlacementSource, /chooserKeepoutGridCandidates/);
+    assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MIN_COMPACT_HEIGHT/);
+    assert.match(ttcChooserPlacementSource, /if \(attempt\.clearsUiKeepouts\) break/);
     assert.match(interactiveMapSource, /width:\s*layout\.width,[\s\S]*?height:\s*layout\.height/);
-    assert.match(interactiveMapSource, /boundedChooserViewportCandidates/);
-    assert.doesNotMatch(interactiveMapSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
+    assert.match(ttcChooserPlacementSource, /boundedChooserViewportCandidates/);
+    assert.doesNotMatch(ttcChooserPlacementSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
     assert.match(interactiveMapSource, /onHoverImpact/);
     assert.match(interactiveMapSource, /foreground\.dataset\.hoverPriorityImpact = activationKey/);
     assert.match(interactiveMapSource, /onPointerEnter=\{\(event\) => \{/);
     assert.doesNotMatch(interactiveMapSource, /onFocus=\{\(\) => onHoverImpact\(impact\)\}/);
     assert.match(interactiveMapSource, /setExternalImpactsHovered/);
     assert.match(interactiveMapSource, /activationPrefix: "badge" \| "chooser"/);
-    assert.match(interactiveMapSource, /const OVERLAP_CHOOSER_TARGET_GAP = 16;/);
-    assert.match(interactiveMapSource, /const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;/);
-    assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
-    assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
-    assert.match(interactiveMapSource, /const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
-    assert.match(interactiveMapSource, /Math\.min\(440, 68 \+ impactCount \* 88\)/);
+    assert.match(ttcChooserPlacementSource, /const OVERLAP_CHOOSER_TARGET_GAP = 16;/);
+    assert.match(ttcChooserPlacementSource, /const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;/);
+    assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
+    assert.match(ttcChooserPlacementSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
+    assert.match(ttcChooserPlacementSource, /const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
+    assert.match(ttcChooserPlacementSource, /Math\.min\(440, 68 \+ impactCount \* 88\)/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;/);
     assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-choice\s*\{[^}]*min-height:\s*82px;/);
     assert.match(interactiveMapSource, /protectedBoxesForImpacts\([\s\S]*?group\.impacts,[\s\S]*?collisionBoxesByImpact/);
-    assert.match(interactiveMapSource, /boundsContainingBoxes/);
-    assert.match(interactiveMapSource, /const representedProtectedBoxes = badge\.protectedBoxes\.map/);
-    assert.match(interactiveMapSource, /const alertOverlayProtectedBoxes = mapAlertOverlayBoxes\.map/);
-    assert.match(interactiveMapSource, /const hardBlockedBoxes = \[\.\.\.representedProtectedBoxes, \.\.\.hardKeepoutBoxes\]/);
+    assert.match(ttcChooserPlacementSource, /boundsContainingBoxes/);
+    assert.match(ttcChooserPlacementSource, /const representedProtectedBoxes = badge\.protectedBoxes\.map/);
+    assert.match(ttcChooserPlacementSource, /const alertOverlayProtectedBoxes = mapAlertOverlayBoxes\.map/);
+    assert.match(ttcChooserPlacementSource, /const hardBlockedBoxes = \[\.\.\.representedProtectedBoxes, \.\.\.hardKeepoutBoxes\]/);
     assert.match(
-      interactiveMapSource,
+      ttcChooserPlacementSource,
       /scoreChooserScreenCandidate\([\s\S]*?representedProtectedBoxes,[\s\S]*?alertOverlayProtectedBoxes/,
     );
-    assert.match(interactiveMapSource, /nearestProtectedBoxesToPoint/);
-    assert.match(interactiveMapSource, /minimumBoundsGap/);
-    assert.match(interactiveMapSource, /MAX_SOFT_OVERLAY_DISTANCE_PENALTY/);
-    assert.match(interactiveMapSource, /const viewportCandidates = boundedChooserViewportCandidates/);
-    assert.match(interactiveMapSource, /reduce<\{ position: MapPoint; score: number \} \| null>/);
-    assert.match(interactiveMapSource, /chooserCenterAvoidsProtectedBoxes/);
-    assert.match(interactiveMapSource, /chooserCenterFitsViewport/);
-    assert.match(interactiveMapSource, /candidatesForGap/);
+    assert.match(ttcChooserPlacementSource, /nearestProtectedBoxesToPoint/);
+    assert.match(ttcChooserPlacementSource, /minimumBoundsGap/);
+    assert.match(ttcChooserPlacementSource, /MAX_SOFT_OVERLAY_DISTANCE_PENALTY/);
+    assert.match(ttcChooserPlacementSource, /const viewportCandidates = boundedChooserViewportCandidates/);
+    assert.match(ttcChooserPlacementSource, /reduce<\{ position: MapPoint; score: number \} \| null>/);
+    assert.match(ttcChooserPlacementSource, /chooserCenterAvoidsProtectedBoxes/);
+    assert.match(ttcChooserPlacementSource, /chooserCenterFitsViewport/);
+    assert.match(ttcChooserPlacementSource, /candidatesForGap/);
     assert.match(interactiveMapSource, /overlap-chooser-portal/);
     assert.match(interactiveMapSource, /formatOverlapChooserLocation/);
     assert.match(interactiveMapSource, /overlap-chooser-header-count/);
@@ -869,7 +888,7 @@ describe("asset-backed map layering", () => {
       /\.map-gesture-active \.asset-alert-path\.map-selection-flash[^}]*animation:\s*none/s,
     );
     assert.match(interactiveRegionalMapSource, /selectionIntroCompletedRef/);
-    assert.match(interactiveRegionalMapSource, /markCompletedSelectionIntro\(svg\)/);
+    assert.match(regionalOverlaysSource, /markCompletedSelectionIntro\(svg\)/);
     assert.match(globalCss, /\.map-selection-attention\.selection-intro-complete\s*\{[^}]*animation-name:\s*var\(--selection-breathe-name\);/s);
     assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
     assert.match(interactiveMapSource, /data-station-impact-selection-id=\{impact\.cardId\}/);
@@ -885,11 +904,11 @@ describe("asset-backed map layering", () => {
       /\.linewatch-shell \.station-selected-indicator\.foreground-flash-active\s*\{[^}]*animation:\s*none !important;[^}]*opacity:\s*0 !important;/,
     );
     assert.match(
-      interactiveRegionalMapSource,
+      regionalAssetSource,
       /selectedIndicator\.classList\.add\([\s\S]*?"regional-station-selected-indicator",[\s\S]*?"foreground-flash-active"/,
     );
     assert.match(
-      interactiveRegionalMapSource,
+      regionalAssetSource,
       /selectionArtworkIndicator\?\.classList\.remove\("foreground-flash-active"\);[\s\S]*?selectionArtworkIndicator\?\.classList\.add\("regional-station-selection-source-artwork"\)/,
     );
     assert.match(

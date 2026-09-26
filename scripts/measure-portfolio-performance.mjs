@@ -40,6 +40,12 @@ const commandCatalog = [
     args: ["--prefix", "frontend", "run", "test:fixtures"],
   },
   {
+    id: "frontend-scripts-tests",
+    category: "test",
+    command: "npm",
+    args: ["--prefix", "frontend", "run", "test:scripts"],
+  },
+  {
     id: "frontend-typecheck",
     category: "verification",
     command: "npm",
@@ -62,6 +68,24 @@ const commandCatalog = [
     category: "test",
     command: "npm",
     args: ["--prefix", "frontend", "run", "test:smoke"],
+  },
+  {
+    id: "frontend-offline-suite",
+    category: "test",
+    command: "npm",
+    args: ["--prefix", "frontend", "run", "test:offline"],
+  },
+  {
+    id: "frontend-shell-desktop",
+    category: "test",
+    command: "npm",
+    args: ["--prefix", "frontend", "run", "test:shell:desktop"],
+  },
+  {
+    id: "frontend-shell-mobile",
+    category: "test",
+    command: "npm",
+    args: ["--prefix", "frontend", "run", "test:shell:mobile"],
   },
 ];
 

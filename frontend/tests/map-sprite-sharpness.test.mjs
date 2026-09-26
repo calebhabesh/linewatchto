@@ -10,7 +10,7 @@ const frontendRoot = fileURLToPath(new URL("..", import.meta.url));
 describe("geographic map sprite sharpness", () => {
   it("feeds genuine distance fields to MapLibre for recolourable arrows", async () => {
     const source = await readFile(
-      `${frontendRoot}/src/components/GeographicNetworkMap.tsx`,
+      `${frontendRoot}/src/components/geographic-map-operations.ts`,
       "utf8",
     );
 
@@ -47,7 +47,7 @@ describe("geographic map sprite sharpness", () => {
 
   it("registers alert badges at their final logical size", async () => {
     const source = await readFile(
-      `${frontendRoot}/src/components/GeographicNetworkMap.tsx`,
+      `${frontendRoot}/src/components/geographic-map-operations.ts`,
       "utf8",
     );
 

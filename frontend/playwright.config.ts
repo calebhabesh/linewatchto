@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const appUrl = "http://127.0.0.1:4173";
+const appPort = process.env.LINEWATCH_APP_PORT ?? (process.env.LINEWATCH_SMOKE_APP_URL ? new URL(process.env.LINEWATCH_SMOKE_APP_URL).port : "4175");
+const appUrl = process.env.LINEWATCH_SMOKE_APP_URL ?? `http://127.0.0.1:${appPort}`;
 const stubUrl = "http://127.0.0.1:4174";
 
 export default defineConfig({
@@ -33,7 +34,7 @@ export default defineConfig({
     },
     {
       command: "node scripts/start-playwright-app.mjs",
-      url: appUrl,
+      url: `${appUrl}/healthz`,
       timeout: 120_000,
       reuseExistingServer: !process.env.CI,
     },

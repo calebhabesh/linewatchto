@@ -1,4 +1,4 @@
-import { type PushNotificationPreferences } from "./account-data.ts";
+import { type PushNotificationPreferences } from "./push-data.ts";
 
 export type DevicePushSetupState =
   | "signed-out"

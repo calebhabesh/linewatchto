@@ -1,4 +1,4 @@
-type AccountOAuthErrorState = {
+export type AccountOAuthErrorState = {
   dialogMode: "auth-choice";
   entryIntent: "login";
   message: string;

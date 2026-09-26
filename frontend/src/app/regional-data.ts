@@ -1,4 +1,4 @@
-import type { DashboardData } from "./DataContext";
+import type { DashboardData, NetworkId } from "./dashboard-contract.ts";
 import type {
   ActiveAlert,
   DelayAlert,
@@ -10,7 +10,7 @@ import type {
 } from "./linewatch-data";
 import type { StationListResponse } from "./station-data";
 
-export type NetworkId = "ttc" | "regional";
+export type { NetworkId };
 
 export const DEFAULT_NETWORK_ID: NetworkId = "ttc";
 

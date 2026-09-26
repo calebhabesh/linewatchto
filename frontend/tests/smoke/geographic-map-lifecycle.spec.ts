@@ -70,20 +70,23 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     await expect.poll(() => page.evaluate(() => (
       window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
     ))).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => (
+      window.__linewatchGeographicMapLifecycle?.isMoving() ?? false
+    ))).toBe(false);
 
-    const moveEndsBeforeResume = await page.evaluate(() => (
-      window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
+    const cameraBefore = await page.evaluate(() => (
+      window.__linewatchGeographicMapLifecycle?.getCamera() ?? null
     ));
+    expect(cameraBefore).not.toBeNull();
     expect(await page.evaluate(() => ({
       local: window.localStorage.getItem("linewatch-geographic-map-viewport-v1:ttc"),
       session: window.sessionStorage.getItem("linewatch-geographic-map-viewport-v1:ttc"),
     }))).toEqual({ local: null, session: null });
 
     await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-    await page.waitForTimeout(400);
-    expect(await page.evaluate(() => (
-      window.__linewatchGeographicMapLifecycle?.events.filter((event) => event.type === "moveend").length ?? 0
-    ))).toBe(moveEndsBeforeResume);
+    await expect.poll(() => page.evaluate(() => (
+      window.__linewatchGeographicMapLifecycle?.getCamera() ?? null
+    ))).toEqual(cameraBefore);
   });
 
   test("mobile train toggle operates in Geographic view", async ({ page, isMobile }) => {
@@ -125,7 +128,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     const hoverProjectedSegment = async (segmentId: string, impactId?: string) => {
       if (impactId) {
         await page.locator(`[data-impact-card-id="${impactId}"]`)
-          .getByRole("button", { name: /on map/i })
+          .locator(".impact-card-map-btn")
           .click();
       }
       const canvasBox = await geoMap.locator("canvas").boundingBox();
@@ -227,7 +230,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
 
       const card = page.locator("[data-impact-card-id]").first();
       await expect(card).toBeVisible();
-      const mapButton = card.getByRole("button", { name: /on map/i });
+      const mapButton = card.locator(".impact-card-map-btn");
       await mapButton.click();
       await expect(mapButton).toHaveAttribute("aria-pressed", "true");
       await expect(geoMap).toHaveAttribute("data-status", "ready");
@@ -268,7 +271,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     const geoMap = page.locator(".geographic-network-map");
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
     await page.locator('[data-impact-card-id="stub-delay-line-4"]')
-      .getByRole("button", { name: /on map/i })
+      .locator(".impact-card-map-btn")
       .click();
     const inspector = page.locator("[data-mobile-impact-inspector]");
     await expect(inspector)
@@ -316,6 +319,10 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
       segment.lineId = "line-1";
       segment.stationAId = "tmu";
       segment.stationBId = "college";
+      const baseDelay = body.delays.find((delay: { id: string }) => delay.id === "stub-delay-line-4");
+      baseDelay.affectedSegmentIds = ["line-1-tmu-college"];
+      baseDelay.lineId = "line-1";
+      baseDelay.lineNumber = "1";
       for (const [suffix, title] of [
         ["second", "Second Line 4 delay"],
         ["third", "Third Line 4 delay"],
@@ -329,7 +336,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
           sourceAlertIds: [id],
         });
         body.delays.push({
-          ...body.delays.find((delay: { id: string }) => delay.id === "stub-delay-line-4"),
+          ...baseDelay,
           id,
           title,
           displayDirection: "Westbound",
@@ -342,14 +349,14 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
 
     const card = page.locator('[data-impact-card-id="stub-delay-line-4"]');
-    await card.getByRole("button", { name: /on map/i }).click();
+    await card.locator(".impact-card-map-btn").click();
     await expect.poll(async () => page.evaluate(
       () => window.__linewatchGeographicMapLifecycle?.events.some(
-        (event) => event.type === "focus" && event.detail === "delay:stub-delay-line-4",
+        (event) => event.type === "focus" && event.detail?.startsWith("delay:stub-delay-line-4"),
       ) ?? false,
     )).toBe(true);
     const focusTimestamp = await page.evaluate(() => window.__linewatchGeographicMapLifecycle?.events.findLast(
-      (event) => event.type === "focus" && event.detail === "delay:stub-delay-line-4",
+      (event) => event.type === "focus" && event.detail?.startsWith("delay:stub-delay-line-4"),
     )?.timestamp ?? 0);
     await expect.poll(async () => page.evaluate(
       ({ after }) => window.__linewatchGeographicMapLifecycle?.events.some(
@@ -476,7 +483,7 @@ test.describe("Geographic Map Stability & Lifecycle", () => {
     await expect(geoMap).toHaveAttribute("data-status", "ready", { timeout: 15_000 });
 
     const card = page.locator('[data-impact-card-id="stub-delay-line-4"]');
-    await card.getByRole("button", { name: /on map/i }).click();
+    await card.locator(".impact-card-map-btn").click();
     await expect(card).toHaveClass(/highlight-active-card/);
 
     const canvasBox = await geoMap.locator("canvas").boundingBox();

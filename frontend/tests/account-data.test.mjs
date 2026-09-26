@@ -2,38 +2,43 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+import { AccountRequestError } from "../src/app/account-transport.ts";
 import {
-  AccountRequestError,
   confirmEmailVerification,
   confirmPasswordReset,
-  createSavedCommute,
-  disablePushDevice,
-  disablePushSubscription,
-  getLatestPushNotificationForSubscription,
   getAuthConfig,
   getCurrentAccount,
   getCurrentAccountWithRetry,
-  getPushDeliveryDiagnostics,
-  getPushDevices,
-  getPushNotificationConfig,
-  getSavedCommutes,
   googleAuthStartUrl,
   loginDevAccount,
   loginDemoAccount,
   loginWithGoogle,
   linkGoogleAccount,
   logoutAccount,
-  normalizeSavedCommuteNotificationRule,
   preserveAccountStateDuringOutage,
   registerAccount,
   requestEmailVerification,
   requestPasswordReset,
-  savePushSubscription,
+} from "../src/app/auth-data.ts";
+import {
+  createSavedCommute,
+  getSavedCommutes,
+  normalizeSavedCommuteNotificationRule,
   sortSavedCommutes,
-  sendPushDeviceTestNotification,
   updateSavedCommuteNotificationRule,
+} from "../src/app/commute-data.ts";
+import {
+  disablePushDevice,
+  disablePushSubscription,
+  getLatestPushNotificationForSubscription,
+  getPushDeliveryDiagnostics,
+  getPushDevices,
+  getPushNotificationConfig,
+  savePushSubscription,
+  sendPushDeviceTestNotification,
   updatePushPreferences,
-} from "../src/app/account-data.ts";
+} from "../src/app/push-data.ts";
+
 
 describe("account data adapter", () => {
   it("defaults new commute notifications to weekday outbound and return rush windows", () => {
@@ -80,7 +85,7 @@ describe("account data adapter", () => {
   });
 
   it("defines saved commute weighted path and impact contracts", () => {
-    const source = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
+    const source = readFileSync(new URL("../src/app/commute-data.ts", import.meta.url), "utf8");
     assert.match(source, /export type AccountCommutePath/);
     assert.match(source, /estimatedTravelSeconds: number/);
     assert.match(source, /export type AccountCommutePathSegmentHop/);

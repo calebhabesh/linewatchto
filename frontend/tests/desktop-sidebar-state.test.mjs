@@ -9,6 +9,8 @@ import {
   DESKTOP_SIDEBAR_DEFAULT_WIDTH,
   DESKTOP_MAP_MIN_WIDTH,
   DESKTOP_OVERLAY_MIN_MAP_EXPOSED,
+  readDesktopLeftOcclusion,
+  measureDesktopMapInsets,
 } from "../src/app/desktop-sidebar-state.ts";
 
 describe("desktop layout budget and responsive modes", () => {
@@ -138,5 +140,79 @@ describe("destination-aware sidebar widths", () => {
     assert.equal(metrics("status", 360).sidebarWidth, 0);
     assert.equal(metrics("status", 768).sidebarWidth, 380);
     assert.equal(metrics("search", 768).sidebarWidth, 528);
+  });
+});
+
+describe("desktop map insets and occlusion helpers", () => {
+  it("returns zero insets when container is missing or on mobile", () => {
+    assert.deepEqual(measureDesktopMapInsets(null), { top: 0, bottom: 0 });
+    assert.equal(readDesktopLeftOcclusion(null, false), 0);
+  });
+
+  it("measures desktop map insets from rail and bottom chips", () => {
+    const origWindow = globalThis.window;
+    globalThis.window = {
+      innerWidth: 1024,
+      getComputedStyle: () => ({ display: "block" }),
+    };
+
+    const mockRail = {
+      getBoundingClientRect: () => ({ width: 48, height: 120, top: 0, bottom: 120 }),
+    };
+    const mockContainer = {
+      getClientRects: () => [{ width: 1024, height: 768 }],
+      getBoundingClientRect: () => ({ width: 1024, height: 768, top: 0, bottom: 768 }),
+      closest: () => ({
+        querySelector: (sel) => {
+          if (sel === ".desktop-map-control-rail") return mockRail;
+          if (sel === ".desktop-status-chip-row-container") {
+            return {
+              getBoundingClientRect: () => ({ width: 400, height: 40, top: 720, bottom: 760 }),
+            };
+          }
+          return null;
+        },
+      }),
+    };
+
+    const insets = measureDesktopMapInsets(mockContainer, mockRail);
+    assert.equal(insets.top, 120);
+    assert.equal(insets.bottom, 48); // 768 - 720
+
+    globalThis.window = origWindow;
+  });
+
+  it("measures desktop left occlusion bounded by minimum visible width", () => {
+    const origWindow = globalThis.window;
+    globalThis.window = {
+      innerWidth: 1280,
+      getComputedStyle: () => ({ display: "block" }),
+    };
+
+    const mockViewport = {
+      getBoundingClientRect: () => ({ left: 0, right: 1280, width: 1280, top: 0, bottom: 800 }),
+      closest: () => ({
+        querySelector: (sel) => {
+          if (sel.includes(".desktop-sidebar-container")) {
+            return {
+              getAttribute: () => "false",
+              getBoundingClientRect: () => ({ left: 0, right: 380, width: 380 }),
+            };
+          }
+          if (sel === "#linewatch-main-menu") {
+            return {
+              getAttribute: () => "false",
+              getBoundingClientRect: () => ({ left: 0, right: 280, width: 280 }),
+            };
+          }
+          return null;
+        },
+      }),
+    };
+
+    const occlusion = readDesktopLeftOcclusion(mockViewport, false, 24);
+    assert.equal(occlusion, 380 + 24); // 404
+
+    globalThis.window = origWindow;
   });
 });

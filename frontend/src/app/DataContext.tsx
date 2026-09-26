@@ -1,45 +1,9 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import {
-  NetworkSegment,
-  Station,
-  LineStatus,
-  ActiveAlert,
-  PlannedClosure,
-  CommuteSummary,
-  ReliabilitySummary,
-  IngestionHealthItem,
-  ReducedSpeedZone,
-  DelayAlert,
-  StationNodeImpact,
-  TtcPerformanceSnapshot,
-  ReliabilitySnapshot
-} from "./linewatch-data";
-import type { NetworkId } from "./regional-data";
+import type { DashboardData } from "./dashboard-contract.ts";
 
-export interface DashboardData {
-  snapshot?: { savedAt: number | null; reason: "offline" | "reconnecting" | "stale" | "refreshing" };
-  networkId: NetworkId;
-  dataSource: "backend" | "fallback";
-  availability: "available" | "degraded" | "unavailable" | "fixture";
-  message: string;
-  networkSegments: NetworkSegment[];
-  stations: Station[];
-  lineStatuses: LineStatus[];
-  generatedAt: { time: string; date: string; live: boolean; lastPoll: string };
-  activeAlerts: ActiveAlert[];
-  delays: DelayAlert[];
-  reducedSpeedZones: ReducedSpeedZone[];
-  plannedClosures: PlannedClosure[];
-  stationNodeImpacts: StationNodeImpact[];
-  commuteImpacts: CommuteSummary[];
-  reliabilitySummaries: ReliabilitySummary[];
-  reliability: ReliabilitySnapshot;
-  ttcPerformance: TtcPerformanceSnapshot;
-  ingestionHealth: IngestionHealthItem[];
-  mapAsset: { src: string; viewBox: readonly [number, number, number, number]; legendIcons: Record<string, string> };
-}
+export type { DashboardData };
 
 const DataContext = createContext<DashboardData | null>(null);
 

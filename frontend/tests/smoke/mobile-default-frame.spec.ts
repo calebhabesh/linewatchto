@@ -1,14 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { installDismissedTransientUi } from './test-support';
 
 for (const closedLaunch of [false, true]) {
 for (const network of ['ttc', 'regional'] as const) {
   test(`${network} opening is centered above the default service sheet (${closedLaunch ? "closed-screen peek" : "open launch"})`, async ({ page, isMobile }, testInfo) => {
     test.skip(!isMobile, 'mobile framing');
-    await page.addInitScript(() => {
-      localStorage.setItem('linewatch-welcome-seen-v1', 'true');
-      localStorage.setItem('linewatch-unofficial-notice-ack-v1', 'true');
-      localStorage.setItem('linewatch-pwa-install-dismissed-at-v1', String(Date.now()));
-    });
+    await installDismissedTransientUi(page);
     await page.goto(`/?previewTime=2026-08-14T${closedLaunch ? "07" : "16"}:00:00.000Z`);
     if (closedLaunch) await page.getByRole("button", { name: "Peek at Map" }).click();
     if (network === 'regional') await page.locator('.mobile-map-network-switch').getByRole('button', { name: 'GO/UP', exact: true }).click();

@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "../app/map-assets";
-export { rasterMapSource, type RasterMapTheme, type RasterMapDensity } from "../app/map-assets";
+import {
+  rasterMapSource,
+  type RasterMapDensity,
+  type RasterMapTheme,
+  type RegionalRasterMapPlane,
+  type TtcRasterMapPlane,
+} from "../app/map-assets";
+export {
+  rasterMapSource,
+  type RasterMapDensity,
+  type RasterMapTheme,
+  type RegionalRasterMapPlane,
+  type TtcRasterMapPlane,
+} from "../app/map-assets";
 
-type RasterMapPlaneProps = {
-  network: "ttc" | "regional";
-  plane: "background" | "foreground" | "labels" | "badges";
+type BaseRasterMapPlaneProps = {
   theme: RasterMapTheme;
   density: RasterMapDensity;
   className?: string;
@@ -17,6 +27,11 @@ type RasterMapPlaneProps = {
   svgViewBox?: string;
   onReady?: () => void;
 };
+
+export type RasterMapPlaneProps = BaseRasterMapPlaneProps & (
+  | { network: "ttc"; plane: TtcRasterMapPlane }
+  | { network: "regional"; plane: RegionalRasterMapPlane }
+);
 
 const decodedRasterSources = new Set<string>();
 const rasterDecodePromises = new Map<string, Promise<void>>();
@@ -74,11 +89,16 @@ export function RasterMapPlane({
   const [displayedSource, setDisplayedSource] = useState<string | null>(() => (
     rasterMapSourceIsDecoded(desiredSource) ? desiredSource : null
   ));
+  const onReadyRef = useRef(onReady);
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
 
   useEffect(() => {
     let cancelled = false;
     void preloadRasterMapSource(desiredSource).then(() => {
       if (!cancelled) setDisplayedSource(desiredSource);
+      if (!cancelled) onReadyRef.current?.();
     }, () => undefined);
 
     return () => {

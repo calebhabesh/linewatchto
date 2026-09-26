@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const transitionsSource = readFileSync(new URL("../src/app/navigation-transitions.ts", import.meta.url), "utf8");
 const inspectorSource = readFileSync(new URL("../src/components/MobileImpactInspector.tsx", import.meta.url), "utf8");
 const overlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
 const selectedCardScrollSource = readFileSync(new URL("../src/hooks/useScrollSelectedImpactCard.ts", import.meta.url), "utf8");
@@ -28,7 +29,7 @@ describe("mobile Show on Map inspector", () => {
   it("renders the selected impact in a mobile-only inspector instead of a tiny peek", () => {
     assert.match(shellSource, /MobileImpactInspector/);
     assert.match(shellSource, /onViewFullDetails=\{\(\) => navigateForward\(viewForImpactSelection\(selection\)\)\}/);
-    assert.match(shellSource, /returningToSelectedMap = targetView === "map" && Boolean\(selectionRef\.current\)/);
+    assert.match(transitionsSource, /returningToSelectedMap = targetView === "map" && Boolean\(state\.selection\)/);
     assert.match(inspectorSource, /data-mobile-impact-inspector/);
     assert.match(inspectorSource, /aria-label="Selected map impact details"/);
     assert.match(inspectorSource, /getSelectedImpactDetails/);

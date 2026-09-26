@@ -4,7 +4,28 @@ import type {
   NetworkSegment,
   PlannedClosure,
   StationNodeImpact,
-} from "../app/linewatch-data";
+} from "../app/linewatch-data.ts";
+import { getImpactPriority } from "../app/map-alert-selector.ts";
+
+export type MapOverlapChooserLayout = {
+  left: number;
+  top: number;
+  anchorOffsetX: number;
+  anchorOffsetY: number;
+};
+
+export type MapOverlapIndicatorSize = {
+  width: number;
+  height: number;
+};
+
+export const OVERLAP_INDICATOR_SCALE = 1.5;
+export const OVERLAP_BADGE_CIRCLE_RADIUS = 35;
+export const OVERLAP_BADGE_ITEM_GAP = 10;
+export const OVERLAP_BADGE_ITEM_SPACING =
+  OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP;
+export const OVERLAP_BADGE_PILL_THICKNESS =
+  OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP * 2;
 
 export type OverlapBadgeSourceSegment = Pick<
   NetworkSegment,
@@ -553,21 +574,6 @@ export function organizeOverlapBadgeClusters({
   }));
 }
 
-function getImpactPriority(kind: MapImpactKind): number {
-  switch (kind) {
-    case "suspension":
-      return 4;
-    case "delay":
-      return 3;
-    case "planned-closure":
-      return 2;
-    case "reduced-speed-zone":
-      return 1;
-    default:
-      return 0;
-  }
-}
-
 export function getUniqueImpactKinds(impacts: MapImpact[]): MapImpactKind[] {
   return Array.from(new Set(impacts.map((impact) => impact.kind))).sort(
     (a, b) => getImpactPriority(b) - getImpactPriority(a),
@@ -587,6 +593,35 @@ export function overlapBadgeKindCounts(impacts: Pick<MapImpact, "kind">[]): Over
 
 export function overlapBadgeVisualItemCount(kindCounts: OverlapBadgeKindCount[]): number {
   return kindCounts.length;
+}
+
+export function mapOverlapIndicatorSize(
+  impacts: Pick<MapImpact, "kind">[],
+): MapOverlapIndicatorSize {
+  const impactKindCount = overlapBadgeVisualItemCount(overlapBadgeKindCounts(impacts));
+  return mapOverlapIndicatorSizeForKindCount(impactKindCount);
+}
+
+export function mapOverlapIndicatorSizeForKindCount(
+  impactKindCount: number,
+): MapOverlapIndicatorSize {
+  if (impactKindCount === 1) {
+    return {
+      width: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
+      height: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
+    };
+  }
+
+  const visibleCount = Math.min(3, impactKindCount);
+  const hasMore = impactKindCount > visibleCount;
+  const totalItems = visibleCount + (hasMore ? 1 : 0);
+  return {
+    width: Math.max(
+      OVERLAP_BADGE_PILL_THICKNESS,
+      (totalItems - 1) * OVERLAP_BADGE_ITEM_SPACING + OVERLAP_BADGE_PILL_THICKNESS,
+    ) * OVERLAP_INDICATOR_SCALE,
+    height: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
+  };
 }
 
 function chooserBounds(position: OverlapChooserPoint, size: OverlapChooserSize): OverlapChooserBounds {

@@ -88,6 +88,17 @@ export function formatRegionalArrivalSourceSummary(
   return "Metrolinx regional arrivals";
 }
 
+export function formatRegionalGroupSourceBadgeLabel(
+  arrivals: Pick<RegionalArrival, "status">[],
+): string {
+  const hasLive = arrivals.some((arrival) => arrival.status === "live");
+  const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
+  if (hasLive && hasScheduled) return "Mixed";
+  if (hasLive) return "Live";
+  if (hasScheduled) return "Scheduled";
+  return "Scheduled";
+}
+
 export function getRegionalArrivalDelayMinutes(
   arrival: Pick<RegionalArrival, "delayMinutes" | "status">,
 ): number | null {
@@ -144,7 +155,7 @@ export type RegionalArrivalDirectionGroup = {
   platforms: RegionalArrivalPlatformGroup[];
 };
 
-type RegionalArrivalFetchOptions = {
+export type RegionalArrivalFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
   signal?: AbortSignal;
@@ -182,7 +193,10 @@ export async function getRegionalStationArrivals(
       receivedAt: Date.now(),
     };
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
+    if (
+      (error instanceof DOMException && error.name === "AbortError")
+      || (typeof error === "object" && error !== null && (error as { name?: string }).name === "AbortError")
+    ) {
       throw error;
     }
     return { source: "fallback", data: emptyRegionalArrivalSnapshot(stationId), receivedAt: Date.now() };

@@ -28,6 +28,7 @@ const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.met
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const sidebarStateSource = readFileSync(new URL("../src/app/desktop-sidebar-state.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
 describe("pan zoom behavior guardrails", () => {
@@ -220,11 +221,12 @@ describe("pan zoom behavior guardrails", () => {
       { focusX: 1128, focusY: 432 },
     );
     assert.match(mapSource, /desktopMenuPinned/);
-    assert.match(mapSource, /#linewatch-main-menu/);
-    assert.match(mapSource, /\.floating-panel-shell/);
+    assert.match(mapSource, /readDesktopLeftOcclusion\(viewport, desktopMenuPinned/);
+    assert.match(sidebarStateSource, /#linewatch-main-menu/);
+    assert.match(sidebarStateSource, /\.floating-panel-shell/);
     assert.match(
       mapSource,
-      /selectionFocusInsets\.left = Math\.max\(selectionFocusInsets\.left, Math\.min/,
+      /selectionFocusInsets\.left = Math\.max\(selectionFocusInsets\.left, leftOcclusion\)/,
     );
     assert.match(mapSource, /viewportInsets: selectionFocusInsets/);
     assert.match(shellSource, /desktopMenuPinned=\{menuPinned\}/);
@@ -718,6 +720,120 @@ describe("pan zoom behavior guardrails", () => {
         `${tc.name}: top gap (${topGap}) should equal bottom gap (${bottomGap})`,
       );
     }
+  });
+
+  describe("desktop camera reconciliation across sidebar transitions", () => {
+    it("preserves exact zoom scale on desktop when preserveZoom is true", () => {
+      const original = { x: -800, y: -400, scale: 0.85 };
+      const prevViewport = { width: 1000, height: 800 };
+      const nextViewport = { width: 700, height: 800 };
+
+      const transformed = transformForViewportResize(
+        original,
+        prevViewport,
+        nextViewport,
+        0.35,
+        0.25,
+        0,
+        0,
+        true,
+      );
+
+      assert.equal(transformed.scale, 0.85);
+    });
+
+    it("keeps geographic focus centered in the usable map area across docked width changes", () => {
+      const original = { x: -1200, y: -600, scale: 0.75 };
+      const prevViewport = { width: 988, height: 900 };
+      const nextViewport = { width: 688, height: 900 };
+
+      const transformed = transformForViewportResize(
+        original,
+        prevViewport,
+        nextViewport,
+        0.35,
+        0.25,
+        0,
+        0,
+        true,
+      );
+
+      const prevCenter = { x: 494, y: 450 };
+      const mapPointAtPrevCenter = mapPointFromViewportPoint(original, prevCenter);
+
+      const nextCenter = { x: 344, y: 450 };
+      const mapPointAtNextCenter = mapPointFromViewportPoint(transformed, nextCenter);
+
+      assert.ok(Math.abs(mapPointAtNextCenter.x - mapPointAtPrevCenter.x) < 1e-9);
+      assert.ok(Math.abs(mapPointAtNextCenter.y - mapPointAtPrevCenter.y) < 1e-9);
+
+      const reversed = transformForViewportResize(
+        transformed,
+        nextViewport,
+        prevViewport,
+        0.25,
+        0.35,
+        0,
+        0,
+        true,
+      );
+      assert.ok(Math.abs(reversed.x - original.x) < 1e-9);
+      assert.ok(Math.abs(reversed.y - original.y) < 1e-9);
+      assert.ok(Math.abs(reversed.scale - original.scale) < 1e-9);
+    });
+
+    it("keeps geographic focus centered in the usable map area across overlay width changes", () => {
+      const original = { x: -1000, y: -500, scale: 0.65 };
+      const viewport = { width: 952, height: 800 };
+      const prevOverlayLeft = 380;
+      const nextOverlayLeft = 560;
+
+      const transformed = transformForViewportResize(
+        original,
+        viewport,
+        viewport,
+        0.3,
+        0.3,
+        prevOverlayLeft,
+        nextOverlayLeft,
+        true,
+      );
+
+      const prevUsableCenterX = (prevOverlayLeft + viewport.width) / 2;
+      const nextUsableCenterX = (nextOverlayLeft + viewport.width) / 2;
+
+      const mapPointAtPrevCenter = mapPointFromViewportPoint(original, { x: prevUsableCenterX, y: 400 });
+      const mapPointAtNextCenter = mapPointFromViewportPoint(transformed, { x: nextUsableCenterX, y: 400 });
+
+      assert.ok(Math.abs(mapPointAtNextCenter.x - mapPointAtPrevCenter.x) < 1e-9);
+      assert.ok(Math.abs(mapPointAtNextCenter.y - mapPointAtPrevCenter.y) < 1e-9);
+    });
+
+    it("keeps geographic focus centered when transitioning between docked and overlay", () => {
+      const original = { x: -600, y: -300, scale: 0.5 };
+      const dockedViewport = { width: 498, height: 800 };
+      const overlayViewport = { width: 1028, height: 800 };
+
+      const transformed = transformForViewportResize(
+        original,
+        dockedViewport,
+        overlayViewport,
+        0.2,
+        0.4,
+        0,
+        680,
+        true,
+      );
+
+      const prevUsableCenter = { x: 498 / 2, y: 400 };
+      const nextUsableCenter = { x: (680 + 1028) / 2, y: 400 };
+
+      const mapPointPrev = mapPointFromViewportPoint(original, prevUsableCenter);
+      const mapPointNext = mapPointFromViewportPoint(transformed, nextUsableCenter);
+
+      assert.ok(Math.abs(mapPointNext.x - mapPointPrev.x) < 1e-9);
+      assert.ok(Math.abs(mapPointNext.y - mapPointPrev.y) < 1e-9);
+    });
   });
 
   it("does not observe or measure the desktop sidebar from the base camera hook", () => {

@@ -38,8 +38,6 @@ describe("desktop status and map chrome relocation", () => {
   });
 
   it("styles the desktop status badges and conditional notices anchor", () => {
-    assert.match(globalCss, /\.desktop-status-capsule-anchor/);
-    assert.match(globalCss, /\.desktop-status-capsule-anchor\s*\{[^}]*max-width:\s*min\(1320px, calc\(100vw - 320px\)\)/s);
     assert.match(globalCss, /\.desktop-status-chip-row/);
     assert.match(globalCss, /\.desktop-header-impact-chips/);
     assert.match(globalCss, /\.desktop-status-chip--reduced-speed-zone/);

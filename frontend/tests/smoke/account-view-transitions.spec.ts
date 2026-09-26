@@ -34,35 +34,51 @@ test("mobile add station transitions return to saved-only line options", async (
   await page.screenshot({ path: "/tmp/linewatch-station-add-return.png" });
 });
 
-test("desktop shortcuts use slate surfaces and retain accent colors", async ({ page, request, isMobile }) => {
+test("desktop navigation rail items are visible and accessible", async ({ page, request, isMobile }) => {
   test.skip(isMobile);
   await setStubMode(request, "seeded");
   await installDismissedTransientUi(page);
   await page.goto("/");
-  const buttons = page.locator(".desktop-quick-action-btn");
-  await expect(buttons.first()).toBeVisible();
-  await expect(buttons.first()).toHaveCSS("border-radius", "9999px");
-  await expect(buttons.first()).toHaveCSS("background-color", "rgba(10, 12, 16, 0.98)");
-  await expect(page.locator(".desktop-quick-action-btn--commutes")).toHaveCSS("color", "rgb(52, 211, 153)");
-  await expect(page.locator(".desktop-quick-action-btn--stations")).toHaveCSS("color", "rgb(56, 189, 248)");
-  await page.screenshot({ path: "/tmp/linewatch-slate-shortcuts.png" });
+  const rail = page.locator(".desktop-nav-rail");
+  await expect(rail).toBeVisible();
+  const commutes = page.locator('.desktop-rail-item[data-dest="commutes"]');
+  const stations = page.locator('.desktop-rail-item[data-dest="stations"]');
+  await expect(commutes).toBeVisible();
+  await expect(stations).toBeVisible();
+  await expect(commutes).toHaveAttribute("data-dest", "commutes");
+  await expect(stations).toHaveAttribute("data-dest", "stations");
+  await page.screenshot({ path: "/tmp/linewatch-desktop-nav-rail.png" });
 });
 
 test("service section badges align with their heading row", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await installDismissedTransientUi(page);
   await page.goto("/");
-  if (isMobile) await page.getByRole("button", { name: "Expand service sheet" }).click();
-  const headings = page.locator(".current-service h3").filter({ has: page.locator(".current-service-active-count") });
-  await expect(headings.first()).toBeVisible();
-  for (const heading of await headings.all()) {
-    await expect(heading).toHaveCSS("align-items", "center");
-    const difference = await heading.evaluate(element => {
-      const row = element.getBoundingClientRect();
-      const badge = element.querySelector(".current-service-active-count")!.getBoundingClientRect();
-      return Math.abs(row.y + row.height / 2 - badge.y - badge.height / 2);
-    });
-    expect(difference).toBeLessThan(1);
+  if (isMobile) {
+    await page.getByRole("button", { name: "Expand service sheet" }).click();
+    const headings = page.locator(".current-service h3").filter({ has: page.locator(".current-service-active-count") });
+    await expect(headings.first()).toBeVisible();
+    for (const heading of await headings.all()) {
+      await expect(heading).toHaveCSS("align-items", "center");
+      const difference = await heading.evaluate(element => {
+        const row = element.getBoundingClientRect();
+        const badge = element.querySelector(".current-service-active-count")!.getBoundingClientRect();
+        return Math.abs(row.y + row.height / 2 - badge.y - badge.height / 2);
+      });
+      expect(difference).toBeLessThan(1);
+    }
+  } else {
+    const headers = page.locator(".desktop-status-section-header").filter({ has: page.locator(".current-service-active-count") });
+    await expect(headers.first()).toBeVisible();
+    for (const header of await headers.all()) {
+      await expect(header).toHaveCSS("align-items", "center");
+      const difference = await header.evaluate(element => {
+        const row = element.getBoundingClientRect();
+        const badge = element.querySelector(".current-service-active-count")!.getBoundingClientRect();
+        return Math.abs(row.y + row.height / 2 - badge.y - badge.height / 2);
+      });
+      expect(difference).toBeLessThan(1);
+    }
   }
 });
 
@@ -80,14 +96,15 @@ test("unauthenticated My Stations view scrolls to reveal Sign In and Create Acco
   if (isMobile) {
     await page.getByRole("navigation", { name: "Primary mobile navigation" }).getByRole("button", { name: "Saved", exact: true }).click();
   } else {
-    await page.locator(".desktop-quick-action-btn--stations").click();
+    await page.locator('.desktop-rail-item[data-dest="stations"]').click();
   }
 
   const list = page.locator(".my-stations-list");
   await expect(list).toBeVisible();
 
-  const signInBtn = page.getByRole("button", { name: "Sign In", exact: true });
-  const createAccountBtn = page.getByRole("button", { name: "Create Account", exact: true });
+  const actionRow = page.locator(".account-action-row");
+  const signInBtn = actionRow.getByRole("button", { name: "Sign In", exact: true });
+  const createAccountBtn = actionRow.getByRole("button", { name: "Create Account", exact: true });
 
   await createAccountBtn.scrollIntoViewIfNeeded();
   await expect(signInBtn).toBeVisible();

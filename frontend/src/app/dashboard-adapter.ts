@@ -1,4 +1,4 @@
-import type { DashboardData } from "./DataContext.tsx";
+import type { DashboardData } from "./dashboard-contract.ts";
 import {
   commuteImpacts,
   ingestionHealth,

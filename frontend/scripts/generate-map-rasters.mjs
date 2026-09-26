@@ -5,6 +5,14 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import {
+  RASTER_MAP_DENSITIES,
+  RASTER_MAP_PLANES_BY_NETWORK,
+  RASTER_MAP_RENDERED_SIZES,
+  RASTER_MAP_THEMES,
+  RASTER_MAP_WIDTHS,
+} from "../src/app/map-raster-manifest.ts";
+
 const execFileAsync = promisify(execFile);
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const frontendDirectory = resolve(scriptDirectory, "..");
@@ -15,8 +23,8 @@ const maps = [
   {
     id: "ttc",
     source: join(assetDirectory, "ttc-subway-map-custom.svg"),
-    renderedSize: { width: 4500, height: 2181.8 },
-    widths: { mobile: 3000, balanced: 4500, desktop: 6750 },
+    renderedSize: RASTER_MAP_RENDERED_SIZES.ttc,
+    widths: RASTER_MAP_WIDTHS.ttc,
     backgroundCss: `
       #ttc-station-labels-layer,
       #ttc-stations-layer,
@@ -86,9 +94,9 @@ const maps = [
   {
     id: "regional",
     source: join(assetDirectory, "regional-rail-map.svg"),
-    renderedSize: { width: 4739.2821, height: 2616.8174 },
-    labelsRenderedSize: { width: 17036.959, height: 9031.6719 },
-    widths: { mobile: 3200, balanced: 4739, desktop: 7109 },
+    renderedSize: RASTER_MAP_RENDERED_SIZES.regional,
+    labelsRenderedSize: RASTER_MAP_RENDERED_SIZES.regionalLabels, /* { width: 17036.959, height: 9031.6719 } */
+    widths: RASTER_MAP_WIDTHS.regional,
     backgroundCss: `
       #Layer_x0020_1 > * { opacity: 0 !important; }
       #regional-lines-layer { opacity: 1 !important; }
@@ -121,12 +129,12 @@ const maps = [
   },
 ];
 
-const themes = ["light", "dark", "high-contrast"];
+const themes = RASTER_MAP_THEMES;
 const requestedDensity = process.argv
   .find((argument) => argument.startsWith("--density="))
   ?.slice("--density=".length);
 
-if (requestedDensity && !["mobile", "balanced", "desktop"].includes(requestedDensity)) {
+if (requestedDensity && !RASTER_MAP_DENSITIES.includes(requestedDensity)) {
   throw new Error(`Unknown map raster density: ${requestedDensity}`);
 }
 
@@ -156,12 +164,7 @@ async function main() {
     await mkdir(outputDirectory, { recursive: true });
     for (const map of maps) {
       const source = await readFile(map.source, "utf8");
-      const planes = [
-        "background",
-        "foreground",
-        ...(map.labelsCss ? ["labels"] : []),
-        ...(map.badgesCss ? ["badges"] : []),
-      ];
+      const planes = RASTER_MAP_PLANES_BY_NETWORK[map.id];
       for (const plane of planes) {
         for (const theme of themes) {
           const themeCss = plane === "badges" || theme === "light"

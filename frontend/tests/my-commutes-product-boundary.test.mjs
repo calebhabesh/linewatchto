@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const panel = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
+const draft = readFileSync(new URL("../src/components/SavedCommuteRouteDraftEditor.tsx", import.meta.url), "utf8");
+const summary = readFileSync(new URL("../src/components/SavedCommuteNotificationSummary.tsx", import.meta.url), "utf8");
 const styles = readAppStylesheet();
 const guide = readFileSync(new URL("../src/components/SiteGuideDropdown.tsx", import.meta.url), "utf8");
 const onboarding = readFileSync(new URL("../src/components/OpeningDisclaimer.tsx", import.meta.url), "utf8");
@@ -11,10 +13,10 @@ const privacy = readFileSync(new URL("../src/app/privacy-acknowledgements-data.t
 
 describe("My Commutes launch product boundary", () => {
   it("describes routes as rider-selected disruption monitors rather than journey recommendations", () => {
-    assert.match(panel, /My Commutes monitors the TTC or GO\/UP rail routes you select/);
-    assert.match(panel, /the monitored routes may not be the[\s\S]*fastest or most optimal choices across every travel scenario/);
+    assert.match(draft, /My Commutes monitors the TTC or GO\/UP rail routes you select/);
+    assert.match(draft, /the monitored routes may not be the[\s\S]*fastest or most optimal choices across every travel scenario/);
     assert.doesNotMatch(panel, /saved-commute-route-purpose/);
-    assert.match(panel, /className="saved-commute-routing-boundary-trigger"[\s\S]*gridTemplateColumns: "minmax\(0, 1fr\) auto"[\s\S]*saved-commute-routing-boundary-label[\s\S]*<Info size=\{11\}[\s\S]*Monitored Routes Disclaimer/);
+    assert.match(summary, /className="saved-commute-routing-boundary-trigger"[\s\S]*gridTemplateColumns: "minmax\(0, 1fr\) auto"[\s\S]*saved-commute-routing-boundary-label[\s\S]*<Info size=\{11\}[\s\S]*Monitored Routes Disclaimer/);
     assert.doesNotMatch(panel, /contentId="saved-commutes-routing-disclaimer"/);
     assert.match(panel, /className="saved-commute-routing-boundary-static"[\s\S]*Monitoring the rail routes you selected\. They may not be the fastest or most optimal routes in every scenario\./);
     assert.match(styles, /\.saved-commute-routing-boundary-disclosure\s*\{[^}]*margin:\s*-0\.125rem 0 -0\.25rem;/s);
@@ -27,7 +29,7 @@ describe("My Commutes launch product boundary", () => {
   });
 
   it("gives mixed-network riders an honest launch workflow", () => {
-    assert.match(panel, /If you use both systems,[\s\S]*save one route for[\s\S]*each/);
+    assert.match(draft, /If you use both systems,[\s\S]*save one route for[\s\S]*each/);
     assert.match(guide, /For a mixed-network commute, save one route for each system/);
     assert.match(privacy, /does not calculate a fastest cross-network journey/);
   });

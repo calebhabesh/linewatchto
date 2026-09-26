@@ -5,7 +5,11 @@ import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
 
 const bottomNavSource = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts", import.meta.url), "utf8");
+const transitionsSource = readFileSync(new URL("../src/app/navigation-transitions.ts", import.meta.url), "utf8");
+const combinedNavSource = shellSource + navSource + transitionsSource;
 const floatingPanelSource = readFileSync(new URL("../src/components/FloatingPanelShell.tsx", import.meta.url), "utf8");
+const accountDialogSource = readFileSync(new URL("../src/components/AccountDialog.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
 describe("mobile navigation motion", () => {
@@ -28,7 +32,7 @@ describe("mobile navigation motion", () => {
     assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mobile-bottom-nav::before/);
     assert.match(globalCss, /\.motion-paused \*,\s*\.motion-paused \*::before,\s*\.motion-paused \*::after\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/s);
     assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*\.linewatch-shell \*::after\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/s);
-    assert.match(shellSource, /reducedMotion \? 0 : isMobile \? 240 : 380/);
+    assert.match(combinedNavSource, /reducedMotion \? 0 : isMobile \? 240 : 380/);
   });
 
   it("distinguishes root navigation, forward drill-ins, reverse Back, and Close", () => {
@@ -39,12 +43,12 @@ describe("mobile navigation motion", () => {
     assert.match(globalCss, /data-nav-direction="back"[\s\S]*panel-container-back/);
     assert.match(globalCss, /data-closing="true"[\s\S]*mobile-sheet-slide-down-exit/);
     assert.match(shellSource, /onMobileNavSelect[\s\S]*navigateRoot\("status"\)/);
-    assert.match(shellSource, /handleSubmenuBack[\s\S]*setNavDirection\("back"\)/);
+    assert.match(combinedNavSource, /handleSubmenuBack[\s\S]*setNavDirection\("back"\)/);
     assert.match(shellSource, /onOpenCategory=\{\(view\) => \{[\s\S]*navigateForward\(view\)/);
     assert.match(shellSource, /onOpenCommutes=\{\(\) => navigateForward\("commutes"\)\}/);
     assert.match(shellSource, /onOpenMyStations=\{\(\) => navigateForward\("my-stations"\)\}/);
-    assert.match(shellSource, /popViewHistory\(viewHistoryRef\.current, fallback\)/);
-    assert.match(shellSource, /reducedMotion \|\| !isMobile \|\| \(isMobile && targetView !== "map"\)/);
+    assert.match(combinedNavSource, /popViewHistory\((?:viewHistoryRef\.current|state\.viewHistory), fallback\)/);
+    assert.match(combinedNavSource, /reducedMotion \|\| !isMobile \|\| \(isMobile && (?:targetView|result\.nextState\.activeView) !== "map"\)/);
     assert.match(globalCss, /@media \(max-width:\s*767px\)\s*\{[\s\S]*?\.floating-panel-shell\[data-going-back="true"\],[\s\S]*?animation:\s*mobile-sheet-slide-down-exit 240ms/s);
     assert.doesNotMatch(globalCss, /\.mobile-view-content-wrapper\[data-closing="true"\][\s\S]*?animation:\s*mobile-sheet-slide-down-exit/);
     assert.match(shellSource, /<MobileStatusSheet[\s\S]*?onClose=\{handleClosePanel\}/);
@@ -52,9 +56,9 @@ describe("mobile navigation motion", () => {
   });
 
   it("animates account container entry, exit, and keyed inner view changes", () => {
-    assert.match(shellSource, /key=\{`\$\{accountDialogMode\}-\$\{accountEntryIntent\}`\}[\s\S]*data-account-dialog-view=\{accountDialogMode\}/);
-    assert.match(shellSource, /account-dialog-backdrop--closing/);
-    assert.match(shellSource, /account-dialog--closing/);
+    assert.match(accountDialogSource, /key=\{`\$\{mode\}-\$\{entryIntent\}`\}[\s\S]*data-account-dialog-view=\{mode\}/);
+    assert.match(accountDialogSource, /account-dialog-backdrop--closing/);
+    assert.match(accountDialogSource, /account-dialog--closing/);
     assert.match(globalCss, /\.account-dialog-backdrop\s*\{[^}]*linewatch-backdrop-enter/s);
     assert.match(globalCss, /\.account-dialog\s*\{[^}]*linewatch-dialog-enter/s);
     assert.match(globalCss, /\.account-dialog-backdrop--closing\s*\{[^}]*linewatch-backdrop-exit/s);

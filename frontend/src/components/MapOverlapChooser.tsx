@@ -17,6 +17,7 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import type { MapViewportOrientation } from "../hooks/panZoomMath";
 import { useRotatedListDragScroll } from "../hooks/useRotatedListDragScroll";
+import { getImpactPriority } from "../app/map-alert-selector";
 
 export type MapOverlapChooserLayout = {
   left: number;
@@ -24,19 +25,6 @@ export type MapOverlapChooserLayout = {
   anchorOffsetX: number;
   anchorOffsetY: number;
 };
-
-function impactPriority(kind: MapImpactKind): number {
-  switch (kind) {
-    case "suspension":
-      return 4;
-    case "delay":
-      return 3;
-    case "planned-closure":
-      return 2;
-    case "reduced-speed-zone":
-      return 1;
-  }
-}
 
 function impactKindLabel(kind: MapImpactKind): string {
   switch (kind) {
@@ -108,7 +96,7 @@ export function MapOverlapChooser({
   const isRotated = viewportOrientation === "rotated-landscape";
   const { scrollContainerProps } = useRotatedListDragScroll(isRotated);
   const orderedImpacts = [...impacts].sort(
-    (a, b) => impactPriority(b.kind) - impactPriority(a.kind)
+    (a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind)
       || a.cardId.localeCompare(b.cardId),
   );
   const chooserId = `overlap-chooser-${markerId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;

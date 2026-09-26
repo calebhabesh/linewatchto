@@ -118,11 +118,11 @@ describe("saved commute menu counts", () => {
   });
 
   it("counts one affected-now route when either monitored commute leg is affected", async () => {
-    const accountData = await import("../src/app/account-data.ts");
+    const commuteData = await import("../src/app/commute-data.ts");
 
-    assert.equal(typeof accountData.summarizeSavedCommuteStatuses, "function");
+    assert.equal(typeof commuteData.summarizeSavedCommuteStatuses, "function");
     assert.deepEqual(
-      accountData.summarizeSavedCommuteStatuses([
+      commuteData.summarizeSavedCommuteStatuses([
         commute("clear-both-ways", impact("clear"), impact("clear")),
         commute("return-only-affected", impact("clear"), impact("affected")),
         commute("both-legs-affected", impact("affected"), impact("affected")),

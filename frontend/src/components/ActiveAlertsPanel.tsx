@@ -5,7 +5,7 @@ import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
-import type { AccountCommutePathPreview } from "../app/account-data";
+import type { AccountCommutePathPreview } from "../app/commute-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { MetadataGrid, CardSource, RelatedPlannedClosureButton, CommutePathPreviewCardBanner, ImpactCardShell } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";

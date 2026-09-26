@@ -18,8 +18,12 @@ const regionalMap = readFileSync(
   new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url),
   "utf8",
 );
-const regionalMapSource = readFileSync(
-  new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url),
+const regionalAssetSource = readFileSync(
+  new URL("../src/app/regional-map-asset.ts", import.meta.url),
+  "utf8",
+);
+const regionalOverlaysSource = readFileSync(
+  new URL("../src/app/regional-map-overlays.ts", import.meta.url),
   "utf8",
 );
 const ttcStationPanel = readFileSync(
@@ -128,8 +132,8 @@ describe("station connection metadata and map labels", () => {
   });
 
   it("marks non-text connection artwork as collision keepouts", () => {
-    assert.match(regionalMapSource, /element\.classList\.add\("map-connection-label"\)/);
-    assert.match(regionalMapSource, /querySelectorAll<SVGGraphicsElement>\("\.map-connection-label"\)/);
+    assert.match(regionalAssetSource, /element\.classList\.add\("map-connection-label"\)/);
+    assert.match(regionalOverlaysSource, /querySelectorAll<SVGGraphicsElement>\("\.map-connection-label"\)/);
   });
 
   it("integrates connection badges into both station panels and both themes", () => {

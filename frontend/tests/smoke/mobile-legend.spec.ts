@@ -1,13 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { installDismissedTransientUi } from "./test-support";
 
 for (const width of [375, 393, 430]) {
   test(`mobile legend expands horizontally at ${width}px`, async ({ page, isMobile }) => {
     test.skip(!isMobile, "Mobile legend only");
     await page.setViewportSize({ width, height: 851 });
-    await page.addInitScript(() => {
-      localStorage.setItem("linewatch-welcome-seen-v1", "true");
-      localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-    });
+    await installDismissedTransientUi(page);
     await page.goto(`${process.env.LINEWATCH_LEGEND_TEST_ORIGIN ?? ""}/?previewTime=2026-08-14T16:00:00.000Z`);
     for (const network of ["TTC", "GO/UP"]) {
       if (network === "GO/UP") {

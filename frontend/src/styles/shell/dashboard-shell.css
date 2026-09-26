@@ -100,16 +100,6 @@
   padding: 12px;
 }
 
-.asset-map-stage {
-  background: #ffffff;
-  border-radius: 6px;
-  height: 100%;
-  min-height: 476px;
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-}
-
 @keyframes map-center-fade-in {
   from {
     opacity: 0;
@@ -276,12 +266,6 @@
     padding: 10px;
   }
 
-  .asset-map-stage {
-    height: 440px;
-    min-height: 440px;
-    min-width: 900px;
-  }
-
   .line-row {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -300,12 +284,6 @@
 
   .network-map {
     min-height: 410px;
-  }
-
-  .asset-map-stage {
-    height: 390px;
-    min-height: 390px;
-    min-width: 820px;
   }
 
   .panel-heading,

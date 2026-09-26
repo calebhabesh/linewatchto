@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { BarChart3, Bell, BatteryCharging, MapPin, BookOpen, Download, FileText, HeartHandshake, LogIn, LogOut, Megaphone, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
-import type { AccountState } from "../app/account-data";
+import type { AccountState } from "../app/auth-data";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { NetworkId } from "../app/regional-data";

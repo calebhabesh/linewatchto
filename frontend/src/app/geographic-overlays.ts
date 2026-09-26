@@ -28,7 +28,7 @@ import type {
   StationNodeImpact,
   TravelDirection,
 } from "./linewatch-data.ts";
-import type { AccountCommutePathPreview } from "./account-data.ts";
+import type { AccountCommutePathPreview } from "./commute-data.ts";
 import type { NetworkId } from "./regional-data.ts";
 import { REGIONAL_ROUTE_STATIONS } from "./regional-data.ts";
 import { STATION_LINE_STATION_IDS } from "./station-data.ts";

@@ -8,6 +8,7 @@ import {
   recordGeographicMapLifecycle,
   getGeographicMapLifecycle,
 } from "../src/app/geographic-lifecycle.ts";
+import { updateGeographicDynamicSources } from "../src/components/geographic-map-operations.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,7 @@ test("Geographic map lifecycle seam: counters, events, and reset", async (t) => 
     assert.equal(stats.readyTransitions, 0);
     assert.equal(stats.errorTransitions, 0);
     assert.equal(stats.resizes, 0);
+    assert.equal(stats.sourceUpdates, 0);
     assert.equal(stats.events.length, 0);
 
     recordGeographicMapLifecycle("loading", "init");
@@ -45,23 +47,28 @@ test("Geographic map lifecycle seam: counters, events, and reset", async (t) => 
     recordGeographicMapLifecycle("setStyle", "dark");
     assert.equal(stats.styleReplacements, 1);
 
+    recordGeographicMapLifecycle("sourceUpdate", "impacts");
+    assert.equal(stats.sourceUpdates, 1);
+
     recordGeographicMapLifecycle("error", "webglcontextlost");
     assert.equal(stats.errorTransitions, 1);
 
     recordGeographicMapLifecycle("removal", "cleanup");
     assert.equal(stats.removals, 1);
 
-    assert.equal(stats.events.length, 7);
+    assert.equal(stats.events.length, 8);
     assert.equal(stats.events[0].type, "loading");
     assert.equal(stats.events[1].type, "constructor");
     assert.equal(stats.events[2].type, "ready");
     assert.equal(stats.events[3].type, "resize");
     assert.equal(stats.events[4].type, "setStyle");
-    assert.equal(stats.events[5].type, "error");
-    assert.equal(stats.events[6].type, "removal");
+    assert.equal(stats.events[5].type, "sourceUpdate");
+    assert.equal(stats.events[6].type, "error");
+    assert.equal(stats.events[7].type, "removal");
 
     stats.reset();
     assert.equal(stats.constructors, 0);
+    assert.equal(stats.sourceUpdates, 0);
     assert.equal(stats.events.length, 0);
   });
 });
@@ -119,11 +126,48 @@ test("Geographic map component invariants: lifecycle separation and stability", 
     assert.ok(compSource.includes("cancelAnimationFrame"), "Animation frame must be cancelled on cleanup");
   });
 
-  await t.test("dynamic data updates mutate GeoJSON sources in-place via setData", () => {
-    assert.ok(compSource.includes('impactsSource.setData(overlayData.impactedLinks)'), "Impacts source updated in place");
-    assert.ok(compSource.includes('impactStationsSource.setData(overlayData.impactedStations)'), "Impact stations source updated in place");
-    assert.ok(compSource.includes('badgesSource.setData(overlayData.impactBadges)'), "Impact badges source updated in place");
-    assert.ok(compSource.includes('commuteLinksSource.setData(overlayData.commuteLinks)'), "Commute links source updated in place");
+  await t.test("dynamic data updates mutate GeoJSON sources in-place via setData and record sourceUpdates", () => {
+    const stats = getGeographicMapLifecycle();
+    stats.reset();
+
+    const updated = [];
+    const createMockSource = (name) => ({
+      setData: (data) => updated.push({ name, data }),
+    });
+    const sources = {
+      "transit-impacts": createMockSource("transit-impacts"),
+      "transit-impact-stations": createMockSource("transit-impact-stations"),
+      "transit-impact-badges": createMockSource("transit-impact-badges"),
+      "transit-impact-arrows": createMockSource("transit-impact-arrows"),
+      "transit-train-markers": createMockSource("transit-train-markers"),
+      "transit-commute-links": createMockSource("transit-commute-links"),
+      "transit-commute-stations": createMockSource("transit-commute-stations"),
+    };
+    const mockMap = {
+      getSource: (id) => sources[id],
+      hasImage: () => true,
+    };
+    const sampleData = {
+      impactedLinks: { type: "FeatureCollection", features: [{ id: "l1" }] },
+      impactedStations: { type: "FeatureCollection", features: [{ id: "s1" }] },
+      impactBadges: { type: "FeatureCollection", features: [] },
+      impactArrows: { type: "FeatureCollection", features: [] },
+      trainMarkers: { type: "FeatureCollection", features: [] },
+      commuteLinks: { type: "FeatureCollection", features: [{ id: "c1" }] },
+      commuteStations: { type: "FeatureCollection", features: [{ id: "cs1" }] },
+    };
+
+    updateGeographicDynamicSources(mockMap, sampleData);
+
+    assert.equal(stats.sourceUpdates, 1, "Should record sourceUpdate in lifecycle stats");
+    assert.equal(updated.length, 7, "All 7 dynamic sources should receive setData");
+    assert.equal(updated.find((s) => s.name === "transit-impacts")?.data, sampleData.impactedLinks);
+    assert.equal(updated.find((s) => s.name === "transit-impact-stations")?.data, sampleData.impactedStations);
+    assert.equal(updated.find((s) => s.name === "transit-impact-badges")?.data, sampleData.impactBadges);
+    assert.equal(updated.find((s) => s.name === "transit-commute-links")?.data, sampleData.commuteLinks);
+    assert.equal(updated.find((s) => s.name === "transit-commute-stations")?.data, sampleData.commuteStations);
+    assert.equal(updated.find((s) => s.name === "transit-impact-arrows")?.data, sampleData.impactArrows);
+    assert.equal(updated.find((s) => s.name === "transit-train-markers")?.data, sampleData.trainMarkers);
   });
 
   await t.test("error handler does not degrade usable map to error overlay on transient tile failures", () => {

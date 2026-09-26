@@ -144,7 +144,6 @@ async function expectRegionalChooserToClearReferencedAlerts(page: Page) {
 }
 
 const mapChooserUiKeepoutSelector = [
-  ".desktop-status-capsule-anchor",
   ".desktop-map-control-rail",
   ".desktop-map-legend",
   ".desktop-status-chip-row-container",
@@ -160,7 +159,6 @@ const mapChooserUiKeepoutSelector = [
   ".rotated-map-hud",
   ".rotated-map-selection-hud",
   ".subway-closing-soon-chip",
-  ".subway-closed-peek-chip",
   ".saved-station-global-notice",
   "header button",
   "header a",

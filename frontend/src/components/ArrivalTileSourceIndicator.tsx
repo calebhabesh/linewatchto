@@ -1,5 +1,8 @@
 import { CalendarCheck2 } from "lucide-react";
 import { LiveSignalIcon } from "./LiveSignalIcon";
+import { arrivalTileSourceIndicatorData } from "../app/arrival-source-badge";
+
+export { arrivalTileSourceIndicatorData };
 
 type Props = {
   status: "live" | "scheduled" | "unavailable" | "demo" | string;
@@ -21,26 +24,26 @@ export function ArrivalTileSourceIndicator({
   className = "",
   isCompact = false,
 }: Props) {
-  const isLive = status === "live";
-  const iconSize = size ?? (isCompact ? 10.5 : 13);
+  const data = arrivalTileSourceIndicatorData(status, isDue, isCompact);
+  const iconSize = size ?? data.iconSize;
   const positionClass = isCompact ? "top-1 right-1.5" : "top-1 right-1.5";
 
   return (
     <span
       className={`absolute ${positionClass} flex items-center justify-center pointer-events-none ${className}`}
-      title={isLive ? "Live arrival estimate" : "Scheduled timetable"}
-      aria-label={isLive ? "Live arrival estimate" : "Scheduled timetable"}
-      data-arrival-tile-source={isLive ? "live" : "scheduled"}
+      title={data.title}
+      aria-label={data.title}
+      data-arrival-tile-source={data.source}
     >
-      {isLive ? (
+      {data.isLive ? (
         <LiveSignalIcon
           size={iconSize}
-          className={isDue ? "text-emerald-400" : "text-emerald-600 dark:text-emerald-400"}
+          className={data.signalClass}
         />
       ) : (
         <CalendarCheck2
           size={iconSize}
-          className={isDue ? "text-red-200/80" : "text-slate-400 dark:text-slate-500"}
+          className={data.calendarClass}
           aria-hidden="true"
         />
       )}

@@ -11,7 +11,7 @@ const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.
 const globalCss = readAppStylesheet();
 const baseClosingSoonChipCss = globalCss.match(/\.subway-closing-soon-chip\s*\{[^}]*\}/s)?.[0] ?? "";
 const sharedMobileAnnouncementCss = Array.from(
-  globalCss.matchAll(/\.subway-closing-soon-chip,\s*\.subway-closed-peek-chip,\s*\.go-up-closed-peek-chip\s*\{[^}]*\}/gs)
+  globalCss.matchAll(/\.subway-closing-soon-chip,\s*\.go-up-closing-soon-chip\s*\{[^}]*\}/gs)
 ).at(-1)?.[0] ?? "";
 const narrowRotateMapCss = globalCss.match(/@media \(max-width:\s*480px\)\s*\{[\s\S]*?\.mobile-legend-pill--expanded/s)?.[0] ?? "";
 

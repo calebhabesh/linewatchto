@@ -80,3 +80,57 @@ test("keeps TTC dynamic geometry in authored viewBox coordinates", async ({ page
   expect(Math.max(...xCoordinates)).toBeGreaterThan(4_300);
   expect(Math.max(...yCoordinates)).toBeGreaterThan(3_500);
 });
+
+test("prepares regional map SVG with dynamic layers, planned station layer, and hit targets", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "GO/UP", exact: true }).first().click();
+  const regionalMap = page.getByRole("region", { name: "Interactive GO and UP map" });
+  await expect(regionalMap).toBeVisible();
+
+  const layerInventory = await page.evaluate(() => {
+    const svg = document.querySelector('svg[aria-label="GO and UP regional rail schematic"]');
+    if (!svg) return null;
+
+    const plannedStationLayer = svg.querySelector("#regional-dynamic-planned-station-layer");
+    const segmentLayer = svg.querySelector("#regional-dynamic-segment-layer");
+    const selectedSegmentLayer = svg.querySelector("#regional-dynamic-selected-segment-layer");
+    const stationRingLayer = svg.querySelector("#regional-dynamic-station-ring-layer");
+    const hoverLayer = svg.querySelector("#regional-dynamic-hover-layer");
+    const effectsLayer = svg.querySelector("#regional-dynamic-effects-layer");
+    const selectionSources = svg.querySelector("defs#regional-station-selection-sources");
+    const labelCutoutSources = svg.querySelector("defs#regional-station-label-cutout-sources");
+
+    const unionHitTarget = svg.querySelector('.regional-station-hit-target[data-regional-station-id="union"]');
+    const unionLabelHitTarget = svg.querySelector('.regional-station-label-hit-target[data-regional-station-id="union"]');
+    const bloorJunctionSource = svg.querySelector("#regional-station-selection-source-bloor");
+
+    return {
+      hasPlannedStationLayer: Boolean(plannedStationLayer),
+      hasSegmentLayer: Boolean(segmentLayer),
+      hasSelectedSegmentLayer: Boolean(selectedSegmentLayer),
+      hasStationRingLayer: Boolean(stationRingLayer),
+      hasHoverLayer: Boolean(hoverLayer),
+      hasEffectsLayer: Boolean(effectsLayer),
+      hasSelectionSources: Boolean(selectionSources),
+      hasLabelCutoutSources: Boolean(labelCutoutSources),
+      hasUnionHitTarget: Boolean(unionHitTarget),
+      hasUnionLabelHitTarget: Boolean(unionLabelHitTarget),
+      hasBloorJunctionSource: Boolean(bloorJunctionSource),
+    };
+  });
+
+  expect(layerInventory).not.toBeNull();
+  expect(layerInventory!.hasPlannedStationLayer).toBe(true);
+  expect(layerInventory!.hasSegmentLayer).toBe(true);
+  expect(layerInventory!.hasSelectedSegmentLayer).toBe(true);
+  expect(layerInventory!.hasStationRingLayer).toBe(true);
+  expect(layerInventory!.hasHoverLayer).toBe(true);
+  expect(layerInventory!.hasEffectsLayer).toBe(true);
+  expect(layerInventory!.hasSelectionSources).toBe(true);
+  expect(layerInventory!.hasLabelCutoutSources).toBe(true);
+  expect(layerInventory!.hasUnionHitTarget).toBe(true);
+  expect(layerInventory!.hasUnionLabelHitTarget).toBe(true);
+  expect(layerInventory!.hasBloorJunctionSource).toBe(true);
+});

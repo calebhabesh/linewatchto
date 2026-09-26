@@ -512,7 +512,6 @@
 /* Borderless alignment for desktop top chrome controls and map zoom rail */
 .menu-toggle-btn,
 .header-search-bar,
-.desktop-status-capsule,
 .alert-history-shortcut,
 .desktop-train-toggle-btn,
 .theme-toggle-btn,
@@ -521,8 +520,6 @@
 .rotate-map-btn,
 .desktop-map-control-rail,
 .map-control-rail,
-.subway-closed-peek-chip,
-.go-up-closed-peek-chip,
 .subway-closing-soon-chip,
 .go-up-closing-soon-chip {
   border: none !important;
@@ -530,7 +527,6 @@
 
 .dark .menu-toggle-btn,
 .dark .header-search-bar,
-.dark .desktop-status-capsule,
 .dark .alert-history-shortcut,
 .dark .desktop-train-toggle-btn,
 .dark .theme-toggle-btn,
@@ -539,8 +535,6 @@
 .dark .rotate-map-btn,
 .dark .desktop-map-control-rail,
 .dark .map-control-rail,
-.dark .subway-closed-peek-chip,
-.dark .go-up-closed-peek-chip,
 .dark .subway-closing-soon-chip,
 .dark .go-up-closing-soon-chip,
 .dark .desktop-quick-action-btn {
@@ -551,7 +545,6 @@
 
 .high-contrast .menu-toggle-btn,
 .high-contrast .header-search-bar,
-.high-contrast .desktop-status-capsule,
 .high-contrast .alert-history-shortcut,
 .high-contrast .desktop-train-toggle-btn,
 .high-contrast .theme-toggle-btn,
@@ -563,7 +556,6 @@
 .high-contrast .desktop-quick-action-btn,
 .linewatch-shell.high-contrast .menu-toggle-btn,
 .linewatch-shell.high-contrast .header-search-bar,
-.linewatch-shell.high-contrast .desktop-status-capsule,
 .linewatch-shell.high-contrast .alert-history-shortcut,
 .linewatch-shell.high-contrast .desktop-train-toggle-btn,
 .linewatch-shell.high-contrast .theme-toggle-btn,
@@ -612,16 +604,6 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.1),
       0 20px 25px -5px rgba(0, 0, 0, 0.5),
       0 8px 10px -6px rgba(0, 0, 0, 0.4);
-  }
-  .desktop-status-capsule {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.75),
-      var(--shadow);
-  }
-  .dark .desktop-status-capsule {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      var(--shadow);
   }
   .menu-toggle-btn.desktop-top-chrome,
   .desktop-quick-action-btn.desktop-top-chrome,

@@ -35,6 +35,36 @@
   stroke-width: 12;
 }
 
+.linewatch-shell.mobile-performance-mode .commute-path-preview-path {
+  animation: none !important;
+  stroke-width: 112;
+  transition: none;
+}
+
+.motion-paused .commute-path-preview-glow {
+  animation: none;
+  opacity: 0.12;
+}
+
+.motion-paused .commute-path-preview-path {
+  animation: none !important;
+  stroke-width: 102;
+  opacity: 0.72 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commute-path-preview-glow {
+    animation: none;
+    opacity: 0.12;
+  }
+
+  .commute-path-preview-path {
+    animation: none !important;
+    stroke-width: 102;
+    opacity: 0.72 !important;
+  }
+}
+
 @keyframes regional-commute-path-pulse {
   0% {
     stroke-width: 245;

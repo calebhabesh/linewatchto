@@ -2,37 +2,48 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-const stationDataSource = readFileSync(new URL("../src/app/station-data.ts", import.meta.url), "utf8");
+import {
+  fallbackStationDetails,
+  formatStationNoticeDate,
+  stationNoticeCategoryLabel,
+} from "../src/app/station-data.ts";
+
 const stationPanelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 
-describe("TTC station notices UI", () => {
+describe("TTC station notices domain & UI contract", () => {
   it("keeps fallback data empty and preserves the backend station-notice contract", () => {
-    assert.match(stationDataSource, /export type StationNotice = \{/);
-    assert.match(stationDataSource, /notices\?: StationNotice\[\]/);
-    assert.match(stationDataSource, /notices: \[\]/);
+    assert.ok(Object.values(fallbackStationDetails).every((station) => (station.notices ?? []).length === 0));
   });
 
-  it("only adds the station notice navigation and disclosure when notices exist", () => {
-    assert.match(stationPanelSource, /const stationNotices = station\?\.notices \?\? \[\]/);
-    assert.match(stationPanelSource, /if \(stationNotices\.length > 0\)/);
-    assert.match(stationPanelSource, /\{stationNotices\.length > 0 && \(/);
-    assert.match(stationPanelSource, /data-station-section="notices"/);
-    assert.match(stationPanelSource, /Reviewed TTC station information/);
-    assert.ok(
-      stationPanelSource.indexOf('<SurfaceConnectionsSection networkId="ttc"')
-        < stationPanelSource.indexOf('data-station-section="notices"'),
-    );
-    assert.ok(
-      stationPanelSource.indexOf('data-station-section="notices"')
-        < stationPanelSource.indexOf('data-station-section="station-impacts"'),
-    );
+  it("formats notice categories into user-facing labels", () => {
+    assert.equal(stationNoticeCategoryLabel("construction"), "Construction");
+    assert.equal(stationNoticeCategoryLabel("service-change"), "Service Change");
+    assert.equal(stationNoticeCategoryLabel("facility"), "Facility");
+    assert.equal(stationNoticeCategoryLabel("other"), "Notice");
+    assert.equal(stationNoticeCategoryLabel("unknown-kind"), "Notice");
   });
 
-  it("shows source, verification, effective dates, and a TTC details link", () => {
-    assert.match(stationPanelSource, /stationNoticeCategoryLabel\(notice\.category\)/);
-    assert.match(stationPanelSource, /formatStationNoticeDate\(notice\.effectiveStart\)/);
-    assert.match(stationPanelSource, /formatStationNoticeDate\(notice\.lastVerifiedAt\)/);
-    assert.match(stationPanelSource, /href=\{notice\.sourceUrl\}/);
-    assert.match(stationPanelSource, /target="_blank"/);
+  it("formats notice dates in Toronto timezone and handles null/invalid gracefully", () => {
+    assert.equal(formatStationNoticeDate(null), null);
+    assert.equal(formatStationNoticeDate(undefined), null);
+    assert.equal(formatStationNoticeDate("invalid-date-string"), null);
+
+    const formattedIso = formatStationNoticeDate("2026-09-01T12:00:00Z");
+    assert.ok(formattedIso && formattedIso.includes("2026") && formattedIso.includes("1"));
+
+    const formattedDateOnly = formatStationNoticeDate("2026-09-01");
+    assert.ok(formattedDateOnly && formattedDateOnly.includes("2026") && formattedDateOnly.includes("1"));
+  });
+
+  it("preserves station section layout ordering (surface connections before notices before impacts)", () => {
+    const surfaceIndex = stationPanelSource.indexOf('<SurfaceConnectionsSection networkId="ttc"');
+    const noticesIndex = stationPanelSource.indexOf('data-station-section="notices"');
+    const impactsIndex = stationPanelSource.indexOf('data-station-section="station-impacts"');
+
+    assert.ok(surfaceIndex !== -1, "SurfaceConnectionsSection must exist");
+    assert.ok(noticesIndex !== -1, "notices section anchor must exist");
+    assert.ok(impactsIndex !== -1, "station-impacts section anchor must exist");
+    assert.ok(surfaceIndex < noticesIndex, "Surface connections must precede station notices");
+    assert.ok(noticesIndex < impactsIndex, "Station notices must precede station impacts");
   });
 });

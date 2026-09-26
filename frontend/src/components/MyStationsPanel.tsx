@@ -4,11 +4,11 @@ import { FilterSearchRow } from "./FilterSearchRow";
 
 import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlertCircle, ArrowDownToLine, Bookmark, CalendarCheck2, ChevronDown, ChevronRight, FileText, Layers, LoaderCircle, MapPin, Plus, Search, Train, X } from "lucide-react";
+import { AlertCircle, Bookmark, ChevronDown, ChevronRight, FileText, LoaderCircle, MapPin, Plus, Search, Train, X } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { AccountSavedStation } from "../app/saved-station-data";
-import type { AccountState } from "../app/account-data";
+import type { AccountState } from "../app/auth-data";
 import { filterAndSortSavedStations, summarizeSavedStationStatuses } from "../app/saved-stations";
 import {
   ARRIVAL_COUNTDOWN_TICK_MS,
@@ -20,7 +20,7 @@ import {
   isArrivalDue,
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
-import { getStationDetail, isLrtOnlyStation, isSubwayAndLrtStation, preserveStationDetailOnRefresh, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
+import { isLrtOnlyStation, isSubwayAndLrtStation, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
 import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelectionsByStation } from "../app/station-impact-types";
 import { DataProvider, useDashboardData, type DashboardData } from "../app/DataContext";
 import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId, type RegionalRouteCode } from "../app/regional-data";
@@ -28,18 +28,15 @@ import {
   formatRegionalArrivalCoachCount,
   formatRegionalArrivalClockTime,
   formatRegionalDestinationName,
-  getRegionalStationArrivals,
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
-  preserveRegionalArrivalsOnRefresh,
   regionalArrivalTimeDisplay,
   shouldShowRegionalArrivalDelay,
   shouldUseDetailedRegionalArrivalCountdown,
   type RegionalArrivalDataResult,
 } from "../app/regional-arrivals";
 import {
-  getAccessibilityOutages,
   type AccessibilityOutageDetail,
   type AccessibilityOutageResponse,
 } from "../app/accessibility-outage-data";
@@ -49,9 +46,17 @@ import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
-import { LiveSignalIcon } from "./LiveSignalIcon";
 import { AccountAvailabilityNotice } from "./AccountAvailabilityNotice";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
+import { ArrivalSourceBadge, ArrivalTerminatingBadge } from "./ArrivalSourceBadge";
+import { formatRegionalGroupSourceBadgeLabel } from "../app/regional-arrivals";
+import {
+  createStationRequestSession,
+  fetchSavedTtcStationDetails,
+  fetchSavedRegionalStationDetails,
+  applySavedStationDetailUpdates,
+  applySavedRegionalArrivalUpdates,
+} from "../app/station-request-lifecycle";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { SurfaceConnectionsSection } from "./SurfaceConnectionsSection";
@@ -226,40 +231,6 @@ function formatArrivalLineHeaderLabel(lineNumber: string, lineName?: string): st
   if (!lineName) return `Line ${lineNumber}`;
   if (!isNaN(Number(lineNumber))) return `Line ${lineNumber} - ${lineName}`;
   return lineName;
-}
-
-function arrivalSourceBadgeClassName(label: string) {
-  const base = "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none";
-  if (label === "Live") {
-    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
-  }
-  if (label === "Scheduled") {
-    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-  }
-  if (label === "Mixed") {
-    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
-  }
-  if (label === "No live ETA") {
-    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-  }
-  if (label === "Demo") {
-    return `${base} border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-200`;
-  }
-  return `${base} border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400`;
-}
-
-function regionalArrivalSourceBadgeClassName(label: string) {
-  const base = "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none";
-  if (label === "Live") {
-    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
-  }
-  if (label === "Scheduled") {
-    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-  }
-  if (label === "Mixed") {
-    return "inline-flex h-[18.5px] shrink-0 items-center rounded border px-1.25 text-[8.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
-  }
-  return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
 }
 
 function SavedStationRow({
@@ -585,9 +556,7 @@ function SavedStationRow({
                             .flatMap((platform) => platform.arrivals)
                             .sort((left, right) => left.minutes - right.minutes)
                             .slice(0, 3);
-                          const hasLive = arrivals.some((arrival) => arrival.status === "live");
-                          const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
-                          const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
+                          const sourceLabel = formatRegionalGroupSourceBadgeLabel(arrivals);
 
                           return (
                             <article
@@ -629,28 +598,17 @@ function SavedStationRow({
                                     <span className="saved-station-arrival-destination flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                                       <span className="min-w-0 truncate">{group.destinationLabel}</span>
                                       {group.isTerminating && (
-                                        <span className="saved-station-arrival-terminating animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                          <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                          Terminating
-                                        </span>
+                                        <ArrivalTerminatingBadge className="saved-station-arrival-terminating" />
                                       )}
                                     </span>
                                   ) : null}
                                 </div>
                                 <div className="ml-auto flex shrink-0 items-center gap-1.5 self-center">
-                                  <span
-                                    className={`saved-station-arrival-source ${regionalArrivalSourceBadgeClassName(sourceLabel)}`}
-                                    data-arrival-source={sourceLabel.toLowerCase()}
-                                  >
-                                    {sourceLabel}
-                                    {sourceLabel === "Live" ? (
-                                      <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
-                                    ) : sourceLabel === "Scheduled" ? (
-                                      <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
-                                    ) : sourceLabel === "Mixed" ? (
-                                      <Layers className="ml-1 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={10.5} aria-hidden="true" />
-                                    ) : null}
-                                  </span>
+                                  <ArrivalSourceBadge
+                                    label={sourceLabel}
+                                    size="compact"
+                                    className="saved-station-arrival-source"
+                                  />
                                 </div>
                               </div>
 
@@ -978,10 +936,7 @@ function SavedStationRow({
                                         <span className="saved-station-arrival-destination flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                                           <span className="min-w-0 truncate">{direction.destination}</span>
                                           {group.isTerminating && (
-                                            <span className="saved-station-arrival-terminating animate-terminating-blink inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                              <ArrowDownToLine size={9} aria-hidden="true" className="shrink-0" />
-                                              Terminating
-                                            </span>
+                                            <ArrivalTerminatingBadge className="saved-station-arrival-terminating" />
                                           )}
                                         </span>
                                       ) : null}
@@ -997,19 +952,11 @@ function SavedStationRow({
                                     </span>
                                   </div>
                                   <div className="ml-auto flex shrink-0 items-center gap-1.5 self-start pt-0.5">
-                                    <span
-                                      className={`saved-station-arrival-source ${arrivalSourceBadgeClassName(sourceLabel)}`}
-                                      data-arrival-source={sourceLabel.toLowerCase()}
-                                    >
-                                      {sourceLabel}
-                                      {sourceLabel === "Live" ? (
-                                        <LiveSignalIcon className="ml-1 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={13} />
-                                      ) : sourceLabel === "Scheduled" ? (
-                                        <CalendarCheck2 className="ml-1 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={10.5} aria-hidden="true" />
-                                      ) : sourceLabel === "Mixed" ? (
-                                        <Layers className="ml-1 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={10.5} aria-hidden="true" />
-                                      ) : null}
-                                    </span>
+                                    <ArrivalSourceBadge
+                                      label={sourceLabel}
+                                      size="compact"
+                                      className="saved-station-arrival-source"
+                                    />
                                   </div>
                                 </div>
 
@@ -1250,21 +1197,22 @@ export function MyStationsPanel({
     return new Map([...outagesByStation].map(([stationId, outages]) => [stationId, [...outages.values()]]));
   }, [regionalAccessibility]);
 
+  const [ttcSession] = useState(createStationRequestSession);
+  const [regionalSession] = useState(createStationRequestSession);
+
   useEffect(() => {
     if (mode !== "list" || !visibleTtcStationIds) return;
-    let cancelled = false;
     const stationIds = visibleTtcStationIds.split(",");
 
     const refresh = async () => {
-      const results = await Promise.all(stationIds.map(async (stationId) => [`ttc:${stationId}`, await getStationDetail(stationId)] as const));
-      if (!cancelled) {
-        setStationDetails((current) => {
-          const next = { ...current };
-          for (const [key, result] of results) {
-            next[key] = preserveStationDetailOnRefresh(current[key], result);
-          }
-          return next;
-        });
+      const { requestId, signal } = ttcSession.start();
+      try {
+        const results = await fetchSavedTtcStationDetails(stationIds, { signal });
+        if (ttcSession.isCurrent(requestId)) {
+          setStationDetails((current) => applySavedStationDetailUpdates(current, results));
+        }
+      } finally {
+        ttcSession.finish(requestId);
       }
     };
 
@@ -1278,31 +1226,28 @@ export function MyStationsPanel({
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      cancelled = true;
+      ttcSession.abort();
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [mode, visibleTtcStationIds]);
+  }, [mode, visibleTtcStationIds, ttcSession]);
 
   useEffect(() => {
     if (mode !== "list" || !visibleRegionalStationIds) return;
-    let cancelled = false;
     const stationIds = visibleRegionalStationIds.split(",");
 
     const refresh = async () => {
-      const [arrivalResults, accessibilityResult] = await Promise.all([
-        Promise.all(stationIds.map(async (stationId) => [stationId, await getRegionalStationArrivals(stationId)] as const)),
-        getAccessibilityOutages(undefined, { networkId: "regional" }),
-      ]);
-      if (!cancelled) {
-        setRegionalArrivalDetails((current) => {
-          const next = { ...current };
-          for (const [stationId, result] of arrivalResults) {
-            next[stationId] = preserveRegionalArrivalsOnRefresh(current[stationId], result);
+      const { requestId, signal } = regionalSession.start();
+      try {
+        const { arrivals, accessibility } = await fetchSavedRegionalStationDetails(stationIds, { signal });
+        if (regionalSession.isCurrent(requestId)) {
+          setRegionalArrivalDetails((current) => applySavedRegionalArrivalUpdates(current, arrivals));
+          if (accessibility) {
+            setRegionalAccessibility(accessibility);
           }
-          return next;
-        });
-        setRegionalAccessibility(accessibilityResult.data);
+        }
+      } finally {
+        regionalSession.finish(requestId);
       }
     };
 
@@ -1316,11 +1261,11 @@ export function MyStationsPanel({
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      cancelled = true;
+      regionalSession.abort();
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [mode, visibleRegionalStationIds]);
+  }, [mode, visibleRegionalStationIds, regionalSession]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setArrivalTick(Date.now()), ARRIVAL_COUNTDOWN_TICK_MS);

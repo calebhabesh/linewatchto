@@ -177,9 +177,11 @@ describe("alert scenario scripts", () => {
     assert.match(cloudflarePushScript, /spring-boot:run -Dspring-boot\.run\.profiles=dev-live/);
   });
 
-  it("lets the Cloudflare tunnel hostname through Next dev origin checks", () => {
+  it("lets the Cloudflare tunnel hostname through Next dev origin checks without hardcoded LAN IPs", () => {
     assert.match(nextConfigSource, /LINEWATCH_DEV_ALLOWED_ORIGIN/);
+    assert.match(nextConfigSource, /LINEWATCH_DEV_ALLOWED_ORIGINS/);
     assert.match(nextConfigSource, /allowedDevOrigins/);
+    assert.doesNotMatch(nextConfigSource, /192\.168\./);
     assert.match(nextConfigSource, /packageJson\.version/);
     assert.match(nextConfigSource, /NEXT_PUBLIC_LINEWATCH_APP_VERSION/);
     assert.match(nextConfigSource, /NEXT_PUBLIC_LINEWATCH_BUILD_LABEL/);

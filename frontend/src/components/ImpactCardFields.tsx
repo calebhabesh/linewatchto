@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, MapPinned } from "lucide-react";
-import type { AccountCommutePathPreview } from "../app/account-data";
+import type { AccountCommutePathPreview } from "../app/commute-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";

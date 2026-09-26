@@ -12,6 +12,8 @@ const arrivalPinSource = readFileSync(new URL("../src/components/ArrivalLinePinB
 const navButtonsSource = readFileSync(new URL("../src/components/StationSubmenuNavButtons.tsx", import.meta.url), "utf8");
 const stationHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const navSource = readFileSync(new URL("../src/hooks/useNavigationTransitions.ts", import.meta.url), "utf8");
+const badgeSource = readFileSync(new URL("../src/components/ArrivalSourceBadge.tsx", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 
 describe("station detail panel layout", () => {
@@ -29,7 +31,7 @@ describe("station detail panel layout", () => {
       shellSource,
       /onClose=\{\(\) => closeSelectedStation\(selectedStationId\)\}/,
     );
-    assert.match(shellSource, /setSelectedStationId\(\(current\) => current === expectedStationId \? null : current\)/);
+    assert.match(shellSource + navSource, /setSelectedStationId\(\(current\) => current === expectedStationId \? null : current\)/);
     assert.match(shellSource, /key=\{`\$\{selectedStationId\}:\$\{stationPanelActivationKey\}`\}/);
     assert.match(panelSource, /window\.clearTimeout\(closeTimeoutRef\.current\)/);
   });
@@ -104,8 +106,9 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /No live ETA for this direction right now\. Live updates may appear at any moment\./);
     assert.match(panelSource, /emptyLiveDirection/);
     assert.match(panelSource, /detailedCountdown/);
-    assert.match(panelSource, /data-arrival-source/);
-    assert.match(panelSource, /arrivalSourceBadgeClassName/);
+    assert.match(panelSource, /<ArrivalSourceBadge/);
+    assert.match(badgeSource, /data-arrival-source/);
+    assert.match(badgeSource, /arrivalSourceBadgeClassName/);
     assert.match(panelSource, /arrivalSourceTitle/);
     assert.match(panelSource, /whitespace-nowrap/);
     assert.match(panelSource, /md:w-\[min\(calc\(100vw-48px\),460px\)\]/);

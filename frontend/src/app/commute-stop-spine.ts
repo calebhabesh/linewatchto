@@ -1,4 +1,4 @@
-import type { AccountCommutePath } from "./account-data";
+import type { AccountCommutePath } from "./commute-data.ts";
 
 /** Use the route's actual hops, not every line served by an interchange. */
 export function commuteStopSpine(path: AccountCommutePath) {

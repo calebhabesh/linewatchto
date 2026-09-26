@@ -60,6 +60,7 @@ export type AccessibilityOutageFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
   networkId?: NetworkId;
+  signal?: AbortSignal;
 };
 
 export const fallbackAccessibilityOutages: AccessibilityOutageResponse = {
@@ -82,7 +83,11 @@ export async function getAccessibilityOutages(
   const path = `/api/accessibility-outages${query ? `?${query}` : ""}`;
 
   try {
-    const response = await fetcher(apiUrl(path, options.apiBaseUrl));
+    const fetchInit: RequestInit = {};
+    if (options.signal) {
+      fetchInit.signal = options.signal;
+    }
+    const response = await fetcher(apiUrl(path, options.apiBaseUrl), fetchInit);
     if (!response.ok) {
       throw new Error(`Accessibility outages request failed with ${response.status}`);
     }
@@ -91,7 +96,13 @@ export async function getAccessibilityOutages(
       source: "backend",
       data: (await response.json()) as AccessibilityOutageResponse,
     };
-  } catch {
+  } catch (error) {
+    if (
+      (error instanceof DOMException && error.name === "AbortError")
+      || (typeof error === "object" && error !== null && (error as { name?: string }).name === "AbortError")
+    ) {
+      throw error;
+    }
     return {
       source: "fallback",
       data: options.networkId === "regional"

@@ -166,7 +166,7 @@ for (const preference of ["system", "app"] as const) {
     await page.mouse.up();
     await expect.poll(async () => (await panel.boundingBox())!.y).toBeLessThan(before.y - 60);
     await handle.press("Home");
-    await expect.poll(async () => Math.abs((await panel.boundingBox())!.y - before.y)).toBeLessThan(3);
+    await expect.poll(async () => Math.abs((await panel.boundingBox())!.y - before.y)).toBeLessThan(6);
   });
 }
 

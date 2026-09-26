@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readAppStylesheet } from "./helpers/stylesheet-graph.mjs";
+import { toTitleCase } from "../src/app/text-format.ts";
 
 const devBootstrapUrl = new URL("../src/components/LineWatchDevBootstrap.tsx", import.meta.url);
 const devBootstrapSource = existsSync(devBootstrapUrl) ? readFileSync(devBootstrapUrl, "utf8") : "";
@@ -11,6 +12,10 @@ const resetPasswordPageSource = readFileSync(new URL("../src/app/reset-password/
 const verifyEmailPageSource = readFileSync(new URL("../src/app/verify-email/page.tsx", import.meta.url), "utf8");
 const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
+const savedCommuteCardSource = readFileSync(new URL("../src/components/SavedCommuteCard.tsx", import.meta.url), "utf8");
+const savedCommuteEditorSource = readFileSync(new URL("../src/components/SavedCommuteNotificationRuleEditor.tsx", import.meta.url), "utf8");
+const savedCommuteDraftSource = readFileSync(new URL("../src/components/SavedCommuteRouteDraftEditor.tsx", import.meta.url), "utf8");
+const editModelSource = readFileSync(new URL("../src/app/commute-notification-edit-model.ts", import.meta.url), "utf8");
 const globalCss = readAppStylesheet();
 const savedCommutePickerSource = readFileSync(new URL("../src/components/SavedCommuteStationPicker.tsx", import.meta.url), "utf8");
 const googleSignInSource = readFileSync(new URL("../src/components/GoogleSignInButton.tsx", import.meta.url), "utf8");
@@ -18,51 +23,56 @@ const accountAvailabilitySource = readFileSync(new URL("../src/components/Accoun
 const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const notificationSettingsSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
 const myStationsSource = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
+const accountDialogSource = readFileSync(new URL("../src/components/AccountDialog.tsx", import.meta.url), "utf8");
+const accountDialogStateSource = readFileSync(new URL("../src/components/account-dialog-state.ts", import.meta.url), "utf8");
+const accountSessionSource = readFileSync(new URL("../src/hooks/useAccountSession.ts", import.meta.url), "utf8");
 
 describe("account UI source", () => {
   it("loads account state and exposes sign-in, create-account, demo, and sign-out actions", () => {
-    assert.match(shellSource, /getCurrentAccount/);
-    assert.match(shellSource, /loginAccount/);
-    assert.match(shellSource, /registerAccount/);
-    assert.match(shellSource, /loginDemoAccount/);
-    assert.match(shellSource, /logoutAccount/);
+    assert.match(accountSessionSource, /getCurrentAccount/);
+    assert.match(accountDialogSource, /loginAccount/);
+    assert.match(accountDialogSource, /registerAccount/);
+    assert.match(accountSessionSource, /loginDemoAccount/);
+    assert.match(accountSessionSource, /logoutAccount/);
     assert.match(shellSource, /Sign In/);
     assert.match(shellSource, /Create Account/);
     assert.match(shellSource, /Demo Account/);
     assert.match(shellSource, /Sign Out/);
-    assert.match(shellSource, /account-dialog/);
-    assert.match(shellSource, /getAuthConfig/);
-    assert.match(shellSource, /GoogleSignInButton/);
-    assert.match(shellSource, /Continue With Google/);
-    assert.match(shellSource, /account-auth-divider/);
-    assert.match(shellSource, /"link-google"/);
-    assert.match(shellSource, /Link Google/);
+    assert.match(shellSource, /AccountDialog/);
+    assert.match(accountDialogSource, /account-dialog/);
+    assert.match(accountSessionSource, /getAuthConfig/);
+    assert.match(accountDialogSource, /GoogleSignInButton/);
+    assert.match(accountDialogSource, /Continue With Google/);
+    assert.match(accountDialogSource, /account-auth-divider/);
+    assert.match(accountDialogSource, /"link-google"/);
+    assert.match(accountDialogSource, /Link Google/);
     assert.match(shellSource, /Google Linked/);
-    assert.match(shellSource, /"auth-choice"/);
-    assert.match(shellSource, /type AccountEntryIntent = "login" \| "register"/);
+    assert.match(accountDialogSource, /"auth-choice"/);
+    assert.match(accountDialogStateSource, /type AccountEntryIntent = "login" \| "register"/);
+    assert.match(accountDialogSource, /AccountEntryIntent/);
     assert.match(shellSource, /openAuthChoice/);
-    assert.match(shellSource, /Continue With Email/);
-    assert.match(shellSource, /Back To Options/);
-    assert.match(shellSource, /account-provider-stack/);
-    assert.match(shellSource, /account-choice-primary/);
+    assert.match(accountDialogSource, /Continue With Email/);
+    assert.match(accountDialogSource, /Back To Options/);
+    assert.match(accountDialogSource, /account-provider-stack/);
+    assert.match(accountDialogSource, /account-choice-primary/);
     assert.ok(
-      shellSource.indexOf('aria-label="Continue With Google"')
-        < shellSource.indexOf("Continue With Email"),
+      accountDialogSource.indexOf('aria-label="Continue With Google"')
+        < accountDialogSource.indexOf("Continue With Email"),
       "Google should be presented before email in the authentication choice dialog",
     );
-    assert.match(shellSource, /Create a free account[^<]*All features are free\./);
-    assert.match(shellSource, /Sign in to access your saved stations and commutes/);
-    assert.doesNotMatch(shellSource, /Welcome back/);
-    assert.doesNotMatch(shellSource, /Your account and all features are free\./);
-    assert.match(shellSource, /account-dialog-header/);
-    assert.match(shellSource, /account-dialog-description/);
+    assert.match(accountDialogStateSource, /Create a free account[^<]*All features are free\./);
+    assert.match(accountDialogStateSource, /Sign in to access your saved stations and commutes/);
+    assert.doesNotMatch(accountDialogStateSource, /Welcome back/);
+    assert.doesNotMatch(accountDialogStateSource, /Your account and all features are free\./);
+    assert.match(accountDialogSource, /account-dialog-header/);
+    assert.match(accountDialogSource, /account-dialog-description/);
   });
 
   it("keeps account outages distinct from signed-out state and retries automatically", () => {
-    assert.match(shellSource, /getCurrentAccountWithRetry/);
-    assert.match(shellSource, /preserveAccountStateDuringOutage/);
-    assert.match(shellSource, /addEventListener\("online"/);
-    assert.match(shellSource, /addEventListener\("visibilitychange"/);
+    assert.match(accountSessionSource, /getCurrentAccountWithRetry/);
+    assert.match(accountSessionSource, /preserveAccountStateDuringOutage/);
+    assert.match(accountSessionSource, /addEventListener\("online"/);
+    assert.match(accountSessionSource, /addEventListener\("visibilitychange"/);
     assert.match(shellSource, /accountState\.source === "unavailable"/);
     assert.match(accountAvailabilitySource, /Your sign-in has not been cleared/);
     assert.match(accountAvailabilitySource, /retrying automatically/);
@@ -76,9 +86,9 @@ describe("account UI source", () => {
     assert.doesNotMatch(shellSource, /Sign in to save stations\./);
     assert.match(
       shellSource,
-      /if \(!accountState\.authenticated\) \{\s*setAccountEntryIntent\("register"\);\s*openAccountDialog\("auth-choice"\);\s*setAccountError\(null\);/,
+      /if \(!accountState\.authenticated\) \{\s*openAuthChoice\("register"\);\s*return false;\s*\}/,
     );
-    assert.match(shellSource, /className="account-dialog-close"/);
+    assert.match(accountDialogSource, /className="account-dialog-close"/);
     assert.match(globalCss, /\.account-dialog-close\s*\{[^}]*flex:\s*0 0 36px;[^}]*-webkit-tap-highlight-color:\s*transparent;/s);
   });
 
@@ -96,9 +106,7 @@ describe("account UI source", () => {
   it("surfaces Google OAuth callback errors through the account dialog", () => {
     assert.match(shellSource, /accountOAuthErrorState/);
     assert.match(shellSource, /params\.get\("account_error"\)/);
-    assert.match(shellSource, /setAccountEntryIntent\(oauthErrorState\.entryIntent\)/);
-    assert.match(shellSource, /openAccountDialog\(oauthErrorState\.dialogMode\)/);
-    assert.match(shellSource, /setAccountError\(oauthErrorState\.message\)/);
+    assert.match(shellSource, /openAccountDialog\(\{[\s\S]*mode:\s*oauthErrorState\.dialogMode[\s\S]*entryIntent:\s*oauthErrorState\.entryIntent[\s\S]*error:\s*oauthErrorState\.message/);
     assert.match(shellSource, /nextParams\.delete\("account_error"\)/);
   });
 
@@ -106,38 +114,38 @@ describe("account UI source", () => {
     assert.match(shellSource, /GOOGLE_LINK_SUCCESS_PARAM/);
     assert.match(shellSource, /GOOGLE_LINK_SUCCESS_VALUE/);
     assert.match(shellSource, /params\.get\(GOOGLE_LINK_SUCCESS_PARAM\)/);
-    assert.match(shellSource, /setAccountSuccessMessage\("Google sign-in has been linked to your account\."\)/);
+    assert.match(shellSource, /openAccountDialog\(\{[\s\S]*mode:\s*"link-google"[\s\S]*successMessage:\s*GOOGLE_LINK_SUCCESS_MESSAGE/);
     assert.match(shellSource, /nextParams\.delete\("account_error"\)/);
-    assert.match(shellSource, /returnTo=\{googleLinkSuccessReturnTo\(\)\}/);
+    assert.match(accountDialogSource, /returnTo=\{googleLinkSuccessReturnTo\(\)\}/);
   });
 
   it("renders signed-out, demo, and account-backed saved commute states", () => {
     assert.match(savedCommutesSource, /accountState/);
     assert.match(savedCommutesSource, /accountCommutes/);
-    assert.match(savedCommutesSource, /status-pill/);
-    assert.match(savedCommutesSource, /matchedImpacts/);
-    assert.doesNotMatch(savedCommutesSource, /matchedImpacts\.slice\(0,\s*3\)/);
-    assert.match(savedCommutesSource, /formatTravelTimeHeadline/);
-    assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
+    assert.match(savedCommuteCardSource, /status-pill/);
+    assert.match(savedCommuteCardSource, /matchedImpacts/);
+    assert.doesNotMatch(savedCommuteCardSource, /matchedImpacts\.slice\(0,\s*3\)/);
+    assert.match(savedCommuteCardSource, /formatTravelTimeHeadline/);
+    assert.doesNotMatch(savedCommuteCardSource, /Impact matching pending/);
     assert.match(savedCommutesSource, /createSavedCommute/);
     assert.match(savedCommutesSource, /deleteSavedCommute/);
-    assert.match(savedCommutesSource, /SavedCommuteStationPicker/);
+    assert.match(savedCommuteDraftSource, /SavedCommuteStationPicker/);
     assert.match(savedCommutesSource, /<ToolbarSelectMenu/);
     assert.match(savedCommutesSource, /ariaLabel="Sort My Commutes"/);
     assert.match(savedCommutesSource, /COMMUTE_SORT_OPTIONS/);
     assert.match(savedCommutesSource, /sortSavedCommutes/);
-    assert.match(savedCommutesSource, /Track Return Route/);
-    assert.match(savedCommutesSource, /watchReturnTrip/);
-    assert.match(savedCommutesSource, /commute-leg-toggle/);
-    assert.match(savedCommutesSource, /saved-commute-card-header/);
-    assert.match(savedCommutesSource, /saved-commute-card-identity/);
-    assert.match(savedCommutesSource, /saved-commute-current-impact-badge/);
-    assert.match(savedCommutesSource, /saved-commute-endpoints/);
-    assert.match(savedCommutesSource, /saved-commute-endpoint-prefix">Origin:<\/span>/);
-    assert.match(savedCommutesSource, /saved-commute-endpoint-prefix">Destination:<\/span>/);
-    assert.match(savedCommutesSource, /CommuteOriginIcon/);
-    assert.match(savedCommutesSource, /CommuteDestinationPinIcon/);
-    assert.match(savedCommutesSource, /CommuteConnectingDots/);
+    assert.match(savedCommuteDraftSource, /Track Return Route/);
+    assert.match(savedCommuteDraftSource, /watchReturnTrip/);
+    assert.match(savedCommuteCardSource, /commute-leg-toggle/);
+    assert.match(savedCommuteCardSource, /saved-commute-card-header/);
+    assert.match(savedCommuteCardSource, /saved-commute-card-identity/);
+    assert.match(savedCommuteCardSource, /saved-commute-current-impact-badge/);
+    assert.match(savedCommuteCardSource, /saved-commute-endpoints/);
+    assert.match(savedCommuteCardSource, /saved-commute-endpoint-prefix">Origin:<\/span>/);
+    assert.match(savedCommuteCardSource, /saved-commute-endpoint-prefix">Destination:<\/span>/);
+    assert.match(savedCommuteCardSource, /CommuteOriginIcon/);
+    assert.match(savedCommuteCardSource, /CommuteDestinationPinIcon/);
+    assert.match(savedCommuteCardSource, /CommuteConnectingDots/);
     assert.match(
       globalCss,
       /\.saved-commute-card-header\s*\{(?=[^}]*align-items:\s*flex-start;)(?=[^}]*display:\s*flex;)(?=[^}]*flex-wrap:\s*nowrap;)(?=[^}]*justify-content:\s*space-between;)[^}]*\}/s,
@@ -168,30 +176,30 @@ describe("account UI source", () => {
     );
     assert.match(globalCss, /@keyframes commuteOriginSwapIn/);
     assert.match(globalCss, /@keyframes commuteDestSwapIn/);
-    assert.match(savedCommutesSource, /saved-commute-origin-swap/);
-    assert.match(savedCommutesSource, /saved-commute-dest-swap/);
-    assert.match(savedCommutesSource, /handleToggleLeg\([\s\S]*?commute\.id,\s*leg\.id,\s*selectedLeg\.id\)/);
+    assert.match(savedCommuteCardSource, /saved-commute-origin-swap/);
+    assert.match(savedCommuteCardSource, /onToggleLeg\([\s\S]*?commute\.id,\s*leg\.id,\s*selectedLeg\.id\)/);
+    assert.match(savedCommutesSource, /handleToggleLeg/);
     assert.match(savedCommutesSource, /clearCommuteSwapAnimation/);
-    assert.match(savedCommutesSource, /onAnimationEnd=\{[\s\S]*?commuteOriginSwapIn[\s\S]*?clearCommuteSwapAnimation/);
-    assert.match(savedCommutesSource, /onAnimationEnd=\{[\s\S]*?commuteDestSwapIn[\s\S]*?clearCommuteSwapAnimation/);
-    assert.match(savedCommutesSource, /To \{leg\.toStationName\}/);
-    assert.match(savedCommutesSource, /Clear both ways/);
-    assert.match(savedCommutesSource, /Return affected/);
-    assert.match(savedCommutesSource, /Plotting route/);
-    assert.match(savedCommutesSource, /Loader2/);
-    assert.match(savedCommutesSource, /commute-route-stop-list/);
+    assert.match(savedCommuteCardSource, /onAnimationEnd=\{[\s\S]*?commuteOriginSwapIn[\s\S]*?onClearSwapAnimation/);
+    assert.match(savedCommuteCardSource, /onAnimationEnd=\{[\s\S]*?commuteDestSwapIn[\s\S]*?onClearSwapAnimation/);
+    assert.match(savedCommuteCardSource, /To \{leg\.toStationName\}/);
+    assert.match(savedCommuteCardSource, /Clear both ways/);
+    assert.match(savedCommuteCardSource, /Return affected/);
+    assert.match(savedCommuteDraftSource, /Plotting route/);
+    assert.match(savedCommuteDraftSource, /Loader2/);
+    assert.match(savedCommuteCardSource, /commute-route-stop-list/);
     assert.match(
       globalCss,
       /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*gap:\s*0\.42rem;)(?=[^}]*justify-content:\s*center;)(?=[^}]*letter-spacing:\s*0\.015em;)[^}]*\}/s,
     );
-    assert.match(savedCommutesSource, /<SquarePen size=\{16\}[^>]*\/>[\s\S]*?Edit Route/);
-    assert.match(savedCommutesSource, /View \$\{routeStops\.length\} Stops`\}[\s\S]*?<ChevronDown size=\{16\}/);
-    assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
+    assert.match(savedCommuteCardSource, /<SquarePen size=\{16\}[^>]*\/>[\s\S]*?Edit Route/);
+    assert.match(savedCommuteCardSource, /View \$\{routeStops\.length\} Stops`\}[\s\S]*?<ChevronDown size=\{16\}/);
+    assert.match(savedCommuteCardSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
-    assert.match(savedCommutesSource, /commute-route-map-button[\s\S]*?View on Map/);
-    assert.match(savedCommutesSource, /saved-commute-edit-delete-button/);
-    assert.match(savedCommutesSource, /Delete this commute/);
-    assert.match(savedCommutesSource, /saved-commute-delete-confirm-box/);
+    assert.match(savedCommuteCardSource, /commute-route-map-button[\s\S]*?View on Map/);
+    assert.match(savedCommuteDraftSource, /saved-commute-edit-delete-button/);
+    assert.match(savedCommuteDraftSource, /Delete this commute/);
+    assert.match(savedCommuteDraftSource, /saved-commute-delete-confirm-box/);
     assert.match(globalCss, /\.saved-commute-edit-delete-button\s*\{(?=[^}]*font-weight:\s*850;)(?=[^}]*text-transform:\s*uppercase;)(?=[^}]*letter-spacing:\s*0\.025em;)[^}]*\}/s);
     assert.match(globalCss, /\.saved-commute-delete-confirm-prompt\s*\{(?=[^}]*font-weight:\s*850;)(?=[^}]*text-transform:\s*uppercase;)[^}]*\}/s);
     assert.match(globalCss, /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-card\s*\{(?=[^}]*max-width:\s*100%;)(?=[^}]*overflow-x:\s*hidden;)(?=[^}]*width:\s*100%;)[^}]*\}/s);
@@ -206,9 +214,9 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.saved-commute-map-action:hover:not\(:disabled\)/);
     assert.match(globalCss, /\.saved-commute-map-action:focus-visible/);
     assert.match(savedCommutesSource, /onViewImpactOnPath/);
-    assert.match(savedCommutesSource, /saved-commute-map-action saved-commute-impact-map-button/);
-    assert.match(savedCommutesSource, /saved-commute-map-action commute-route-map-button/);
-    assert.match(savedCommutesSource, /View on Map/);
+    assert.match(savedCommuteCardSource, /saved-commute-map-action saved-commute-impact-map-button/);
+    assert.match(savedCommuteCardSource, /saved-commute-map-action commute-route-map-button/);
+    assert.match(savedCommuteCardSource, /View on Map/);
     assert.match(shellSource, /handleViewCommuteImpactOnPath/);
     assert.match(shellSource, /viewForSavedCommuteImpact/);
     assert.match(shellSource, /resolveCommuteImpactMapSelection\([\s\S]*?impact,[\s\S]*?commuteDashboard\.activeAlerts,[\s\S]*?commuteNetwork,/);
@@ -216,21 +224,21 @@ describe("account UI source", () => {
   });
 
   it("keeps ignored route impacts visible without treating filters as physical conditions", () => {
-    assert.match(savedCommutesSource, /Clear by filters/);
-    assert.match(savedCommutesSource, /Ignored by Route Filter/);
-    assert.match(savedCommutesSource, /saved-commute-impact-ignored/);
-    assert.match(savedCommutesSource, /leg-btn-filtered/);
-    assert.doesNotMatch(savedCommutesSource, /Ignored By Route Alert Filters/);
+    assert.match(savedCommuteCardSource, /Clear by filters/);
+    assert.match(savedCommuteCardSource, /Ignored by Route Filter/);
+    assert.match(savedCommuteCardSource, /saved-commute-impact-ignored/);
+    assert.match(savedCommuteCardSource, /leg-btn-filtered/);
+    assert.doesNotMatch(savedCommuteCardSource, /Ignored By Route Alert Filters/);
     assert.match(globalCss, /\.saved-commute-impact-ignored/);
     assert.match(globalCss, /\.commute-leg-toggle button\.leg-btn-filtered/);
     assert.match(globalCss, /text-decoration:\s*line-through/);
   });
 
   it("collapses saved-commute disruptions behind alert-type summary chips", () => {
-    assert.match(savedCommutesSource, /<details[\s\S]*?className="saved-commute-impact-disclosure"/);
-    assert.match(savedCommutesSource, /saved-commute-impact-summary-chips/);
-    assert.match(savedCommutesSource, /summarizeMatchedImpacts/);
-    assert.match(savedCommutesSource, /<summary className="saved-commute-impact-summary">/);
+    assert.match(savedCommuteCardSource, /<details[\s\S]*?className="saved-commute-impact-disclosure"/);
+    assert.match(savedCommuteCardSource, /saved-commute-impact-summary-chips/);
+    assert.match(savedCommuteCardSource, /summarizeMatchedImpacts/);
+    assert.match(savedCommuteCardSource, /<summary className="saved-commute-impact-summary">/);
     assert.match(globalCss, /\.saved-commute-impact-disclosure/);
     assert.match(globalCss, /\.saved-commute-impact-summary-chip/);
     assert.match(globalCss, /\.saved-commute-impact-disclosure\[open\]/);
@@ -247,8 +255,8 @@ describe("account UI source", () => {
       globalCss,
       /\.saved-commute-impact-total\s*\{[^}]*transform:\s*translateY\(/s,
     );
-    assert.match(savedCommutesSource, /saved-commute-impact-summary-action-collapsed">List View/);
-    assert.match(savedCommutesSource, /saved-commute-impact-summary-action-expanded">Hide List/);
+    assert.match(savedCommuteCardSource, /saved-commute-impact-summary-action-collapsed">List View/);
+    assert.match(savedCommuteCardSource, /saved-commute-impact-summary-action-expanded">Hide List/);
     assert.match(globalCss, /\.saved-commute-impact-summary-action\s*\{(?=[^}]*align-self:\s*flex-start;)(?=[^}]*justify-self:\s*end;)[^}]*\}/s);
     assert.match(
       globalCss,
@@ -259,9 +267,9 @@ describe("account UI source", () => {
       /@media \(max-width:\s*23\.5rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*font-size:\s*0\.76rem;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*font-size:\s*0\.52rem;)/s,
     );
     assert.match(globalCss, /\.dark \.saved-commute-impact-summary-chip\.kind-delay\s*\{(?=[^}]*#FEEC41)(?=[^}]*rgba\(254, 236, 65, 0\.14\))[^}]*\}/s);
-    assert.match(savedCommutesSource, /selectedLeg\.impact\.matchedImpacts\.length === 0 \? \(/);
-    assert.match(savedCommutesSource, /saved-commute-impact-content-wrapper/);
-    assert.match(savedCommutesSource, /saved-commute-impact-content/);
+    assert.match(savedCommuteCardSource, /selectedLeg\.impact\.matchedImpacts\.length === 0 \? \(/);
+    assert.match(savedCommuteCardSource, /saved-commute-impact-content-wrapper/);
+    assert.match(savedCommuteCardSource, /saved-commute-impact-content/);
     assert.match(globalCss, /\.saved-commute-impact-content-wrapper\s*\{(?=[^}]*display:\s*grid;)(?=[^}]*grid-template-rows:\s*0fr;)(?=[^}]*transition:\s*grid-template-rows)[^}]*\}/s);
     assert.match(globalCss, /\.saved-commute-impact-disclosure\[open\] \.saved-commute-impact-content-wrapper\s*\{[^}]*grid-template-rows:\s*1fr;/s);
     assert.match(globalCss, /\.saved-commute-impact-content\s*\{(?=[^}]*opacity:\s*0;)(?=[^}]*transform:\s*translateY\(-6px\);)(?=[^}]*transition:)[^}]*\}/s);
@@ -280,23 +288,23 @@ describe("account UI source", () => {
   });
 
   it("renders saved commute extra-time estimates without claiming precision for major disruptions", () => {
-    assert.match(savedCommutesSource, /travelTimeEstimate/);
-    assert.match(savedCommutesSource, /formatEstimateDuration/);
-    assert.match(savedCommutesSource, /function TravelTimeEstimateBlock/);
-    assert.match(savedCommutesSource, /saved-commute-time-estimate/);
-    assert.match(savedCommutesSource, /Travel Time/);
-    assert.match(savedCommutesSource, /With Impacts/);
-    assert.match(savedCommutesSource, /Extra Time/);
-    assert.match(savedCommutesSource, /Confidence/);
-    assert.match(savedCommutesSource, /Major Disruption on Route — Travel Time Not Reliable/);
-    assert.match(savedCommutesSource, /function travelTimeSeverity/);
-    assert.match(savedCommutesSource, /data-travel-time-severity/);
+    assert.match(savedCommuteCardSource, /travelTimeEstimate/);
+    assert.match(savedCommuteCardSource, /formatEstimateDuration/);
+    assert.match(savedCommuteCardSource, /function TravelTimeEstimateBlock/);
+    assert.match(savedCommuteCardSource, /saved-commute-time-estimate/);
+    assert.match(savedCommuteCardSource, /Travel Time/);
+    assert.match(savedCommuteCardSource, /With Impacts/);
+    assert.match(savedCommuteCardSource, /Extra Time/);
+    assert.match(savedCommuteCardSource, /Confidence/);
+    assert.match(savedCommuteCardSource, /Major Disruption on Route — Travel Time Not Reliable/);
+    assert.match(savedCommuteCardSource, /function travelTimeSeverity/);
+    assert.match(savedCommuteCardSource, /data-travel-time-severity/);
     assert.match(globalCss, /\.saved-commute-time-estimate/);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable/);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable p\s*\{(?=[^}]*justify-items:\s*center)(?=[^}]*padding:\s*0\.75rem 0\.5rem 0)(?=[^}]*text-align:\s*center)[^}]*\}/s);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable \.saved-commute-time-verdict\s*\{[^}]*text-align:\s*center;[^}]*width:\s*100%;/s);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable p > strong,[\s\S]*?\.saved-commute-time-estimate\.unreliable p > span\s*\{(?=[^}]*font-size:\s*1rem !important)(?=[^}]*font-weight:\s*850)(?=[^}]*text-transform:\s*none !important)[^}]*\}/s);
-    assert.match(savedCommutesSource, /saved-commute-time-status-value/);
+    assert.match(savedCommuteCardSource, /saved-commute-time-status-value/);
     assert.match(globalCss, /\.dark \.saved-commute-time-estimate \.saved-commute-time-status-value,[\s\S]*?color:\s*#fff;/s);
     assert.match(globalCss, /\.saved-commute-time-estimate \.saved-commute-time-status-value\s*\{[^}]*text-transform:\s*none;/s);
     assert.match(globalCss, /\.severity-good \.saved-commute-time-verdict/);
@@ -304,48 +312,48 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.severity-moderate \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-poor \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-severe \.saved-commute-time-verdict/);
-    assert.match(savedCommutesSource, /saved-commute-time-headline-clock severity-\$\{selectedTravelTimeSeverity\}/);
-    assert.match(savedCommutesSource, /hasCurrentImpacts \|\| ignoredImpactsCount > 0 \? \([\s\S]*?<ExclaimAlertIcon[\s\S]*?: \([\s\S]*?<Check/s);
+    assert.match(savedCommuteCardSource, /saved-commute-time-headline-clock severity-\$\{selectedTravelTimeSeverity\}/);
+    assert.match(savedCommuteCardSource, /hasCurrentImpacts \|\| ignoredImpactsCount > 0 \? \([\s\S]*?<ExclaimAlertIcon[\s\S]*?: \([\s\S]*?<Check/s);
     assert.match(globalCss, /\.saved-commute-time-headline-clock\.severity-good/);
     assert.match(globalCss, /\.saved-commute-time-headline-clock\.severity-severe/);
-    assert.match(savedCommutesSource, /saved-commute-impact-icon/);
+    assert.match(savedCommuteCardSource, /saved-commute-impact-icon/);
     assert.match(globalCss, /\.saved-commute-impact-icon\s*\{[^}]*align-items:\s*center;[^}]*height:\s*0\.875rem;/s);
     assert.match(globalCss, /\.saved-commute-impact-list\s*\{[^}]*gap:\s*0\.75rem;/s);
   });
 
   it("renders saved-commute granular notification controls inside the commute feature", () => {
-    const eventTypesIndex = savedCommutesSource.indexOf('className="saved-commute-notification-block saved-commute-event-types"');
-    const masterToggleIndex = savedCommutesSource.indexOf('className="saved-commute-notification-master-row"');
-    const schedulingHelpIndex = savedCommutesSource.indexOf('className="saved-commute-notification-help"');
+    const eventTypesIndex = savedCommuteEditorSource.indexOf('className="saved-commute-notification-block saved-commute-event-types"');
+    const masterToggleIndex = savedCommuteEditorSource.indexOf('className="saved-commute-notification-master-row"');
+    const schedulingHelpIndex = savedCommuteEditorSource.indexOf('className="saved-commute-notification-help"');
 
     assert.match(savedCommutesSource, /updateSavedCommuteNotificationRule/);
-    assert.match(savedCommutesSource, /Route Notifications/);
-    assert.match(savedCommutesSource, /How Scheduling Works/);
-    assert.match(savedCommutesSource, /outboundSchedule/);
-    assert.match(savedCommutesSource, /returnSchedule/);
-    assert.match(savedCommutesSource, /AM Rush/);
-    assert.match(savedCommutesSource, /PM Rush/);
-    assert.match(savedCommutesSource, /Every Day/);
-    assert.match(savedCommutesSource, /ArrowUpRight/);
-    assert.match(savedCommutesSource, /ArrowDownLeft/);
-    assert.match(savedCommutesSource, /Sunrise/);
-    assert.match(savedCommutesSource, /Sunset/);
-    assert.match(savedCommutesSource, /SlidersHorizontal/);
-    assert.match(savedCommutesSource, /NotificationEventIcon/);
-    assert.match(savedCommutesSource, /notificationEventOptionsForNetwork/);
-    assert.match(savedCommutesSource, /scopeNotificationRuleToNetwork/);
-    assert.match(savedCommutesSource, /expandedSchedules/);
-    assert.match(savedCommutesSource, /Toronto time/);
-    assert.doesNotMatch(savedCommutesSource, /Route Section|Whole Route|Selected Section/);
-    assert.match(savedCommutesSource, /Mon/);
-    assert.match(savedCommutesSource, /Tue/);
-    assert.match(savedCommutesSource, /Reduced Speed Zones/);
-    assert.match(savedCommutesSource, /saved-commute-notification-rule/);
-    assert.match(savedCommutesSource, /notificationRule/);
+    assert.match(savedCommuteEditorSource, /Route Notifications/);
+    assert.match(savedCommuteEditorSource, /How Scheduling Works/);
+    assert.match(savedCommuteEditorSource, /outboundSchedule/);
+    assert.match(savedCommuteEditorSource, /returnSchedule/);
+    assert.match(savedCommuteEditorSource, /AM Rush/);
+    assert.match(savedCommuteEditorSource, /PM Rush/);
+    assert.match(savedCommuteEditorSource, /Every Day/);
+    assert.match(savedCommuteEditorSource, /ArrowUpRight/);
+    assert.match(savedCommuteEditorSource, /ArrowDownLeft/);
+    assert.match(savedCommuteEditorSource, /Sunrise/);
+    assert.match(savedCommuteEditorSource, /Sunset/);
+    assert.match(savedCommuteEditorSource, /SlidersHorizontal/);
+    assert.match(savedCommuteEditorSource, /NotificationEventIcon/);
+    assert.match(savedCommuteEditorSource, /notificationEventOptionsForNetwork/);
+    assert.match(savedCommuteEditorSource, /scopeNotificationRuleToNetwork/);
+    assert.match(savedCommuteEditorSource, /expandedSchedules/);
+    assert.match(savedCommuteEditorSource, /Toronto time/);
+    assert.doesNotMatch(savedCommuteEditorSource, /Route Section|Whole Route|Selected Section/);
+    assert.match(editModelSource, /Mon/);
+    assert.match(editModelSource, /Tue/);
+    assert.match(editModelSource, /Reduced Speed Zones/);
+    assert.match(savedCommuteEditorSource, /saved-commute-notification-rule/);
+    assert.match(savedCommuteEditorSource, /rule/);
     assert.match(globalCss, /\.saved-commute-notification-rule/);
     assert.match(globalCss, /\.saved-commute-day-button/);
     assert.match(globalCss, /\.saved-commute-notification-help-chevron/);
-    assert.match(savedCommutesSource, /station-arrival-line-divider saved-commute-notification-divider/);
+    assert.match(savedCommuteEditorSource, /station-arrival-line-divider saved-commute-notification-divider/);
     assert.match(globalCss, /\.saved-commute-event-types\s*\{[^}]*border:\s*0;/s);
     assert.ok(eventTypesIndex < masterToggleIndex);
     assert.ok(masterToggleIndex < schedulingHelpIndex);
@@ -396,39 +404,39 @@ describe("account UI source", () => {
   });
 
   it("validates create-account input before sending registration requests", () => {
-    assert.match(shellSource, /validateAccountCredentials/);
-    assert.match(shellSource, /validateAccountEmail/);
-    assert.match(shellSource, /normalizeAccountEmail/);
-    assert.match(shellSource, /account-error-live/);
-    assert.match(shellSource, /autoComplete="current-password"/);
-    assert.match(shellSource, /It was intentionally not accepted before mailbox ownership was proven/);
-    assert.match(shellSource, /registerAccount\(\{\s*email:\s*normalizedEmail,\s*displayName:/s);
-    assert.match(shellSource, /aria-invalid=\{Boolean\(accountError && accountDialogMode === "register"\)\}/);
-    assert.match(shellSource, /Use at least 8 characters with a letter and a number, symbol, or space\./);
-    assert.match(shellSource, /error instanceof AccountRequestError/);
+    assert.match(accountDialogSource, /validateAccountCredentials/);
+    assert.match(accountDialogSource, /validateAccountEmail/);
+    assert.match(accountDialogSource, /normalizeAccountEmail/);
+    assert.match(accountDialogSource, /account-error-live/);
+    assert.match(accountDialogSource, /autoComplete="current-password"/);
+    assert.match(accountDialogSource, /It was intentionally not accepted before mailbox ownership was proven/);
+    assert.match(accountDialogSource, /registerAccount\(\{\s*email:\s*normalizedEmail,\s*displayName:/s);
+    assert.match(accountDialogSource, /aria-invalid=\{Boolean\(error && mode === "register"\)\}/);
+    assert.match(accountDialogSource, /Use at least 8 characters with a letter and a number, symbol, or space\./);
+    assert.match(accountDialogSource, /(?:error|err) instanceof AccountRequestError/);
   });
 
   it("uses standard HTML form element with submit button for enter-key submission support", () => {
-    assert.match(shellSource, /<form/);
-    assert.match(shellSource, /onSubmit=\{/);
-    assert.match(shellSource, /event\.preventDefault\(\)/);
-    assert.match(shellSource, /handleSubmitAccount\(\)/);
-    assert.match(shellSource, /<button type="submit" className="account-primary-button"/);
+    assert.match(accountDialogSource, /<form/);
+    assert.match(accountDialogSource, /onSubmit=\{/);
+    assert.match(accountDialogSource, /event\.preventDefault\(\)/);
+    assert.match(accountDialogSource, /handleSubmitAccount\(\)/);
+    assert.match(accountDialogSource, /<button type="submit" className="account-primary-button"/);
   });
 
   it("renders forgot-password and reset-password states inside the sign-in dialog", () => {
-    assert.match(shellSource, /"forgot-password"/);
-    assert.match(shellSource, /"reset-password"/);
-    assert.match(shellSource, /Forgot Password\?/);
-    assert.match(shellSource, /Send Reset Link/);
-    assert.match(shellSource, /Open Local Reset Form/);
-    assert.match(shellSource, /Local dev mode: no email was sent/);
-    assert.match(shellSource, /Reset Password/);
-    assert.match(shellSource, /Back To Sign In/);
-    assert.match(shellSource, /requestPasswordReset/);
-    assert.match(shellSource, /confirmPasswordReset/);
-    assert.match(shellSource, /accountResetToken/);
-    assert.match(shellSource, /accountPasswordConfirmation/);
+    assert.match(accountDialogSource, /"forgot-password"/);
+    assert.match(accountDialogSource, /"reset-password"/);
+    assert.match(accountDialogSource, /Forgot Password\?/);
+    assert.match(accountDialogSource, /Send Reset Link/);
+    assert.match(accountDialogSource, /Open Local Reset Form/);
+    assert.match(accountDialogSource, /Local dev mode: no email was sent/);
+    assert.match(accountDialogSource, /Reset Password/);
+    assert.match(accountDialogSource, /Back To Sign In/);
+    assert.match(accountDialogSource, /requestPasswordReset/);
+    assert.match(accountDialogSource, /confirmPasswordReset/);
+    assert.match(accountDialogSource, /resetToken/);
+    assert.match(accountDialogSource, /passwordConfirmation/);
     assert.match(globalCss, /\.account-link-button/);
     assert.match(globalCss, /\.account-reset-status/);
     assert.match(globalCss, /\.account-reset-dev-note/);
@@ -442,16 +450,16 @@ describe("account UI source", () => {
     assert.match(resetPasswordPageSource, /initialPasswordResetToken/);
     assert.match(resetPasswordPageSource, /decodeResetTokenParam/);
     assert.match(shellSource, /initialPasswordResetToken/);
-    assert.match(shellSource, /accountDialogMode.*initialPasswordResetToken.*"reset-password"/s);
-    assert.match(shellSource, /accountResetToken.*initialPasswordResetToken/s);
+    assert.match(shellSource, /initialPasswordResetToken[\s\S]*"reset-password"/s);
+    assert.match(accountDialogSource, /request\?\.mode === "reset-password" \? request\?\.initialToken/);
   });
 
   it("requires email verification after password registration and supports one-time emailed links", () => {
-    assert.match(shellSource, /"verify-email"/);
-    assert.match(shellSource, /requestEmailVerification/);
-    assert.match(shellSource, /confirmEmailVerification/);
-    assert.match(shellSource, /Send New Verification Link/);
-    assert.match(shellSource, /Verify Local Account/);
+    assert.match(accountDialogSource, /"verify-email"/);
+    assert.match(accountDialogSource, /requestEmailVerification/);
+    assert.match(accountDialogSource, /confirmEmailVerification/);
+    assert.match(accountDialogSource, /Send New Verification Link/);
+    assert.match(accountDialogSource, /Verify Local Account/);
     assert.match(shellSource, /initialEmailVerificationToken/);
     assert.match(verifyEmailPageSource, /initialEmailVerificationToken/);
     assert.match(verifyEmailPageSource, /decodeEmailVerificationTokenParam/);
@@ -459,16 +467,7 @@ describe("account UI source", () => {
   });
 
   it("formats Sheppard-Yonge and Bloor-Yonge correctly with hyphen awareness", () => {
-    const match = savedCommutesSource.match(/function toTitleCase\([\s\S]+?\n\}/);
-    assert.ok(match, "toTitleCase function should exist in SavedCommutesPanel.tsx");
-    // Strip TypeScript type annotations to run in plain Node
-    const jsCode = match[0]
-      .replace(/str:\s*string/g, "str")
-      .replace(/:\s*string/g, "")
-      .replace(/let formatted:\s*string;/g, "let formatted;");
-    
-    const toTitleCase = new Function(`return (${jsCode})`)();
-    
+    assert.match(savedCommutesSource, /toTitleCase/);
     assert.equal(toTitleCase("sheppard-yonge"), "Sheppard-Yonge");
     assert.equal(toTitleCase("bloor-yonge"), "Bloor-Yonge");
     assert.equal(toTitleCase("Sheppard-Yonge to Finch"), "Sheppard-Yonge To Finch");
@@ -526,13 +525,13 @@ describe("account UI source", () => {
   });
 
   it("shades dialog footer with noticeable contrast and renders customized switch prompts", () => {
-    assert.match(shellSource, /Don&apos;t have an account\?/);
-    assert.match(shellSource, /Sign Up/);
-    assert.match(shellSource, /Already Have an Account\?/);
-    assert.match(shellSource, /account-dialog-footer/);
-    assert.match(shellSource, /account-switch-button/);
-    assert.match(shellSource, /account-switch-text/);
-    assert.match(shellSource, /account-switch-link/);
+    assert.match(accountDialogSource, /Don&apos;t have an account\?/);
+    assert.match(accountDialogSource, /Sign Up/);
+    assert.match(accountDialogSource, /Already Have an Account\?/);
+    assert.match(accountDialogSource, /account-dialog-footer/);
+    assert.match(accountDialogSource, /account-switch-button/);
+    assert.match(accountDialogSource, /account-switch-text/);
+    assert.match(accountDialogSource, /account-switch-link/);
     assert.match(globalCss, /\.account-dialog-footer\s*\{[\s\S]*border-top:\s*none;/);
     assert.match(globalCss, /\.dark \.account-dialog-footer\s*\{[\s\S]*background-color:\s*rgba\(255,\s*255,\s*255,\s*0\.08\);/);
     assert.match(globalCss, /\.dark \.account-switch-text[\s\S]*color:\s*#ffffff;/);

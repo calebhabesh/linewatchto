@@ -120,6 +120,104 @@ export function readDesktopOverlayInsets(viewport: HTMLElement | null): { left: 
   return { left: 0 };
 }
 
+/**
+ * Reads the combined left occlusion caused by the desktop sidebar, pinned main menu,
+ * or floating panels, constrained to leave at least a minimum visible map width.
+ */
+export function readDesktopLeftOcclusion(
+  viewport: HTMLElement | null,
+  desktopMenuPinned: boolean,
+  focusPadding = 24,
+): number {
+  if (!viewport || typeof window === "undefined" || window.innerWidth < 768) {
+    return 0;
+  }
+
+  const viewportRect = viewport.getBoundingClientRect();
+  if (viewportRect.width <= 0) return 0;
+
+  const desktopOverlay = readDesktopOverlayInsets(viewport);
+  const shell = viewport.closest<HTMLElement>(".linewatch-shell");
+  const overlayRightEdges = [
+    desktopOverlay.left > 0 ? viewportRect.left + desktopOverlay.left : null,
+    desktopMenuPinned ? shell?.querySelector<HTMLElement>("#linewatch-main-menu") : null,
+    shell?.querySelector<HTMLElement>(".floating-panel-shell"),
+  ].flatMap((element) => {
+    if (typeof element === "number") return [element];
+    if (!element || element.getAttribute("aria-hidden") === "true") return [];
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 ? [rect.right] : [];
+  });
+
+  if (overlayRightEdges.length === 0) return 0;
+
+  const overlayRight = Math.max(...overlayRightEdges);
+  const minimumVisibleWidth = Math.min(320, viewportRect.width * 0.4);
+  return Math.min(
+    Math.max(overlayRight - viewportRect.left + focusPadding, 0),
+    Math.max(viewportRect.width - minimumVisibleWidth, 0),
+  );
+}
+
+export type DesktopMapInsets = {
+  top: number;
+  bottom: number;
+};
+
+/**
+ * Measures the top and bottom insets inside the desktop map workspace
+ * caused by the top map control rail and bottom status chips / legend.
+ */
+export function measureDesktopMapInsets(
+  container: HTMLElement | null,
+  rail?: HTMLElement | null,
+): DesktopMapInsets {
+  if (!container || typeof window === "undefined" || window.innerWidth < 768) {
+    return { top: 0, bottom: 0 };
+  }
+
+  const containerRect = container.getClientRects().length > 0
+    ? container.getBoundingClientRect()
+    : container.closest<HTMLElement>(".network-map-transition-surface")?.getBoundingClientRect() ?? { width: 0, height: 0, top: 0, bottom: 0 };
+
+  if (containerRect.width <= 0 || containerRect.height <= 0) {
+    return { top: 0, bottom: 0 };
+  }
+
+  const shell = container.closest<HTMLElement>(".linewatch-shell");
+  const effectiveRail = rail ?? shell?.querySelector<HTMLElement>(".desktop-map-control-rail") ?? null;
+  let top = 0;
+  if (effectiveRail && window.getComputedStyle(effectiveRail).display !== "none") {
+    const railRect = effectiveRail.getBoundingClientRect();
+    if (railRect.width > 0 && railRect.height > 0) {
+      top = Math.min(containerRect.height, Math.max(0, Math.round(railRect.bottom - containerRect.top)));
+    }
+  }
+
+  const impactBadges = shell?.querySelector<HTMLElement>(".desktop-status-chip-row-container")
+    ?? (typeof document !== "undefined" ? document.querySelector<HTMLElement>(".desktop-status-chip-row-container") : null);
+  const legend = shell?.querySelector<HTMLElement>(".desktop-map-legend")
+    ?? (typeof document !== "undefined" ? document.querySelector<HTMLElement>(".desktop-map-legend") : null);
+
+  let bottom = 0;
+  if (impactBadges && window.getComputedStyle(impactBadges).display !== "none") {
+    const badgesRect = impactBadges.getBoundingClientRect();
+    if (badgesRect.width > 0 && badgesRect.height > 0) {
+      bottom = Math.max(bottom, Math.round(containerRect.bottom - badgesRect.top));
+    }
+  }
+  if (legend && window.getComputedStyle(legend).display !== "none") {
+    const legendRect = legend.getBoundingClientRect();
+    if (legendRect.width > 0 && legendRect.height > 0) {
+      bottom = Math.max(bottom, Math.round(containerRect.bottom - legendRect.top));
+    }
+  }
+
+  bottom = Math.min(Math.max(0, containerRect.height - top), Math.max(0, bottom));
+
+  return { top, bottom };
+}
+
 export type DesktopRailDestination =
   | "status"
   | "alerts"

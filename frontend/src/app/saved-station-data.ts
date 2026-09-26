@@ -1,7 +1,15 @@
-import { apiUrl } from "./api-client.ts";
-import { AccountRequestError } from "./account-data.ts";
+import {
+  apiUrl,
+  accountRequestError,
+  accountEmptyRequest,
+  readJson,
+  AccountRequestError,
+  type AdapterOptions,
+} from "./account-transport.ts";
 import type { StationSummary } from "./station-data.ts";
 import type { NetworkId } from "./regional-data.ts";
+
+export { AccountRequestError };
 
 export type AccountSavedStation = {
   networkId: NetworkId;
@@ -15,37 +23,15 @@ export type SavedStationResult = {
   message?: string;
 };
 
-type AdapterOptions = {
-  fetcher?: typeof fetch;
-  apiBaseUrl?: string;
-};
-
-async function readJson<T>(response: Response): Promise<T> {
-  return await response.json() as T;
-}
-
-async function requestError(response: Response) {
-  try {
-    const body = await readJson<{ error?: string; message?: string }>(response);
-    return new AccountRequestError(
-      response.status,
-      body.message || `Saved stations request failed with ${response.status}`,
-      body.error ?? null,
-    );
-  } catch {
-    return new AccountRequestError(response.status, `Saved stations request failed with ${response.status}`);
-  }
-}
-
 export async function getSavedStations(options: AdapterOptions = {}): Promise<SavedStationResult> {
   try {
     const fetcher = options.fetcher ?? fetch;
-    const response = await fetcher(apiUrl("/api/account/stations", options.apiBaseUrl), {
+    const response = await fetcher(apiUrl("/api/account/stations", options), {
       method: "GET",
       credentials: "include",
     });
     if (!response.ok) {
-      throw await requestError(response);
+      throw await accountRequestError(response, "Saved stations request failed");
     }
     const body = await readJson<{ stations: Array<AccountSavedStation | Omit<AccountSavedStation, "networkId">> }>(response);
     return {
@@ -71,11 +57,11 @@ export async function saveStation(
 ) {
   const fetcher = options.fetcher ?? fetch;
   const response = await fetcher(
-    apiUrl(`/api/account/stations/${encodeURIComponent(stationId)}?network=${networkId}`, options.apiBaseUrl),
+    apiUrl(`/api/account/stations/${encodeURIComponent(stationId)}?network=${networkId}`, options),
     { method: "PUT", credentials: "include" },
   );
   if (!response.ok) {
-    throw await requestError(response);
+    throw await accountRequestError(response, "Saved stations request failed");
   }
   const saved = await readJson<AccountSavedStation | Omit<AccountSavedStation, "networkId">>(response);
   return {
@@ -89,12 +75,9 @@ export async function removeSavedStation(
   networkId: NetworkId = "ttc",
   options: AdapterOptions = {},
 ) {
-  const fetcher = options.fetcher ?? fetch;
-  const response = await fetcher(
-    apiUrl(`/api/account/stations/${encodeURIComponent(stationId)}?network=${networkId}`, options.apiBaseUrl),
-    { method: "DELETE", credentials: "include" },
+  await accountEmptyRequest(
+    `/api/account/stations/${encodeURIComponent(stationId)}?network=${networkId}`,
+    { method: "DELETE" },
+    options,
   );
-  if (!response.ok) {
-    throw await requestError(response);
-  }
 }

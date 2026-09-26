@@ -1,5 +1,11 @@
-import { access } from "node:fs/promises";
+import { access, readFile, stat, writeFile } from "node:fs/promises";
+import { readdirSync, statSync } from "node:fs";
 import { spawn } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const rootDir = fileURLToPath(new URL("..", import.meta.url));
+const stampPath = path.join(rootDir, ".next", ".linewatch-playwright-build-stamp");
 
 const testEnvironment = {
   ...process.env,
@@ -12,6 +18,43 @@ async function hasBuildOutput() {
   try {
     await access(new URL("../.next/BUILD_ID", import.meta.url));
     return true;
+  } catch {
+    return false;
+  }
+}
+
+function getMaxMtime(targetPath) {
+  try {
+    const s = statSync(targetPath);
+    if (!s.isDirectory()) return s.mtimeMs;
+    let max = s.mtimeMs;
+    for (const entry of readdirSync(targetPath, { withFileTypes: true })) {
+      max = Math.max(max, getMaxMtime(path.join(targetPath, entry.name)));
+    }
+    return max;
+  } catch {
+    return 0;
+  }
+}
+
+async function isBuildFresh() {
+  if (!(await hasBuildOutput())) return false;
+  const reuseEnv = process.env.LINEWATCH_PLAYWRIGHT_REUSE_BUILD;
+  if (reuseEnv === "true") return true;
+  if (reuseEnv === "false") return false;
+
+  try {
+    const stampContent = JSON.parse(await readFile(stampPath, "utf8"));
+    if (stampContent.apiUrl !== testEnvironment.NEXT_PUBLIC_LINEWATCH_API_BASE_URL) {
+      return false;
+    }
+    const stampStat = await stat(stampPath);
+    const maxSourceMtime = Math.max(
+      getMaxMtime(path.join(rootDir, "src")),
+      getMaxMtime(path.join(rootDir, "public")),
+      getMaxMtime(path.join(rootDir, "package.json")),
+    );
+    return stampStat.mtimeMs >= maxSourceMtime;
   } catch {
     return false;
   }
@@ -36,14 +79,26 @@ function run(command, args) {
   });
 }
 
-const reuseBuild = process.env.LINEWATCH_PLAYWRIGHT_REUSE_BUILD === "true";
-if (!reuseBuild || !(await hasBuildOutput())) {
+if (!(await isBuildFresh())) {
   await run("npm", ["run", "build"]);
+  try {
+    await writeFile(
+      stampPath,
+      JSON.stringify({
+        builtAt: Date.now(),
+        apiUrl: testEnvironment.NEXT_PUBLIC_LINEWATCH_API_BASE_URL,
+      }),
+      "utf8",
+    );
+  } catch {
+    // Non-fatal if stamp write fails
+  }
 }
 
+const appPort = process.env.LINEWATCH_APP_PORT ?? (process.env.LINEWATCH_SMOKE_APP_URL ? new URL(process.env.LINEWATCH_SMOKE_APP_URL).port : "4175");
 const server = spawn(
   "npm",
-  ["run", "start", "--", "--hostname", "127.0.0.1", "--port", "4173"],
+  ["run", "start", "--", "--hostname", "127.0.0.1", "--port", appPort],
   { env: testEnvironment, stdio: "inherit" },
 );
 

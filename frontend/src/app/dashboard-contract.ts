@@ -1,17 +1,23 @@
 import type {
   ActiveAlert,
+  CommuteSummary,
   DelayAlert,
+  IngestionHealthItem,
   LineStatus,
   NetworkSegment,
   PlannedClosure,
   ReducedSpeedZone,
+  ReliabilitySnapshot,
+  ReliabilitySummary,
   Station,
   StationNodeImpact,
   TtcPerformanceSnapshot,
 } from "./linewatch-data.ts";
 
+export type NetworkId = "ttc" | "regional";
+
 export type DashboardApiResponse = {
-  networkId?: "ttc" | "regional";
+  networkId?: NetworkId;
   availability?: "available" | "degraded" | "unavailable";
   sourceSystems?: string[];
   message?: string;
@@ -48,4 +54,27 @@ export function isDashboardApiResponse(value: unknown): value is DashboardApiRes
     && Array.isArray(payload.reducedSpeedZones)
     && Array.isArray(payload.plannedClosures),
   );
+}
+
+export interface DashboardData {
+  snapshot?: { savedAt: number | null; reason: "offline" | "reconnecting" | "stale" | "refreshing" };
+  networkId: NetworkId;
+  dataSource: "backend" | "fallback";
+  availability: "available" | "degraded" | "unavailable" | "fixture";
+  message: string;
+  networkSegments: NetworkSegment[];
+  stations: Station[];
+  lineStatuses: LineStatus[];
+  generatedAt: { time: string; date: string; live: boolean; lastPoll: string };
+  activeAlerts: ActiveAlert[];
+  delays: DelayAlert[];
+  reducedSpeedZones: ReducedSpeedZone[];
+  plannedClosures: PlannedClosure[];
+  stationNodeImpacts: StationNodeImpact[];
+  commuteImpacts: CommuteSummary[];
+  reliabilitySummaries: ReliabilitySummary[];
+  reliability: ReliabilitySnapshot;
+  ttcPerformance: TtcPerformanceSnapshot;
+  ingestionHealth: IngestionHealthItem[];
+  mapAsset: { src: string; viewBox: readonly [number, number, number, number]; legendIcons: Record<string, string> };
 }

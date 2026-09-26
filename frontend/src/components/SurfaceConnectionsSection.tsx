@@ -27,6 +27,7 @@ import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { LiveSignalIcon } from "./LiveSignalIcon";
 import { ArrivalTileSourceIndicator } from "./ArrivalTileSourceIndicator";
+import { ArrivalSourceBadge } from "./ArrivalSourceBadge";
 import { ArrivalDelayBadge } from "./ArrivalDelayBadge";
 
 const REFRESH_MS = 15_000;
@@ -37,23 +38,6 @@ type Props = {
   className?: string;
   variant?: "station-detail" | "saved-station";
 };
-
-function arrivalSourceBadgeClassName(label: string) {
-  const base = "inline-flex h-[22px] shrink-0 items-center rounded border px-2 text-[10.5px] font-black uppercase tracking-wide leading-none";
-  if (label === "Live") {
-    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
-  }
-  if (label === "Scheduled") {
-    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-  }
-  if (label === "Mixed") {
-    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200";
-  }
-  if (label === "Unavailable" || label === "None") {
-    return "inline-flex h-[20px] shrink-0 items-center rounded border px-1.5 text-[9.5px] font-black uppercase tracking-wide leading-none border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-  }
-  return `${base} border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400`;
-}
 
 function SurfaceRouteCard({
   group,
@@ -131,19 +115,7 @@ function SurfaceRouteCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2 self-center">
-          <span
-            className={arrivalSourceBadgeClassName(groupSourceLabel)}
-            data-arrival-source={groupSourceLabel.toLowerCase()}
-          >
-            {groupSourceLabel}
-            {groupSourceLabel === "Live" ? (
-              <LiveSignalIcon className="ml-1.5 inline-block shrink-0 text-emerald-600 dark:text-emerald-300" size={15.5} />
-            ) : groupSourceLabel === "Scheduled" ? (
-              <CalendarCheck2 className="ml-1.5 inline-block shrink-0 text-slate-500 dark:text-slate-400 relative -top-px" size={12} aria-hidden="true" />
-            ) : groupSourceLabel === "Mixed" ? (
-              <Layers className="ml-1.5 inline-block shrink-0 text-cyan-600 dark:text-cyan-400 relative -top-px" size={12} aria-hidden="true" />
-            ) : null}
-          </span>
+          <ArrivalSourceBadge label={groupSourceLabel} />
           <ArrivalLinePinButton
             compact
             pinned={isPinned}

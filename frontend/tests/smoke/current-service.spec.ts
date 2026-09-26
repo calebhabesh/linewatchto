@@ -118,7 +118,7 @@ test("regional readout has corridor identities and separate service notices", as
   await page.goto("/");
 
   // Switch to GO/UP
-  await page.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await page.locator("#desktop-sidebar-container").getByRole("button", { name: "GO/UP", exact: true }).click();
 
   const sidebar = page.locator("#desktop-sidebar-container");
   await expect(sidebar).toContainText(/GO & UP Rail/i);

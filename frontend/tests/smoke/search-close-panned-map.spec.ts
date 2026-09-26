@@ -1,13 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { installDismissedTransientUi } from './test-support';
 
 for (const network of ['ttc', 'regional'] as const) {
   test(`${network}: map does not move when opening and closing search after user pan`, async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile search test');
-    await page.addInitScript(() => {
-      localStorage.setItem('linewatch-welcome-seen-v1', 'true');
-      localStorage.setItem('linewatch-unofficial-notice-ack-v1', 'true');
-      localStorage.setItem('linewatch-pwa-install-dismissed-at-v1', String(Date.now()));
-    });
+    await installDismissedTransientUi(page);
     await page.goto('/?previewTime=2026-08-14T16:00:00.000Z');
     if (network === 'regional') {
       await page.locator('.mobile-map-network-switch').getByRole('button', { name: 'GO/UP', exact: true }).click();

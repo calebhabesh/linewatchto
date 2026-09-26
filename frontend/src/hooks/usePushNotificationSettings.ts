@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import type { AccountState } from "../app/auth-data";
 import {
   disablePushSubscription,
   getPushNotificationConfig,
   savePushSubscription,
   updatePushPreferences,
   defaultPushNotificationPreferences,
-  type AccountState,
   type PushNotificationConfig,
   type PushNotificationPreferences,
-} from "../app/account-data";
+} from "../app/push-data";
 import {
   base64UrlToUint8Array,
   getCurrentPushSubscription,

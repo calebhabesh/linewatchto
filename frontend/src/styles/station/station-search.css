@@ -1520,8 +1520,6 @@
   .linewatch-shell[data-active-view="search"] .site-guide-trigger,
   .linewatch-shell[data-active-view="search"] .mobile-network-selector-slot,
   .linewatch-shell[data-active-view="search"] .mobile-legend-pill,
-  .linewatch-shell[data-active-view="search"] .subway-closed-peek-chip,
-  .linewatch-shell[data-active-view="search"] .go-up-closed-peek-chip,
   .linewatch-shell[data-active-view="search"] .subway-closing-soon-chip,
   .linewatch-shell[data-active-view="search"] .mobile-train-toggle {
     display: none !important;

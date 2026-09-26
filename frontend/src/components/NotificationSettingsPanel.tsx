@@ -11,7 +11,7 @@ import {
   TrainFront,
 } from "lucide-react";
 import { PanelHeader } from "./PanelHeader";
-import type { AccountState } from "../app/account-data";
+import type { AccountState } from "../app/auth-data";
 import type { NetworkId } from "../app/regional-data";
 import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotificationSettings";
 import { DelayIcon } from "./DelayIcon";

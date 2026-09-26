@@ -70,11 +70,14 @@ describe("map line badges", () => {
   });
 
   it("keeps geographic badges decorative and releases collision space at detail zoom", async () => {
-    const source = await readFile(`${frontendRoot}/src/components/GeographicNetworkMap.tsx`, "utf8");
-    const layerStart = source.indexOf('id: "transit-line-badges"');
-    const layerEnd = source.indexOf("function applyDynamicDataAndFilters", layerStart);
-    const layer = source.slice(layerStart, layerEnd);
-    const listenerSection = source.slice(source.indexOf("map.on(\"click\""));
+    const [operationsSource, mapSource] = await Promise.all([
+      readFile(`${frontendRoot}/src/components/geographic-map-operations.ts`, "utf8"),
+      readFile(`${frontendRoot}/src/components/GeographicNetworkMap.tsx`, "utf8"),
+    ]);
+    const layerStart = operationsSource.indexOf('id: "transit-line-badges"');
+    const layerEnd = operationsSource.indexOf("}", operationsSource.indexOf("map.addLayer(", layerStart));
+    const layer = operationsSource.slice(layerStart, layerEnd + 10);
+    const listenerSection = mapSource.slice(mapSource.indexOf("map.on(\"click\""));
 
     assert.ok(layerStart > -1);
     assert.match(layer, /maxzoom: GEOGRAPHIC_LINE_BADGE_HIDDEN_ZOOM/);
@@ -82,7 +85,7 @@ describe("map line badges", () => {
     assert.match(layer, /"icon-allow-overlap": false/);
     assert.match(layer, /"icon-ignore-placement": false/);
     assert.doesNotMatch(listenerSection, /map\.on\([^\n]*transit-line-badges/);
-    assert.match(source, /REGIONAL_ROUTE_DEFINITIONS\.map\(\(route\) =>/);
+    assert.match(operationsSource, /REGIONAL_ROUTE_DEFINITIONS\.map\(\(route\) =>/);
   });
 
   it("separates authored badges from labels, stations, and track artwork without fading them", async () => {

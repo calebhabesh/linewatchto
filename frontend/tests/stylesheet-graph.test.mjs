@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
+  analyzeCssAst,
+  analyzeStylesheetGraph,
   clearStylesheetCache,
   countClassSubstringSelectors,
   countImportantDeclarations,
@@ -12,6 +14,7 @@ import {
   readAppStylesheet,
   readAppStylesheetGraph,
   readStylesheet,
+  resolveStylesheetGraph,
   stripCssComments,
 } from "./helpers/stylesheet-graph.mjs";
 
@@ -236,7 +239,7 @@ describe("stylesheet-graph helper", () => {
     const files = getAppStylesheetGraphFiles();
     assert.ok(files.some(f => f.endsWith("impact-overlays.css")), "impact-overlays.css must be in graph files");
     const overlaysContent = readStylesheet(new URL("../src/styles/map/impact-overlays.css", import.meta.url));
-    assert.match(overlaysContent, /\.asset-svg-frame,\s*\.asset-label-frame/);
+    assert.match(overlaysContent, /\.asset-alert-path/);
     assert.match(overlaysContent, /\.asset-alert-path-glow/);
     assert.match(overlaysContent, /\.asset-alert-path\.suspension-candy/);
     assert.match(overlaysContent, /\.asset-alert-path\.delay-candy/);
@@ -336,7 +339,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(dashboardShellContent, /\.panel-heading/);
     assert.match(dashboardShellContent, /\.map-panel/);
     assert.match(dashboardShellContent, /\.network-map/);
-    assert.match(dashboardShellContent, /\.asset-map-stage/);
     assert.match(dashboardShellContent, /@keyframes map-center-fade-in/);
     assert.match(dashboardShellContent, /\.animate-map-center-fade/);
     assert.match(dashboardShellContent, /\.alert-card/);
@@ -373,8 +375,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(desktopChromeContent, /\.network-selector/);
     assert.match(desktopChromeContent, /\.network-selector-glider/);
     assert.match(desktopChromeContent, /\.desktop-top-chrome/);
-    assert.match(desktopChromeContent, /\.desktop-status-capsule-anchor/);
-    assert.match(desktopChromeContent, /\.desktop-status-capsule/);
     assert.match(desktopChromeContent, /\.desktop-header-impact-chips/);
     assert.match(desktopChromeContent, /\.desktop-status-chip--alerts/);
     assert.match(desktopChromeContent, /\.desktop-status-chip--delays/);
@@ -486,7 +486,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(responsiveDensityContent, /\.station-search-panel/);
     assert.match(responsiveDensityContent, /@media \(orientation: landscape\)/);
     assert.match(responsiveDensityContent, /@media \(min-width: 768px\) and \(max-width: 1099px\)/);
-    assert.match(responsiveDensityContent, /\.desktop-status-capsule-anchor/);
     assert.match(responsiveDensityContent, /@media \(min-width: 768px\) and \(max-width: 899px\)/);
     assert.match(responsiveDensityContent, /\.header-search-bar/);
   });
@@ -1163,7 +1162,6 @@ describe("stylesheet-graph helper", () => {
     assert.match(content, /\.subway-closed-resume/);
     assert.match(content, /\.subway-closed-schedule-table/);
     assert.match(content, /\.go-up-closed-content/);
-    assert.match(content, /\.subway-closed-peek-chip/);
     assert.match(content, /@keyframes subway-closed-modal-enter/);
   });
 
@@ -1214,5 +1212,89 @@ describe("stylesheet-graph helper", () => {
     assert.equal(directives.length, 53);
     assert.equal(directives[0], '@import "tailwindcss" source("../");');
     assert.equal(directives[1], '@import "../styles/foundation/fonts.css";');
+  });
+
+  it("handles repeated/diamond stylesheet imports without duplicate inclusion", () => {
+    const tempDir = join(tmpdir(), `linewatch-css-diamond-test-${Date.now()}`);
+    mkdirSync(tempDir, { recursive: true });
+
+    try {
+      writeFileSync(join(tempDir, "shared.css"), ".shared-utility { margin: 0; }\n");
+      writeFileSync(join(tempDir, "panel-a.css"), '@import "./shared.css";\n.panel-a { display: block; }\n');
+      writeFileSync(join(tempDir, "panel-b.css"), '@import "./shared.css";\n.panel-b { display: flex; }\n');
+      writeFileSync(
+        join(tempDir, "entry.css"),
+        '@import "./panel-a.css";\n@import "./panel-b.css";\n',
+      );
+
+      const result = resolveStylesheetGraph(join(tempDir, "entry.css"), { dedupeRepeated: true });
+      assert.equal(result.files.length, 4);
+      assert.equal(result.repeatedImports.length, 1);
+      assert.equal(result.repeatedImports[0].target, "./shared.css");
+
+      // Verify .shared-utility appears only once in the resolved CSS content
+      const matches = result.content.match(/\.shared-utility/g);
+      assert.equal(matches ? matches.length : 0, 1, "shared styles should only be inlined once");
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("distinguishes external/vendor imports from local authored stylesheets", () => {
+    const tempDir = join(tmpdir(), `linewatch-css-vendor-test-${Date.now()}`);
+    mkdirSync(tempDir, { recursive: true });
+
+    try {
+      writeFileSync(join(tempDir, "local.css"), ".local-rule { color: blue; }\n");
+      writeFileSync(
+        join(tempDir, "entry.css"),
+        '@import "tailwindcss" source("../");\n@import "external-pkg/style.css";\n@import "./local.css";\n',
+      );
+
+      const result = resolveStylesheetGraph(join(tempDir, "entry.css"));
+      assert.equal(result.files.length, 2); // entry and local.css
+      assert.equal(result.vendorImports.length, 2);
+      assert.ok(result.vendorImports[0].includes("tailwindcss"));
+      assert.ok(result.vendorImports[1].includes("external-pkg"));
+      assert.match(result.content, /@import "tailwindcss"/);
+      assert.match(result.content, /\.local-rule/);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("computes comprehensive AST metrics via analyzeCssAst()", () => {
+    const css = `
+      @import "tailwindcss" source("../");
+      @keyframes fade-in { 0% { opacity: 0; } }
+      @keyframes fade-in { 100% { opacity: 1; } }
+      .btn { color: red !important; padding: 2px; }
+      .btn[class*="icon-"] { margin-right: 4px; }
+      .header, .footer { display: flex; }
+      @media (max-width: 600px) {
+        .btn { font-size: 14px; }
+      }
+    `;
+
+    const ast = analyzeCssAst(css);
+    assert.equal(ast.rules, 6); // .btn, .btn[class*="icon-"], .header, .footer, .btn in media, plus keyframe steps
+    assert.equal(ast.decls, 7);
+    assert.equal(ast.importants, 1);
+    assert.equal(ast.media, 1);
+    assert.equal(ast.keyframes, 2);
+    assert.equal(ast.duplicateKeyframes.length, 1);
+    assert.equal(ast.duplicateKeyframes[0].name, "fade-in");
+    assert.equal(ast.classSubstrings, 1);
+    assert.equal(ast.totalSelectors, 7);
+    assert.equal(ast.classTokensCount, 3); // btn, header, footer
+  });
+
+  it("resolves and analyzes graph in one step via analyzeStylesheetGraph()", () => {
+    const analysis = analyzeStylesheetGraph();
+    assert.equal(analysis.files.length, 53);
+    assert.equal(analysis.vendorImports.length, 1);
+    assert.equal(analysis.ast.rules, 5588);
+    assert.equal(analysis.ast.importants, 518);
+    assert.equal(analysis.ast.classSubstrings, 18);
   });
 });
