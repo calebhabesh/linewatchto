@@ -137,3 +137,20 @@ test("prepares regional map SVG with dynamic layers, planned station layer, and 
   expect(layerInventory!.hasUnionLabelHitTarget).toBe(true);
   expect(layerInventory!.hasBloorJunctionSource).toBe(true);
 });
+
+test("switches to GO/UP when a WebKit view transition stalls", async ({ page, request, browserName }) => {
+  test.skip(browserName !== "webkit", "WebKit view transition regression");
+  test.setTimeout(45_000);
+  await setStubMode(request, "seeded");
+  await page.addInitScript(() => {
+    const pending = new Promise<void>(() => {});
+    Object.defineProperty(document, "startViewTransition", {
+      configurable: true,
+      value: () => ({ finished: pending, skipTransition: () => {} }),
+    });
+  });
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "GO/UP", exact: true }).first().click();
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible({ timeout: 10_000 });
+});

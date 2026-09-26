@@ -243,6 +243,7 @@ export function LineWatchShell({
   } | null>(null);
 
   useEffect(() => () => {
+    networkTransitionTargetRef.current = null;
     mobileNetworkTransitionRef.current?.cancel();
     networkFadeAnimationRef.current?.cancel();
     networkViewTransitionRef.current?.skipTransition();
@@ -2019,32 +2020,47 @@ export function LineWatchShell({
       if (networkTransitionTargetRef.current !== network) return;
       document.documentElement.dataset.networkTransitionDirection =
         network === "regional" ? "forward" : "back";
-      const transition = transitionDocument.startViewTransition?.(() => {
+      let applied = false;
+      const commitNetwork = () => {
+        if (applied || networkTransitionTargetRef.current !== network) return;
+        applied = true;
         networkFadeAnimationRef.current?.cancel();
         networkFadeAnimationRef.current = null;
         delete document.documentElement.dataset.networkTransitionPhase;
         flushSync(applyNetworkChange);
         networkTransitionTargetRef.current = null;
-      });
+      };
+      const transition = transitionDocument.startViewTransition?.(commitNetwork);
 
       if (!transition) {
         networkFadeAnimationRef.current?.cancel();
         networkFadeAnimationRef.current = null;
         delete document.documentElement.dataset.networkTransitionPhase;
         delete document.documentElement.dataset.networkTransitionDirection;
-        applyNetworkChange();
-        networkTransitionTargetRef.current = null;
+        commitNetwork();
         return;
       }
 
       networkViewTransitionRef.current = transition;
       const finishNetworkTransition = () => {
         if (networkViewTransitionRef.current !== transition) return;
+        commitNetwork();
         networkViewTransitionRef.current = null;
         delete document.documentElement.dataset.networkTransitionPhase;
         delete document.documentElement.dataset.networkTransitionDirection;
       };
-      void transition.finished.then(finishNetworkTransition, finishNetworkTransition);
+      const fallbackTimer = window.setTimeout(() => {
+        if (applied || networkViewTransitionRef.current !== transition) return;
+        transition.skipTransition();
+        finishNetworkTransition();
+      }, 1_200);
+      void transition.finished.then(() => {
+        window.clearTimeout(fallbackTimer);
+        finishNetworkTransition();
+      }, () => {
+        window.clearTimeout(fallbackTimer);
+        finishNetworkTransition();
+      });
     };
 
     const fadeAnimation = networkMapSurfaceRef.current?.animate(
