@@ -187,11 +187,28 @@ describe("useDashboardSession unit tests", () => {
   });
 
   describe("computeDashboardAvailabilityNotice", () => {
+    it("does not show a connection notice while verifying a newly selected network", () => {
+      for (const savedAt of [null, 100_000]) {
+        const data = snapshotDashboard(sampleLiveTtcData(), savedAt, "refreshing");
+        assert.equal(computeDashboardAvailabilityNotice(data, "ready", 105_000), null);
+        assert.equal(data.generatedAt.live, false);
+      }
+    });
+
     it("renders snapshot notice when snapshot is present", () => {
       const data = sampleLiveTtcData();
       const withSnapshot = snapshotDashboard(data, 100_000, "offline");
       const notice = computeDashboardAvailabilityNotice(withSnapshot, "ready", 160_000);
       assert.match(notice, /Offline/);
+    });
+
+    it("shows real failures during verification and stale snapshots after a switch", () => {
+      for (const [reason, prefix] of [["offline", "Offline"], ["reconnecting", "Reconnecting"], ["stale", "Updates unavailable"]]) {
+        for (const savedAt of [null, 100_000]) {
+          const data = snapshotDashboard(sampleLiveTtcData(), savedAt, reason);
+          assert.ok(computeDashboardAvailabilityNotice(data, "ready", 105_000).startsWith(prefix));
+        }
+      }
     });
 
     it("renders connection issue notice when reconnecting without snapshot", () => {

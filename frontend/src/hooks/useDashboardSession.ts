@@ -100,6 +100,9 @@ export function computeDashboardAvailabilityNotice(
   requestState: DashboardRequestState,
   snapshotClock: number,
 ): string | null {
+  // Initial verification is expected when selecting a network, not a failure.
+  // Keep the snapshot's unknown status while avoiding a transient warning.
+  if (displayData.snapshot?.reason === "refreshing") return null;
   if (displayData.snapshot) {
     return snapshotNotice(displayData.snapshot, snapshotClock);
   }

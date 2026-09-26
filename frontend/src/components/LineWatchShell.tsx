@@ -3019,34 +3019,36 @@ export function LineWatchShell({
     }
 
     // Priority 1: Connection notice
-    if (displayData.snapshot) {
-      return {
-        kind: "connection",
-        message: snapshotNotice(displayData.snapshot, snapshotClock),
-        snapshot: true,
-        showSpinner: !connectionOffline,
-      };
-    }
-    if (dashboardRequestState === "reconnecting") {
-      return {
-        kind: "connection",
-        message: "Connection issue — Showing cached snapshot",
-        showSpinner: true,
-      };
-    }
-    if (displayData.availability === "degraded") {
-      return {
-        kind: "connection",
-        message: "Source refresh issue — Showing last successful update",
-        showSpinner: false,
-      };
-    }
-    if (displayData.availability === "unavailable") {
-      return {
-        kind: "connection",
-        message: "Service unavailable — Showing fallback data",
-        showSpinner: false,
-      };
+    if (displayData.snapshot?.reason !== "refreshing") {
+      if (displayData.snapshot) {
+        return {
+          kind: "connection",
+          message: snapshotNotice(displayData.snapshot, snapshotClock),
+          snapshot: true,
+          showSpinner: !connectionOffline,
+        };
+      }
+      if (dashboardRequestState === "reconnecting") {
+        return {
+          kind: "connection",
+          message: "Connection issue — Showing cached snapshot",
+          showSpinner: true,
+        };
+      }
+      if (displayData.availability === "degraded") {
+        return {
+          kind: "connection",
+          message: "Source refresh issue — Showing last successful update",
+          showSpinner: false,
+        };
+      }
+      if (displayData.availability === "unavailable") {
+        return {
+          kind: "connection",
+          message: "Service unavailable — Showing fallback data",
+          showSpinner: false,
+        };
+      }
     }
 
     // Priority 2: Operating notice
@@ -3563,6 +3565,7 @@ export function LineWatchShell({
   ]);
 
   const mobileConnectionNotice: MobileConnectionNotice | null = useMemo(() => {
+    if (displayData.snapshot?.reason === "refreshing") return null;
     if (displayData.snapshot) return {
       snapshot: true,
       hasSavedSnapshot: displayData.snapshot.savedAt !== null,
