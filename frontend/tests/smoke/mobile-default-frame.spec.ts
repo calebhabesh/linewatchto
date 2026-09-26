@@ -3,11 +3,11 @@ import { installDismissedTransientUi } from './test-support';
 
 for (const closedLaunch of [false, true]) {
 for (const network of ['ttc', 'regional'] as const) {
-  test(`${network} opening is centered above the default service sheet (${closedLaunch ? "closed-screen peek" : "open launch"})`, async ({ page, isMobile }, testInfo) => {
+  test(`${network} opening is centered above the default service sheet (${closedLaunch ? "overnight launch" : "open launch"})`, async ({ page, isMobile }, testInfo) => {
     test.skip(!isMobile, 'mobile framing');
     await installDismissedTransientUi(page);
     await page.goto(`/?previewTime=2026-08-14T${closedLaunch ? "07" : "16"}:00:00.000Z`);
-    if (closedLaunch) await page.getByRole("button", { name: "Peek at Map" }).click();
+    if (closedLaunch) await expect(page.locator(".subway-closed-screen")).toHaveCount(0);
     if (network === 'regional') await page.locator('.mobile-map-network-switch').getByRole('button', { name: 'GO/UP', exact: true }).click();
     await expect(page.locator(`.${network}-map-stage[data-raster-map-ready="true"]`)).toBeVisible();
     await expect(page.locator(".network-map-transition-surface")).not.toHaveAttribute("data-map-surface-transition");

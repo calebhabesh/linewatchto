@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   currentServiceSummary,
+  currentServiceIncidentPresentation,
   currentSurfaceNotices,
   getCanonicalAlertTitle,
   getLineStatusPresentation,
@@ -330,7 +331,7 @@ test("CurrentServicePanel desktop content animates on entrance and suppresses du
 test("pull-up impact rows name the condition and put direction below the location", () => {
   const panel = readFileSync(new URL("../src/components/CurrentServicePanel.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../src/styles/shell/current-service.css", import.meta.url), "utf8");
-  assert.ok(panel.includes('className="current-service-impact-location">{row.condition} · {row.location}</span>'));
+  assert.ok(panel.includes('className="current-service-impact-location">{row.location}</span>'));
   assert.ok(panel.includes('className="current-service-impact-direction">{row.direction}</span>'));
   assert.match(styles, /\.current-service-impact-direction\s*\{[^}]*display:\s*block;/);
 });
@@ -373,11 +374,11 @@ test("sub-badges and surface routes use flex alignment without letter wrapping",
   assert.match(desktopChromeStyles, /\.desktop-status-rail-kicker\s*\{[^}]*font-size:\s*11px;/s);
   assert.match(desktopChromeStyles, /\.desktop-status-rail-kicker\s*\{[^}]*opacity:\s*0\.75;/s);
 
-  // Font size hierarchy (title 14px > location 13px > direction 12px > timing 11.5px)
+  // Location leads; supporting direction and timing remain readable
   assert.match(desktopChromeStyles, /\.desktop-status-incident-title\s*\{[^}]*font-size:\s*14px;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-incident-location\s*\{[^}]*font-size:\s*13px;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-incident-direction\s*\{[^}]*font-size:\s*12px;/s);
-  assert.match(desktopChromeStyles, /\.desktop-status-incident-timing\s*\{[^}]*font-size:\s*11\.5px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-location\s*\{[^}]*font-size:\s*15px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-direction\s*\{[^}]*font-size:\s*13px;/s);
+  assert.match(desktopChromeStyles, /\.desktop-status-incident-timing\s*\{[^}]*font-size:\s*13px;/s);
 
   // Surface route badge column has 2-column grid layout (51px width)
   assert.match(currentServiceStyles, /\.current-service-routes\s*\{[^}]*display:\s*grid;/s);
@@ -392,9 +393,18 @@ test("sub-badges and surface routes use flex alignment without letter wrapping",
   assert.match(desktopChromeStyles, /\.desktop-status-surface-list \.current-service-notice-text\s*\{[^}]*text-align:\s*left;/s);
   assert.match(currentServiceStyles, /\.current-service-notice\s*\{[^}]*text-align:\s*left;/s);
 
-  // ElectricBorder is reserved for subway/light rail and not used on surface alerts
+  // ElectricBorder stays on rail incidents; surface notices remain compact
   const desktopStatusSource = readFileSync(new URL("../src/components/DesktopStatusOverview.tsx", import.meta.url), "utf8");
   assert.match(desktopStatusSource, /<ElectricBorder[\s\S]*?<button[^>]*className="desktop-status-incident-row"/);
   const surfaceSection = desktopStatusSource.slice(desktopStatusSource.indexOf('className="desktop-status-surface-list"'));
   assert.doesNotMatch(surfaceSection, /<ElectricBorder/);
+});
+
+test("desktop incident copy distinguishes active, upcoming and last-reported closures", () => {
+  const row = { id: "closure", kind: "planned-closure", iconKind: "suspension", condition: "Planned Closure in Effect", location: "Finch to Sheppard-Yonge", priority: 0, timing: "Ends Mon at 5:00 AM (50hr)", shuttle: true };
+  assert.deepEqual(currentServiceIncidentPresentation(row), { title: "Planned Closure · In Effect", timing: "Ends Mon at 5:00 AM" });
+  assert.deepEqual(currentServiceIncidentPresentation({ ...row, condition: "Upcoming Closure", iconKind: undefined, priority: 2, timing: "today at 11:00 PM (30min)" }), { title: "Planned Closure · Upcoming", timing: "Starts today at 11:00 PM" });
+  const saved = currentServiceSummary(data({ snapshot: { savedAt: Date.parse("2026-09-09T16:00:00Z") }, activeAlerts: [impact("closure", "1", { relatedPlannedClosureId: "parent" })] })).rows[0];
+  assert.deepEqual(currentServiceIncidentPresentation(saved), { title: "Last Reported: Planned Closure · In Effect", timing: undefined });
+  assert.equal(currentServiceIncidentPresentation({ ...row, kind: "suspension", condition: "No Service" }).title, "No Service");
 });

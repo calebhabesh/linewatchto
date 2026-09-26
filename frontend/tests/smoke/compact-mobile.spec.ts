@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { installDismissedTransientUi } from "./test-support";
 
 const stubUrl = process.env.LINEWATCH_SMOKE_STUB_URL ?? "http://127.0.0.1:4174";
 const openMapPreviewUrl = "/?previewTime=2026-08-14T16:00:00.000Z";
@@ -650,13 +651,11 @@ test("iPhone SE keeps the subway closed card contained and actionable", async ({
   test.skip(!isMobile, "compact phone coverage runs in the touch-device project");
 
   await page.setViewportSize({ width: 375, height: 667 });
-  await page.addInitScript(() => {
-    window.localStorage.setItem("linewatch-welcome-seen-v1", "true");
-    window.localStorage.setItem("linewatch-unofficial-notice-ack-v1", "true");
-    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-  });
+  await installDismissedTransientUi(page);
   await page.goto("/?previewTime=2026-06-04T03:15:00-04:00");
 
+  await expect(page.locator(".subway-closed-screen")).toHaveCount(0);
+  await page.locator(".mobile-service-sheet-notice-row--closed").click();
   const closedCard = page.locator(".subway-closed-content");
   await expect(closedCard).toBeVisible();
   const bounds = await closedCard.boundingBox();

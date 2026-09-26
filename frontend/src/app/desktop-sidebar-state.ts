@@ -18,6 +18,7 @@ export function desktopSidebarWidthForView(activeView: string, selectedStationId
   switch (activeView) {
     case "status":
     case "map":
+      return 420;
     case "more":
     case "menu":
       return 380;
@@ -37,7 +38,7 @@ export type DesktopLayoutMetrics = {
 };
 
 /**
- * Computes responsive layout using the destination width (380px compact, 560px detailed):
+ * Computes responsive layout using the destination width (420px Status, 380px menu, 560px detailed):
  * 1. Mobile or width < 768px: mode = "mobile", sidebarWidth = 0.
  * 2. Dock when rail + destination width + 480px of map fit.
  * 3. Otherwise cap the destination width to leave >= 160px of exposed map.

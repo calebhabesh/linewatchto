@@ -89,11 +89,11 @@ test.describe("vertical centering and mode switch stability", () => {
   });
 
   for (const closedLaunch of [false, true]) {
-  test(`desktop TTC and Regional maps center between the top controls and alert badges (${closedLaunch ? "closed-screen peek" : "open launch"})`, async ({ page, isMobile }) => {
+  test(`desktop TTC and Regional maps center between the top controls and alert badges (${closedLaunch ? "overnight launch" : "open launch"})`, async ({ page, isMobile }) => {
     test.skip(isMobile, "desktop project only");
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto(`/?previewTime=2026-08-14T${closedLaunch ? "07" : "16"}:00:00.000Z`);
-    if (closedLaunch) await page.getByRole("button", { name: "Peek at Map" }).click();
+    if (closedLaunch) await expect(page.locator(".subway-closed-screen")).toHaveCount(0);
 
     // -------------------------------------------------------------
     // 1. VERIFY TTC MAP VERTICAL CENTERING ON INITIAL LOAD

@@ -8,7 +8,7 @@ import { surfaceNoticeServiceLabel, type SurfaceNoticeResponse, type SurfaceNoti
 import {
   currentServiceSummary,
   currentSurfaceNotices,
-  getCanonicalAlertTitle,
+  currentServiceIncidentPresentation,
   getLineStatusPresentation,
   getPlannedClosureCountBadgeLabel,
 } from "../app/current-service";
@@ -380,9 +380,7 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
               <div className="current-service-line-copy">
                 <div className="current-service-line-copy-main" data-has-impacts="true">
                   {item.rows.map((row) => {
-                    const timingLabel = row.timing
-                      ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ") ? "Starts " : "") + row.timing
-                      : null;
+                    const incident = currentServiceIncidentPresentation(row);
                     return (
                       <button
                         type="button"
@@ -394,12 +392,16 @@ export function CurrentServicePanel({ data, notices, onNotice, onImpact, onStatu
                         <span className="current-service-impact-heading">
                           <strong data-kind={row.iconKind || row.kind}>
                             <ImpactTypeIcon kind={row.iconKind || row.kind} size={16} />
-                            {getCanonicalAlertTitle(row)}
+                            {incident.title}
                           </strong>
                         </span>
-                        <span className="current-service-impact-location">{row.condition} · {row.location}</span>
+                        <span className="current-service-impact-location">{row.location}</span>
                         {row.direction && <span className="current-service-impact-direction">{row.direction}</span>}
-                        {timingLabel && <span className="current-service-impact-timing">{timingLabel}</span>}
+                        {(incident.timing || row.shuttle) && (
+                          <span className="current-service-impact-timing">
+                            {[incident.timing, row.shuttle ? "Shuttle Buses Running" : null].filter(Boolean).join(" · ")}
+                          </span>
+                        )}
                       </button>
                     );
                   })}

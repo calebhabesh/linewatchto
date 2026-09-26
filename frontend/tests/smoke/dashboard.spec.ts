@@ -385,11 +385,19 @@ test("reflows desktop chrome after resizing to a half-screen window", async ({ p
   expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(viewportWidth + 1);
 });
 
-test("shows subway closed screen overnight and lets riders peek at the map", async ({ page, request, isMobile }) => {
+test("keeps the overnight map available and opens subway closed details on demand", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await freezeBrowserTime(page, "2026-06-04T03:20:00-04:00");
   await page.goto("/");
 
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
+  await expect(page.locator(".mobile-service-sheet-notice-row--closed")).toBeVisible();
+  if (isMobile) {
+    await page.locator(".mobile-service-sheet-notice-row--closed").click();
+  } else {
+    await page.getByRole("button", { name: /Subway Closed.*Resumes/ }).press("Enter");
+  }
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
   await expect(page.getByText("Monday – Saturday")).toBeVisible();
   await expect(page.getByText("Sunday")).toBeVisible();
@@ -451,6 +459,29 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
     await page.getByRole("button", { name: /Subway Closed.*Resumes/ }).press("Enter");
   }
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
+});
+
+test("keeps the overnight GO/UP map available and opens rail closed details on demand", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "regional-live");
+  await freezeBrowserTime(page, "2026-06-04T03:20:00-04:00");
+  if (isMobile) await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => localStorage.setItem("linewatch-default-network-v1", "regional"));
+  await page.goto("/?previewTime=2026-06-04T03:20:00-04:00");
+
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-network", "regional");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "GO & UP Rail Closed" })).toHaveCount(0);
+  const notice = page.locator(".mobile-service-sheet-notice-row--closed");
+  await expect(notice).toContainText("GO & UP Rail Closed");
+  await notice.press("Enter");
+  await expect(page.getByRole("heading", { name: "GO & UP Rail Closed" })).toBeVisible();
+  await page.getByRole("button", { name: "Peek at Regional Map" }).click();
+  await expect(page.getByRole("heading", { name: "GO & UP Rail Closed" })).toHaveCount(0);
+  await expect(notice).toBeVisible();
+  await page.reload();
+  await expect(notice).toBeVisible();
+  await expect(page.getByRole("heading", { name: "GO & UP Rail Closed" })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test("station activation survives repeated clicks and an earlier panel close", async ({ page, request }) => {

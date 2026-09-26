@@ -167,6 +167,22 @@ export function getCanonicalAlertTitle(row: CurrentServiceRow): string {
   return isSnapshot ? `Last reported: ${title}` : title;
 }
 
+/** Compact incident copy shared by desktop and mobile status views. */
+export function currentServiceIncidentPresentation(row: CurrentServiceRow) {
+  const title = getCanonicalAlertTitle(row)
+    .replace("Planned Closure in Effect", "Planned Closure · In Effect")
+    .replace(/Planned Closure$/, "Planned Closure · Upcoming")
+    .replace("Active Alert", row.condition.endsWith("No Service") ? "No Service" : "Active Alert")
+    .replace("Last reported:", "Last Reported:");
+  const timing = row.timing?.replace(/\s+\(\d+(?:min|hr)\)$/, "");
+  return {
+    title,
+    timing: timing && row.priority === 2 && !/^(Starts|Ends) /.test(timing)
+      ? `Starts ${timing}`
+      : timing,
+  };
+}
+
 export type LineStatusPresentationState =
   | "normal"
   | "reduced-speed-zones"

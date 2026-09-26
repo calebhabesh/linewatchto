@@ -117,10 +117,11 @@ describe("destination-aware sidebar widths", () => {
     computeDesktopLayoutMetrics({ windowWidth, isMobile: false, activeView, selectedStationId });
 
   it("keeps overviews compact and gives detailed views room", () => {
-    for (const view of ["status", "more"]) {
-      assert.equal(metrics(view).sidebarWidth, 380);
-      assert.equal(metrics(view, 939).mode, "overlay");
-      assert.equal(metrics(view, 940).mode, "docked");
+    for (const view of ["status", "map", "more"]) {
+      const width = view === "more" ? 380 : 420;
+      assert.equal(metrics(view).sidebarWidth, width);
+      assert.equal(metrics(view, width + 559).mode, "overlay");
+      assert.equal(metrics(view, width + 560).mode, "docked");
     }
     for (const view of ["search", "my-stations", "commutes", "alerts", "closures", "analytics", "source-status"]) {
       assert.equal(metrics(view).sidebarWidth, 560);
@@ -132,13 +133,13 @@ describe("destination-aware sidebar widths", () => {
   it("expands station detail over Status and restores compact width on dismissal", () => {
     assert.equal(metrics("status", 1024, "station-union").sidebarWidth, 560);
     assert.equal(metrics("status", 1024, "station-union").mode, "overlay");
-    assert.equal(metrics("status", 1024).sidebarWidth, 380);
+    assert.equal(metrics("status", 1024).sidebarWidth, 420);
     assert.equal(metrics("status", 1024).mode, "docked");
   });
 
   it("preserves mobile and exposed-map limits", () => {
     assert.equal(metrics("status", 360).sidebarWidth, 0);
-    assert.equal(metrics("status", 768).sidebarWidth, 380);
+    assert.equal(metrics("status", 768).sidebarWidth, 420);
     assert.equal(metrics("search", 768).sidebarWidth, 528);
   });
 });

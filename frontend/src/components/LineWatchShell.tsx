@@ -952,8 +952,9 @@ export function LineWatchShell({
   const [zoomInSignal, setZoomInSignal] = useState(0);
   const [zoomOutSignal, setZoomOutSignal] = useState(0);
 
-  const [closedMapPeek, setClosedMapPeek] = useState(false);
-  const [closedScreenAcknowledged, setClosedScreenAcknowledged] = useState(false);
+  // Start with the map available overnight; the closed notice opens details on demand.
+  const [closedMapPeek, setClosedMapPeek] = useState(true);
+  const [closedScreenAcknowledged, setClosedScreenAcknowledged] = useState(true);
   const [isClosedScreenExiting, setIsClosedScreenExiting] = useState(false);
   const [isExitingPeekChip, setIsExitingPeekChip] = useState(false);
   const [legendExpanded, setLegendExpanded] = useState(false);

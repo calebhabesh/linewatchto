@@ -332,7 +332,7 @@ for (const [state, time] of [
       await context.setOffline(true);
     } else {
       await page.goto(`/?previewTime=${time}`);
-      if (state === "closed") await page.getByRole("button", { name: "Peek at Map", exact: true }).click();
+      if (state === "closed") await expect(page.locator(".subway-closed-screen")).toHaveCount(0);
     }
     const notice = sheet.locator(".mobile-service-sheet-notice-row");
     await expect(notice).toBeVisible();

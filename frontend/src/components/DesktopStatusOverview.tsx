@@ -29,9 +29,6 @@ import { surfaceNoticePreviewLocation } from "../app/surface-notice-groups";
 
 function getAlertElectricColor(kind: string): string {
   switch (kind) {
-    case "suspension":
-    case "closure":
-      return "#ef4444";
     case "delay":
       return "#f59e0b";
     case "planned-closure":
@@ -40,6 +37,7 @@ function getAlertElectricColor(kind: string): string {
       return "#ef4444";
   }
 }
+
 import type { NetworkId } from "../app/regional-data";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { surfaceNoticeServiceLabel, type SurfaceNoticeResponse, type SurfaceNoticeDetail } from "../app/surface-notice-data";
@@ -47,7 +45,7 @@ import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import {
   currentServiceSummary,
   currentSurfaceNotices,
-  getCanonicalAlertTitle,
+  currentServiceIncidentPresentation,
   getLineStatusPresentation,
   getPlannedClosureCountBadgeLabel,
 } from "../app/current-service";
@@ -283,20 +281,15 @@ export function DesktopStatusOverview({
                 <div className="desktop-status-rail-impacts">
                   <div className="desktop-status-rail-impacts-main" data-has-impacts="true">
                     {item.rows.map((row) => {
-                      const timingLabel = row.timing
-                        ? (row.priority === 2 && !row.timing.startsWith("Starts ") && !row.timing.startsWith("Ends ")
-                            ? "Starts "
-                            : "") + row.timing
-                        : null;
+                      const incident = currentServiceIncidentPresentation(row);
                       const alertKind = row.iconKind || row.kind;
-                      const electricColor = getAlertElectricColor(alertKind);
                       return (
                         <ElectricBorder
                           key={`${row.kind}:${row.id}`}
-                          color={electricColor}
+                          color={getAlertElectricColor(alertKind)}
                           borderRadius={8}
-                          speed={0.2}
-                          chaos={0.01}
+                          speed={0.15}
+                          chaos={0.007}
                         >
                           <button
                             type="button"
@@ -316,17 +309,19 @@ export function DesktopStatusOverview({
                                 data-kind={alertKind}
                               >
                                 <ImpactTypeIcon kind={alertKind} size={16} />
-                                <span>{getCanonicalAlertTitle(row)}</span>
+                                <span>{incident.title}</span>
                               </strong>
                             </div>
                             <div className="desktop-status-incident-location">
-                              {row.condition} · {row.location}
+                              {row.location}
                             </div>
                             {row.direction && (
                               <div className="desktop-status-incident-direction">{row.direction}</div>
                             )}
-                            {timingLabel && (
-                              <div className="desktop-status-incident-timing">{timingLabel}</div>
+                            {(incident.timing || row.shuttle) && (
+                              <div className="desktop-status-incident-timing">
+                                {[incident.timing, row.shuttle ? "Shuttle Buses Running" : null].filter(Boolean).join(" · ")}
+                              </div>
                             )}
                           </button>
                         </ElectricBorder>

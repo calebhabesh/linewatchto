@@ -15,6 +15,7 @@
   --quiet: #64748b;
   --danger: #dc2626;
   --warning: #d97706;
+  --incident-direction-text: #92400e;
   --ok: #16a34a;
   --planned: #2563eb;
   --planned-preview-rail: #f1f5f9;
@@ -94,6 +95,7 @@
   --quiet: #747d8c;
   --danger: #ff4545;
   --warning: #ff9f1c;
+  --incident-direction-text: #e5bd68;
   --ok: #30d175;
   --planned: #4aa3ff;
   --planned-preview-rail: #f1f5f9;
@@ -207,6 +209,7 @@
   --quiet: #f0f0f0;
   --danger: #ff2a2a;
   --warning: #ffd400;
+  --incident-direction-text: #ffffff;
   --ok: #28ff80;
   --planned: #4ab5ff;
   --planned-preview-rail: #ffffff;

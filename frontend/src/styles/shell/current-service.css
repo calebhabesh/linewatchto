@@ -1467,11 +1467,11 @@
     gap: 8px;
     padding: 8px 0;
   }
-  .mobile-service-sheet .current-service-impact { min-height: 44px; padding: 2px 0 4px; }
-  .mobile-service-sheet .current-service-impact-heading strong { font-size: 14px; font-weight: 700; gap: 5px; }
-  .mobile-service-sheet .current-service-impact-location { font-size: 13px; line-height: 1.35; }
-  .mobile-service-sheet .current-service-impact-direction { font-size: 12px; line-height: 1.35; }
-  .mobile-service-sheet .current-service-impact-timing { font-size: 11.5px; line-height: 1.35; }
+  .mobile-service-sheet .current-service-impact { min-height: 44px; padding: 4px 0; gap: 6px; }
+  .mobile-service-sheet .current-service-impact-heading strong { font-size: 14px; font-weight: 700; gap: 5px; line-height: 20px; }
+  .mobile-service-sheet .current-service-impact-location { background: var(--panel-soft); border-left: 2px solid currentColor; padding: 4px 6px; font-size: 15px; font-weight: 650; line-height: 20px; color: var(--text); }
+  .mobile-service-sheet .current-service-impact-direction { font-size: 13px; font-weight: 600; line-height: 20px; color: var(--incident-direction-text); }
+  .mobile-service-sheet .current-service-impact-timing { font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text); }
   .mobile-service-sheet .current-service-normal-label strong { font-size: 14px; font-weight: 700; }
   .mobile-service-sheet .current-service-rsz-label { font-size: 13.5px; font-weight: 600; }
   .mobile-service-sheet .current-service-notice {

@@ -63,6 +63,8 @@ describe("alert scenario scripts", () => {
       scenarioFrontendScript,
       /NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN="\$\{NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN:-true\}"/,
     );
+    assert.match(scenarioFrontendScript, /BUILD_ID.*standalone/s);
+    assert.match(scenarioFrontendScript, /rm -rf "\$REPO_ROOT\/frontend\/\$NEXT_DIST_DIR"/);
   });
 
   it("serves a stable active scenario payload for one mock server process", () => {

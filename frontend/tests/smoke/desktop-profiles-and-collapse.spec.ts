@@ -16,10 +16,10 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
 
     const sidebar = page.locator("#desktop-sidebar-container");
-    // Initial status overview targets 380px
+    // Initial status overview targets 420px
     await expect(sidebar).toHaveClass(/desktop-sidebar-container--docked/);
     const initialBox = await sidebar.boundingBox();
-    expect(initialBox?.width).toBe(380);
+    expect(initialBox?.width).toBe(420);
 
     // Open Delays panel (still 560px detail width)
     await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).click();
@@ -81,7 +81,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
     const sidebar = page.locator("#desktop-sidebar-container");
     const initialBox = await sidebar.boundingBox();
-    expect(initialBox?.width).toBe(380);
+    expect(initialBox?.width).toBe(420);
 
     // Open station details (Union)
     const search = page.getByRole("searchbox", { name: "Station Search" });
@@ -99,9 +99,9 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await closeBtn.click();
     await expect(page.locator(".station-detail-panel")).not.toBeVisible();
     await expect(page.locator(".desktop-view-content-wrapper")).toHaveAttribute("data-nav-direction", "back");
-    await expect(sidebar).toHaveCSS("width", "380px");
+    await expect(sidebar).toHaveCSS("width", "420px");
     const restoredBox = await sidebar.boundingBox();
-    expect(restoredBox?.width).toBe(380);
+    expect(restoredBox?.width).toBe(420);
   });
 
   test("animates collapse, expansion, destination width, and directional page navigation", async ({ page, request, isMobile }) => {
@@ -125,7 +125,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     expect(await sidebar.evaluate((element) => element.getAnimations().some((animation) =>
       animation instanceof CSSTransition && animation.transitionProperty === "width"
     ))).toBe(true);
-    await expect(sidebar).toHaveCSS("width", "380px");
+    await expect(sidebar).toHaveCSS("width", "420px");
     await expect(sidebar).not.toHaveAttribute("inert", "");
 
     await page.locator('[data-dest="more"]').click();
@@ -157,13 +157,13 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
 
     const sidebar = page.locator("#desktop-sidebar-container");
     const ttcBox = await sidebar.boundingBox();
-    expect(ttcBox?.width).toBe(380);
+    expect(ttcBox?.width).toBe(420);
 
     // Switch to GO/UP
     await sidebar.getByRole("button", { name: "GO/UP", exact: true }).click();
     await expect(page.locator(".regional-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
     const goUpBox = await sidebar.boundingBox();
-    expect(goUpBox?.width).toBe(380);
+    expect(goUpBox?.width).toBe(420);
 
     // Open regional station detail (Oakville)
     const search = page.getByRole("searchbox", { name: "Station Search" });
@@ -182,7 +182,7 @@ test.describe("Desktop Adaptive Profiles, Layout Budgets, and Transient Collapse
     await sidebar.getByRole("button", { name: "TTC", exact: true }).click();
     await expect(page.locator(".ttc-map-stage")).toHaveAttribute("data-raster-map-ready", "true");
     const finalTtcBox = await sidebar.boundingBox();
-    expect(finalTtcBox?.width).toBe(380);
+    expect(finalTtcBox?.width).toBe(420);
   });
 
   test("keeps each desktop camera stable through sidebar changes and network switches", async ({ page, request, isMobile }) => {
@@ -274,17 +274,17 @@ test("compact views fit docking boundaries and preserve mobile layout", async ({
   const sidebar = page.locator("#desktop-sidebar-container");
   for (const dest of ["more", "status"]) {
     await page.locator(`[data-dest="${dest}"]`).click();
-    await expect(sidebar).toHaveCSS("width", "380px");
+    await expect(sidebar).toHaveCSS("width", dest === "more" ? "380px" : "420px");
   }
   await page.locator('[data-dest="source-status"]').click();
   await expect(sidebar).toHaveCSS("width", "560px");
   await page.locator('[data-dest="status"]').click();
-  await expect(sidebar).toHaveCSS("width", "380px");
-  for (const width of [939, 940, 767, 768, 360]) {
+  await expect(sidebar).toHaveCSS("width", "420px");
+  for (const width of [979, 980, 767, 768, 360]) {
     await page.setViewportSize({ width, height: 900 });
     if (width >= 768) {
-      await expect(sidebar).toHaveCSS("width", "380px");
-      await expect(sidebar).toHaveClass(width >= 940 ? /--docked/ : /--overlay/);
+      await expect(sidebar).toHaveCSS("width", "420px");
+      await expect(sidebar).toHaveClass(width >= 980 ? /--docked/ : /--overlay/);
     } else {
       await expect(sidebar).not.toBeVisible();
     }

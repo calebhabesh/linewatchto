@@ -34,6 +34,12 @@ fi
 LINEWATCH_BACKEND_URL="${LINEWATCH_BACKEND_URL:-http://localhost:8082}"
 NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-scenario}"
 
+# Wipe stale production build artifacts so Turbopack does not enter a runaway HMR loop.
+if [ -f "$REPO_ROOT/frontend/$NEXT_DIST_DIR/BUILD_ID" ] || [ -d "$REPO_ROOT/frontend/$NEXT_DIST_DIR/standalone" ]; then
+  echo "Cleaning stale production build artifacts in $NEXT_DIST_DIR before starting dev server..."
+  rm -rf "$REPO_ROOT/frontend/$NEXT_DIST_DIR"
+fi
+
 echo "Starting LineWatchTO alert scenario frontend ($SCENARIO) on port $PORT pointing to backend at $LINEWATCH_BACKEND_URL using build dir $NEXT_DIST_DIR..."
 PORT="$PORT" \
   LINEWATCH_BACKEND_URL="$LINEWATCH_BACKEND_URL" \
